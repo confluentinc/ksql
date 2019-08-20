@@ -15,15 +15,21 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.same;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
+import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.Materialized;
@@ -31,52 +37,53 @@ import org.apache.kafka.streams.kstream.Merger;
 import org.apache.kafka.streams.kstream.SessionWindowedKStream;
 import org.apache.kafka.streams.kstream.SessionWindows;
 import org.apache.kafka.streams.state.SessionStore;
-import org.easymock.Capture;
-import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SessionWindowExpressionTest {
 
-  private final KGroupedStream groupedStreamMock = EasyMock.createNiceMock(KGroupedStream.class);
-  private final SessionWindowedKStream sessionWindowed = EasyMock.createNiceMock(SessionWindowedKStream.class);
-  private final UdafAggregator aggregator = EasyMock.createNiceMock(UdafAggregator.class);
-  private final SessionWindowExpression expression = new SessionWindowExpression(5, TimeUnit.SECONDS);
-  private final Initializer initializer = () -> 0;
-  private final Materialized<String, GenericRow, SessionStore<Bytes, byte[]>> materialized = Materialized.as("store");
-  private final Capture<SessionWindows> sessionWindows = EasyMock.newCapture();
-  private final Merger<String, GenericRow> merger = (s, genericRow, v1) -> genericRow;
+  @Mock
+  private KGroupedStream<Struct, GenericRow> stream;
+  @Mock
+  private SessionWindowedKStream<Struct, GenericRow> windowedKStream;
+  @Mock
+  private UdafAggregator aggregator;
+  @Mock
+  private Initializer<GenericRow> initializer;
+  @Mock
+  private Materialized<Struct, GenericRow, SessionStore<Bytes, byte[]>> store;
+  @Mock
+  private Merger<Struct, GenericRow> merger;
+  private SessionWindowExpression windowExpression;
 
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldCreateSessionWindowedStreamWithInactiviyGap() {
-    EasyMock.expect(groupedStreamMock.windowedBy(EasyMock.capture(sessionWindows))).andReturn(sessionWindowed);
-    EasyMock.expect(sessionWindowed.aggregate(same(initializer),
-        same(aggregator),
-        anyObject(Merger.class),
-        same(materialized))).andReturn(null);
-    EasyMock.replay(groupedStreamMock, aggregator, sessionWindowed);
+  @Before
+  public void setUp() {
+    windowExpression = new SessionWindowExpression(5, TimeUnit.SECONDS);
 
-    expression.applyAggregate(groupedStreamMock, initializer, aggregator, materialized);
+    when(stream
+        .windowedBy(any(SessionWindows.class)))
+        .thenReturn(windowedKStream);
 
-    assertThat(sessionWindows.getValue().inactivityGap(), equalTo(5000L));
-    EasyMock.verify(groupedStreamMock);
+    when(aggregator.getMerger()).thenReturn(merger);
   }
 
-  @SuppressWarnings("unchecked")
   @Test
-  public void shouldGetMergerForSessionWindowsFromUdafAggregator() {
-    EasyMock.expect(groupedStreamMock.windowedBy(EasyMock.capture(sessionWindows))).andReturn(sessionWindowed);
-    EasyMock.expect(sessionWindowed.aggregate(same(initializer),
-        same(aggregator),
-        same(merger),
-        same(materialized))).andReturn(null);
-    EasyMock.expect(aggregator.getMerger()).andReturn(merger);
-    EasyMock.replay(groupedStreamMock, aggregator, sessionWindowed);
+  public void shouldCreateSessionWindowed() {
+    // When:
+    windowExpression.applyAggregate(stream, initializer, aggregator, store);
 
-    expression.applyAggregate(groupedStreamMock, initializer, aggregator, materialized);
-
-    EasyMock.verify(aggregator);
-
+    // Then:
+    verify(stream).windowedBy(SessionWindows.with(Duration.ofSeconds(5)));
+    verify(windowedKStream).aggregate(initializer, aggregator, merger, store);
   }
 
+  @Test
+  public void shouldReturnWindowInfo() {
+    assertThat(windowExpression.getWindowInfo(),
+        is(WindowInfo.of(WindowType.SESSION, Optional.empty())));
+  }
 }

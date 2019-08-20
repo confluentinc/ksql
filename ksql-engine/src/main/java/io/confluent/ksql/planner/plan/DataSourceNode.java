@@ -18,42 +18,46 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.AddTimestampColumn;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.QueryContext;
+import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KsqlConsumed;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Window;
@@ -63,28 +67,7 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.apache.kafka.streams.state.KeyValueStore;
 
 @Immutable
-public class DataSourceNode
-    extends PlanNode {
-
-  private static final ValueMapperWithKey<String, GenericRow, GenericRow>
-      nonWindowedValueMapper = (key, row) -> {
-        if (row != null) {
-          row.getColumns().add(0, key);
-        }
-        return row;
-      };
-
-  private static final ValueMapperWithKey<Windowed<String>, GenericRow, GenericRow>
-      windowedMapper = (key, row) -> {
-        if (row != null) {
-          final Window window = key.window();
-          final String end = window instanceof SessionWindow ? String.valueOf(window.end()) : "-";
-          final String rowKey = String.format("%s : Window{start=%d end=%s}",
-              key.key(), window.start(), end);
-          row.getColumns().add(0, rowKey);
-        }
-        return row;
-      };
+public class DataSourceNode extends PlanNode {
 
   private static final String SOURCE_OP_NAME = "source";
   private static final String REDUCE_OP_NAME = "reduce";
@@ -132,10 +115,6 @@ public class DataSourceNode
         requireNonNull(materializedFactorySupplier, "materializedFactorySupplier");
   }
 
-  public String getTopicName() {
-    return dataSource.getKsqlTopicName();
-  }
-
   @Override
   public LogicalSchema getSchema() {
     return schema;
@@ -150,13 +129,17 @@ public class DataSourceNode
     return dataSource;
   }
 
-  public String getAlias() {
+  String getAlias() {
     return alias;
+  }
+
+  public DataSourceType getDataSourceType() {
+    return dataSource.getDataSourceType();
   }
 
   @Override
   public int getPartitions(final KafkaTopicClient kafkaTopicClient) {
-    final String topicName = getDataSource().getKsqlTopic().getKafkaTopicName();
+    final String topicName = dataSource.getKsqlTopic().getKafkaTopicName();
 
     return kafkaTopicClient.describeTopic(topicName)
         .partitions()
@@ -173,72 +156,55 @@ public class DataSourceNode
     return visitor.visitDataSourceNode(this, context);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
-    final int timeStampColumnIndex = getTimeStampColumnIndex();
-    final TimestampExtractor timestampExtractor = getTimestampExtractionPolicy()
-        .create(timeStampColumnIndex);
-
-    final KsqlSerdeFactory valueSerdeFactory = getDataSource()
+    final Optional<WindowInfo> windowInfo = dataSource
         .getKsqlTopic()
-        .getValueSerdeFactory();
+        .getKeyFormat()
+        .getWindowInfo();
 
-    final Serde<GenericRow> streamSerde = builder.buildGenericRowSerde(
-        valueSerdeFactory,
-        PhysicalSchema.from(
-            dataSource.getSchema(),
-            dataSource.getSerdeOptions()
-        ),
-        contextStacker.push(SOURCE_OP_NAME).getQueryContext()
-    );
+    if (windowInfo.isPresent()) {
+      final KeySerdeSupplier<Windowed<Struct>> keySerdeSupplier =
+          (format, physicalSchema, logContext) ->
+              builder.buildKeySerde(format, windowInfo.get(), physicalSchema, logContext);
 
-    if (getDataSourceType() == DataSourceType.KTABLE) {
-      final KsqlTable table = (KsqlTable) getDataSource();
-      final QueryContext.Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
-
-      final Serde<GenericRow> aggregateSerde = builder.buildGenericRowSerde(
-          valueSerdeFactory,
-          PhysicalSchema.from(schema, SerdeOption.none()),
-          reduceContextStacker.getQueryContext()
-      );
-
-      final KTable<?, GenericRow> kTable = createKTable(
-          builder.getStreamsBuilder(),
-          getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
-          streamSerde,
-          aggregateSerde,
-          timestampExtractor,
-          builder.getKsqlConfig(),
-          reduceContextStacker.getQueryContext()
-      );
-      return new SchemaKTable<>(
-          schema,
-          kTable,
-          getKeyField(),
-          new ArrayList<>(),
-          table.getKeySerdeFactory(),
-          SchemaKStream.Type.SOURCE,
-          builder.getKsqlConfig(),
-          builder.getFunctionRegistry(),
-          contextStacker.getQueryContext()
-      );
+      return buildStream(builder, keySerdeSupplier, windowedMapper());
     }
 
-    final KsqlStream stream = (KsqlStream) getDataSource();
-    final KStream kstream = createKStream(
-        builder.getStreamsBuilder(),
-        timestampExtractor,
-        streamSerde
-    );
+    return buildStream(builder, builder::buildKeySerde, nonWindowedValueMapper());
+  }
 
-    return new SchemaKStream<>(
-        getSchema(),
-        kstream,
-        getKeyField(),
-        new ArrayList<>(),
-        stream.getKeySerdeFactory(),
+  private <K> SchemaKStream<K> buildStream(
+      final KsqlQueryBuilder builder,
+      final KeySerdeSupplier<K> keySerdeSupplier,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper
+  ) {
+    final Stacker contextStacker = builder.buildNodeContext(getId());
+
+    final Consumed<K, GenericRow> consumed =
+        buildSourceConsumed(builder, keySerdeSupplier, contextStacker);
+
+    return getDataSourceType() == DataSourceType.KTABLE
+        ? buildSourceTable(builder, consumed, mapper, contextStacker)
+        : buildSourceStream(builder, consumed, mapper, contextStacker);
+  }
+
+  private <K> SchemaKTable<K> buildSourceTable(
+      final KsqlQueryBuilder builder,
+      final Consumed<K, GenericRow> consumed,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper,
+      final Stacker contextStacker
+  ) {
+    final KTable<K, GenericRow> kTable = createKTable(builder, consumed, mapper, contextStacker);
+
+    final KeySerde<K> keySerde = (KeySerde<K>) KsqlConsumed.keySerde(consumed);
+
+    return new SchemaKTable<>(
+        kTable,
+        schema,
+        keySerde,
+        keyField,
+        ImmutableList.of(),
         SchemaKStream.Type.SOURCE,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry(),
@@ -246,20 +212,158 @@ public class DataSourceNode
     );
   }
 
+  private <K> SchemaKStream<K> buildSourceStream(
+      final KsqlQueryBuilder builder,
+      final Consumed<K, GenericRow> consumed,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper,
+      final Stacker contextStacker
+  ) {
+    final KStream<K, GenericRow> kstream = createKStream(builder, consumed, mapper);
+
+    final KeySerde<K> keySerde = (KeySerde<K>) KsqlConsumed.keySerde(consumed);
+
+    return new SchemaKStream<>(
+        kstream,
+        schema,
+        keySerde,
+        keyField,
+        ImmutableList.of(),
+        SchemaKStream.Type.SOURCE,
+        builder.getKsqlConfig(),
+        builder.getFunctionRegistry(),
+        contextStacker.getQueryContext()
+    );
+  }
+
+
+  private <K> KTable<K, GenericRow> createKTable(
+      final KsqlQueryBuilder builder,
+      final Consumed<K, GenericRow> consumed,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper,
+      final Stacker contextStacker
+  ) {
+    final Topology.AutoOffsetReset autoOffsetReset =
+        getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps());
+
+    final Consumed<K, GenericRow> tableConsumed = consumed
+        .withOffsetResetPolicy(autoOffsetReset);
+
+    final Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
+
+    final Serde<GenericRow> aggregateSerde = builder.buildValueSerde(
+        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+        PhysicalSchema.from(schema, SerdeOption.none()),
+        reduceContextStacker.getQueryContext()
+    );
+
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+        materializedFactorySupplier.apply(builder.getKsqlConfig()).create(
+            KsqlConsumed.keySerde(tableConsumed),
+            aggregateSerde,
+            StreamsUtil.buildOpName(reduceContextStacker.getQueryContext()));
+
+    // to build a table we apply the following transformations:
+    return builder.getStreamsBuilder()
+
+        // 1. Create a KStream on the changelog topic.
+        .stream(dataSource.getKsqlTopic().getKafkaTopicName(), tableConsumed)
+
+        // 2. mapValues to add the ROWKEY column
+        .mapValues(mapper)
+
+        // 3. transformValues to add the ROWTIME column. transformValues is required to access the
+        //    streams ProcessorContext which has the timestamp for the record. Also, transformValues
+        //    is only available for KStream (not KTable). This is why we have to create a KStream
+        //    first instead of a KTable.
+        .transformValues(new AddTimestampColumn())
+
+        // 4. mapValues to transform null records into Optional<GenericRow>.EMPTY. We eventually
+        //    need to aggregate the KStream to produce the KTable. However the KStream aggregator
+        //    filters out records with null keys or values. For tables, a null value for a key
+        //    represents that the key was deleted. So we preserve these "tombstone" records by
+        //    converting them to a not-null representation.
+        .mapValues(Optional::ofNullable)
+
+        // 5. Group by the key, so that we can:
+        .groupByKey()
+
+        // 6. Aggregate the KStream into a KTable using a custom aggregator that handles
+        // Optional.EMPTY
+        .aggregate(
+            () -> null,
+            (k, value, oldValue) -> value.orElse(null),
+            materialized);
+  }
+
+  private <K> KStream<K, GenericRow> createKStream(
+      final KsqlQueryBuilder builder,
+      final Consumed<K, GenericRow> consumed,
+      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper
+  ) {
+    // to build a stream we apply the following transformations:
+    return builder.getStreamsBuilder()
+
+        // 1. Create a KStream on the changelog topic.
+        .stream(dataSource.getKsqlTopic().getKafkaTopicName(), consumed)
+
+        // 2. mapValues to add the ROWKEY column
+        .mapValues(mapper)
+
+        // 3. transformValues to add the ROWTIME column. transformValues is required to access the
+        //    streams ProcessorContext which has the timestamp for the record.
+        .transformValues(new AddTimestampColumn());
+  }
+
+  private <K> Consumed<K, GenericRow> buildSourceConsumed(
+      final KsqlQueryBuilder builder,
+      final KeySerdeSupplier<K> keySerdeSupplier,
+      final Stacker contextStacker
+  ) {
+    final QueryContext logContext = contextStacker
+        .push(SOURCE_OP_NAME)
+        .getQueryContext();
+
+    final PhysicalSchema schema = PhysicalSchema.from(
+        dataSource.getSchema(),
+        dataSource.getSerdeOptions()
+    );
+
+    final KsqlTopic topic = dataSource.getKsqlTopic();
+    final KeyFormat keyFormat = topic.getKeyFormat();
+    final FormatInfo format = keyFormat.getFormatInfo();
+
+    final Serde<K> keySerde = keySerdeSupplier.buildKeySerde(format, schema, logContext);
+
+    final Serde<GenericRow> valueSerde = builder
+        .buildValueSerde(topic.getValueFormat().getFormatInfo(), schema, logContext);
+
+    final TimestampExtractor timestampExtractor = dataSource.getTimestampExtractionPolicy()
+        .create(getTimeStampColumnIndex());
+
+    return Consumed
+        .with(keySerde, valueSerde)
+        .withTimestampExtractor(timestampExtractor);
+  }
+
   private static Topology.AutoOffsetReset getAutoOffsetReset(final Map<String, Object> props) {
-    if (props.containsKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)) {
-      final String offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG).toString();
-      if (offestReset.equalsIgnoreCase("EARLIEST")) {
-        return Topology.AutoOffsetReset.EARLIEST;
-      } else if (offestReset.equalsIgnoreCase("LATEST")) {
-        return Topology.AutoOffsetReset.LATEST;
-      }
+    final Object offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    if (offestReset == null) {
+      return null;
     }
-    return null;
+
+    try {
+      return AutoOffsetReset.valueOf(offestReset.toString().toUpperCase());
+    } catch (final Exception e) {
+      throw new ConfigException(
+          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+          offestReset,
+          "Unknown value"
+      );
+    }
   }
 
   private int getTimeStampColumnIndex() {
-    final String timestampFieldName = getTimestampExtractionPolicy().timestampField();
+    final String timestampFieldName = dataSource.getTimestampExtractionPolicy().timestampField();
     if (timestampFieldName == null) {
       return -1;
     }
@@ -303,115 +407,45 @@ public class DataSourceNode
     return null;
   }
 
-  @SuppressWarnings("unchecked")
-  private KStream<?, GenericRow> createKStream(
-      final StreamsBuilder builder,
-      final TimestampExtractor timestampExtractor,
-      final Serde<GenericRow> streamSerde) {
-    final KsqlStream ksqlStream = (KsqlStream) getDataSource();
-
-    if (ksqlStream.hasWindowedKey()) {
-      return stream(builder, timestampExtractor, streamSerde,
-          (Serde<Windowed<String>>)ksqlStream.getKeySerdeFactory().create(), windowedMapper);
+  private org.apache.kafka.connect.data.Field getKeySchemaSingleField() {
+    if (schema.keySchema().fields().size() != 1) {
+      throw new IllegalStateException("Only single key fields are currently supported");
     }
 
-    return stream(builder, timestampExtractor, streamSerde,
-        (Serde<String>)ksqlStream.getKeySerdeFactory().create(), nonWindowedValueMapper);
+    return schema.keySchema().fields().get(0);
   }
 
-  private <K> KStream<K, GenericRow> stream(
-      final StreamsBuilder builder,
-      final TimestampExtractor timestampExtractor,
-      final Serde<GenericRow> genericRowSerde,
-      final Serde<K> keySerde,
-      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper) {
-
-    final Consumed<K, GenericRow> consumed = Consumed
-        .with(keySerde, genericRowSerde)
-        .withTimestampExtractor(timestampExtractor);
-
-    return builder
-        .stream(getDataSource().getKsqlTopic().getKafkaTopicName(), consumed)
-        .mapValues(mapper)
-        .transformValues(new AddTimestampColumn());
+  private ValueMapperWithKey<Windowed<Struct>, GenericRow, GenericRow> windowedMapper() {
+    final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField();
+    return (keyStruct, row) -> {
+      if (row != null) {
+        final Window window = keyStruct.window();
+        final long start = window.start();
+        final String end = window instanceof SessionWindow ? String.valueOf(window.end()) : "-";
+        final Object key = keyStruct.key().get(keyField);
+        final String rowKey = String.format("%s : Window{start=%d end=%s}", key, start, end);
+        row.getColumns().add(0, rowKey);
+      }
+      return row;
+    };
   }
 
-  @SuppressWarnings("unchecked")
-  private KTable<?, GenericRow> createKTable(
-      final StreamsBuilder builder, 
-      final Topology.AutoOffsetReset autoOffsetReset,
-      final Serde<GenericRow> streamSerde,
-      final Serde<GenericRow> aggregateSerde,
-      final TimestampExtractor timestampExtractor,
-      final KsqlConfig ksqlConfig,
-      final QueryContext reduceContextBuilder) {
-    // to build a table we apply the following transformations:
-    // 1. Create a KStream on the changelog topic.
-    // 2. mapValues to add the ROWKEY column
-    // 3. transformValues to add the ROWTIME column. transformValues is required to access the
-    //    streams ProcessorContext which has the timestamp for the record. Also, transformValues
-    //    is only available for KStream (not KTable). This is why we have to create a KStream
-    //    first instead of a KTable.
-    // 4. mapValues to transform null records into Optional<GenericRow>.EMPTY. We eventually need
-    //    to aggregate the KStream to produce the KTable. However the KStream aggregator filters
-    //    out records with null keys or values. For tables, a null value for a key represents
-    //    that the key was deleted. So we preserve these "tombstone" records by converting them
-    //    to a not-null representation.
-    // 5. Aggregate the KStream into a KTable using a custom aggregator that handles Optional.EMPTY
-    final KsqlTable ksqlTable = (KsqlTable) getDataSource();
-
-    if (ksqlTable.isWindowed()) {
-      return table(
-          builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(), windowedMapper,
-          (Serde<Windowed<String>>)ksqlTable.getKeySerdeFactory().create(),
-          streamSerde, aggregateSerde, ksqlConfig, reduceContextBuilder);
-    }
-
-    return table(
-        builder, autoOffsetReset, timestampExtractor, ksqlTable.getKsqlTopic(),
-        nonWindowedValueMapper, (Serde<String>)ksqlTable.getKeySerdeFactory().create(),
-        streamSerde, aggregateSerde, ksqlConfig, reduceContextBuilder);
+  private ValueMapperWithKey<Struct, GenericRow, GenericRow> nonWindowedValueMapper() {
+    final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField();
+    return (key, row) -> {
+      if (row != null) {
+        row.getColumns().add(0, key.get(keyField));
+      }
+      return row;
+    };
   }
 
-  private <K> KTable<?, GenericRow> table(
-      final StreamsBuilder builder,
-      final Topology.AutoOffsetReset autoOffsetReset,
-      final TimestampExtractor timestampExtractor,
-      final KsqlTopic ksqlTopic,
-      final ValueMapperWithKey<K, GenericRow, GenericRow> valueMapper,
-      final Serde<K> keySerde,
-      final Serde<GenericRow> streamSerde,
-      final Serde<GenericRow> aggregateSerde,
-      final KsqlConfig ksqlConfig,
-      final QueryContext reduceContextBuilder
-  ) {
-    final Consumed<K, GenericRow> consumed = Consumed
-        .with(keySerde, streamSerde)
-        .withOffsetResetPolicy(autoOffsetReset)
-        .withTimestampExtractor(timestampExtractor);
+  private interface KeySerdeSupplier<K> {
 
-    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        materializedFactorySupplier.apply(ksqlConfig).create(
-            keySerde,
-            aggregateSerde,
-            StreamsUtil.buildOpName(reduceContextBuilder));
-    return builder
-        .stream(ksqlTopic.getKafkaTopicName(), consumed)
-        .mapValues(valueMapper)
-        .transformValues(new AddTimestampColumn())
-        .mapValues(Optional::ofNullable)
-        .groupByKey()
-        .aggregate(
-            () -> null,
-            (k, value, oldValue) -> value.orElse(null),
-            materialized);
-  }
-
-  public DataSourceType getDataSourceType() {
-    return dataSource.getDataSourceType();
-  }
-
-  private TimestampExtractionPolicy getTimestampExtractionPolicy() {
-    return dataSource.getTimestampExtractionPolicy();
+    KeySerde<K> buildKeySerde(
+        FormatInfo format,
+        PhysicalSchema schema,
+        QueryContext queryContext
+    );
   }
 }

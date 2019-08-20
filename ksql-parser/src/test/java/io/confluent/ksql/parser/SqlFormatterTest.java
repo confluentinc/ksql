@@ -24,6 +24,10 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -33,7 +37,6 @@ import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropStream;
@@ -41,34 +44,36 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class SqlFormatterTest {
 
   @Rule
@@ -80,40 +85,38 @@ public class SqlFormatterTest {
 
   private MutableMetaStore metaStore;
 
-  private static final Schema addressSchema = SchemaBuilder.struct()
-      .field("NUMBER", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-      .optional().build();
+  private static final SqlType addressSchema = SqlTypes.struct()
+      .field("NUMBER", SqlTypes.BIGINT)
+      .field("STREET", SqlTypes.STRING)
+      .field("CITY", SqlTypes.STRING)
+      .field("STATE", SqlTypes.STRING)
+      .field("ZIPCODE", SqlTypes.BIGINT)
+      .build();
 
-  private static final Schema categorySchema = SchemaBuilder.struct()
-      .field("ID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-      .optional().build();
+  private static final SqlType categorySchema = SqlTypes.struct()
+      .field("ID", SqlTypes.BIGINT)
+      .field("NAME", SqlTypes.STRING)
+      .build();
 
-  private static final Schema itemInfoSchema = SchemaBuilder.struct()
-      .field("ITEMID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("NAME", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("CATEGORY", categorySchema)
-      .optional().build();
+  private static final LogicalSchema itemInfoSchema = LogicalSchema.builder()
+      .valueField("ITEMID", SqlTypes.BIGINT)
+      .valueField("NAME", SqlTypes.STRING)
+      .valueField("CATEGORY", categorySchema)
+      .build();
 
-  private static final Schema schemaBuilderOrders = SchemaBuilder.struct()
-      .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ORDERID", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("ITEMID", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("ITEMINFO", itemInfoSchema)
-      .field("ORDERUNITS", Schema.OPTIONAL_INT32_SCHEMA)
-      .field("ARRAYCOL",SchemaBuilder
-          .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .optional()
+  private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
+      .valueField("ORDERTIME", SqlTypes.BIGINT)
+      .valueField("ORDERID", SqlTypes.BIGINT)
+      .valueField("ITEMID", SqlTypes.STRING)
+      .valueField("ITEMINFO", SqlTypes
+          .struct()
+          .fields(itemInfoSchema.valueFields())
           .build())
-      .field("MAPCOL", SchemaBuilder
-          .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .optional()
-          .build())
-      .field("ADDRESS", addressSchema)
+      .valueField("ORDERUNITS", SqlTypes.INTEGER)
+      .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueField("ADDRESS", addressSchema)
+      .valueField("SIZE", SqlTypes.INTEGER) // Reserved word
       .build();
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
@@ -146,38 +149,41 @@ public class SqlFormatterTest {
 
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
 
-    final KsqlTopic
-        ksqlTopicOrders =
-        new KsqlTopic("ADDRESS_TOPIC", "orders_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicOrders = new KsqlTopic(
+        "orders_topic",
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        false
+    );
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
         "ADDRESS",
-        LogicalSchema.of(schemaBuilderOrders),
+        ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", schemaBuilderOrders.field("ORDERTIME")),
+        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicOrders,
-        Serdes::String
+        ksqlTopicOrders
     );
 
-    metaStore.putTopic(ksqlTopicOrders);
     metaStore.putSource(ksqlStreamOrders);
 
-    final KsqlTopic
-        ksqlTopicItems =
-        new KsqlTopic("ITEMS_TOPIC", "item_topic", new KsqlJsonSerdeFactory(), false);
+    final KsqlTopic ksqlTopicItems = new KsqlTopic(
+        "item_topic",
+        KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+        ValueFormat.of(FormatInfo.of(Format.JSON)),
+        false
+    );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        LogicalSchema.of(itemInfoSchema),
+        itemInfoSchema,
         SerdeOption.none(),
-        KeyField.of("ITEMID", itemInfoSchema.field("ITEMID")),
+        KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
-        ksqlTopicItems,
-        Serdes::String
+        ksqlTopicItems
     );
-    metaStore.putTopic(ksqlTopicItems);
+
     metaStore.putSource(ksqlTableOrders);
   }
 
@@ -342,8 +348,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectQueryCorrectly() {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
         + "FROM ADDRESS A"));
   }
@@ -351,18 +356,25 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSelectStarCorrectly() {
     final String statementString = "CREATE STREAM S AS SELECT * FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT *\n"
             + "FROM ADDRESS ADDRESS"));
   }
 
   @Test
+  public void shouldFormatCSASWithReservedWords() {
+    final String statementString = "CREATE STREAM S AS SELECT ITEMID, \"SIZE\" FROM address;";
+    final Statement statement = parseSingle(statementString);
+    assertThat(SqlFormatter.formatSql(statement),
+        equalTo("CREATE STREAM S AS SELECT\n" +
+            "  ADDRESS.ITEMID \"ITEMID\",\n  ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS"));
+  }
+
+  @Test
   public void shouldFormatSelectStarCorrectlyWithOtherFields() {
     final String statementString = "CREATE STREAM S AS SELECT *, address AS city FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  *,\n"
@@ -374,8 +386,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectStarCorrectlyWithJoin() {
     final String statementString = "CREATE STREAM S AS SELECT address.*, itemid.* "
         + "FROM address INNER JOIN itemid ON address.address = itemid.address->address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.*,\n"
@@ -388,8 +399,7 @@ public class SqlFormatterTest {
   public void shouldFormatSelectStarCorrectlyWithJoinOneSidedStar() {
     final String statementString = "CREATE STREAM S AS SELECT address.*, itemid.ordertime "
         + "FROM address INNER JOIN itemid ON address.address = itemid.address->address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.*,\n"
@@ -401,8 +411,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSelectCorrectlyWithDuplicateFields() {
     final String statementString = "CREATE STREAM S AS SELECT address AS one, address AS two FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.ADDRESS \"ONE\",\n"
@@ -413,8 +422,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatCsasWithClause() {
     final String statementString = "CREATE STREAM S WITH(partitions=4) AS SELECT * FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -424,8 +432,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatCtasWithClause() {
     final String statementString = "CREATE TABLE S WITH(partitions=4) AS SELECT * FROM address;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -435,8 +442,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatCsasPartitionBy() {
     final String statementString = "CREATE STREAM S AS SELECT * FROM ADDRESS PARTITION BY ADDRESS;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -448,8 +454,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatInsertIntoPartitionBy() {
     final String statementString = "INSERT INTO ADDRESS SELECT * FROM ADDRESS PARTITION BY ADDRESS;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -461,8 +466,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatExplainQuery() {
     final String statementString = "EXPLAIN foo;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -472,8 +476,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatExplainStatement() {
     final String statementString = "EXPLAIN SELECT * FROM ADDRESS;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -529,10 +532,69 @@ public class SqlFormatterTest {
   }
 
   @Test
+  public void shouldFormatTerminateQuery() {
+    // Given:
+    final TerminateQuery terminateQuery = new TerminateQuery(Optional.empty(), "FOO");
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(terminateQuery);
+
+    // Then:
+    assertThat(formatted, is("TERMINATE FOO"));
+  }
+
+  @Test
+  public void shouldFormatShowTables() {
+    // Given:
+    final ListTables listTables = new ListTables(Optional.empty(), false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listTables);
+
+    // Then:
+    assertThat(formatted, is("SHOW TABLES"));
+  }
+
+  @Test
+  public void shouldFormatShowTablesExtended() {
+    // Given:
+    final ListTables listTables = new ListTables(Optional.empty(), true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listTables);
+
+    // Then:
+    assertThat(formatted, is("SHOW TABLES EXTENDED"));
+  }
+
+  @Test
+  public void shouldFormatShowStreams() {
+    // Given:
+    final ListStreams listStreams = new ListStreams(Optional.empty(), false);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listStreams);
+
+    // Then:
+    assertThat(formatted, is("SHOW STREAMS"));
+  }
+
+  @Test
+  public void shouldFormatShowStreamsExtended() {
+    // Given:
+    final ListStreams listStreams = new ListStreams(Optional.empty(), true);
+
+    // When:
+    final String formatted = SqlFormatter.formatSql(listStreams);
+
+    // Then:
+    assertThat(formatted, is("SHOW STREAMS EXTENDED"));
+  }
+
+  @Test
   public void shouldFormatInsertValuesStatement() {
     final String statementString = "INSERT INTO ADDRESS (NUMBER, STREET, CITY) VALUES (2, 'high', 'palo alto');";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -542,8 +604,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatInsertValuesNoSchema() {
     final String statementString = "INSERT INTO ADDRESS VALUES (2);";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -567,8 +628,7 @@ public class SqlFormatterTest {
   public void shouldFormatTumblingWindow() {
     // Given:
     final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW TUMBLING (SIZE 7 DAYS) GROUP BY ITEMID;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -584,8 +644,7 @@ public class SqlFormatterTest {
   public void shouldFormatHoppingWindow() {
     // Given:
     final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS) GROUP BY ITEMID;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(statementString);
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -600,9 +659,8 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatSessionWindow() {
     // Given:
-    final String statementString = "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW SESSION (15 MINUTES) GROUP BY ITEMID;";
-    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore)
-        .getStatement();
+    final Statement statement = parseSingle(
+        "CREATE STREAM S AS SELECT ITEMID, COUNT(*) FROM ORDERS WINDOW SESSION (15 MINUTES) GROUP BY ITEMID;");
 
     final String result = SqlFormatter.formatSql(statement);
 
@@ -612,6 +670,34 @@ public class SqlFormatterTest {
         + "FROM ORDERS ORDERS\n"
         + "WINDOW SESSION ( 15 MINUTES ) \n"
         + "GROUP BY ORDERS.ITEMID"));
+  }
+
+  @Test
+  public void shouldFormatDescribeSource() {
+    // Given:
+    final Statement statement = parseSingle("DESCRIBE ORDERS;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("DESCRIBE ORDERS"));
+  }
+
+  @Test
+  public void shouldFormatStructWithReservedWords() {
+    // Given:
+    final Statement statement = parseSingle("CREATE STREAM s (foo STRUCT<`END` VARCHAR>) WITH (kafka_topic='foo', value_format='JSON');");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM S (FOO STRUCT<`END` STRING>) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='JSON');"));
+  }
+
+  private Statement parseSingle(final String statementString) {
+    return KsqlParserTestUtil.buildSingleAst(statementString, metaStore).getStatement();
   }
 
   private void assertValidSql(final String sql) {

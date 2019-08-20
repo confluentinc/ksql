@@ -94,7 +94,6 @@ public class SqlPredicateTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldIgnoreNullRows() {
     // Given:
     final SqlPredicate sqlPredicate =
@@ -136,12 +135,15 @@ public class SqlPredicateTest {
   }
 
   private SqlPredicate givenSqlPredicateFor(final String statement) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(statement, metaStore);
+    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
+        ksqlConfig,
+        statement,
+        metaStore
+    );
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
     return new SqlPredicate(
         filterNode.getPredicate(),
         logicalPlan.getTheSourceNode().getSchema(),
-        false,
         ksqlConfig,
         functionRegistry,
         processingLogger

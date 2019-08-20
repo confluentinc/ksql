@@ -36,15 +36,15 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.Format;
@@ -164,8 +164,6 @@ public class QueryAnalyzerTest {
     final DataSource<?> test0 = metaStore.getSource("TEST0");
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
-    assertThat(into.getKeySerdeFactory().create(),
-        is(instanceOf(test0.getKeySerdeFactory().create().getClass())));
   }
 
   @Test
@@ -478,7 +476,7 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
 
     // Then:
-    assertThat(analysis.getInto().get().getKsqlTopic().getValueSerdeFactory().getFormat(),
+    assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
         is(Format.DELIMITED));
   }
 

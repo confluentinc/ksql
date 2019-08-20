@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,6 +34,11 @@ public class UnsetProperty extends Statement {
 
   public String getPropertyName() {
     return propertyName;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitUnsetProperty(this, context);
   }
 
   @Override

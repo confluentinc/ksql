@@ -22,6 +22,7 @@ import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -89,12 +90,12 @@ public abstract class BaseSumKudafTest<
   public void shouldComputeCorrectSumMerge() {
     final TGenerator<T> tGenerator = getTGenerator();
     final AT sumKudaf = getSumKudaf();
-    final Merger<String, T> merger = sumKudaf.getMerger();
-    final T mergeResult1 = merger.apply("key", tGenerator.fromInt(10), tGenerator.fromInt(12));
+    final Merger<Struct, T> merger = sumKudaf.getMerger();
+    final T mergeResult1 = merger.apply(null, tGenerator.fromInt(10), tGenerator.fromInt(12));
     assertThat(mergeResult1, equalTo(tGenerator.fromInt(22)));
-    final T mergeResult2 = merger.apply("key", tGenerator.fromInt(10), tGenerator.fromInt(-12));
+    final T mergeResult2 = merger.apply(null, tGenerator.fromInt(10), tGenerator.fromInt(-12));
     assertThat(mergeResult2, equalTo(tGenerator.fromInt(-2)));
-    final T mergeResult3 = merger.apply("key", tGenerator.fromInt(-10), tGenerator.fromInt(0));
+    final T mergeResult3 = merger.apply(null, tGenerator.fromInt(-10), tGenerator.fromInt(0));
     assertThat(mergeResult3, equalTo(tGenerator.fromInt(-10)));
   }
 

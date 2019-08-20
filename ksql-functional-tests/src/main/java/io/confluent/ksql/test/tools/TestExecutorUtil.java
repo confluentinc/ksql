@@ -24,6 +24,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.FakeInsertValuesExecutor;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -42,11 +43,12 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.utils.SerdeUtil;
-import io.confluent.ksql.test.utils.WindowUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -57,10 +59,11 @@ import org.apache.avro.Schema;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class TestExecutorUtil {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private TestExecutorUtil() {
-
   }
 
   static List<TopologyTestDriverContainer> buildStreamsTopologyTestDrivers(
@@ -99,11 +102,14 @@ final class TestExecutorUtil {
           .collect(Collectors.toList());
 
       final Topic sinkTopic = buildSinkTopic(
-          ksqlEngine.getMetaStore()
-              .getSource(persistentQueryMetadata.getSinkNames().iterator().next()),
+          ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName()),
           persistentQueryAndSortedSources.getWindowSize(),
           fakeKafkaService,
           serviceContext.getSchemaRegistryClient());
+      testCase.setGeneratedTopologies(
+          ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
+      testCase.setGeneratedSchemas(
+          ImmutableList.of(persistentQueryMetadata.getSchemasDescription()));
       topologyTestDrivers.add(TopologyTestDriverContainer.of(
           topologyTestDriver,
           sourceTopics,
@@ -124,14 +130,20 @@ final class TestExecutorUtil {
     final Optional<org.apache.avro.Schema> avroSchema =
         getAvroSchema(sinkDataSource, schemaRegistryClient);
 
+    final SerdeSupplier<?> keySerdeFactory = SerdeUtil.getKeySerdeSupplier(
+        sinkDataSource.getKsqlTopic().getKeyFormat(),
+        sinkDataSource::getSchema
+    );
+
     final SerdeSupplier<?> valueSerdeSupplier = SerdeUtil.getSerdeSupplier(
-        sinkDataSource.getValueSerdeFactory().getFormat()
+        sinkDataSource.getKsqlTopic().getValueFormat().getFormat(),
+        sinkDataSource::getSchema
     );
 
     final Topic sinkTopic = new Topic(
         kafkaTopicName,
         avroSchema,
-        sinkDataSource.getKeySerdeFactory(),
+        keySerdeFactory,
         valueSerdeSupplier,
         KsqlConstants.legacyDefaultSinkPartitionCount,
         KsqlConstants.legacyDefaultSinkReplicaCount,
@@ -149,7 +161,7 @@ final class TestExecutorUtil {
   private static Optional<Schema> getAvroSchema(
       final DataSource<?> dataSource,
       final SchemaRegistryClient schemaRegistryClient) {
-    if (dataSource.getValueSerdeFactory().getFormat() == Format.AVRO) {
+    if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
       try {
         final SchemaMetadata schemaMetadata = schemaRegistryClient.getLatestSchemaMetadata(
             dataSource.getKafkaTopicName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
@@ -249,27 +261,48 @@ final class TestExecutorUtil {
         schemaInjector
             .map(injector -> injector.inject(configured))
             .orElse((ConfiguredStatement) configured);
-    final ExecuteResult executeResult = executionContext.execute(withSchema);
+    final ConfiguredStatement<?> reformatted =
+        new SqlFormatInjector(executionContext).inject(withSchema);
+
+    final ExecuteResult executeResult;
+    try {
+      executeResult = executionContext.execute(reformatted);
+    } catch (final KsqlStatementException statementException) {
+      // use the original statement text in the exception so that tests
+      // can easily check that the failed statement is the input statement
+      throw new KsqlStatementException(
+          statementException.getMessage(),
+          withSchema.getStatementText(),
+          statementException.getCause());
+    }
     if (prepared.getStatement() instanceof CreateAsSelect) {
       return new ExecuteResultAndSortedSources(
           executeResult,
           getSortedSources(
               ((CreateAsSelect)prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          WindowUtil.getWindowSize(((CreateAsSelect)prepared.getStatement()).getQuery()));
+          getWindowSize(((CreateAsSelect) prepared.getStatement()).getQuery()));
     }
     if (prepared.getStatement() instanceof InsertInto) {
       return new ExecuteResultAndSortedSources(
           executeResult,
           getSortedSources(((InsertInto) prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
-          WindowUtil.getWindowSize(((InsertInto) prepared.getStatement()).getQuery())
+          getWindowSize(((InsertInto) prepared.getStatement()).getQuery())
       );
     }
     return new ExecuteResultAndSortedSources(
         executeResult,
         null,
         Optional.empty());
+  }
+
+  private static Optional<Long> getWindowSize(final Query query) {
+    return query.getWindow().flatMap(window -> window
+        .getKsqlWindowExpression()
+        .getWindowInfo()
+        .getSize()
+        .map(Duration::toMillis));
   }
 
   private static List<DataSource<?>> getSortedSources(

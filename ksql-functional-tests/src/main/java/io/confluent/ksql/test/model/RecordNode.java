@@ -75,6 +75,10 @@ public class RecordNode {
     );
   }
 
+  public Optional<WindowData> getWindow() {
+    return window;
+  }
+
   private Object buildValue(final Topic topic) {
     if (value.asText().equals("null")) {
       return null;

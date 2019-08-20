@@ -18,9 +18,12 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.InsertValuesExecutor;
+import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.parser.tree.ListConnectors;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
@@ -55,13 +58,17 @@ public enum CustomExecutors {
   LIST_FUNCTIONS(ListFunctions.class, ListFunctionsExecutor::execute),
   LIST_QUERIES(ListQueries.class, ListQueriesExecutor::execute),
   LIST_PROPERTIES(ListProperties.class, ListPropertiesExecutor::execute),
+  LIST_CONNECTORS(ListConnectors.class, ListConnectorsExecutor::execute),
 
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),
   DESCRIBE_FUNCTION(DescribeFunction.class, DescribeFunctionExecutor::execute),
   SET_PROPERTY(SetProperty.class, PropertyExecutor::set),
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
-  INSERT_VALUES(InsertValues.class, insertValuesExecutor());
+  INSERT_VALUES(InsertValues.class, insertValuesExecutor()),
+  CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
+  DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute)
+  ;
 
   public static final Map<Class<? extends Statement>, StatementExecutor<?>> EXECUTOR_MAP =
       ImmutableMap.copyOf(

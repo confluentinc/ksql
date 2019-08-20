@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
+
 import org.apache.http.HttpStatus;
 
 public final class AvroUtil {
@@ -26,22 +27,44 @@ public final class AvroUtil {
   private AvroUtil() {
   }
 
-  public static boolean isValidSchemaEvolution(
+  public static void throwOnInvalidSchemaEvolution(
       final PersistentQueryMetadata queryMetadata,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     if (queryMetadata.getResultTopicFormat() != Format.AVRO) {
-      return true;
+      return;
     }
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
         queryMetadata.getPhysicalSchema().valueSchema(),
-        queryMetadata.getResultTopic().getKsqlTopicName()
+        queryMetadata.getSinkName()
     );
 
     final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
 
-    return isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient);
+    if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
+      throw new KsqlStatementException(String.format(
+          "Cannot register avro schema for %s as the schema is incompatible with the current "
+              + "schema version registered for the topic.%n"
+              + "KSQL schema: %s%n"
+              + "Registered schema: %s",
+          topicName,
+          avroSchema,
+          getRegisteredSchema(topicName, schemaRegistryClient)
+      ), queryMetadata.getStatementString());
+    }
+  }
+
+  private static String getRegisteredSchema(
+      final String topicName,
+      final SchemaRegistryClient schemaRegistryClient) {
+    try {
+      return schemaRegistryClient
+          .getLatestSchemaMetadata(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+          .getSchema();
+    } catch (Exception e) {
+      return "Could not get registered schema due to exception: " + e.getMessage();
+    }
   }
 
   private static boolean isValidAvroSchemaForTopic(
@@ -62,8 +85,17 @@ public final class AvroUtil {
         // See https://github.com/confluentinc/schema-registry/issues/951
         return true;
       }
+
+      String errorMessage = e.getMessage();
+      if (e.getStatus() == HttpStatus.SC_UNAUTHORIZED || e.getStatus() == HttpStatus.SC_FORBIDDEN) {
+        errorMessage = String.format(
+            "Not authorized to access Schema Registry subject: [%s]",
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        );
+      }
+
       throw new KsqlException(String.format(
-          "Could not connect to Schema Registry service: %s", e.getMessage()
+          "Could not connect to Schema Registry service: %s", errorMessage
       ));
     }
   }

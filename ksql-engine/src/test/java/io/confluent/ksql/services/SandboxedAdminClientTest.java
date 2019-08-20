@@ -20,7 +20,9 @@ import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ElectLeadersOptions;
 import org.junit.Before;
@@ -39,12 +41,13 @@ public final class SandboxedAdminClientTest {
   public static class UnsupportedMethods {
 
     @Parameterized.Parameters(name = "{0}")
-    public static Collection<TestCase<AdminClient>> getMethodsToTest() {
-      return TestMethods.builder(AdminClient.class)
+    public static Collection<TestCase<Admin>> getMethodsToTest() {
+      return TestMethods.builder(Admin.class)
           .ignore("close")
           .ignore("close", Duration.class)
           .ignore("close", long.class, TimeUnit.class)
           .setDefault(ElectLeadersOptions.class, new ElectLeadersOptions())
+          .setDefault(Optional.class, Optional.empty())
           .build();
     }
 

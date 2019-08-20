@@ -28,20 +28,14 @@ public class KafkaTopicInfo {
 
   private final String name;
   private final List<Integer> replicaInfo;
-  private final int consumerGroupCount;
-  private final int consumerCount;
 
   @JsonCreator
   public KafkaTopicInfo(
       @JsonProperty("name") final String name,
-      @JsonProperty("replicaInfo") final List<Integer> replicaInfo,
-      @JsonProperty("consumerCount") final int consumerCount,
-      @JsonProperty("consumerGroupCount") final int consumerGroupCount
+      @JsonProperty("replicaInfo") final List<Integer> replicaInfo
   ) {
     this.name = name;
     this.replicaInfo = replicaInfo;
-    this.consumerGroupCount = consumerGroupCount;
-    this.consumerCount = consumerCount;
   }
 
   public String getName() {
@@ -50,14 +44,6 @@ public class KafkaTopicInfo {
 
   public List<Integer> getReplicaInfo() {
     return replicaInfo;
-  }
-
-  public int getConsumerCount() {
-    return consumerCount;
-  }
-
-  public int getConsumerGroupCount() {
-    return consumerGroupCount;
   }
 
   @Override

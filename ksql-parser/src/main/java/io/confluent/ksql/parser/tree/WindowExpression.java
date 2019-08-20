@@ -18,12 +18,13 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Immutable
-public class WindowExpression extends Node {
+public class WindowExpression extends AstNode {
 
   private final String windowName;
   private final KsqlWindowExpression ksqlWindowExpression;

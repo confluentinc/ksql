@@ -59,7 +59,7 @@ supported KSQL types, including the complex types ``MAP``, ``ARRAY``, and
 ``STRUCT``.
 
 .. note::
-    
+
     ``Properties`` is not a valid field name.
 
 Here's an example CREATE STREAM statement that uses a ``STRUCT`` to
@@ -90,7 +90,7 @@ KSQL Time Units
 The following list shows valid time units for the SIZE, ADVANCE BY, SESSION, and
 WITHIN clauses.
 
-* DAY, DAYS 
+* DAY, DAYS
 * HOUR, HOURS
 * MINUTE, MINUTES
 * SECOND, SECONDS
@@ -108,13 +108,13 @@ timestamp in ``ROWTIME``. By default, the implicit ``ROWTIME`` column is the
 timestamp of a message in a Kafka topic. Timestamps have an accuracy of
 one millisecond.
 
-Use the TIMESTAMP property to override ``ROWTIME`` with the contents of the 
+Use the TIMESTAMP property to override ``ROWTIME`` with the contents of the
 specified column. Define the format of a record's timestamp by using the
 TIMESTAMP_FORMAT property.
 
 If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, KSQL assumes
 that the timestamp field is a ``bigint``. If you set TIMESTAMP_FORMAT, the
-TIMESTAMP field must be of type ``varchar`` and have a format that the 
+TIMESTAMP field must be of type ``varchar`` and have a format that the
 ``DateTimeFormatter`` Java class can parse.
 
 If your timestamp format has embedded single quotes, you can escape them by
@@ -277,7 +277,8 @@ Map
 .. note:: The ``DELIMITED`` format doesn't support maps.
 
 KSQL supports fields that are maps. A map has a key and value type. All of the keys must be of the
-same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys are supported. The value type can be any valid KSQL type.
+same type, and all of the values must be also be of the same type. Currently only ``STRING`` keys
+are supported. The value type can be any valid KSQL type.
 
 You can define maps within a ``CREATE TABLE`` or ``CREATE STREAM`` statement by using the syntax
 ``MAP<KeyType, ValueType>``. For example, ``MAP<STRING, INT>`` defines a map with string keys and
@@ -349,8 +350,8 @@ The WITH clause supports the following properties:
 |                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of the message value in the topic. Supported formats:   |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
-|                         | For more information, see :ref:`ksql_serialization`.                                       |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                   |
+|                         | For more information, see :ref:`ksql_formats`.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
 |                         | STREAM without an existing topic (the command will fail if the topic does not exist).      |
@@ -364,8 +365,8 @@ The WITH clause supports the following properties:
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
 |                         | If set, KSQL uses it as an optimization hint to determine if repartitioning can be avoided |
 |                         | when performing aggregations and joins.                                                    |
-|                         | You can only use this if the key format in kafka is ``VARCHAR`` or ``STRING``. Do not use  |
-|                         | this hint if the message key format in kafka is AVRO or JSON.                              |
+|                         | You can only use this if the key format in Kafka is ``VARCHAR`` or ``STRING``. Do not use  |
+|                         | this hint if the message key format in Kafka is ``AVRO`` or ``JSON``.                      |
 |                         | See :ref:`ksql_key_requirements` for more information.                                     |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | TIMESTAMP               | By default, the implicit ``ROWTIME`` column is the timestamp of the message in the Kafka   |
@@ -399,9 +400,15 @@ The WITH clause supports the following properties:
 |                         | ``DELIMITED``, or when the value schema has multiple fields, will result in an error.      |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
-|                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
+|                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, then the     |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
+|                         | ``WINDOW_TYPE`` property is TUMBLING or HOPPING, then the WINDOW_SIZE property should be   |
+|                         | set. The property is a string with two literals, window size (a number) and window size    |
+|                         | unit (a time unit). For example: '10 SECONDS'.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 For more information on timestamp formats, see
@@ -464,8 +471,8 @@ The WITH clause supports the following properties:
 |                         | exists with different partition/replica counts.                                            |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_FORMAT (required) | Specifies the serialization format of message values in the topic. Supported formats:      |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``.                             |
-|                         | For more information, see :ref:`ksql_serialization`.                                       |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                   |
+|                         | For more information, see :ref:`ksql_formats`.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. This property must be set if creating a     |
 |                         | TABLE without an existing topic (the command will fail if the topic does not exist).       |
@@ -516,7 +523,13 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
++-------------------------+--------------------------------------------------------------------------------------------+
+| WINDOW_SIZE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
+|                         | i.e., was created using KSQL using a query that contains a ``WINDOW`` clause, and the      |
+|                         | ``WINDOW_TYPE`` property is TUMBLING or HOPPING, then the WINDOW_SIZE property should be   |
+|                         | set. The property is a string with two literals, window size (a number) and window size    |
+|                         | unit (a time unit). For example: '10 SECONDS'.                                             |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -592,8 +605,9 @@ The WITH clause for the result supports the following properties:
 |                         | name of the stream in upper case will be used as default.                                            |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|                         | set, then the format of the input stream/table is used.                                              |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
+|                         | If this property is not set, then the format of the input stream/table is used.                      |
+|                         | For more information, see :ref:`ksql_formats`.                                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
@@ -698,8 +712,9 @@ The WITH clause supports the following properties:
 |                         | name of the table will be used as default.                                                           |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | VALUE_FORMAT            | Specifies the serialization format of the message value in the topic. Supported formats:             |
-|                         | ``JSON``, ``DELIMITED`` (comma-separated value), and ``AVRO``. If this property is not               |
-|                         | set, then the format of the input stream or table is used.                                           |
+|                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
+|                         | If this property is not set, then the format of the input stream/table is used.                      |
+|                         | For more information, see :ref:`ksql_formats`.                                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
@@ -788,7 +803,7 @@ if the source stream for the query is ordered by timestamp.
 
 
 INSERT VALUES
------------
+-------------
 
 **Synopsis**
 
@@ -819,18 +834,18 @@ For example, the statements below would all be valid for a source with schema
   .. code:: sql
 
       // inserts (1234, "key", "key", "A")
-      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, "key", "key", "A");
+      INSERT INTO foo (ROWTIME, ROWKEY, KEY_COL, COL_A) VALUES (1234, 'key', 'key', 'A');
 
       // inserts (current_time(), "key", "key", "A")
-      INSERT INTO foo VALUES ("key", "key", "A");
+      INSERT INTO foo VALUES ('key', 'key', 'A');
 
       // inserts (current_time(), "key", "key", "A")
-      INSERT INTO foo (KEY_COL, COL_A) VALUES ("key", "A");
+      INSERT INTO foo (KEY_COL, COL_A) VALUES ('key', 'A');
 
       // inserts (current_time(), "key", "key", null)
-      INSERT INTO foo (KEY_COL) VALUES ("key");
+      INSERT INTO foo (KEY_COL) VALUES ('key');
 
-The values will serialize using the ``value_format`` specified in the original `CREATE` statement.
+The values will serialize using the ``value_format`` specified in the original ``CREATE`` statement.
 The key will always be serialized as a String.
 
 .. _ksql-syntax-describe:
@@ -944,7 +959,7 @@ DESCRIBE FUNCTION
 
 **Description**
 
-Provides a description of a function including an input parameters and the return type.
+Provides a description of a function including input parameters and the return type.
 
 .. _ksql-syntax-explain:
 
@@ -1078,7 +1093,7 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
+| INTERVAL interval       | Print every ``interval`` th message. The default is 1, meaning that every message is printed.                    |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 | LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
@@ -1137,6 +1152,21 @@ Example:
     SELECT * FROM pageviews
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
+
+When writing logical expressions using ``ROWTIME``, ISO-8601 formatted datestrings can also be used to represent dates.
+For example, the above query is equivalent to the following:
+
+.. code:: sql
+
+    SELECT * FROM pageviews
+          WHERE ROWTIME >= '2017-11-17T04:53:45'
+            AND ROWTIME <= '2017-11-17T04:53:48';
+
+If the datestring is inexact, the rest of the timestamp is assumed to be padded with 0's.
+For example, ``ROWTIME = '2019-07-30T11:00'`` is equivalent to ``ROWTIME = '2019-07-30T11:00:00.0000'``.
+
+Timezones can be specified within the datestring. For example, `2017-11-17T04:53:45-0330` is in the Newfoundland time
+zone. If no timezone is specified within the datestring, then timestamps are interperted in the UTC timezone.
 
 A ``LIMIT`` can be used to limit the number of rows returned. Once the limit is reached the query will terminate.
 
@@ -1205,6 +1235,20 @@ the following WINDOW types:
          FROM orders
          WINDOW SESSION (20 SECONDS)
          GROUP BY item_id;
+
+Every output column of an expression in the SELECT list has an output name. To specify the output name of a column, use
+``AS OUTPUT_NAME`` after the expression definition. If it is omitted, KSQL will assign a system generated name
+``KSQL_COL_i`` where ``i`` is the ordinal number of the expression in the SELECT list. If the expression references
+a column of a from_item, then the output name is the name of that column.
+
+**Tip:** KSQL will throw an error for duplicate output names. For example:
+
+   .. code:: sql
+
+        SELECT 1, KSQL_COL_0
+          FROM orders;
+
+is not allowed as the output name for the literal ``1`` is ``KSQL_COL_0``.
 
 CAST
 ~~~~
@@ -1323,13 +1367,14 @@ SHOW TOPICS
 
 .. code:: sql
 
-    SHOW | LIST TOPICS;
+    SHOW | LIST TOPICS [EXTENDED];
 
 **Description**
 
-List the available topics in the Kafka cluster that KSQL is configured
+SHOW TOPICS lists the available topics in the Kafka cluster that KSQL is configured
 to connect to (default setting for ``bootstrap.servers``:
-``localhost:9092``).
+``localhost:9092``). SHOW TOPICS EXTENDED also displays consumer groups and their active consumer
+counts.
 
 .. _show-streams:
 
@@ -1387,7 +1432,8 @@ List the :ref:`configuration settings <ksql-param-reference>` that are
 currently in effect.
 
 SPOOL
-_____
+-----
+
 **Synopsis**
 
 .. code:: sql
@@ -1397,9 +1443,8 @@ _____
 **Description**
 
 Stores issued commands and their results into a file. Only one spool may be active at a time and can
-be closed by issuing ``SPOOL OFF``. Commands are prefixed with ``ksql> `` to differentiate from
+be closed by issuing ``SPOOL OFF`` . Commands are prefixed with ``ksql>`` to differentiate from
 output.
-
 
 .. _ksql-terminate:
 
@@ -1514,6 +1559,12 @@ Scalar functions
 | ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
 |                        |                                                                           | value contains in it                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| AS_ARRAY               |  ``AS_ARRAY(col1, col2)```                                                | Construct an array from a variable number of      |
+|                        |                                                                           | inputs.                                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| AS_MAP                 |  ``AS_MAP(keys, vals)```                                                  | Construct a map from a list of keys and a list of |
+|                        |                                                                           | values.                                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CEIL                   |  ``CEIL(col1)``                                                           | The ceiling of a value.                           |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | CONCAT                 |  ``CONCAT(col1, '_hello')``                                               | Concatenate two strings.                          |
@@ -1557,6 +1608,8 @@ Scalar functions
 |                        |                                                                           |                                                   |
 |                        |                                                                           | ``{"foo": {"bar": "quux"}}``                      |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| EXP                    |  ``EXP(col1)``                                                            | The exponential of a value.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | FIELD                  | ``FIELD(str VARCHAR, args VARCHAR[])``                                    | Returns the 1-indexed position of ``str`` in      |
 |                        |                                                                           | ``args``, or 0 if not found. If ``str`` is NULL,  |
 |                        |                                                                           | the return value is 0, because NULL is not        |
@@ -1575,9 +1628,15 @@ Scalar functions
 |                        |                                                                           | VARCHAR values are supported for the input. The   |
 |                        |                                                                           | return value must be a VARCHAR.                   |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| INITCAP                |  ``INITCAP(col1)``                                                        | Capitalize the first letter in each word and      |
+|                        |                                                                           | convert all other letters to lowercase. Words are |
+|                        |                                                                           | delimited by whitespace.                          |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LCASE                  |  ``LCASE(col1)``                                                          | Convert a string to lowercase.                    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | LEN                    |  ``LEN(col1)``                                                            | The length of a string.                           |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| LN                     |  ``LN(col1)``                                                             | The natural logarithm of a value.                 |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | MASK                   |  ``MASK(col1, 'X', 'x', 'n', '-')``                                       | Convert a string to a masked or obfuscated        |
 |                        |                                                                           | version of itself. The optional arguments         |
@@ -1620,7 +1679,21 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
+|                        |                                                                           | with a new string.                                |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SIGN                   |  ``SIGN(col1)``                                                           | The sign of a numeric value as an INTEGER:        |
+|                        |                                                                           | * -1 if the argument is negative                  |
+|                        |                                                                           | * 0 if the argument is zero                       |
+|                        |                                                                           | * 1 if the argument is positive                   |
+|                        |                                                                           | * ``null`` argument is null                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SQRT                   |  ``SQRT(col1)``                                                           | The square root of a value.                       |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| SLICE                  |  ``SLICE(col1, from, to)``                                                | Slices a list based on the supplied indices. The  |
+|                        |                                                                           | indices start at 1 and include both endpoints.    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SPLIT                  |  ``SPLIT(col1, delimiter)``                                               | Splits a string into an array of substrings based |
 |                        |                                                                           | on a delimiter. If the delimiter is not found,    |

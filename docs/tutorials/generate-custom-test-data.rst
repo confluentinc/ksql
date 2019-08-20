@@ -47,7 +47,8 @@ Required Arguments
 Name                                        Default  Description
 ==========================================  =======  ===========================================================================================
 ``schema=<avro schema file>``                        Path to an Avro schema file. Requires the ``format``, ``topic``, and ``key`` options.
-``format=<record format>``                    json   Format of generated records: one of ``avro``, ``json``, or ``delimited``. Case-insensitive.
+``key-format=<key format>``                    Kafka format of generated record keys: one of ``avro``, ``json``, ``delimited``, ``kafka``. Case-insensitive.
+``value-format=<value format>``                JSON format of generated record values: one of ``avro``, ``json``, ``delimited``. Case-insensitive.
 ``topic=<kafka topic name>``                         Name of the topic that receives generated records.
 ``key=<name of key column>``                         Field to use as the key for generated records.
 ``quickstart=<quickstart preset>``                   Generate records from a preset schema: ``orders``, ``users``, or ``pageviews``. Case-insensitive.
@@ -70,7 +71,8 @@ The following options apply to both the ``schema`` and ``quickstart`` options.
 Name                                          Default                                              Description
 ============================================  ===================================================  =========================================================================================
 ``bootstrap-server=<kafka-server>:<port>``    localhost:9092                                       IP address and port for the Kafka server to connect to.
-``format=<record format>``                    json                                                 Format of generated records: ``avro``, ``json``, or ``delimited``. Case-insensitive. Required by the ``schema`` option.
+``key-format=<key format>``                   Kafka                                                format of generated record keys: ``avro``, ``json``, ``delimited`` or ``kafka``. Case-insensitive. Required by the ``schema`` option.
+``value-format=<value format>``               JSON                                                 format of generated record values: ``avro``, ``json``, or ``delimited``. Case-insensitive. Required by the ``schema`` option.
 ``topic=<kafka topic name>``                                                                       Name of the topic that receives generated records. Required by the ``schema`` option.
 ``key=<name of key column>``                                                                       Field to use as the key for generated records. Required by the ``schema`` option.
 ``iterations=<number of records>``            1,000,000                                            The maximum number of records to generate.

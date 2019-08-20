@@ -40,7 +40,8 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
+import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -48,7 +49,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.After;
 import org.junit.Rule;
@@ -152,7 +152,7 @@ public class ProcessingLogServerUtilsTest {
     assertThat(dataSource, instanceOf(KsqlStream.class));
     final KsqlStream<?> stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();
-    assertThat(stream.getValueSerdeFactory(), instanceOf(KsqlJsonSerdeFactory.class));
+    assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(Format.JSON));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(
         stream.getSchema().valueFields().stream().map(Field::name).collect(toList()),

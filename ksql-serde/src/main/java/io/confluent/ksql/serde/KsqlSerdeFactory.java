@@ -19,72 +19,50 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Objects;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.function.Supplier;
-import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.common.serialization.Serializer;
 
 @Immutable
-public abstract class KsqlSerdeFactory {
+public interface KsqlSerdeFactory {
 
-  private final Format format;
+  /**
+   * Validate the serde factory can handle the supplied {@code schema}.
+   *
+   * @param schema the schema to validate.
+   */
+  void validate(PersistenceSchema schema);
 
-  protected KsqlSerdeFactory(final Format format) {
-    this.format = format;
-  }
+  /**
+   * Create the serde.
+   *
+   * @param schema the persistence schema, i.e. the physical schema of the data on-disk.
+   * @param ksqlConfig the config to use.
+   * @param schemaRegistryClientFactory the schema registry client to use.
+   */
+  Serde<Object> createSerde(
+      PersistenceSchema schema,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  );
 
-  public Format getFormat() {
-    return format;
-  }
-
-  public Serde<Object> createSerde(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  @SuppressWarnings("unchecked")
+  default <T> Serde<T> createSerde(
+      PersistenceSchema schema,
+      KsqlConfig ksqlConfig,
+      Supplier<SchemaRegistryClient> schemaRegistryClientFactory,
+      Class<T> type
   ) {
-    final Serializer<Object> serializer = createSerializer(
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory
-    );
+    final Class<?> actualType = SchemaUtil.getJavaType(schema.serializedSchema());
 
-    final Deserializer<Object> deserializer = createDeserializer(
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory
-    );
-
-    return Serdes.serdeFrom(serializer, deserializer);
-  }
-
-  protected abstract Serializer<Object> createSerializer(
-      PersistenceSchema schema,
-      KsqlConfig ksqlConfig,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  );
-
-  protected abstract Deserializer<Object> createDeserializer(
-      PersistenceSchema schema,
-      KsqlConfig ksqlConfig,
-      Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  );
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
+    if (!type.equals(actualType)) {
+      throw new IllegalArgumentException("schema does not resolve to required type."
+          + " schema: " + schema
+          + ", schemaType: " + actualType
+          + ", requiredType: " + type
+      );
     }
-    if (!(o instanceof KsqlSerdeFactory)) {
-      return false;
-    }
-    final KsqlSerdeFactory that = (KsqlSerdeFactory) o;
-    return format == that.format;
-  }
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(format);
+    return (Serde) createSerde(schema, ksqlConfig, schemaRegistryClientFactory);
   }
 }

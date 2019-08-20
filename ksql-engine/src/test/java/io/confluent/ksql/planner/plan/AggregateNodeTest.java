@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -29,7 +29,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -48,6 +47,11 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -64,8 +68,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyDescription;
@@ -81,6 +84,8 @@ import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
+import org.apache.kafka.streams.kstream.Windowed;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -96,12 +101,25 @@ public class AggregateNodeTest {
 
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
+  @Mock
+  private KeySerde<Struct> keySerde;
+  @Mock
+  private KeySerde<Struct> reboundKeySerde;
+  @Mock
+  private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
+
+  @Before
+  public void setUp()  {
+    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
+    when(reboundKeySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
+    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
+  }
 
   @Test
   public void shouldBuildSourceNode() {
@@ -284,21 +302,15 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream.getSchema().valueFields(), contains(
-        new Field("COL0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("KSQL_COL_1", 1, Schema.OPTIONAL_FLOAT64_SCHEMA),
-        new Field("KSQL_COL_2", 2, Schema.OPTIONAL_INT64_SCHEMA)));
+        Field.of("COL0", SqlTypes.BIGINT),
+        Field.of("KSQL_COL_1", SqlTypes.DOUBLE),
+        Field.of("KSQL_COL_2", SqlTypes.BIGINT)));
   }
 
   @Test
   public void shouldBeSchemaKTableResult() {
     final SchemaKStream stream = build();
     assertThat(stream.getClass(), equalTo(SchemaKTable.class));
-  }
-
-  @Test
-  public void shouldBeWindowedWhenStatementSpecifiesWindowing() {
-    final SchemaKStream stream = build();
-    assertThat(stream.getKeySerdeFactory(), is(not(Optional.empty())));
   }
 
   private SchemaKStream build() {
@@ -333,7 +345,7 @@ public class AggregateNodeTest {
     buildQuery(node, KSQL_CONFIG);
 
     // Then:
-    verify(ksqlStreamBuilder, times(3)).buildGenericRowSerde(
+    verify(ksqlStreamBuilder, times(3)).buildValueSerde(
         any(),
         any(),
         queryContextCaptor.capture()
@@ -380,6 +392,7 @@ public class AggregateNodeTest {
     return buildQuery(buildAggregateNode(queryString), ksqlConfig);
   }
 
+  @SuppressWarnings("unchecked")
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
@@ -388,6 +401,7 @@ public class AggregateNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
+    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
     return aggregateNode.buildStream(ksqlStreamBuilder);
   }
@@ -395,7 +409,7 @@ public class AggregateNodeTest {
   private static AggregateNode buildAggregateNode(final String queryString) {
     final MetaStore newMetaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
     final KsqlBareOutputNode planNode = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(queryString, newMetaStore);
+        .buildLogicalPlan(KSQL_CONFIG, queryString, newMetaStore);
 
     return (AggregateNode) planNode.getSource();
   }

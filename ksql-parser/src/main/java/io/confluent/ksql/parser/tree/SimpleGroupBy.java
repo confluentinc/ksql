@@ -22,7 +22,9 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.parser.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.parser.ExpressionFormatterUtil;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -65,9 +67,9 @@ public class SimpleGroupBy extends GroupingElement {
         columns =
         ImmutableSet.copyOf(this.columns);
     if (columns.size() == 1) {
-      return ExpressionFormatter.formatExpression(getOnlyElement(columns));
+      return ExpressionFormatterUtil.formatExpression(getOnlyElement(columns));
     }
-    return ExpressionFormatter.formatGroupingSet(columns);
+    return ExpressionFormatterUtil.formatGroupingSet(columns);
   }
 
   @Override

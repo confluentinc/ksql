@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
@@ -47,9 +47,9 @@ final class ComparisonUtil {
     }
 
     throw new KsqlException("Operator " + operator + " cannot be used to compare "
-        + SchemaConverters.logicalToSqlConverter().toSqlType(left).baseType()
+        + SchemaConverters.connectToSqlConverter().toSqlType(left).baseType()
         + " and "
-        + SchemaConverters.logicalToSqlConverter().toSqlType(right).baseType()
+        + SchemaConverters.connectToSqlConverter().toSqlType(right).baseType()
     );
   }
 }

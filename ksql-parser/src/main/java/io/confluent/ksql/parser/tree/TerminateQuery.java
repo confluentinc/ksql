@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,6 +37,11 @@ public class TerminateQuery extends Statement {
 
   public QueryId getQueryId() {
     return queryId;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitTerminateQuery(this, context);
   }
 
   @Override

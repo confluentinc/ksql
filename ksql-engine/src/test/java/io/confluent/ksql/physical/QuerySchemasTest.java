@@ -36,13 +36,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QuerySchemasTest {
 
   private static final PersistenceSchema SCHEMA_ONE =
-      persistenceSchema(Schema.FLOAT64_SCHEMA);
+      unwrappedPersistenceSchema(Schema.FLOAT64_SCHEMA);
 
   private static final PersistenceSchema SCHEMA_TWO =
-      persistenceSchema(Schema.OPTIONAL_INT32_SCHEMA);
+      unwrappedPersistenceSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
   private static final PersistenceSchema SCHEMA_THREE =
-      persistenceSchema(Schema.STRING_SCHEMA);
+      unwrappedPersistenceSchema(Schema.STRING_SCHEMA);
 
   private static final String SCHEMA_ONE_TEXT = "{if you squint, this looks like schema one}";
   private static final String SCHEMA_TWO_TEXT = "{better looking than schema one}";
@@ -63,9 +63,9 @@ public class QuerySchemasTest {
 
     schemas = new QuerySchemas(orderedSchemas, schemaFormatter);
 
-    when(schemaFormatter.format(SCHEMA_ONE.getConnectSchema())).thenReturn(SCHEMA_ONE_TEXT);
-    when(schemaFormatter.format(SCHEMA_TWO.getConnectSchema())).thenReturn(SCHEMA_TWO_TEXT);
-    when(schemaFormatter.format(SCHEMA_THREE.getConnectSchema())).thenReturn(SCHEMA_THREE_TEXT);
+    when(schemaFormatter.format(SCHEMA_ONE.serializedSchema())).thenReturn(SCHEMA_ONE_TEXT);
+    when(schemaFormatter.format(SCHEMA_TWO.serializedSchema())).thenReturn(SCHEMA_TWO_TEXT);
+    when(schemaFormatter.format(SCHEMA_THREE.serializedSchema())).thenReturn(SCHEMA_THREE_TEXT);
   }
 
   @Test
@@ -149,7 +149,7 @@ public class QuerySchemasTest {
       assertThat("key must be String", key, instanceOf(String.class));
 
       if (value instanceof ConnectSchema) {
-        value = persistenceSchema((ConnectSchema) value);
+        value = unwrappedPersistenceSchema((ConnectSchema) value);
       }
 
       assertThat("value must be Schema", value, instanceOf(PersistenceSchema.class));
@@ -160,7 +160,12 @@ public class QuerySchemasTest {
     return map;
   }
 
-  private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
-    return PersistenceSchema.of((ConnectSchema) connectSchema);
+  private static PersistenceSchema unwrappedPersistenceSchema(final Schema fieldSchema) {
+    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", fieldSchema)
+        .build();
+
+    return PersistenceSchema.from(connectSchema, true);
   }
 }

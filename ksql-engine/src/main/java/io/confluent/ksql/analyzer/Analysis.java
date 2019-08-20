@@ -20,16 +20,15 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.metastore.SerdeFactory;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -197,31 +196,27 @@ public class Analysis {
     private final String sqlExpression;
     private final String name;
     private final KsqlTopic topic;
-    private final SerdeFactory<?> keySerdeFactory;
     private final boolean create;
 
     public static <K> Into of(
         final String sqlExpression,
         final String name,
         final boolean create,
-        final KsqlTopic topic,
-        final SerdeFactory<K> keySerde
+        final KsqlTopic topic
     ) {
-      return new Into(sqlExpression, name, create, topic, keySerde);
+      return new Into(sqlExpression, name, create, topic);
     }
 
     private Into(
         final String sqlExpression,
         final String name,
         final boolean create,
-        final KsqlTopic topic,
-        final SerdeFactory<?> keySerdeFactory
+        final KsqlTopic topic
     ) {
       this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
       this.name = requireNonNull(name, "name");
       this.create = create;
       this.topic = requireNonNull(topic, "topic");
-      this.keySerdeFactory = requireNonNull(keySerdeFactory, "keySerdeFactory");
     }
 
     public String getSqlExpression() {
@@ -238,10 +233,6 @@ public class Analysis {
 
     public KsqlTopic getKsqlTopic() {
       return topic;
-    }
-
-    public SerdeFactory<?> getKeySerdeFactory() {
-      return keySerdeFactory;
     }
   }
 

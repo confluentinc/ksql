@@ -32,14 +32,16 @@ singleExpression
     ;
 
 statement
-    : query                                                                 #querystatement
+    : query                                                                 #queryStatement
     | (LIST | SHOW) PROPERTIES                                              #listProperties
-    | (LIST | SHOW) TOPICS                                                  #listTopics
+    | (LIST | SHOW) TOPICS EXTENDED?                                        #listTopics
     | (LIST | SHOW) STREAMS EXTENDED?                                       #listStreams
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
+    | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | DESCRIBE EXTENDED? qualifiedName                                      #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
+    | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (qualifiedName | STRING) printClause                            #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
     | TERMINATE QUERY? qualifiedName                                        #terminateQuery
@@ -56,6 +58,7 @@ statement
                     (WITH tableProperties)?                                 #createTable
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
             (WITH tableProperties)? AS query                                #createTableAs
+    | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
     | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
     | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
     | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
@@ -87,7 +90,7 @@ tableProperties
     ;
 
 tableProperty
-    : identifier EQ literal
+    : (identifier | STRING) EQ literal
     ;
 
 printClause
@@ -316,6 +319,7 @@ nonReserved
     | EXPLAIN | ANALYZE | TYPE
     | SET | RESET
     | IF
+    | SOURCE | SINK
     | KEY
     ;
 
@@ -428,6 +432,10 @@ RUN: 'RUN';
 SCRIPT: 'SCRIPT';
 DECIMAL: 'DECIMAL';
 KEY: 'KEY';
+CONNECTOR: 'CONNECTOR';
+CONNECTORS: 'CONNECTORS';
+SINK: 'SINK';
+SOURCE: 'SOURCE';
 
 IF: 'IF';
 

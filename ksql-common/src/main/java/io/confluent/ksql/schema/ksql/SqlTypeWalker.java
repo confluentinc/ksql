@@ -21,7 +21,6 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.schema.ksql.types.SqlStruct.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Map;
@@ -113,6 +112,10 @@ public final class SqlTypeWalker {
     return (S) handler.apply(visitor, type);
   }
 
+  public static <S, F> F visit(final Field field, final SqlTypeWalker.Visitor<S, F> visitor) {
+    return visitField(visitor, field);
+  }
+
   private static <S, F> S visitArray(
       final SqlTypeWalker.Visitor<S, F> visitor,
       final SqlType type
@@ -137,12 +140,14 @@ public final class SqlTypeWalker {
   ) {
     final SqlStruct struct = (SqlStruct) type;
     final List<F> fields = struct.getFields().stream()
-        .map(field -> visitor.visitField(
-            field,
-            SqlTypeWalker.<S, F>visit(field.getType(), visitor))
-        )
+        .map(field -> visitField(visitor, field))
         .collect(Collectors.toList());
 
     return visitor.visitStruct(struct, fields);
+  }
+
+  private static <S, F> F visitField(final Visitor<S, F> visitor, final Field field) {
+    final S fieldType = SqlTypeWalker.visit(field.type(), visitor);
+    return visitor.visitField(field, fieldType);
   }
 }

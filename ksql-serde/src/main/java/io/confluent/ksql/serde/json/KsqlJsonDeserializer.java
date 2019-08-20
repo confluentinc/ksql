@@ -88,7 +88,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private Object deserialize(final byte[] bytes) {
     final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", bytes);
-    return enforceFieldType(this, physicalSchema.getConnectSchema(), schemaAndValue.value(), true);
+    return enforceFieldType(this, physicalSchema.serializedSchema(), schemaAndValue.value(), true);
   }
 
   private static Object enforceFieldType(

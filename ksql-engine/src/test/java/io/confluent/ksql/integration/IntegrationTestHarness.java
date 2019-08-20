@@ -27,9 +27,8 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.KsqlSerdeFactories;
-import io.confluent.ksql.serde.SerdeFactories;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -48,17 +47,14 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.Deserializer;
@@ -72,7 +68,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @SuppressWarnings("WeakerAccess")
-public class IntegrationTestHarness extends ExternalResource {
+public final class IntegrationTestHarness extends ExternalResource {
 
   private static final Logger LOG = LoggerFactory.getLogger(IntegrationTestHarness.class);
   private static final int DEFAULT_PARTITION_COUNT = 1;
@@ -81,7 +77,6 @@ public class IntegrationTestHarness extends ExternalResource {
 
   private final LazyServiceContext serviceContext;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
-  private final SerdeFactories serdeFactories = new KsqlSerdeFactories();
 
   public static Builder builder() {
     return new Builder();
@@ -166,8 +161,11 @@ public class IntegrationTestHarness extends ExternalResource {
    */
   public void produceRecord(final String topicName, final String key, final String data) {
     try {
-      try (final KafkaProducer<String, String> producer =
-          new KafkaProducer<>(producerConfig(), new StringSerializer(), new StringSerializer())) {
+      try (KafkaProducer<String, String> producer = new KafkaProducer<>(
+          kafkaCluster.producerConfig(),
+          new StringSerializer(),
+          new StringSerializer())
+      ) {
         producer.send(new ProducerRecord<>(topicName, key, data)).get();
       }
     } catch (final Exception e) {
@@ -235,9 +233,11 @@ public class IntegrationTestHarness extends ExternalResource {
   ) {
     ensureTopics(topic);
 
-    try (KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig(), new StringSerializer(), valueSerializer)) {
-
+    try (KafkaProducer<String, GenericRow> producer = new KafkaProducer<>(
+        kafkaCluster.producerConfig(),
+        new StringSerializer(),
+        valueSerializer
+    )) {
       final Map<String, Future<RecordMetadata>> futures = recordsToPublish.entrySet().stream()
           .collect(Collectors.toMap(Entry::getKey, entry -> {
             final String key = entry.getKey();
@@ -272,12 +272,12 @@ public class IntegrationTestHarness extends ExternalResource {
       final String topic,
       final int expectedCount
   ) {
-    try (final KafkaConsumer<String, String> consumer =
-        new KafkaConsumer<>(consumerConfig(), new StringDeserializer(), new StringDeserializer())) {
-      consumer.subscribe(Collections.singleton(topic.toUpperCase()));
-
-      return ConsumerTestUtil.verifyAvailableRecords(consumer, expectedCount);
-    }
+    return kafkaCluster.verifyAvailableRecords(
+        topic,
+        expectedCount,
+        new StringDeserializer(),
+        new StringDeserializer()
+    );
   }
 
   /**
@@ -298,13 +298,12 @@ public class IntegrationTestHarness extends ExternalResource {
     final Deserializer<GenericRow> valueDeserializer =
         getDeserializer(valueFormat, schema);
 
-    try (final KafkaConsumer<String, GenericRow> consumer
-        = new KafkaConsumer<>(consumerConfig(), new StringDeserializer(), valueDeserializer)) {
-
-      consumer.subscribe(Collections.singleton(topic));
-
-      return ConsumerTestUtil.verifyAvailableRecords(consumer, expectedCount);
-    }
+    return kafkaCluster.verifyAvailableRecords(
+        topic,
+        expectedCount,
+        new StringDeserializer(),
+        valueDeserializer
+    );
   }
 
   /**
@@ -371,9 +370,11 @@ public class IntegrationTestHarness extends ExternalResource {
     final Deserializer<GenericRow> valueDeserializer =
         getDeserializer(valueFormat, schema);
 
-    try (final KafkaConsumer<K, GenericRow> consumer
-        = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
-
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
       consumer.subscribe(Collections.singleton(topic));
 
       return ConsumerTestUtil.verifyAvailableRecords(consumer, expected, timeout);
@@ -442,9 +443,11 @@ public class IntegrationTestHarness extends ExternalResource {
     final Deserializer<GenericRow> valueDeserializer =
         getDeserializer(valueFormat, schema);
 
-    try (final KafkaConsumer<K, GenericRow> consumer
-        = new KafkaConsumer<>(consumerConfig(), keyDeserializer, valueDeserializer)) {
-
+    try (KafkaConsumer<K, GenericRow> consumer = new KafkaConsumer<>(
+        kafkaCluster.consumerConfig(),
+        keyDeserializer,
+        valueDeserializer
+    )) {
       consumer.subscribe(Collections.singleton(topic));
 
       final List<ConsumerRecord<K, GenericRow>> consumerRecords = ConsumerTestUtil
@@ -540,34 +543,13 @@ public class IntegrationTestHarness extends ExternalResource {
     kafkaCluster.stop();
   }
 
-  private Map<String, Object> clientConfig() {
-    return new HashMap<>(kafkaCluster.getClientProperties());
-  }
-
-  private Map<String, Object> producerConfig() {
-    final Map<String, Object> config = clientConfig();
-    config.put(ProducerConfig.ACKS_CONFIG, "all");
-    config.put(ProducerConfig.RETRIES_CONFIG, 0);
-    return config;
-  }
-
-  Map<String, Object> consumerConfig() {
-    final Map<String, Object> config = clientConfig();
-    config.put(ConsumerConfig.GROUP_ID_CONFIG, UUID.randomUUID().toString());
-    config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    // Try to keep consumer groups stable:
-    config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 10_000);
-    config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 30_000);
-    return config;
-  }
-
   private Serializer<GenericRow> getSerializer(
       final Format format,
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        serdeFactories.create(format, Optional.empty()),
-        schema,
+        FormatInfo.of(format, Optional.empty()),
+        schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
         "producer",
@@ -580,8 +562,8 @@ public class IntegrationTestHarness extends ExternalResource {
       final PhysicalSchema schema
   ) {
     return GenericRowSerDe.from(
-        serdeFactories.create(format, Optional.empty()),
-        schema,
+        FormatInfo.of(format, Optional.empty()),
+        schema.valueSchema(),
         new KsqlConfig(Collections.emptyMap()),
         serviceContext.get().getSchemaRegistryClientFactory(),
         "consumer",

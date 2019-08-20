@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -43,6 +44,11 @@ public class SetProperty extends Statement {
 
   public String getPropertyValue() {
     return propertyValue;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitSetProperty(this, context);
   }
 
   @Override

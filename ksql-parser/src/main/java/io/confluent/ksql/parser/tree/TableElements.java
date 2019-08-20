@@ -17,9 +17,13 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,6 +78,27 @@ public final class TableElements implements Iterable<TableElement> {
   @Override
   public String toString() {
     return elements.toString();
+  }
+
+  public LogicalSchema toLogicalSchema() {
+    if (Iterables.isEmpty(this)) {
+      throw new KsqlException("No columns supplied.");
+    }
+
+    final Builder builder = LogicalSchema.builder();
+
+    for (final TableElement tableElement : this) {
+      final String fieldName = tableElement.getName();
+      final SqlType fieldType = tableElement.getType().getSqlType();
+
+      if (tableElement.getNamespace() == Namespace.KEY) {
+        builder.keyField(fieldName, fieldType);
+      } else {
+        builder.valueField(fieldName, fieldType);
+      }
+    }
+
+    return builder.build();
   }
 
   private TableElements(final ImmutableList<TableElement> elements) {

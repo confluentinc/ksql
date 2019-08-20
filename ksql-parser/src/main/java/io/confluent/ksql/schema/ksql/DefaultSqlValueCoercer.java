@@ -16,7 +16,8 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -24,7 +25,6 @@ import java.math.RoundingMode;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
 
 public final class DefaultSqlValueCoercer implements SqlValueCoercer {
 
@@ -35,44 +35,55 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .put(SqlBaseType.DOUBLE, Number::doubleValue)
           .build();
 
-  public <T> Optional<T> coerce(final Object value, final Schema targetSchema) {
+  public <T> Optional<T> coerce(final Object value, final SqlType targetType) {
+    if (targetType.baseType() == SqlBaseType.ARRAY
+        || targetType.baseType() == SqlBaseType.MAP
+        || targetType.baseType() == SqlBaseType.STRUCT
+    ) {
+      throw new KsqlException("Unsupported SQL type: " + targetType.baseType());
+    }
+
     final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
-    final SqlBaseType targetSqlType = SchemaConverters.logicalToSqlConverter()
-        .toSqlType(targetSchema)
-        .baseType();
 
-    if (valueSqlType.equals(targetSqlType)) {
+    if (valueSqlType.equals(targetType.baseType())) {
       return optional(value);
     }
 
-    if (DecimalUtil.isDecimal(targetSchema)) {
-      final int precision = DecimalUtil.precision(targetSchema);
-      final int scale = DecimalUtil.scale(targetSchema);
-      if (value instanceof String) {
-        try {
-          return optional(new BigDecimal((String) value, new MathContext(precision))
-              .setScale(scale, RoundingMode.UNNECESSARY));
-        } catch (final NumberFormatException e) {
-          throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
-        }
-      }
-      if (value instanceof Number) {
-        return optional(
-            new BigDecimal(
-                ((Number) value).doubleValue(),
-                new MathContext(precision))
-                .setScale(scale, RoundingMode.UNNECESSARY));
-      }
+    if (targetType.baseType() == SqlBaseType.DECIMAL) {
+      return coerceDecimal(value, (SqlDecimal) targetType);
+    }
+
+    if (!(value instanceof Number) || !valueSqlType.canUpCast(targetType.baseType())) {
       return Optional.empty();
     }
 
-    if (!(value instanceof Number) || !valueSqlType.canUpCast(targetSqlType)) {
-      return Optional.empty();
-    }
-
-    final Number result = UPCASTER.get(targetSqlType).apply((Number) value);
+    final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
     return optional(result);
+  }
+
+  private static <T> Optional<T> coerceDecimal(final Object value, final SqlDecimal targetType) {
+    final int precision = targetType.getPrecision();
+    final int scale = targetType.getScale();
+
+    if (value instanceof String) {
+      try {
+        return optional(new BigDecimal((String) value, new MathContext(precision))
+            .setScale(scale, RoundingMode.UNNECESSARY));
+      } catch (final NumberFormatException e) {
+        throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
+      }
+    }
+
+    if (value instanceof Number) {
+      return optional(
+          new BigDecimal(
+              ((Number) value).doubleValue(),
+              new MathContext(precision))
+              .setScale(scale, RoundingMode.UNNECESSARY));
+    }
+
+    return Optional.empty();
   }
 
   @SuppressWarnings("unchecked")

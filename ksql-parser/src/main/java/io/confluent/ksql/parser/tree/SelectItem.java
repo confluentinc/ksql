@@ -16,10 +16,11 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 
 @Immutable
-public abstract class SelectItem extends Node {
+public abstract class SelectItem extends AstNode {
 
   protected SelectItem(final Optional<NodeLocation> location) {
     super(location);

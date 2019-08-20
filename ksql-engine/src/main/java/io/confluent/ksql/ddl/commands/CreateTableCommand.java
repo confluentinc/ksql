@@ -18,7 +18,7 @@ package io.confluent.ksql.ddl.commands;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.services.KafkaTopicClient;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 
 public class CreateTableCommand extends CreateSourceCommand {
@@ -27,29 +27,26 @@ public class CreateTableCommand extends CreateSourceCommand {
       final String sqlExpression,
       final CreateTable createTable,
       final KsqlConfig ksqlConfig,
-      final KafkaTopicClient kafkaTopicClient
+      final ServiceContext serviceContext
   ) {
-    super(sqlExpression, createTable, ksqlConfig, kafkaTopicClient);
+    super(sqlExpression, createTable, ksqlConfig, serviceContext);
   }
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    registerTopic(metaStore, "table");
 
-    checkMetaData(metaStore, sourceName, topicName);
-
-    final KsqlTable ksqlTable = new KsqlTable<>(
+    final KsqlTable<?> ksqlTable = new KsqlTable<>(
         sqlExpression,
         sourceName,
         schema,
         getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        metaStore.getTopic(topicName),
-        keySerdeFactory
+        getTopic()
     );
 
     metaStore.putSource(ksqlTable);
+
     return new DdlCommandResult(true, "Table created");
   }
 }

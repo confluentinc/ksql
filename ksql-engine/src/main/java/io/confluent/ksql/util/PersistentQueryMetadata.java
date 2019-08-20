@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.QuerySchemas;
@@ -25,6 +24,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
@@ -37,7 +37,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
   private final KsqlTopic resultTopic;
-  private final Set<String> sinkNames;
+  private final String sinkName;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
 
@@ -75,7 +75,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
     this.id = requireNonNull(id, "id");
     this.resultTopic = requireNonNull(resultTopic, "resultTopic");
-    this.sinkNames = ImmutableSet.of(sinkName);
+    this.sinkName = Objects.requireNonNull(sinkName, "sinkName");
     this.schemas = requireNonNull(schemas, "schemas");
     this.resultSchema = requireNonNull(schema, "schema");
   }
@@ -87,7 +87,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     super(other, closeCallback);
     this.id = other.id;
     this.resultTopic = other.resultTopic;
-    this.sinkNames = other.sinkNames;
+    this.sinkName = other.sinkName;
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
   }
@@ -104,12 +104,12 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return resultTopic;
   }
 
-  public Set<String> getSinkNames() {
-    return sinkNames;
+  public String getSinkName() {
+    return sinkName;
   }
 
   public Format getResultTopicFormat() {
-    return resultTopic.getValueSerdeFactory().getFormat();
+    return resultTopic.getValueFormat().getFormat();
   }
 
   public String getSchemasDescription() {

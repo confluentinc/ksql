@@ -21,7 +21,6 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.AbstractKafkaAvroSerDeConfig;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.connect.KsqlConnectDeserializer;
 import io.confluent.ksql.serde.connect.KsqlConnectSerializer;
@@ -32,19 +31,52 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 
 @Immutable
-public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
+public class KsqlAvroSerdeFactory implements KsqlSerdeFactory {
 
   private final String fullSchemaName;
 
   public KsqlAvroSerdeFactory(final String fullSchemaName) {
-    super(Format.AVRO);
     this.fullSchemaName = Objects.requireNonNull(fullSchemaName, "fullSchemaName").trim();
     if (this.fullSchemaName.isEmpty()) {
       throw new IllegalArgumentException("the schema name cannot be empty");
     }
+  }
+
+  @Override
+  public void validate(final PersistenceSchema schema) {
+    // Supports all types
+  }
+
+  @Override
+  public Serde<Object> createSerde(
+      final PersistenceSchema schema,
+      final KsqlConfig ksqlConfig,
+      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
+  ) {
+    final Supplier<Serializer<Object>> serializerSupplier = () -> createConnectSerializer(
+        schema,
+        ksqlConfig,
+        schemaRegistryClientFactory
+    );
+
+    final Supplier<Deserializer<Object>> deserializerSupplier = () -> createConnectDeserializer(
+        schema,
+        ksqlConfig,
+        schemaRegistryClientFactory);
+
+    // Sanity check:
+    serializerSupplier.get();
+    deserializerSupplier.get();
+
+    return Serdes.serdeFrom(
+        new ThreadLocalSerializer<>(serializerSupplier),
+        new ThreadLocalDeserializer<>(deserializerSupplier)
+    );
   }
 
   @Override
@@ -55,51 +87,13 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    if (!super.equals(o)) {
-      return false;
-    }
     final KsqlAvroSerdeFactory that = (KsqlAvroSerdeFactory) o;
     return Objects.equals(fullSchemaName, that.fullSchemaName);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(super.hashCode(), fullSchemaName);
-  }
-
-  @Override
-  protected Serializer<Object> createSerializer(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final Supplier<Serializer<Object>> supplier = () -> createConnectSerializer(
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory
-    );
-
-    // Sanity check:
-    supplier.get();
-
-    return new ThreadLocalSerializer<>(supplier);
-  }
-
-  @Override
-  protected Deserializer<Object> createDeserializer(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final Supplier<Deserializer<Object>> supplier = () -> createConnectDeserializer(
-        schema,
-        ksqlConfig,
-        schemaRegistryClientFactory);
-
-    // Sanity check:
-    supplier.get();
-
-    return new ThreadLocalDeserializer<>(supplier);
+    return Objects.hash(fullSchemaName);
   }
 
   private KsqlConnectSerializer createConnectSerializer(
@@ -138,7 +132,7 @@ public class KsqlAvroSerdeFactory extends KsqlSerdeFactory {
   ) {
     final boolean useNamedMaps = ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_NAMED_AVRO_MAPS);
 
-    return new AvroDataTranslator(schema.getConnectSchema(), fullSchemaName, useNamedMaps);
+    return new AvroDataTranslator(schema.serializedSchema(), fullSchemaName, useNamedMaps);
   }
 
   private static AvroConverter getAvroConverter(

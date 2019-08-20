@@ -1,0 +1,28 @@
+{
+  "comments": [
+    "Tests covering the use of the REPLACE function."
+  ],
+  "tests": [
+    {
+      "name": "replace",
+      "format": ["JSON"],
+      "properties": {
+        "ksql.functions.substring.legacy.args": false
+      },
+      "statements": [
+        "CREATE STREAM TEST (source VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT REPLACE(source, 'a', 'o') AS REPLACE, REPLACE(source, null, 'o') AS REPLACE_NULL, REPLACE(source, 'a', null) AS REPLACE_W_NULL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"source": "anaconda"}},
+        {"topic": "test_topic", "value": {"source": null}},
+        {"topic": "test_topic", "value": {"source": "popcorn"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"REPLACE":"onocondo", "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
+        {"topic": "OUTPUT", "value": {"REPLACE":null, "REPLACE_NULL":null, "REPLACE_W_NULL":null}},
+        {"topic": "OUTPUT", "value": {"REPLACE":"popcorn", "REPLACE_NULL":null, "REPLACE_W_NULL":null}}
+      ]
+    }
+  ]
+}

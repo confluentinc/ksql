@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
@@ -25,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.kafka.streams.kstream.JoinWindows;
 
 @Immutable
-public class WithinExpression extends Node {
+public class WithinExpression extends AstNode {
 
   private final long before;
   private final long after;

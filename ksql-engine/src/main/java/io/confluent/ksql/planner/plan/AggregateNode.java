@@ -20,25 +20,31 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.ExpressionRewriter;
-import io.confluent.ksql.parser.tree.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.tree.FunctionCall;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
+import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
@@ -47,7 +53,6 @@ import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -59,9 +64,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 
 public class AggregateNode extends PlanNode {
@@ -200,11 +203,13 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
-    final KsqlSerdeFactory valueSerdeFactory = streamSourceNode.getDataSource()
-        .getValueSerdeFactory();
+    final ValueFormat valueFormat = streamSourceNode
+        .getDataSource()
+        .getKsqlTopic()
+        .getValueFormat();
 
-    final Serde<GenericRow> genericRowSerde = builder.buildGenericRowSerde(
-        valueSerdeFactory,
+    final Serde<GenericRow> genericRowSerde = builder.buildValueSerde(
+        valueFormat.getFormatInfo(),
         PhysicalSchema.from(aggregateArgExpanded.getSchema(), SerdeOption.none()),
         groupByContext.getQueryContext()
     );
@@ -232,8 +237,8 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
-    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildGenericRowSerde(
-        valueSerdeFactory,
+    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildValueSerde(
+        valueFormat.getFormatInfo(),
         PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
         aggregationContext.getQueryContext()
     );
@@ -253,11 +258,10 @@ public class AggregateNode extends PlanNode {
         aggregationContext);
 
     SchemaKTable<?> result = new SchemaKTable<>(
-        aggStageSchema,
-        schemaKTable.getKtable(),
+        schemaKTable.getKtable(), aggStageSchema,
+        schemaKTable.getKeySerde(),
         schemaKTable.getKeyField(),
         schemaKTable.getSourceSchemaKStreams(),
-        schemaKTable.getKeySerdeFactory(),
         SchemaKStream.Type.AGGREGATE,
         builder.getKsqlConfig(),
         builder.getFunctionRegistry(),
@@ -360,29 +364,30 @@ public class AggregateNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema
   ) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final List<Field> fields = schema.valueFields();
+
+    schemaBuilder.keyFields(schema.keyFields());
+
     for (int i = 0; i < getRequiredColumns().size(); i++) {
-      schemaBuilder.field(fields.get(i).name(), fields.get(i).schema());
+      schemaBuilder.valueField(fields.get(i));
     }
-    for (int aggFunctionVarSuffix = 0;
-        aggFunctionVarSuffix < getFunctionCalls().size(); aggFunctionVarSuffix++) {
+
+    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
+
+    for (int idx = 0; idx < getFunctionCalls().size(); idx++) {
       final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
           functionRegistry,
           internalSchema,
-          getFunctionCalls().get(aggFunctionVarSuffix),
+          getFunctionCalls().get(idx),
           schema);
-      schemaBuilder.field(
-          AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX
-              + aggFunctionVarSuffix,
-          aggregateFunction.getReturnType()
-      );
+
+      final String fieldName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
+      final SqlType fieldType = converter.toSqlType(aggregateFunction.getReturnType());
+      schemaBuilder.valueField(fieldName, fieldType);
     }
 
-    return LogicalSchema.of(
-        schema.keySchema(),
-        schemaBuilder.build()
-    );
+    return schemaBuilder.build();
   }
 
   private static class InternalSchema {
@@ -474,20 +479,24 @@ public class AggregateNode extends PlanNode {
         return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
 
-      return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter(), exp);
+      return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
     }
 
-    private class ResolveToInternalRewriter extends ExpressionRewriter<Void> {
+    private final class ResolveToInternalRewriter
+        extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+      private ResolveToInternalRewriter() {
+        super(Optional.empty());
+      }
 
       @Override
-      public Expression rewriteDereferenceExpression(
+      public Optional<Expression> visitDereferenceExpression(
           final DereferenceExpression node,
-          final Void context,
-          final ExpressionTreeRewriter<Void> treeRewriter
+          final Context<Void> context
       ) {
         final String name = expressionToInternalColumnNameMap.get(node.toString());
         if (name != null) {
-          return new QualifiedNameReference(node.getLocation(), QualifiedName.of(name));
+          return Optional.of(
+              new QualifiedNameReference(node.getLocation(), QualifiedName.of(name)));
         }
 
         throw new KsqlException("Unknown source column: " + node.toString());

@@ -19,13 +19,14 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
@@ -41,7 +42,7 @@ public final class KsqlContextTestUtil {
   ) {
     final KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
 
-    final AdminClient adminClient = clientSupplier
+    final Admin adminClient = clientSupplier
         .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -50,7 +51,8 @@ public final class KsqlContextTestUtil {
         clientSupplier,
         adminClient,
         kafkaTopicClient,
-        () -> schemaRegistryClient
+        () -> schemaRegistryClient,
+        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY))
     );
 
     final KsqlEngine engine = new KsqlEngine(

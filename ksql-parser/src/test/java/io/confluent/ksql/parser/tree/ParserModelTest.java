@@ -25,6 +25,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.InListExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
@@ -66,7 +72,7 @@ public class ParserModelTest {
       .put(JoinCriteria.class, new JoinOn(DEFAULT_TYPE))
       .put(Select.class, DEFAULT_SELECT)
       .put(InListExpression.class, new InListExpression(ImmutableList.of(DEFAULT_TYPE)))
-      .put(io.confluent.ksql.parser.tree.Type.class, DEFAULT_TYPE)
+      .put(Type.class, DEFAULT_TYPE)
       .put(Query.class, new Query(
           DEFAULT_SELECT,
           DEFAULT_RELATION,
@@ -91,7 +97,7 @@ public class ParserModelTest {
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Class<?>> data() {
     return ClassFinder.getClasses(FunctionCall.class.getPackage().getName()).stream()
-        .filter(Node.class::isAssignableFrom)
+        .filter(AstNode.class::isAssignableFrom)
         .collect(Collectors.toList());
   }
 

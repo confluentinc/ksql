@@ -23,6 +23,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;

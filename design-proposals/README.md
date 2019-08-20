@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **8**
+Next KLIP number: **9**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -47,4 +47,5 @@ Next KLIP number: **8**
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Approved       | N/A     |
 | [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | N/A     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
-| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Discussion     | N/A     |
+| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Approved       | N/A     |
+| [KLIP-8: Interactive Queries](klip-8-interactive-queries.md)                       | Proposal       | N/A     |

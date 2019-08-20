@@ -34,6 +34,8 @@ import org.junit.rules.ExpectedException;
 
 public class KsqlTestingToolTest {
 
+  private static final String UTF_8 = "UTF-8";
+
   private final ByteArrayOutputStream outContent = new ByteArrayOutputStream();
   private final ByteArrayOutputStream errContent = new ByteArrayOutputStream();
   private final PrintStream originalOut = System.out;
@@ -47,8 +49,8 @@ public class KsqlTestingToolTest {
 
   @Before
   public void setUpStreams() throws UnsupportedEncodingException {
-    System.setOut(new PrintStream(outContent, true, "UTF-8"));
-    System.setErr(new PrintStream(errContent, true, "UTF-8"));
+    System.setOut(new PrintStream(outContent, true, UTF_8));
+    System.setErr(new PrintStream(errContent, true, UTF_8));
   }
 
   @After
@@ -116,7 +118,7 @@ public class KsqlTestingToolTest {
         INCORRECT_TESTS_FOLDER + "/expected_mismatch/output.json");
 
     // Then:
-    assertThat(errContent.toString("UTF-8"),
+    assertThat(errContent.toString(UTF_8),
         containsString("Test failed: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
   }
 
@@ -186,8 +188,8 @@ public class KsqlTestingToolTest {
             "src/test/resources/test-runner/incorrect-test6/output.json");
 
     // Then:
-    assertThat(errContent.toString("UTF-8"),
-            containsString("Test failed: Expected type INTEGER for field ID but got 14.5\n"));
+    assertThat(errContent.toString(UTF_8),
+            containsString("Test failed: Failed to insert values into stream/table: TEST\n"));
   }
 
   private void runTestCaseAndAssertPassed(
@@ -199,7 +201,11 @@ public class KsqlTestingToolTest {
     KsqlTestingTool.runWithTripleFiles(statementsFilePath, inputFilePath, outputFilePath);
 
     // Then:
-    assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));
+    final String reason = "TestFile: " + statementsFilePath
+        + System.lineSeparator()
+        + errContent.toString(UTF_8);
+
+    assertThat(reason, outContent.toString(UTF_8), containsString("Test passed!"));
   }
 
   private void runTestCaseAndAssertPassed(
@@ -210,6 +216,10 @@ public class KsqlTestingToolTest {
     KsqlTestingTool.runWithTripleFiles(statementsFilePath, null, outputFilePath);
 
     // Then:
-    assertThat(outContent.toString("UTF-8"), containsString("Test passed!"));
+    final String reason = "TestFile: " + statementsFilePath
+        + System.lineSeparator()
+        + errContent.toString(UTF_8);
+
+    assertThat(reason, outContent.toString(UTF_8), containsString("Test passed!"));
   }
 }

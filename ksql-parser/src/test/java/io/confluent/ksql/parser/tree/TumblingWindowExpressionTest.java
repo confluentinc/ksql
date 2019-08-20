@@ -15,40 +15,71 @@
 
 package io.confluent.ksql.parser.tree;
 
-import static org.easymock.EasyMock.same;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.UdafAggregator;
+import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.serde.WindowInfo;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.common.utils.Bytes;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.TimeWindowedKStream;
 import org.apache.kafka.streams.kstream.TimeWindows;
 import org.apache.kafka.streams.state.WindowStore;
-import org.easymock.EasyMock;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
+@RunWith(MockitoJUnitRunner.class)
 public class TumblingWindowExpressionTest {
+
+  @Mock
+  private KGroupedStream<Struct, GenericRow> stream;
+  @Mock
+  private TimeWindowedKStream<Struct, GenericRow> windowedKStream;
+  @Mock
+  private UdafAggregator aggregator;
+  @Mock
+  private Initializer<GenericRow> initializer;
+  @Mock
+  private Materialized<Struct, GenericRow, WindowStore<Bytes, byte[]>> store;
+  private TumblingWindowExpression windowExpression;
+
+  @Before
+  public void setUp() {
+    windowExpression = new TumblingWindowExpression(10, TimeUnit.SECONDS);
+
+    when(stream
+        .windowedBy(any(TimeWindows.class)))
+        .thenReturn(windowedKStream);
+  }
 
   @Test
   public void shouldCreateTumblingWindowAggregate() {
-    final KGroupedStream stream = EasyMock.createNiceMock(KGroupedStream.class);
-    final TimeWindowedKStream windowedKStream = EasyMock.createNiceMock(TimeWindowedKStream.class);
-    final UdafAggregator aggregator = EasyMock.createNiceMock(UdafAggregator.class);
-    final TumblingWindowExpression windowExpression = new TumblingWindowExpression(10, TimeUnit.SECONDS);
-    final Initializer initializer = () -> 0;
-    final Materialized<String, GenericRow, WindowStore<Bytes, byte[]>> store = Materialized.as("store");
-
-    EasyMock.expect(stream.windowedBy(TimeWindows.of(Duration.ofMillis(10000L)))).andReturn(windowedKStream);
-    EasyMock.expect(windowedKStream.aggregate(same(initializer), same(aggregator), same(store))).andReturn(null);
-    EasyMock.replay(stream, windowedKStream);
-
+    // When:
     windowExpression.applyAggregate(stream, initializer, aggregator, store);
-    EasyMock.verify(stream, windowedKStream);
+
+    // Then:
+    verify(stream).windowedBy(TimeWindows.of(Duration.ofSeconds(10)));
+    verify(windowedKStream).aggregate(initializer, aggregator, store);
   }
 
+  @Test
+  public void shouldReturnWindowInfo() {
+    assertThat(new TumblingWindowExpression(11, SECONDS).getWindowInfo(),
+        is(WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(11)))));
+  }
 }

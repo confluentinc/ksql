@@ -163,8 +163,11 @@ Command Topic
 In interactive mode, KSQL shares statements with servers in the cluster over the
 *command topic*. The command topic stores every KSQL statement, along with some
 metadata that ensures the statements are built compatibly across KSQL restarts
-and upgrades. KSQL names the command topic ``_confluent-ksql-<service id>_command_topic``,
+and upgrades. KSQL names the command topic ``_confluent-ksql-<service id>command_topic``,
 where ``<service id>`` is the value in the ``ksql.service.id`` property.
+
+By convention, the ``ksql.service.id`` property should end with a separator character of some form,
+for example a dash or underscore, as this makes the topic name easier to read.
 
 .. _ksql-server-headless-deployment:
 

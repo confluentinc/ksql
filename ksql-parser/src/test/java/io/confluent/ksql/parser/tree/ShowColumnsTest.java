@@ -17,6 +17,10 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;

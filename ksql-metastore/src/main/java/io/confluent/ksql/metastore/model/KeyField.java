@@ -16,12 +16,13 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
 
 /**
  * Pojo that holds the details of a source's key field.
@@ -52,21 +53,35 @@ public final class KeyField {
   private static final KeyField NONE = KeyField.of(Optional.empty(), Optional.empty());
 
   private final Optional<String> keyField;
-  private final Optional<Field> legacyKeyField;
+  private final Optional<LegacyField> legacyKeyField;
 
   public static KeyField none() {
     return NONE;
   }
 
-  public static KeyField of(final String keyField, final Field legacyKeyField) {
+  public static KeyField of(
+      final String keyField,
+      final Field legacyKeyField
+  ) {
+    final LegacyField legacy = LegacyField.of(legacyKeyField.fullName(), legacyKeyField.type());
+    return new KeyField(Optional.of(keyField), Optional.of(legacy));
+  }
+
+  public static KeyField of(
+      final String keyField,
+      final LegacyField legacyKeyField
+  ) {
     return new KeyField(Optional.of(keyField), Optional.of(legacyKeyField));
   }
 
-  public static KeyField of(final Optional<String> keyField, final Optional<Field> legacyKeyField) {
+  public static KeyField of(
+      final Optional<String> keyField,
+      final Optional<LegacyField> legacyKeyField
+  ) {
     return new KeyField(keyField, legacyKeyField);
   }
 
-  private KeyField(final Optional<String> keyField, final Optional<Field> legacyKeyField) {
+  private KeyField(final Optional<String> keyField, final Optional<LegacyField> legacyKeyField) {
     this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.legacyKeyField = Objects.requireNonNull(legacyKeyField, "legacyKeyField");
   }
@@ -87,7 +102,7 @@ public final class KeyField {
     return keyField;
   }
 
-  public Optional<Field> legacy() {
+  public Optional<LegacyField> legacy() {
     return legacyKeyField;
   }
 
@@ -109,7 +124,8 @@ public final class KeyField {
    */
   public Optional<Field> resolve(final LogicalSchema schema, final KsqlConfig ksqlConfig) {
     if (shouldUseLegacy(ksqlConfig)) {
-      return legacyKeyField;
+      return legacyKeyField
+          .map(f -> Field.of(f.name, f.type));
     }
 
     return resolveLatest(schema);
@@ -131,7 +147,7 @@ public final class KeyField {
    */
   public Optional<String> resolveName(final KsqlConfig ksqlConfig) {
     if (shouldUseLegacy(ksqlConfig)) {
-      return legacyKeyField.map(Field::name);
+      return legacyKeyField.map(LegacyField::name);
     }
 
     return keyField;
@@ -173,11 +189,11 @@ public final class KeyField {
    * @param legacy the new legacy field.
    * @return the new instance.
    */
-  public KeyField withLegacy(final Optional<Field> legacy) {
+  public KeyField withLegacy(final Optional<LegacyField> legacy) {
     return KeyField.of(keyField, legacy);
   }
 
-  public KeyField withLegacy(final Field legacy) {
+  public KeyField withLegacy(final LegacyField legacy) {
     return withLegacy(Optional.of(legacy));
   }
 
@@ -190,7 +206,7 @@ public final class KeyField {
   public KeyField withAlias(final String alias) {
     return KeyField.of(
         keyField.map(fieldName -> SchemaUtil.buildAliasedFieldName(alias, fieldName)),
-        legacyKeyField.map(field -> SchemaUtil.buildAliasedField(alias, field))
+        legacyKeyField.map(field -> field.withSource(alias))
     );
   }
 
@@ -223,5 +239,80 @@ public final class KeyField {
 
   private static boolean shouldUseLegacy(final KsqlConfig ksqlConfig) {
     return ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD);
+  }
+
+  @Immutable
+  public static final class LegacyField {
+
+    public final String name;
+    public final SqlType type;
+
+    /**
+     * This is used to replicate legacy logic to ensure unnecessary repartition steps are maintained
+     * going forward to ensure compatibility for existing queries.
+     */
+    private final boolean notInSchema;
+
+    public static LegacyField of(final String name, final SqlType type) {
+      return new LegacyField(name, type, false);
+    }
+
+    public static LegacyField notInSchema(final String name, final SqlType type) {
+      return new LegacyField(name, type, true);
+    }
+
+    private LegacyField(final String name, final SqlType type, final boolean notInSchema) {
+      this.name = Objects.requireNonNull(name, "name");
+      this.type = Objects.requireNonNull(type, "type");
+      this.notInSchema = notInSchema;
+    }
+
+    public String name() {
+      return name;
+    }
+
+    public SqlType type() {
+      return type;
+    }
+
+    public boolean isNotInSchema() {
+      return notInSchema;
+    }
+
+    public LegacyField withSource(final String source) {
+      return new LegacyField(
+          SchemaUtil.buildAliasedFieldName(source, name),
+          type,
+          notInSchema
+      );
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final LegacyField that = (LegacyField) o;
+      return notInSchema == that.notInSchema
+          && Objects.equals(name, that.name)
+          && Objects.equals(type, that.type);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(name, type, notInSchema);
+    }
+
+    @Override
+    public String toString() {
+      return "LegacyField{"
+          + "name='" + name + '\''
+          + ", type=" + type
+          + ", notInSchema=" + notInSchema
+          + '}';
+    }
   }
 }

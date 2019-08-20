@@ -1,5 +1,7 @@
-Changelog
-=========
+.. _ksql_changelog:
+
+KSQL Changelog
+==============
 
 Version 5.4.0
 -------------
@@ -22,6 +24,13 @@ KSQL 5.4.0 includes new features, including:
   See :ref:`ksql-metrics-tags-custom` for usage.
 
 * New ``UNIX_TIMESTAMP()`` and ``UNIX_DATE()`` functions.
+
+* A new ``KAFKA`` format that supports ``INT``, ``BIGINT``, ``DOUBLE`` and ``STRING`` fields that
+  have been serialized using the standard Kafka serializers,
+  e.g. ``org.apache.kafka.common.serialization.LongSerializer``.
+
+  The format only supports single values, i.e. only single field, being primarily intended for use
+  as a key format.
 
 KSQL 5.4.0 includes the following misc. changes:
 
@@ -104,10 +113,12 @@ KSQL 5.2 includes new features, including:
   to log to Kafka to be consumed as a KSQL stream. See :ref:`KSQL processing log <ksql_processing_log>`
   for more details.
 * Aggregation functionality has been extended. KSQL now supports:
+
   * ``GROUP BY`` more than just simple columns, including fields within structs,
     arithmetic results, functions, string concatenations and literals.
   * literals in the projection, (a.k.a the ``SELECT`` clause).
   * Multiple ``HAVING`` clauses, including the use of aggregate functions and literals.
+  
 * Automatic compatibility management for queries in headless mode across versions. Starting with 5.2, KSQL will automatically take care
   of ensuring query compatiblity when upgrading. This means you won't need to worry about setting properties correctly during upgrade, as
   has been required for previous upgrades. Refer to the :ref:`architecture documentation <ksql-architecture-config-topic>` for details.

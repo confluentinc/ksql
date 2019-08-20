@@ -16,13 +16,13 @@
 package io.confluent.ksql.serde;
 
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.StringUtil;
 
 public enum Format {
 
   JSON(true),
   AVRO(true),
-  DELIMITED(false);
+  DELIMITED(false),
+  KAFKA(false);
 
   private final boolean supportsUnwrapping;
 
@@ -36,7 +36,7 @@ public enum Format {
 
   public static Format of(final String value) {
     try {
-      return valueOf(StringUtil.cleanQuotes(value.toUpperCase()));
+      return valueOf(value.toUpperCase());
     } catch (final IllegalArgumentException e) {
       throw new KsqlException("Unknown format: " + value);
     }

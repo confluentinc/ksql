@@ -60,7 +60,8 @@ public final class DataGen {
 
     final Generator generator = new Generator(arguments.schemaFile, new Random());
     final Properties props = getProperties(arguments);
-    final DataGenProducer dataProducer = new ProducerFactory().getProducer(arguments.format, props);
+    final DataGenProducer dataProducer = ProducerFactory
+        .getProducer(arguments.keyFormat, arguments.valueFormat, props);
 
     dataProducer.populateTopic(
         props,
@@ -96,8 +97,10 @@ public final class DataGen {
         + "schema=<avro schema file> " + newLine
         + "[schemaRegistryUrl=<url for Confluent Schema Registry> "
         + "(defaults to http://localhost:8081)] " + newLine
-        + "format=<message format> (case-insensitive; one of 'avro', 'json', or "
+        + "key-format=<message key format> (case-insensitive; one of 'avro', 'json', 'kafka' or "
         + "'delimited') " + newLine
+        + "value-format=<message value format> (case-insensitive; one of 'avro', 'json' or "
+            + "'delimited') " + newLine
         + "topic=<kafka topic name> " + newLine
         + "key=<name of key column> " + newLine
         + "[iterations=<number of rows> (defaults to 1,000,000)] " + newLine
@@ -111,7 +114,8 @@ public final class DataGen {
     private final boolean help;
     private final String bootstrapServer;
     private final InputStream schemaFile;
-    private final Format format;
+    private final Format keyFormat;
+    private final Format valueFormat;
     private final String topicName;
     private final String keyName;
     private final int iterations;
@@ -119,11 +123,13 @@ public final class DataGen {
     private final String schemaRegistryUrl;
     private final InputStream propertiesFile;
 
+    // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
     Arguments(
         final boolean help,
         final String bootstrapServer,
         final InputStream schemaFile,
-        final Format format,
+        final Format keyFormat,
+        final Format valueFormat,
         final String topicName,
         final String keyName,
         final int iterations,
@@ -131,10 +137,12 @@ public final class DataGen {
         final String schemaRegistryUrl,
         final InputStream propertiesFile
     ) {
+      // CHECKSTYLE_RULES.ON: ParameterNumberCheck
       this.help = help;
       this.bootstrapServer = bootstrapServer;
       this.schemaFile = schemaFile;
-      this.format = format;
+      this.keyFormat = keyFormat;
+      this.valueFormat = valueFormat;
       this.topicName = topicName;
       this.keyName = keyName;
       this.iterations = iterations;
@@ -157,7 +165,10 @@ public final class DataGen {
               .put("quickstart", (builder, argVal) -> builder.quickstart = parseQuickStart(argVal))
               .put("bootstrap-server", (builder, argVal) -> builder.bootstrapServer = argVal)
               .put("schema", (builder, argVal) -> builder.schemaFile = toFileInputStream(argVal))
-              .put("format", (builder, argVal) -> builder.format = parseFormat(argVal))
+              .put("key-format", (builder, arg) -> builder.keyFormat = parseFormat(arg))
+              .put("value-format", (builder, arg) -> builder.valueFormat = parseFormat(arg))
+              // "format" is maintained for backwards compatibility, but should be removed later.
+              .put("format", (builder, argVal) -> builder.valueFormat = parseFormat(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseIterations(argVal))
@@ -173,7 +184,8 @@ public final class DataGen {
       private boolean help;
       private String bootstrapServer;
       private InputStream schemaFile;
-      private Format format;
+      private Format keyFormat;
+      private Format valueFormat;
       private String topicName;
       private String keyName;
       private int iterations;
@@ -186,7 +198,8 @@ public final class DataGen {
         help = false;
         bootstrapServer = "localhost:9092";
         schemaFile = null;
-        format = null;
+        keyFormat = Format.KAFKA;
+        valueFormat = null;
         topicName = null;
         keyName = null;
         iterations = 1000000;
@@ -227,27 +240,32 @@ public final class DataGen {
           return keyName;
         }
 
-        public Format getFormat() {
-          return Format.JSON;
+        public Format getKeyFormat() {
+          return Format.KAFKA;
         }
 
+        public Format getValueFormat() {
+          return Format.JSON;
+        }
       }
 
       Arguments build() {
         if (help) {
-          return new Arguments(true, null, null, null, null, null, 0, -1, null, null);
+          return new Arguments(true, null, null, null, null,null, null, 0, -1, null, null);
         }
 
         if (quickstart != null) {
           schemaFile = Optional.ofNullable(schemaFile).orElse(quickstart.getSchemaFile());
-          format = Optional.ofNullable(format).orElse(quickstart.getFormat());
-          topicName = Optional.ofNullable(topicName).orElse(quickstart.getTopicName(format));
+          keyFormat = Optional.ofNullable(keyFormat).orElse(quickstart.getKeyFormat());
+          valueFormat = Optional.ofNullable(valueFormat).orElse(quickstart.getValueFormat());
+          topicName = Optional.ofNullable(topicName).orElse(quickstart.getTopicName(valueFormat));
           keyName = Optional.ofNullable(keyName).orElse(quickstart.getKeyName());
         }
 
         try {
           Objects.requireNonNull(schemaFile, "Schema file not provided");
-          Objects.requireNonNull(format, "Message format not provided");
+          Objects.requireNonNull(keyFormat, "Message key format not provided");
+          Objects.requireNonNull(valueFormat, "Message value format not provided");
           Objects.requireNonNull(topicName, "Kafka topic name not provided");
           Objects.requireNonNull(keyName, "Name of key column not provided");
         } catch (final NullPointerException exception) {
@@ -257,7 +275,8 @@ public final class DataGen {
             help,
             bootstrapServer,
             schemaFile,
-            format,
+            keyFormat,
+            valueFormat,
             topicName,
             keyName,
             iterations,
@@ -349,7 +368,7 @@ public final class DataGen {
           return Format.valueOf(formatString.toUpperCase());
         } catch (final IllegalArgumentException exception) {
           throw new ArgumentParseException(String.format(
-              "Invalid format in '%s'; was expecting one of AVRO, JSON, or DELIMITED "
+              "Invalid format in '%s'; was expecting one of AVRO, JSON, KAFKA or DELIMITED "
               + "(case-insensitive)",
               formatString
           ));

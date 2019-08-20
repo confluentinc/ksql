@@ -29,6 +29,7 @@ import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.nio.file.Path;
@@ -298,14 +299,16 @@ public class TestCase implements Test {
   }
 
   @SuppressWarnings("unchecked")
-  static void processSingleRecord(
+  void processSingleRecord(
       final FakeKafkaRecord fakeKafkaRecord,
       final FakeKafkaService fakeKafkaService,
       final TopologyTestDriverContainer testDriver,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<Topic> possibleSinkTopics
   ) {
-    final Topic recordTopic = fakeKafkaRecord.getTestRecord().topic;
-    final Serializer<Object> keySerializer = recordTopic.getKeySerializer();
+    final Topic recordTopic = fakeKafkaService
+        .getTopic(fakeKafkaRecord.getTestRecord().topic.getName());
+    final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
 
     final Serializer<Object> valueSerializer =
         recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
@@ -326,24 +329,50 @@ public class TestCase implements Test {
 
     final Topic sinkTopic = testDriver.getSinkTopic();
 
+    processRecordsForTopic(
+        testDriver.getTopologyTestDriver(),
+        sinkTopic,
+        fakeKafkaService,
+        schemaRegistryClient
+    );
+
+    for (final Topic possibleSinkTopic: possibleSinkTopics) {
+      if (possibleSinkTopic.getName().equals(sinkTopic.getName())) {
+        continue;
+      }
+      processRecordsForTopic(
+          testDriver.getTopologyTestDriver(),
+          possibleSinkTopic,
+          fakeKafkaService,
+          schemaRegistryClient
+      );
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void processRecordsForTopic(
+      final TopologyTestDriver topologyTestDriver,
+      final Topic sinkTopic,
+      final FakeKafkaService fakeKafkaService,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
     while (true) {
-      final ProducerRecord<?,?> producerRecord = testDriver.getTopologyTestDriver().readOutput(
+      final ProducerRecord<?,?> producerRecord = topologyTestDriver.readOutput(
           sinkTopic.getName(),
-          sinkTopic.getKeyDeserializer(),
+          sinkTopic.getKeyDeserializer(schemaRegistryClient, isLegacySessionWindow()),
           sinkTopic.getValueDeserializer(schemaRegistryClient)
       );
       if (producerRecord == null) {
-        return;
+        break;
       }
 
       fakeKafkaService.writeRecord(
-          producerRecord.topic(),
+          sinkTopic.getName(),
           FakeKafkaRecord.of(
               sinkTopic,
               producerRecord)
       );
     }
-
   }
 
   void verifyOutputTopics(
@@ -357,6 +386,7 @@ public class TestCase implements Test {
         )
     );
     expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
+        kafkaTopic,
         expectedOutput.get(kafkaTopic),
         outputRecordsFromKafka.get(kafkaTopic),
         inputRecords.size() == 0
@@ -364,12 +394,13 @@ public class TestCase implements Test {
   }
 
   private static void validateTopicData(
+      final String topicName,
       final List<FakeKafkaRecord> expected,
       final List<FakeKafkaRecord> actual,
       final boolean ranWithInsertStatements) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
-          + "> records but it was <" + actual.size() + ">");
+          + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
     for (int i = 0; i < expected.size(); i++) {
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
@@ -377,6 +408,16 @@ public class TestCase implements Test {
 
       validateCreatedMessage(actualProducerRecord, expectedProducerRecord, ranWithInsertStatements);
     }
+  }
+
+  private static String getActualsForErrorMessage(final List<FakeKafkaRecord> actual) {
+    final StringBuilder stringBuilder = new StringBuilder("Actual records: \n");
+    for (final FakeKafkaRecord fakeKafkaRecord: actual) {
+      final ProducerRecord<?,?> producerRecord = fakeKafkaRecord.getProducerRecord();
+      stringBuilder.append(getProducerRecordInString(producerRecord))
+          .append(" \n");
+    }
+    return stringBuilder.toString();
   }
 
   private static void validateCreatedMessage(
@@ -395,13 +436,15 @@ public class TestCase implements Test {
             || (!bothValuesNull
             && !actualProducerRecord.value().equals(expectedProducerRecord.value()))) {
       throw new KsqlException(
-          "Expected <" + expectedProducerRecord.key() + ", "
-              + expectedProducerRecord.value() + "> with timestamp="
-              + expectedProducerRecord.timestamp()
-              + " but was <" + actualProducerRecord.key() + ", "
-              + actualProducerRecord.value() + "> with timestamp="
-              + actualProducerRecord.timestamp());
+          "Expected " + getProducerRecordInString(expectedProducerRecord)
+              + " but was " + getProducerRecordInString(actualProducerRecord));
     }
+  }
+
+  private static String getProducerRecordInString(final ProducerRecord<?,?> producerRecord) {
+    return "<" + producerRecord.key() + ", "
+        + producerRecord.value() + "> with timestamp="
+        + producerRecord.timestamp();
   }
 
   private Map<String, List<FakeKafkaRecord>> getExpectedRecordsMap() {
@@ -430,4 +473,8 @@ public class TestCase implements Test {
         : fakeKafkaRecord.getProducerRecord().key();
   }
 
+  private boolean isLegacySessionWindow() {
+    final Object config = properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG);
+    return config != null && Boolean.parseBoolean(config.toString());
+  }
 }

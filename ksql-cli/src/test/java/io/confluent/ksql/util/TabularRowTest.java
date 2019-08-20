@@ -16,7 +16,8 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isEmptyString;
 
 import com.google.common.collect.ImmutableList;
 import java.util.List;

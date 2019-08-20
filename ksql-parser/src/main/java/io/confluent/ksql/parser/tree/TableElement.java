@@ -18,6 +18,8 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.SchemaUtil;
@@ -28,7 +30,7 @@ import java.util.Optional;
  * An element in the schema of a table or stream.
  */
 @Immutable
-public final class TableElement extends Node {
+public final class TableElement extends AstNode {
 
   public enum Namespace {
     KEY,

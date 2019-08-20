@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
@@ -43,7 +42,7 @@ import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -225,28 +224,24 @@ public class RecoveryTest {
   }
 
   private static class TopicMatcher extends TypeSafeDiagnosingMatcher<KsqlTopic> {
-    final Matcher<String> nameMatcher;
+
     final Matcher<String> kafkaNameMatcher;
-    final Matcher<KsqlSerdeFactory> serDeMatcher;
+    final Matcher<ValueFormat> valueFormatMatcher;
 
     TopicMatcher(final KsqlTopic topic) {
-      this.nameMatcher = equalTo(topic.getKsqlTopicName());
       this.kafkaNameMatcher = equalTo(topic.getKafkaTopicName());
-      this.serDeMatcher = instanceOf(topic.getValueSerdeFactory().getClass());
+      this.valueFormatMatcher = equalTo(topic.getValueFormat());
     }
 
     @Override
     public void describeTo(final Description description) {
       description.appendList(
           "Topic(", ", ", ")",
-          Arrays.asList(nameMatcher, kafkaNameMatcher, serDeMatcher));
+          Arrays.asList(kafkaNameMatcher, valueFormatMatcher));
     }
 
     @Override
     public boolean matchesSafely(final KsqlTopic other, final Description description) {
-      if (!test(nameMatcher, other.getKsqlTopicName(), description, "name mismatch: ")) {
-        return false;
-      }
       if (!test(
           kafkaNameMatcher,
           other.getKafkaTopicName(),
@@ -255,8 +250,8 @@ public class RecoveryTest {
         return false;
       }
       return test(
-          serDeMatcher,
-          other.getValueSerdeFactory(),
+          valueFormatMatcher,
+          other.getValueFormat(),
           description,
           "serde mismatch: ");
     }
@@ -402,14 +397,14 @@ public class RecoveryTest {
   private static class PersistentQueryMetadataMatcher
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
     private final Matcher<Set<String>> sourcesNamesMatcher;
-    private final Matcher<Set<String>> sinkNamesMatcher;
+    private final Matcher<String> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
 
     PersistentQueryMetadataMatcher(final PersistentQueryMetadata metadata) {
       this.sourcesNamesMatcher = equalTo(metadata.getSourceNames());
-      this.sinkNamesMatcher = equalTo(metadata.getSinkNames());
+      this.sinkNamesMatcher = equalTo(metadata.getSinkName());
       this.resultSchemaMatcher = equalTo(metadata.getLogicalSchema());
       this.sqlMatcher = equalTo(metadata.getStatementString());
       this.stateMatcher = equalTo(metadata.getState());
@@ -443,7 +438,7 @@ public class RecoveryTest {
       }
       if (!test(
           sinkNamesMatcher,
-          metadata.getSinkNames(),
+          metadata.getSinkName(),
           description,
           "sink names mismatch: "
       )) {

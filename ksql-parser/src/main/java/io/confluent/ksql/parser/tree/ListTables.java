@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -33,6 +34,11 @@ public class ListTables extends Statement {
 
   public boolean getShowExtended() {
     return showExtended;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitListTables(this, context);
   }
 
   @Override

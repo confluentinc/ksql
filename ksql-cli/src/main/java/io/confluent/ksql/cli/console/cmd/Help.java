@@ -56,7 +56,7 @@ final class Help implements CliSpecificCommand {
         "\tThe KSQL CLI provides a terminal-based interactive shell for running queries. "
             + "Each command should be on a separate line. "
             + "For KSQL command syntax, see the documentation at "
-            + "https://github.com/confluentinc/ksql/docs/."
+            + "https://docs.confluent.io/current/ksql/docs/developer-guide/syntax-reference.html"
     );
     terminal.println();
     for (final CliSpecificCommand cliSpecificCommand : cmds.get()) {

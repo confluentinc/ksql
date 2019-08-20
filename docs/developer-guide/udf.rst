@@ -38,6 +38,7 @@ Folow these steps to create your custom functions:
      ``@Udf`` annotations.
    * If your class is a UDAF, mark it with the ``@UdafDescription`` and
      ``@UdafFactory`` annotations.
+     
    For more information, see :ref:`example-udf-class` and :ref:`example-udaf-class`. 
 
 #. Deploy the JAR file to the KSQL extensions directory. For more information,
@@ -102,6 +103,16 @@ the function will never return ``null``, where as a boxed type indicates it may 
 The KSQL server will check the value being passed to each parameter and report an error to the server
 log for any null values being passed to a primitive type. The associated column in the output row
 will be ``null``.
+
+Generics in UDFS
+~~~~~~~~~~~~~~~~
+
+A UDF declaration can utilize generics if they match the following conditions:
+
+- Any generic in the return value of a method must appear in at least one of the method parameters
+- The generic must not adhere to any interface. For example, ``<T extends Number>`` is not valid).
+- The generic does not support type coercion or inheritance. For example, ``add(T a, T b)`` will
+  accept ``BIGINT, BIGINT`` but not ``INT, BIGINT``.
 
 .. _example-udf-class:
 

@@ -21,6 +21,7 @@ import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 
 public class SqlFormatInjector implements Injector {
@@ -45,7 +46,8 @@ public class SqlFormatInjector implements Injector {
 
       return statement.withStatement(sql, (T) prepare.getStatement());
     } catch (final Exception e) {
-      return statement;
+      throw new KsqlException("Unable to format statement! This is bad because "
+          + "it means we cannot persist it onto the command topic: " + statement, e);
     }
   }
 }

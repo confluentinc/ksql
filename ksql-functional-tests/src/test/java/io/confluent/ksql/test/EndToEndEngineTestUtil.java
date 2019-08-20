@@ -22,13 +22,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.NullNode;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -42,12 +41,13 @@ import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.FakeKafkaService;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.test.tools.TopologyTestDriverContainer;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.BufferedReader;
@@ -68,16 +68,13 @@ import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.avro.generic.GenericData;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.test.TestUtils;
 
 final class EndToEndEngineTestUtil {
@@ -155,17 +152,23 @@ final class EndToEndEngineTestUtil {
       final PersistentQueryMetadata persistentQueryMetadata
           = (PersistentQueryMetadata) queryMetadata;
       final String sinkKafkaTopicName = metaStore
-          .getSource(Iterables.getOnlyElement(persistentQueryMetadata.getSinkNames()))
+          .getSource(persistentQueryMetadata.getSinkName())
           .getKafkaTopicName();
 
+      final SerdeSupplier<?> keySerdes = SerdeUtil.getKeySerdeSupplier(
+          persistentQueryMetadata.getResultTopic().getKeyFormat(),
+          queryMetadata::getLogicalSchema
+      );
+
       final SerdeSupplier<?> valueSerdes = SerdeUtil.getSerdeSupplier(
-          persistentQueryMetadata.getResultTopic().getValueSerdeFactory().getFormat()
+          persistentQueryMetadata.getResultTopic().getValueFormat().getFormat(),
+          queryMetadata::getLogicalSchema
       );
 
       final Topic sinkTopic = new Topic(
           sinkKafkaTopicName,
           Optional.empty(),
-          Serdes::String,
+          keySerdes,
           valueSerdes,
           1,
           1,
@@ -198,41 +201,6 @@ final class EndToEndEngineTestUtil {
 
     return compatibleConfig
         .cloneWithPropertyOverwrite(testCase.properties());
-  }
-
-  private static TopologyTestDriverContainer buildStreamsTopologyTestDriverContainer(
-      final TestCase testCase,
-      final ServiceContext serviceContext,
-      final KsqlEngine ksqlEngine
-  ) {
-    final KsqlConfig ksqlConfig = buildConfig(testCase);
-
-    final PersistentQueryMetadata persistentQueryMetadata =
-        buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
-
-    testCase.setGeneratedTopologies(
-        ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
-    testCase.setGeneratedSchemas(ImmutableList.of(persistentQueryMetadata.getSchemasDescription()));
-
-    final Properties streamsProperties = new Properties();
-    streamsProperties.putAll(persistentQueryMetadata.getStreamsProperties());
-
-    final TopologyTestDriver topologyTestDriver =  new TopologyTestDriver(
-        persistentQueryMetadata.getTopology(),
-        streamsProperties,
-        0);
-
-    return TopologyTestDriverContainer.of(
-        topologyTestDriver,
-        persistentQueryMetadata.getSourceNames()
-            .stream()
-            .map(s -> fakeKafkaService.getTopic(ksqlEngine.getMetaStore().getSource(s).getKafkaTopicName()))
-            .collect(Collectors.toList()),
-        fakeKafkaService.getTopic(
-            ksqlEngine.getMetaStore()
-                .getSource(persistentQueryMetadata.getSinkNames().iterator().next())
-                .getKafkaTopicName())
-    );
   }
 
   private static void writeExpectedTopologyFile(
@@ -268,7 +236,9 @@ final class EndToEndEngineTestUtil {
   }
 
   static String formatQueryName(final String originalQueryName) {
-    return originalQueryName.replaceAll(" - (AVRO|JSON)$", "").replaceAll("\\s", "_");
+    return originalQueryName
+        .replaceAll(" - (AVRO|JSON)$", "")
+        .replaceAll("\\s|/", "_");
   }
 
   static Map<String, TopologyAndConfigs> loadExpectedTopologies(final String dir) {
@@ -489,31 +459,16 @@ final class EndToEndEngineTestUtil {
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
-
-    try (final ServiceContext serviceContext = getServiceContext();
-        final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)
-    ) {
-      testCase.initializeTopics(
-          serviceContext.getTopicClient(),
-          fakeKafkaService,
-          serviceContext.getSchemaRegistryClient());
-
-      final TopologyTestDriverContainer topologyTestDriverContainer =
-          buildStreamsTopologyTestDriverContainer(
-              testCase,
-              serviceContext,
-              ksqlEngine);
-
-      testCase.verifyTopology();
-      testCase.processInput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-      testCase.verifyOutput(topologyTestDriverContainer, serviceContext.getSchemaRegistryClient());
-      testCase.verifyMetastore(ksqlEngine.getMetaStore());
+    try (final TestExecutor testExecutor = new TestExecutor()) {
+      testExecutor.buildAndExecuteQuery(testCase);
     } catch (final RuntimeException e) {
       testCase.handleException(e);
     } catch (final AssertionError e) {
       throw new AssertionError("test: " + testCase.getName() + System.lineSeparator()
           + "file: " + testCase.getTestFile()
           + "Failed with error:" + e.getMessage(), e);
+    } catch (final RestClientException | IOException e) {
+      throw new KsqlException("Test '" + testCase.getName() + "' failed: " + e.getMessage(), e);
     }
   }
 

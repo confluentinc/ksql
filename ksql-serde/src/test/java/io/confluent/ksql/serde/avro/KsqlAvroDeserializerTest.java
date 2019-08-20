@@ -1468,11 +1468,16 @@ public class KsqlAvroDeserializerTest {
     final KsqlAvroSerdeFactory serdeFactory = new KsqlAvroSerdeFactory(
         KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME);
 
-    deserializer = serdeFactory.createDeserializer(
-        PersistenceSchema.of((ConnectSchema) schema),
+    final boolean unwrap = schema.type() != Schema.Type.STRUCT;
+    final Schema ksqlSchema = unwrap
+      ? SchemaBuilder.struct().field("f0", schema).build()
+      :  schema;
+
+    deserializer = serdeFactory.createSerde(
+        PersistenceSchema.from((ConnectSchema) ksqlSchema, unwrap),
         KSQL_CONFIG,
         () -> schemaRegistryClient
-    );
+    ).deserializer();
 
     deserializer.configure(Collections.emptyMap(), false);
   }

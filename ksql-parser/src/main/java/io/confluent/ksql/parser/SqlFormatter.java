@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.parser;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.getOnlyElement;
 
 import com.google.common.base.Strings;
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
+import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -32,23 +34,26 @@ import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
 import io.confluent.ksql.parser.tree.ListFunctions;
-import io.confluent.ksql.parser.tree.Node;
+import io.confluent.ksql.parser.tree.ListStreams;
+import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
+import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
 import java.util.Optional;
@@ -64,11 +69,11 @@ public final class SqlFormatter {
   private SqlFormatter() {
   }
 
-  public static String formatSql(final Node root) {
+  public static String formatSql(final AstNode root) {
     return formatSql(root, true);
   }
 
-  public static String formatSql(final Node root, final boolean unmangleNames) {
+  private static String formatSql(final AstNode root, final boolean unmangleNames) {
     final StringBuilder builder = new StringBuilder();
     new Formatter(builder, unmangleNames).process(root, 0);
     return StringUtils.stripEnd(builder.toString(), "\n");
@@ -85,16 +90,8 @@ public final class SqlFormatter {
     }
 
     @Override
-    protected Void visitNode(final Node node, final Integer indent) {
+    protected Void visitNode(final AstNode node, final Integer indent) {
       throw new UnsupportedOperationException("not yet implemented: " + node);
-    }
-
-    @Override
-    protected Void visitExpression(final Expression node, final Integer indent) {
-      checkArgument(indent == 0,
-              "visitExpression should only be called at root");
-      builder.append(ExpressionFormatter.formatExpression(node, unmangledNames));
-      return null;
     }
 
     @Override
@@ -112,20 +109,22 @@ public final class SqlFormatter {
       }
 
       if (node.getWhere().isPresent()) {
-        append(indent, "WHERE " + ExpressionFormatter.formatExpression(node.getWhere().get()))
-            .append('\n');
+        append(
+            indent,
+            "WHERE " + ExpressionFormatterUtil.formatExpression(node.getWhere().get())
+        ).append('\n');
       }
 
       if (node.getGroupBy().isPresent()) {
         append(indent, "GROUP BY "
-            + ExpressionFormatter
+            + ExpressionFormatterUtil
             .formatGroupBy(node.getGroupBy().get().getGroupingElements()))
             .append('\n');
       }
 
       if (node.getHaving().isPresent()) {
         append(indent, "HAVING "
-            + ExpressionFormatter.formatExpression(node.getHaving().get()))
+            + ExpressionFormatterUtil.formatExpression(node.getHaving().get()))
             .append('\n');
       }
 
@@ -165,7 +164,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
-      builder.append(ExpressionFormatter.formatExpression(node.getExpression()));
+      builder.append(ExpressionFormatterUtil.formatExpression(node.getExpression()));
       builder.append(' ')
                 .append('"')
                 .append(node.getAlias())
@@ -201,7 +200,7 @@ public final class SqlFormatter {
       node.getWithinExpression().map((e) -> builder.append(e.toString()));
       final JoinOn on = (JoinOn) criteria;
       builder.append(" ON (")
-          .append(ExpressionFormatter.formatExpression(on.getExpression()))
+          .append(ExpressionFormatterUtil.formatExpression(on.getExpression()))
           .append(")");
 
       return null;
@@ -245,9 +244,8 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitShowColumns(final ShowColumns node, final Integer context) {
-      builder.append("SHOW COLUMNS FROM ")
+      builder.append("DESCRIBE ")
               .append(node.getTable());
-
       return null;
     }
 
@@ -317,7 +315,7 @@ public final class SqlFormatter {
       builder.append(
           node.getValues()
               .stream()
-              .map(SqlFormatter::formatSql)
+              .map(exp -> ExpressionFormatterUtil.formatExpression(exp, unmangledNames))
               .collect(Collectors.joining(", ")));
       builder.append(")");
 
@@ -328,6 +326,55 @@ public final class SqlFormatter {
     protected Void visitDropTable(final DropTable node, final Integer context) {
       visitDrop(node, "TABLE");
       return null;
+    }
+
+    @Override
+    protected Void visitTerminateQuery(final TerminateQuery node, final Integer context) {
+      builder.append("TERMINATE ");
+      builder.append(node.getQueryId().getId());
+      return null;
+    }
+
+    @Override
+    protected Void visitListStreams(final ListStreams node, final Integer context) {
+      builder.append("SHOW STREAMS");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitListTables(final ListTables node, final Integer context) {
+      builder.append("SHOW TABLES");
+      if (node.getShowExtended()) {
+        visitExtended();
+      }
+      return null;
+    }
+
+    @Override
+    protected Void visitUnsetProperty(final UnsetProperty node, final Integer context) {
+      builder.append("UNSET '");
+      builder.append(node.getPropertyName());
+      builder.append("'");
+
+      return null;
+    }
+
+    @Override
+    protected Void visitSetProperty(final SetProperty node, final Integer context) {
+      builder.append("SET '");
+      builder.append(node.getPropertyName());
+      builder.append("'='");
+      builder.append(node.getPropertyValue());
+      builder.append("'");
+
+      return null;
+    }
+
+    private void visitExtended() {
+      builder.append(" EXTENDED");
     }
 
     private void visitDrop(final DropStatement node, final String sourceType) {
@@ -358,7 +405,7 @@ public final class SqlFormatter {
         final Integer indent
     ) {
       partitionByColumn.ifPresent(partitionBy -> append(indent, "PARTITION BY "
-              + ExpressionFormatter.formatExpression(partitionBy))
+              + ExpressionFormatterUtil.formatExpression(partitionBy))
           .append('\n'));
     }
 
@@ -424,7 +471,8 @@ public final class SqlFormatter {
     private static String formatTableElement(final TableElement e) {
       return ParserUtil.escapeIfReservedIdentifier(e.getName())
           + " "
-          + e.getType()
+          + ExpressionFormatter.formatExpression(
+              e.getType(), true, ParserUtil::isReservedIdentifier)
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
   }

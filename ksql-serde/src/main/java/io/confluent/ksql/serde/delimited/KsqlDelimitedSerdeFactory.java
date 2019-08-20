@@ -17,42 +17,65 @@ package io.confluent.ksql.serde.delimited;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
+import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
-import org.apache.kafka.common.serialization.Deserializer;
-import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.serialization.Serdes;
+import org.apache.kafka.connect.data.ConnectSchema;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 
 
 @Immutable
-public class KsqlDelimitedSerdeFactory extends KsqlSerdeFactory {
+public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
 
-  public KsqlDelimitedSerdeFactory() {
-    super(Format.DELIMITED);
+  @Override
+  public void validate(final PersistenceSchema schema) {
+    final ConnectSchema connectSchema = schema.serializedSchema();
+    if (connectSchema.type() != Type.STRUCT) {
+      throw new IllegalArgumentException("DELIMITED format does not support unwrapping");
+    }
+
+    connectSchema.fields().forEach(f -> SchemaWalker.visit(f.schema(), new SchemaValidator()));
   }
 
   @Override
-  protected Serializer<Object> createSerializer(
+  public Serde<Object> createSerde(
       final PersistenceSchema schema,
       final KsqlConfig ksqlConfig,
       final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
   ) {
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
-    serializer.configure(Collections.emptyMap(), false);
-    return serializer;
+    validate(schema);
+
+    return Serdes.serdeFrom(
+        new KsqlDelimitedSerializer(),
+        new KsqlDelimitedDeserializer(schema)
+    );
   }
 
-  @Override
-  protected Deserializer<Object> createDeserializer(
-      final PersistenceSchema schema,
-      final KsqlConfig ksqlConfig,
-      final Supplier<SchemaRegistryClient> schemaRegistryClientFactory
-  ) {
-    final Deserializer<Object> deserializer = new KsqlDelimitedDeserializer(schema);
-    deserializer.configure(Collections.emptyMap(), false);
-    return deserializer;
+  private static class SchemaValidator implements SchemaWalker.Visitor<Void, Void> {
+
+    public Void visitPrimitive(final Schema schema) {
+      // Primitive types are allowed.
+      return null;
+    }
+
+    public Void visitBytes(final Schema schema) {
+      if (!DecimalUtil.isDecimal(schema)) {
+        visitSchema(schema);
+      }
+      return null;
+    }
+
+    public Void visitSchema(final Schema schema) {
+      throw new KsqlException("The '" + Format.DELIMITED
+          + "' format does not support type '" + schema.type().toString() + "'");
+    }
   }
 }

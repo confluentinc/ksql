@@ -21,8 +21,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
-
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
@@ -38,7 +37,7 @@ public final class KafkaClusterUtil {
 
   }
 
-  public static boolean isAuthorizedOperationsSupported(final AdminClient adminClient) {
+  public static boolean isAuthorizedOperationsSupported(final Admin adminClient) {
     try {
       final DescribeClusterResult authorizedOperations = adminClient.describeCluster(
           new DescribeClusterOptions().includeAuthorizedOperations(true)
@@ -50,7 +49,7 @@ public final class KafkaClusterUtil {
     }
   }
 
-  public static Config getConfig(final AdminClient adminClient) {
+  public static Config getConfig(final Admin adminClient) {
     try {
       final Collection<Node> brokers = adminClient.describeCluster().nodes().get();
       final Node broker = Iterables.getFirst(brokers, null);

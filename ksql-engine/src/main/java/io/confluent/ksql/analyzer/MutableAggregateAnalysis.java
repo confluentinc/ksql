@@ -15,9 +15,9 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

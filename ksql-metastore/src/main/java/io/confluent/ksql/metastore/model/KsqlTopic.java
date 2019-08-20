@@ -18,38 +18,39 @@ package io.confluent.ksql.metastore.model;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
+import io.confluent.ksql.serde.KeyFormat;
+import io.confluent.ksql.serde.ValueFormat;
 
 @Immutable
 public class KsqlTopic {
 
-  private final String ksqlTopicName;
   private final String kafkaTopicName;
-  private final KsqlSerdeFactory valueSerdeFactory;
+  private final KeyFormat keyFormat;
+  private final ValueFormat valueFormat;
   private final boolean isKsqlSink;
 
   public KsqlTopic(
-      final String ksqlTopicName,
       final String kafkaTopicName,
-      final KsqlSerdeFactory valueSerdeFactory,
+      final KeyFormat keyFormat,
+      final ValueFormat valueFormat,
       final boolean isKsqlSink
   ) {
-    this.ksqlTopicName = requireNonNull(ksqlTopicName, "ksqlTopicName");
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
-    this.valueSerdeFactory = requireNonNull(valueSerdeFactory, "valueSerdeFactory");
+    this.keyFormat = requireNonNull(keyFormat, "keyFormat");
+    this.valueFormat = requireNonNull(valueFormat, "valueFormat");
     this.isKsqlSink = isKsqlSink;
   }
 
-  public KsqlSerdeFactory getValueSerdeFactory() {
-    return valueSerdeFactory;
+  public KeyFormat getKeyFormat() {
+    return keyFormat;
+  }
+
+  public ValueFormat getValueFormat() {
+    return valueFormat;
   }
 
   public String getKafkaTopicName() {
     return kafkaTopicName;
-  }
-
-  public String getKsqlTopicName() {
-    return ksqlTopicName;
   }
 
   public boolean isKsqlSink() {

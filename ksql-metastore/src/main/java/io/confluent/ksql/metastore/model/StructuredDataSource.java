@@ -19,9 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.metastore.SerdeFactory;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -35,7 +33,6 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   private final LogicalSchema schema;
   private final KeyField keyField;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
-  private final SerdeFactory<K> keySerde;
   private final KsqlTopic ksqlTopic;
   private final String sqlExpression;
   private final ImmutableSet<SerdeOption> serdeOptions;
@@ -48,8 +45,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
       final KeyField keyField,
       final TimestampExtractionPolicy tsExtractionPolicy,
       final DataSourceType dataSourceType,
-      final KsqlTopic ksqlTopic,
-      final SerdeFactory<K> keySerde
+      final KsqlTopic ksqlTopic
   ) {
     this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
     this.dataSourceName = requireNonNull(dataSourceName, "dataSourceName");
@@ -59,7 +55,6 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.timestampExtractionPolicy = requireNonNull(tsExtractionPolicy, "tsExtractionPolicy");
     this.dataSourceType = requireNonNull(dataSourceType, "dataSourceType");
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
-    this.keySerde = requireNonNull(keySerde, "keySerde");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
 
     if (schema.findValueField(SchemaUtil.ROWKEY_NAME).isPresent()
@@ -99,23 +94,8 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   }
 
   @Override
-  public SerdeFactory<K> getKeySerdeFactory() {
-    return keySerde;
-  }
-
-  @Override
-  public KsqlSerdeFactory getValueSerdeFactory() {
-    return ksqlTopic.getValueSerdeFactory();
-  }
-
-  @Override
   public TimestampExtractionPolicy getTimestampExtractionPolicy() {
     return timestampExtractionPolicy;
-  }
-
-  @Override
-  public String getKsqlTopicName() {
-    return ksqlTopic.getKsqlTopicName();
   }
 
   @Override
@@ -126,5 +106,10 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
   @Override
   public String getSqlExpression() {
     return sqlExpression;
+  }
+
+  @Override
+  public String toString() {
+    return getClass().getSimpleName() + " name:" + getName();
   }
 }

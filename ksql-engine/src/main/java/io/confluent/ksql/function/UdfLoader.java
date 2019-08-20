@@ -53,9 +53,9 @@ import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
-import org.apache.kafka.common.metrics.stats.Count;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
+import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
@@ -118,6 +118,28 @@ public class UdfLoader {
     }
   }
 
+  // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
+  public void loadUdfFromClass(final Class<?> ... udfClass) {
+    for (final Class<?> theClass: udfClass) {
+      //classes must be annotated with @UdfDescription
+      final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
+      if (udfDescription == null) {
+        throw new KsqlException(String.format("Cannot load class %s. Classes containing UDFs must"
+            + "be annotated with @UdfDescription.", theClass.getName()));
+      }
+      //method must be public and annotated with @Udf
+      for (Method m: theClass.getDeclaredMethods()) {
+        if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
+          handleUdfAnnotation(theClass,
+                              udfDescription,
+                              m,
+                              parentClassLoader,
+                              KsqlFunction.INTERNAL_PATH) ;
+        }
+      }
+    }
+  }
+
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private void loadUdfs(final ClassLoader loader, final Optional<Path> path) {
@@ -138,7 +160,8 @@ public class UdfLoader {
               }
               return name.contains("ksql-engine");
             })
-        .matchClassesWithMethodAnnotation(Udf.class, handleUdfAnnotation(loader, pathLoadedFrom))
+        .matchClassesWithMethodAnnotation(Udf.class,
+                                          processMethodAnnotation(loader, pathLoadedFrom))
         .matchClassesWithAnnotation(UdafDescription.class,
             handleUdafAnnotation(loader, pathLoadedFrom))
         .scan();
@@ -201,8 +224,8 @@ public class UdfLoader {
     };
   }
 
-  private MethodAnnotationMatchProcessor handleUdfAnnotation(final ClassLoader loader,
-                                                             final String path) {
+  private MethodAnnotationMatchProcessor processMethodAnnotation(final ClassLoader loader,
+                                                                 final String path) {
     return (theClass, executable) ->  {
       final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
       if (annotation == null) {
@@ -214,8 +237,7 @@ public class UdfLoader {
       LOGGER.info("Adding UDF name='{}' from path={}", annotation.name(), path);
       final Method method = (Method) executable;
       try {
-        final UdfInvoker udf = UdfCompiler.compile(method, loader);
-        addFunction(annotation, method, udf, path);
+        handleUdfAnnotation(theClass, annotation, method, loader, path);
       } catch (final KsqlException e) {
         if (parentClassLoader == loader) {
           throw e;
@@ -228,6 +250,18 @@ public class UdfLoader {
       }
     };
   }
+
+  private void handleUdfAnnotation(final Class<?> theClass,
+                                   final UdfDescription annotation,
+                                   final Method method,
+                                   final ClassLoader classLoader,
+                                   final String path) {
+
+    LOGGER.info("Adding UDF name='{}' from class={}", annotation.name(), theClass);
+    final UdfInvoker udf = UdfCompiler.compile(method, classLoader);
+    addFunction(annotation, method, udf, path);
+  }
+
 
   private void addFunction(final UdfDescription classLevelAnnotation,
                            final Method method,
@@ -276,14 +310,14 @@ public class UdfLoader {
 
       final String doc = annotation.map(UdfParameter::description).orElse("");
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return SchemaConverters.sqlToLogicalConverter()
-            .fromSqlType(
+        return SchemaConverters.sqlToConnectConverter()
+            .toConnectSchema(
                 TypeContextUtil.getType(annotation.get().schema()).getSqlType(),
                 name,
                 doc);
       }
 
-      return SchemaUtil.getSchemaFromType(type, name, doc);
+      return UdfUtil.getSchemaFromType(type, name, doc);
     }).collect(Collectors.toList());
 
     final Schema returnType = getReturnType(method, udfAnnotation);
@@ -332,11 +366,11 @@ public class UdfLoader {
             new Max());
         sensor.add(metrics.metricName(sensorName + "-count", UDF_METRIC_GROUP,
             "Total number of invocations of " + udfName + " udf"),
-            new Count());
+            new WindowedCount());
         sensor.add(metrics.metricName(sensorName + "-rate", UDF_METRIC_GROUP,
             "The average number of occurrence of " + udfName + " operation per second "
                 + udfName + " udf"),
-            new Rate(TimeUnit.SECONDS, new Count()));
+            new Rate(TimeUnit.SECONDS, new WindowedCount()));
       }
     });
   }
@@ -372,10 +406,10 @@ public class UdfLoader {
   private static Schema getReturnType(final Method method, final Udf udfAnnotation) {
     try {
       final Schema returnType = udfAnnotation.schema().isEmpty()
-          ? SchemaUtil.getSchemaFromType(method.getGenericReturnType())
+          ? UdfUtil.getSchemaFromType(method.getGenericReturnType())
           : SchemaConverters
-              .sqlToLogicalConverter()
-              .fromSqlType(TypeContextUtil.getType(udfAnnotation.schema()).getSqlType());
+              .sqlToConnectConverter()
+              .toConnectSchema(TypeContextUtil.getType(udfAnnotation.schema()).getSqlType());
 
       return SchemaUtil.ensureOptional(returnType);
     } catch (final KsqlException e) {

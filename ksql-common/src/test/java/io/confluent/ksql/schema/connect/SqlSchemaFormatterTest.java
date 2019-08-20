@@ -103,6 +103,19 @@ public class SqlSchemaFormatterTest {
   }
 
   @Test
+  public void shouldFormatOptionalBytes() {
+    assertThat(DEFAULT.format(Schema.OPTIONAL_BYTES_SCHEMA), is("BYTES"));
+    assertThat(STRICT.format(Schema.OPTIONAL_BYTES_SCHEMA), is("BYTES"));
+  }
+
+
+  @Test
+  public void shouldFormatBytes() {
+    assertThat(DEFAULT.format(Schema.BYTES_SCHEMA), is("BYTES"));
+    assertThat(STRICT.format(Schema.BYTES_SCHEMA), is("BYTES NOT NULL"));
+  }
+
+  @Test
   public void shouldFormatArray() {
     // Given:
     final Schema schema = SchemaBuilder

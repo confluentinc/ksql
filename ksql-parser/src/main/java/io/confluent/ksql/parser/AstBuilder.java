@@ -24,11 +24,42 @@ import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
+import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.InListExpression;
+import io.confluent.ksql.execution.expression.tree.InPredicate;
+import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
+import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
+import io.confluent.ksql.execution.expression.tree.LikePredicate;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.NotExpression;
+import io.confluent.ksql.execution.expression.tree.NullLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
+import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
+import io.confluent.ksql.execution.expression.tree.TimeLiteral;
+import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
+import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -36,78 +67,53 @@ import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
-import io.confluent.ksql.parser.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.parser.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.parser.tree.BetweenPredicate;
-import io.confluent.ksql.parser.tree.BooleanLiteral;
-import io.confluent.ksql.parser.tree.Cast;
-import io.confluent.ksql.parser.tree.ComparisonExpression;
+import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.CreateConnector.Type;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.parser.tree.DecimalLiteral;
-import io.confluent.ksql.parser.tree.DereferenceExpression;
+import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.Explain;
-import io.confluent.ksql.parser.tree.Expression;
-import io.confluent.ksql.parser.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.HoppingWindowExpression;
-import io.confluent.ksql.parser.tree.InListExpression;
-import io.confluent.ksql.parser.tree.InPredicate;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.parser.tree.IsNotNullPredicate;
-import io.confluent.ksql.parser.tree.IsNullPredicate;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.LikePredicate;
+import io.confluent.ksql.parser.tree.ListConnectors;
+import io.confluent.ksql.parser.tree.ListConnectors.Scope;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.LogicalBinaryExpression;
-import io.confluent.ksql.parser.tree.Node;
-import io.confluent.ksql.parser.tree.NodeLocation;
-import io.confluent.ksql.parser.tree.NotExpression;
-import io.confluent.ksql.parser.tree.NullLiteral;
 import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.parser.tree.QualifiedName;
-import io.confluent.ksql.parser.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RunScript;
-import io.confluent.ksql.parser.tree.SearchedCaseExpression;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SessionWindowExpression;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.parser.tree.SimpleCaseExpression;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
-import io.confluent.ksql.parser.tree.StringLiteral;
-import io.confluent.ksql.parser.tree.SubscriptExpression;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.parser.tree.TimeLiteral;
-import io.confluent.ksql.parser.tree.TimestampLiteral;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.parser.tree.WhenClause;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.Operator;
@@ -180,11 +186,6 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitQuerystatement(final SqlBaseParser.QuerystatementContext ctx) {
-      return visitChildren(ctx);
-    }
-
-    @Override
     public Node visitSingleExpression(final SqlBaseParser.SingleExpressionContext context) {
       return visit(context.expression());
     }
@@ -195,10 +196,16 @@ public class AstBuilder {
       final ImmutableMap.Builder<String, Literal> properties = ImmutableMap.builder();
       if (tablePropertiesContext != null) {
         for (final TablePropertyContext prop : tablePropertiesContext.tableProperty()) {
-          properties.put(
-              ParserUtil.getIdentifierText(prop.identifier()),
-              (Literal) visit(prop.literal())
-          );
+          if (prop.identifier() != null) {
+            properties.put(
+                ParserUtil.getIdentifierText(prop.identifier()),
+                (Literal) visit(prop.literal())
+            );
+          } else {
+            properties.put(
+                ParserUtil.unquote(prop.STRING().getText(), "'"),
+                (Literal) visit(prop.literal()));
+          }
         }
       }
       return properties.build();
@@ -262,6 +269,20 @@ public class AstBuilder {
           visitQuery(context.query()),
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties)
+      );
+    }
+
+    @Override
+    public Node visitCreateConnector(final CreateConnectorContext context) {
+      final Map<String, Literal> properties = processTableProperties(context.tableProperties());
+      final String name = ParserUtil.getIdentifierText(context.identifier());
+      final CreateConnector.Type type = context.SOURCE() != null ? Type.SOURCE : Type.SINK;
+
+      return new CreateConnector(
+          getLocation(context),
+          name,
+          properties,
+          type
       );
     }
 
@@ -537,18 +558,13 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-      return visitChildren(context);
-    }
-
-    @Override
     public Node visitRunScript(final SqlBaseParser.RunScriptContext context) {
       return new RunScript(getLocation(context));
     }
 
     @Override
     public Node visitListTopics(final SqlBaseParser.ListTopicsContext context) {
-      return new ListTopics(getLocation(context));
+      return new ListTopics(getLocation(context), context.EXTENDED() != null);
     }
 
     @Override
@@ -572,6 +588,20 @@ public class AstBuilder {
     @Override
     public Node visitListFunctions(final SqlBaseParser.ListFunctionsContext ctx) {
       return new ListFunctions(getLocation(ctx));
+    }
+
+    @Override
+    public Node visitListConnectors(final ListConnectorsContext ctx) {
+      final ListConnectors.Scope scope;
+      if (ctx.SOURCE() != null) {
+        scope = Scope.SOURCE;
+      } else if (ctx.SINK() != null) {
+        scope = Scope.SINK;
+      } else {
+        scope = Scope.ALL;
+      }
+
+      return new ListConnectors(getLocation(ctx), scope);
     }
 
     @Override
@@ -631,11 +661,6 @@ public class AstBuilder {
           interval,
           limit
       );
-    }
-
-    @Override
-    public Node visitNumericLiteral(final SqlBaseParser.NumericLiteralContext ctx) {
-      return visitChildren(ctx);
     }
 
     @Override
@@ -1079,6 +1104,14 @@ public class AstBuilder {
     @Override
     public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
       return new DescribeFunction(getLocation(ctx), ctx.qualifiedName().getText());
+    }
+
+    @Override
+    public Node visitDescribeConnector(final DescribeConnectorContext ctx) {
+      return new DescribeConnector(
+          getLocation(ctx),
+          ParserUtil.getIdentifierText(ctx.identifier())
+      );
     }
 
     @Override

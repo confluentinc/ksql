@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
@@ -26,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
 
 /**
  * Helper for finding fields in the schemas of one or more aliased sources.
@@ -111,11 +111,11 @@ final class SourceSchemas {
 
   private static Set<String> nonValueFieldNames(final LogicalSchema schema) {
     final Set<String> fieldNames = schema.metaFields().stream()
-        .map(Field::name)
+        .map(Field::fullName)
         .collect(Collectors.toSet());
 
     schema.keyFields().stream()
-        .map(Field::name)
+        .map(Field::fullName)
         .forEach(fieldNames::add);
 
     return fieldNames;

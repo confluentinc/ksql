@@ -16,11 +16,15 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.processor.FailOnInvalidTimestamp;
+import org.apache.kafka.streams.processor.TimestampExtractor;
 
 public final class TimestampExtractionPolicyFactory {
 
@@ -28,12 +32,13 @@ public final class TimestampExtractionPolicyFactory {
   }
 
   public static TimestampExtractionPolicy create(
+      final KsqlConfig ksqlConfig,
       final LogicalSchema schema,
       final Optional<String> timestampColumnName,
       final Optional<String> timestampFormat
   ) {
     if (!timestampColumnName.isPresent()) {
-      return new MetadataTimestampExtractionPolicy();
+      return new MetadataTimestampExtractionPolicy(getDefaultTimestampExtractor(ksqlConfig));
     }
 
     final String fieldName = timestampColumnName.get().toUpperCase();
@@ -43,8 +48,8 @@ public final class TimestampExtractionPolicyFactory {
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
                 + fieldName + "'"));
 
-    final Schema.Type timestampFieldType = timestampField.schema().type();
-    if (timestampFieldType == Schema.Type.STRING) {
+    final SqlBaseType timestampFieldType = timestampField.type().baseType();
+    if (timestampFieldType == SqlBaseType.STRING) {
 
       final String format = timestampFormat.orElseThrow(() -> new KsqlException(
           "A String timestamp field has been specified without"
@@ -60,7 +65,7 @@ public final class TimestampExtractionPolicyFactory {
           + "when the timestamp column in of type STRING.");
     }
 
-    if (timestampFieldType == Schema.Type.INT64) {
+    if (timestampFieldType == SqlBaseType.BIGINT) {
       return new LongColumnTimestampExtractionPolicy(fieldName);
     }
 
@@ -71,4 +76,17 @@ public final class TimestampExtractionPolicyFactory {
             + " specified");
   }
 
+  private static TimestampExtractor getDefaultTimestampExtractor(final KsqlConfig ksqlConfig) {
+    try {
+      final Class<?> timestampExtractorClass = (Class<?>) ksqlConfig.getKsqlStreamConfigProps()
+          .getOrDefault(
+              StreamsConfig.DEFAULT_TIMESTAMP_EXTRACTOR_CLASS_CONFIG,
+              FailOnInvalidTimestamp.class
+          );
+
+      return (TimestampExtractor) timestampExtractorClass.newInstance();
+    } catch (final Exception e) {
+      throw new KsqlException("Cannot override default timestamp extractor: " + e.getMessage(), e);
+    }
+  }
 }

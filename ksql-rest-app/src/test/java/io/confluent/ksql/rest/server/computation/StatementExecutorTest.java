@@ -47,7 +47,7 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;

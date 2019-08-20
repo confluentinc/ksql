@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class DecimalSumKudaf
@@ -65,7 +66,7 @@ public class DecimalSumKudaf
   }
 
   @Override
-  public Merger<String, BigDecimal> getMerger() {
+  public Merger<Struct, BigDecimal> getMerger() {
     return (key, agg1, agg2) -> agg1.add(agg2, context);
   }
 

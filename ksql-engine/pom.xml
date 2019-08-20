@@ -32,22 +32,32 @@
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-execution</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.confluent.support</groupId>
             <artifactId>support-metrics-common</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-serde</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-parser</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-metastore</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-udf</artifactId>
@@ -61,6 +71,11 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.rholder</groupId>
+            <artifactId>guava-retrying</artifactId>
         </dependency>
 
         <dependency>
@@ -79,8 +94,18 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>fluent-hc</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.kafka</groupId>
             <artifactId>connect-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>connect-runtime</artifactId>
         </dependency>
 
         <dependency>
@@ -129,6 +154,12 @@
             <groupId>io.confluent.avro</groupId>
             <artifactId>avro-random-generator</artifactId>
             <version>${avro.random.generator.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-jre8</artifactId>
             <scope>test</scope>
         </dependency>
 

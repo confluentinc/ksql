@@ -31,8 +31,6 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -52,8 +50,6 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.serde.KsqlSerdeFactory;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -98,8 +94,6 @@ public class KsqlEngineTest {
 
   private MutableMetaStore metaStore;
   @Spy
-  private final KsqlSerdeFactory jsonKsqlSerde = new KsqlJsonSerdeFactory();
-  @Spy
   private final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
   private final Supplier<SchemaRegistryClient> schemaRegistryClientFactory =
       () -> schemaRegistryClient;
@@ -112,8 +106,7 @@ public class KsqlEngineTest {
 
   @Before
   public void setUp() {
-    metaStore = MetaStoreFixture
-        .getNewMetaStore(new InternalFunctionRegistry(), jsonKsqlSerde);
+    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
 
     serviceContext = TestServiceContext.create(
         topicClient,
@@ -145,8 +138,8 @@ public class KsqlEngineTest {
     assertThat(queries, hasSize(2));
     assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
     assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkNames(), contains("BAR"));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkNames(), contains("FOO"));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is("BAR"));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is("FOO"));
   }
 
   @Test
@@ -394,8 +387,20 @@ public class KsqlEngineTest {
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(containsString(
-        "Cannot register avro schema for T as the schema registry rejected it, "
-            + "(maybe schema evolution issues?)")));
+        "Cannot register avro schema for T as the schema is incompatible with the current schema version registered for the topic.\n" +
+            "KSQL schema: {" +
+            "\"type\":\"record\"," +
+            "\"name\":\"T\"," +
+            "\"namespace\":\"ksql\"," +
+            "\"fields\":[" +
+            "{\"name\":\"COL0\",\"type\":[\"null\",\"long\"],\"default\":null}," +
+            "{\"name\":\"COL1\",\"type\":[\"null\",\"string\"],\"default\":null}," +
+            "{\"name\":\"COL2\",\"type\":[\"null\",\"string\"],\"default\":null}," +
+            "{\"name\":\"COL3\",\"type\":[\"null\",\"double\"],\"default\":null}," +
+            "{\"name\":\"COL4\",\"type\":[\"null\",\"boolean\"],\"default\":null}" +
+            "]" +
+            "}\n" +
+            "Registered schema: \"int\"")));
     expectedException.expect(statementText(is(
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
 
@@ -516,16 +521,6 @@ public class KsqlEngineTest {
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
   }
 
-  @Test
-  public void shouldUseSerdeSupplierToBuildQueries() {
-    // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
-        "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
-
-    // Then:
-    verify(jsonKsqlSerde, atLeastOnce()).createSerde(any(), any(), eq(schemaRegistryClientFactory));
-  }
-
   @SuppressWarnings("unchecked")
   @Test
   public void shouldHandleMultipleStatements() {
@@ -607,8 +602,7 @@ public class KsqlEngineTest {
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
-        "Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlTable name:FOO")));
+        "Cannot add table 'FOO': A table with the same name already exists")));
     expectedException.expect(statementText(is(
         "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
 
@@ -660,8 +654,7 @@ public class KsqlEngineTest {
     // Then:
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
-        "Cannot add the new data source. "
-            + "Another data source with the same name already exists: KsqlStream name:FOO")));
+        "Cannot add stream 'FOO': A stream with the same name already exists")));
     expectedException.expect(statementText(is(
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
 

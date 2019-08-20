@@ -207,8 +207,8 @@ public class JsonSerdeUtilsTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     //  When:
-    JsonSerdeUtils.validateSchema(PersistenceSchema.of(
-        (ConnectSchema) SchemaBuilder
+    JsonSerdeUtils.validateSchema(persistenceSchema(
+        SchemaBuilder
             .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
             .build()
     ));
@@ -221,8 +221,8 @@ public class JsonSerdeUtilsTest {
     expectedException.expectMessage("Only MAPs with STRING keys are supported");
 
     //  When:
-    JsonSerdeUtils.validateSchema(PersistenceSchema.of(
-        (ConnectSchema) SchemaBuilder
+    JsonSerdeUtils.validateSchema(persistenceSchema(
+        SchemaBuilder
             .struct()
             .field("f0", SchemaBuilder
                 .map(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
@@ -230,5 +230,14 @@ public class JsonSerdeUtilsTest {
                 .build())
             .build()
     ));
+  }
+
+  private static PersistenceSchema persistenceSchema(final Schema schema) {
+    return PersistenceSchema.from(
+        (ConnectSchema) SchemaBuilder.struct()
+            .field("field", schema)
+            .build(),
+        true
+    );
   }
 }

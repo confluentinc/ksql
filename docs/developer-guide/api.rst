@@ -117,9 +117,16 @@ statements use the ``/query`` endpoint.
 
    The response JSON is an array of result objects. The result object contents depend on the statement that it is returning results for. The following sections detail the contents of the result objects by statement.
 
-   **CREATE, DROP, TERMINATE**
+   **Common Fields**
+   The following fields are common to all responses.
 
    :>json string statementText: The KSQL statement whose result is being returned.
+   :>json array  warnings: A list of warnings about conditions that may be unexpected by the user, b
+ut don't result in failure to execute the statement.
+   :>json string warnings[i].message: A message detailing the condition being warned on.
+
+   **CREATE, DROP, TERMINATE**
+
    :>json string commandId: A string that identifies the requested operation. You can use this ID to poll the result of the operation using the status endpoint.
    :>json string commandStatus.status: One of QUEUED, PARSING, EXECUTING, TERMINATED, SUCCESS, or ERROR.
    :>json string commandStatus.message: Detailed message regarding the status of the execution statement.
@@ -127,7 +134,6 @@ statements use the ``/query`` endpoint.
 
    **LIST STREAMS, SHOW STREAMS**
 
-   :>json string statementText: The KSQL statement whose result is being returned.
    :>json array  streams: List of streams.
    :>json string streams[i].name: The name of the stream.
    :>json string streams[i].topic: The topic backing the stream.
@@ -135,7 +141,6 @@ statements use the ``/query`` endpoint.
 
    **LIST TABLES, SHOW TABLES**
 
-   :>json string statementText: The KSQL statement whose result is being returned.
    :>json array  tables: List of tables.
    :>json string tables[i].name: The name of the table.
    :>json string tables[i].topic: The topic backing the table.
@@ -143,7 +148,6 @@ statements use the ``/query`` endpoint.
 
    **LIST QUERIES, SHOW QUERIES**
 
-   :>json string statementText: The KSQL statement whose result is being returned.
    :>json array  queries: List of queries.
    :>json string queries[i].queryString: The text of the statement that started the query.
    :>json string queries[i].sinks: The streams and tables being written to by the query.
@@ -151,13 +155,11 @@ statements use the ``/query`` endpoint.
 
    **LIST PROPERTIES, SHOW PROPERTIES**
 
-   :>json string statementText: The KSQL statement whose result is being returned.
    :>json map    properties: The KSQL server query properties.
    :>json string properties[``property-name``]: The value of the property named by ``property-name``.
 
    **DESCRIBE**
 
-   :>json string  statementText: The KSQL statement whose result is being returned.
    :>json string  sourceDescription.name: The name of the stream or table.
    :>json array   sourceDescription.readQueries: The queries reading from the stream or table.
    :>json array   sourceDescription.writeQueries: The queries writing into the stream or table
@@ -180,7 +182,6 @@ statements use the ``/query`` endpoint.
 
    **EXPLAIN**
 
-   :>json string statementText: The KSQL statement whose result is being returned.
    :>json string queryDescription.statementText: The KSQL statement for which the query being explained is running.
    :>json array  queryDescription.fields: A list of field objects that describes each field in the query output.
    :>json string queryDescription.fields[i].name: The name of the field.

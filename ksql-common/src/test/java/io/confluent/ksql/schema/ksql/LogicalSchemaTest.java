@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql;
 import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -27,15 +28,16 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,9 +46,6 @@ import org.junit.rules.ExpectedException;
 public class LogicalSchemaTest {
 
   private static final Schema IMMUTABLE_SCHEMA = Schema.OPTIONAL_STRING_SCHEMA;
-  private static final SchemaBuilder MUTABLE_SCHEMA = SchemaBuilder.struct()
-      .optional()
-      .field("f0", Schema.OPTIONAL_INT64_SCHEMA);
 
   private static final Schema SOME_VALUE_SCHEMA = SchemaBuilder.struct()
       .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
@@ -55,11 +54,6 @@ public class LogicalSchemaTest {
 
   private static final Schema OTHER_CONNECT_SCHEMA = SchemaBuilder.struct()
       .field("id", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build();
-
-  private static final Schema ALIASED_CONNECT_SCHEMA = SchemaBuilder.struct()
-      .field("bob.f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("bob.f1", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
       .build();
 
   private static final Schema SOME_KEY_SCHEMA = SchemaBuilder.struct()
@@ -86,12 +80,36 @@ public class LogicalSchemaTest {
 
     new EqualsTester()
         .addEqualityGroup(
+            LogicalSchema.builder()
+                .keyField("k0", SqlTypes.BIGINT)
+                .valueField("v0", SqlTypes.STRING)
+                .build(),
+
+            LogicalSchema.builder()
+                .keyField("k0", SqlTypes.BIGINT)
+                .valueField("v0", SqlTypes.STRING)
+                .build(),
+
+            LogicalSchema.of(
+                SchemaBuilder.struct()
+                    .field("k0", Schema.OPTIONAL_INT64_SCHEMA)
+                    .build(),
+                SchemaBuilder.struct()
+                    .field("v0", Schema.OPTIONAL_STRING_SCHEMA)
+                    .build()
+            )
+        )
+        .addEqualityGroup(
             LogicalSchema.of(SOME_VALUE_SCHEMA),
             LogicalSchema.of(implicitKeySchema, SOME_VALUE_SCHEMA),
             LogicalSchema.of(SOME_VALUE_SCHEMA).withAlias("bob").withoutAlias(),
             LogicalSchema.of(SOME_VALUE_SCHEMA)
                 .withMetaAndKeyFieldsInValue()
-                .withoutMetaAndKeyFieldsInValue()
+                .withoutMetaAndKeyFieldsInValue(),
+            LogicalSchema.builder()
+                .valueField("f0", SqlTypes.STRING)
+                .valueField("f1", SqlTypes.BIGINT)
+                .build()
         )
         .addEqualityGroup(
             LogicalSchema.of(SOME_VALUE_SCHEMA).withAlias("bob")
@@ -116,8 +134,8 @@ public class LogicalSchemaTest {
         final Schema keySchema = SchemaBuilder.struct().field("test", schema).build();
         LogicalSchema.of(keySchema, SOME_VALUE_SCHEMA);
         fail();
-      } catch (final IllegalArgumentException e) {
-        assertThat(schema.toString(), e.getMessage(), containsString("Unsupported schema type"));
+      } catch (final KsqlException e) {
+        assertThat(schema.toString(), e.getMessage(), containsString("Unexpected schema type"));
       }
     });
   }
@@ -133,8 +151,8 @@ public class LogicalSchemaTest {
         final Schema valueSchema = SchemaBuilder.struct().field("test", schema).build();
         LogicalSchema.of(SOME_KEY_SCHEMA, valueSchema);
         fail();
-      } catch (final IllegalArgumentException e) {
-        assertThat(schema.toString(), e.getMessage(), containsString("Unsupported schema type"));
+      } catch (final KsqlException e) {
+        assertThat(schema.toString(), e.getMessage(), containsString("Unexpected schema type"));
       }
     });
   }
@@ -157,225 +175,6 @@ public class LogicalSchemaTest {
 
     // When:
     LogicalSchema.of(SOME_KEY_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA);
-  }
-
-  @Test
-  public void shouldThrowOnMutableStructFieldsInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder.struct()
-            .field("fieldWithMutableSchema", MUTABLE_SCHEMA)
-            .optional()
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableStructFieldsInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .struct()
-            .field("fieldWithMutableSchema", MUTABLE_SCHEMA)
-            .optional()
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableMapKeysInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .map(new SchemaBuilder(Type.STRING).optional(), IMMUTABLE_SCHEMA)
-            .optional()
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableMapKeysInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .map(new SchemaBuilder(Type.STRING).optional(), IMMUTABLE_SCHEMA)
-            .optional()
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableMapValuesInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .map(IMMUTABLE_SCHEMA, MUTABLE_SCHEMA)
-            .optional()
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableMapValuesInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .map(IMMUTABLE_SCHEMA, MUTABLE_SCHEMA)
-            .optional()
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableArrayElementsInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .array(MUTABLE_SCHEMA)
-            .optional()
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnMutableArrayElementsInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Mutable schema found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .array(MUTABLE_SCHEMA)
-            .optional()
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneOptionalMapKeysInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA)
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneOptionalMapKeysInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA)
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneOptionalMapValuesInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA)
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneOptionalMapValuesInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .map(IMMUTABLE_SCHEMA, IMMUTABLE_SCHEMA)
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneOptionalElementsInKey() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .array(IMMUTABLE_SCHEMA)
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneOptionalElementsInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Non-optional field found");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .array(IMMUTABLE_SCHEMA)
-            .build())
-    );
   }
 
   @Test
@@ -407,8 +206,8 @@ public class LogicalSchemaTest {
   @Test
   public void shouldThrowOnNoneStringMapKeyInKey() {
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("MAP only supports STRING keys");
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Unsupported map key type: Schema{INT64}");
 
     // When:
     LogicalSchema.of(
@@ -417,58 +216,6 @@ public class LogicalSchemaTest {
             .optional()
             .build()),
         SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNoneStringMapKeyInValue() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("MAP only supports STRING keys");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .map(Schema.OPTIONAL_INT64_SCHEMA, IMMUTABLE_SCHEMA)
-            .optional()
-            .build())
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNonDecimalBytesInKey() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
-
-    // When:
-    LogicalSchema.of(
-        nested(SchemaBuilder
-            .bytes()
-            .name("foobar")
-            .optional()
-            .build()),
-        SOME_VALUE_SCHEMA
-    );
-  }
-
-  @Test
-  public void shouldThrowOnNonDecimalBytesInValue() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Expected schema of type DECIMAL but got a schema of type BYTES and name foobar");
-
-    // When:
-    LogicalSchema.of(
-        SOME_KEY_SCHEMA,
-        nested(SchemaBuilder
-            .bytes()
-            .name("foobar")
-            .optional()
-            .build())
     );
   }
 
@@ -582,7 +329,7 @@ public class LogicalSchemaTest {
     final Optional<Field> result = SOME_SCHEMA.findValueField("f0");
 
     // Then:
-    assertThat(result, is(Optional.of(SOME_VALUE_SCHEMA.field("f0"))));
+    assertThat(result, is(Optional.of(Field.of("f0", SqlTypes.STRING))));
   }
 
   @Test
@@ -591,7 +338,7 @@ public class LogicalSchemaTest {
     final Optional<Field> result = SOME_SCHEMA.findValueField("SomeAlias.f0");
 
     // Then:
-    assertThat(result, is(Optional.of(SOME_VALUE_SCHEMA.field("f0"))));
+    assertThat(result, is(Optional.of(Field.of("f0", SqlTypes.STRING))));
   }
 
   @Test
@@ -618,7 +365,7 @@ public class LogicalSchemaTest {
     final Optional<Field> result = ALIASED_SCHEMA.findValueField("bob.f0");
 
     // Then:
-    assertThat(result, is(Optional.of(ALIASED_CONNECT_SCHEMA.field("bob.f0"))));
+    assertThat(result, is(Optional.of(Field.of("bob", "f0", SqlTypes.STRING))));
   }
 
   @Test
@@ -646,21 +393,21 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetMetaFields() {
     assertThat(SOME_SCHEMA.findField("ROWTIME"), is(Optional.of(
-        new Field("ROWTIME", 0, Schema.OPTIONAL_INT64_SCHEMA)
+        Field.of("ROWTIME", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldGetKeyFields() {
     assertThat(SOME_SCHEMA.findField("k0"), is(Optional.of(
-        new Field("k0", 0, Schema.OPTIONAL_INT64_SCHEMA)
+        Field.of("k0", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldGetValueFields() {
     assertThat(SOME_SCHEMA.findField("f0"), is(Optional.of(
-        new Field("f0", 0, Schema.OPTIONAL_STRING_SCHEMA)
+        Field.of("f0", SqlTypes.STRING)
     )));
   }
 
@@ -698,7 +445,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldExposeMetaFields() {
     assertThat(SOME_SCHEMA.metaFields(), is(ImmutableList.of(
-        new Field(ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA)
+        Field.of(ROWTIME_NAME, SqlTypes.BIGINT)
     )));
   }
 
@@ -712,14 +459,14 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
-        new Field("fred." + ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA)
+        Field.of("fred", ROWTIME_NAME, SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldExposeKeyFields() {
     assertThat(SOME_SCHEMA.keyFields(), is(ImmutableList.of(
-        new Field("k0", 0, Schema.OPTIONAL_INT64_SCHEMA)
+        Field.of("k0", SqlTypes.BIGINT)
     )));
   }
 
@@ -733,13 +480,16 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
-        new Field("fred.k0", 0, Schema.OPTIONAL_INT64_SCHEMA)
+        Field.of("fred", "k0", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldExposeValueFields() {
-    assertThat(SOME_SCHEMA.valueFields(), is(SOME_VALUE_SCHEMA.fields()));
+    assertThat(SOME_SCHEMA.valueFields(), contains(
+        Field.of("f0", SqlTypes.STRING),
+        Field.of("f1", SqlTypes.BIGINT)
+    ));
   }
 
   @Test
@@ -751,16 +501,19 @@ public class LogicalSchemaTest {
     final List<Field> fields = schema.valueFields();
 
     // Then:
-    assertThat(fields, is(ALIASED_CONNECT_SCHEMA.fields()));
+    assertThat(fields, contains(
+        Field.of("bob", "f0", SqlTypes.STRING),
+        Field.of("bob", "f1", SqlTypes.BIGINT)
+    ));
   }
 
   @Test
   public void shouldExposeAllFields() {
     assertThat(SOME_SCHEMA.fields(), is(ImmutableList.of(
-        new Field(ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("k0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("f0", 0, SchemaBuilder.OPTIONAL_STRING_SCHEMA),
-        new Field("f1", 1, SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        Field.of(ROWTIME_NAME, SqlTypes.BIGINT),
+        Field.of("k0", SqlTypes.BIGINT),
+        Field.of("f0", SqlTypes.STRING),
+        Field.of("f1", SqlTypes.BIGINT)
     )));
   }
 
@@ -774,43 +527,30 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
-        new Field("bob." + ROWTIME_NAME, 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("bob.k0", 0, Schema.OPTIONAL_INT64_SCHEMA),
-        new Field("bob.f0", 0, SchemaBuilder.OPTIONAL_STRING_SCHEMA),
-        new Field("bob.f1", 1, SchemaBuilder.OPTIONAL_INT64_SCHEMA)
+        Field.of("bob", ROWTIME_NAME, SqlTypes.BIGINT),
+        Field.of("bob", "k0", SqlTypes.BIGINT),
+        Field.of("bob", "f0", SqlTypes.STRING),
+        Field.of("bob", "f1", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldConvertSchemaToString() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("f0", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
-            .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
-            .field("f2", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field("f4", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-            .field("f5", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("f6", SchemaBuilder
-                .struct()
-                .field("a", Schema.OPTIONAL_INT64_SCHEMA)
-                .optional()
-                .build())
-            .field("f7", SchemaBuilder
-                .array(
-                    SchemaBuilder.OPTIONAL_STRING_SCHEMA
-                )
-                .optional()
-                .build())
-            .field("f8", SchemaBuilder
-                .map(
-                    SchemaBuilder.OPTIONAL_STRING_SCHEMA,
-                    SchemaBuilder.OPTIONAL_STRING_SCHEMA
-                )
-                .optional()
-                .build())
-            .build()
-    );
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("f0", SqlTypes.BOOLEAN)
+        .valueField("f1", SqlTypes.INTEGER)
+        .valueField("f2", SqlTypes.BIGINT)
+        .valueField("f4", SqlTypes.DOUBLE)
+        .valueField("f5", SqlTypes.STRING)
+        .valueField("f6", SqlTypes.struct()
+            .field("a", SqlTypes.BIGINT)
+            .build())
+        .valueField("f7", SqlTypes.array(SqlTypes.STRING))
+        .valueField("f8", SqlTypes.map(SqlTypes.STRING))
+        .keyField("k0", SqlTypes.BIGINT)
+        .keyField("k1", SqlTypes.DOUBLE)
+        .build();
 
     // When:
     final String s = schema.toString();
@@ -818,14 +558,16 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
+            + "`k0` BIGINT KEY, "
+            + "`k1` DOUBLE KEY, "
             + "`f0` BOOLEAN, "
-            + "`f1` INT, "
+            + "`f1` INTEGER, "
             + "`f2` BIGINT, "
             + "`f4` DOUBLE, "
-            + "`f5` VARCHAR, "
+            + "`f5` STRING, "
             + "`f6` STRUCT<`a` BIGINT>, "
-            + "`f7` ARRAY<VARCHAR>, "
-            + "`f8` MAP<VARCHAR, VARCHAR>"
+            + "`f7` ARRAY<STRING>, "
+            + "`f8` MAP<STRING, STRING>"
             + "]"));
   }
 
@@ -853,6 +595,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
+            + "ROWKEY STRING KEY, "
             + "`f0` BOOLEAN, "
             + "f1 STRUCT<`f0` BIGINT, f1 BIGINT>"
             + "]"));
@@ -873,6 +616,7 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
+            + "`t.ROWKEY` STRING KEY, "
             + "`t.f0` BOOLEAN"
             + "]"));
   }
@@ -889,11 +633,9 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(result.valueFields(), hasSize(SOME_VALUE_SCHEMA.fields().size() + 2));
     assertThat(result.valueFields().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
-    assertThat(result.valueFields().get(0).index(), is(0));
-    assertThat(result.valueFields().get(0).schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(result.valueFields().get(0).type(), is(SqlTypes.BIGINT));
     assertThat(result.valueFields().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.valueFields().get(1).index(), is(1));
-    assertThat(result.valueFields().get(1).schema(), is(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(result.valueFields().get(1).type(), is(SqlTypes.STRING));
   }
 
   @Test
@@ -908,12 +650,10 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result.valueFields(), hasSize(SOME_VALUE_SCHEMA.fields().size() + 2));
-    assertThat(result.valueFields().get(0).name(), is("bob." + SchemaUtil.ROWTIME_NAME));
-    assertThat(result.valueFields().get(0).index(), is(0));
-    assertThat(result.valueFields().get(0).schema(), is(Schema.OPTIONAL_INT64_SCHEMA));
-    assertThat(result.valueFields().get(1).name(), is("bob." + SchemaUtil.ROWKEY_NAME));
-    assertThat(result.valueFields().get(1).index(), is(1));
-    assertThat(result.valueFields().get(1).schema(), is(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(result.valueFields().get(0).fullName(), is("bob." + SchemaUtil.ROWTIME_NAME));
+    assertThat(result.valueFields().get(0).type(), is(SqlTypes.BIGINT));
+    assertThat(result.valueFields().get(1).fullName(), is("bob." + SchemaUtil.ROWKEY_NAME));
+    assertThat(result.valueFields().get(1).type(), is(SqlTypes.STRING));
   }
 
   @Test
@@ -1045,6 +785,122 @@ public class LogicalSchemaTest {
   public void shouldNotMatchRandomFieldNameAsBeingMetaOrKeyFields() {
     assertThat(SOME_SCHEMA.isMetaField("well_this_ain't_in_the_schema"), is(false));
     assertThat(SOME_SCHEMA.isKeyField("well_this_ain't_in_the_schema"), is(false));
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateKeyFieldName() {
+    // Given:
+    final Builder builder = LogicalSchema.builder()
+        .keyField("fieldName", SqlTypes.BIGINT);
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+
+    // When:
+    builder.keyField("fieldName", SqlTypes.BIGINT);
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateValueFieldName() {
+    // Given:
+    final Builder builder = LogicalSchema.builder()
+        .valueField("fieldName", SqlTypes.BIGINT);
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+
+    // When:
+    builder.valueField("fieldName", SqlTypes.BIGINT);
+  }
+
+  @Test
+  public void shouldAllowKeyFieldsWithSameNameButDifferentSource() {
+    // Given:
+    final Builder builder = LogicalSchema.builder();
+
+    // When:
+    builder
+        .keyField("fieldName", SqlTypes.BIGINT)
+        .keyField(Field.of("source", "fieldName", SqlTypes.BIGINT))
+        .keyField(Field.of("diff", "fieldName", SqlTypes.BIGINT));
+
+    // Then:
+    assertThat(builder.build().keyFields(), contains(
+        Field.of("fieldName", SqlTypes.BIGINT),
+        Field.of("source", "fieldName", SqlTypes.BIGINT),
+        Field.of("diff", "fieldName", SqlTypes.BIGINT)
+    ));
+  }
+
+  @Test
+  public void shouldAllowValueFieldsWithSameNameButDifferentSource() {
+    // Given:
+    final Builder builder = LogicalSchema.builder();
+
+    // When:
+    builder
+        .valueField("fieldName", SqlTypes.BIGINT)
+        .valueField(Field.of("source", "fieldName", SqlTypes.BIGINT))
+        .valueField(Field.of("diff", "fieldName", SqlTypes.BIGINT));
+
+    // Then:
+    assertThat(builder.build().valueFields(), contains(
+        Field.of("fieldName", SqlTypes.BIGINT),
+        Field.of("source", "fieldName", SqlTypes.BIGINT),
+        Field.of("diff", "fieldName", SqlTypes.BIGINT)
+    ));
+  }
+
+  @Test
+  public void shouldGetKeySchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyField("fieldName", SqlTypes.DOUBLE)
+        .keyField(Field.of("source", "fieldName", SqlTypes.BOOLEAN))
+        .keyField(Field.of("diff", "fieldName", SqlTypes.STRING))
+        .valueField("fieldName", SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final ConnectSchema result = schema.keySchema();
+
+    // Then:
+    final List<org.apache.kafka.connect.data.Field> fields = result.fields();
+    assertThat(fields, contains(
+        connectField("fieldName", 0, Schema.OPTIONAL_FLOAT64_SCHEMA),
+        connectField("source.fieldName", 1, Schema.OPTIONAL_BOOLEAN_SCHEMA),
+        connectField("diff.fieldName", 2, Schema.OPTIONAL_STRING_SCHEMA)
+    ));
+  }
+
+  @Test
+  public void shouldGetValueSchema() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyField("fieldName", SqlTypes.STRING)
+        .valueField("fieldName", SqlTypes.BIGINT)
+        .valueField(Field.of("source", "fieldName", SqlTypes.INTEGER))
+        .valueField(Field.of("diff", "fieldName", SqlTypes.STRING))
+        .build();
+
+    // When:
+    final ConnectSchema result = schema.valueSchema();
+
+    // Then:
+    final List<org.apache.kafka.connect.data.Field> fields = result.fields();
+    assertThat(fields, contains(
+        connectField("fieldName", 0, Schema.OPTIONAL_INT64_SCHEMA),
+        connectField("source.fieldName", 1, Schema.OPTIONAL_INT32_SCHEMA),
+        connectField("diff.fieldName", 2, Schema.OPTIONAL_STRING_SCHEMA)
+    ));
+  }
+
+  private static org.apache.kafka.connect.data.Field connectField(
+      final String fieldName,
+      final int index,
+      final Schema schema
+  ) {
+    return new org.apache.kafka.connect.data.Field(fieldName, index, schema);
   }
 
   private static Schema nested(final Schema schema) {

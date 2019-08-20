@@ -18,9 +18,9 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.parser.tree.BooleanLiteral;
-import io.confluent.ksql.parser.tree.LongLiteral;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;

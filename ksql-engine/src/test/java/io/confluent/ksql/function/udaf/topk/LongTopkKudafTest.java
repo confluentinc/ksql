@@ -66,7 +66,7 @@ public class LongTopkKudafTest {
     final List<Long> array1 = ImmutableList.of(50L, 45L, 25L);
     final List<Long> array2 = ImmutableList.of(60L, 55L, 48L);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60L, 55L, 50L)));
   }
 
@@ -77,7 +77,7 @@ public class LongTopkKudafTest {
     final List<Long> array1 = ImmutableList.of(50L, 45L);
     final List<Long> array2 = ImmutableList.of(60L);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60L, 50L, 45L)));
   }
 
@@ -88,7 +88,7 @@ public class LongTopkKudafTest {
     final List<Long> array1 = ImmutableList.of(50L);
     final List<Long> array2 = ImmutableList.of(60L);
 
-    assertThat("Invalid results.", topkKudaf.getMerger().apply("key", array1, array2),
+    assertThat("Invalid results.", topkKudaf.getMerger().apply(null, array1, array2),
         equalTo(ImmutableList.of(60L, 50L)));
   }
 }

@@ -20,10 +20,11 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.codegen.SqlToJavaVisitor;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.parser.tree.Expression;
+import io.confluent.ksql.parser.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
@@ -33,7 +34,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
@@ -43,7 +43,6 @@ class SqlPredicate {
   private final LogicalSchema schema;
   private final IExpressionEvaluator ee;
   private final int[] columnIndexes;
-  private final boolean isWindowedKey;
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
@@ -52,22 +51,20 @@ class SqlPredicate {
   SqlPredicate(
       final Expression filterExpression,
       final LogicalSchema schema,
-      final boolean isWindowedKey,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogger processingLogger
   ) {
-    this.filterExpression = requireNonNull(filterExpression, "filterExpression");
+    this.filterExpression = rewriteFilter(requireNonNull(filterExpression, "filterExpression"));
     this.schema = requireNonNull(schema, "schema");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
-    this.isWindowedKey = isWindowedKey;
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.processingLogger = requireNonNull(processingLogger);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     final Set<CodeGenRunner.ParameterType> parameters
-        = codeGenRunner.getParameterInfo(filterExpression);
+        = codeGenRunner.getParameterInfo(this.filterExpression);
 
     final String[] parameterNames = new String[parameters.size()];
     final Class[] parameterTypes = new Class[parameters.size()];
@@ -90,32 +87,28 @@ class SqlPredicate {
       final String expressionStr = new SqlToJavaVisitor(
           schema,
           functionRegistry
-      ).process(filterExpression);
+      ).process(this.filterExpression);
 
       ee.cook(expressionStr);
     } catch (final Exception e) {
       throw new KsqlException(
           "Failed to generate code for SqlPredicate."
-          + "filterExpression: "
-          + filterExpression
-          + "schema:"
-          + schema
-          + "isWindowedKey:"
-          + isWindowedKey,
+          + " filterExpression: " + filterExpression
+          + ", schema:" + schema,
           e
       );
     }
   }
 
-  Predicate getPredicate() {
-    if (isWindowedKey) {
-      return getWindowedKeyPredicate();
-    } else {
-      return getStringKeyPredicate();
+  private Expression rewriteFilter(final Expression expression) {
+    if (StatementRewriteForRowtime.requiresRewrite(expression)) {
+      return new StatementRewriteForRowtime(expression).rewriteForRowtime();
     }
+    return expression;
   }
 
-  private Predicate<String, GenericRow> getStringKeyPredicate() {
+
+  <K> Predicate<K, GenericRow> getPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
 
     return (key, row) -> {
@@ -129,8 +122,10 @@ class SqlPredicate {
           if (columnIndexes[i] < 0) {
             values[i] = kudfs.get(i);
           } else {
-            values[i] = genericRowValueTypeEnforcer.enforceFieldType(columnIndexes[i], row
-                .getColumns().get(columnIndexes[i]));
+            values[i] = genericRowValueTypeEnforcer.enforceFieldType(
+                columnIndexes[i],
+                row.getColumns().get(columnIndexes[i])
+            );
           }
         }
         return (Boolean) ee.evaluate(values);
@@ -144,35 +139,6 @@ class SqlPredicate {
   private ExpressionMetadata createExpressionMetadata() {
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     return codeGenRunner.buildCodeGenFromParseTree(filterExpression, "filter");
-  }
-
-  private Predicate getWindowedKeyPredicate() {
-    final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
-    return (Predicate<Windowed<String>, GenericRow>) (key, row) -> {
-      if (row == null) {
-        return false;
-      }
-      try {
-        final List<Kudf> kudfs = expressionEvaluator.getUdfs();
-        final Object[] values = new Object[columnIndexes.length];
-        for (int i = 0; i < values.length; i++) {
-          if (columnIndexes[i] < 0) {
-            values[i] = kudfs.get(i);
-          } else {
-            values[i] = genericRowValueTypeEnforcer
-                .enforceFieldType(
-                    columnIndexes[i],
-                    row.getColumns().get(columnIndexes[i]
-                    )
-                );
-          }
-        }
-        return (Boolean) ee.evaluate(values);
-      } catch (final Exception e) {
-        logProcessingError(e, row);
-      }
-      return false;
-    };
   }
 
   private void logProcessingError(final Exception e, final GenericRow row) {

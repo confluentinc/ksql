@@ -201,6 +201,9 @@ By default, the service ID of KSQL servers is ``default_``. The service ID is al
 the prefix for the internal topics created by KSQL. Using the default value ``ksql.service.id``, the KSQL internal topics
 will be prefixed as ``_confluent-ksql-default_`` (e.g. ``_command_topic`` becomes ``_confluent-ksql-default__command_topic``).
 
+By convention, the ``ksql.service.id`` property should end with a separator character of some form,
+for example a dash or underscore, as this makes the internal topic names easier to read.
+
 .. _ksql-internal-topic-replicas:
 
 ----------------------------
@@ -397,16 +400,34 @@ You can access KSQL Server by using |c3|. For more information, see
 You can connect KSQL Server to |ccloud|. For more information, see
 :ref:`install_ksql-ccloud`.
 
+.. _ksql-server-log-settings:
+
+KSQL Server Log Settings
+------------------------
+
+To get DEBUG or INFO output from KSQL Server, configure a Kafka appender for
+the server logs. Assign the following configuration settings in the KSQL
+Server config file.
+
+::
+
+    log4j.appender.kafka_appender=org.apache.kafka.log4jappender.KafkaLog4jAppender
+    log4j.appender.kafka_appender.layout=io.confluent.common.logging.log4j.StructuredJsonLayout
+    log4j.appender.kafka_appender.BrokerList=localhost:9092
+    log4j.appender.kafka_appender.Topic=KSQL_LOG
+    log4j.logger.io.confluent.ksql=INFO,kafka_appender
+
 KSQL Processing Log Settings
 ----------------------------
 
-These configurations control the behavior of the :ref:`KSQL processing log <ksql_processing_log>`.
+The following configuration settings control the behavior of the
+:ref:`KSQL processing log <ksql_processing_log>`.
 
 .. _ksql-processing-log-topic-auto-create:
 
--------------------------------------
+-----------------------------------------
 ksql.logging.processing.topic.auto.create
--------------------------------------
+-----------------------------------------
 
 Toggles automatic processing log topic creation. If set to true, then KSQL will automatically try
 to create a processing log topic at startup. The name of the topic is the value of the
@@ -435,7 +456,7 @@ ksql.logging.processing.topic.partitions
 If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
 to the value of this property. By default, this property has the value ``1``.
 
-.. _ksql-processing-log-replication-factor:
+.. _ksql-processing-log-topic-replication-factor:
 
 ------------------------------------------------
 ksql.logging.processing.topic.replication.factor

@@ -16,8 +16,8 @@
 package io.confluent.ksql.planner.plan;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.tree.Expression;
 import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;

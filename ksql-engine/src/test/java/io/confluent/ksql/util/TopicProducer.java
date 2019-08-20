@@ -19,11 +19,13 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.json.KsqlJsonSerdeFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -66,8 +68,8 @@ public class TopicProducer {
   ) throws InterruptedException, TimeoutException, ExecutionException {
 
     final Serializer<GenericRow> serializer = GenericRowSerDe.from(
-        new KsqlJsonSerdeFactory(),
-        schema,
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        schema.valueSchema(),
         new KsqlConfig(ImmutableMap.of()),
         () -> null,
         "ignored",

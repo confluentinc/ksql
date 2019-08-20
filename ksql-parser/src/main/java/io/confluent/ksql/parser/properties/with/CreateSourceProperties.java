@@ -15,20 +15,22 @@
 
 package io.confluent.ksql.parser.properties.with;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.metastore.SerdeFactory;
-import io.confluent.ksql.parser.tree.IntegerLiteral;
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.kstream.WindowedSerdes;
 
 /**
  * Performs validation of a CREATE statement's WITH clause.
@@ -36,16 +38,11 @@ import org.apache.kafka.streams.kstream.WindowedSerdes;
 @Immutable
 public final class CreateSourceProperties extends WithClauseProperties {
 
-  private static final java.util.Map<String, SerdeFactory<Windowed<String>>> WINDOW_TYPES =
-      ImmutableMap.of(
-          "SESSION", () -> WindowedSerdes.sessionWindowedSerdeFrom(String.class),
-          "TUMBLING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class),
-          "HOPPING", () -> WindowedSerdes.timeWindowedSerdeFrom(String.class)
-      );
+  private final Function<String, Duration> durationParser;
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {
     try {
-      return new CreateSourceProperties(literals);
+      return new CreateSourceProperties(literals, DurationParser::parse);
     } catch (final ConfigException e) {
       final String message = e.getMessage().replace(
           "configuration",
@@ -56,10 +53,16 @@ public final class CreateSourceProperties extends WithClauseProperties {
     }
   }
 
-  private CreateSourceProperties(final Map<String, Literal> originals) {
+  @VisibleForTesting
+  CreateSourceProperties(
+      final Map<String, Literal> originals,
+      final Function<String, Duration> durationParser
+  ) {
     super(CreateConfigs.CONFIG_METADATA, originals);
+    this.durationParser = Objects.requireNonNull(durationParser, "durationParser");
 
     validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
+    validateWindowInfo();
   }
 
   public Format getValueFormat() {
@@ -82,10 +85,28 @@ public final class CreateSourceProperties extends WithClauseProperties {
     return Optional.ofNullable(getString(CreateConfigs.KEY_NAME_PROPERTY));
   }
 
-  public Optional<SerdeFactory<Windowed<String>>> getWindowType() {
-    return Optional.ofNullable(getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
-        .map(String::toUpperCase)
-        .map(WINDOW_TYPES::get);
+  public Optional<WindowType> getWindowType() {
+    try {
+      return Optional.ofNullable(getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
+          .map(WindowType::of);
+    } catch (final Exception e) {
+      throw new KsqlException("Error in WITH clause property '"
+          + CreateConfigs.WINDOW_TYPE_PROPERTY + "': " + e.getMessage(),
+          e);
+    }
+  }
+
+  public Optional<Duration> getWindowSize() {
+    try {
+      return Optional.ofNullable(getString(CreateConfigs.WINDOW_SIZE_PROPERTY))
+          .map(durationParser);
+    } catch (final Exception e) {
+      throw new KsqlException("Error in WITH clause property '"
+          + CreateConfigs.WINDOW_SIZE_PROPERTY + "': " + e.getMessage()
+          + System.lineSeparator()
+          + "Example valid value: '10 SECONDS'",
+          e);
+    }
   }
 
   public Optional<String> getTimestampColumnName() {
@@ -112,7 +133,7 @@ public final class CreateSourceProperties extends WithClauseProperties {
     final Map<String, Literal> originals = copyOfOriginalLiterals();
     originals.put(CreateConfigs.AVRO_SCHEMA_ID, new IntegerLiteral(id));
 
-    return new CreateSourceProperties(originals);
+    return new CreateSourceProperties(originals, durationParser);
   }
 
   public CreateSourceProperties withPartitionsAndReplicas(
@@ -123,6 +144,24 @@ public final class CreateSourceProperties extends WithClauseProperties {
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
-    return new CreateSourceProperties(originals);
+    return new CreateSourceProperties(originals, durationParser);
+  }
+
+  private void validateWindowInfo() {
+    final Optional<WindowType> windowType = getWindowType();
+    final Optional<Duration> windowSize = getWindowSize();
+
+    final boolean requiresSize = windowType.isPresent() && windowType.get() != WindowType.SESSION;
+
+    if (requiresSize && !windowSize.isPresent()) {
+      throw new KsqlException(windowType.get() + " windows require '"
+          + CreateConfigs.WINDOW_SIZE_PROPERTY + "' to be provided in the WITH clause. "
+          + "For example: '" + CreateConfigs.WINDOW_SIZE_PROPERTY + "'='10 SECONDS'");
+    }
+
+    if (!requiresSize && windowSize.isPresent()) {
+      throw new KsqlException("'" + CreateConfigs.WINDOW_SIZE_PROPERTY + "' "
+          + "should not be set for SESSION windows.");
+    }
   }
 }

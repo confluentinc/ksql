@@ -52,7 +52,7 @@ public class KsqlJsonSerializer implements Serializer<Object> {
     }
 
     try {
-      return jsonConverter.fromConnectData(topic, physicalSchema.getConnectSchema(), data);
+      return jsonConverter.fromConnectData(topic, physicalSchema.serializedSchema(), data);
     } catch (final Exception e) {
       throw new SerializationException("Error serializing JSON message for topic: " + topic, e);
     }

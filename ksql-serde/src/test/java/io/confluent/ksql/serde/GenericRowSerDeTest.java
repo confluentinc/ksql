@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -30,16 +29,17 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
@@ -56,27 +56,27 @@ public class GenericRowSerDeTest {
 
   private static final String LOGGER_PREFIX = "bob";
 
-  private static final PhysicalSchema MUTLI_FIELD_SCHEMA =
-      PhysicalSchema.from(
-          LogicalSchema.of(SchemaBuilder.struct()
+  private static final PersistenceSchema MUTLI_FIELD_SCHEMA =
+      PersistenceSchema.from(
+          (ConnectSchema) SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
               .field("f1", Schema.OPTIONAL_INT32_SCHEMA)
-              .build()),
-          SerdeOption.none());
+              .build(),
+          false);
 
-  private static final PhysicalSchema WRAPPED_SINGLE_FIELD_SCHEMA =
-      PhysicalSchema.from(
-          LogicalSchema.of(SchemaBuilder.struct()
+  private static final PersistenceSchema WRAPPED_SINGLE_FIELD_SCHEMA =
+      PersistenceSchema.from(
+          (ConnectSchema) SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-              .build()),
-          SerdeOption.none());
+              .build(),
+          false);
 
-  private static final PhysicalSchema UNWRAPPED_SINGLE_FIELD_SCHEMA =
-      PhysicalSchema.from(
-          LogicalSchema.of(SchemaBuilder.struct()
+  private static final PersistenceSchema UNWRAPPED_SINGLE_FIELD_SCHEMA =
+      PersistenceSchema.from(
+          (ConnectSchema) SchemaBuilder.struct()
               .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-              .build()),
-          SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
+              .build(),
+          true);
 
   private static final String SOME_TOPIC = "fred";
   private static final byte[] SOME_BYTES = "Vic".getBytes(StandardCharsets.UTF_8);
@@ -85,8 +85,6 @@ public class GenericRowSerDeTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  @Mock
-  private KsqlSerdeFactory valueSerdeFactory;
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -101,12 +99,14 @@ public class GenericRowSerDeTest {
   private Serializer<Object> delegateSerializer;
   @Mock
   private Deserializer<Object> delegateDeserializer;
+  @Mock
+  private SerdeFactories serdesFactories;
 
-  private Serde<GenericRow> rowSerde;
+  private ValueSerdeFactory valueSerde;
 
   @Before
   public void setUp() {
-    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(deletageSerde);
+    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(deletageSerde);
     when(deletageSerde.serializer()).thenReturn(delegateSerializer);
     when(deletageSerde.deserializer()).thenReturn(delegateDeserializer);
 
@@ -115,13 +115,15 @@ public class GenericRowSerDeTest {
     final ProcessingLogger logger = mock(ProcessingLogger.class);
     when(loggerFactory.getLogger(any())).thenReturn(logger);
     when(processingContext.getLoggerFactory()).thenReturn(loggerFactory);
+
+    valueSerde = new GenericRowSerDe(serdesFactories);
   }
 
   @Test
   public void shouldGetStructSerdeOnConstruction() {
     // When:
-    GenericRowSerDe.from(
-        valueSerdeFactory,
+    valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -130,21 +132,45 @@ public class GenericRowSerDeTest {
     );
 
     // Then:
-    verify(valueSerdeFactory).createSerde(
-        MUTLI_FIELD_SCHEMA.valueSchema(),
+    verify(serdesFactories).create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        MUTLI_FIELD_SCHEMA,
         ksqlConfig,
-        srClientFactory
+        srClientFactory,
+        Struct.class
+    );
+  }
+
+  @Test
+  public void shouldGetStringSerdeOnConstruction() {
+    // When:
+    valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        UNWRAPPED_SINGLE_FIELD_SCHEMA,
+        ksqlConfig,
+        srClientFactory,
+        LOGGER_PREFIX,
+        processingContext
+    );
+
+    // Then:
+    verify(serdesFactories).create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
+        UNWRAPPED_SINGLE_FIELD_SCHEMA,
+        ksqlConfig,
+        srClientFactory,
+        String.class
     );
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullStructSerde() {
     // Given:
-    when(valueSerdeFactory.createSerde(any(), any(), any())).thenReturn(null);
+    when(serdesFactories.create(any(), any(), any(), any(), any())).thenReturn(null);
 
     // When:
-    GenericRowSerDe.from(
-        valueSerdeFactory,
+    valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -157,7 +183,7 @@ public class GenericRowSerDeTest {
   public void shouldThrowOnNullSchema() {
     // When:
     GenericRowSerDe.from(
-        valueSerdeFactory,
+        FormatInfo.of(Format.JSON, Optional.empty()),
         null,
         ksqlConfig,
         srClientFactory,
@@ -170,7 +196,7 @@ public class GenericRowSerDeTest {
   public void shouldCreateProcessingLoggerWithCorrectName() {
     // When:
     GenericRowSerDe.from(
-        valueSerdeFactory,
+        FormatInfo.of(Format.JSON, Optional.empty()),
         MUTLI_FIELD_SCHEMA,
         ksqlConfig,
         srClientFactory,
@@ -235,34 +261,6 @@ public class GenericRowSerDeTest {
   }
 
   @Test
-  public void shouldRequestNewSerializerEachTime() {
-    // Given:
-    givenSerdeForSchema(MUTLI_FIELD_SCHEMA);
-
-    rowSerde.serializer();
-
-    // When:
-    rowSerde.serializer();
-
-    // Then:
-    verify(deletageSerde, times(2)).serializer();
-  }
-
-  @Test
-  public void shouldRequestNewDeserializerEachTime() {
-    // Given:
-    givenSerdeForSchema(UNWRAPPED_SINGLE_FIELD_SCHEMA);
-
-    rowSerde.deserializer();
-
-    // When:
-    rowSerde.deserializer();
-
-    // Then:
-    verify(deletageSerde, times(2)).deserializer();
-  }
-
-  @Test
   public void shouldSerializeMultiFieldGenericRow() {
     // Given:
     final Serializer<GenericRow> serializer = givenSerdeForSchema(MUTLI_FIELD_SCHEMA)
@@ -276,7 +274,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().valueSchema())
+        new Struct(MUTLI_FIELD_SCHEMA.ksqlSchema())
             .put("f0", "str")
             .put("f1", 10)
     );
@@ -347,7 +345,7 @@ public class GenericRowSerDeTest {
     // Then:
     verify(delegateSerializer).serialize(
         SOME_TOPIC,
-        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().valueSchema())
+        new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.ksqlSchema())
             .put("f0", "str")
     );
 
@@ -411,7 +409,7 @@ public class GenericRowSerDeTest {
         .deserializer();
 
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.logicalSchema().valueSchema())
+        .thenReturn(new Struct(MUTLI_FIELD_SCHEMA.ksqlSchema())
             .put("f0", "str")
             .put("f1", 10));
 
@@ -448,7 +446,7 @@ public class GenericRowSerDeTest {
         .deserializer();
 
     when(delegateDeserializer.deserialize(any(), any()))
-        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.logicalSchema().valueSchema())
+        .thenReturn(new Struct(WRAPPED_SINGLE_FIELD_SCHEMA.ksqlSchema())
             .put("f0", "str"));
 
     // When:
@@ -494,15 +492,14 @@ public class GenericRowSerDeTest {
     assertThat(row, is(nullValue()));
   }
 
-  private Serde<GenericRow> givenSerdeForSchema(final PhysicalSchema schema) {
-    rowSerde = GenericRowSerDe.from(
-        valueSerdeFactory,
+  private Serde<GenericRow> givenSerdeForSchema(final PersistenceSchema schema) {
+    return valueSerde.create(
+        FormatInfo.of(Format.JSON, Optional.empty()),
         schema,
         ksqlConfig,
         srClientFactory,
         LOGGER_PREFIX,
         processingContext
     );
-    return rowSerde;
   }
 }

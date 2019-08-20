@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.parser.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.properties.with.ConfigMetaData;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;

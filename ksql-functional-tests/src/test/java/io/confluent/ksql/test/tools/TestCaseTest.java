@@ -32,6 +32,7 @@ import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
+import io.confluent.ksql.util.KsqlException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -39,7 +40,6 @@ import java.util.Optional;
 import org.apache.avro.Schema;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,7 +61,7 @@ public class TestCaseTest {
   private final Topic topic = new Topic(
       "foo_kafka",
       Optional.empty(),
-      Serdes::String,
+      serdeSupplier,
       serdeSupplier,
       4,
       1,
@@ -71,7 +71,7 @@ public class TestCaseTest {
   private final Topic otherTopic = new Topic(
       "bar_kafka",
       Optional.empty(),
-      Serdes::String,
+      serdeSupplier,
       serdeSupplier,
       1,
       1,
@@ -154,6 +154,26 @@ public class TestCaseTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void shouldFailForIncorrectOutputCount() {
+    // Given:
+    when(fakeKafkaService.readRecords("foo_kafka"))
+        .thenReturn(ImmutableList.of(
+            FakeKafkaRecord.of(topic, new ProducerRecord("foo_kafka", 1, 123456719L, "k1", "v1")),
+            FakeKafkaRecord.of(topic, new ProducerRecord("foo_kafka", 1, 123456789L, "k12", "v2"))));
+
+    // Expect
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Expected <1> records but it was <2>\n"
+        + "Actual records: \n"
+        + "<k1, v1> with timestamp=123456719 \n"
+        + "<k12, v2> with timestamp=123456789");
+
+    // When:
+    testCase.verifyOutputTopics(fakeKafkaService);
+  }
+
+  @Test
   public void shouldFailForIncorrectOutput() {
     // Given:
     final TopologyTestDriverContainer topologyTestDriverContainer = getSampleTopologyTestDriverContainer();
@@ -207,7 +227,7 @@ public class TestCaseTest {
     final Topic topic = new Topic(
         "foo",
         Optional.of(fakeAvroSchema),
-        Serdes::String,
+        new StringSerdeSupplier(),
         new AvroSerdeSupplier(),
         4,
         (short)1,
@@ -270,7 +290,7 @@ public class TestCaseTest {
     final Topic sourceTopic = new Topic(
         "FOO",
         Optional.empty(),
-        Serdes::String,
+        serdeSupplier,
         new StringSerdeSupplier(),
         1,
         1,
@@ -280,7 +300,7 @@ public class TestCaseTest {
     final Topic sinkTopic = new Topic(
         "BAR",
         Optional.empty(),
-        Serdes::String,
+        serdeSupplier,
         new StringSerdeSupplier(),
         1,
         1,

@@ -17,14 +17,12 @@ package io.confluent.ksql.util;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -141,7 +139,7 @@ public class SchemaUtilTest {
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(schema), "orders");
+        .buildAvroSchema(PersistenceSchema.from(schema, false), "orders");
 
     // Then:
     assertThat(avroSchema.toString(), equalTo(
@@ -159,7 +157,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("RAW_STRUCT");
@@ -183,7 +181,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroArrayOfStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("ARRAY_OF_STRUCTS");
@@ -210,7 +208,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroMapOfStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("MAP_OF_STRUCTS");
@@ -237,7 +235,7 @@ public class SchemaUtilTest {
   public void shouldSupportAvroNestedStructs() {
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil
-        .buildAvroSchema(PersistenceSchema.of(SCHEMA), "bob");
+        .buildAvroSchema(PersistenceSchema.from(SCHEMA, false), "bob");
 
     // Then:
     final org.apache.avro.Schema.Field rawStruct = avroSchema.getField("NESTED_STRUCTS");
@@ -287,8 +285,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForBoolean() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_BOOLEAN_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -300,8 +297,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForInt() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_INT32_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_INT32_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -313,8 +309,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForBigInt() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_INT64_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_INT64_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -326,8 +321,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForDouble() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_FLOAT64_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_FLOAT64_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -339,8 +333,7 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForString() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) Schema.OPTIONAL_STRING_SCHEMA);
+    final PersistenceSchema schema = unwrappedPersistenceSchema(Schema.OPTIONAL_STRING_SCHEMA);
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -352,10 +345,11 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForArray() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) SchemaBuilder
+    final PersistenceSchema schema = unwrappedPersistenceSchema(
+        SchemaBuilder
             .array(Schema.OPTIONAL_INT64_SCHEMA)
-            .build());
+            .build()
+    );
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -370,10 +364,11 @@ public class SchemaUtilTest {
   @Test
   public void shouldCreateAvroSchemaForMap() {
     // Given:
-    final PersistenceSchema schema = PersistenceSchema
-        .of((ConnectSchema) SchemaBuilder
+    final PersistenceSchema schema = unwrappedPersistenceSchema(
+        SchemaBuilder
             .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.BOOLEAN_SCHEMA)
-            .build());
+            .build()
+    );
 
     // When:
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(schema, "orders");
@@ -777,103 +772,6 @@ public class SchemaUtilTest {
     SchemaUtil.resolveBinaryOperatorResultType(Schema.BOOLEAN_SCHEMA, Schema.FLOAT64_SCHEMA, Operator.ADD);
   }
 
-  @Test
-  public void shouldGetBooleanSchemaForBooleanClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Boolean.class),
-        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetBooleanSchemaForBooleanPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(boolean.class),
-        equalTo(Schema.BOOLEAN_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetIntSchemaForIntegerClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Integer.class),
-        equalTo(Schema.OPTIONAL_INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetIntegerSchemaForIntPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(int.class),
-        equalTo(Schema.INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetLongSchemaForLongClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Long.class),
-        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetLongSchemaForLongPrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(long.class),
-        equalTo(Schema.INT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetFloatSchemaForDoubleClass() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class),
-        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetFloatSchemaForDoublePrimitiveClass() {
-    assertThat(SchemaUtil.getSchemaFromType(double.class),
-        equalTo(Schema.FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetMapSchemaFromMapClass() throws NoSuchMethodException {
-    final Type type = getClass().getDeclaredMethod("mapType", Map.class)
-        .getGenericParameterTypes()[0];
-    final Schema schema = SchemaUtil.getSchemaFromType(type);
-    assertThat(schema.type(), equalTo(Schema.Type.MAP));
-    assertThat(schema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetArraySchemaFromListClass() throws NoSuchMethodException {
-    final Type type = getClass().getDeclaredMethod("listType", List.class)
-        .getGenericParameterTypes()[0];
-    final Schema schema = SchemaUtil.getSchemaFromType(type);
-    assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
-    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
-  }
-
-  @Test
-  public void shouldGetStringSchemaFromStringClass() {
-    assertThat(SchemaUtil.getSchemaFromType(String.class),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowExceptionIfClassDoesntMapToSchema() {
-    SchemaUtil.getSchemaFromType(System.class);
-  }
-
-  @Test
-  public void shouldDefaultToNoNameOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class).name(), is(nullValue()));
-  }
-
-  @Test
-  public void shouldDefaultToNoDocOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class).doc(), is(nullValue()));
-  }
-
-  @Test
-  public void shouldSetNameOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class, "name", "").name(), is("name"));
-  }
-
-  @Test
-  public void shouldSetDocOnGetSchemaFromType() {
-    assertThat(SchemaUtil.getSchemaFromType(Double.class, "", "doc").doc(), is("doc"));
-  }
 
   @Test
   public void shouldPassIsNumberForInt() {
@@ -999,13 +897,13 @@ public class SchemaUtilTest {
     ));
   }
 
-  // Following methods not invoked but used to test conversion from Type -> Schema
-  @SuppressWarnings("unused")
-  private void mapType(final Map<String, Integer> map) {
-  }
+  private static PersistenceSchema unwrappedPersistenceSchema(final Schema fieldSchema) {
+    final ConnectSchema connectSchema = (ConnectSchema) SchemaBuilder
+        .struct()
+        .field("f0", fieldSchema)
+        .build();
 
-  @SuppressWarnings("unused")
-  private void listType(final List<Double> list) {
+    return PersistenceSchema.from(connectSchema, true);
   }
 }
 

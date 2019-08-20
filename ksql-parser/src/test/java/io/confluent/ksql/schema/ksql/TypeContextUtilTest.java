@@ -3,7 +3,7 @@ package io.confluent.ksql.schema.ksql;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;

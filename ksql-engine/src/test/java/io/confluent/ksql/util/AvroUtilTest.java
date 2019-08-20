@@ -16,9 +16,11 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -30,8 +32,11 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.avro.KsqlAvroSerdeFactory;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
@@ -45,6 +50,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AvroUtilTest {
+
+  private static final String STREAM_NAME = "some-stream";
 
   private static final String AVRO_SCHEMA_STRING = "{"
       + "\"namespace\": \"some.namespace\","
@@ -76,9 +83,9 @@ public class AvroUtilTest {
       toKsqlSchema(SINGLE_FIELD_AVRO_SCHEMA_STRING);
 
   private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
-      "registered-name",
       "actual-name",
-      new KsqlAvroSerdeFactory(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+      KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
+      ValueFormat.of(FormatInfo.of(Format.AVRO)),
       false);
 
   @Rule
@@ -96,13 +103,17 @@ public class AvroUtilTest {
 
     when(persistentQuery.getResultTopic()).thenReturn(RESULT_TOPIC);
     when(persistentQuery.getResultTopicFormat())
-        .thenReturn(RESULT_TOPIC.getValueSerdeFactory().getFormat());
+        .thenReturn(RESULT_TOPIC.getValueFormat().getFormat());
+    when(persistentQuery.getSinkName()).thenReturn(STREAM_NAME);
   }
 
   @Test
   public void shouldValidateSchemaEvolutionWithCorrectSubject() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
+
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(eq(RESULT_TOPIC.getKafkaTopicName() + "-value"), any());
@@ -114,10 +125,11 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -130,12 +142,13 @@ public class AvroUtilTest {
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.none());
 
     when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
@@ -148,27 +161,25 @@ public class AvroUtilTest {
         .from(SINGLE_FIELD_SCHEMA, SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES));
 
     when(persistentQuery.getPhysicalSchema()).thenReturn(schema);
+    when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), RESULT_TOPIC.getKsqlTopicName());
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
 
     // Then:
     verify(srClient).testCompatibility(any(), eq(expectedAvroSchema));
   }
 
   @Test
-  public void shouldReturnValidEvolution() throws Exception {
+  public void shouldNotThrowInvalidEvolution() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any())).thenReturn(true);
 
     // When:
-    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
-
-    // Then:
-    assertThat(result, is(true));
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
@@ -176,28 +187,25 @@ public class AvroUtilTest {
     // Given:
     when(srClient.testCompatibility(any(), any())).thenReturn(false);
 
-    // When:
-    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Cannot register avro schema for actual-name as the schema is incompatible with the current schema version registered for the topic");
 
-    // Then:
-    assertThat(result, is(false));
+    // When:
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
-  public void shouldReturnValidEvolutionIfSubjectNotRegistered() throws Exception {
+  public void shouldNotThrowInvalidEvolutionIfSubjectNotRegistered() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 404, 40401));
 
     // When:
-    final boolean result = AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
-
-    // Then:
-    assertThat(result, is(true));
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
-  public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
+  public void shouldThrowOnSrAuthorizationErrors() throws Exception {
     // Given:
     when(srClient.testCompatibility(any(), any()))
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
@@ -205,9 +213,28 @@ public class AvroUtilTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not connect to Schema Registry service");
+    expectedException.expectMessage(containsString(String.format(
+        "Not authorized to access Schema Registry subject: [%s]",
+        persistentQuery.getResultTopic().getKafkaTopicName()
+            + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+    )));
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
+  }
+
+  @Test
+  public void shouldThrowOnAnyOtherEvolutionSrException() throws Exception {
+    // Given:
+    when(srClient.testCompatibility(any(), any()))
+        .thenThrow(new RestClientException("Unknown subject", 500, 40401));
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not connect to Schema Registry service");
+
+    // When:
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   @Test
@@ -221,7 +248,7 @@ public class AvroUtilTest {
     expectedException.expectMessage("Could not check Schema compatibility");
 
     // When:
-    AvroUtil.isValidSchemaEvolution(persistentQuery, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
   }
 
   private static LogicalSchema toKsqlSchema(final String avroSchemaString) {

@@ -21,13 +21,12 @@ import static org.hamcrest.Matchers.allOf;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.serde.KeyFieldDeserializer;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Matcher;
 
 @JsonDeserialize(using = KeyFieldDeserializer.class)
@@ -35,17 +34,21 @@ public class KeyFieldNode {
 
   public static final Optional<String> EXCLUDE_NAME = Optional
       .of("explicit check that name is not set");
-  public static final Optional<Schema> EXCLUDE_SCHEMA = Optional.of(
-      new SchemaBuilder(Type.STRING).name("explicit check that schema is not set").build());
+
+  public static final Optional<SqlType> EXCLUDE_SCHEMA = Optional.of(
+      SqlTypes
+          .struct()
+          .field("explicit check that schema is not set", SqlTypes.BIGINT)
+          .build());
 
   private final Optional<String> name;
   private final Optional<String> legacyName;
-  private final Optional<Schema> legacySchema;
+  private final Optional<SqlType> legacySchema;
 
   public KeyFieldNode(
       final Optional<String> name,
       final Optional<String> legacyName,
-      final Optional<Schema> legacySchema
+      final Optional<SqlType> legacySchema
   ) {
     this.name = requireNonNull(name, "name");
     this.legacyName = requireNonNull(legacyName, "legacyName");
@@ -64,7 +67,7 @@ public class KeyFieldNode {
 
     final Matcher<KeyField> legacySchemaMatcher = legacySchema.equals(EXCLUDE_SCHEMA)
         ? null
-        : KeyFieldMatchers.hasLegacySchema(legacySchema);
+        : KeyFieldMatchers.hasLegacyType(legacySchema);
 
     final Matcher<KeyField>[] matchers = Stream
         .of(nameMatcher, legacyNameMatcher, legacySchemaMatcher)

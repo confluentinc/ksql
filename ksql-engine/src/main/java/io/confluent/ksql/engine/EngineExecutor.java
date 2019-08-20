@@ -30,6 +30,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+
 import java.util.Map;
 import java.util.Objects;
 
@@ -115,7 +116,10 @@ final class EngineExecutor {
     }
   }
 
-  private void validateQuery(final QueryMetadata query, final ConfiguredStatement<?> statement) {
+  private void validateQuery(
+      final QueryMetadata query,
+      final ConfiguredStatement<?> statement
+  ) {
     if (statement.getStatement() instanceof CreateStreamAsSelect
         && query.getDataSourceType() == DataSourceType.KTABLE) {
       throw new KsqlStatementException("Invalid result type. "
@@ -136,13 +140,7 @@ final class EngineExecutor {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) query;
       final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
-      if (!AvroUtil.isValidSchemaEvolution(persistentQuery, srClient)) {
-        throw new KsqlStatementException(String.format(
-            "Cannot register avro schema for %s as the schema registry rejected it, "
-                + "(maybe schema evolution issues?)",
-            persistentQuery.getResultTopic().getKafkaTopicName()),
-            statement.getStatementText());
-      }
+      AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
     }
   }
 

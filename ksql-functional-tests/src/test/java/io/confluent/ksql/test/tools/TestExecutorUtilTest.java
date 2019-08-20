@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Serdes;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,7 +77,7 @@ public class TestExecutorUtilTest {
     final Topic sourceTopic = new Topic(
         "test_topic",
         Optional.empty(),
-        Serdes::String,
+        new StringSerdeSupplier(),
         new StringSerdeSupplier(),
         1,
         1,

@@ -36,14 +36,14 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.parser.tree.Literal;
-import io.confluent.ksql.parser.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.parser.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.parser.tree.Type;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -284,7 +284,7 @@ public class DefaultSchemaInjectorTest {
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<VARCHAR, BIGINT>, "
+            + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
@@ -309,7 +309,7 @@ public class DefaultSchemaInjectorTest {
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<VARCHAR, BIGINT>, "
+            + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID=5, KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
@@ -336,7 +336,7 @@ public class DefaultSchemaInjectorTest {
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<VARCHAR, BIGINT>, "
+            + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"
@@ -363,7 +363,7 @@ public class DefaultSchemaInjectorTest {
             + "STRINGFIELD STRING, "
             + "BOOLEANFIELD BOOLEAN, "
             + "ARRAYFIELD ARRAY<INTEGER>, "
-            + "MAPFIELD MAP<VARCHAR, BIGINT>, "
+            + "MAPFIELD MAP<STRING, BIGINT>, "
             + "STRUCTFIELD STRUCT<S0 BIGINT>, "
             + "DECIMALFIELD DECIMAL(4, 2)) "
             + "WITH (AVRO_SCHEMA_ID='42', KAFKA_TOPIC='some-topic', VALUE_FORMAT='avro');"

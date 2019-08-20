@@ -742,7 +742,7 @@ public class UdfIndexTest {
     };
 
     return KsqlFunction.create(
-        Schema.OPTIONAL_STRING_SCHEMA,
+        ignored -> Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(args),
         name,
         MyUdf.class,

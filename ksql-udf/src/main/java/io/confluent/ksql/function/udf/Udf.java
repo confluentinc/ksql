@@ -46,4 +46,10 @@ public @interface Udf {
    * this is required and will fail if not supplied.
    */
   String schema() default "";
+
+  /**
+   * The name of the method that provides the return type of the UDF.
+   * @return
+   */
+  String schemaProvider() default "";
 }

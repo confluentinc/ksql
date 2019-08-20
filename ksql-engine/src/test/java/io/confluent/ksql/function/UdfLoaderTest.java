@@ -35,11 +35,13 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -52,9 +54,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -76,10 +76,6 @@ public class UdfLoaderTest {
       initializeFunctionRegistry(false, Optional.empty());
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
@@ -220,6 +216,34 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldLoadFunctionWithSchemaProvider() {
+    // Given:
+    final UdfFactory returnDecimal = FUNC_REG.getUdfFactory("returndecimal");
+
+    // When:
+    final Schema decimal = DecimalUtil.builder(2, 1).build();
+    final List<Schema> args = Collections.singletonList(decimal);
+    final KsqlFunction function = returnDecimal.getFunction(args);
+
+    // Then:
+    assertThat(function.getReturnType(args), equalTo(decimal));
+  }
+
+  @Test
+  public void shouldThrowOnReturnTypeMismatch() {
+    // Given:
+    final UdfFactory returnIncompatible = FUNC_REG.getUdfFactory("returnincompatible");
+
+    // When:
+    final Schema decimal = DecimalUtil.builder(2, 1).build();
+    final List<Schema> args = Collections.singletonList(decimal);
+    final KsqlFunction function = returnIncompatible.getFunction(args);
+
+    // Then:
+    assertThat(function.getReturnType(args), equalTo(decimal));
+  }
+
+  @Test
   public void shouldPutJarUdfsInClassLoaderForJar() throws Exception {
     final UdfFactory toString = FUNC_REG.getUdfFactory("tostring");
     final UdfFactory multiply = FUNC_REG.getUdfFactory("multiply");
@@ -293,54 +317,6 @@ public class UdfLoaderTest {
     } catch (final KsqlException e) {
       // pass
     }
-  }
-
-  @Test
-  public void shouldNotLoadInternalUdfs() {
-    // Given:
-    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources"),
-                                              PARENT_CLASS_LOADER,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              false);
-    udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Can't find any functions with the name 'substring'"));
-
-    // When:
-      functionRegistry.getUdfFactory("substring");
-  }
-
-  @Test
-  public void shouldLoadSomeFunction() {
-    // Given:
-    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources"),
-                                              PARENT_CLASS_LOADER,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              false);
-    final List<Schema> args = ImmutableList.of(
-        Schema.STRING_SCHEMA,
-        Schema.STRING_SCHEMA,
-        Schema.STRING_SCHEMA);
-
-    // When:
-    udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
-    final UdfFactory udfFactory = functionRegistry.getUdfFactory("somefunction");
-
-    // Then:
-    assertThat(udfFactory, not(nullValue()));
-    final KsqlFunction function = udfFactory.getFunction(args);
-    assertThat(function.getFunctionName(), equalToIgnoringCase("somefunction"));
-
   }
 
   @Test
@@ -540,4 +516,41 @@ public class UdfLoaderTest {
       return 0;
     }
   }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
+  @UdfDescription(
+      name = "ReturnDecimal",
+      description = "A test-only UDF for testing 'SchemaProvider'")
+
+  public static class ReturnDecimalUdf {
+
+    @Udf(schemaProvider = "provideSchema")
+    public BigDecimal foo(@UdfParameter("justValue") final BigDecimal p) {
+      return p;
+    }
+
+    @UdfSchemaProvider
+    public Schema provideSchema(List<Schema> params) {
+      return DecimalUtil.builder(2, 1).build();
+    }
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
+  @UdfDescription(
+      name = "ReturnIncompatible",
+      description = "A test-only UDF for testing 'SchemaProvider'")
+
+  public static class ReturnIncompatibleUdf {
+
+    @Udf(schemaProvider = "provideSchema")
+    public String foo(@UdfParameter("justValue") final BigDecimal p) {
+      return "lala";
+    }
+
+    @UdfSchemaProvider
+    public Schema provideSchema(List<Schema> params) {
+      return DecimalUtil.builder(2, 1).build();
+    }
+  }
+
 }

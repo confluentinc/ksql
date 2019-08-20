@@ -14,9 +14,9 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
 public class DefaultExecutionStepProperties implements ExecutionStepProperties {

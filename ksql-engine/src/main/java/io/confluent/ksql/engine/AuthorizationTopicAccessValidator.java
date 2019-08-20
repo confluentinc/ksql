@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -23,7 +24,6 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
-import io.confluent.ksql.util.KsqlAuthorizationException;
 import io.confluent.ksql.util.KsqlException;
 
 import java.util.Collections;
@@ -128,7 +128,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
     if (authorizedOperations != null && !authorizedOperations.contains(operation)) {
       // This error message is similar to what Kafka throws when it cannot access the topic
       // due to an authorization error. I used this message to keep a consistent message.
-      throw new KsqlAuthorizationException(operation, Collections.singleton(topicName));
+      throw new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName));
     }
   }
 

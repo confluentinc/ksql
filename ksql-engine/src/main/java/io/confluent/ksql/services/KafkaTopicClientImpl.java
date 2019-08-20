@@ -18,9 +18,9 @@ package io.confluent.ksql.services;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.ExecutorUtil;
-import io.confluent.ksql.util.KsqlAuthorizationException;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -117,7 +117,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       validateTopicProperties(topic, numPartitions, replicationFactor);
 
     } catch (final TopicAuthorizationException e) {
-      throw new KsqlAuthorizationException(
+      throw new KsqlTopicAuthorizationException(
           AclOperation.CREATE, Collections.singleton(topic));
 
     } catch (final Exception e) {
@@ -185,7 +185,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       throw new KafkaResponseGetFailedException(
           "Failed to Describe Kafka Topic(s): " + topicNames, e.getCause());
     } catch (final TopicAuthorizationException e) {
-      throw new KsqlAuthorizationException(
+      throw new KsqlTopicAuthorizationException(
           AclOperation.DESCRIBE, topicNames);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException(
@@ -270,7 +270,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
               + "To delete the topic, you must set '" + DELETE_TOPIC_ENABLE + "' to true in "
               + "the Kafka broker configuration.");
         } else if (rootCause instanceof TopicAuthorizationException) {
-          throw new KsqlAuthorizationException(
+          throw new KsqlTopicAuthorizationException(
               AclOperation.DELETE, Collections.singleton(entry.getKey()));
         } else if (!(rootCause instanceof UnknownTopicOrPartitionException)) {
           LOG.error(String.format("Could not delete topic '%s'", entry.getKey()), e);

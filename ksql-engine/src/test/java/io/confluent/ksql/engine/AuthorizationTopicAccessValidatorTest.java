@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -33,8 +34,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlAuthorizationException;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.Set;
@@ -137,7 +136,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
@@ -172,7 +171,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
@@ -191,7 +190,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Read on topic(s): [%s]", TOPIC_2.name()
     ));
@@ -210,7 +209,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
@@ -245,7 +244,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
     ));
@@ -264,7 +263,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
@@ -282,7 +281,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
     ));
@@ -317,7 +316,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // Then:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
         "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
     ));

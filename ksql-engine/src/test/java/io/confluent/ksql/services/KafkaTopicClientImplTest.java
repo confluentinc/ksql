@@ -31,8 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
-import io.confluent.ksql.util.KsqlAuthorizationException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.Collection;
@@ -64,7 +64,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.KafkaFuture;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
-import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.config.ConfigResource;
 import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.common.errors.DisconnectException;
@@ -166,7 +165,7 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
 
     // Expect:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(
         String.format("Authorization denied to Create on topic(s): [%s]", topicName1));
 
@@ -241,7 +240,7 @@ public class KafkaTopicClientImplTest {
     replay(adminClient);
 
     // Expect:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(
         String.format("Authorization denied to Describe on topic(s): [%s]", topicName1));
 
@@ -343,7 +342,7 @@ public class KafkaTopicClientImplTest {
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
 
     // Expect:
-    expectedException.expect(KsqlAuthorizationException.class);
+    expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(
         String.format("Authorization denied to Delete on topic(s): [%s]", topicName1));
 

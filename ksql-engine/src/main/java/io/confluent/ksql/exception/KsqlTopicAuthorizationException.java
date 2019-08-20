@@ -13,22 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.exception;
 
 import java.util.Collection;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 
-public class KsqlAuthorizationException extends RuntimeException {
+/**
+ * Used to return custom error messages when TopicAuthorizationException returned from Kafka
+ */
+public class KsqlTopicAuthorizationException extends TopicAuthorizationException {
 
-  public KsqlAuthorizationException(
+  public KsqlTopicAuthorizationException(
       final AclOperation operation,
       final Collection<String> topicNames) {
     super(String.format("Authorization denied to %s on topic(s): [%s]",
         StringUtils.capitalize(
             operation.toString().toLowerCase()),
-            StringUtils.join(topicNames, ", "))
-    );
+            StringUtils.join(topicNames, ", ")));
   }
+
 }

@@ -1,8 +1,8 @@
 package io.confluent.ksql.rest.integration;
 
-import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
-import io.confluent.ksql.rest.server.security.KsqlUserContextProvider;
+import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 

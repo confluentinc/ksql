@@ -30,7 +30,7 @@ import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;

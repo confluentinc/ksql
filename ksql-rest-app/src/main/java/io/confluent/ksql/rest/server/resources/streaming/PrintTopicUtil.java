@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.rest.server.context.ConfiguredKafkaClientSupplier;
+import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import java.util.List;
 import java.util.Map;

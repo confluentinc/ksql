@@ -32,7 +32,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;

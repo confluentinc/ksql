@@ -22,8 +22,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
-import io.confluent.ksql.rest.server.security.KsqlUserContextProvider;
+import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.security.KsqlUserContextProvider;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;

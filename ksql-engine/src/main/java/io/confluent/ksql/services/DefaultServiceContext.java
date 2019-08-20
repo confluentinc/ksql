@@ -16,19 +16,16 @@
 package io.confluent.ksql.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
-import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 /**
  * A real service context, initialized from a {@link KsqlConfig} instance.
  */
-public class DefaultServiceContext implements ServiceContext {
+public class DefaultServiceContext implements ServiceContext, AutoCloseable {
 
   private final KafkaClientSupplier kafkaClientSupplier;
   private final Admin adminClient;
@@ -36,32 +33,6 @@ public class DefaultServiceContext implements ServiceContext {
   private final Supplier<SchemaRegistryClient> srClientFactory;
   private final SchemaRegistryClient srClient;
   private final ConnectClient connectClient;
-
-  public static DefaultServiceContext create(final KsqlConfig ksqlConfig) {
-    return create(
-        ksqlConfig,
-        new DefaultKafkaClientSupplier(),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get
-    );
-  }
-
-  public static DefaultServiceContext create(
-      final KsqlConfig ksqlConfig,
-      final KafkaClientSupplier kafkaClientSupplier,
-      final Supplier<SchemaRegistryClient> srClientFactory
-  ) {
-    final Admin adminClient = kafkaClientSupplier.getAdminClient(
-        ksqlConfig.getKsqlAdminClientConfigProps()
-    );
-
-    return new DefaultServiceContext(
-        kafkaClientSupplier,
-        adminClient,
-        new KafkaTopicClientImpl(adminClient),
-        srClientFactory,
-        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY))
-    );
-  }
 
   DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,

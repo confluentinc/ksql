@@ -33,8 +33,8 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
@@ -362,7 +362,7 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, ?> baseConfig) {
 
-    return DefaultServiceContext.create(
+    return ServiceContextFactory.create(
         new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties()));
   }
 

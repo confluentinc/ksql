@@ -321,12 +321,12 @@ public class UdfLoaderTest {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-        new File("src/test/resources"),
-        PARENT_CLASS_LOADER,
-        value -> false,
-        COMPILER,
-        Optional.empty(),
-        false);
+                                              new File("src/test/resources"),
+                                              PARENT_CLASS_LOADER,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              false);
     final List<Schema> args = ImmutableList.of(
         Schema.STRING_SCHEMA,
         Schema.STRING_SCHEMA,

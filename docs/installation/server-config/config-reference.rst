@@ -494,6 +494,38 @@ ksql.logging.processing.rows.include
 Toggles whether or not the processing log should include rows in log messages. By default, this property has the
 value ``false``.
 
+.. _ksql-connect-settings:
+
+KSQL-Connect Settings
+--------------------------
+
+----------------
+ksql.connect.url
+----------------
+
+The connect cluster URL to integrate with. If the connect cluster is running locally to the KSQL
+server, use localhost and the configuration port specified in the connect configuration file.
+
+---------------------------
+ksql.connect.worker.config
+---------------------------
+
+The connect worker configuration file if spinning up connect alongside the KSQL server. If using an
+external ``ksql.connect.url`` this property should be omitted.
+
+---------------------------
+ksql.connect.polling.enable
+---------------------------
+
+Toggles whether or not to poll connect for new connectors and automatically register them in KSQL.
+
+--------------------------
+ksql.connect.configs.topic
+--------------------------
+
+The connect configuration topic. This corresponds to ``config.storage.topic`` in the connect worker
+configuration.
+
 .. _ksql-production-settings:
 
 Recommended KSQL Production Settings

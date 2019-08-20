@@ -191,6 +191,9 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     @SuppressWarnings("unchecked")
     private static GenericRecord getAvroRecord(final Object spec, final Schema schema) {
       final GenericRecord record = new GenericData.Record(schema);
+      if (spec instanceof ValueSpec) {
+        return getAvroRecord(((ValueSpec) spec).getSpec(), schema);
+      }
       final Map<String, String> caseInsensitiveFieldNames
           = getUppercaseKeyToActualKey((Map) spec);
       for (final org.apache.avro.Schema.Field field : schema.getFields()) {

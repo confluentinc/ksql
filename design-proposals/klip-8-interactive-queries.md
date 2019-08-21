@@ -131,13 +131,88 @@ Additionally:
 * Key movement should be handled transparently: if a query launches and a targeted key physically moves, KSQL should redirect the query to the appropriate KSQL server to obtain the correct result.
 * For interactive queries against windowed queries, the user may specify a time range via the `WINDOWSTART` and `WINDOWEND` psuedocolumns. For example, `SELECT * FROM windowed_aggregate WHERE ROWKEY = 'rowkey' AND WINDOWSTART >= start_ts AND WINDOWEND < end_ts`
 
-## Open questions
+---
 
-1. How will KSQL differentiate between interactive and streaming queries? Should the same differentiation mechanism be applied to both transient queries and CTAS/CSAS statements?
+# Syntax
 
-2. Do we want to support interactive queries on streams? An interactive query on a stream would execute on a stream, beginning at some offset, run until completion and return the final result. In contrast to a streaming query, an interactive query on a stream would not produce incremental updates as the query progresses over the input. Here is a matrix of all possible query types after the addition of interactive queries:
+All KSQL query syntax currently yields streaming results because KSQL only supports streaming queries. As a result, adding support for point-in-time queries necessitates a means to unambiguously differentiate between streaming and finite query results. The most straightforward approach to this is to use syntax to indicate streaming versus PIT queries. And since there are only two fundamental query forms, it is only necessary to add KSQL syntax to represent one of them.
 
-    |   Type      |   Stream   |     Table     |
-    |-------------|:----------:|:--------------|
-    | Interactive | ?          |   supported   |
-    | Streaming   | supported  |   supported   |
+We therefore propose making minimal syntax changes to represent *streaming* queries. The principal reason for using new syntax for streaming queries is that PIT queries can then use syntax that is as close to the SQL standard as possible, making KSQL interoperable with tooling that integrates with SQL-based systems (i.e. dashboarding frontends).
+
+After introducing any syntax changes, KSQL's syntax must make sense in each of the following contexts:
+
+* Streaming query on a stream
+* Streaming query on a table
+* Point-in-time query on a stream
+* Point-in-time query on a table
+* Transient queries defined by any of the above
+* CTAS/CSAS defined by any of the above
+
+*Note that not all of these query forms needs to be supported (initially, or ever), but a sensible design should allow for all of them with minimal ambiguity.*
+
+The proposed syntax changes will now be specifically described.
+
+## Proposed syntax changes
+
+Streaming queries may be identified via the `EMIT CHANGES` query modifier:
+
+```sql
+SELECT ... FROM stream EMIT CHANGES;
+```
+
+Partially inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://arxiv.org/pdf/1905.12133.pdf), `EMIT CHANGES` has been proposed in favor of `EMIT STREAM` for the following reasons:
+
+* De-emphasizes the stream abstraction as we continue to consider making KSQL more table centric.
+* Not redundant in the context of CSAS (`CREATE STREAM s0 AS SELECT .. FROM s1 EMIT STREAM`).
+* Intuitive and descriptive in the context tables. A streaming query against a table effectively produces rows representing changes to the underlying table. Identifying this changelog as simply a stream isn't necessarily clear.
+* Similarly to the above, `EMIT CHANGES` is intuitive in the context of streaming aggregations, which produce incremental *changes* over time.
+* `EMIT STREAM` generally feels better suited for transient queries, for which there is no other `STREAM` context in the query (i.e. CSAS).
+
+The following are canonical example queries within each of the aforementioned fundamental query contexts:
+
+```sql
+-- Streaming query on a stream
+SELECT x, count(*) FROM stream GROUP BY x EMIT CHANGES;
+
+-- Streaming query on a table
+SELECT x, y FROM table WHERE x < 10 EMIT CHANGES;
+
+-- Point-in-time query on a table
+SELECT ROWKEY, count FROM table WHERE ROWKEY = 'key';
+
+-- Point-in-time query on a stream (semantics unclear, illustrative example only)
+SELECT * FROM stream WHERE column = 42;
+```
+
+---
+
+Finally, `EMIT CHANGES` may be preferrable over `EMIT STREAM` for KQSL specifically (for the reasons outlined above) although `EMIT STREAM` is still a suitable option.
+
+## Proposed behavioral changes
+
+As we add this fundamentally new capability to KSQL, it is worth considering any modifications we can make to KSQL's existing behavior to ensure query behavior is as intuitive as possible after the addition of PIT queries. There is one potential behavioral change that is worth considering in this respect: **streaming queries against a table should return the table's entire materialized state (possibly filtered by a `WHERE` clause) followed by changes**
+
+Currently, a streaming query against a table in KSQL will only return rows from the table's changelog produced *after* the query begins (assuming a default start offset of `latest`).
+
+However, streaming queries returning a table's entire materialized state *then* followed by changes is more consistent with the behavior of PIT queries on a table. This behavior is also likely what users want when issuing a streaming query against a table, and it is currently not straightforward to achieve.
+
+To get KSQL's current behavior with a streaming query against a table, users would simply use a simple, intuitive `WHERE` clause:
+
+```sql
+SELECT * FROM table WHERE ROWTIME >= NOW
+```
+
+## Limitations
+
+The following are proposed intentional limitations of the initial implementation of PIT queries:
+
+**PIT queries on streams probably do not need to be initially supported.** The semantics and use cases around these are unclear and require further analysis. However, the proposed syntax leaves open the possibility of supporting PIT queries on streams without further modifications.
+
+**CTAS/CSAS defined by PIT queries do not initially need to be supported.** For example, the following CTAS would create a table, `t0`, and initially populate it with the result of the `SELECT` query:
+
+```sql
+CREATE TABLE t0 AS SELECT x, count(*) FROM t1 GROUP BY x;
+```
+
+**PIT queries against tables created directly over a topic (leaf tables) do not need to be initially supported.** Leaf tables are not materialized until another query reads from them. As a result, a PIT query against such a table would (potentially) not return the expected result. Rather than leave open the possibility of confusing query results in this scenario, we should simply disallow PIT queries against leaf tables until we decide to support them.
+

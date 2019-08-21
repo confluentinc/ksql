@@ -69,16 +69,16 @@ public class ListConnectorsExecutorTest {
   public void setUp() {
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(connectClient.describe("connector"))
-        .thenReturn(ConnectResponse.of(INFO, HttpStatus.SC_OK));
+        .thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
     when(connectClient.describe("connector2"))
-        .thenReturn(ConnectResponse.of("DANGER WILL ROBINSON.", HttpStatus.SC_NOT_FOUND));
+        .thenReturn(ConnectResponse.failure("DANGER WILL ROBINSON.", HttpStatus.SC_NOT_FOUND));
   }
 
   @Test
   public void shouldListValidConnector() {
     // Given:
     when(connectClient.connectors())
-        .thenReturn(ConnectResponse.of(ImmutableList.of("connector"), HttpStatus.SC_OK));
+        .thenReturn(ConnectResponse.success(ImmutableList.of("connector"), HttpStatus.SC_OK));
     final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
         PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
         ImmutableMap.of(),
@@ -106,7 +106,7 @@ public class ListConnectorsExecutorTest {
   public void shouldFilterNonMatchingConnectors() {
     // Given:
     when(connectClient.connectors())
-        .thenReturn(ConnectResponse.of(ImmutableList.of("connector", "connector2"),
+        .thenReturn(ConnectResponse.success(ImmutableList.of("connector", "connector2"),
             HttpStatus.SC_OK));
     final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
         PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.SINK)),
@@ -133,7 +133,7 @@ public class ListConnectorsExecutorTest {
   public void shouldListInvalidConnectorWithNoInfo() {
     // Given:
     when(connectClient.connectors())
-        .thenReturn(ConnectResponse.of(ImmutableList.of("connector2"), HttpStatus.SC_OK));
+        .thenReturn(ConnectResponse.success(ImmutableList.of("connector2"), HttpStatus.SC_OK));
     final ConfiguredStatement<ListConnectors> statement = ConfiguredStatement.of(
         PreparedStatement.of("", new ListConnectors(Optional.empty(), Scope.ALL)),
         ImmutableMap.of(),

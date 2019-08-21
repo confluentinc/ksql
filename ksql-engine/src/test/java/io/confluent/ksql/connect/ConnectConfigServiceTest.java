@@ -228,14 +228,14 @@ public class ConnectConfigServiceTest {
 
   private void givenConnectors(final String... names){
     for (final String name : names) {
-      when(connectClient.describe(name)).thenReturn(ConnectResponse.of(new ConnectorInfo(
+      when(connectClient.describe(name)).thenReturn(ConnectResponse.success(new ConnectorInfo(
           name,
           ImmutableMap.of(),
           ImmutableList.of(),
           ConnectorType.SOURCE
       ), HttpStatus.SC_CREATED));
     }
-    when(connectClient.connectors()).thenReturn(ConnectResponse.of(ImmutableList.copyOf(names),
+    when(connectClient.connectors()).thenReturn(ConnectResponse.success(ImmutableList.copyOf(names),
         HttpStatus.SC_OK));
   }
 

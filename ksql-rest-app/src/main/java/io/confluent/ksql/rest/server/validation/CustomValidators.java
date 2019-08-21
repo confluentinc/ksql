@@ -21,6 +21,7 @@ import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListConnectors;
@@ -70,6 +71,7 @@ public enum CustomValidators {
   LIST_PROPERTIES(ListProperties.class, StatementValidator.NO_VALIDATION),
   LIST_CONNECTORS(ListConnectors.class, StatementValidator.NO_VALIDATION),
   CREATE_CONNECTOR(CreateConnector.class, StatementValidator.NO_VALIDATION),
+  DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),
 
   INSERT_VALUES(InsertValues.class, new InsertValuesExecutor()::execute),
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),

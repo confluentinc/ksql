@@ -32,6 +32,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.fluent.Request;
@@ -176,6 +177,29 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
+  @Override
+  public ConnectResponse<String> delete(final String connector) {
+    try {
+      LOG.debug("Issuing request to Kafka Connect at URI {} to delete {}",
+          connectUri, connector);
+
+      final ConnectResponse<String> connectResponse = withRetries(() -> Request
+          .Delete(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .socketTimeout(DEFAULT_TIMEOUT_MS)
+          .connectTimeout(DEFAULT_TIMEOUT_MS)
+          .execute()
+          .handleResponse(
+              createHandler(HttpStatus.SC_NO_CONTENT, Object.class, foo -> connector)));
+
+      connectResponse.error()
+          .ifPresent(error -> LOG.warn("Could not delete connector: {}.", error));
+
+      return connectResponse;
+    } catch (final Exception e) {
+      throw new KsqlServerException(e);
+    }
+  }
+
   @SuppressWarnings("unchecked")
   private static <T> ConnectResponse<T> withRetries(final Callable<ConnectResponse<T>> action) {
     try {
@@ -211,14 +235,17 @@ public class DefaultConnectClient implements ConnectClient {
       final int code = httpResponse.getStatusLine().getStatusCode();
       if (httpResponse.getStatusLine().getStatusCode() != expectedStatus) {
         final String entity = EntityUtils.toString(httpResponse.getEntity());
-        return ConnectResponse.of(entity, code);
+        return ConnectResponse.failure(entity, code);
       }
 
-      final T info = cast.apply(MAPPER.readValue(
-          httpResponse.getEntity().getContent(),
-          entityClass));
+      final HttpEntity entity = httpResponse.getEntity();
+      final T data = cast.apply(
+          entity == null
+              ? null
+              : MAPPER.readValue(entity.getContent(), entityClass)
+      );
 
-      return ConnectResponse.of(info, code);
+      return ConnectResponse.success(data, code);
     };
   }
 }

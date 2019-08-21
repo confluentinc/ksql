@@ -170,6 +170,23 @@ public class DefaultConnectClientTest {
   }
 
   @Test
+  public void testDelete() throws JsonProcessingException {
+    // Given:
+    WireMock.stubFor(
+        WireMock.delete(WireMock.urlEqualTo("/connectors/foo"))
+            .willReturn(WireMock.aResponse()
+                .withStatus(HttpStatus.SC_NO_CONTENT))
+    );
+
+    // When:
+    final ConnectResponse<String> response = client.delete("foo");
+
+    // Then:
+    assertThat(response.datum(), OptionalMatchers.of(is("foo")));
+    assertThat("Expected no error!", !response.error().isPresent());
+  }
+
+  @Test
   public void testListShouldRetryOnFailure() throws JsonProcessingException {
     // Given:
     WireMock.stubFor(

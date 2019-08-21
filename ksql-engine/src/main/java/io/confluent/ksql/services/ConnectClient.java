@@ -59,6 +59,13 @@ public interface ConnectClient {
   ConnectResponse<ConnectorStateInfo> status(String connector);
 
   /**
+   * Delete the {@code connector}.
+   *
+   * @param connector the connector name
+   */
+  ConnectResponse<String> delete(String connector);
+
+  /**
    * An optionally successful response. Either contains a value of type
    * {@code <T>} or an error, which is the string representation of the
    * response entity.
@@ -68,11 +75,11 @@ public interface ConnectClient {
     private final Optional<String> error;
     private final int httpCode;
 
-    public static <T> ConnectResponse<T> of(final T datum, final int code) {
+    public static <T> ConnectResponse<T> success(final T datum, final int code) {
       return new ConnectResponse<>(datum, null, code);
     }
 
-    public static <T> ConnectResponse<T> of(final String error, final int code) {
+    public static <T> ConnectResponse<T> failure(final String error, final int code) {
       return new ConnectResponse<>(null, error, code);
     }
 

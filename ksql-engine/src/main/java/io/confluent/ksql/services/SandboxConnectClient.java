@@ -34,13 +34,15 @@ final class SandboxConnectClient {
   public static ConnectClient createProxy() {
     return LimitedProxyBuilder.forClass(ConnectClient.class)
         .swallow("create", methodParams(String.class, Map.class),
-            ConnectResponse.of("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
+            ConnectResponse.failure("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
         .swallow("describe", methodParams(String.class),
-            ConnectResponse.of("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
+            ConnectResponse.failure("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
         .swallow("connectors", methodParams(),
-            ConnectResponse.of(ImmutableList.of(), HttpStatus.SC_OK))
+            ConnectResponse.success(ImmutableList.of(), HttpStatus.SC_OK))
         .swallow("status", methodParams(String.class),
-            ConnectResponse.of("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
+            ConnectResponse.failure("sandbox", HttpStatus.SC_INTERNAL_SERVER_ERROR))
+        .swallow("delete", methodParams(String.class),
+            ConnectResponse.success("sandbox", HttpStatus.SC_NO_CONTENT))
         .build();
   }
 }

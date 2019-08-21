@@ -44,6 +44,7 @@ import java.util.List;
     @JsonSubTypes.Type(value = FunctionDescriptionList.class, name = "describe_function"),
     @JsonSubTypes.Type(value = FunctionNameList.class, name = "function_names"),
     @JsonSubTypes.Type(value = CreateConnectorEntity.class, name = "connector_info"),
+    @JsonSubTypes.Type(value = DropConnectorEntity.class, name = "drop_connector"),
     @JsonSubTypes.Type(value = ConnectorList.class, name = "connector_list"),
     @JsonSubTypes.Type(value = ConnectorDescription.class, name = "connector_description"),
     @JsonSubTypes.Type(value = ErrorEntity.class, name = "error_entity")

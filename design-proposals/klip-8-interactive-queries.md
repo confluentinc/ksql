@@ -131,8 +131,6 @@ Additionally:
 * Key movement should be handled transparently: if a query launches and a targeted key physically moves, KSQL should redirect the query to the appropriate KSQL server to obtain the correct result.
 * For interactive queries against windowed queries, the user may specify a time range via the `WINDOWSTART` and `WINDOWEND` psuedocolumns. For example, `SELECT * FROM windowed_aggregate WHERE ROWKEY = 'rowkey' AND WINDOWSTART >= start_ts AND WINDOWEND < end_ts`
 
----
-
 # Syntax changes
 
 All KSQL query syntax currently yields streaming results because KSQL only supports streaming queries. As a result, adding support for point-in-time queries necessitates a means to unambiguously differentiate between streaming and finite query results. The most straightforward approach to this is to use syntax to indicate streaming versus PIT queries. And since there are only two fundamental query forms, it is only necessary to add KSQL syntax to represent one of them.
@@ -159,7 +157,7 @@ Streaming queries may be identified via the `EMIT CHANGES` query modifier:
 SELECT ... FROM stream EMIT CHANGES;
 ```
 
-Partially inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://arxiv.org/pdf/1905.12133.pdf), `EMIT CHANGES` has been proposed in favor of `EMIT STREAM` for the following reasons:
+Inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://arxiv.org/pdf/1905.12133.pdf), as well as @big-andy-coates' [brainstorm](https://github.com/confluentinc/ksql/pull/3117#issuecomment-520524284), `EMIT CHANGES` has been proposed in favor of `EMIT STREAM` for the following reasons:
 
 * De-emphasizes the stream abstraction as we continue to consider making KSQL more table centric.
 * Not redundant in the context of CSAS (`CREATE STREAM s0 AS SELECT .. FROM s1 EMIT STREAM`).

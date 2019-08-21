@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -63,6 +64,7 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -74,6 +76,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.errors.SerializationException;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
@@ -510,6 +513,30 @@ public class InsertValuesExecutorTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
+
+    // When:
+    executor.execute(statement, engine, serviceContext);
+  }
+
+  @Test
+  public void shouldThrowOnTopicAuthorizationException() {
+    // Given:
+    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+        allFieldNames(SCHEMA),
+        ImmutableList.of(
+            new LongLiteral(1L),
+            new StringLiteral("str"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+    doThrow(new TopicAuthorizationException(Collections.singleton("t1")))
+        .when(producer).send(any());
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectCause(hasMessage(
+        containsString("Authorization denied to Write on topic(s): [t1]"))
+    );
 
     // When:
     executor.execute(statement, engine, serviceContext);

@@ -216,3 +216,45 @@ CREATE TABLE t0 AS SELECT x, count(*) FROM t1 GROUP BY x;
 
 **PIT queries against tables created directly over a topic (leaf tables) do not need to be initially supported.** Leaf tables are not materialized until another query reads from them. As a result, a PIT query against such a table would (potentially) not return the expected result. Rather than leave open the possibility of confusing query results in this scenario, we should simply disallow PIT queries against leaf tables until we decide to support them.
 
+---
+
+## Other considered approaches
+
+The following are other approaches that have been considered for identifying PIT versus streaming queries:
+
+### **Interpret any query against a table as PIT**
+
+The table-based approach would consider any SQL query against a KSQL table as a PIT query. Any query against a stream would then be a streaming query. The primary issue with this approach is that it complicates the capability of running a streaming query on a table, which is a highly valuable use case. Also, since PIT queries would be identified somewhat implicitly, this approach may not be particularly intuitive to users. It would also make it relatively easy to write a "correct" query that does the wrong thing.
+
+### **`SELECT STREAM[ING]`**
+
+Streaming queries would be identified by a new `STREAM[ING]` keyword: `SELECT STREAM[ING]...`. Similarly to `EMIT STREAM`, `SELECT STREAM[ING]` becomes somewhat redundant in the context of CSAS:
+
+```sql
+CREATE STREAM s0 AS SELECT STREAMING * FROM s1;
+```
+
+This approach also doesn't facilitate de-emphasizing the stream abstraction should we decide to eventually make KSQL more table centric.
+
+### **`WHERE` clause based**
+
+With this approach, streaming versus PIT behavior would be identified using a query's `WHERE` clause. For example,
+
+```sql
+SELECT * FROM  rel WHERE ROWTIME >= BEGINNING()
+```
+
+One drawback of this approach is that it may become a bit cumbersome with more complex queries such as `JOINs`:
+
+```sql
+SELECT * FROM  rel0 JOIN rel1 ON rel0.x = rel1.x
+  WHERE rel0.ROWTIME >= BEGINNING() AND rel1.ROWTIME >= BEGINNING();
+```
+
+Furthermore, specifying streaming versus PIT behavior in this way is somewhat implicit and thus may not be totally intuitive to users. The above query could potentially be interpreted by a user to mean, "give me all the rows from the join of these tables and return the final result when the query is complete." In other words, it can reasonably be interpreted as a PIT query.
+
+### **Separate streaming and interactive interaction modes**
+
+The interaction mode approach would use a configuration parameter (`ksq.client.mode`), settable within the session, KSQL server configuration file, JDBC connection properties, CLI etc. Any query run with `ksql.client.mode` set to `streaming` would yield streaming results. Any query run with `ksql.client.mode` set to `interactive` would yield PIT results. The reasoning behind this approach was that any KSQL connection/session that is already running a streaming query can't be used for anything else anyways. Interleaving streaming and PIT queries from an application would require separate sessions/connections/requests, so explicitly setting the interaction mode in these cases would solve the problem of streaming versus PIT differentiation.
+
+However, this approach really breaks down in the context of the CLI experience. Making it as easy as possible for users to rapidly prototype and experiment with different queries is of critical importance to us. Requiring users to repeatedly set the client interaction mode before running different kinds of queries would just be too burdensome, on a critical usability path.

@@ -148,7 +148,7 @@ After introducing any syntax changes, KSQL's syntax must make sense in each of t
 * Transient queries defined by any of the above
 * CTAS/CSAS defined by any of the above
 
-*Note that not all of these query forms needs to be supported (initially, or ever), but a sensible design should allow for all of them with minimal ambiguity.*
+*Note that not all of these query forms need to be supported (initially, or ever), but a sensible design should allow for all of them with minimal ambiguity.*
 
 The proposed syntax changes will now be specifically described.
 

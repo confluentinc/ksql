@@ -190,7 +190,7 @@ Finally, `EMIT CHANGES` may be preferrable over `EMIT STREAM` for KQSL specifica
 
 ## Proposed behavioral changes
 
-As we add this fundamentally new capability to KSQL, it is worth considering any modifications we can make to KSQL's existing behavior to ensure query behavior is as intuitive as possible after the addition of PIT queries. There is one potential behavioral change that is worth considering in this respect: **streaming queries against a table should return the table's entire materialized state (possibly filtered by a `WHERE` clause) followed by changes**
+As we add this fundamentally new capability to KSQL, it is worth considering any modifications we can make to KSQL's existing behavior to ensure query behavior is as intuitive as possible after the addition of PIT queries. There is one potential behavioral change that is worth considering in this respect: **streaming queries against a table should return the table's entire materialized state (possibly filtered by a `WHERE` clause) followed by changes.**
 
 Currently, a streaming query against a table in KSQL will only return rows from the table's changelog produced *after* the query begins (assuming a default start offset of `latest`).
 

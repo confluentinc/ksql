@@ -16,19 +16,15 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.mockito.ArgumentMatchers.anyMap;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.tree.CreateConnector;
-import io.confluent.ksql.parser.tree.CreateConnector.Type;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
-import io.confluent.ksql.rest.entity.CreateConnectorEntity;
+import io.confluent.ksql.parser.tree.DropConnector;
+import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ConnectClient;
@@ -38,8 +34,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.apache.http.HttpStatus;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
-import org.apache.kafka.connect.runtime.rest.entities.ConnectorType;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -47,17 +41,16 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ConnectExecutorTest {
+public class DropConnectorExecutorTest {
 
   private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
 
-  private static final CreateConnector CREATE_CONNECTOR = new CreateConnector(
-      "foo", ImmutableMap.of("foo", new StringLiteral("bar")), Type.SOURCE);
+  private static final DropConnector CREATE_CONNECTOR = new DropConnector(Optional.empty(), "foo");
 
-  private static final ConfiguredStatement<CreateConnector> CREATE_CONNECTOR_CONFIGURED =
+  private static final ConfiguredStatement<DropConnector> DROP_CONNECTOR_CONFIGURED =
       ConfiguredStatement.of(
           PreparedStatement.of(
-              "CREATE SOURCE CONNECTOR foo WITH ('foo'='bar');",
+              "DROP CONNECTOR \"foo\"",
               CREATE_CONNECTOR),
           ImmutableMap.of(),
           CONFIG);
@@ -72,59 +65,48 @@ public class ConnectExecutorTest {
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
   }
 
+
   @Test
   public void shouldPassInCorrectArgsToConnectClient() {
     // Given:
-    givenSuccess();
+    when(connectClient.delete(anyString()))
+        .thenReturn(ConnectResponse.success("foo", HttpStatus.SC_OK));
 
     // When:
-    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+    DropConnectorExecutor.execute(DROP_CONNECTOR_CONFIGURED, null, serviceContext);
 
     // Then:
-    verify(connectClient).create("foo", ImmutableMap.of("foo", "bar"));
+    verify(connectClient).delete("foo");
   }
 
   @Test
-  public void shouldReturnConnectorInfoEntityOnSuccess() {
+  public void shouldReturnOnSuccess() {
     // Given:
-    givenSuccess();
+    when(connectClient.delete(anyString()))
+        .thenReturn(ConnectResponse.success("foo", HttpStatus.SC_OK));
 
     // When:
-    final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+    final Optional<KsqlEntity> response = DropConnectorExecutor
+        .execute(DROP_CONNECTOR_CONFIGURED, null, serviceContext);
 
     // Then:
-    assertThat("Expected non-empty response", entity.isPresent());
-    assertThat(entity.get(), instanceOf(CreateConnectorEntity.class));
+    assertThat("expected response", response.isPresent());
+    assertThat(((DropConnectorEntity) response.get()).getConnectorName(), is("foo"));
   }
 
   @Test
   public void shouldReturnErrorEntityOnError() {
     // Given:
-    givenError();
+    when(connectClient.delete(anyString()))
+        .thenReturn(ConnectResponse.failure("Danger Mouse!", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+    final Optional<KsqlEntity> entity = DropConnectorExecutor
+        .execute(DROP_CONNECTOR_CONFIGURED, null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
     assertThat(entity.get(), instanceOf(ErrorEntity.class));
-  }
-
-  private void givenSuccess() {
-    when(connectClient.create(anyString(), anyMap()))
-        .thenReturn(ConnectResponse.success(
-            new ConnectorInfo(
-                "foo",
-                ImmutableMap.of(),
-                ImmutableList.of(),
-                ConnectorType.SOURCE), HttpStatus.SC_OK));
-  }
-
-  private void givenError() {
-    when(connectClient.create(anyString(), anyMap()))
-        .thenReturn(ConnectResponse.failure("error!", HttpStatus.SC_BAD_REQUEST));
   }
 
 }

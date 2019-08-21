@@ -21,6 +21,7 @@ import io.confluent.ksql.engine.InsertValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
+import io.confluent.ksql.parser.tree.DropConnector;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.ListConnectors;
@@ -67,6 +68,7 @@ public enum CustomExecutors {
   UNSET_PROPERTY(UnsetProperty.class, PropertyExecutor::unset),
   INSERT_VALUES(InsertValues.class, insertValuesExecutor()),
   CREATE_CONNECTOR(CreateConnector.class, ConnectExecutor::execute),
+  DROP_CONNECTOR(DropConnector.class, DropConnectorExecutor::execute),
   DESCRIBE_CONNECTOR(DescribeConnector.class, new DescribeConnectorExecutor()::execute)
   ;
 

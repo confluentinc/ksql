@@ -41,6 +41,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
+import io.confluent.ksql.rest.entity.DropConnectorEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -1036,6 +1037,37 @@ public class ConsoleTest {
     } else {
       assertThat(output, containsString("\"message\" : \"oops\""));
       assertThat(output, containsString("\"message\" : \"doh!\""));
+    }
+  }
+
+  @Test
+  public void shouldPrintDropConnector() throws IOException {
+    // Given:
+    final KsqlEntity entity = new DropConnectorEntity("statementText", "connectorName");
+
+    // When:
+    console.printKsqlEntityList(ImmutableList.of(entity));
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.TABULAR) {
+      assertThat(
+          output,
+          is("\n"
+              + " Message                           \n"
+              + "-----------------------------------\n"
+              + " Dropped connector \"connectorName\" \n"
+              + "-----------------------------------\n")
+      );
+    } else {
+      assertThat(
+          output,
+          is("[ {\n"
+              + "  \"statementText\" : \"statementText\",\n"
+              + "  \"connectorName\" : \"connectorName\",\n"
+              + "  \"warnings\" : [ ]\n"
+              + "} ]\n")
+      );
     }
   }
 

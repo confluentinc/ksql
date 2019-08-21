@@ -17,10 +17,13 @@ package io.confluent.ksql.rest.server.validation;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -32,6 +35,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -51,8 +55,10 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.Sandbox;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.apache.kafka.common.acl.AclOperation;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -255,15 +261,14 @@ public class RequestValidatorTest {
   @Test
   public void shouldThrowIfServiceContextIsNotSandbox() {
     // Given:
-    serviceContext = mock(ServiceContext.class);
-    givenRequestValidator(ImmutableMap.of());
+    final ServiceContext otherServiceContext = mock(ServiceContext.class);
 
     // Expect:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("Expected sandbox");
 
     // When:
-    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
+    validator.validate(otherServiceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -298,6 +303,50 @@ public class RequestValidatorTest {
   }
 
   @Test
+  public void shouldThrowIfUserServiceContextIsNotAuthorizedToAccessTopics() {
+    // Given:
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    final Statement statement = ksqlEngine.prepare(statements.get(0)).getStatement();
+    doThrow(new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton("t1")))
+        .when(topicAccessValidator)
+        .validate(
+            eq(serviceContext),
+            any(),
+            eq(statement)
+        );
+
+    // Expect:
+    expectedException.expect(KsqlTopicAuthorizationException.class);
+    expectedException.expectMessage("Authorization denied to Read on topic(s): [t1]");
+
+    // When:
+    validator.validate(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
+  }
+
+  @Test
+  public void shouldThrowIfKsqlExecutionContextIsNotAuthorizedToAccessTopics() {
+    // Given:
+    final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
+    final Statement statement = ksqlEngine.prepare(statements.get(0)).getStatement();
+    final ServiceContext userServiceContext =
+        SandboxedServiceContext.create(TestServiceContext.create());
+
+    doNothing().when(topicAccessValidator)
+        .validate(eq(userServiceContext), any(), eq(statement));
+    doThrow(new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton("t1")))
+        .when(topicAccessValidator)
+        .validate(eq(serviceContext), any(), eq(statement));
+
+    // Expect:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expectMessage("The KSQL service principal is not authorized to "
+        + "execute the command: Authorization denied to Read on topic(s): [t1]");
+
+    // When:
+    validator.validate(userServiceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
+  }
+
+  @Test
   public void shouldCallTopicAccessValidator() {
     // Given:
     final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
@@ -327,7 +376,8 @@ public class RequestValidatorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
         ksqlConfig,
-        topicAccessValidator
+        topicAccessValidator,
+        serviceContext
     );
   }
 

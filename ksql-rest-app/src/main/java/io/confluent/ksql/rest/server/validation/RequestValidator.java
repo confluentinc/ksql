@@ -21,6 +21,8 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -56,6 +58,7 @@ public class RequestValidator {
   private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
   private final TopicAccessValidator topicAccessValidator;
+  private final ServiceContext serverServiceContext;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
@@ -70,13 +73,17 @@ public class RequestValidator {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
       final KsqlConfig ksqlConfig,
-      final TopicAccessValidator topicAccessValidator
+      final TopicAccessValidator topicAccessValidator,
+      final ServiceContext serverServiceContext
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.topicAccessValidator = topicAccessValidator;
+    this.topicAccessValidator = requireNonNull(topicAccessValidator, "topicAccessValidator");
+    this.serverServiceContext = requireSandbox(
+        requireNonNull(serverServiceContext, "serverServiceContext")
+    );
   }
 
   /**
@@ -144,11 +151,7 @@ public class RequestValidator {
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
 
-      topicAccessValidator.validate(
-          serviceContext,
-          executionContext.getMetaStore(),
-          statementInjected.getStatement()
-      );
+      validateTopicPermissions(serviceContext, executionContext.getMetaStore(), statementInjected);
 
       executionContext.execute(serviceContext, statementInjected);
     } else {
@@ -180,4 +183,46 @@ public class RequestValidator {
     return validate(serviceContext, executionContext.parse(sql), statement.getOverrides(), sql);
   }
 
+  /**
+   * Performs permissions checks on the statement topics.
+   * </p>
+   * This check verifies the User and the KSQL server principal have the right ACLs permissions
+   * to access the statement topics.
+   *
+   * @param userServiceContext The context of the user executing this command.
+   * @param executionContext The execution context which contains the KSQL service context
+   *                         and the KSQL metastore.
+   * @param statement  The statement that needs to be checked.
+   */
+  private void validateTopicPermissions(
+      final ServiceContext userServiceContext,
+      final MetaStore metaStore,
+      final ConfiguredStatement<?> configuredStatement
+  ) {
+    final Statement statement = configuredStatement.getStatement();
+
+    topicAccessValidator.validate(userServiceContext, metaStore, statement);
+
+    // If these service contexts are different, then KSQL is running in a secured environment
+    // with authentication and impersonation enabled.
+    if (userServiceContext != serverServiceContext) {
+      try {
+        // Perform a permission check for the KSQL server
+        topicAccessValidator.validate(serverServiceContext, metaStore, statement);
+      } catch (final KsqlTopicAuthorizationException e) {
+        throw new KsqlStatementException(
+            "The KSQL service principal is not authorized to execute the command: "
+                + e.getMessage(),
+            configuredStatement.getStatementText()
+        );
+      } catch (final Exception e) {
+        throw new KsqlStatementException(
+            "The KSQL service principal failed to validate the command: "
+                + e.getMessage(),
+            configuredStatement.getStatementText(),
+            e
+        );
+      }
+    }
+  }
 }

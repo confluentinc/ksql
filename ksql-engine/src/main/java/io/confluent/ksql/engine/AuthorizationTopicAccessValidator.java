@@ -19,6 +19,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
@@ -44,15 +45,17 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
       final Statement statement
   ) {
     if (statement instanceof Query) {
-      validateQueryTopicSources(serviceContext, metaStore, (Query)statement);
+      validateQuery(serviceContext, metaStore, (Query)statement);
     } else if (statement instanceof InsertInto) {
       validateInsertInto(serviceContext, metaStore, (InsertInto)statement);
     } else if (statement instanceof CreateAsSelect) {
       validateCreateAsSelect(serviceContext, metaStore, (CreateAsSelect)statement);
+    } else if (statement instanceof CreateSource) {
+      validateCreateSource(serviceContext, (CreateSource)statement);
     }
   }
 
-  private void validateQueryTopicSources(
+  private void validateQuery(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
       final Query query
@@ -78,11 +81,15 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
      * the target topic using the same ServiceContext used for validation.
      */
 
-    validateQueryTopicSources(serviceContext, metaStore, createAsSelect.getQuery());
+    validateQuery(serviceContext, metaStore, createAsSelect.getQuery());
+  }
 
-    // At this point, the topic should have been created by the TopicCreateInjector
-    final String kafkaTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
-    checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
+  private void validateCreateSource(
+      final ServiceContext serviceContext,
+      final CreateSource createSource
+  ) {
+    final String sourceTopic = createSource.getProperties().getKafkaTopic();
+    checkAccess(serviceContext, sourceTopic, AclOperation.READ);
   }
 
   private void validateInsertInto(
@@ -96,7 +103,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
      * Validates Write on the target topic, and Read on the query sources topics.
      */
 
-    validateQueryTopicSources(serviceContext, metaStore, insertInto.getQuery());
+    validateQuery(serviceContext, metaStore, insertInto.getQuery());
 
     final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().getSuffix());
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
@@ -130,13 +137,5 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
       // due to an authorization error. I used this message to keep a consistent message.
       throw new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName));
     }
-  }
-
-  private String getCreateAsSelectSinkTopic(
-      final MetaStore metaStore,
-      final CreateAsSelect createAsSelect
-  ) {
-    return createAsSelect.getProperties().getKafkaTopic()
-        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName().getSuffix()));
   }
 }

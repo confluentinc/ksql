@@ -113,7 +113,8 @@ public class KsqlResource {
         injectorFactory,
         ksqlEngine::createSandbox,
         ksqlConfig,
-        topicAccessValidator);
+        topicAccessValidator,
+        SandboxedServiceContext.create(ksqlEngine.getServiceContext()));
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(

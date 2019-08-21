@@ -186,7 +186,7 @@ SELECT * FROM stream WHERE column = 42;
 
 ---
 
-Finally, `EMIT CHANGES` may be preferrable over `EMIT STREAM` for KQSL specifically (for the reasons outlined above) although `EMIT STREAM` is still a suitable option.
+Finally, `EMIT CHANGES` may be preferrable over `EMIT STREAM` for KSQL specifically (for the reasons outlined above) although `EMIT STREAM` is still a suitable option.
 
 ## Proposed behavioral changes
 

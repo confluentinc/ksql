@@ -199,7 +199,7 @@ However, streaming queries returning a table's entire materialized state *then* 
 To get KSQL's current behavior with a streaming query against a table, users would simply use an intuitive `WHERE` clause:
 
 ```sql
-SELECT * FROM table WHERE ROWTIME >= NOW
+SELECT * FROM table WHERE ROWTIME >= NOW;
 ```
 
 ## Limitations

@@ -18,14 +18,11 @@ package io.confluent.ksql.services;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.AlterConfigsOptions;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
-import org.apache.kafka.clients.admin.AlterPartitionReassignmentsOptions;
-import org.apache.kafka.clients.admin.AlterPartitionReassignmentsResult;
 import org.apache.kafka.clients.admin.AlterReplicaLogDirsOptions;
 import org.apache.kafka.clients.admin.AlterReplicaLogDirsResult;
 import org.apache.kafka.clients.admin.Config;
@@ -69,11 +66,8 @@ import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
 import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsResult;
 import org.apache.kafka.clients.admin.ListConsumerGroupsOptions;
 import org.apache.kafka.clients.admin.ListConsumerGroupsResult;
-import org.apache.kafka.clients.admin.ListPartitionReassignmentsOptions;
-import org.apache.kafka.clients.admin.ListPartitionReassignmentsResult;
 import org.apache.kafka.clients.admin.ListTopicsOptions;
 import org.apache.kafka.clients.admin.ListTopicsResult;
-import org.apache.kafka.clients.admin.NewPartitionReassignment;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.RecordsToDelete;
@@ -302,20 +296,6 @@ class SandboxedAdminClient extends AdminClient {
       final Set<TopicPartition> set,
       final ElectLeadersOptions electLeadersOptions
   ) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public AlterPartitionReassignmentsResult alterPartitionReassignments(
-      final Map<TopicPartition, Optional<NewPartitionReassignment>> reassignments,
-      final AlterPartitionReassignmentsOptions options) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public ListPartitionReassignmentsResult listPartitionReassignments(
-      final Optional<Set<TopicPartition>> partitions,
-      final ListPartitionReassignmentsOptions options) {
     throw new UnsupportedOperationException();
   }
 

@@ -196,7 +196,7 @@ Currently, a streaming query against a table in KSQL will only return rows from 
 
 However, streaming queries returning a table's entire materialized state *then* followed by changes is more consistent with the behavior of PIT queries on a table. This behavior is also likely what users want when issuing a streaming query against a table, and it is currently not straightforward to achieve.
 
-To get KSQL's current behavior with a streaming query against a table, users would simply use a simple, intuitive `WHERE` clause:
+To get KSQL's current behavior with a streaming query against a table, users would simply use an intuitive `WHERE` clause:
 
 ```sql
 SELECT * FROM table WHERE ROWTIME >= NOW

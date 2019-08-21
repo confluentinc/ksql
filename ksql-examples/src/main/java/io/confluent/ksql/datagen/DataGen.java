@@ -223,7 +223,7 @@ public final class DataGen {
               .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
               .put("propertiesFile",
                   (builder, argVal) -> builder.propertiesFile = toFileInputStream(argVal).get())
-              .put("msgRate", (builder, argVal) -> builder.msgRate = parseMsgRate(argVal))
+              .put("msgRate", (builder, argVal) -> builder.msgRate = parseInt(argVal, 1))
               .put("nThreads", (builder, argVal) -> builder.numThreads = parseNumThreads(argVal))
               .put("printRows", (builder, argVal) -> builder.printRows = parsePrintRows(argVal))
               .build();
@@ -470,22 +470,6 @@ public final class DataGen {
         }
       }
 
-      private static int parseMsgRate(final String msgRateString) {
-        try {
-          final int result = Integer.valueOf(msgRateString, 10);
-          if (result < 0) {
-            throw new ArgumentParseException(String.format(
-                "Invalid msg rate in '%d'; must be a positive number",
-                result));
-          }
-          return result;
-        } catch (NumberFormatException e) {
-          throw new ArgumentParseException(String.format(
-              "Invalid msg rate in '%s'; must be a positive number",
-              msgRateString));
-        }
-      }
-
       private static boolean parsePrintRows(final String printRowsString) {
         switch (printRowsString.toLowerCase()) {
           case "false":
@@ -505,7 +489,7 @@ public final class DataGen {
           final int result = Integer.valueOf(iterationsString, 10);
           if (result < minValue) {
             throw new ArgumentParseException(String.format(
-                "Invalid integer value '%d'; must be > %d",
+                "Invalid integer value '%d'; must be >= %d",
                 result, minValue
             ));
           }

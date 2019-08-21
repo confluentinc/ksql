@@ -76,6 +76,8 @@ public class AuthorizationTopicAccessValidatorTest {
   private TopicAccessValidator accessValidator;
   private KsqlEngine ksqlEngine;
   private MutableMetaStore metaStore;
+  private final static String topicName1 = "topic1";
+  private final static String topicName2 = "topic2";
 
   @Before
   public void setUp() {
@@ -85,10 +87,10 @@ public class AuthorizationTopicAccessValidatorTest {
     accessValidator = new AuthorizationTopicAccessValidator();
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
-    givenTopic("topic1", TOPIC_1);
+    givenTopic(topicName1, TOPIC_1);
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
 
-    givenTopic("topic2", TOPIC_2);
+    givenTopic(topicName2, TOPIC_2);
     givenStreamWithTopic(STREAM_TOPIC_2, TOPIC_2);
   }
 
@@ -341,6 +343,35 @@ public class AuthorizationTopicAccessValidatorTest {
 
     // Then:
     // Above command should not throw any exception
+  }
+
+  @Test
+  public void shouldPrintTopicWithReadPermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format("Print '%s';", topicName1));
+
+    // When:
+    accessValidator.validate(serviceContext, metaStore, statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
+  public void shouldPrintTopicWithoutReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.emptySet());
+    final Statement statement = givenStatement(String.format("Print '%s';", topicName1));
+
+    // Then:
+    expectedException.expect(KsqlTopicAuthorizationException.class);
+    expectedException.expectMessage(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+    ));
+
+    // When:
+    accessValidator.validate(serviceContext, metaStore, statement);
   }
 
   @Test

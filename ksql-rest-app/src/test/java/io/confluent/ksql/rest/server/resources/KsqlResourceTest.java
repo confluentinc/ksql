@@ -67,6 +67,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -158,6 +159,7 @@ import javax.ws.rs.core.Response;
 import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -639,6 +641,41 @@ public class KsqlResourceTest {
         containsString("Missing required property \"KAFKA_TOPIC\" which has no default value."));
     assertThat(((KsqlStatementErrorMessage) result).getStatementText(),
         is("CREATE STREAM S (foo INT) WITH(VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
+    // Given:
+    doThrow(new KsqlTopicAuthorizationException(
+        AclOperation.DELETE,
+        Collections.singleton("topic"))).when(topicAccessValidator).validate(any(), any(), any());
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+        "DROP STREAM TEST_STREAM DELETE TOPIC;",
+        Code.FORBIDDEN);
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+  }
+
+  @Test
+  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
+    // Given:
+    doThrow(new KsqlException("", new KsqlTopicAuthorizationException(
+        AclOperation.DELETE,
+        Collections.singleton("topic")))).when(topicAccessValidator).validate(any(), any(), any());
+
+
+    // When:
+    final KsqlErrorMessage result = makeFailingRequest(
+            "DROP STREAM TEST_STREAM DELETE TOPIC;",
+            Code.FORBIDDEN);
+
+    // Then:
+    assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
+    assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
   }
 
   @Test

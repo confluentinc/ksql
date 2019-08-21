@@ -42,6 +42,7 @@ import io.confluent.ksql.rest.server.execution.RequestHandler;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -50,6 +51,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -178,9 +180,11 @@ public class KsqlResource {
     } catch (final KsqlStatementException e) {
       return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
-      return Errors.badRequest(e);
+      return ErrorResponseUtil.generateResponse(
+          e, Errors.badRequest(e));
     } catch (final Exception e) {
-      return Errors.serverErrorForStatement(e, request.getKsql());
+      return ErrorResponseUtil.generateResponse(
+          e, Errors.serverErrorForStatement(e, request.getKsql()));
     }
   }
 

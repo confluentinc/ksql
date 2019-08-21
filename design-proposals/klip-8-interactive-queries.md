@@ -133,7 +133,7 @@ Additionally:
 
 ---
 
-# Syntax
+# Syntax changes
 
 All KSQL query syntax currently yields streaming results because KSQL only supports streaming queries. As a result, adding support for point-in-time queries necessitates a means to unambiguously differentiate between streaming and finite query results. The most straightforward approach to this is to use syntax to indicate streaming versus PIT queries. And since there are only two fundamental query forms, it is only necessary to add KSQL syntax to represent one of them.
 
@@ -145,7 +145,6 @@ After introducing any syntax changes, KSQL's syntax must make sense in each of t
 * Streaming query on a table
 * Point-in-time query on a stream
 * Point-in-time query on a table
-* Transient queries defined by any of the above
 * CTAS/CSAS defined by any of the above
 
 *Note that not all of these query forms need to be supported (initially, or ever), but a sensible design should allow for all of them with minimal ambiguity.*
@@ -164,9 +163,9 @@ Partially inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://a
 
 * De-emphasizes the stream abstraction as we continue to consider making KSQL more table centric.
 * Not redundant in the context of CSAS (`CREATE STREAM s0 AS SELECT .. FROM s1 EMIT STREAM`).
-* Intuitive and descriptive in the context tables. A streaming query against a table effectively produces rows representing changes to the underlying table. Identifying this changelog as simply a stream isn't necessarily clear.
+* Intuitive and descriptive in the context of tables. A streaming query against a table effectively produces rows representing changes to the underlying table. Identifying this changelog as simply a stream isn't necessarily clear.
 * Similarly to the above, `EMIT CHANGES` is intuitive in the context of streaming aggregations, which produce incremental *changes* over time.
-* `EMIT STREAM` generally feels better suited for transient queries, for which there is no other `STREAM` context in the query (i.e. CSAS).
+* `EMIT STREAM` generally feels better suited for ad-hoc queries, for which there is no other `STREAM` context in the query (i.e. CSAS).
 
 The following are canonical example queries within each of the aforementioned fundamental query contexts:
 

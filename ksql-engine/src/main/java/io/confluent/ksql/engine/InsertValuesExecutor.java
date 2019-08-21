@@ -20,6 +20,7 @@ import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
@@ -60,10 +61,14 @@ import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class InsertValuesExecutor {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
 
@@ -163,6 +168,17 @@ public class InsertValuesExecutor {
       );
 
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+    } catch (final TopicAuthorizationException e) {
+      // TopicAuthorizationException does not give much detailed information about why it failed,
+      // except which topics are denied. Here we just add the ACL to make the error message
+      // consistent with other authorization error messages.
+      final Exception rootCause = new KsqlTopicAuthorizationException(
+          AclOperation.WRITE,
+          e.unauthorizedTopics()
+      );
+
+      throw new KsqlException("Failed to insert values into stream/table: "
+          + insertValues.getTarget().getSuffix(), rootCause);
     } catch (final Exception e) {
       throw new KsqlException("Failed to insert values into stream/table: "
           + insertValues.getTarget().getSuffix(), e);

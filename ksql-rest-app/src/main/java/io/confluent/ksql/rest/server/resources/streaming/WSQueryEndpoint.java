@@ -32,11 +32,11 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
-import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
@@ -137,8 +137,8 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout,
         topicAccessValidator,
         securityExtension,
-        DefaultServiceContext::create,
-        DefaultServiceContext::create,
+        ServiceContextFactory::create,
+        ServiceContextFactory::create,
         serverState);
   }
 

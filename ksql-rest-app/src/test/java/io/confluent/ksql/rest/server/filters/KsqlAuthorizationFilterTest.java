@@ -16,9 +16,8 @@
 package io.confluent.ksql.rest.server.filters;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.security.KsqlAuthorizationProvider;
+import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.rest.entities.ErrorMessage;
 import org.glassfish.jersey.internal.PropertiesDelegate;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.junit.Before;

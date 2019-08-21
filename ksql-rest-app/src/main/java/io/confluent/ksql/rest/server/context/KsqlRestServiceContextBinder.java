@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.context;
 
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;

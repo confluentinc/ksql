@@ -13,10 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.security;
+package io.confluent.ksql.security;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.rest.server.context.ConfiguredKafkaClientSupplier;
+import io.confluent.ksql.services.ConfiguredKafkaClientSupplier;
+
 import java.security.Principal;
 import java.util.function.Supplier;
 

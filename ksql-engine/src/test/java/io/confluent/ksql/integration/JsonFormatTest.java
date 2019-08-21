@@ -32,9 +32,9 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
@@ -92,7 +92,7 @@ public class JsonFormatTest {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
     ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
-    serviceContext = DefaultServiceContext.create(ksqlConfig);
+    serviceContext = ServiceContextFactory.create(ksqlConfig);
 
     ksqlEngine = new KsqlEngine(
         serviceContext,

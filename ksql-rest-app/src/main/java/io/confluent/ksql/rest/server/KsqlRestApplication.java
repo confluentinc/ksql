@@ -53,16 +53,16 @@ import io.confluent.ksql.rest.server.resources.ServerInfoResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
-import io.confluent.ksql.rest.server.security.KsqlDefaultSecurityExtension;
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
-import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
@@ -410,7 +410,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final ServiceContext serviceContext
-        = new LazyServiceContext(() -> DefaultServiceContext.create(ksqlConfig));
+        = new LazyServiceContext(() -> ServiceContextFactory.create(ksqlConfig));
 
     return buildApplication(
         restConfig,

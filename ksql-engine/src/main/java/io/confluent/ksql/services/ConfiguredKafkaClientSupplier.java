@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.context;
+package io.confluent.ksql.services;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;

@@ -21,7 +21,6 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
-import static io.confluent.ksql.util.KsqlConfig.KSQL_CUSTOM_METRICS_TAGS;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_SERVICE_ID_CONFIG;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
@@ -44,10 +43,10 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
@@ -266,7 +265,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    serviceContext = DefaultServiceContext.create(ksqlConfig);
+    serviceContext = ServiceContextFactory.create(ksqlConfig);
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),

@@ -17,9 +17,9 @@ package io.confluent.ksql.rest.server.context;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.ksql.rest.server.security.KsqlSecurityExtension;
-import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Objects;
@@ -63,7 +63,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   @Inject
   public KsqlRestServiceContextFactory(final SecurityContext securityContext) {
-    this(securityContext, DefaultServiceContext::create, DefaultServiceContext::create);
+    this(securityContext, ServiceContextFactory::create, ServiceContextFactory::create);
   }
 
   @VisibleForTesting

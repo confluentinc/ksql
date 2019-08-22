@@ -423,13 +423,6 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
-    public Builder withServiceContextBinder(
-        final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  binder
-    ) {
-      serviceContextBinder = binder;
-      return this;
-    }
-
     public TestKsqlRestApp build() {
       return new TestKsqlRestApp(
           bootstrapServers,

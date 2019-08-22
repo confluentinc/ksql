@@ -663,9 +663,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
     // Given:
-    doThrow(new KsqlException("", new KsqlTopicAuthorizationException(
-        AclOperation.DELETE,
-        Collections.singleton("topic")))).when(topicAccessValidator).validate(any(), any(), any());
+    doThrow(new KsqlException("Could not delete the corresponding kafka topic: topic",
+        new KsqlTopicAuthorizationException(
+          AclOperation.DELETE,
+          Collections.singleton("topic")))).when(topicAccessValidator).validate(any(), any(), any());
 
 
     // When:
@@ -676,6 +677,9 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(
+        "Could not delete the corresponding kafka topic: topic\n" +
+              "Caused by: Authorization denied to Delete on topic(s): [topic]"));
   }
 
   @Test

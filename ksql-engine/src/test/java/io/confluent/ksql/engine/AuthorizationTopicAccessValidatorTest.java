@@ -307,26 +307,6 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldCreateAsSelectExistingStreamWithoutWritePermissionsDenied() {
-    // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
-    final Statement statement = givenStatement(String.format(
-        "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
-    );
-
-    // Then:
-    expectedException.expect(KsqlTopicAuthorizationException.class);
-    expectedException.expectMessage(String.format(
-        "Authorization denied to Write on topic(s): [%s]", TOPIC_2.name()
-    ));
-
-
-    // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
-  }
-
-  @Test
   public void shouldCreateAsSelectWithTopicAndWritePermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));

@@ -64,7 +64,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.Optional;
@@ -81,9 +80,6 @@ final class EndToEndEngineTestUtil {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   static final String CONFIG_END_MARKER = "CONFIGS_END";
   static final String SCHEMAS_END_MARKER = "SCHEMAS_END";
-
-  private static final NavigableMap<SemanticVersion, Map<String, Object>>
-      COMPATIBILITY_BREAKING_CONFIGS = buildCompatibilityBreakingConfigs();
 
   // Pass a single test or multiple tests separated by commas to the test framework.
   // Example:
@@ -148,7 +144,7 @@ final class EndToEndEngineTestUtil {
     );
 
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    for (QueryMetadata queryMetadata: queries) {
+    for (final QueryMetadata queryMetadata: queries) {
       final PersistentQueryMetadata persistentQueryMetadata
           = (PersistentQueryMetadata) queryMetadata;
       final String sinkKafkaTopicName = metaStore
@@ -180,27 +176,6 @@ final class EndToEndEngineTestUtil {
 
     assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
     return (PersistentQueryMetadata) queries.get(queries.size() - 1);
-  }
-
-  private static KsqlConfig buildConfig(final TestCase testCase) {
-    final KsqlConfig baseConfig = new KsqlConfig(baseConfig());
-
-    final Map<String, String> configs = testCase.ksqlVersion()
-        .map(ksqlVersion -> COMPATIBILITY_BREAKING_CONFIGS
-            .tailMap(ksqlVersion.getVersion(), false)
-            .values()
-            .stream()
-            .flatMap(m -> m.entrySet().stream())
-            .collect(Collectors.toMap(Entry::getKey, e -> Objects.toString(e.getValue()))))
-        .orElseGet(HashMap::new);
-
-    configs.putAll(testCase.persistedProperties());
-
-    final KsqlConfig compatibleConfig = configs.isEmpty() ? baseConfig :
-        baseConfig.overrideBreakingConfigsWithOriginalValues(configs);
-
-    return compatibleConfig
-        .cloneWithPropertyOverwrite(testCase.properties());
   }
 
   private static void writeExpectedTopologyFile(
@@ -459,7 +434,7 @@ final class EndToEndEngineTestUtil {
 
   static void shouldBuildAndExecuteQuery(final TestCase testCase) {
 
-    try (final TestExecutor testExecutor = new TestExecutor()) {
+    try (final TestExecutor testExecutor = new TestExecutor(TestFunctionRegistry.INSTANCE.get())) {
       testExecutor.buildAndExecuteQuery(testCase);
     } catch (final RuntimeException e) {
       testCase.handleException(e);

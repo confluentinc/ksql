@@ -25,13 +25,17 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.Random;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletionService;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorCompletionService;
+import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -47,13 +51,13 @@ public final class DataGen {
       System.err.println(exception.getMessage());
       usage();
       System.exit(1);
-    } catch (final Exception e) {
+    } catch (final Throwable e) {
       e.printStackTrace();
       System.exit(1);
     }
   }
 
-  static void run(final String... args) throws IOException {
+  static void run(final String... args) throws Throwable {
     final Arguments arguments = new Arguments.Builder()
         .parseArgs(args)
         .build();
@@ -69,28 +73,38 @@ public final class DataGen {
     final Optional<RateLimiter> rateLimiter = arguments.msgRate != -1
         ? Optional.of(RateLimiter.create(arguments.msgRate)) : Optional.empty();
 
-    final List<Thread> threads = new LinkedList<>();
-    for (int i = 0; i < arguments.numThreads; i++) {
-      threads.add(startProducerThread(arguments, dataProducer, props, rateLimiter));
-    }
+    final Executor executor = Executors.newFixedThreadPool(
+        arguments.numThreads,
+        r -> {
+          final Thread thread = new Thread(r);
+          thread.setDaemon(true);
+          return thread;
+        }
+    );
+    final CompletionService<Void> service = new ExecutorCompletionService<>(executor);
 
-    for (final Thread t : threads) {
+    for (int i = 0; i < arguments.numThreads; i++) {
+      service.submit(getProducerTask(arguments, dataProducer, props, rateLimiter));
+    }
+    for (int i = 0; i < arguments.numThreads; i++) {
       try {
-        t.join();
-      } catch (InterruptedException e) {
-        // interrupted. exit with error
+        service.take().get();
+      } catch (final InterruptedException e) {
+        System.err.println("Interrupted waiting for threads to exit.");
         System.exit(1);
+      } catch (final ExecutionException e) {
+        throw e.getCause();
       }
     }
   }
 
-  private static Thread startProducerThread(
+  private static Callable<Void> getProducerTask(
       final Arguments arguments,
       final DataGenProducer dataProducer,
       final Properties props,
       final Optional<RateLimiter> rateLimiter) throws IOException {
     final Generator generator = new Generator(arguments.schemaFile.get(), new Random());
-    final Thread t = new Thread(() -> {
+    return () -> {
       dataProducer.populateTopic(
           props,
           generator,
@@ -101,10 +115,8 @@ public final class DataGen {
           arguments.printRows,
           rateLimiter
       );
-    });
-    t.setDaemon(true);
-    t.start();
-    return t;
+      return null;
+    };
   }
 
   static Properties getProperties(final Arguments arguments) throws IOException {
@@ -416,17 +428,13 @@ public final class DataGen {
       }
 
       private static Supplier<InputStream> toFileInputStream(final String argVal) {
-        try {
-          return () -> {
-            try {
-              return new FileInputStream(argVal);
-            } catch (final FileNotFoundException e) {
-              throw new RuntimeException(e);
-            }
-          };
-        } catch (final Exception e) {
-          throw new IllegalArgumentException("File not found: " + argVal, e);
-        }
+        return () -> {
+          try {
+            return new FileInputStream(argVal);
+          } catch (final FileNotFoundException e) {
+            throw new IllegalArgumentException("File not found: " + argVal, e);
+          }
+        };
       }
 
       private static Quickstart parseQuickStart(final String argValue) {

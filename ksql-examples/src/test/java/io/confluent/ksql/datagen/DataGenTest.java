@@ -30,7 +30,7 @@ public class DataGenTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
-  public void shouldThrowOnUnknownFormat() throws Exception {
+  public void shouldThrowOnUnknownFormat() throws Throwable {
     DataGen.run(
         "format=wtf",
         "schema=./src/main/resources/purchase.avro",
@@ -39,7 +39,7 @@ public class DataGenTest {
   }
 
   @Test
-  public void shouldThrowIfSchemaFileDoesNotExist() throws Exception {
+  public void shouldThrowIfSchemaFileDoesNotExist() throws Throwable {
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage(containsString("File not found: you/won't/find/me/right?"));
 
@@ -51,7 +51,7 @@ public class DataGenTest {
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowIfKeyFieldDoesNotExist() throws Exception {
+  public void shouldThrowIfKeyFieldDoesNotExist() throws Throwable {
     DataGen.run(
         "key=not_a_field",
         "schema=./src/main/resources/purchase.avro",
@@ -60,7 +60,7 @@ public class DataGenTest {
   }
 
   @Test(expected = DataGen.Arguments.ArgumentParseException.class)
-  public void shouldThrowOnUnknownQuickStart() throws Exception {
+  public void shouldThrowOnUnknownQuickStart() throws Throwable {
     DataGen.run(
         "quickstart=wtf",
         "format=avro",

@@ -152,7 +152,7 @@ public final class DataGen {
         + "[iterations=<number of rows> (defaults to 1,000,000)] " + newLine
         + "[maxInterval=<Max time in ms between rows> (defaults to 500)] " + newLine
         + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
-        + "[nThreads=<number of producers to start>] " + newLine
+        + "[nThreads=<number of producer threads to start>] " + newLine
         + "[msgRate=<rate to produce in msgs/second>] " + newLine
         + "[printRows=<true|false>]" + newLine
     );

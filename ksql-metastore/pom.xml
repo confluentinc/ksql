@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.3.0</version>
+        <version>5.3.0-cp1</version>
     </parent>
 
     <artifactId>ksql-metastore</artifactId>

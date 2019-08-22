@@ -167,7 +167,7 @@ public class EndToEndIntegrationTest {
   public void shouldSelectAllFromUsers() throws Exception {
     final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s;", USER_TABLE);
 
-    final Set<?> expectedUsers = USER_DATA_PROVIDER.keySpace();
+    final Set<?> expectedUsers = USER_DATA_PROVIDER.data().keySet();
 
     final List<GenericRow> rows = verifyAvailableRows(queryMetadata, expectedUsers.size());
 

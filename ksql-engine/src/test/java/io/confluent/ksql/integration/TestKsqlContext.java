@@ -31,6 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.junit.rules.ExternalResource;
 
+/**
+ * Junit external resource for managing an instance of {@link KsqlContext}.
+ */
 public final class TestKsqlContext extends ExternalResource {
 
   private final IntegrationTestHarness testHarness;

@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -28,6 +27,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -55,7 +55,7 @@ public class RequestValidator {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier;
   private final KsqlConfig ksqlConfig;
-  private final TopicAccessValidator topicAccessValidator;
+  private final KsqlAuthorizationValidator authorizationValidator;
 
   /**
    * @param customValidators        a map describing how to validate each statement of type
@@ -70,13 +70,13 @@ public class RequestValidator {
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final Function<ServiceContext, KsqlExecutionContext> snapshotSupplier,
       final KsqlConfig ksqlConfig,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this.customValidators = requireNonNull(customValidators, "customValidators");
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
     this.snapshotSupplier = requireNonNull(snapshotSupplier, "snapshotSupplier");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.topicAccessValidator = topicAccessValidator;
+    this.authorizationValidator = authorizationValidator;
   }
 
   /**
@@ -144,7 +144,7 @@ public class RequestValidator {
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
 
-      topicAccessValidator.validate(
+      authorizationValidator.checkAuthorization(
           serviceContext,
           executionContext.getMetaStore(),
           statementInjected.getStatement()

@@ -20,7 +20,6 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -44,6 +43,7 @@ import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
@@ -101,7 +101,7 @@ public class KsqlResource {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -115,7 +115,7 @@ public class KsqlResource {
         injectorFactory,
         ksqlEngine::createSandbox,
         ksqlConfig,
-        topicAccessValidator);
+        authorizationValidator);
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(

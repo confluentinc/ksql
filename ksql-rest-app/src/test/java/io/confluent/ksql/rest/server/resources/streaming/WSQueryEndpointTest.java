@@ -35,7 +35,7 @@ import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
@@ -135,7 +135,7 @@ public class WSQueryEndpointTest {
   @Mock
   private ActivenessRegistrar activenessRegistrar;
   @Mock
-  private TopicAccessValidator topicAccessValidator;
+  private KsqlAuthorizationValidator authorizationValidator;
   @Mock
   private KsqlSecurityExtension securityExtension;
   @Mock
@@ -182,7 +182,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint = new WSQueryEndpoint(
         ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
         queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        topicAccessValidator, securityExtension, serviceContextFactory,
+        authorizationValidator, securityExtension, serviceContextFactory,
         defaultServiceContextProvider, serverState);
   }
 

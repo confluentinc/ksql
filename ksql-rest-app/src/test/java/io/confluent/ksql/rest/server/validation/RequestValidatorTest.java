@@ -31,7 +31,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.TopicAccessValidator;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -80,7 +80,7 @@ public class RequestValidatorTest {
   @Mock
   private Injector topicInjector;
   @Mock
-  private TopicAccessValidator topicAccessValidator;
+  private KsqlAuthorizationValidator authorizationValidator;
 
   private ServiceContext serviceContext;
   private MutableMetaStore metaStore;
@@ -298,7 +298,7 @@ public class RequestValidatorTest {
   }
 
   @Test
-  public void shouldCallTopicAccessValidator() {
+  public void shouldCallAuthorizationValidator() {
     // Given:
     final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
     final ServiceContext otherServiceContext =
@@ -308,7 +308,7 @@ public class RequestValidatorTest {
     validator.validate(otherServiceContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
-    verify(topicAccessValidator, times(1)).validate(
+    verify(authorizationValidator, times(1)).checkAuthorization(
         otherServiceContext,
         metaStore,
         ksqlEngine.prepare(statements.get(0)).getStatement()
@@ -327,7 +327,7 @@ public class RequestValidatorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         (sc) -> executionContext,
         ksqlConfig,
-        topicAccessValidator
+        authorizationValidator
     );
   }
 

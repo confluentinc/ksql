@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -30,6 +29,7 @@ import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ErrorResponseUtil;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -67,7 +67,7 @@ public class StreamedQueryResource {
   private final Duration commandQueueCatchupTimeout;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
-  private final TopicAccessValidator topicAccessValidator;
+  private final KsqlAuthorizationValidator authorizationValidator;
 
   public StreamedQueryResource(
       final KsqlConfig ksqlConfig,
@@ -77,7 +77,7 @@ public class StreamedQueryResource {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
@@ -90,7 +90,7 @@ public class StreamedQueryResource {
     this.objectMapper = JsonMapper.INSTANCE.mapper;
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
-    this.topicAccessValidator = topicAccessValidator;
+    this.authorizationValidator = authorizationValidator;
   }
 
   @POST
@@ -128,7 +128,7 @@ public class StreamedQueryResource {
       final PreparedStatement<?> statement
   ) throws Exception {
     try {
-      topicAccessValidator.validate(
+      authorizationValidator.checkAuthorization(
           serviceContext,
           ksqlEngine.getMetaStore(),
           statement.getStatement()

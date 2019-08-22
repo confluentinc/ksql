@@ -309,7 +309,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     }
   }
 
-  public List<URL> getListeners() {
+  List<URL> getListeners() {
     return Arrays.stream(server.getConnectors())
         .filter(connector -> connector instanceof ServerConnector)
         .map(ServerConnector.class::cast)
@@ -353,6 +353,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     );
   }
 
+  @SuppressWarnings("UnstableApiUsage")
   @Override
   protected void registerWebSocketEndpoints(final ServerContainer container) {
     try {
@@ -403,24 +404,25 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     }
   }
 
-  public static KsqlRestApplication buildApplication(
+  static KsqlRestApplication buildApplication(
       final KsqlRestConfig restConfig,
-      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
-      final int maxStatementRetries
+      final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
     final ServiceContext serviceContext
         = new LazyServiceContext(() -> ServiceContextFactory.create(ksqlConfig));
 
     return buildApplication(
+        "",
         restConfig,
         versionCheckerFactory,
-        maxStatementRetries,
+        Integer.MAX_VALUE,
         serviceContext,
         KsqlRestServiceContextBinder::new);
   }
 
   static KsqlRestApplication buildApplication(
+      final String metricsPrefix,
       final KsqlRestConfig restConfig,
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory,
       final int maxStatementRetries,
@@ -442,7 +444,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig, metricsPrefix)
+    );
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
@@ -596,7 +599,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     writer.flush();
   }
 
-  static void maybeCreateProcessingLogStream(
+  private static void maybeCreateProcessingLogStream(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,

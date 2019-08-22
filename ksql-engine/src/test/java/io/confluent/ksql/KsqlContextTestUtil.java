@@ -26,11 +26,14 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public final class KsqlContextTestUtil {
+
+  private static final AtomicInteger COUNTER = new AtomicInteger();
 
   private KsqlContextTestUtil() {
   }
@@ -55,11 +58,13 @@ public final class KsqlContextTestUtil {
         new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY))
     );
 
+    final String metricsPrefix = "instance-" + COUNTER.getAndIncrement() + "-";
+
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
         functionRegistry,
-        ServiceInfo.create(ksqlConfig)
+        ServiceInfo.create(ksqlConfig, metricsPrefix)
     );
 
     return new KsqlContext(

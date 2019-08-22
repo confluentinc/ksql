@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -62,8 +63,7 @@ import org.glassfish.hk2.utilities.Binder;
 import org.junit.rules.ExternalResource;
 
 /**
- * Junit external resource for managing an instance of
- * {@link io.confluent.ksql.rest.server.KsqlRestApplication}.
+ * Junit external resource for managing an instance of {@link KsqlRestApplication}.
  *
  * Generally used in conjunction with {@link EmbeddedSingleNodeKafkaCluster}
  *
@@ -80,6 +80,9 @@ import org.junit.rules.ExternalResource;
  */
 public class TestKsqlRestApp extends ExternalResource {
 
+  private static final AtomicInteger COUNTER = new AtomicInteger();
+
+  private final String metricsPrefix = "app-" + COUNTER.getAndIncrement() + "-";
   private final Map<String, ?> baseConfig;
   private final Supplier<String> bootstrapServers;
   private final Supplier<ServiceContext> serviceContext;
@@ -91,8 +94,8 @@ public class TestKsqlRestApp extends ExternalResource {
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinderFactory) {
-
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory
+  ) {
     this.baseConfig = buildBaseConfig(additionalProps);
     this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
@@ -100,10 +103,12 @@ public class TestKsqlRestApp extends ExternalResource {
         .requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
   }
 
+  @SuppressWarnings("WeakerAccess") // Part of public API
   public List<URL> getListeners() {
     return this.listeners;
   }
 
+  @SuppressWarnings("unused") // Part of public API
   public Map<String, ?> getBaseConfig() {
     return Collections.unmodifiableMap(this.baseConfig);
   }
@@ -201,6 +206,7 @@ public class TestKsqlRestApp extends ExternalResource {
 
     try {
       restServer = KsqlRestApplication.buildApplication(
+          metricsPrefix,
           buildConfig(bootstrapServers, baseConfig),
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,

@@ -48,7 +48,7 @@ public class MultiExecutableTest {
   }
 
   @Test
-  public void shouldDoActionsOnAll() throws Exception {
+  public void shouldStartAll() throws Exception {
     // When:
     multiExecutable.start();
 
@@ -56,6 +56,30 @@ public class MultiExecutableTest {
     final InOrder inOrder = Mockito.inOrder(executable1, executable2);
     inOrder.verify(executable1).start();
     inOrder.verify(executable2).start();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldJoinAll() throws Exception {
+    // When:
+    multiExecutable.join();
+
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(executable1, executable2);
+    inOrder.verify(executable1).join();
+    inOrder.verify(executable2).join();
+    inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldStopAll() throws Exception {
+    // When:
+    multiExecutable.stop();
+
+    // Then:
+    final InOrder inOrder = Mockito.inOrder(executable1, executable2);
+    inOrder.verify(executable1).stop();
+    inOrder.verify(executable2).stop();
     inOrder.verifyNoMoreInteractions();
   }
 

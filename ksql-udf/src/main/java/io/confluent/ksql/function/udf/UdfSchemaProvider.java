@@ -26,7 +26,7 @@ import java.lang.annotation.Target;
  * The {@code UdfSchemaProvider} annotation on a method tells KSQL to use this method to resolve
  * the return type of the udf at runtime.
  *
- * The corresponding udf annotation must have the {@code schemaProvider} specified.
+ * <p>The corresponding udf annotation must have the {@code schemaProvider} specified.
  */
 public @interface UdfSchemaProvider {
 

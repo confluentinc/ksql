@@ -20,33 +20,40 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.udf.KudfTester;
+import java.math.BigDecimal;
 import org.junit.Before;
 import org.junit.Test;
 
-public class AbsKudfTest {
+public class AbsTest {
 
-  private AbsKudf udf;
+  private Abs udf;
 
   @Before
   public void setUp() {
-    udf = new AbsKudf();
+    udf = new Abs();
   }
 
   @Test
-  public void shouldBeWellBehavedUdf() {
-    new KudfTester(AbsKudf::new)
-        .withArgumentTypes(Number.class)
-        .test();
+  public void shouldHandleNull() {
+    assertThat(udf.abs((Integer) null), is(nullValue()));
+    assertThat(udf.abs((Long)null), is(nullValue()));
+    assertThat(udf.abs((Double)null), is(nullValue()));
+    assertThat(udf.abs((BigDecimal) null), is(nullValue()));
   }
 
   @Test
-  public void shouldReturnNullWhenArgNull() {
-    assertThat(udf.evaluate((Object)null), is(nullValue()));
+  public void shouldHandleNegative() {
+    assertThat(udf.abs(-1), is(1.0));
+    assertThat(udf.abs(-1L), is(1.0));
+    assertThat(udf.abs(-1.0), is(1.0));
+    assertThat(udf.abs(new BigDecimal(-1)), is(new BigDecimal(-1).abs()));
   }
 
   @Test
-  public void shouldAbs() {
-    assertThat(udf.evaluate(-1.234), is(1.234));
-    assertThat(udf.evaluate(5567), is(5567.0));
+  public void shouldHandlePositive() {
+    assertThat(udf.abs(1), is(1.0));
+    assertThat(udf.abs(1L), is(1.0));
+    assertThat(udf.abs(1.0), is(1.0));
+    assertThat(udf.abs(new BigDecimal(1)), is(new BigDecimal(1).abs()));
   }
 }

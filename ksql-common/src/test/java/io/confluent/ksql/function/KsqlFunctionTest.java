@@ -137,17 +137,18 @@ public class KsqlFunctionTest {
 
   }
 
-
   @Test
   public void shouldResolveSchemaProvider() {
     // Given:
-
-    final Function<List<Schema>, Schema> schemaProviderFunction = list -> {
-      return DecimalUtil.builder(2,1).build();
+    final Schema decimalSchema = DecimalUtil.builder(2,1).build();
+    final Function<List<Schema>, Schema> schemaProviderFunction = args -> {
+      return decimalSchema;
     };
 
-    final KsqlFunction udf = KsqlFunction.create(schemaProviderFunction,
-        ImmutableList.of(GenericsUtil.generic("T").build()),
+    final KsqlFunction udf = KsqlFunction.create(
+        schemaProviderFunction,
+        decimalSchema,
+        ImmutableList.of(Schema.INT32_SCHEMA),
         "funcName",
         MyUdf.class,
         udfFactory,
@@ -156,10 +157,10 @@ public class KsqlFunctionTest {
         false);
 
     // When:
-    final Schema returnType = udf.getReturnType(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA));
+    final Schema returnType = udf.getReturnType(ImmutableList.of(Schema.INT32_SCHEMA));
 
     // Then:
-    assertThat(returnType, is(DecimalUtil.builder(2,1).build()));
+    assertThat(returnType, is(decimalSchema));
   }
 
   private KsqlFunction createFunction(final Schema returnSchema, final List<Schema> args) {
@@ -173,6 +174,7 @@ public class KsqlFunctionTest {
   ) {
     return KsqlFunction.create(
         ignored -> returnSchema,
+        returnSchema,
         args,
         "funcName",
         MyUdf.class,

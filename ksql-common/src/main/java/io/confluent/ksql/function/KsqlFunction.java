@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashMap;
@@ -37,6 +38,7 @@ public final class KsqlFunction implements IndexedFunction {
   static final String INTERNAL_PATH = "internal";
 
   private final Function<List<Schema>,Schema> returnSchemaProvider;
+  private final Schema javaReturnType;
   private final List<Schema> parameters;
   private final String functionName;
   private final Class<? extends Kudf> kudfClass;
@@ -47,6 +49,7 @@ public final class KsqlFunction implements IndexedFunction {
 
   private KsqlFunction(
       final Function<List<Schema>,Schema> returnSchemaProvider,
+      final Schema javaReturnType,
       final List<Schema> arguments,
       final String functionName,
       final Class<? extends Kudf> kudfClass,
@@ -56,6 +59,7 @@ public final class KsqlFunction implements IndexedFunction {
       final boolean isVariadic) {
 
     this.returnSchemaProvider = Objects.requireNonNull(returnSchemaProvider, "schemaProvider");
+    this.javaReturnType = Objects.requireNonNull(javaReturnType, "javaReturnType");
     this.parameters = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.kudfClass = Objects.requireNonNull(kudfClass, "kudfClass");
@@ -100,7 +104,7 @@ public final class KsqlFunction implements IndexedFunction {
     };
 
     return create(
-        ignored -> returnType, arguments, functionName, kudfClass, udfFactory, "",
+        ignored -> returnType, returnType, arguments, functionName, kudfClass, udfFactory, "",
         INTERNAL_PATH, false);
   }
 
@@ -111,6 +115,7 @@ public final class KsqlFunction implements IndexedFunction {
    */
   static KsqlFunction create(
       final Function<List<Schema>,Schema>  schemaProvider,
+      final Schema javaReturnType,
       final List<Schema> arguments,
       final String functionName,
       final Class<? extends Kudf> kudfClass,
@@ -121,6 +126,7 @@ public final class KsqlFunction implements IndexedFunction {
   ) {
     return new KsqlFunction(
         schemaProvider,
+        javaReturnType,
         arguments,
         functionName,
         kudfClass,
@@ -132,12 +138,23 @@ public final class KsqlFunction implements IndexedFunction {
 
   public Schema getReturnType(final List<Schema> arguments) {
 
-    if (returnSchemaProvider == null) {
+    final Schema returnType = returnSchemaProvider.apply(arguments);
+
+    if (returnType == null) {
       throw new KsqlException("Return type of udf cannot be null.");
     }
 
-    final Schema returnType = returnSchemaProvider.apply(arguments);
-
+    //Cannot compare decimal types using equals as parameters won't match
+    if (DecimalUtil.isDecimal(returnType)) {
+      if (!DecimalUtil.isDecimal(javaReturnType)) {
+        throw new KsqlException("Udf return type should be BigDecimal");
+      }
+    } else if (!returnType.equals(javaReturnType)) {
+      throw new KsqlException(String.format("Return type %s does not match to declared return "
+                                                + "type %s.",
+                                            returnType.name(),
+                                            javaReturnType.name()));
+    }
     if (!returnType.isOptional()) {
       throw new IllegalArgumentException("KSQL only supports optional field types");
     }
@@ -195,7 +212,7 @@ public final class KsqlFunction implements IndexedFunction {
       return false;
     }
     final KsqlFunction that = (KsqlFunction) o;
-    return Objects.equals(returnSchemaProvider, that.returnSchemaProvider)
+    return Objects.equals(javaReturnType, that.javaReturnType)
         && Objects.equals(parameters, that.parameters)
         && Objects.equals(functionName, that.functionName)
         && Objects.equals(kudfClass, that.kudfClass)
@@ -212,7 +229,7 @@ public final class KsqlFunction implements IndexedFunction {
   @Override
   public String toString() {
     return "KsqlFunction{"
-        + "returnType=" + returnSchemaProvider.toString() //TODO not sure here
+        + "returnType=" + javaReturnType
         + ", arguments=" + parameters.stream().map(Schema::type).collect(Collectors.toList())
         + ", functionName='" + functionName + '\''
         + ", kudfClass=" + kudfClass

@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -54,7 +55,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -76,6 +79,10 @@ public class UdfLoaderTest {
       initializeFunctionRegistry(false, Optional.empty());
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
+
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
@@ -233,14 +240,70 @@ public class UdfLoaderTest {
   public void shouldThrowOnReturnTypeMismatch() {
     // Given:
     final UdfFactory returnIncompatible = FUNC_REG.getUdfFactory("returnincompatible");
-
-    // When:
     final Schema decimal = DecimalUtil.builder(2, 1).build();
     final List<Schema> args = Collections.singletonList(decimal);
     final KsqlFunction function = returnIncompatible.getFunction(args);
 
-    // Then:
-    assertThat(function.getReturnType(args), equalTo(decimal));
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Udf return type should be BigDecimal"));
+
+    // When:
+    function.getReturnType(args);
+  }
+
+  @Test
+  public void shouldThrowOnMissingAnnotation() throws ClassNotFoundException {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+                                                                        PARENT_CLASS_LOADER,
+                                                                        resourceName -> false);
+    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources/udf-failing-tests.jar"),
+                                              udfClassLoader,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              true);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("BigDecimal return type is not supported without a schema "
+                                           + "provider method."));
+
+    // When:
+    udfLoader.loadUdfFromClass(clazz);
+
+  }
+
+  @Test
+  public void shouldThrowOnMissingSchemaProvider() throws ClassNotFoundException {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+                                                                        PARENT_CLASS_LOADER,
+                                                                        resourceName -> false);
+    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingSchemaProviderUdf");
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources/udf-failing-tests.jar"),
+                                              udfClassLoader,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              true);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Cannot find schema provider method with name provideSchema "
+                                           + "in class org.damian.ksql.udf."
+                                           + "MissingSchemaProviderUdf."));
+
+    /// When:
+    udfLoader.loadUdfFromClass(clazz);
   }
 
   @Test
@@ -317,6 +380,54 @@ public class UdfLoaderTest {
     } catch (final KsqlException e) {
       // pass
     }
+  }
+
+  @Test
+  public void shouldNotLoadInternalUdfs() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources"),
+                                              PARENT_CLASS_LOADER,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              false);
+    udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Can't find any functions with the name 'substring'"));
+
+    // When:
+    functionRegistry.getUdfFactory("substring");
+  }
+
+  @Test
+  public void shouldLoadSomeFunction() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources"),
+                                              PARENT_CLASS_LOADER,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              false);
+    final List<Schema> args = ImmutableList.of(
+        Schema.STRING_SCHEMA,
+        Schema.STRING_SCHEMA,
+        Schema.STRING_SCHEMA);
+
+    // When:
+    udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
+    final UdfFactory udfFactory = functionRegistry.getUdfFactory("somefunction");
+
+    // Then:
+    assertThat(udfFactory, not(nullValue()));
+    final KsqlFunction function = udfFactory.getFunction(args);
+    assertThat(function.getFunctionName(), equalToIgnoringCase("somefunction"));
+
   }
 
   @Test
@@ -449,7 +560,7 @@ public class UdfLoaderTest {
       final Optional<Metrics> metrics
   ) {
     return new UdfLoader(functionRegistry,
-        new File("src/test/resources"),
+        new File("src/test/resources/udf-example.jar"),
         PARENT_CLASS_LOADER,
         value -> false,
         COMPILER,
@@ -552,5 +663,4 @@ public class UdfLoaderTest {
       return DecimalUtil.builder(2, 1).build();
     }
   }
-
 }

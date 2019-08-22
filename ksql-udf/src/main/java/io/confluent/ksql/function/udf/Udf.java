@@ -49,7 +49,7 @@ public @interface Udf {
 
   /**
    * The name of the method that provides the return type of the UDF.
-   * @return
+   * @return the name of the other method
    */
   String schemaProvider() default "";
 }

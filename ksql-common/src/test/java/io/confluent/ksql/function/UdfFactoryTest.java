@@ -48,6 +48,7 @@ public class UdfFactoryTest {
     expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
     factory.addFunction(KsqlFunction.create(
         ignored -> Schema.OPTIONAL_STRING_SCHEMA,
+        Schema.OPTIONAL_STRING_SCHEMA,
         Collections.<Schema>emptyList(),
         "TestFunc",
         TestFunc.class,

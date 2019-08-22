@@ -106,15 +106,15 @@
       ],
       "inputs": [
         {"topic": "input", "value": {"i": null, "l": null, "d": null}},
-        {"topic": "input", "value": {"i": -1, "l": -2, "d": -3.1, "b": "-3.1"}},
+        {"topic": "input", "value": {"i": -1, "l": -2, "d": -3.1, "b": "-3.2"}},
         {"topic": "input", "value": {"i": 0, "l": 0, "d": 0.0, "b":  "0.0"}},
-        {"topic": "input", "value": {"i": 1, "l": 2, "d": 3.1, "b":  "3.2"}}
+        {"topic": "input", "value": {"i": 1, "l": 2, "d": 3.3, "b":  "3.4"}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "value": {"I": null, "L": null, "D": null, "B":  null}},
-        {"topic": "OUTPUT", "value": {"I": 1, "L": 2, "D": 3.1, "B": "3.1"}},
-        {"topic": "OUTPUT", "value": {"I": 0, "L": 0, "D": 0.0, "B": "0.0"}},
-        {"topic": "OUTPUT", "value": {"I": 1, "L": 2, "D": 3.1, "B": "3.2"}}
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 2.0, "D": 3.1, "B": "3.2"}},
+        {"topic": "OUTPUT", "value": {"I": 0.0, "L": 0.0, "D": 0.0, "B": "0.0"}},
+        {"topic": "OUTPUT", "value": {"I": 1.0, "L": 2.0, "D": 3.3, "B": "3.4"}}
       ]
     }
   ]

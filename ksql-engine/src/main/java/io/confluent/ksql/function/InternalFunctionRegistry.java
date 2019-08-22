@@ -25,7 +25,6 @@ import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFacto
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
-import io.confluent.ksql.function.udf.math.AbsKudf;
 import io.confluent.ksql.function.udf.math.CeilKudf;
 import io.confluent.ksql.function.udf.math.RandomKudf;
 import io.confluent.ksql.function.udf.math.RoundKudf;

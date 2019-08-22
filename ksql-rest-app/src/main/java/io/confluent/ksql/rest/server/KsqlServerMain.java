@@ -23,6 +23,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import java.io.File;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -56,7 +57,8 @@ public class KsqlServerMain {
           StreamsConfig.configDef().defaultValues().get(StreamsConfig.STATE_DIR_CONFIG)).toString();
       enforceStreamStateDirAvailability(new File(streamsStateDirPath));
       final Optional<String> queriesFile = serverOptions.getQueriesFile(properties);
-      final Executable executable = createExecutable(properties, queriesFile, installDir);
+      final Executable executable = createExecutable(
+          properties, queriesFile, installDir, ksqlConfig);
       new KsqlServerMain(executable).tryStartApp();
     } catch (final Exception e) {
       log.error("Failed to start KSQL", e);
@@ -84,18 +86,27 @@ public class KsqlServerMain {
   private static Executable createExecutable(
       final Map<String, String> properties,
       final Optional<String> queriesFile,
-      final String installDir
-  ) {
+      final String installDir,
+      final KsqlConfig ksqlConfig
+  ) throws IOException {
     if (queriesFile.isPresent()) {
       return StandaloneExecutorFactory.create(properties, queriesFile.get(), installDir);
     }
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(ensureValidProps(properties));
-    return KsqlRestApplication.buildApplication(
+    final Executable restApp = KsqlRestApplication.buildApplication(
         restConfig,
         KsqlVersionCheckerAgent::new,
         Integer.MAX_VALUE
     );
+    final String connectConfigFile =
+        ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
+    if (connectConfigFile.isEmpty()) {
+      return restApp;
+    }
+
+    final Executable connect = ConnectExecutable.of(connectConfigFile);
+    return MultiExecutable.of(connect, restApp);
   }
 
   private static Map<?, ?> ensureValidProps(final Map<String, String> properties) {

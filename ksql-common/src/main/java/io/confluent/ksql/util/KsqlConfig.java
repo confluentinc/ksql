@@ -69,6 +69,8 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String CONNECT_CONFIGS_TOPIC_PROPERTY = "ksql.connect.configs.topic";
 
+  public static final String CONNECT_WORKER_CONFIG_FILE_PROPERTY = "ksql.connect.worker.config";
+
   public static final String KSQL_ENABLE_UDFS = "ksql.udfs.enabled";
 
   public static final String KSQL_EXT_DIR = "ksql.extension.dir";
@@ -458,6 +460,15 @@ public class KsqlConfig extends AbstractConfig {
             DEFAULT_CONNECT_CONFIGS_TOPIC,
             Importance.LOW,
             "The name for the connect configuration topic, defaults to 'connect-configs'"
+        ).define(
+            CONNECT_WORKER_CONFIG_FILE_PROPERTY,
+            ConfigDef.Type.STRING,
+            "",
+            Importance.LOW,
+            "The path to a connect worker configuration file. An empty value for this configuration"
+                + "will prevent connect from starting up embedded within KSQL. For more information"
+                + " on configuring connect, see "
+                + "https://docs.confluent.io/current/connect/userguide.html#configuring-workers."
         ).define(
             KSQL_ENABLE_UDFS,
             ConfigDef.Type.BOOLEAN,

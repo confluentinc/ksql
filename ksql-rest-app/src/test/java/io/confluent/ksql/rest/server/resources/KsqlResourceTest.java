@@ -1725,6 +1725,7 @@ public class KsqlResourceTest {
         .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
+    when(ksqlEngine.getServiceContext()).thenReturn(serviceContext);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
     setUpKsqlResource();
   }

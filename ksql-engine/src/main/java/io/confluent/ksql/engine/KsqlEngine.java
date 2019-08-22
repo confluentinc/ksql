@@ -47,7 +47,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,7 +55,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlEngine.class);
 
-  private final AtomicBoolean acceptingStatements = new AtomicBoolean(true);
   private final Set<QueryMetadata> allLiveQueries = ConcurrentHashMap.newKeySet();
   private final KsqlEngineMetrics engineMetrics;
   private final ScheduledExecutorService aggregateMetricsCollector;
@@ -137,14 +135,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
   public String getServiceId() {
     return serviceId;
-  }
-
-  public void stopAcceptingStatements() {
-    acceptingStatements.set(false);
-  }
-
-  public boolean isAcceptingStatements() {
-    return acceptingStatements.get();
   }
 
   @Override

@@ -68,6 +68,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -79,9 +81,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -165,6 +165,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -328,6 +329,71 @@ public class KsqlResourceTest {
   public void tearDown() {
     realEngine.close();
     serviceContext.close();
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnConfigureIfAppServerNotSet() {
+    // Given:
+    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
+
+    // When:
+    ksqlResource.configure(configNoAppServer);
+  }
+
+  @Test
+  public void shouldThrowOnHandleStatementIfNotConfigured() {
+    // Given:
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        topicAccessValidator
+    );
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(CoreMatchers.is(Code.SERVICE_UNAVAILABLE)));
+    expectedException
+        .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
+
+    // When:
+    ksqlResource.handleKsqlStatements(
+        serviceContext,
+        new KsqlRequest("query", Collections.emptyMap(), null)
+    );
+  }
+
+  @Test
+  public void shouldThrowOnHandleTerminateIfNotConfigured() {
+    // Given:
+    ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
+        activenessRegistrar,
+        (ec, sc) -> InjectorChain.of(
+            schemaInjectorFactory.apply(sc),
+            topicInjectorFactory.apply(ec),
+            new TopicDeleteInjector(ec, sc)),
+        topicAccessValidator
+    );
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(CoreMatchers.is(Code.SERVICE_UNAVAILABLE)));
+    expectedException
+        .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
+
+    // When:
+    ksqlResource.terminateCluster(
+        serviceContext,
+        new ClusterTerminateRequest(ImmutableList.of(""))
+    );
   }
 
   @Test
@@ -1909,7 +1975,6 @@ public class KsqlResourceTest {
 
   private void setUpKsqlResource() {
     ksqlResource = new KsqlResource(
-        ksqlConfig,
         ksqlEngine,
         commandStore,
         DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT,
@@ -1920,6 +1985,8 @@ public class KsqlResourceTest {
             new TopicDeleteInjector(ec, sc)),
         topicAccessValidator
     );
+
+    ksqlResource.configure(ksqlConfig);
   }
 
   private void givenKsqlConfigWith(final Map<String, Object> additionalConfig) {
@@ -1994,6 +2061,7 @@ public class KsqlResourceTest {
     configMap.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
     configMap.put("ksql.command.topic.suffix", "commands");
     configMap.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
+    configMap.put(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://localhost:9099");
 
     final Properties properties = new Properties();
     properties.putAll(configMap);

@@ -25,13 +25,14 @@ import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 
 public final class Errors {
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
   static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
-  static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
+  public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
   private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
   public static final int ERROR_CODE_UNAUTHORIZED = toErrorCode(UNAUTHORIZED.getStatusCode());
@@ -63,6 +64,14 @@ public final class Errors {
 
   public static int toErrorCode(final int statusCode) {
     return statusCode * HTTP_TO_ERROR_CODE_MULTIPLIER;
+  }
+
+  public static Response notReady() {
+    return Response
+        .status(SERVICE_UNAVAILABLE)
+        .header(HttpHeaders.RETRY_AFTER, 10)
+        .entity(new KsqlErrorMessage(ERROR_CODE_SERVER_NOT_READY, "Server initializing"))
+        .build();
   }
 
   public static Response accessDenied(final String msg) {

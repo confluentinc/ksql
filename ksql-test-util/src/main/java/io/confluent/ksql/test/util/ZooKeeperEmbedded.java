@@ -38,6 +38,7 @@ class ZooKeeperEmbedded {
    */
   ZooKeeperEmbedded() throws Exception {
     log.debug("Starting embedded ZooKeeper server...");
+    System.setProperty("zookeeper.admin.enableServer", "false");
     this.server = createTestingServer();
     log.debug("Embedded ZooKeeper server at {} uses the temp directory at {}",
         server.getConnectString(), server.getTempDirectory());

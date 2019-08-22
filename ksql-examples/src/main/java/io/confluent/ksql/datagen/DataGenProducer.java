@@ -17,11 +17,13 @@ package io.confluent.ksql.datagen;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.util.concurrent.RateLimiter;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.Pair;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import org.apache.avro.Schema;
@@ -35,7 +37,7 @@ import org.apache.kafka.connect.data.Struct;
 
 public class DataGenProducer {
 
-  // Max 100 ms between messsages.
+  // Max 500 ms between messsages.
   public static final long INTER_MESSAGE_MAX_INTERVAL = 500;
 
   private final SerializerFactory<Struct> keySerializerFactory;
@@ -55,7 +57,9 @@ public class DataGenProducer {
       final String kafkaTopicName,
       final String key,
       final int messageCount,
-      final long maxInterval
+      final long maxInterval,
+      final boolean printRows,
+      final Optional<RateLimiter> rateLimiter
   ) {
     final Schema avroSchema = generator.schema();
     if (avroSchema.getField(key) == null) {
@@ -76,6 +80,7 @@ public class DataGenProducer {
     );
 
     for (int i = 0; i < messageCount; i++) {
+      rateLimiter.ifPresent(RateLimiter::acquire);
 
       final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
 
@@ -88,7 +93,8 @@ public class DataGenProducer {
       producer.send(producerRecord,
           new LoggingCallback(kafkaTopicName,
               genericRowPair.getLeft(),
-              genericRowPair.getRight()));
+              genericRowPair.getRight(),
+              printRows));
 
       try {
         final long interval = maxInterval < 0 ? INTER_MESSAGE_MAX_INTERVAL : maxInterval;
@@ -121,11 +127,17 @@ public class DataGenProducer {
     private final String topic;
     private final String key;
     private final String value;
+    private final boolean printOnSuccess;
 
-    LoggingCallback(final String topic, final Struct key, final GenericRow value) {
+    LoggingCallback(
+        final String topic,
+        final Struct key,
+        final GenericRow value,
+        final boolean printOnSuccess) {
       this.topic = topic;
       this.key = formatKey(key);
       this.value = Objects.toString(value);
+      this.printOnSuccess = printOnSuccess;
     }
 
     @Override
@@ -138,7 +150,9 @@ public class DataGenProducer {
         );
         e.printStackTrace(System.err);
       } else {
-        System.out.println(key + " --> (" + value + ") ts:" + metadata.timestamp());
+        if (printOnSuccess) {
+          System.out.println(key + " --> (" + value + ") ts:" + metadata.timestamp());
+        }
       }
     }
 

@@ -68,7 +68,7 @@ public class DataGenFunctionalTest {
   }
 
   @Test
-  public void shouldWorkWithoutAnyFormatSupplied() throws Exception {
+  public void shouldWorkWithoutAnyFormatSupplied() throws Throwable {
     // Given:
     final Map<String, String> args = new HashMap<>(DEFAULT_ARGS);
     args.remove("key-format");
@@ -91,7 +91,7 @@ public class DataGenFunctionalTest {
   }
 
   @Test
-  public void shouldProduceDataWithKafkaFormatKeys() throws Exception {
+  public void shouldProduceDataWithKafkaFormatKeys() throws Throwable {
     // When:
     runWithArgOverrides(ImmutableMap.of(
         "key-format", "kafka"
@@ -110,7 +110,7 @@ public class DataGenFunctionalTest {
   }
 
   @Test
-  public void shouldProduceDataWithJsonFormatKeys() throws Exception {
+  public void shouldProduceDataWithJsonFormatKeys() throws Throwable {
     // When:
     runWithArgOverrides(ImmutableMap.of(
         "key-format", "json"
@@ -129,7 +129,7 @@ public class DataGenFunctionalTest {
   }
 
   @Test
-  public void shouldProduceDataWithKJsonFormatValues() throws Exception {
+  public void shouldProduceDataWithKJsonFormatValues() throws Throwable {
     // When:
     runWithArgOverrides(ImmutableMap.of(
         "value-format", "json"
@@ -177,14 +177,14 @@ public class DataGenFunctionalTest {
     }
   }
 
-  private void runWithArgOverrides(final Map<String, String> additionalArgs) throws IOException {
+  private void runWithArgOverrides(final Map<String, String> additionalArgs) throws Throwable {
     final Map<String, String> args = new HashMap<>(DEFAULT_ARGS);
     args.putAll(additionalArgs);
 
     runWithExactArgs(args);
   }
 
-  private void runWithExactArgs(final Map<String, String> args) throws IOException {
+  private void runWithExactArgs(final Map<String, String> args) throws Throwable {
     args.put("topic", topicName);
     args.put("bootstrap-server", CLUSTER.bootstrapServers());
 

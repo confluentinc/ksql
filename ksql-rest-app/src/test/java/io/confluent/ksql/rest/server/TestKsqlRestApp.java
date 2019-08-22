@@ -58,7 +58,10 @@ import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.eclipse.jetty.websocket.api.util.WSURI;
+import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.Binder;
+import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.glassfish.jersey.process.internal.RequestScoped;
 import org.junit.rules.ExternalResource;
 
 /**
@@ -394,8 +397,29 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
-    public Builder withServiceContext(final Supplier<ServiceContext> serviceContext) {
+    public Builder withStaticServiceContext(final Supplier<ServiceContext> serviceContext) {
       this.serviceContext = serviceContext;
+      this.serviceContextBinder = (config, extension) -> new AbstractBinder() {
+        @Override
+        protected void configure() {
+          final Factory<ServiceContext> factory = new Factory<ServiceContext>() {
+            @Override
+            public ServiceContext provide() {
+              return serviceContext.get();
+            }
+
+            @Override
+            public void dispose(final ServiceContext serviceContext) {
+              // do nothing because context is shared
+            }
+          };
+
+          bindFactory(factory)
+              .to(ServiceContext.class)
+              .in(RequestScoped.class);
+        }
+      };
+
       return this;
     }
 
@@ -411,7 +435,8 @@ public class TestKsqlRestApp extends ExternalResource {
           bootstrapServers,
           additionalProps,
           serviceContext,
-          serviceContextBinder);
+          serviceContextBinder
+      );
     }
   }
 }

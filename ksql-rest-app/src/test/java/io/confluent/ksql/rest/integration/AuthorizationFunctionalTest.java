@@ -31,16 +31,12 @@ import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import org.apache.kafka.common.errors.AuthorizationException;
-import org.glassfish.hk2.api.Factory;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.jersey.process.internal.RequestScoped;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -73,25 +69,7 @@ public class AuthorizationFunctionalTest {
           KsqlConfig.KSQL_SECURITY_EXTENSION_CLASS,
           MockKsqlSecurityExtension.class.getName()
       )
-      .withServiceContextBinder((config, extension) -> new AbstractBinder() {
-        @Override
-        protected void configure() {
-          bindFactory(new Factory<ServiceContext>() {
-            @Override
-            public ServiceContext provide() {
-              return TEST_HARNESS.getServiceContext();
-            }
-
-            @Override
-            public void dispose(final ServiceContext serviceContext) {
-              // do nothing because TEST_HARNESS#getServiceContext always
-              // returns the same instance
-            }
-          })
-              .to(ServiceContext.class)
-              .in(RequestScoped.class);
-        }
-      })
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
   @Mock

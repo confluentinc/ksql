@@ -307,6 +307,33 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldThrowOnReturnDecimalWithoutSchemaProvider() throws ClassNotFoundException {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+                                                                        PARENT_CLASS_LOADER,
+                                                                        resourceName -> false);
+    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
+                                                  + "ReturnDecimalWithoutSchemaProviderUdf");
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources/udf-failing-tests.jar"),
+                                              udfClassLoader,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              true);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("BigDecimal return type is not supported without a schema "
+                                           + "provider method."));
+
+    /// When:
+    udfLoader.loadUdfFromClass(clazz);
+  }
+
+  @Test
   public void shouldPutJarUdfsInClassLoaderForJar() throws Exception {
     final UdfFactory toString = FUNC_REG.getUdfFactory("tostring");
     final UdfFactory multiply = FUNC_REG.getUdfFactory("multiply");

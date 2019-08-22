@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser.rewrite;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -222,7 +223,12 @@ public final class StatementRewriter<C> {
 
     @Override
     protected AstNode visitTableElement(final TableElement node, final C context) {
-      return node;
+      return new TableElement(
+          node.getLocation(),
+          node.getNamespace(),
+          node.getName(),
+          (Type) processExpression(node.getType(), context)
+      );
     }
 
     @Override

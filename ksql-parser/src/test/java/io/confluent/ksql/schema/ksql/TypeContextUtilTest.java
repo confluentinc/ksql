@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlTypeAlias;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
@@ -104,16 +105,16 @@ public class TypeContextUtilTest {
   }
 
   @Test
-  public void shouldThrowOnUnsupportedTypeSpec() {
+  public void shouldReturnTypeAliasOnUnknownType() {
     // Given:
     final String schemaString = "SHAKESPEARE";
 
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown primitive type: SHAKESPEARE");
-
     // When:
-    TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString);
+
+    // Then:
+    assertThat(type.getSqlType().baseType(), is(SqlBaseType.ALIAS));
+    assertThat(type.getSqlType(), is(SqlTypeAlias.of("SHAKESPEARE")));
   }
 
   @Test

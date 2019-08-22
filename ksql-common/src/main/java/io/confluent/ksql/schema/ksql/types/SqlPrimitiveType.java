@@ -16,11 +16,13 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Immutable
 public final class SqlPrimitiveType extends SqlType {
@@ -33,6 +35,16 @@ public final class SqlPrimitiveType extends SqlType {
           .put(SqlBaseType.DOUBLE, new SqlPrimitiveType(SqlBaseType.DOUBLE))
           .put(SqlBaseType.STRING, new SqlPrimitiveType(SqlBaseType.STRING))
           .build();
+
+  private static final ImmutableSet<String> PRIMITIVE_TYPE_NAMES = ImmutableSet.<String>builder()
+      .addAll(TYPES.keySet().stream().map(SqlBaseType::name).collect(Collectors.toList()))
+      .add("INT")
+      .add("VARCHAR")
+      .build();
+
+  public static boolean isPrimitiveTypeName(final String name) {
+    return PRIMITIVE_TYPE_NAMES.contains(name.toUpperCase());
+  }
 
   public static SqlPrimitiveType of(final String typeName) {
     switch (typeName.toUpperCase()) {

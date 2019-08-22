@@ -66,6 +66,8 @@ statement
     | DROP CONNECTOR identifier                                             #dropConnector
     | EXPLAIN  (statement | qualifiedName)                                  #explain
     | RUN SCRIPT STRING                                                     #runScript
+    | CREATE TYPE identifier AS type                                        #registerType
+    | DROP TYPE identifier                                                  #dropType
     ;
 
 query

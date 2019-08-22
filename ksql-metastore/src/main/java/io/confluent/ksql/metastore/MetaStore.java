@@ -20,7 +20,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import java.util.Map;
 import java.util.Set;
 
-public interface MetaStore extends FunctionRegistry {
+public interface MetaStore extends FunctionRegistry, TypeRegistry {
 
   DataSource<?> getSource(String sourceName);
 

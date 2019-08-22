@@ -19,7 +19,7 @@ package io.confluent.ksql.schema.ksql;
  * The SQL types supported by KSQL.
  */
 public enum SqlBaseType {
-  BOOLEAN, INTEGER, BIGINT, DOUBLE, DECIMAL, STRING, ARRAY, MAP, STRUCT;
+  BOOLEAN, INTEGER, BIGINT, DOUBLE, DECIMAL, STRING, ARRAY, MAP, STRUCT, ALIAS;
 
   public boolean isNumber() {
     // for now, conversions between DECIMAL and other numeric types is not supported

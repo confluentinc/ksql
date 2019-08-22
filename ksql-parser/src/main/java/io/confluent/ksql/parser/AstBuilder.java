@@ -61,6 +61,7 @@ import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
+import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -98,6 +99,7 @@ import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Select;
@@ -1140,6 +1142,15 @@ public class AstBuilder {
       }
 
       throw new UnsupportedOperationException("not yet implemented");
+    }
+
+    @Override
+    public Node visitRegisterType(final RegisterTypeContext context) {
+      return new RegisterType(
+          getLocation(context),
+          ParserUtil.getIdentifierText(context.identifier()),
+          getType(context.type())
+      );
     }
 
     private void throwOnUnknownNameOrAlias(final String name) {

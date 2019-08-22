@@ -60,6 +60,8 @@ public class AuthorizationTopicAccessValidatorTest {
 
   private static final String STREAM_TOPIC_1 = "s1";
   private static final String STREAM_TOPIC_2 = "s2";
+  private final static String TOPIC_NAME_1 = "topic1";
+  private final static String TOPIC_NAME_2 = "topic2";
 
   @Mock
   private ServiceContext serviceContext;
@@ -76,8 +78,6 @@ public class AuthorizationTopicAccessValidatorTest {
   private TopicAccessValidator accessValidator;
   private KsqlEngine ksqlEngine;
   private MutableMetaStore metaStore;
-  private final static String topicName1 = "topic1";
-  private final static String topicName2 = "topic2";
 
   @Before
   public void setUp() {
@@ -87,10 +87,10 @@ public class AuthorizationTopicAccessValidatorTest {
     accessValidator = new AuthorizationTopicAccessValidator();
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
-    givenTopic(topicName1, TOPIC_1);
+    givenTopic(TOPIC_NAME_1, TOPIC_1);
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
 
-    givenTopic(topicName2, TOPIC_2);
+    givenTopic(TOPIC_NAME_2, TOPIC_2);
     givenStreamWithTopic(STREAM_TOPIC_2, TOPIC_2);
   }
 
@@ -130,7 +130,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldSingleSelectWithoutReadPermissionsDenied() {
+  public void shouldThrowWhenSingleSelectWithoutReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.emptySet());
     final Statement statement = givenStatement(String.format(
@@ -164,7 +164,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldJoinSelectWithoutReadPermissionsDenied() {
+  public void shouldThrowWhenJoinSelectWithoutReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -183,7 +183,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldJoinWithOneRightTopicWithReadPermissionsDenied() {
+  public void shouldThrowWhenJoinWithOneRightTopicWithReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -202,7 +202,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldJoinWitOneLeftTopicWithReadPermissionsDenied() {
+  public void shouldThrowWhenJoinWitOneLeftTopicWithReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
@@ -237,7 +237,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldInsertIntoWithOnlyReadPermissionsDenied() {
+  public void shouldThrowWhenInsertIntoWithOnlyReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
@@ -256,7 +256,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldInsertIntoWithOnlyWritePermissionsDenied() {
+  public void shouldThrowWhenInsertIntoWithOnlyWritePermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
@@ -275,7 +275,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldCreateAsSelectWithoutReadPermissionsDenied() {
+  public void shouldThrowWhenCreateAsSelectWithoutReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.emptySet());
     final Statement statement = givenStatement(String.format(
@@ -309,7 +309,7 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldCreateAsSelectExistingStreamWithoutWritePermissionsDenied() {
+  public void shouldThrowWhenCreateAsSelectExistingStreamWithoutWritePermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.READ));
@@ -349,7 +349,7 @@ public class AuthorizationTopicAccessValidatorTest {
   public void shouldPrintTopicWithReadPermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
-    final Statement statement = givenStatement(String.format("Print '%s';", topicName1));
+    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_NAME_1));
 
     // When:
     accessValidator.validate(serviceContext, metaStore, statement);
@@ -359,10 +359,10 @@ public class AuthorizationTopicAccessValidatorTest {
   }
 
   @Test
-  public void shouldPrintTopicWithoutReadPermissionsDenied() {
+  public void shouldThrowWhenThrowPrintTopicWithoutReadPermissionsDenied() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.emptySet());
-    final Statement statement = givenStatement(String.format("Print '%s';", topicName1));
+    final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_NAME_1));
 
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);

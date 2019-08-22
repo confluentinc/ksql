@@ -448,27 +448,24 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() throws Exception {
     // Given:
-    reset(mockStatementParser);
+    reset(mockStatementParser, topicAccessValidator);
+
     statement = PreparedStatement.of("query", mock(Query.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
-            .andReturn(statement);
-
-    replay(mockStatementParser);
-
-    reset(topicAccessValidator);
+        .andReturn(statement);
     topicAccessValidator.validate(anyObject(), anyObject(), anyObject());
     expectLastCall().andThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
-    replay(topicAccessValidator);
+    replay(mockStatementParser, topicAccessValidator);
 
     // When:
-    Response response = testResource.streamQuery(
+    final Response response = testResource.streamQuery(
         serviceContext,
         new KsqlRequest(queryString, Collections.emptyMap(), null)
     );
 
-    Response expected = Errors.accessDeniedFromKafka(
+    final Response expected = Errors.accessDeniedFromKafka(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
     assertEquals(response.getStatus(), expected.getStatus());
@@ -478,14 +475,11 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() throws Exception {
     // Given:
-    reset(mockStatementParser);
+    reset(mockStatementParser, topicAccessValidator);
+
     statement = PreparedStatement.of("query", mock(Query.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
-
-    replay(mockStatementParser);
-
-    reset(topicAccessValidator);
     topicAccessValidator.validate(anyObject(), anyObject(), anyObject());
     expectLastCall().andThrow(
         new KsqlException(
@@ -493,15 +487,15 @@ public class StreamedQueryResourceTest {
             new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)
     )));
 
-    replay(topicAccessValidator);
+    replay(mockStatementParser, topicAccessValidator);
 
     // When:
-    Response response = testResource.streamQuery(
+    final Response response = testResource.streamQuery(
         serviceContext,
         new KsqlRequest(queryString, Collections.emptyMap(), null)
     );
 
-    Response expected = Errors.accessDeniedFromKafka(
+    final Response expected = Errors.accessDeniedFromKafka(
         new KsqlException(
             "",
             new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName))));
@@ -513,27 +507,24 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfPrintTopicKsqlTopicAuthorizationException() throws Exception {
     // Given:
-    reset(mockStatementParser);
+    reset(mockStatementParser, topicAccessValidator);
+
     statement = PreparedStatement.of("print", mock(PrintTopic.class));
     expect(mockStatementParser.parseSingleStatement(printString))
         .andReturn(statement);
-
-    replay(mockStatementParser);
-
-    reset(topicAccessValidator);
     topicAccessValidator.validate(anyObject(), anyObject(), anyObject());
     expectLastCall().andThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
-    replay(topicAccessValidator);
+    replay(mockStatementParser, topicAccessValidator);
 
     // When:
-    Response response = testResource.streamQuery(
+    final Response response = testResource.streamQuery(
         serviceContext,
         new KsqlRequest(printString, Collections.emptyMap(), null)
     );
 
-    Response expected = Errors.accessDeniedFromKafka(
+    final Response expected = Errors.accessDeniedFromKafka(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
     assertEquals(response.getStatus(), expected.getStatus());

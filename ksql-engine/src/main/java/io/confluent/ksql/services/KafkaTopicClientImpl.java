@@ -41,6 +41,7 @@ import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AlterConfigOp;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeTopicsOptions;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -86,7 +87,8 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final Map<String, ?> configs
+      final Map<String, ?> configs,
+      final CreateTopicsOptions createOptions
   ) {
     if (isTopicExists(topic)) {
       validateTopicProperties(topic, numPartitions, replicationFactor);
@@ -101,9 +103,16 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     newTopic.configs(toStringConfigs(configs));
 
     try {
-      LOG.info("Creating topic '{}'", topic);
+      LOG.info(String.format("Creating topic '{}' %s",
+          topic,
+          (createOptions.shouldValidateOnly()) ? "(ONLY VALIDATE)" : ""
+      ));
+
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.createTopics(Collections.singleton(newTopic)).all().get(),
+          () -> adminClient.createTopics(
+              Collections.singleton(newTopic),
+              createOptions
+          ).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final InterruptedException e) {
       Thread.currentThread().interrupt();

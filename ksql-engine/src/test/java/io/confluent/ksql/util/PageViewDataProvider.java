@@ -29,8 +29,7 @@ public class PageViewDataProvider extends TestDataProvider {
 
   private static final String ksqlSchemaString = "(VIEWTIME bigint, USERID varchar, PAGEID varchar)";
 
-
-  private static final String key = "PAGEID";
+  private static final String key = "VIEWTIME";
 
   private static final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
       .field("VIEWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)

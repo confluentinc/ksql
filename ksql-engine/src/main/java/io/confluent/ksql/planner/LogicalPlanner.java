@@ -34,7 +34,10 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -43,9 +46,7 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import java.util.function.BiFunction;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class LogicalPlanner {
@@ -162,46 +163,22 @@ public class LogicalPlanner {
   }
 
   private AggregateNode buildAggregateNode(final PlanNode sourcePlanNode) {
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        sourcePlanNode.getSchema(),
-        functionRegistry
-    );
-
     final Expression groupBy = analysis.getGroupByExpressions().size() == 1
         ? analysis.getGroupByExpressions().get(0)
         : null;
 
-    Optional<String> keyField = Optional.empty();
-    final SchemaBuilder aggregateSchema = SchemaBuilder.struct();
-    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final Expression expression = analysis.getSelectExpressions().get(i);
-      final String alias = analysis.getSelectExpressionAlias().get(i);
+    final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
 
-      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
-
-      aggregateSchema.field(alias, expressionType);
-
-      if (expression.equals(groupBy)
-          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWTIME_NAME)
-          && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME)) {
-        keyField = Optional.of(alias);
-      }
-    }
-
-    final ConnectSchema keySchema = sourcePlanNode.getSchema().isAliased()
-        ? sourcePlanNode.getSchema().withoutAlias().keySchema()
-        : sourcePlanNode.getSchema().keySchema();
-
-    final LogicalSchema schema = LogicalSchema.of(
-        keySchema,
-        aggregateSchema.build()
-    );
+    final Optional<String> keyFieldName = getSelectAliasMatching((expression, alias) ->
+        expression.equals(groupBy)
+            && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWTIME_NAME)
+            && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME));
 
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
-        keyField,
+        keyFieldName,
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
@@ -213,37 +190,17 @@ public class LogicalPlanner {
   }
 
   private ProjectNode buildProjectNode(final PlanNode sourcePlanNode) {
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        sourcePlanNode.getSchema(),
-        functionRegistry
-    );
-
     final String sourceKeyFieldName = sourcePlanNode
         .getKeyField()
         .name()
         .orElse(null);
 
-    Optional<String> keyFieldName = Optional.empty();
-    final SchemaBuilder projectionSchema = SchemaBuilder.struct();
-    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final Expression expression = analysis.getSelectExpressions().get(i);
-      final String alias = analysis.getSelectExpressionAlias().get(i);
+    final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
 
-      final Schema expressionType = expressionTypeManager.getExpressionSchema(expression);
-
-      projectionSchema.field(alias, expressionType);
-
-      if (expression instanceof DereferenceExpression
-          && expression.toString().equals(sourceKeyFieldName)) {
-        keyFieldName = Optional.of(alias);
-      }
-    }
-
-    final ConnectSchema keySchema = sourcePlanNode.getSchema().isAliased()
-        ? sourcePlanNode.getSchema().withoutAlias().keySchema()
-        : sourcePlanNode.getSchema().keySchema();
-
-    final LogicalSchema schema = LogicalSchema.of(keySchema, projectionSchema.build());
+    final Optional<String> keyFieldName = getSelectAliasMatching((expression, alias) ->
+        expression instanceof DereferenceExpression
+            && expression.toString().equals(sourceKeyFieldName)
+    );
 
     return new ProjectNode(
         new PlanNodeId("Project"),
@@ -310,5 +267,46 @@ public class LogicalPlanner {
         dataSource.getDataSource(),
         dataSource.getAlias()
     );
+  }
+
+  private Optional<String> getSelectAliasMatching(
+      final BiFunction<Expression, String, Boolean> matcher
+  ) {
+    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
+      final Expression expression = analysis.getSelectExpressions().get(i);
+      final String alias = analysis.getSelectExpressionAlias().get(i);
+
+      if (matcher.apply(expression, alias)) {
+        return Optional.of(alias);
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  private LogicalSchema buildProjectionSchema(final PlanNode sourcePlanNode) {
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        sourcePlanNode.getSchema(),
+        functionRegistry
+    );
+
+    final Builder builder = LogicalSchema.builder();
+
+    final List<Field> keyFields = sourcePlanNode.getSchema().isAliased()
+        ? sourcePlanNode.getSchema().withoutAlias().keyFields()
+        : sourcePlanNode.getSchema().keyFields();
+
+    builder.keyFields(keyFields);
+
+    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
+      final Expression expression = analysis.getSelectExpressions().get(i);
+      final String alias = analysis.getSelectExpressionAlias().get(i);
+
+      final SqlType expressionType = expressionTypeManager.getExpressionSqlType(expression);
+
+      builder.valueField(alias, expressionType);
+    }
+
+    return builder.build();
   }
 }

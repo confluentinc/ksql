@@ -84,9 +84,10 @@ public enum CustomExecutors {
   private final Class<? extends Statement> statementClass;
   private final StatementExecutor executor;
 
-  CustomExecutors(
-      final Class<? extends Statement> statementClass,
-      final StatementExecutor executor) {
+  <T extends Statement> CustomExecutors(
+      final Class<T> statementClass,
+      final StatementExecutor<? super T> executor
+  ) {
     this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
     this.executor = Objects.requireNonNull(executor, "executor");
   }

@@ -224,20 +224,6 @@ public class AggregateNode extends PlanNode {
     );
 
     // Aggregate computations
-    final LogicalSchema aggStageSchema = buildAggregateSchema(
-        aggregateArgExpanded.getSchema(),
-        builder.getFunctionRegistry(),
-        internalSchema
-    );
-
-    final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
-
-    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildValueSerde(
-        valueFormat.getFormatInfo(),
-        PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
-        aggregationContext.getQueryContext()
-    );
-
     final KudafInitializer initializer = new KudafInitializer(requiredColumns.size());
 
     final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = createAggValToFunctionMap(
@@ -246,6 +232,19 @@ public class AggregateNode extends PlanNode {
         requiredColumns.size(),
         builder.getFunctionRegistry(),
         internalSchema
+    );
+
+    final LogicalSchema aggStageSchema = buildAggregateSchema(
+        aggregateArgExpanded.getSchema(),
+        aggValToFunctionMap
+    );
+
+    final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
+
+    final Serde<GenericRow> aggValueGenericRowSerde = builder.buildValueSerde(
+        valueFormat.getFormatInfo(),
+        PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
+        aggregationContext.getQueryContext()
     );
 
     final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
@@ -340,27 +339,24 @@ public class AggregateNode extends PlanNode {
   }
 
   private LogicalSchema buildAggregateSchema(
-      final LogicalSchema schema,
-      final FunctionRegistry functionRegistry,
-      final InternalSchema internalSchema
+      final LogicalSchema inputSchema,
+      final Map<Integer, KsqlAggregateFunction> aggregateFunctions
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Field> fields = schema.valueFields();
+    final List<Field> fields = inputSchema.valueFields();
 
-    schemaBuilder.keyFields(schema.keyFields());
+    schemaBuilder.keyFields(inputSchema.keyFields());
 
-    for (int i = 0; i < getRequiredColumns().size(); i++) {
+    for (int i = 0; i < requiredColumns.size(); i++) {
       schemaBuilder.valueField(fields.get(i));
     }
 
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
-    for (int idx = 0; idx < getFunctionCalls().size(); idx++) {
-      final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
-          functionRegistry,
-          internalSchema,
-          getFunctionCalls().get(idx),
-          schema);
+    for (int idx = 0; idx < aggregateFunctions.size(); idx++) {
+
+      final KsqlAggregateFunction aggregateFunction = aggregateFunctions
+          .get(requiredColumns.size() + idx);
 
       final String fieldName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
       final SqlType fieldType = converter.toSqlType(aggregateFunction.getReturnType());

@@ -27,6 +27,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
+import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -82,15 +83,19 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> aggregate(
+      final LogicalSchema aggregateSchema,
       final Initializer initializer,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker) {
+      final Stacker contextStacker
+  ) {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
+
+    throwOnValueFieldCountMismatch(aggregateSchema, aggValToValColumnMap, aggValToFunctionMap);
 
     final List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
         .stream()
@@ -131,7 +136,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
     return new SchemaKTable<>(
         aggKtable,
-        schema,
+        aggregateSchema,
         keySerde,
         keyField,
         sourceSchemaKStreams,

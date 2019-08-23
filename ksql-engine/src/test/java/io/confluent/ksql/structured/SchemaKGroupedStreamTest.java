@@ -37,6 +37,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
@@ -48,6 +49,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -68,6 +71,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SchemaKGroupedStreamTest {
   @Mock
   private LogicalSchema schema;
+  @Mock
+  private LogicalSchema aggregateSchema;
   @Mock
   private KGroupedStream groupedStream;
   @Mock
@@ -104,6 +109,8 @@ public class SchemaKGroupedStreamTest {
   private KeySerde<Struct> keySerde;
   @Mock
   private KeySerde<Windowed<Struct>> windowedKeySerde;
+  @Mock
+  private Field field;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
@@ -174,8 +181,15 @@ public class SchemaKGroupedStreamTest {
     when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        emptyMap(),
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
 
     // Then:
     verify(keySerde).rebind(windowInfo);
@@ -191,8 +205,15 @@ public class SchemaKGroupedStreamTest {
     when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        emptyMap(),
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
 
     // Then:
     verify(keySerde).rebind(windowInfo);
@@ -208,8 +229,15 @@ public class SchemaKGroupedStreamTest {
     when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        emptyMap(),
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
 
     // Then:
     verify(keySerde).rebind(windowInfo);
@@ -223,8 +251,15 @@ public class SchemaKGroupedStreamTest {
         .thenReturn(true);
 
     // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        emptyMap(),
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
 
     // Then:
     verify(keySerde)
@@ -245,9 +280,18 @@ public class SchemaKGroupedStreamTest {
           .thenReturn(table);
     }
 
+    givenAggregateSchemaFieldCount(funcMap.size());
+
     // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        funcMap,
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
@@ -264,10 +308,18 @@ public class SchemaKGroupedStreamTest {
     when(table.mapValues(any(ValueMapperWithKey.class)))
         .thenReturn(table2);
 
+    givenAggregateSchemaFieldCount(funcMap.size());
 
     // When:
-    final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        funcMap,
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table2)));
@@ -292,6 +344,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     schemaGroupedStream.aggregate(
+        aggregateSchema,
         () -> null,
         Collections.emptyMap(),
         Collections.emptyMap(),
@@ -319,6 +372,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     schemaGroupedStream.aggregate(
+        aggregateSchema,
         () -> null,
         Collections.emptyMap(),
         Collections.emptyMap(),
@@ -333,5 +387,53 @@ public class SchemaKGroupedStreamTest {
             same(topicValueSerDe),
             eq(StreamsUtil.buildOpName(queryContext.getQueryContext())));
     verify(ksqlWindowExp, times(1)).applyAggregate(any(), any(), any(), same(materialized));
+  }
+
+  @Test
+  public void shouldReturnKTableWithAggregateSchema() {
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        emptyMap(),
+        emptyMap(),
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
+
+    // Then:
+    assertThat(result.getSchema(), is(aggregateSchema));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnColumnCountMismatch() {
+    // Given:
+    // Agg schema has 2 fields:
+    givenAggregateSchemaFieldCount(2);
+
+    // Where as params have 1 nonAgg and 2 agg fields:
+    final Map<Integer, Integer> nonAggColumns = ImmutableMap.of(0, 0, 1, 1);
+    final Map<Integer, KsqlAggregateFunction> aggColumns = ImmutableMap.of(2, otherFunc);
+
+    // When:
+    schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        aggColumns,
+        nonAggColumns,
+        windowExp,
+        topicValueSerDe,
+        queryContext
+    );
+  }
+
+  private void givenAggregateSchemaFieldCount(final int count) {
+    final List<Field> valueFields = IntStream
+        .range(0, count)
+        .mapToObj(i -> field)
+        .collect(Collectors.toList());
+
+    when(aggregateSchema.valueFields()).thenReturn(valueFields);
   }
 }

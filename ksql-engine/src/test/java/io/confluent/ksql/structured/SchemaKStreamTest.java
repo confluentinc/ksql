@@ -35,6 +35,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -45,11 +51,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
@@ -62,7 +63,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerde;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -73,7 +73,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.execution.plan.SelectExpression;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -155,8 +154,6 @@ public class SchemaKStreamTest {
   private KeySerde keySerde;
   @Mock
   private KeySerde reboundKeySerde;
-  @Mock
-  private KeySerde windowedKeySerde;
 
   @Before
   public void init() {
@@ -206,7 +203,6 @@ public class SchemaKStreamTest {
     joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
 
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
-    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
 
     whenCreateJoined();
   }

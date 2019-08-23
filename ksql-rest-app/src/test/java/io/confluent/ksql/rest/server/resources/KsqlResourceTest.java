@@ -68,6 +68,8 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -79,9 +81,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -663,9 +663,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
     // Given:
-    doThrow(new KsqlException("", new KsqlTopicAuthorizationException(
-        AclOperation.DELETE,
-        Collections.singleton("topic")))).when(topicAccessValidator).validate(any(), any(), any());
+    doThrow(new KsqlException("Could not delete the corresponding kafka topic: topic",
+        new KsqlTopicAuthorizationException(
+          AclOperation.DELETE,
+          Collections.singleton("topic")))).when(topicAccessValidator).validate(any(), any(), any());
 
 
     // When:
@@ -676,6 +677,9 @@ public class KsqlResourceTest {
     // Then:
     assertThat(result, is(instanceOf(KsqlErrorMessage.class)));
     assertThat(result.getErrorCode(), is(Errors.ERROR_CODE_FORBIDDEN_KAFKA_ACCESS));
+    assertThat(result.getMessage(), is(
+        "Could not delete the corresponding kafka topic: topic\n" +
+              "Caused by: Authorization denied to Delete on topic(s): [topic]"));
   }
 
   @Test

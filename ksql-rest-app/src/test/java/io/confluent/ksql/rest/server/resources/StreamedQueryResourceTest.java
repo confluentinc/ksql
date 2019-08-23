@@ -48,6 +48,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
@@ -465,8 +466,10 @@ public class StreamedQueryResourceTest {
     final Response expected = Errors.accessDeniedFromKafka(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
+    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) expected.getEntity();
     assertEquals(response.getStatus(), expected.getStatus());
-    assertEquals(response.getEntity(), expected.getEntity());
+    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
   }
 
   @Test
@@ -497,8 +500,10 @@ public class StreamedQueryResourceTest {
             "",
             new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName))));
 
+    final KsqlErrorMessage responseEntity = (KsqlErrorMessage) response.getEntity();
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) expected.getEntity();
     assertEquals(response.getStatus(), expected.getStatus());
-    assertEquals(response.getEntity(), expected.getEntity());
+    assertEquals(responseEntity.getMessage(), expectedEntity.getMessage());
   }
 
   @Test

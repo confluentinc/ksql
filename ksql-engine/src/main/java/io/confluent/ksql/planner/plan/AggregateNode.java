@@ -188,13 +188,13 @@ public class AggregateNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
     final DataSourceNode streamSourceNode = getTheSourceNode();
-    final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder);
+    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
 
     // Pre aggregate computations
     final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
         getAggregateFunctionArguments());
 
-    final SchemaKStream aggregateArgExpanded =
+    final SchemaKStream<?> aggregateArgExpanded =
         sourceSchemaKStream.select(
             internalSchema.getAggArgExpansionList(),
             contextStacker.push(PREPARE_OP_NAME),

@@ -42,13 +42,13 @@ public class KudafUndoAggregatorTest {
         ));
 
     final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
-    final GenericRow aggRow = new GenericRow(Arrays.asList("jon", "snow", 5));
+    final GenericRow aggRow = new GenericRow(Arrays.asList("snow", "jon", 5));
 
     final KudafUndoAggregator aggregator = new KudafUndoAggregator(
         2, aggValToAggFunctionMap);
 
     final GenericRow resultRow = aggregator.apply(null, row, aggRow);
 
-    assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("jon", "snow", 2))));
+    assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("snow", "jon", 2))));
   }
 }

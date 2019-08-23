@@ -72,10 +72,10 @@ public final class Errors {
         .build();
   }
 
-  public static Response accessDeniedFromKafka(final Exception error) {
+  public static Response accessDeniedFromKafka(final Throwable t) {
     return Response
         .status(FORBIDDEN)
-        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, error.getMessage()))
+        .entity(new KsqlErrorMessage(ERROR_CODE_FORBIDDEN_KAFKA_ACCESS, t))
         .build();
   }
 

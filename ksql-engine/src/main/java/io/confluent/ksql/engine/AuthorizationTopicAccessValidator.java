@@ -26,7 +26,6 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.common.acl.AclOperation;

@@ -25,7 +25,6 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
@@ -35,9 +34,6 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import kafka.zookeeper.ZooKeeperClientException;
-import org.glassfish.hk2.api.Factory;
-import org.glassfish.hk2.utilities.binding.AbstractBinder;
-import org.glassfish.jersey.process.internal.RequestScoped;
 import org.hamcrest.MatcherAssert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -59,26 +55,7 @@ public class ClusterTerminationTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withServiceContext(TEST_HARNESS::getServiceContext)
-      .withServiceContextBinder((config, extension) -> new AbstractBinder() {
-        @Override
-        protected void configure() {
-          bindFactory(new Factory<ServiceContext>() {
-            @Override
-            public ServiceContext provide() {
-              return TEST_HARNESS.getServiceContext();
-            }
-
-            @Override
-            public void dispose(final ServiceContext serviceContext) {
-              // do nothing because TEST_HARNESS#getServiceContext always
-              // returns the same instance
-            }
-          })
-              .to(ServiceContext.class)
-              .in(RequestScoped.class);
-        }
-      })
+      .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
   @ClassRule

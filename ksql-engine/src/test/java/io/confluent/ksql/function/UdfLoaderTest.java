@@ -246,7 +246,9 @@ public class UdfLoaderTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Udf return type should be BigDecimal"));
+    expectedException.expectMessage(is("Return type Schema{org.apache.kafka.connect.data."
+                                           + "Decimal:BYTES} of UDF ReturnIncompatible does not "
+                                           + "match the declared return type Schema{STRING}."));
 
     // When:
     function.getReturnType(args);
@@ -271,8 +273,8 @@ public class UdfLoaderTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("BigDecimal return type is not supported without a schema "
-                                           + "provider method."));
+    expectedException.expectMessage(is("Cannot load UDF MissingAnnotation. BigDecimal return type "
+                                           + "is not supported without a schema provider method."));
 
     // When:
     udfLoader.loadUdfFromClass(clazz);
@@ -299,7 +301,7 @@ public class UdfLoaderTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(is("Cannot find schema provider method with name provideSchema "
-                                           + "in class org.damian.ksql.udf."
+                                           + "and parameter List<Schema> in class org.damian.ksql.udf."
                                            + "MissingSchemaProviderUdf."));
 
     /// When:
@@ -326,8 +328,9 @@ public class UdfLoaderTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("BigDecimal return type is not supported without a schema "
-                                           + "provider method."));
+    expectedException.expectMessage(is("Cannot load UDF ReturnDecimalWithoutSchemaProvider. "
+                                           + "BigDecimal return type is not supported without a "
+                                           + "schema provider method."));
 
     /// When:
     udfLoader.loadUdfFromClass(clazz);

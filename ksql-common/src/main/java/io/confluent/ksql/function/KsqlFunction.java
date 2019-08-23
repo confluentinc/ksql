@@ -18,9 +18,9 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,7 +114,7 @@ public final class KsqlFunction implements IndexedFunction {
    * <p>Can be either built-in UDF or true user-supplied.
    */
   static KsqlFunction create(
-      final Function<List<Schema>,Schema>  schemaProvider,
+      final Function<List<Schema>,Schema> schemaProvider,
       final Schema javaReturnType,
       final List<Schema> arguments,
       final String functionName,
@@ -141,25 +141,15 @@ public final class KsqlFunction implements IndexedFunction {
     final Schema returnType = returnSchemaProvider.apply(arguments);
 
     if (returnType == null) {
-      throw new KsqlException("Return type of udf cannot be null.");
+      throw new KsqlException(String.format("Return type of UDF %s cannot be null.", functionName));
     }
 
-    //Cannot compare decimal types using equals as parameters won't match
-    if (DecimalUtil.isDecimal(returnType)) {
-      if (!DecimalUtil.isDecimal(javaReturnType)) {
-        throw new KsqlException("Udf return type should be BigDecimal");
-      }
-    } else if (!returnType.equals(javaReturnType)) {
-      throw new KsqlException(String.format("Return type %s does not match to declared return "
-                                                + "type %s.",
-                                            returnType.name(),
-                                            javaReturnType.name()));
-    }
     if (!returnType.isOptional()) {
       throw new IllegalArgumentException("KSQL only supports optional field types");
     }
 
     if (!GenericsUtil.hasGenerics(returnType)) {
+      checkMatchingReturnTypes(returnType, javaReturnType);
       return returnType;
     }
 
@@ -176,7 +166,21 @@ public final class KsqlFunction implements IndexedFunction {
       genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
     }
 
-    return GenericsUtil.applyResolved(returnType, genericMapping);
+    final Schema genericSchema = GenericsUtil.applyResolved(returnType, genericMapping);
+    final Schema genericJavaSchema = GenericsUtil.applyResolved(javaReturnType, genericMapping);
+    checkMatchingReturnTypes(genericSchema, genericJavaSchema);
+
+    return genericSchema;
+  }
+
+  private void checkMatchingReturnTypes(final Schema s1, final Schema s2) {
+    if (!SchemaUtil.compareSchemaTypes(s1, s2)) {
+      throw new KsqlException(String.format("Return type %s of UDF %s does not match the declared "
+                                                + "return type %s.",
+                                            s1.toString(),
+                                            functionName,
+                                            s2.toString()));
+    }
   }
 
   public List<Schema> getArguments() {

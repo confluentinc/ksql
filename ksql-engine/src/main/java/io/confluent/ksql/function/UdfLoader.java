@@ -133,7 +133,7 @@ public class UdfLoader {
       }
       //method must be public and annotated with @Udf
       for (Method m: theClass.getDeclaredMethods()) {
-        if (m.isAnnotationPresent(Udf.class)) {
+        if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
           handleUdfAnnotation(theClass,
                               udfDescription,
                               m,
@@ -306,7 +306,7 @@ public class UdfLoader {
 
       if (name.trim().isEmpty()) {
         throw new KsqlFunctionException(
-            String.format("Cannot resolve parameter name for param at index %d for udf %s:%s. "
+            String.format("Cannot resolve parameter name for param at index %d for UDF %s:%s. "
                     + "Please specify a name in @UdfParameter or compile your JAR with -parameters "
                     + "to infer the name from the parameter name.",
                 idx, classLevelAnnotation.name(), method.getName()));
@@ -380,16 +380,14 @@ public class UdfLoader {
                                                               final Udf udfAnnotation,
                                                               final UdfDescription descAnnotation) {
 
-    final String schemaProviderName = method.getAnnotation(Udf.class).schemaProvider();
+    final String schemaProviderName = udfAnnotation.schemaProvider();
 
     if (!schemaProviderName.equals("")) {
       return handleUdfSchemaProviderAnnotation(schemaProviderName, theClass, method,
           descAnnotation);
-    }
-
-    if (DecimalUtil.isDecimal(javaReturnSchema) && schemaProviderName.equals("")) {
-      throw new KsqlFunctionException("BigDecimal return type is not supported "
-          + "without a schema provider method.");
+    } else if (DecimalUtil.isDecimal(javaReturnSchema)) {
+      throw new KsqlException(String.format("Cannot load UDF %s. BigDecimal return type "
+          + "is not supported without a schema provider method.", descAnnotation.name()));
     }
 
     return ignored -> javaReturnSchema;
@@ -415,14 +413,14 @@ public class UdfLoader {
     try {
       final Method m = theClass.getDeclaredMethod(schemaProviderName, List.class);
       if (!m.isAnnotationPresent(UdfSchemaProvider.class)) {
-        throw new KsqlFunctionException(String.format(
+        throw new KsqlException(String.format(
             "Method %s should be annotated with @UdfSchemaProvider.",
             schemaProviderName));
       }
       return m;
     } catch (NoSuchMethodException e) {
-      throw new KsqlFunctionException(String.format(
-          "Cannot find schema provider method with name %s in class %s.",
+      throw new KsqlException(String.format(
+          "Cannot find schema provider method with name %s and parameter List<Schema> in class %s.",
           schemaProviderName,theClass.getName()),e);
     }
   }
@@ -433,8 +431,8 @@ public class UdfLoader {
       return (Schema) m.invoke(instance, args);
     } catch (IllegalAccessException
         | InvocationTargetException e) {
-      throw new KsqlFunctionException(String.format("Cannot invoke the schema provider "
-              + "method %s for udf %s. ",
+      throw new KsqlException(String.format("Cannot invoke the schema provider "
+              + "method %s for UDF %s. ",
           m.getName(), annotation.name()), e);
     }
   }

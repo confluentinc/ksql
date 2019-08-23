@@ -108,15 +108,14 @@ will be ``null``.
 Dynamic return type
 ~~~~~~~~~~~~~~~~~~~
 
-UDFs support dynamic return types that are resolved at runtime. This is for example useful if you
-want to implement a UDF whose argument and return type are ``BigDecimal`` and you want to define the
-scale/precision of the return type based on those of the arguments.
+UDFs support dynamic return types that are resolved at runtime. This is useful if you want to
+implement a UDF with a non-deterministic return type. A UDF which returns ``BigDecimal``,
+for example, may vary the precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-``public Schema method_name(final List<Schema> params)`` and annotate it with ``@SchemaProvider``.
-Moreover, you need to link it to the corresponding UDF by using the ``schemaProvider=method_name``
-parameter of the ``@Udf`` annotation. Note: replace `method_name` with the actual name of your
-method.
+``public Schema <your-method-name>(final List<Schema> params)`` and annotate it with ``@SchemaProvider``.
+Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
+parameter of the ``@Udf`` annotation.
 
 
 Generics in UDFS

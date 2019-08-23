@@ -16,11 +16,11 @@
 package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -29,11 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,14 +256,6 @@ public class UdfIndex<T extends IndexedFunction> {
    */
   static final class Parameter {
 
-    private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
-        ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
-            .put(Type.MAP, Parameter::mapEquals)
-            .put(Type.ARRAY, Parameter::arrayEquals)
-            .put(Type.STRUCT, Parameter::structEquals)
-            .put(Type.BYTES, Parameter::bytesEquals)
-            .build();
-
     private final Schema schema;
     private final boolean isVararg;
 
@@ -311,14 +301,7 @@ public class UdfIndex<T extends IndexedFunction> {
         return reserveGenerics(schema, argument, reservedGenerics);
       }
 
-      final Schema.Type type = schema.type();
-
-      // we require a custom equals method that ignores certain values (e.g.
-      // whether or not the schema is optional, and the documentation)
-      return Objects.equals(type, argument.type())
-          && CUSTOM_SCHEMA_EQ.getOrDefault(type, (a, b) -> true).test(schema, argument)
-          && Objects.equals(schema.version(), argument.version())
-          && Objects.deepEquals(schema.defaultValue(), argument.defaultValue());
+      return SchemaUtil.compareSchemaTypes(schema, argument);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 

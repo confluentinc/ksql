@@ -48,7 +48,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,6 +128,12 @@ public class StreamedQueryResource {
       final PreparedStatement<?> statement
   ) throws Exception {
     try {
+      topicAccessValidator.validate(
+          serviceContext,
+          ksqlEngine.getMetaStore(),
+          statement.getStatement()
+      );
+
       if (statement.getStatement() instanceof Query) {
         return handleQuery(
             serviceContext,
@@ -162,12 +167,6 @@ public class StreamedQueryResource {
   ) throws Exception {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
-
-    topicAccessValidator.validate(
-        serviceContext,
-        ksqlEngine.getMetaStore(),
-        statement.getStatement()
-    );
 
     final QueryMetadata query = ksqlEngine.execute(serviceContext, configured)
         .getQuery()

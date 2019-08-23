@@ -31,7 +31,7 @@ public interface StatementValidator<T extends Statement> {
   /**
    * A statement validator that does nothing.
    */
-  StatementValidator<?> NO_VALIDATION = (stmt, ectx, sctx) -> { };
+  StatementValidator<Statement> NO_VALIDATION = (stmt, ectx, sctx) -> { };
 
   /**
    * Validates the statement against the given parameters, and throws an exception

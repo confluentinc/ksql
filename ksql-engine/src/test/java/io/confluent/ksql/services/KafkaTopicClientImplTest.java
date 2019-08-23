@@ -31,8 +31,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.exception.KafkaDeleteTopicsException;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
-import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,6 +53,7 @@ import org.apache.kafka.clients.admin.AlterConfigOp.OpType;
 import org.apache.kafka.clients.admin.AlterConfigsResult;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.ConfigEntry;
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.CreateTopicsResult;
 import org.apache.kafka.clients.admin.DeleteTopicsResult;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
@@ -118,11 +119,24 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldCreateTopic() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
-    expect(adminClient.createTopics(anyObject())).andReturn(getCreateTopicsResult());
+    expect(adminClient.createTopics(anyObject(), shouldValidateCreate(false)))
+        .andReturn(getCreateTopicsResult());
     replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
     kafkaTopicClient.createTopic("test", 1, (short) 1);
+    verify(adminClient);
+  }
+
+  @Test
+  public void shouldValidateCreateTopic() {
+    expect(adminClient.listTopics()).andReturn(getListTopicsResult());
+    expect(adminClient.createTopics(anyObject(), shouldValidateCreate(true)))
+        .andReturn(getCreateTopicsResult());
+    replay(adminClient);
+
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    kafkaTopicClient.validateCreateTopic("test", 1, (short) 1);
     verify(adminClient);
   }
 
@@ -160,7 +174,8 @@ public class KafkaTopicClientImplTest {
   public void shouldFailCreateTopicWhenNoAclsSet() {
     // Given:
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject())).andReturn(createTopicAuthorizationException());
+    expect(adminClient.createTopics(anyObject(), anyObject()))
+        .andReturn(createTopicAuthorizationException());
 
     replay(adminClient);
 
@@ -189,7 +204,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldNotFailIfTopicAlreadyExistsWhenCreating() {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject()))
+    expect(adminClient.createTopics(anyObject(), anyObject()))
         .andReturn(createTopicReturningTopicExistsException());
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
@@ -202,7 +217,7 @@ public class KafkaTopicClientImplTest {
   @Test
   public void shouldRetryDescribeTopicOnRetriableException() {
     expect(adminClient.listTopics()).andReturn(getEmptyListTopicResult());
-    expect(adminClient.createTopics(anyObject()))
+    expect(adminClient.createTopics(anyObject(), anyObject()))
         .andReturn(createTopicReturningTopicExistsException());
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(describeTopicReturningUnknownPartitionException()).once();
@@ -433,7 +448,8 @@ public class KafkaTopicClientImplTest {
     // Verify that the new topic configuration being passed to the admin client is what we expect.
     final NewTopic newTopic = new NewTopic(topicName1, 1, (short) 1);
     newTopic.configs(Collections.singletonMap("cleanup.policy", "compact"));
-    expect(adminClient.createTopics(singleNewTopic(newTopic))).andReturn(getCreateTopicsResult());
+    expect(adminClient.createTopics(singleNewTopic(newTopic), anyObject()))
+        .andReturn(getCreateTopicsResult());
     replay(adminClient);
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
@@ -826,6 +842,23 @@ public class KafkaTopicClientImplTest {
     }
 
     EasyMock.reportMatcher(new NewTopicsMatcher());
+    return null;
+  }
+
+  private CreateTopicsOptions shouldValidateCreate(final boolean validateOnly) {
+    EasyMock.reportMatcher(new IArgumentMatcher() {
+      @Override
+      public boolean matches(Object argument) {
+        return argument instanceof CreateTopicsOptions
+            && ((CreateTopicsOptions) argument).shouldValidateOnly() == validateOnly;
+      }
+
+      @Override
+      public void appendTo(StringBuffer buffer) {
+        buffer.append("validateOnly(\"" + validateOnly + "\")");
+      }
+    });
+
     return null;
   }
 }

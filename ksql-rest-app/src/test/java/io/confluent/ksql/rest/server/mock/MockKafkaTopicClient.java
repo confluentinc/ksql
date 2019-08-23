@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 /**
@@ -32,7 +33,8 @@ public class MockKafkaTopicClient implements KafkaTopicClient {
   public void createTopic(final String topic,
                           final int numPartitions,
                           final short replicationFactor,
-                          final Map<String, ?> configs) {
+                          final Map<String, ?> configs,
+                          final CreateTopicsOptions createOptions) {
   }
 
   @Override

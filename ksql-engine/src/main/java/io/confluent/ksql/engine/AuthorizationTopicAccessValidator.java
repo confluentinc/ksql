@@ -20,12 +20,12 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
 import io.confluent.ksql.util.KsqlException;
-
 import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.common.acl.AclOperation;
@@ -49,6 +49,8 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
       validateInsertInto(serviceContext, metaStore, (InsertInto)statement);
     } else if (statement instanceof CreateAsSelect) {
       validateCreateAsSelect(serviceContext, metaStore, (CreateAsSelect)statement);
+    } else if (statement instanceof PrintTopic) {
+      validatePrintTopic(serviceContext, (PrintTopic)statement);
     }
   }
 
@@ -100,6 +102,13 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
 
     final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().getSuffix());
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
+  }
+
+  private void validatePrintTopic(
+          final ServiceContext serviceContext,
+          final PrintTopic printTopic
+  ) {
+    checkAccess(serviceContext, printTopic.getTopic().toString(), AclOperation.READ);
   }
 
   private String getSourceTopicName(final MetaStore metaStore, final String streamOrTable) {

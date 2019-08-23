@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class KsqlContext {
+public class KsqlContext implements AutoCloseable {
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlContext.class);
 
@@ -171,7 +171,7 @@ public class KsqlContext {
     ksqlEngine.getPersistentQuery(queryId).ifPresent(QueryMetadata::close);
   }
 
-  private ExecuteResult execute(
+  private static ExecuteResult execute(
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,

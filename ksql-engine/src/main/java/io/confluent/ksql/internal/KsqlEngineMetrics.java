@@ -44,10 +44,12 @@ import org.apache.kafka.streams.KafkaStreams.State;
 
 public class KsqlEngineMetrics implements Closeable {
 
-  private static final String METRIC_GROUP_PREFIX = "ksql-engine";
+  private static final String DEFAULT_METRIC_GROUP_PREFIX = "ksql-engine";
+  private static final String METRIC_GROUP_POST_FIX = "-query-stats";
 
   private final List<Sensor> sensors;
   private final List<CountMetric> countMetrics;
+  private final String metricGroupPrefix;
   private final String metricGroupName;
   private final Sensor messagesIn;
   private final Sensor totalMessagesIn;
@@ -65,11 +67,13 @@ public class KsqlEngineMetrics implements Closeable {
   private final Metrics metrics;
 
   public KsqlEngineMetrics(
+      final String metricGroupPrefix,
       final KsqlEngine ksqlEngine,
       final Map<String, String> customMetricsTags,
-      final Optional<KsqlMetricsExtension> metricsExtension) {
+      final Optional<KsqlMetricsExtension> metricsExtension
+  ) {
     this(
-        METRIC_GROUP_PREFIX,
+        metricGroupPrefix.isEmpty() ? DEFAULT_METRIC_GROUP_PREFIX : metricGroupPrefix,
         ksqlEngine,
         MetricCollectors.getMetrics(),
         customMetricsTags,
@@ -81,12 +85,14 @@ public class KsqlEngineMetrics implements Closeable {
       final KsqlEngine ksqlEngine,
       final Metrics metrics,
       final Map<String, String> customMetricsTags,
-      final Optional<KsqlMetricsExtension> metricsExtension) {
+      final Optional<KsqlMetricsExtension> metricsExtension
+  ) {
     this.ksqlEngine = ksqlEngine;
     this.ksqlServiceId = KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX + ksqlEngine.getServiceId();
     this.sensors = new ArrayList<>();
     this.countMetrics = new ArrayList<>();
-    this.metricGroupName = metricGroupPrefix + "-query-stats";
+    this.metricGroupPrefix = Objects.requireNonNull(metricGroupPrefix, "metricGroupPrefix");
+    this.metricGroupName = metricGroupPrefix + METRIC_GROUP_POST_FIX;
     this.customMetricsTags = customMetricsTags;
     this.metricsExtension = metricsExtension;
 
@@ -103,7 +109,7 @@ public class KsqlEngineMetrics implements Closeable {
     this.messageConsumptionByQuery = configureMessageConsumptionByQuerySensor();
     this.errorRate = configureErrorRate();
     Arrays.stream(State.values())
-        .forEach(state -> configureNumActiveQueriesForGivenState(state));
+        .forEach(this::configureNumActiveQueriesForGivenState);
 
     configureCustomMetrics();
   }
@@ -133,8 +139,15 @@ public class KsqlEngineMetrics implements Closeable {
   }
 
   public void registerQuery(final QueryMetadata query) {
-    final QueryStateListener listener =
-        new QueryStateListener(metrics, query.getQueryApplicationId());
+    final String metricsPrefix = metricGroupPrefix.equals(DEFAULT_METRIC_GROUP_PREFIX)
+        ? ""
+        : metricGroupPrefix;
+
+    final QueryStateListener listener = new QueryStateListener(
+        metrics,
+        metricsPrefix,
+        query.getQueryApplicationId()
+    );
 
     query.registerQueryStateListener(listener);
   }

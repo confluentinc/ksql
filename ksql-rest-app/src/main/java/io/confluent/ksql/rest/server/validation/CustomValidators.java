@@ -95,9 +95,10 @@ public enum CustomValidators {
   private final Class<? extends Statement> statementClass;
   private final StatementValidator validator;
 
-  CustomValidators(
-      final Class<? extends Statement> statementClass,
-      final StatementValidator validator) {
+  <T extends Statement> CustomValidators(
+      final Class<T> statementClass,
+      final StatementValidator<? super T> validator
+  ) {
     this.statementClass = Objects.requireNonNull(statementClass, "statementClass");
     this.validator = Objects.requireNonNull(validator, "validator");
   }

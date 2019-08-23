@@ -24,15 +24,31 @@ import java.util.Optional;
 public final class ServiceInfo {
 
   private final String serviceId;
+  private final String metricsPrefix;
   private final Map<String, String> customMetricsTags;
   private final Optional<KsqlMetricsExtension> metricsExtension;
 
   /**
-   * Create an object to be passed from the KSQL context down to the KSQL engine.
+   * Create ServiceInfo required by KSQL engine.
+   *
+   * @param ksqlConfig the server config.
+   * @return new instance.
    */
   public static ServiceInfo create(final KsqlConfig ksqlConfig) {
-    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
+    return create(ksqlConfig, "");
+  }
 
+  /**
+   * Create ServiceInfo required by KSQL engine.
+   *
+   * @param ksqlConfig the server config.
+   * @param metricsPrefix optional prefix for metrics group names. Default is empty string.
+   * @return new instance.
+   */
+  public static ServiceInfo create(
+      final KsqlConfig ksqlConfig,
+      final String metricsPrefix
+  ) {
     final String serviceId = ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
     final Map<String, String> customMetricsTags =
         ksqlConfig.getStringAsMap(KsqlConfig.KSQL_CUSTOM_METRICS_TAGS);
@@ -42,17 +58,19 @@ public final class ServiceInfo {
             KsqlMetricsExtension.class
         ));
 
-    return new ServiceInfo(serviceId, customMetricsTags, metricsExtension);
+    return new ServiceInfo(serviceId, customMetricsTags, metricsExtension, metricsPrefix);
   }
 
   private ServiceInfo(
       final String serviceId,
       final Map<String, String> customMetricsTags,
-      final Optional<KsqlMetricsExtension> metricsExtension
+      final Optional<KsqlMetricsExtension> metricsExtension,
+      final String metricsPrefix
   ) {
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.customMetricsTags = Objects.requireNonNull(customMetricsTags, "customMetricsTags");
     this.metricsExtension = Objects.requireNonNull(metricsExtension, "metricsExtension");
+    this.metricsPrefix = Objects.requireNonNull(metricsPrefix, "metricsPrefix");
   }
 
   public String serviceId() {
@@ -65,5 +83,9 @@ public final class ServiceInfo {
 
   public Optional<KsqlMetricsExtension> metricsExtension() {
     return metricsExtension;
+  }
+
+  public String metricsPrefix() {
+    return metricsPrefix;
   }
 }

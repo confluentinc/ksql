@@ -99,6 +99,9 @@ final class SandboxedKafkaTopicClient {
             Collections.emptyList()))
         .collect(Collectors.toList());
 
+    // This is useful to validate permissions to create the topic
+    delegate.validateCreateTopic(topic, numPartitions, replicationFactor, configs);
+
     createdTopics.put(topic, new SandboxedTopicDescription(
         topic,
         false,

@@ -21,8 +21,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -45,6 +47,7 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -184,6 +187,37 @@ public class SandboxedKafkaTopicClientTest {
           false,
           topicPartitions(2, 3),
           Sets.newHashSet(AclOperation.READ, AclOperation.WRITE))));
+    }
+
+    @Test
+    public void shouldThrowOnCreateIfValidateCreateTopicFails() {
+      // Given:
+      doThrow(TopicAuthorizationException.class).when(delegate)
+          .validateCreateTopic("some topic", 2, (short) 3, configs);
+
+      // Expect:
+      expectedException.expect(TopicAuthorizationException.class);
+
+      // When:
+      sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
+    }
+
+    @Test
+    public void shouldNotCreateTopicIfValidateCreateTopicFails() {
+      // Given:
+      doThrow(TopicAuthorizationException.class).when(delegate)
+          .validateCreateTopic("some topic", 2, (short) 3, configs);
+
+      // When:
+      try {
+        sandboxedClient.createTopic("some topic", 2, (short) 3, configs);
+      } catch (final TopicAuthorizationException e) {
+        // skip
+      }
+
+      // Then:
+      verify(delegate, times(0))
+          .createTopic("some topic", 2, (short) 3, configs);
     }
 
     @Test

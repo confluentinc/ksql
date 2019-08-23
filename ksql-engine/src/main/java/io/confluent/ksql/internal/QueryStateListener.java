@@ -30,13 +30,15 @@ public class QueryStateListener implements StateListener {
 
   QueryStateListener(
       final Metrics metrics,
+      final String groupPrefix,
       final String queryApplicationId
   ) {
+    Objects.requireNonNull(groupPrefix, "groupPrefix");
     Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.metrics = Objects.requireNonNull(metrics, "metrics cannot be null.");
     this.metricName = metrics.metricName(
         "query-status",
-        "ksql-queries",
+        groupPrefix + "ksql-queries",
         "The current status of the given query.",
         Collections.singletonMap("status", queryApplicationId));
 

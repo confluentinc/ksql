@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 
 /**
@@ -33,6 +35,27 @@ public interface KafkaTopicClient {
     COMPACT,
     DELETE,
     COMPACT_DELETE
+  }
+
+  default void validateCreateTopic(
+      final String topic,
+      final int numPartitions,
+      final short replicationFactor) {
+    validateCreateTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
+  }
+
+  default void validateCreateTopic(
+      String topic,
+      int numPartitions,
+      short replicationFactor,
+      Map<String, ?> configs) {
+    createTopic(
+        topic,
+        numPartitions,
+        replicationFactor,
+        configs,
+        new CreateTopicsOptions().validateOnly(true)
+    );
   }
 
   /**
@@ -67,11 +90,42 @@ public interface KafkaTopicClient {
    * @param numPartitions     the partition count of the topic.
    * @param configs           any additional topic configs to use
    */
-  void createTopic(
+  default void createTopic(
       String topic,
       int numPartitions,
       short replicationFactor,
       Map<String, ?> configs
+  ) {
+    createTopic(
+        topic,
+        numPartitions,
+        replicationFactor,
+        configs,
+        new CreateTopicsOptions()
+    );
+  }
+
+  /**
+   * Create a new topic with the specified name, numPartitions and replicationFactor.
+   *
+   * <p>If the topic already exists the method checks that partition count <i>matches</i>matches
+   * {@code numPartitions} and that the replication factor is <i>at least</i>
+   * {@code replicationFactor}
+   *
+   * @param topic             name of the topic to create
+   * @param replicationFactor the replication factor for the new topic, or
+   *                          {@link io.confluent.ksql.topic.TopicProperties#DEFAULT_REPLICAS}
+   *                          to use the default replication of the cluster
+   * @param numPartitions     the partition count of the topic.
+   * @param configs           any additional topic configs to use
+   * @param createOptions     the options to use when creating the new topic
+   */
+  void createTopic(
+      String topic,
+      int numPartitions,
+      short replicationFactor,
+      Map<String, ?> configs,
+      CreateTopicsOptions createOptions
   );
 
   /**

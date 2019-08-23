@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
@@ -122,7 +124,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       final String topic,
       final int numPartitions,
       final short replicationFactor,
-      final Map<String, ?> configs
+      final Map<String, ?> configs,
+      final CreateTopicsOptions createOptions
   ) {
     final short replicas = replicationFactor == TopicProperties.DEFAULT_REPLICAS
         ? 1

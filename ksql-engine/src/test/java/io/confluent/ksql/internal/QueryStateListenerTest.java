@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -55,7 +56,7 @@ public class QueryStateListenerTest {
   public void setUp() {
     when(metrics.metricName(any(), any(), any(), anyMap())).thenReturn(METRIC_NAME);
 
-    listener = new QueryStateListener(metrics, "app-id");
+    listener = new QueryStateListener(metrics, "", "app-id");
   }
 
   @Test
@@ -74,6 +75,22 @@ public class QueryStateListenerTest {
         ImmutableMap.of("status", "app-id"));
 
     verify(metrics).addMetric(eq(METRIC_NAME), isA(Gauge.class));
+  }
+
+  @Test
+  public void shouldAddMetricWithSuppliedPrefix() {
+    // Given:
+    final String groupPrefix = "some-prefix-";
+
+    clearInvocations(metrics);
+
+    // When:
+    listener = new QueryStateListener(metrics, groupPrefix, "app-id");
+
+    // Then:
+    verify(metrics).metricName("query-status", groupPrefix + "ksql-queries",
+        "The current status of the given query.",
+        ImmutableMap.of("status", "app-id"));
   }
 
   @Test

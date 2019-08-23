@@ -119,6 +119,7 @@ public class SchemaKStream<K> {
       final DataSource<?> dataSource,
       final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
       final QueryContext queryContext,
+      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final KeyField keyField
   ) {
@@ -132,6 +133,7 @@ public class SchemaKStream<K> {
           topic.getValueFormat(),
           dataSource.getSerdeOptions(),
           dataSource.getTimestampExtractionPolicy(),
+          timestampIndex,
           offsetReset
       );
       return forSource(builder, step, keyField, queryContext);
@@ -144,6 +146,7 @@ public class SchemaKStream<K> {
           topic.getValueFormat(),
           dataSource.getSerdeOptions(),
           dataSource.getTimestampExtractionPolicy(),
+          timestampIndex,
           offsetReset
       );
       return forSource(builder, step, keyField, queryContext);

@@ -278,6 +278,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
+        -1,
         offsetReset,
         constructor
     );
@@ -306,6 +307,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
+        -1,
         offsetReset,
         constructor
     );
@@ -343,6 +345,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
+        -1,
         offsetReset,
         constructor
     );
@@ -350,10 +353,7 @@ public class StreamSourceTest {
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldFindCorrectFullyQualifiedTimestampField() {
-    // Given:
-    when(extractionPolicy.timestampField()).thenReturn("alias.field2");
-
+  public void shouldExtractTimestmapUsingTheProvidedIndex() {
     // When:
     StreamSource.createNonWindowed(
         ctx,
@@ -363,26 +363,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
-        offsetReset,
-        constructor
-    );
-
-    // Then:
-    verify(constructor).construct(any(), any(), any(), any(), eq(1), any(), any(), any());
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldFindCorrectUnqualifiedTimestampField() {
-    // When:
-    StreamSource.createNonWindowed(
-        ctx,
-        LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
-        TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
-        extractionPolicy,
+        1,
         offsetReset,
         constructor
     );
@@ -403,6 +384,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
+        -1,
         offsetReset,
         constructor
     );
@@ -432,6 +414,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
+        -1,
         offsetReset,
         constructor
     );
@@ -458,6 +441,7 @@ public class StreamSourceTest {
         valueFormat,
         serdeOptions,
         extractionPolicy,
+        -1,
         offsetReset,
         constructor
     );

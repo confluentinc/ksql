@@ -218,7 +218,8 @@ public class DataSourceNodeTest {
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
     when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
-    when(schemaKStreamFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(stream);
+    when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any()))
+        .thenReturn(stream);
     when(stream.toTable(any(), any())).thenReturn(table);
   }
 
@@ -470,6 +471,34 @@ public class DataSourceNodeTest {
   }
 
   @Test
+  public void shouldBuildSourceStreamWithCorrectTimestampIndex() {
+    // Given:
+    reset(timestampExtractionPolicy);
+    when(timestampExtractionPolicy.timestampField()).thenReturn("field2");
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any());
+  }
+
+  @Test
+  public void shouldBuildSourceStreamWithCorrectTimestampIndexForQualifiedFieldName() {
+    // Given:
+    reset(timestampExtractionPolicy);
+    when(timestampExtractionPolicy.timestampField()).thenReturn("name.field2");
+    final DataSourceNode node = buildNodeWithMockSource();
+
+    // When:
+    node.buildStream(ksqlStreamBuilder);
+
+    // Then:
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any());
+  }
+
+  @Test
   @SuppressWarnings("unchecked")
   public void shouldBuildSourceStreamWithCorrectParams() {
     // Given:
@@ -486,6 +515,7 @@ public class DataSourceNodeTest {
         same(dataSource),
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
         queryContextCaptor.capture(),
+        eq(3),
         same(offsetReset),
         same(node.getKeyField())
     );
@@ -510,6 +540,7 @@ public class DataSourceNodeTest {
         same(dataSource),
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
         queryContextCaptor.capture(),
+        eq(3),
         same(offsetReset),
         same(node.getKeyField())
     );

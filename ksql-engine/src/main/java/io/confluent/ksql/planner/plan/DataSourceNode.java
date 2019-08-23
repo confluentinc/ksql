@@ -133,6 +133,7 @@ public class DataSourceNode extends PlanNode {
         dataSource,
         schema,
         contextStacker.push(SOURCE_OP_NAME).getQueryContext(),
+        timestampIndex(),
         builder.getAutoOffsetReset(),
         keyField
     );
@@ -154,8 +155,19 @@ public class DataSourceNode extends PlanNode {
         DataSource<?> dataSource,
         LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
         QueryContext queryContext,
+        int timestampIndex,
         Optional<AutoOffsetReset> offsetReset,
         KeyField keyField
     );
+  }
+
+  private int timestampIndex() {
+    final LogicalSchema originalSchema = schema.getOriginalSchema();
+    final String timestampField = dataSource.getTimestampExtractionPolicy().timestampField();
+    return originalSchema.valueFieldIndex(timestampField)
+        .orElse(
+            originalSchema.withAlias(alias).valueFieldIndex(timestampField)
+                .orElse(-1)
+        );
   }
 }

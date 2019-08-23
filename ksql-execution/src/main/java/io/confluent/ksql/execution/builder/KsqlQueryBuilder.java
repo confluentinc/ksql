@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.builder;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -37,7 +36,6 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
@@ -121,8 +119,8 @@ public final class KsqlQueryBuilder {
     return streamsBuilder;
   }
 
-  public Map<String, PersistenceSchema> getSchemas() {
-    return ImmutableMap.copyOf(schemas);
+  public LinkedHashMap<String, PersistenceSchema> getSchemas() {
+    return new LinkedHashMap<>(schemas);
   }
 
   public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
@@ -136,7 +134,6 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  // TODO(rohan): refactor and switch back to PlanNodeId
   public QueryContext.Stacker buildNodeContext(final String... context) {
     return new QueryContext.Stacker(queryId)
         .push(context);

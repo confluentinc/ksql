@@ -19,7 +19,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -233,6 +232,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
       final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final Constructor<Windowed<Struct>> constructor
   ) {
@@ -245,7 +245,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
         topicName,
         Formats.of(keyFormat, valueFormat, options),
         timestampPolicy,
-        getTimeStampColumnIndex(timestampPolicy, schemaWithMetaAndKeyFields.getSchema()),
+        timestampIndex,
         offsetReset,
         schemaWithMetaAndKeyFields.getOriginalSchema(),
         new Functions<>(
@@ -271,6 +271,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
       final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset) {
     return createWindowed(
         queryContext,
@@ -280,6 +281,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
         valueFormat,
         options,
         timestampPolicy,
+        timestampIndex,
         offsetReset,
         StreamSource::new
     );
@@ -293,6 +295,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
       final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final Constructor<Struct> constructor
   ) {
@@ -305,7 +308,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
         topicName,
         Formats.of(keyFormat, valueFormat, options),
         timestampPolicy,
-        getTimeStampColumnIndex(timestampPolicy, schemaWithMetaAndKeyFields.getSchema()),
+        timestampIndex,
         offsetReset,
         schemaWithMetaAndKeyFields.getOriginalSchema(),
         new Functions<>(
@@ -330,6 +333,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
       final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset) {
     return createNonWindowed(
         queryContext,
@@ -339,6 +343,7 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
         valueFormat,
         options,
         timestampPolicy,
+        timestampIndex,
         offsetReset,
         StreamSource::new
     );
@@ -377,56 +382,6 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
       }
       return row;
     };
-  }
-
-  private static int getTimeStampColumnIndex(
-      final TimestampExtractionPolicy timestampExtractionPolicy,
-      final LogicalSchema schema
-  ) {
-    final String timestampFieldName = timestampExtractionPolicy.timestampField();
-    if (timestampFieldName == null) {
-      return -1;
-    }
-    if (timestampFieldName.contains(".")) {
-      final Integer index = findMatchingTimestampField(schema, timestampFieldName);
-      if (index != null) {
-        return index;
-      }
-    } else {
-      for (int i = 2; i < schema.valueFields().size(); i++) {
-        final Field field = schema.valueFields().get(i);
-        if (field.name().contains(".")) {
-          if (timestampFieldName.equals(field.name().substring(field.name().indexOf(".") + 1))) {
-            return i - 2;
-          }
-        } else {
-          if (timestampFieldName.equals(field.name())) {
-            return i - 2;
-          }
-        }
-      }
-    }
-    return -1;
-  }
-
-  private static Integer findMatchingTimestampField(
-      final LogicalSchema schema,
-      final String timestampFieldName) {
-    for (int i = 2; i < schema.valueFields().size(); i++) {
-      final Field field = schema.valueFields().get(i);
-      if (field.name().contains(".")) {
-        if (timestampFieldName.equals(field.name())) {
-          return i - 2;
-        }
-      } else {
-        if (timestampFieldName
-            .substring(timestampFieldName.indexOf(".") + 1)
-            .equals(field.name())) {
-          return i - 2;
-        }
-      }
-    }
-    return null;
   }
 
   private static class AddTimestampColumn

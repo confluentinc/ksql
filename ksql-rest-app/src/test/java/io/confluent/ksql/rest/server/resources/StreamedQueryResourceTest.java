@@ -77,7 +77,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
-
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
@@ -133,7 +132,6 @@ public class StreamedQueryResourceTest {
 
   @Before
   public void setup() {
-    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     expect(serviceContext.getTopicClient()).andReturn(mockKafkaTopicClient);
     expect(mockKsqlEngine.hasActiveQueries()).andReturn(false);
     statement = PreparedStatement.of("s", mock(Statement.class));
@@ -307,7 +305,6 @@ public class StreamedQueryResourceTest {
         ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
         .andReturn(ExecuteResult.of(transientQueryMetadata));
 
-    expect(mockKsqlEngine.isAcceptingStatements()).andReturn(true);
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
 
     final Response response =

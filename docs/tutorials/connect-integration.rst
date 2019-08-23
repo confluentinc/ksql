@@ -19,17 +19,17 @@ This tutorial demonstrates a simple workflow to integrate KSQL with an instance 
 Installing JDBC Source Connector Plugin
 ---------------------------------------
 
-If you have installed Kafka Connect via |cp| then it comes with an installation of the JDBC source
+If you installed |kconnect-long| via |cp|, then it comes with an installation of the JDBC source
 connector. Otherwise, install it via Confluent Hub.
 
 Installing Postgres via Docker
 ------------------------------
 
 If you are just playing around with the KSQL-Connect integration and do not have a PostgresDB
-instance locally, you can install it via docker and populate some data:
+instance locally, you can install it by using Docker and populate some data:
 
-#. Install docker postgres via ``docker pull postgres``
-#. Start the DB and expose the JDBC port ``docker run -p 5432:5432 --name some-postgres -e POSTGRES_USER=$USER -e POSTGRES_DB=$USER -d postgres``
+#. Install postgres by using the ``docker pull postgres`` command.
+#. Start the DB and expose the JDBC port: ``docker run -p 5432:5432 --name some-postgres -e POSTGRES_USER=$USER -e POSTGRES_DB=$USER -d postgres``
 #. Run PSQL to generate some data
 
     .. code::
@@ -47,16 +47,16 @@ instance locally, you can install it via docker and populate some data:
         postgres=# INSERT INTO users (username, popularity) VALUES ('user3', 75);
         INSERT 0 1
 
-When you are done, you can remove this information by ``docker kill some-postgres && docker rm some-postgres``.
+When you're done, clear your local state by using the ``docker kill some-postgres && docker rm some-postgres`` command.
 
 Create a JDBC Source Connector
 ------------------------------
 
 Now that Postgres is up and running with a database for your user, you can connect to it via KSQL.
-If you are using the default configurations, it will connect automatically to your connect cluster.
-Otherwise, you will need to change the ``ksql.connect.url`` to point to your connect deployment.
+If you're using the default configurations, KSQL connects automatically to your |kconnect| cluster.
+Otherwise, you must change the ``ksql.connect.url`` property to point to your |kconnect| deployment.
 
-.. code::
+  ::
 
     ksql> CREATE SOURCE CONNECTOR `jdbc-connector` WITH(\
       "connector.class"='io.confluent.connect.jdbc.JdbcSourceConnector',\
@@ -68,7 +68,7 @@ Otherwise, you will need to change the ``ksql.connect.url`` to point to your con
 Profit
 ------
 
-At this point, data should automatically start flowing in from Postgres to KSQL! You can confirm this
+At this point, data should automatically start flowing in from Postgres to KSQL. Confirm this
 by running ``DESCRIBE CONNECTOR "jdbc-connector";``. Your output should resemble:
 
 .. code::
@@ -89,7 +89,7 @@ by running ``DESCRIBE CONNECTOR "jdbc-connector";``. Your output should resemble
      JDBC_CONNECTOR_USERS | jdbc-users  | TABLE
     ---------------------------------------------
 
-Now select everything from the topic to see what is going on and how it gets auto populated:
+Now select everything from the topic to see how it gets auto populated:
 
 .. code::
 
@@ -105,8 +105,6 @@ Now select everything from the topic to see what is going on and how it gets aut
     |1566336788106     |user2             |user2             |5                 |
     |1566336788106     |user3             |user3             |75                |
 
-You'll notice that the users are repeated multiple times. This is because we specified ``bulk``
-as the mode, which re-imports the entire database every time. This is obviously not fit for
-production - see `Incremental Query Modes
-<https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/index.html#incremental-query-modes>`_
-for more information on changelog capture.
+Note that users are repeated multiple times. This is ``bulk`` mode is specified, which re-imports
+the entire database every time. Obviously, this isn't appropriate for production. For more information
+on changelog capture, see :ref:`jdbc-source-connector-incremental-query-modes`.

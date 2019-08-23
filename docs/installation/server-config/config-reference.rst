@@ -497,21 +497,21 @@ value ``false``.
 .. _ksql-connect-settings:
 
 KSQL-Connect Settings
---------------------------
+---------------------
 
 ----------------
 ksql.connect.url
 ----------------
 
-The connect cluster URL to integrate with. If the connect cluster is running locally to the KSQL
+The |kconnect| cluster URL to integrate with. If the connect cluster is running locally to the KSQL
 server, use localhost and the configuration port specified in the connect configuration file.
 
 ---------------------------
 ksql.connect.worker.config
 ---------------------------
 
-The connect worker configuration file if spinning up connect alongside the KSQL server. If using an
-external ``ksql.connect.url`` this property should be omitted.
+The connect worker configuration file, if spinning up |kconnect| alongside the KSQL server. Don't
+set this property if you're using an external ``ksql.connect.url``.
 
 ---------------------------
 ksql.connect.polling.enable
@@ -523,8 +523,8 @@ Toggles whether or not to poll connect for new connectors and automatically regi
 ksql.connect.configs.topic
 --------------------------
 
-The connect configuration topic. This corresponds to ``config.storage.topic`` in the connect worker
-configuration.
+The |kconnect| configuration topic. This setting corresponds to ``config.storage.topic`` in the
+|kconnect| worker configuration.
 
 .. _ksql-production-settings:
 

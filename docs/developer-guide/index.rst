@@ -25,6 +25,6 @@ These topics show how to develop KSQL applications for |cp|.
     api
     udf
     processing-log
-    connect
+    ksql-connect
     ../tutorials/index
     

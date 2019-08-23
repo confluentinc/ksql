@@ -224,11 +224,6 @@ public class AggregateNode extends PlanNode {
     );
 
     // Aggregate computations
-    final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
-        aggregateArgExpanded,
-        internalSchema
-    );
-
     final LogicalSchema aggStageSchema = buildAggregateSchema(
         aggregateArgExpanded.getSchema(),
         builder.getFunctionRegistry(),
@@ -243,19 +238,24 @@ public class AggregateNode extends PlanNode {
         aggregationContext.getQueryContext()
     );
 
-    final KudafInitializer initializer = new KudafInitializer(aggValToValColumnMap.size());
+    final KudafInitializer initializer = new KudafInitializer(requiredColumns.size());
 
     final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = createAggValToFunctionMap(
-        aggregateArgExpanded, initializer, aggValToValColumnMap.size(),
-        builder.getFunctionRegistry(), internalSchema);
+        aggregateArgExpanded,
+        initializer,
+        requiredColumns.size(),
+        builder.getFunctionRegistry(),
+        internalSchema
+    );
 
     final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
         initializer,
+        requiredColumns.size(),
         aggValToFunctionMap,
-        aggValToValColumnMap,
         getWindowExpression(),
         aggValueGenericRowSerde,
-        aggregationContext);
+        aggregationContext
+    );
 
     SchemaKTable<?> result = new SchemaKTable<>(
         schemaKTable.getKtable(), aggStageSchema,
@@ -284,26 +284,6 @@ public class AggregateNode extends PlanNode {
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
   }
-
-  private Map<Integer, Integer> createAggregateValueToValueColumnMap(
-      final SchemaKStream aggregateArgExpanded,
-      final InternalSchema internalSchema
-  ) {
-    final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
-    int nonAggColumnIndex = 0;
-    for (final Expression expression : getRequiredColumns()) {
-      final String exprStr =
-          internalSchema.getInternalColumnForExpression(expression);
-
-      final int index = aggregateArgExpanded.getSchema().valueFieldIndex(exprStr)
-          .orElseThrow(IllegalStateException::new);
-
-      aggValToValColumnMap.put(nonAggColumnIndex, index);
-      nonAggColumnIndex++;
-    }
-    return aggValToValColumnMap;
-  }
-
 
   private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(
       final SchemaKStream aggregateArgExpanded,

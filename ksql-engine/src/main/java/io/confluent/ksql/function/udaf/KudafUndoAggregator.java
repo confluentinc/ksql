@@ -15,35 +15,34 @@
 
 package io.confluent.ksql.function.udaf;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.TableAggregationFunction;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 
 public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, GenericRow> {
-  private Map<Integer, TableAggregationFunction> aggValToAggFunctionMap;
-  private Map<Integer, Integer> aggValToValColumnMap;
+
+  private final int nonFuncColumnCount;
+  private final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap;
 
   public KudafUndoAggregator(
-      final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap,
-      final Map<Integer, Integer> aggValToValColumnMap) {
+      final int nonFuncColumnCount,
+      final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap
+  ) {
     Objects.requireNonNull(aggValToAggFunctionMap);
-    Objects.requireNonNull(aggValToValColumnMap);
-    this.aggValToAggFunctionMap = Collections.unmodifiableMap(
-        new HashMap<>(aggValToAggFunctionMap));
-    this.aggValToValColumnMap = Collections.unmodifiableMap(new HashMap<>(aggValToValColumnMap));
+    this.aggValToAggFunctionMap = ImmutableMap.copyOf(aggValToAggFunctionMap);
+    this.nonFuncColumnCount = nonFuncColumnCount;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
-    aggValToValColumnMap.forEach(
-        (aggRowIndex, rowIndex) ->
-            aggRowValue.getColumns().set(aggRowIndex, rowValue.getColumns().get(rowIndex)));
+    for (int idx = 0; idx < nonFuncColumnCount; idx++) {
+      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
+    }
 
     aggValToAggFunctionMap.forEach(
         (aggRowIndex, function) ->

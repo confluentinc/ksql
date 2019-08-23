@@ -48,23 +48,23 @@
       ],
       "format": ["AVRO", "JSON"],
       "inputs": [
-        {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}},
-        {"topic": "test_topic", "key": "d2", "value": {"DATA": "d2"}},
-        {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}},
-        {"topic": "test_topic", "key": "d2", "value": {"DATA": "d2"}},
-        {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}}
+        {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}, "timestamp": 1},
+        {"topic": "test_topic", "key": "d2", "value": {"DATA": "d2"}, "timestamp": 2},
+        {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}, "timestamp": 3},
+        {"topic": "test_topic", "key": "d2", "value": {"DATA": "d2"}, "timestamp": 4},
+        {"topic": "test_topic", "key": "d1", "value": {"DATA": "d1"}, "timestamp": 5}
       ],
       "outputs": [
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 1}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 2}},
-        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 0, "KSQL_AGG_VARIABLE_0": 3}},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":1}},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":1}},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":2}},
-        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":2}},
-        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":3}}
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 1, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 1},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 2, "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 2},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 3, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 4, "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 4},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 5, "KSQL_AGG_VARIABLE_0": 3}, "timestamp": 5},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":1}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":1}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1":2}, "timestamp": 4},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1":3}, "timestamp": 5}
       ]
     },
     {
@@ -913,18 +913,21 @@
     {
       "name": "missing matching projection field (stream->table)",
       "statements": [
-        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE OUTPUT AS SELECT COUNT(*) FROM TEST GROUP BY data;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": "d1"},
-        {"topic": "test_topic", "value": "d2"},
-        {"topic": "test_topic", "value": "d1"}
+        {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 1},
+        {"topic": "test_topic", "value": {"DATA": "d2"}, "timestamp": 2},
+        {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 3}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": "d1", "value": "1"},
-        {"topic": "OUTPUT", "key": "d2", "value": "1"},
-        {"topic": "OUTPUT", "key": "d1", "value": "2"}
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": 1, "KSQL_INTERNAL_COL_1": "d1", "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 1},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": 2, "KSQL_INTERNAL_COL_1": "d2", "KSQL_AGG_VARIABLE_0": 1}, "timestamp": 2},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": 3, "KSQL_INTERNAL_COL_1": "d1", "KSQL_AGG_VARIABLE_0": 2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 1}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": "d2", "value": {"KSQL_COL_0": 1}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": "d1", "value": {"KSQL_COL_0": 2}, "timestamp": 3}
       ]
     },
     {
@@ -948,6 +951,26 @@
         {"topic": "OUTPUT", "key": "b", "value": "1"},
         {"topic": "OUTPUT", "key": "b", "value": "0"},
         {"topic": "OUTPUT", "key": "a", "value": "1"}
+      ]
+    },
+    {
+      "name": "duplicate fields (stream->table)",
+      "statements": [
+        "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT DATA, COUNT(1), COUNT(*), DATA AS COPY FROM TEST GROUP BY data;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 1},
+        {"topic": "test_topic", "value": {"DATA": "d2"}, "timestamp": 2},
+        {"topic": "test_topic", "value": {"DATA": "d1"}, "timestamp": 3}
+      ],
+      "outputs": [
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 1, "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 1},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d2", "value": {"KSQL_INTERNAL_COL_0": "d2", "KSQL_INTERNAL_COL_1": 2, "KSQL_AGG_VARIABLE_0": 1, "KSQL_AGG_VARIABLE_1": 1}, "timestamp": 2},
+        {"topic": "_confluent-ksql-some.ksql.service.idquery_CTAS_OUTPUT_0-Aggregate-aggregate-changelog", "key": "d1", "value": {"KSQL_INTERNAL_COL_0": "d1", "KSQL_INTERNAL_COL_1": 3, "KSQL_AGG_VARIABLE_0": 2, "KSQL_AGG_VARIABLE_1": 2}, "timestamp": 3},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1": 1, "KSQL_COL_2": 1, "COPY": "d1"}, "timestamp": 1},
+        {"topic": "OUTPUT", "key": "d2", "value": {"DATA": "d2", "KSQL_COL_1": 1, "KSQL_COL_2": 1, "COPY": "d2"}, "timestamp": 2},
+        {"topic": "OUTPUT", "key": "d1", "value": {"DATA": "d1", "KSQL_COL_1": 2, "KSQL_COL_2": 2, "COPY": "d1"}, "timestamp": 3}
       ]
     },
     {

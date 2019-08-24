@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.security;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
@@ -48,7 +48,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-public class TopicAccessValidatorFactoryTest {
+public class KsqlAuthorizationValidatorFactoryTest {
   private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
 
   @Mock
@@ -78,13 +78,13 @@ public class TopicAccessValidatorFactoryTest {
     givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then
-    assertThat(validator, is(instanceOf(AuthorizationTopicAccessValidator.class)));
+    assertThat(validator, is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
   }
 
   @Test
@@ -93,13 +93,13 @@ public class TopicAccessValidatorFactoryTest {
     givenKafkaAuthorizer("", Collections.emptySet());
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then
-    assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
+    assertThat(validator, not(instanceOf(KsqlAuthorizationValidatorImpl.class)));
   }
 
   @Test
@@ -109,13 +109,13 @@ public class TopicAccessValidatorFactoryTest {
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then:
-    assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
+    assertThat(validator, not(instanceOf(KsqlAuthorizationValidatorImpl.class)));
     verifyZeroInteractions(adminClient);
   }
 
@@ -126,13 +126,13 @@ public class TopicAccessValidatorFactoryTest {
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then:
-    assertThat(validator, instanceOf(AuthorizationTopicAccessValidator.class));
+    assertThat(validator, instanceOf(KsqlAuthorizationValidatorImpl.class));
     verifyZeroInteractions(adminClient);
   }
 
@@ -142,13 +142,13 @@ public class TopicAccessValidatorFactoryTest {
     givenKafkaAuthorizer("an-authorizer-class", null);
 
     // When:
-    final TopicAccessValidator validator = TopicAccessValidatorFactory.create(
+    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then
-    assertThat(validator, not(instanceOf(AuthorizationTopicAccessValidator.class)));
+    assertThat(validator, not(instanceOf(KsqlAuthorizationValidatorImpl.class)));
   }
 
   private void givenKafkaAuthorizer(

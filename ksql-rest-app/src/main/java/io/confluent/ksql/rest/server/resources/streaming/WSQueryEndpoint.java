@@ -21,7 +21,6 @@ import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -34,6 +33,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -91,7 +91,7 @@ public class WSQueryEndpoint {
   private final QueryPublisher queryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
-  private final TopicAccessValidator topicAccessValidator;
+  private final KsqlAuthorizationValidator authorizationValidator;
   private final KsqlSecurityExtension securityExtension;
   private final UserServiceContextFactory serviceContextFactory;
   private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
@@ -121,7 +121,7 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService exec,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
-      final TopicAccessValidator topicAccessValidator,
+      final KsqlAuthorizationValidator authorizationValidator,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState
   ) {
@@ -135,7 +135,7 @@ public class WSQueryEndpoint {
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
         commandQueueCatchupTimeout,
-        topicAccessValidator,
+        authorizationValidator,
         securityExtension,
         ServiceContextFactory::create,
         ServiceContextFactory::create,
@@ -155,7 +155,7 @@ public class WSQueryEndpoint {
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
-      final TopicAccessValidator topicAccessValidator,
+      final KsqlAuthorizationValidator authorizationValidator,
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
       final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
@@ -174,8 +174,8 @@ public class WSQueryEndpoint {
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.commandQueueCatchupTimeout =
         Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
-    this.topicAccessValidator =
-        Objects.requireNonNull(topicAccessValidator, "topicAccessValidator");
+    this.authorizationValidator =
+        Objects.requireNonNull(authorizationValidator, "authorizationValidator");
     this.securityExtension = Objects.requireNonNull(securityExtension, "securityExtension");
     this.serviceContextFactory =
         Objects.requireNonNull(serviceContextFactory, "serviceContextFactory");
@@ -223,7 +223,7 @@ public class WSQueryEndpoint {
 
       serviceContext = createServiceContext(session.getUserPrincipal());
 
-      topicAccessValidator.validate(
+      authorizationValidator.checkAuthorization(
           serviceContext,
           ksqlEngine.getMetaStore(),
           preparedStatement.getStatement()

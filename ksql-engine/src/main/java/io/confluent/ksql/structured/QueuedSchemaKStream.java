@@ -16,6 +16,7 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;

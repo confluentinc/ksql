@@ -22,8 +22,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
-import io.confluent.ksql.structured.QueryContext.Stacker;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.structured.SchemaKStream;
 import org.junit.Before;
 import org.junit.Rule;
@@ -63,7 +63,7 @@ public class FilterNodeTest {
         .thenReturn(schemaKStream);
 
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-    when(ksqlStreamBuilder.buildNodeContext(nodeId)).thenReturn(stacker);
+    when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
 
 
     node = new FilterNode(nodeId, sourceNode, predicate);

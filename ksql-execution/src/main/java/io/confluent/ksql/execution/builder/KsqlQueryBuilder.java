@@ -13,15 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.execution.builder;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -33,9 +34,8 @@ import io.confluent.ksql.serde.KeySerdeFactory;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryLoggerUtil;
+import io.confluent.ksql.util.QuerySchemas;
 import java.util.LinkedHashMap;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -130,9 +130,9 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  public QueryContext.Stacker buildNodeContext(final PlanNodeId id) {
+  public QueryContext.Stacker buildNodeContext(final String context) {
     return new QueryContext.Stacker(queryId)
-        .push(id.toString());
+        .push(context);
   }
 
   public KeySerde<Struct> buildKeySerde(

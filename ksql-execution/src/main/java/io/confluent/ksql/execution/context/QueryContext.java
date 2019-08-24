@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.structured;
+package io.confluent.ksql.execution.context;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;

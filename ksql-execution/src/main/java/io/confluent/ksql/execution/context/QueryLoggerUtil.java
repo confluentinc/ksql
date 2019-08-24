@@ -13,10 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.execution.context;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.structured.QueryContext;
 
 public final class QueryLoggerUtil {
   private QueryLoggerUtil() {

@@ -18,10 +18,10 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -107,7 +107,7 @@ public class ProjectNode extends PlanNode {
     return getSource().buildStream(builder)
         .select(
             getProjectSelectExpressions(),
-            builder.buildNodeContext(getId()),
+            builder.buildNodeContext(getId().toString()),
             builder.getProcessingLogContext()
         );
   }

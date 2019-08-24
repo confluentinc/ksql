@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.math.BigDecimal;
@@ -30,6 +31,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Test;
@@ -811,6 +813,32 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.isNumber(Schema.Type.STRING), is(false));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_STRING_SCHEMA), is(false));
     assertThat(SchemaUtil.isNumber(Schema.STRING_SCHEMA), is(false));
+  }
+
+  @Test
+  public void shouldFailINonCompatibleSchemas() {
+    assertThat(SchemaUtil.areCompatible(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA), is(false));
+
+    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(1,1).build(),
+                                        Schema.BYTES_SCHEMA), is(false));
+
+    assertThat(SchemaUtil.areCompatible(GenericsUtil.generic("a").build(),
+                                        GenericsUtil.generic("b").build()), is(false));
+
+    assertThat(SchemaUtil.areCompatible(GenericsUtil.array("a").build(),
+                                        GenericsUtil.array("b").build()), is(false));
+  }
+
+  @Test
+  public void shouldPassCompatibleSchemas() {
+    assertThat(SchemaUtil.areCompatible(Schema.STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+               is(true));
+
+    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(2,2),
+                                        DecimalUtil.builder(1,1)), is(true));
+
+    assertThat(SchemaUtil.areCompatible(GenericsUtil.generic("a").build(),
+                                        GenericsUtil.generic("a").build()), is(false));
   }
 
   @Test

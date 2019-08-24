@@ -174,7 +174,7 @@ public final class KsqlFunction implements IndexedFunction {
   }
 
   private void checkMatchingReturnTypes(final Schema s1, final Schema s2) {
-    if (!SchemaUtil.compareSchemaTypes(s1, s2)) {
+    if (!SchemaUtil.areCompatible(s1, s2)) {
       throw new KsqlException(String.format("Return type %s of UDF %s does not match the declared "
                                                 + "return type %s.",
                                             s1.toString(),

@@ -301,7 +301,7 @@ public class UdfIndex<T extends IndexedFunction> {
         return reserveGenerics(schema, argument, reservedGenerics);
       }
 
-      return SchemaUtil.compareSchemaTypes(schema, argument);
+      return SchemaUtil.areCompatible(schema, argument);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 

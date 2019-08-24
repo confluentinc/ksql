@@ -376,7 +376,7 @@ public final class SchemaUtil {
   }
 
 
-  public static boolean compareSchemaTypes(final Schema arg1, final Schema arg2) {
+  public static boolean areCompatible(final Schema arg1, final Schema arg2) {
     if (arg2 == null) {
       return arg1.isOptional();
     }
@@ -405,7 +405,7 @@ public final class SchemaUtil {
   }
 
   private static boolean bytesEquals(final Schema bytesA, final Schema bytesB) {
-    // from a UDF parameter perspective, all decimals are the same
+    // from a Java schema perspective, all decimals are the same
     // since they can all be cast to BigDecimal - other bytes types
     // are not supported in UDFs
     return DecimalUtil.isDecimal(bytesA) && DecimalUtil.isDecimal(bytesB);

@@ -85,8 +85,8 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   public SchemaKTable<Struct> aggregate(
       final LogicalSchema aggregateSchema,
       final Initializer initializer,
+      final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
       final Stacker contextStacker
@@ -95,7 +95,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
-    throwOnValueFieldCountMismatch(aggregateSchema, aggValToValColumnMap, aggValToFunctionMap);
+    throwOnValueFieldCountMismatch(aggregateSchema, nonFuncColumnCount, aggValToFunctionMap);
 
     final List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
         .stream()
@@ -110,7 +110,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     }
 
     final KudafAggregator aggregator = new KudafAggregator(
-        aggValToFunctionMap, aggValToValColumnMap);
+        nonFuncColumnCount, aggValToFunctionMap);
 
     final Map<Integer, TableAggregationFunction> aggValToUndoFunctionMap =
         aggValToFunctionMap.keySet()
@@ -119,8 +119,9 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
                 Collectors.toMap(
                     k -> k,
                     k -> ((TableAggregationFunction) aggValToFunctionMap.get(k))));
+
     final KudafUndoAggregator subtractor = new KudafUndoAggregator(
-        aggValToUndoFunctionMap, aggValToValColumnMap);
+        nonFuncColumnCount, aggValToUndoFunctionMap);
 
     final Materialized<Struct, GenericRow, ?> materialized = materializedFactory.create(
         keySerde,

@@ -30,7 +30,6 @@ import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
-import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.List;
@@ -104,13 +103,13 @@ public class SchemaKGroupedStream {
   public SchemaKTable<?> aggregate(
       final LogicalSchema aggregateSchema,
       final Initializer initializer,
+      final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      final Map<Integer, Integer> aggValToValColumnMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final Stacker contextStacker
+      final QueryContext.Stacker contextStacker
   ) {
-    throwOnValueFieldCountMismatch(aggregateSchema, aggValToValColumnMap, aggValToFunctionMap);
+    throwOnValueFieldCountMismatch(aggregateSchema, nonFuncColumnCount, aggValToFunctionMap);
 
     final KTable table;
     final KeySerde<?> newKeySerde;
@@ -119,8 +118,8 @@ public class SchemaKGroupedStream {
 
       table = aggregateWindowed(
           initializer,
+          nonFuncColumnCount,
           aggValToFunctionMap,
-          aggValToValColumnMap,
           windowExpression,
           topicValueSerDe,
           contextStacker
@@ -130,8 +129,8 @@ public class SchemaKGroupedStream {
 
       table = aggregateNonWindowed(
           initializer,
+          nonFuncColumnCount,
           aggValToFunctionMap,
-          aggValToValColumnMap,
           topicValueSerDe,
           contextStacker
       );
@@ -152,13 +151,12 @@ public class SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   private KTable aggregateNonWindowed(
       final Initializer initializer,
+      final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
-      final Map<Integer, Integer> indexToValueMap,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker) {
-
-    final UdafAggregator aggregator = new KudafAggregator(
-        indexToFunctionMap, indexToValueMap);
+      final QueryContext.Stacker contextStacker
+  ) {
+    final UdafAggregator aggregator = new KudafAggregator(nonFuncColumnCount, indexToFunctionMap);
 
     final Materialized<Struct, GenericRow, ?> materialized = materializedFactory.create(
         keySerde,
@@ -172,14 +170,13 @@ public class SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   private KTable aggregateWindowed(
       final Initializer initializer,
+      final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
-      final Map<Integer, Integer> indexToValueMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker) {
-
-    final UdafAggregator aggregator = new KudafAggregator(
-        indexToFunctionMap, indexToValueMap);
+      final QueryContext.Stacker contextStacker
+  ) {
+    final UdafAggregator aggregator = new KudafAggregator(nonFuncColumnCount, indexToFunctionMap);
 
     final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
 
@@ -213,12 +210,11 @@ public class SchemaKGroupedStream {
 
   static void throwOnValueFieldCountMismatch(
       final LogicalSchema aggregateSchema,
-      final Map<Integer, Integer> aggValToValColumnMap,
+      final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap
   ) {
     final int nonAggColumnCount = aggValToFunctionMap.size();
-    final int aggColumnCount = aggValToValColumnMap.size();
-    final int totalColumnCount = nonAggColumnCount + aggColumnCount;
+    final int totalColumnCount = nonAggColumnCount + nonFuncColumnCount;
 
     final int valueColumnCount = aggregateSchema.valueFields().size();
     if (valueColumnCount != totalColumnCount) {

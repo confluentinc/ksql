@@ -184,7 +184,7 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -208,7 +208,7 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -232,7 +232,7 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -254,7 +254,7 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -286,8 +286,8 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        funcMap,
-        emptyMap(),
+       0, funcMap,
+
         windowExp,
         topicValueSerDe,
         queryContext
@@ -314,8 +314,8 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        funcMap,
-        emptyMap(),
+       0, funcMap,
+
         windowExp,
         topicValueSerDe,
         queryContext
@@ -346,7 +346,7 @@ public class SchemaKGroupedStreamTest {
     schemaGroupedStream.aggregate(
         aggregateSchema,
         () -> null,
-        Collections.emptyMap(),
+        0,
         Collections.emptyMap(),
         null,
         topicValueSerDe,
@@ -374,7 +374,7 @@ public class SchemaKGroupedStreamTest {
     schemaGroupedStream.aggregate(
         aggregateSchema,
         () -> null,
-        Collections.emptyMap(),
+        0,
         Collections.emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -395,7 +395,7 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -413,15 +413,14 @@ public class SchemaKGroupedStreamTest {
     givenAggregateSchemaFieldCount(2);
 
     // Where as params have 1 nonAgg and 2 agg fields:
-    final Map<Integer, Integer> nonAggColumns = ImmutableMap.of(0, 0, 1, 1);
     final Map<Integer, KsqlAggregateFunction> aggColumns = ImmutableMap.of(2, otherFunc);
 
     // When:
     schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
+        2,
         aggColumns,
-        nonAggColumns,
         windowExp,
         topicValueSerDe,
         queryContext

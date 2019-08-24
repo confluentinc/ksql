@@ -30,7 +30,7 @@ Stateful aggregate function (UDAF)
 Implement a Custom Function
 *************************** 
 
-Folow these steps to create your custom functions:
+Follow these steps to create your custom functions:
 
 #. Write your UDF or UDAF class in Java.
 

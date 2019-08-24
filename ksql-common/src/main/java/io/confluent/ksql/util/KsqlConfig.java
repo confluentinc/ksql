@@ -63,7 +63,7 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
 
-  public static final String CONNECT_URL_PROPERTY = "ksql.connect.registry.url";
+  public static final String CONNECT_URL_PROPERTY = "ksql.connect.url";
 
   public static final String CONNECT_POLLING_ENABLE_PROPERTY = "ksql.connect.polling.enable";
 

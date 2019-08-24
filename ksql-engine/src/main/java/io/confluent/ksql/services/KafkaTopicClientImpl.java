@@ -25,7 +25,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;

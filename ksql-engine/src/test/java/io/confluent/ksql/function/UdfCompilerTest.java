@@ -517,11 +517,11 @@ public class UdfCompilerTest {
     return null;
   }
   
-  public static Udaf<Map<String, Integer>, Map<Long, Boolean>> createMapMap() {
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>> createMapMap() {
     return null;
   }
 
-  public static Udaf<Map<String, Integer>, Map<Long, Boolean>> createMapMap(int ignored) {
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>> createMapMap(int ignored) {
     return null;
   }
 

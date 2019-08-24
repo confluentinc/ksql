@@ -204,7 +204,7 @@ public class SchemaKGroupedTableTest {
     groupedTable.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         windowExp,
         topicValueSerDe,
@@ -224,15 +224,13 @@ public class SchemaKGroupedTableTest {
       aggValToFunctionMap.put(
           1, functionRegistry.getAggregate("MIN", Schema.OPTIONAL_INT64_SCHEMA));
 
-      final Map<Integer, Integer> aggValToValColumnMap = Collections.singletonMap(0, 0);
-
-      givenAggregateSchemaFieldCount(aggValToFunctionMap.size() + aggValToValColumnMap.size());
+      givenAggregateSchemaFieldCount(aggValToFunctionMap.size() + 1);
 
       kGroupedTable.aggregate(
           aggregateSchema,
           new KudafInitializer(1),
+          1,
           aggValToFunctionMap,
-          aggValToValColumnMap,
           null,
           GenericRowSerDe.from(
               FormatInfo.of(Format.JSON, Optional.empty()),
@@ -297,7 +295,7 @@ public class SchemaKGroupedTableTest {
     groupedTable.aggregate(
         aggregateSchema,
         () -> null,
-        Collections.emptyMap(),
+        0,
         Collections.emptyMap(),
         null,
         valueSerde,
@@ -317,7 +315,7 @@ public class SchemaKGroupedTableTest {
     final SchemaKTable result = groupedTable.aggregate(
         aggregateSchema,
         initializer,
-        emptyMap(),
+        0,
         emptyMap(),
         null,
         topicValueSerDe,
@@ -338,15 +336,14 @@ public class SchemaKGroupedTableTest {
     givenAggregateSchemaFieldCount(2);
 
     // Where as params have 1 nonAgg and 2 agg fields:
-    final Map<Integer, Integer> nonAggColumns = ImmutableMap.of(0, 0, 1, 1);
     final Map<Integer, KsqlAggregateFunction> aggColumns = ImmutableMap.of(2, otherFunc);
 
     // When:
     groupedTable.aggregate(
         aggregateSchema,
         initializer,
+        2,
         aggColumns,
-        nonAggColumns,
         null,
         topicValueSerDe,
         queryContext

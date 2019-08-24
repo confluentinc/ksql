@@ -380,13 +380,6 @@ public class StreamSourceTest {
     assertThat(withTimestamp, equalTo(new GenericRow(456L, "baz", 123)));
   }
 
-  @SuppressWarnings("unchecked")
-  private Serde getKeySerdeFromStreamSource(final StreamSource streamSource) {
-    streamSource.build(queryBuilder);
-    verify(streamsBuilder.stream(anyString(), consumedCaptor.capture()));
-    return KsqlConsumed.keySerde(consumedCaptor.capture());
-  }
-
   @Test
   @SuppressWarnings("unchecked")
   public void shouldUseCorrectSerdeForWindowedKey() {

@@ -13,12 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.when;
+package io.confluent.ksql.util;
 
 import io.confluent.ksql.schema.connect.SchemaFormatter;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -26,10 +21,13 @@ import java.util.LinkedHashMap;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -63,9 +61,9 @@ public class QuerySchemasTest {
 
     schemas = new QuerySchemas(orderedSchemas, schemaFormatter);
 
-    when(schemaFormatter.format(SCHEMA_ONE.serializedSchema())).thenReturn(SCHEMA_ONE_TEXT);
-    when(schemaFormatter.format(SCHEMA_TWO.serializedSchema())).thenReturn(SCHEMA_TWO_TEXT);
-    when(schemaFormatter.format(SCHEMA_THREE.serializedSchema())).thenReturn(SCHEMA_THREE_TEXT);
+    Mockito.when(schemaFormatter.format(SCHEMA_ONE.serializedSchema())).thenReturn(SCHEMA_ONE_TEXT);
+    Mockito.when(schemaFormatter.format(SCHEMA_TWO.serializedSchema())).thenReturn(SCHEMA_TWO_TEXT);
+    Mockito.when(schemaFormatter.format(SCHEMA_THREE.serializedSchema())).thenReturn(SCHEMA_THREE_TEXT);
   }
 
   @Test
@@ -74,7 +72,7 @@ public class QuerySchemasTest {
     final String result = schemas.toString();
 
     // Then:
-    assertThat(result, is(
+    MatcherAssert.assertThat(result, Matchers.is(
         "thing one = " + SCHEMA_ONE_TEXT + System.lineSeparator()
             + "thing two = " + SCHEMA_TWO_TEXT + System.lineSeparator()
             + "thing three = " + SCHEMA_THREE_TEXT
@@ -102,7 +100,7 @@ public class QuerySchemasTest {
     ));
 
     // Then:
-    assertThat(optionals.toString(), is(""
+    MatcherAssert.assertThat(optionals.toString(), Matchers.is(""
         + "a = INT" + System.lineSeparator()
         + "b = ARRAY<VARCHAR>" + System.lineSeparator()
         + "c = MAP<DOUBLE, BOOLEAN>" + System.lineSeparator()
@@ -128,7 +126,7 @@ public class QuerySchemasTest {
     ));
 
     // Then:
-    assertThat(nonOptionals.toString(), is(""
+    MatcherAssert.assertThat(nonOptionals.toString(), Matchers.is(""
         + "a = INT NOT NULL" + System.lineSeparator()
         + "b = ARRAY<VARCHAR NOT NULL> NOT NULL" + System.lineSeparator()
         + "c = MAP<DOUBLE NOT NULL, BOOLEAN NOT NULL> NOT NULL" + System.lineSeparator()
@@ -138,7 +136,7 @@ public class QuerySchemasTest {
 
   private static LinkedHashMap<String, PersistenceSchema> linkedMapOf(final Object... e) {
 
-    assertThat("odd param count", e.length % 2, is(0));
+    MatcherAssert.assertThat("odd param count", e.length % 2, Matchers.is(0));
 
     final LinkedHashMap<String, PersistenceSchema> map = new LinkedHashMap<>();
 
@@ -146,13 +144,13 @@ public class QuerySchemasTest {
       final Object key = e[idx++];
       Object value = e[idx++];
 
-      assertThat("key must be String", key, instanceOf(String.class));
+      MatcherAssert.assertThat("key must be String", key, Matchers.instanceOf(String.class));
 
       if (value instanceof ConnectSchema) {
         value = unwrappedPersistenceSchema((ConnectSchema) value);
       }
 
-      assertThat("value must be Schema", value, instanceOf(PersistenceSchema.class));
+      MatcherAssert.assertThat("value must be Schema", value, Matchers.instanceOf(PersistenceSchema.class));
 
       map.put((String) key, (PersistenceSchema) value);
     }

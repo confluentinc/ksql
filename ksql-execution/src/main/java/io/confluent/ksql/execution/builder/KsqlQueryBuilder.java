@@ -35,15 +35,11 @@ import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.QuerySchemas;
 import java.util.LinkedHashMap;
-import java.util.Optional;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public final class KsqlQueryBuilder {
@@ -119,8 +115,8 @@ public final class KsqlQueryBuilder {
     return streamsBuilder;
   }
 
-  public LinkedHashMap<String, PersistenceSchema> getSchemas() {
-    return new LinkedHashMap<>(schemas);
+  public QuerySchemas getSchemas() {
+    return QuerySchemas.of(schemas);
   }
 
   public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
@@ -134,7 +130,7 @@ public final class KsqlQueryBuilder {
     );
   }
 
-  public QueryContext.Stacker buildNodeContext(final String... context) {
+  public QueryContext.Stacker buildNodeContext(final String context) {
     return new QueryContext.Stacker(queryId)
         .push(context);
   }
@@ -199,23 +195,5 @@ public final class KsqlQueryBuilder {
       throw new IllegalStateException("Schema with tracked:" + loggerNamePrefix);
     }
     schemas.put(loggerNamePrefix, schema);
-  }
-
-  public Optional<Topology.AutoOffsetReset> getAutoOffsetReset() {
-    final Object offestReset =
-        ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    if (offestReset == null) {
-      return Optional.empty();
-    }
-
-    try {
-      return Optional.of(AutoOffsetReset.valueOf(offestReset.toString().toUpperCase()));
-    } catch (final Exception e) {
-      throw new ConfigException(
-          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
-          offestReset,
-          "Unknown value"
-      );
-    }
   }
 }

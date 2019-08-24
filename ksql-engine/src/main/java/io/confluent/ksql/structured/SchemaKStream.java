@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamSource;
@@ -129,9 +130,7 @@ public class SchemaKStream<K> {
           queryContext,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
-          topic.getKeyFormat(),
-          topic.getValueFormat(),
-          dataSource.getSerdeOptions(),
+          Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
           dataSource.getTimestampExtractionPolicy(),
           timestampIndex,
           offsetReset
@@ -142,9 +141,7 @@ public class SchemaKStream<K> {
           queryContext,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
-          topic.getKeyFormat(),
-          topic.getValueFormat(),
-          dataSource.getSerdeOptions(),
+          Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
           dataSource.getTimestampExtractionPolicy(),
           timestampIndex,
           offsetReset

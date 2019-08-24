@@ -35,7 +35,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -55,7 +54,6 @@ import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
-import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -71,7 +69,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -85,7 +82,6 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
@@ -117,6 +113,7 @@ public class DataSourceNodeTest {
       .build());
   private static final KeyField KEY_FIELD
       = KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get());
+  private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
       .from(REAL_SCHEMA.withoutMetaAndKeyFieldsInValue(), SerdeOption.none());
@@ -171,8 +168,6 @@ public class DataSourceNodeTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private DataSourceNode.SchemaKStreamFactory schemaKStreamFactory;
-  @Mock
-  private Optional<AutoOffsetReset> offsetReset;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
   @Captor
@@ -199,7 +194,6 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn((KeySerde)keySerde);
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(ksqlStreamBuilder.getAutoOffsetReset()).thenReturn(offsetReset);
 
     when(rowSerde.serializer()).thenReturn(mock(Serializer.class));
     when(rowSerde.deserializer()).thenReturn(mock(Deserializer.class));
@@ -444,32 +438,6 @@ public class DataSourceNodeTest {
         any());
   }
 
-  @SuppressWarnings("unchecked")
-  private DataSourceNode nodeWithMockTableSource() {
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
-    when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
-    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
-    when(dataSource.getKeyField())
-        .thenReturn(KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()));
-
-    return new DataSourceNode(
-        realNodeId,
-        dataSource,
-        "t"
-    );
-  }
-
-  private DataSourceNode buildNodeWithMockSource() {
-    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
-    when(dataSource.getKeyField()).thenReturn(KEY_FIELD);
-    return new DataSourceNode(
-        PLAN_NODE_ID,
-        dataSource,
-        "name",
-        schemaKStreamFactory
-    );
-  }
-
   @Test
   public void shouldBuildSourceStreamWithCorrectTimestampIndex() {
     // Given:
@@ -516,7 +484,7 @@ public class DataSourceNodeTest {
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
         queryContextCaptor.capture(),
         eq(3),
-        same(offsetReset),
+        eq(OFFSET_RESET),
         same(node.getKeyField())
     );
     assertThat(
@@ -541,7 +509,7 @@ public class DataSourceNodeTest {
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
         queryContextCaptor.capture(),
         eq(3),
-        same(offsetReset),
+        eq(OFFSET_RESET),
         same(node.getKeyField())
     );
     assertThat(
@@ -600,5 +568,32 @@ public class DataSourceNodeTest {
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "reduce")));
+  }
+
+
+  @SuppressWarnings("unchecked")
+  private DataSourceNode nodeWithMockTableSource() {
+    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
+    when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
+    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
+    when(dataSource.getKeyField())
+        .thenReturn(KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()));
+
+    return new DataSourceNode(
+        realNodeId,
+        dataSource,
+        "t"
+    );
+  }
+
+  private DataSourceNode buildNodeWithMockSource() {
+    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
+    when(dataSource.getKeyField()).thenReturn(KEY_FIELD);
+    return new DataSourceNode(
+        PLAN_NODE_ID,
+        dataSource,
+        "name",
+        schemaKStreamFactory
+    );
   }
 }

@@ -32,10 +32,13 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
-import java.util.Objects;
+import java.util.Map;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
@@ -80,8 +83,7 @@ public class DataSourceNode extends PlanNode {
     this.keyField = KeyField.of(keyFieldName, dataSource.getKeyField().legacy())
         .validateKeyExistsIn(schema.getSchema());
 
-    this.schemaKStreamFactory
-        = Objects.requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
+    this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");
   }
 
   @Override
@@ -134,7 +136,7 @@ public class DataSourceNode extends PlanNode {
         schema,
         contextStacker.push(SOURCE_OP_NAME).getQueryContext(),
         timestampIndex(),
-        builder.getAutoOffsetReset(),
+        getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField
     );
     if (getDataSourceType() == DataSourceType.KSTREAM) {
@@ -162,12 +164,30 @@ public class DataSourceNode extends PlanNode {
   }
 
   private int timestampIndex() {
-    final LogicalSchema originalSchema = schema.getOriginalSchema();
+    final LogicalSchema originalSchema = dataSource.getSchema();
     final String timestampField = dataSource.getTimestampExtractionPolicy().timestampField();
     return originalSchema.valueFieldIndex(timestampField)
         .orElse(
             originalSchema.withAlias(alias).valueFieldIndex(timestampField)
                 .orElse(-1)
         );
+  }
+
+  private static Optional<Topology.AutoOffsetReset> getAutoOffsetReset(
+      final Map<String, Object> props) {
+    final Object offestReset = props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    if (offestReset == null) {
+      return Optional.empty();
+    }
+
+    try {
+      return Optional.of(AutoOffsetReset.valueOf(offestReset.toString().toUpperCase()));
+    } catch (final Exception e) {
+      throw new ConfigException(
+          ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+          offestReset,
+          "Unknown value"
+      );
+    }
   }
 }

@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -35,8 +34,7 @@ public final class Formats {
     return new Formats(keyFormat, valueFormat, options);
   }
 
-  @VisibleForTesting
-  Formats(
+  private Formats(
       final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options) {

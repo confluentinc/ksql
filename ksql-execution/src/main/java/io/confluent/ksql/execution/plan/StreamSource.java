@@ -57,8 +57,88 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
   private final int timestampIndex;
   private final Optional<AutoOffsetReset> offsetReset;
   private final LogicalSchema sourceSchema;
-  // These fields are not serialized. They are computed when deserialized
-  private final Functions<K> functions;
+  private final transient Functions<K> functions;
+
+  public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
+      final String alias,
+      final LogicalSchema schema) {
+    return LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, schema);
+  }
+
+  public static StreamSource<Windowed<Struct>> createWindowed(
+      final QueryContext queryContext,
+      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
+      final String topicName,
+      final Formats formats,
+      final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
+      final Optional<AutoOffsetReset> offsetReset) {
+    if (!formats.getKeyFormat().isWindowed()) {
+      throw new IllegalStateException("Cannot create windowed source for unwindowed key");
+    }
+    return new StreamSource<>(
+        new DefaultExecutionStepProperties(
+            queryContext.toString(),
+            schemaWithMetaAndKeyFields.getSchema(),
+            queryContext
+        ),
+        topicName,
+        formats,
+        timestampPolicy,
+        timestampIndex,
+        offsetReset,
+        schemaWithMetaAndKeyFields.getOriginalSchema(),
+        new Functions<>(
+            (fmt, schema, ctx, builder) -> builder.buildKeySerde(
+                fmt.getFormatInfo(),
+                fmt.getWindowInfo().get(),
+                schema,
+                ctx
+            ),
+            windowedMapper(schemaWithMetaAndKeyFields.getSchema()),
+            new AddTimestampColumn(),
+            Consumed::with,
+            PhysicalSchema::from
+        )
+    );
+  }
+
+  public static StreamSource<Struct> createNonWindowed(
+      final QueryContext queryContext,
+      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
+      final String topicName,
+      final Formats formats,
+      final TimestampExtractionPolicy timestampPolicy,
+      final int timestampIndex,
+      final Optional<AutoOffsetReset> offsetReset) {
+    if (formats.getKeyFormat().isWindowed()) {
+      throw new IllegalStateException("Cannot create undwindowed source for windowed key");
+    }
+    return new StreamSource<>(
+        new DefaultExecutionStepProperties(
+            queryContext.toString(),
+            schemaWithMetaAndKeyFields.getSchema(),
+            queryContext
+        ),
+        topicName,
+        formats,
+        timestampPolicy,
+        timestampIndex,
+        offsetReset,
+        schemaWithMetaAndKeyFields.getOriginalSchema(),
+        new Functions<>(
+            (fmt, schema, ctx, builder) -> builder.buildKeySerde(
+                fmt.getFormatInfo(),
+                schema,
+                ctx
+            ),
+            nonWindowedValueMapper(schemaWithMetaAndKeyFields.getSchema()),
+            new AddTimestampColumn(),
+            Consumed::with,
+            PhysicalSchema::from
+        )
+    );
+  }
 
   @VisibleForTesting
   StreamSource(
@@ -173,31 +253,12 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
     );
   }
 
-  public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
-      final String alias,
-      final LogicalSchema schema) {
-    return LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, schema);
-  }
-
   interface KeySerdeSupplier<K> {
     KeySerde<K> buildKeySerde(
         KeyFormat format,
         PhysicalSchema schema,
         QueryContext queryContext,
         KsqlQueryBuilder builder
-    );
-  }
-
-  interface Constructor<K> {
-    StreamSource<K> construct(
-        ExecutionStepProperties properties,
-        String topicName,
-        Formats formats,
-        TimestampExtractionPolicy timestampPolicy,
-        int timestampIndex,
-        Optional<AutoOffsetReset> offsetReset,
-        LogicalSchema sourceSchema,
-        Functions<K> functions
     );
   }
 
@@ -222,131 +283,6 @@ public class StreamSource<K> implements ExecutionStep<KStream<K, GenericRow>> {
       this.physicalSchemaFactory
           = Objects.requireNonNull(physicalSchemaFactory, "physicalSchemaFactory");
     }
-  }
-
-  static StreamSource<Windowed<Struct>> createWindowed(
-      final QueryContext queryContext,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
-      final String topicName,
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset,
-      final Constructor<Windowed<Struct>> constructor
-  ) {
-    return constructor.construct(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            schemaWithMetaAndKeyFields.getSchema(),
-            queryContext
-        ),
-        topicName,
-        Formats.of(keyFormat, valueFormat, options),
-        timestampPolicy,
-        timestampIndex,
-        offsetReset,
-        schemaWithMetaAndKeyFields.getOriginalSchema(),
-        new Functions<>(
-            (fmt, schema, ctx, builder) -> builder.buildKeySerde(
-                fmt.getFormatInfo(),
-                fmt.getWindowInfo().get(),
-                schema,
-                ctx
-            ),
-            windowedMapper(schemaWithMetaAndKeyFields.getSchema()),
-            new AddTimestampColumn(),
-            Consumed::with,
-            PhysicalSchema::from
-        )
-    );
-  }
-
-  public static StreamSource<Windowed<Struct>> createWindowed(
-      final QueryContext queryContext,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
-      final String topicName,
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset) {
-    return createWindowed(
-        queryContext,
-        schemaWithMetaAndKeyFields,
-        topicName,
-        keyFormat,
-        valueFormat,
-        options,
-        timestampPolicy,
-        timestampIndex,
-        offsetReset,
-        StreamSource::new
-    );
-  }
-
-  static StreamSource<Struct> createNonWindowed(
-      final QueryContext queryContext,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
-      final String topicName,
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset,
-      final Constructor<Struct> constructor
-  ) {
-    return constructor.construct(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            schemaWithMetaAndKeyFields.getSchema(),
-            queryContext
-        ),
-        topicName,
-        Formats.of(keyFormat, valueFormat, options),
-        timestampPolicy,
-        timestampIndex,
-        offsetReset,
-        schemaWithMetaAndKeyFields.getOriginalSchema(),
-        new Functions<>(
-            (fmt, schema, ctx, builder) -> builder.buildKeySerde(
-                fmt.getFormatInfo(),
-                schema,
-                ctx
-            ),
-            nonWindowedValueMapper(schemaWithMetaAndKeyFields.getSchema()),
-            new AddTimestampColumn(),
-            Consumed::with,
-            PhysicalSchema::from
-        )
-    );
-  }
-
-  public static StreamSource<Struct> createNonWindowed(
-      final QueryContext queryContext,
-      final LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
-      final String topicName,
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final Set<SerdeOption> options,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset) {
-    return createNonWindowed(
-        queryContext,
-        schemaWithMetaAndKeyFields,
-        topicName,
-        keyFormat,
-        valueFormat,
-        options,
-        timestampPolicy,
-        timestampIndex,
-        offsetReset,
-        StreamSource::new
-    );
   }
 
   private static org.apache.kafka.connect.data.Field getKeySchemaSingleField(

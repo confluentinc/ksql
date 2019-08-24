@@ -22,7 +22,6 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
@@ -44,6 +43,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Set;
@@ -56,6 +56,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KsqlConsumed;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformer;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
@@ -97,7 +98,7 @@ public class StreamSourceTest {
   @Mock
   private StreamsBuilder streamsBuilder;
   @Mock
-  private KStream<Struct, GenericRow> kStream;
+  private KStream kStream;
   @Mock
   private ExecutionStepProperties properties;
   @Mock
@@ -110,12 +111,11 @@ public class StreamSourceTest {
   private ValueFormat valueFormat;
   @Mock
   private FormatInfo valueFormatInfo;
-  @Mock
-  private Set<SerdeOption> serdeOptions;
+  private final Set<SerdeOption> serdeOptions = new HashSet<>();
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private KeySerde keySerde;
   @Mock
   private Optional<AutoOffsetReset> offsetReset;
   @Mock
@@ -123,25 +123,27 @@ public class StreamSourceTest {
   @Mock
   private TimestampExtractor extractor;
   @Mock
-  private KeySerdeSupplier<Struct> keySerdeSupplier;
+  private KeySerdeSupplier keySerdeSupplier;
   @Mock
-  private ValueMapperWithKey<Struct, GenericRow, GenericRow> metaFieldMapper;
+  private ValueMapperWithKey<?, GenericRow, GenericRow> metaFieldMapper;
   @Mock
   private ValueTransformerSupplier<GenericRow, GenericRow> timestampTransformer;
   @Mock
-  private Consumed<Struct, GenericRow> consumed;
+  private Consumed consumed;
   @Mock
-  private BiFunction<Serde<Struct>, Serde<GenericRow>, Consumed<Struct, GenericRow>> cFactory;
+  private BiFunction<Serde<?>, Serde<GenericRow>, Consumed> cFactory;
   @Mock
   private PhysicalSchema physicalSchema;
   @Mock
   private BiFunction<LogicalSchema, Set<SerdeOption>, PhysicalSchema> physicalSchemaFactory;
   @Mock
-  private StreamSource.Constructor constructor;
-  @Mock
   private ProcessorContext processorCtx;
   @Captor
-  private ArgumentCaptor<Functions> captor;
+  private ArgumentCaptor<ValueMapperWithKey> mapperCaptor;
+  @Captor
+  private ArgumentCaptor<ValueTransformerSupplier> transformSupplierCaptor;
+  @Captor
+  private ArgumentCaptor<Consumed> consumedCaptor;
 
   private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
 
@@ -195,6 +197,7 @@ public class StreamSourceTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToSourceStream() {
     // When:
     final KStream<Struct, GenericRow> builtKstream = streamSource.build(queryBuilder);
@@ -265,29 +268,33 @@ public class StreamSourceTest {
     verify(cFactory).apply(same(keySerde), any());
   }
 
+  @SuppressWarnings("unchecked")
+  private ValueMapperWithKey<?, GenericRow, GenericRow> getMapperFromStreamSource(
+      final StreamSource<?> streamSource) {
+    streamSource.build(queryBuilder);
+    verify(kStream).mapValues(mapperCaptor.capture());
+    return mapperCaptor.getValue();
+  }
+
   @Test
   @SuppressWarnings("unchecked")
   public void shouldAddWindowedKeyWithCorrectFormat() {
     // Given:
+    when(keyFormat.isWindowed()).thenReturn(true);
     final Windowed<Struct> key = new Windowed<>(KEY, new TimeWindow(100, 200));
-    StreamSource.createWindowed(
+    final StreamSource<?> streamSource = StreamSource.createWindowed(
         ctx,
         LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
         TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
         extractionPolicy,
         -1,
-        offsetReset,
-        constructor
+        offsetReset
     );
-    verify(constructor)
-        .construct(any(), any(), any(), any(), anyInt(), any(), any(), captor.capture());
-    final Functions<Windowed<Struct>> functions = captor.getValue();
+    final ValueMapperWithKey mapper = getMapperFromStreamSource(streamSource);
 
     // When:
-    final GenericRow result = functions.metaFieldMapper.apply(key, row);
+    final GenericRow result = (GenericRow) mapper.apply(key, row);
 
     // Then:
     assertThat(
@@ -299,24 +306,19 @@ public class StreamSourceTest {
   @SuppressWarnings("unchecked")
   public void shouldAddNonWindowedKey() {
     // Given:
-    StreamSource.createNonWindowed(
+    final StreamSource streamSource = StreamSource.createNonWindowed(
         ctx,
         LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
         TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
         extractionPolicy,
         -1,
-        offsetReset,
-        constructor
+        offsetReset
     );
-    verify(constructor)
-        .construct(any(), any(), any(), any(), anyInt(), any(), any(), captor.capture());
-    final Functions<Struct> functions = captor.getValue();
+    final ValueMapperWithKey mapper = getMapperFromStreamSource(streamSource);
 
     // When:
-    final GenericRow result = functions.metaFieldMapper.apply(KEY, row);
+    final GenericRow result = (GenericRow) mapper.apply(KEY, row);
 
     // Then:
     assertThat(result, equalTo(new GenericRow("foo", "baz", 123)));
@@ -341,118 +343,90 @@ public class StreamSourceTest {
             SCHEMA.valueSchema())
         ),
         TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
         extractionPolicy,
         -1,
-        offsetReset,
-        constructor
+        offsetReset
     );
   }
 
-  @Test
   @SuppressWarnings("unchecked")
-  public void shouldExtractTimestmapUsingTheProvidedIndex() {
-    // When:
-    StreamSource.createNonWindowed(
-        ctx,
-        LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
-        TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
-        extractionPolicy,
-        1,
-        offsetReset,
-        constructor
-    );
-
-    // Then:
-    verify(constructor).construct(any(), any(), any(), any(), eq(1), any(), any(), any());
+  private ValueTransformer getTransformerFromStreamSource(final StreamSource<?> streamSource) {
+    streamSource.build(queryBuilder);
+    verify(kStream).transformValues(transformSupplierCaptor.capture());
+    return transformSupplierCaptor.getValue().get();
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldAddTimestampColumn() {
     // Given:
-    StreamSource.createNonWindowed(
+    final StreamSource streamSource = StreamSource.createNonWindowed(
         ctx,
         LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
         TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
         extractionPolicy,
         -1,
-        offsetReset,
-        constructor
+        offsetReset
     );
-    verify(constructor)
-        .construct(any(), any(), any(), any(), anyInt(), any(), any(), captor.capture());
-    final Functions<Struct> functions = captor.getValue();
-    final ValueTransformer<GenericRow, GenericRow> transformer
-        = functions.timestampTransformer.get();
+    final ValueTransformer transformer = getTransformerFromStreamSource(streamSource);
     transformer.init(processorCtx);
 
     // When:
-    final GenericRow withTimestamp = transformer.transform(row);
+    final GenericRow withTimestamp = (GenericRow) transformer.transform(row);
 
     // Then:
     assertThat(withTimestamp, equalTo(new GenericRow(456L, "baz", 123)));
+  }
+
+  @SuppressWarnings("unchecked")
+  private Serde getKeySerdeFromStreamSource(final StreamSource streamSource) {
+    streamSource.build(queryBuilder);
+    verify(streamsBuilder.stream(anyString(), consumedCaptor.capture()));
+    return KsqlConsumed.keySerde(consumedCaptor.capture());
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldUseCorrectSerdeForWindowedKey() {
     // Given:
-    StreamSource.createWindowed(
+    when(keyFormat.isWindowed()).thenReturn(true);
+    final StreamSource streamSource = StreamSource.createWindowed(
         ctx,
         LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
         TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
         extractionPolicy,
         -1,
-        offsetReset,
-        constructor
+        offsetReset
     );
-    verify(constructor)
-        .construct(any(), any(), any(), any(), anyInt(), any(), any(), captor.capture());
-    final Functions<Windowed<Struct>> functions = captor.getValue();
 
     // When:
-    functions.keySerdeSupplier.buildKeySerde(keyFormat, physicalSchema, ctx, queryBuilder);
+    streamSource.build(queryBuilder);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, physicalSchema, ctx);
+    verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, PhysicalSchema.from(SOURCE_SCHEMA, serdeOptions), ctx);
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldUseCorrectSerdeForNonWindowedKey() {
     // Given:
-    StreamSource.createNonWindowed(
+    final StreamSource streamSource = StreamSource.createNonWindowed(
         ctx,
         LogicalSchemaWithMetaAndKeyFields.fromTransformed(SCHEMA),
         TOPIC_NAME,
-        keyFormat,
-        valueFormat,
-        serdeOptions,
+        Formats.of(keyFormat, valueFormat, serdeOptions),
         extractionPolicy,
         -1,
-        offsetReset,
-        constructor
+        offsetReset
     );
-    verify(constructor)
-        .construct(any(), any(), any(), any(), anyInt(), any(), any(), captor.capture());
-    final Functions<Struct> functions = captor.getValue();
 
     // When:
-    functions.keySerdeSupplier.buildKeySerde(keyFormat, physicalSchema, ctx, queryBuilder);
+    streamSource.build(queryBuilder);
 
     // Then:
-    verify(queryBuilder).buildKeySerde(keyFormatInfo, physicalSchema, ctx);
+    verify(queryBuilder).buildKeySerde(keyFormatInfo, PhysicalSchema.from(SOURCE_SCHEMA, serdeOptions), ctx);
   }
 }

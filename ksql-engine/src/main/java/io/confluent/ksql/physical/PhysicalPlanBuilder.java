@@ -48,6 +48,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -168,7 +169,7 @@ public class PhysicalPlanBuilder {
           getServiceId(),
           persistanceQueryPrefix,
           queryId,
-          QuerySchemas.of(ksqlQueryBuilder.getSchemas())
+          ksqlQueryBuilder.getSchemas()
       );
     }
 

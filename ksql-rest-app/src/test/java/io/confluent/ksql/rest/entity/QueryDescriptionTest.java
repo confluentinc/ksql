@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
-import io.confluent.ksql.physical.QuerySchemas;
+import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;

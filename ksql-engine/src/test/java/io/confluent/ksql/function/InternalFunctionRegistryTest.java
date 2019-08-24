@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -257,6 +258,11 @@ public class InternalFunctionRegistryTest {
 
               @Override
               public Schema getReturnType() {
+                return null;
+              }
+
+              @Override
+              public SqlType returnType() {
                 return null;
               }
 

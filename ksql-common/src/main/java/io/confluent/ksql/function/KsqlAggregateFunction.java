@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
@@ -31,6 +32,8 @@ public interface KsqlAggregateFunction<V, A> extends IndexedFunction {
   int getArgIndexInValue();
 
   Schema getReturnType();
+
+  SqlType returnType();
 
   boolean hasSameArgTypes(List<Schema> argTypeList);
 

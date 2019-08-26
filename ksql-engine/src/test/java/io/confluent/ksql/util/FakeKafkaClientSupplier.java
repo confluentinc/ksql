@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import java.util.Collections;
 import java.util.Map;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.MockAdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.MockConsumer;
@@ -30,7 +30,7 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 public class FakeKafkaClientSupplier implements KafkaClientSupplier {
 
   @Override
-  public AdminClient getAdminClient(final Map<String, Object> config) {
+  public Admin getAdmin(final Map<String, Object> config) {
     final Node node = new Node(1, "localhost", 1234);
     return new MockAdminClient(Collections.singletonList(node), node);
   }

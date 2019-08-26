@@ -60,7 +60,7 @@ public final class TestServiceContext {
   ) {
     return create(
         new FakeKafkaClientSupplier(),
-        new FakeKafkaClientSupplier().getAdminClient(Collections.emptyMap()),
+        new FakeKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         topicClient,
         srClientFactory,
         new DefaultConnectClient("http://localhost:8083")
@@ -73,7 +73,7 @@ public final class TestServiceContext {
   ) {
     final DefaultKafkaClientSupplier kafkaClientSupplier = new DefaultKafkaClientSupplier();
     final Admin adminClient = kafkaClientSupplier
-        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+        .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps());
 
     return create(
         kafkaClientSupplier,

@@ -40,6 +40,7 @@ import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
+import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -66,7 +67,6 @@ import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SchemaInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
@@ -74,7 +74,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
@@ -157,6 +157,8 @@ public class Console implements Closeable {
               tablePrinter(ConnectorList.class, ConnectorListTableBuilder::new))
           .put(ConnectorDescription.class,
               Console::printConnectorDescription)
+          .put(TypeList.class,
+              tablePrinter(TypeList.class, TypeListTableBuilder::new))
           .put(ErrorEntity.class,
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .build();
@@ -440,39 +442,13 @@ public class Console implements Closeable {
     }
   }
 
-  @SuppressWarnings("ConstantConditions")
-  private static String schemaToTypeString(final SchemaInfo schema) {
-    switch (schema.getType()) {
-      case ARRAY:
-        return SqlBaseType.ARRAY + "<"
-            + schemaToTypeString(schema.getMemberSchema().get())
-            + ">";
-      case MAP:
-        return SqlBaseType.MAP
-            + "<"
-            + SqlBaseType.STRING + ", "
-            + schemaToTypeString(schema.getMemberSchema().get())
-            + ">";
-      case STRUCT:
-        return schema.getFields().get()
-            .stream()
-            .map(f -> f.getName() + " " + schemaToTypeString(f.getSchema()))
-            .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">"));
-      case STRING:
-        return "VARCHAR(STRING)";
-      default:
-        return schema.getType().name();
-    }
-  }
-
   private static String formatFieldType(final FieldInfo field, final String keyField) {
-
     if (field.getName().equals("ROWTIME") || field.getName().equals("ROWKEY")) {
-      return String.format("%-16s %s", schemaToTypeString(field.getSchema()), "(system)");
+      return String.format("%-16s %s", field.getSchema().toTypeString(), "(system)");
     } else if (keyField != null && keyField.contains("." + field.getName())) {
-      return String.format("%-16s %s", schemaToTypeString(field.getSchema()), "(key)");
+      return String.format("%-16s %s", field.getSchema().toTypeString(), "(key)");
     } else {
-      return schemaToTypeString(field.getSchema());
+      return field.getSchema().toTypeString();
     }
   }
 

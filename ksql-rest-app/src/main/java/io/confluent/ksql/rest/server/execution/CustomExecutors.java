@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
@@ -60,6 +61,7 @@ public enum CustomExecutors {
   LIST_QUERIES(ListQueries.class, ListQueriesExecutor::execute),
   LIST_PROPERTIES(ListProperties.class, ListPropertiesExecutor::execute),
   LIST_CONNECTORS(ListConnectors.class, ListConnectorsExecutor::execute),
+  LIST_TYPES(ListTypes.class, ListTypesExecutor::execute),
 
   SHOW_COLUMNS(ShowColumns.class, ListSourceExecutor::columns),
   EXPLAIN(Explain.class, ExplainExecutor::execute),

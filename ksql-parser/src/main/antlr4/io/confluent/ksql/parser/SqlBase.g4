@@ -39,6 +39,7 @@ statement
     | (LIST | SHOW) TABLES EXTENDED?                                        #listTables
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
+    | (LIST | SHOW) TYPES                                                   #listTypes
     | DESCRIBE EXTENDED? qualifiedName                                      #showColumns
     | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
@@ -319,7 +320,7 @@ nonReserved
     | STRUCT | MAP | ARRAY | PARTITION
     | INTEGER | DATE | TIME | TIMESTAMP | INTERVAL | ZONE
     | YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
-    | EXPLAIN | ANALYZE | TYPE
+    | EXPLAIN | ANALYZE | TYPE | TYPES
     | SET | RESET
     | IF
     | SOURCE | SINK
@@ -403,6 +404,7 @@ PRINT: 'PRINT';
 EXPLAIN: 'EXPLAIN';
 ANALYZE: 'ANALYZE';
 TYPE: 'TYPE';
+TYPES: 'TYPES';
 CAST: 'CAST';
 SHOW: 'SHOW';
 LIST: 'LIST';

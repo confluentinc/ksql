@@ -24,6 +24,7 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Immutable
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -74,5 +75,29 @@ public class SchemaInfo {
   @Override
   public int hashCode() {
     return Objects.hash(type, fields, memberSchema);
+  }
+
+  public String toTypeString() {
+    switch (getType()) {
+      case ARRAY:
+        return SqlBaseType.ARRAY + "<"
+            + memberSchema.toTypeString()
+            + ">";
+      case MAP:
+        return SqlBaseType.MAP
+            + "<"
+            + SqlBaseType.STRING + ", "
+            + memberSchema.toTypeString()
+            + ">";
+      case STRUCT:
+        return fields
+            .stream()
+            .map(f -> f.getName() + " " + f.getSchema().toTypeString())
+            .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">"));
+      case STRING:
+        return "VARCHAR(STRING)";
+      default:
+        return type.name();
+    }
   }
 }

@@ -40,7 +40,7 @@ public final class ServiceContextFactory {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory
   ) {
-    final Admin adminClient = kafkaClientSupplier.getAdminClient(
+    final Admin adminClient = kafkaClientSupplier.getAdmin(
         ksqlConfig.getKsqlAdminClientConfigProps()
     );
 

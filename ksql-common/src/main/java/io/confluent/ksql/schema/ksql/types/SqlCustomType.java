@@ -23,19 +23,19 @@ import java.util.Objects;
 @Immutable
 public final class SqlCustomType extends SqlType {
 
-  private final String alias;
+  private final String name;
 
-  public static SqlCustomType of(final String alias) {
-    return new SqlCustomType(alias);
+  public static SqlCustomType of(final String name) {
+    return new SqlCustomType(name);
   }
 
-  private SqlCustomType(final String alias) {
+  private SqlCustomType(final String name) {
     super(SqlBaseType.CUSTOM);
-    this.alias = Objects.requireNonNull(alias, "alias").toUpperCase();
+    this.name = Objects.requireNonNull(name, "name").toUpperCase();
   }
 
-  public String getAlias() {
-    return alias;
+  public String getName() {
+    return name;
   }
 
   @Override
@@ -45,7 +45,7 @@ public final class SqlCustomType extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
-    return alias;
+    return name;
   }
 
   @Override
@@ -57,11 +57,11 @@ public final class SqlCustomType extends SqlType {
       return false;
     }
     final SqlCustomType that = (SqlCustomType) o;
-    return Objects.equals(alias, that.alias);
+    return Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(alias);
+    return Objects.hash(name);
   }
 }

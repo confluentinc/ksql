@@ -105,7 +105,7 @@ public class TypeContextUtilTest {
   }
 
   @Test
-  public void shouldReturnTypeAliasOnUnknownType() {
+  public void shouldReturnCustomTypeOnUnknownType() {
     // Given:
     final String schemaString = "SHAKESPEARE";
 

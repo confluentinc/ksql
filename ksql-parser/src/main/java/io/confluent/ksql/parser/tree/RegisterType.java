@@ -23,11 +23,11 @@ import java.util.Optional;
 public class RegisterType extends Statement implements ExecutableDdlStatement {
 
   private final Type type;
-  private final String alias;
+  private final String name;
 
-  public RegisterType(final Optional<NodeLocation> location, final String alias, final Type type) {
+  public RegisterType(final Optional<NodeLocation> location, final String name, final Type type) {
     super(location);
-    this.alias = Objects.requireNonNull(alias, "alias");
+    this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
   }
 
@@ -35,8 +35,8 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
     return type;
   }
 
-  public String getAlias() {
-    return alias;
+  public String getName() {
+    return name;
   }
 
   @Override
@@ -54,19 +54,19 @@ public class RegisterType extends Statement implements ExecutableDdlStatement {
     }
     final RegisterType that = (RegisterType) o;
     return Objects.equals(type, that.type)
-        && Objects.equals(alias, that.alias);
+        && Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(type, alias);
+    return Objects.hash(type, name);
   }
 
   @Override
   public String toString() {
     return "RegisterType{"
         + "type=" + type
-        + ", alias='" + alias + '\''
+        + ", name='" + name + '\''
         + '}';
   }
 }

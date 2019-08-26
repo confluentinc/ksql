@@ -144,7 +144,7 @@ public class CustomTypeRewriterTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot resolve unknown type or alias: MY_TYPE");
+    expectedException.expectMessage("Cannot resolve unknown type: MY_TYPE");
 
     // When:
     KsqlParserTestUtil.buildSingleAst(stmtString, metaStore);

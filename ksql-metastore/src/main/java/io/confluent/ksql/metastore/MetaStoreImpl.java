@@ -59,7 +59,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
     dataSources.forEach((name, info) -> this.dataSources.put(name, info.copy()));
     typeRegistry.types()
-        .forEachRemaining(type -> this.typeRegistry.registerType(type.getAlias(), type.getType()));
+        .forEachRemaining(type -> this.typeRegistry.registerType(type.getName(), type.getType()));
   }
 
   @Override
@@ -236,22 +236,22 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void registerType(final String alias, final SqlType type) {
-    typeRegistry.registerType(alias, type);
+  public void registerType(final String name, final SqlType type) {
+    typeRegistry.registerType(name, type);
   }
 
   @Override
-  public boolean deleteType(final String alias) {
-    return typeRegistry.deleteType(alias);
+  public boolean deleteType(final String name) {
+    return typeRegistry.deleteType(name);
   }
 
   @Override
-  public Optional<SqlType> resolveType(final String alias) {
-    return typeRegistry.resolveType(alias);
+  public Optional<SqlType> resolveType(final String name) {
+    return typeRegistry.resolveType(name);
   }
 
   @Override
-  public Iterator<TypeAlias> types() {
+  public Iterator<CustomType> types() {
     return typeRegistry.types();
   }
 

@@ -34,7 +34,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class RegisterTypeCommandTest {
 
-  private static final String ALIAS_NAME = "alias";
+  private static final String CUSTOM_NAME = "name";
   private static final Type TYPE = new Type(
       SqlStruct.builder()
           .field("foo", SqlPrimitiveType.of(SqlBaseType.STRING))
@@ -44,7 +44,7 @@ public class RegisterTypeCommandTest {
   private MutableMetaStore metaStore;
 
   private RegisterTypeCommand command = new RegisterTypeCommand(
-      new RegisterType(Optional.empty(), ALIAS_NAME, TYPE));
+      new RegisterType(Optional.empty(), CUSTOM_NAME, TYPE));
 
   @Test
   public void shouldRegisterType() {
@@ -53,10 +53,10 @@ public class RegisterTypeCommandTest {
 
     // Then:
     verify(metaStore).registerType(
-        ALIAS_NAME,
+        CUSTOM_NAME,
         TYPE.getSqlType());
     assertThat("Expected successful execution", result.isSuccess());
-    assertThat(result.getMessage(), is("Registered alias alias with SQL type STRUCT<`foo` STRING>"));
+    assertThat(result.getMessage(), is("Registered custom type with name 'name' and SQL type STRUCT<`foo` STRING>"));
   }
 
 }

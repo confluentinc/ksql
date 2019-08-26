@@ -114,17 +114,17 @@ public class CustomTypeRewriter {
     }
 
     private Optional<Expression> visitCustomType(
-        final SqlCustomType alias,
+        final SqlCustomType customType,
         final Context<Void> context
     ) {
-      final Optional<SqlType> sqlType = typeRegistry.resolveType(alias.getAlias());
+      final Optional<SqlType> sqlType = typeRegistry.resolveType(customType.getName());
 
       final Optional<Expression> rewritten = sqlType.map(Type::new).map(Expression.class::cast);
       if (rewritten.isPresent()) {
         return rewritten;
       }
 
-      throw new KsqlException("Cannot resolve unknown type or alias: " + alias.getAlias());
+      throw new KsqlException("Cannot resolve unknown type: " + customType.getName());
     }
   }
 

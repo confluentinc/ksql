@@ -21,50 +21,50 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * {@code TypeRegistry} maintains a mapping from custom schema aliases
+ * {@code TypeRegistry} maintains a mapping from custom schema names
  * to more complicated schemas.
  */
 public interface TypeRegistry {
 
   /**
-   * Registers an alias with a specified schema
+   * Registers a custom type name with a specified schema
    *
-   * @param alias   the name, must be unique
-   * @param type    the schema to associate it with
+   * @param name   the name, must be unique
+   * @param type   the schema to associate it with
    */
-  void registerType(String alias, SqlType type);
+  void registerType(String name, SqlType type);
 
   /**
-   * @param alias the previously registered alias
+   * @param name the previously registered name
    * @return whether or not a type was dropped
    */
-  boolean deleteType(String alias);
+  boolean deleteType(String name);
 
   /**
-   * Resolves an alias to a previously registered type
+   * Resolves a custom type name to a previously registered type
    *
-   * @param alias the alias name
+   * @param name the custom type name
    * @return the type it was registered with, or {@link Optional#empty()} if
-   *         there was no alias with this name registered
+   *         there was no custom type with this name registered
    */
-  Optional<SqlType> resolveType(String alias);
+  Optional<SqlType> resolveType(String name);
 
   /**
    * @return an iterable of all types registered in this registry
    */
-  Iterator<TypeAlias> types();
+  Iterator<CustomType> types();
 
-  class TypeAlias {
-    private final String alias;
+  class CustomType {
+    private final String name;
     private final SqlType type;
 
-    public TypeAlias(final String alias, final SqlType type) {
-      this.alias = Objects.requireNonNull(alias, "alias");
+    public CustomType(final String name, final SqlType type) {
+      this.name = Objects.requireNonNull(name, "name");
       this.type = Objects.requireNonNull(type, "type");
     }
 
-    public String getAlias() {
-      return alias;
+    public String getName() {
+      return name;
     }
 
     public SqlType getType() {

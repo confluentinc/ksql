@@ -322,7 +322,7 @@ public final class StatementRewriter<C> {
     public AstNode visitRegisterType(final RegisterType node, final C context) {
       return new RegisterType(
           node.getLocation(),
-          node.getAlias(),
+          node.getName(),
           (Type) processExpression(node.getType(), context)
       );
     }

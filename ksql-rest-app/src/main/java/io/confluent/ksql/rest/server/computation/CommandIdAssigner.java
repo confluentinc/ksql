@@ -98,7 +98,7 @@ public class CommandIdAssigner {
   }
 
   private static CommandId getRegisterTypeCommandId(final RegisterType registerType) {
-    return new CommandId(CommandId.Type.TYPE, registerType.getAlias(), Action.CREATE);
+    return new CommandId(CommandId.Type.TYPE, registerType.getName(), Action.CREATE);
   }
 
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {

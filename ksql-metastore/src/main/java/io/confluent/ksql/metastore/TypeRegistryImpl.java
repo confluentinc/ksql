@@ -27,31 +27,32 @@ class TypeRegistryImpl implements TypeRegistry {
   private final Map<String, SqlType> typeRegistry = new ConcurrentHashMap<>();
 
   @Override
-  public void registerType(final String alias, final SqlType type) {
-    final SqlType oldValue = typeRegistry.putIfAbsent(alias.toUpperCase(), type);
+  public void registerType(final String name, final SqlType type) {
+    final SqlType oldValue = typeRegistry.putIfAbsent(name.toUpperCase(), type);
     if (oldValue != null) {
       throw new KsqlException(
-          "Cannot register alias " + alias + " since it is already registered with type: " + type
+          "Cannot register custom type '" + name + "' "
+              + "since it is already registered with type: " + type
       );
     }
   }
 
   @Override
-  public boolean deleteType(final String alias) {
-    return typeRegistry.remove(alias.toUpperCase()) != null;
+  public boolean deleteType(final String name) {
+    return typeRegistry.remove(name.toUpperCase()) != null;
   }
 
   @Override
-  public Optional<SqlType> resolveType(final String alias) {
-    return Optional.ofNullable(typeRegistry.get(alias.toUpperCase()));
+  public Optional<SqlType> resolveType(final String name) {
+    return Optional.ofNullable(typeRegistry.get(name.toUpperCase()));
   }
 
   @Override
-  public Iterator<TypeAlias> types() {
+  public Iterator<CustomType> types() {
     return typeRegistry
         .entrySet()
         .stream()
-        .map(kv -> new TypeAlias(kv.getKey(), kv.getValue())).iterator();
+        .map(kv -> new CustomType(kv.getKey(), kv.getValue())).iterator();
   }
 
 }

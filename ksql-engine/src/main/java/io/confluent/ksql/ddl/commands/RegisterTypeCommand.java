@@ -32,11 +32,11 @@ public class RegisterTypeCommand implements DdlCommand {
   public DdlCommandResult run(final MutableMetaStore metaStore) {
     final SqlType sqlType = statement.getType().getSqlType();
 
-    metaStore.registerType(statement.getAlias(), sqlType);
+    metaStore.registerType(statement.getName(), sqlType);
 
     return new DdlCommandResult(
         true,
-        "Registered alias " + statement.getAlias() + " with SQL type " + sqlType
+        "Registered custom type with name '" + statement.getName() + "' and SQL type " + sqlType
     );
   }
 }

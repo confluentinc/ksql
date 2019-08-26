@@ -5,7 +5,7 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.schema.ksql.types.SqlTypeAlias;
+import io.confluent.ksql.schema.ksql.types.SqlCustomType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
@@ -113,8 +113,8 @@ public class TypeContextUtilTest {
     final Type type = TypeContextUtil.getType(schemaString);
 
     // Then:
-    assertThat(type.getSqlType().baseType(), is(SqlBaseType.ALIAS));
-    assertThat(type.getSqlType(), is(SqlTypeAlias.of("SHAKESPEARE")));
+    assertThat(type.getSqlType().baseType(), is(SqlBaseType.CUSTOM));
+    assertThat(type.getSqlType(), is(SqlCustomType.of("SHAKESPEARE")));
   }
 
   @Test

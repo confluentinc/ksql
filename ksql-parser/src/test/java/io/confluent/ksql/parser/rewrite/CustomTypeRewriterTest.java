@@ -64,6 +64,21 @@ public class CustomTypeRewriterTest {
   }
 
   @Test
+  public void shouldRewriteNestedRegisterTypeCommands() {
+    // Given:
+    metaStore.registerType("MY_TYPE", SqlPrimitiveType.of(SqlBaseType.STRING));
+    final String stmtString = "CREATE TYPE MY_TYPE2 AS STRUCT<f1 MY_TYPE>;";
+
+    // When:
+    final Statement stmt = KsqlParserTestUtil.buildSingleAst(stmtString, metaStore).getStatement();
+
+    // Then:
+    assertThat(
+        SqlFormatter.formatSql(stmt),
+        is("CREATE TYPE MY_TYPE2 AS STRUCT<F1 STRING>;"));
+  }
+
+  @Test
   public void shouldRewriteArraysOfCustomTypes() {
     // Given:
     metaStore.registerType("MY_TYPE", SqlPrimitiveType.of(SqlBaseType.STRING));

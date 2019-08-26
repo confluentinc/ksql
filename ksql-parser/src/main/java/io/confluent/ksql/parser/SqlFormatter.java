@@ -43,6 +43,7 @@ import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -375,6 +376,16 @@ public final class SqlFormatter {
 
     private void visitExtended() {
       builder.append(" EXTENDED");
+    }
+
+    @Override
+    public Void visitRegisterType(final RegisterType node, final Integer context) {
+      builder.append("CREATE TYPE ");
+      builder.append(node.getAlias());
+      builder.append(" AS ");
+      builder.append(ExpressionFormatterUtil.formatExpression(node.getType()));
+      builder.append(";");
+      return null;
     }
 
     private void visitDrop(final DropStatement node, final String sourceType) {

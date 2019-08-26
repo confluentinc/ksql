@@ -27,6 +27,9 @@ import java.util.stream.Collectors;
 @Immutable
 public final class SqlPrimitiveType extends SqlType {
 
+  private static final String INT = "INT";
+  private static final String VARCHAR = "VARCHAR";
+
   private static final ImmutableMap<SqlBaseType, SqlPrimitiveType> TYPES =
       ImmutableMap.<SqlBaseType, SqlPrimitiveType>builder()
           .put(SqlBaseType.BOOLEAN, new SqlPrimitiveType(SqlBaseType.BOOLEAN))
@@ -38,8 +41,8 @@ public final class SqlPrimitiveType extends SqlType {
 
   private static final ImmutableSet<String> PRIMITIVE_TYPE_NAMES = ImmutableSet.<String>builder()
       .addAll(TYPES.keySet().stream().map(SqlBaseType::name).collect(Collectors.toList()))
-      .add("INT")
-      .add("VARCHAR")
+      .add(INT)
+      .add(VARCHAR)
       .build();
 
   public static boolean isPrimitiveTypeName(final String name) {
@@ -48,9 +51,9 @@ public final class SqlPrimitiveType extends SqlType {
 
   public static SqlPrimitiveType of(final String typeName) {
     switch (typeName.toUpperCase()) {
-      case "INT":
+      case INT:
         return SqlPrimitiveType.of(SqlBaseType.INTEGER);
-      case "VARCHAR":
+      case VARCHAR:
         return SqlPrimitiveType.of(SqlBaseType.STRING);
       default:
         try {

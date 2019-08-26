@@ -15,20 +15,22 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.Objects;
 
-public class SqlTypeAlias extends SqlType {
+@Immutable
+public final class SqlCustomType extends SqlType {
 
   private final String alias;
 
-  public static SqlTypeAlias of(final String alias) {
-    return new SqlTypeAlias(alias);
+  public static SqlCustomType of(final String alias) {
+    return new SqlCustomType(alias);
   }
 
-  SqlTypeAlias(final String alias) {
-    super(SqlBaseType.ALIAS);
+  private SqlCustomType(final String alias) {
+    super(SqlBaseType.CUSTOM);
     this.alias = Objects.requireNonNull(alias, "alias").toUpperCase();
   }
 
@@ -54,7 +56,7 @@ public class SqlTypeAlias extends SqlType {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SqlTypeAlias that = (SqlTypeAlias) o;
+    final SqlCustomType that = (SqlCustomType) o;
     return Objects.equals(alias, that.alias);
   }
 

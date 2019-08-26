@@ -22,13 +22,14 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlCustomType;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypeAlias;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,7 +49,8 @@ public class CustomTypeRewriter {
 
   public static boolean requiresRewrite(final Statement statement) {
     return statement instanceof CreateAsSelect
-        || statement instanceof CreateSource;
+        || statement instanceof CreateSource
+        || statement instanceof RegisterType;
   }
 
   public Statement rewrite() {
@@ -76,8 +78,8 @@ public class CustomTypeRewriter {
           return visitMap((SqlMap) node.getSqlType(), context);
         case STRUCT:
           return visitStruct((SqlStruct) node.getSqlType(), context);
-        case ALIAS:
-          return visitAlias((SqlTypeAlias) node.getSqlType(), context);
+        case CUSTOM:
+          return visitCustomType((SqlCustomType) node.getSqlType(), context);
         default:
           return Optional.of(node);
       }
@@ -111,7 +113,10 @@ public class CustomTypeRewriter {
       return Optional.of(new Type(structBuilder.build()));
     }
 
-    private Optional<Expression> visitAlias(final SqlTypeAlias alias, final Context<Void> context) {
+    private Optional<Expression> visitCustomType(
+        final SqlCustomType alias,
+        final Context<Void> context
+    ) {
       final Optional<SqlType> sqlType = typeRegistry.resolveType(alias.getAlias());
 
       final Optional<Expression> rewritten = sqlType.map(Type::new).map(Expression.class::cast);

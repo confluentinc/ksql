@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -314,6 +315,15 @@ public final class StatementRewriter<C> {
       return new SimpleGroupBy(
           node.getLocation(),
           columns
+      );
+    }
+
+    @Override
+    public AstNode visitRegisterType(final RegisterType node, final C context) {
+      return new RegisterType(
+          node.getLocation(),
+          node.getAlias(),
+          (Type) processExpression(node.getType(), context)
       );
     }
   }

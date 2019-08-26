@@ -192,6 +192,14 @@ public class KsqlConfig extends AbstractConfig {
           + "whether the Kafka cluster supports the required API, and enables the validator if "
           + "it does.";
 
+  public static final String KSQL_APPEND_USERNAME_ON_APPLICATION_ID =
+      "ksql.append.username.on.application.id";
+  public static final String KSQL_APPEND_USERNAME_ON_APPLICATION_ID_DOC =
+      "Appends the authenticated username to the query application ID created when running "
+          + "transient queries. This config affects the name of the internal groups/topics "
+          + "created by transient queries. This config is only affected when a user impersonation "
+          + "context is provided by the KSQL security extension.";
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -557,6 +565,12 @@ public class KsqlConfig extends AbstractConfig {
             ),
             ConfigDef.Importance.LOW,
             KSQL_ACCESS_VALIDATOR_DOC
+        ).define(
+            KSQL_APPEND_USERNAME_ON_APPLICATION_ID,
+            Type.BOOLEAN,
+            true,
+            ConfigDef.Importance.LOW,
+            KSQL_APPEND_USERNAME_ON_APPLICATION_ID_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

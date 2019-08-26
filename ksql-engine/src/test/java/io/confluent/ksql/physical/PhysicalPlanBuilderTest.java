@@ -730,10 +730,30 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreateExpectedServiceId() {
-    final String serviceId = physicalPlanBuilder.getServiceId();
+  public void shouldCreateExpectedServiceIdIfNoClientContextIsSet() {
+    final String serviceId = physicalPlanBuilder.getServiceId(serviceContext);
     assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
         + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
+  }
+
+  @Test
+  public void shouldAppendUserNameOnServiceIdIfClientContextIsSet() {
+    // Given:
+    final String userNotSanitized = "User-1.2_A+B_A*B";
+    final String userSanitized = "User-1.2_A%2BB_A%2AB";
+    final ServiceContext userContext = mock(ServiceContext.class);
+    when(userContext.getContextType()).thenReturn(ServiceContext.ContextType.CLIENT_CONTEXT);
+    when(userContext.getUsername()).thenReturn(Optional.of(userNotSanitized));
+
+    // When:
+    final String serviceId = physicalPlanBuilder.getServiceId(userContext);
+
+    // Then:
+    assertThat(serviceId, equalTo(
+        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+            + KsqlConfig.KSQL_SERVICE_ID_DEFAULT
+            + userSanitized
+    ));
   }
 
   @Test

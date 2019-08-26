@@ -61,6 +61,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.utils.Sanitizer;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -110,6 +111,7 @@ public class PhysicalPlanBuilder {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
+    final String serviceId = getServiceId(serviceContext);
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
@@ -139,7 +141,7 @@ public class PhysicalPlanBuilder {
       return buildPlanForBareQuery(
           (QueuedSchemaKStream<?>) resultStream,
           (KsqlBareOutputNode) outputNode,
-          getServiceId(),
+          serviceId,
           transientQueryPrefix,
           queryId,
           logicalPlanNode.getStatementText()
@@ -166,7 +168,7 @@ public class PhysicalPlanBuilder {
           logicalPlanNode.getStatementText(),
           resultStream,
           ksqlStructuredDataOutputNode,
-          getServiceId(),
+          serviceId,
           persistanceQueryPrefix,
           queryId,
           ksqlQueryBuilder.getSchemas()
@@ -435,9 +437,20 @@ public class PhysicalPlanBuilder {
   }
 
   // Package private because of test
-  String getServiceId() {
-    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-           + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+  String getServiceId(final ServiceContext serviceContext) {
+    final StringBuilder sb = new StringBuilder();
+    sb.append(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX);
+    sb.append(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_APPEND_USERNAME_ON_APPLICATION_ID)
+        && serviceContext.getContextType() == ServiceContext.ContextType.CLIENT_CONTEXT
+    ) {
+      serviceContext.getUsername().ifPresent(
+          user -> sb.append(Sanitizer.sanitize(user))
+      );
+    }
+
+    return sb.toString();
   }
 
   private static Set<String> getSourceNames(final PlanNode outputNode) {

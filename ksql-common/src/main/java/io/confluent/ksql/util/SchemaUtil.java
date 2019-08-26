@@ -31,12 +31,15 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
@@ -96,6 +99,15 @@ public final class SchemaUtil {
           .put(Schema.Type.STRING, "(String)")
           .put(Schema.Type.BOOLEAN, "(Boolean)")
           .build();
+
+  private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
+      ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
+          .put(Type.MAP, SchemaUtil::mapEquals)
+          .put(Type.ARRAY, SchemaUtil::arrayEquals)
+          .put(Type.STRUCT, SchemaUtil::structEquals)
+          .put(Type.BYTES, SchemaUtil::bytesEquals)
+          .build();
+
 
   private SchemaUtil() {
   }
@@ -361,6 +373,42 @@ public final class SchemaUtil {
         .name(schema.name())
         .optional()
         .build();
+  }
+
+
+  public static boolean areCompatible(final Schema arg1, final Schema arg2) {
+    if (arg2 == null) {
+      return arg1.isOptional();
+    }
+
+    // we require a custom equals method that ignores certain values (e.g.
+    // whether or not the schema is optional, and the documentation)
+    return Objects.equals(arg1.type(), arg2.type())
+        && CUSTOM_SCHEMA_EQ.getOrDefault(arg1.type(), (a, b) -> true).test(arg1, arg2)
+        && Objects.equals(arg1.version(), arg2.version())
+        && Objects.deepEquals(arg1.defaultValue(), arg2.defaultValue());
+  }
+
+  private static boolean mapEquals(final Schema mapA, final Schema mapB) {
+    return Objects.equals(mapA.keySchema(), mapB.keySchema())
+        && Objects.equals(mapA.valueSchema(), mapB.valueSchema());
+  }
+
+  private static boolean arrayEquals(final Schema arrayA, final Schema arrayB) {
+    return Objects.equals(arrayA.valueSchema(), arrayB.valueSchema());
+  }
+
+  private static boolean structEquals(final Schema structA, final Schema structB) {
+    return structA.fields().isEmpty()
+        || structB.fields().isEmpty()
+        || Objects.equals(structA.fields(), structB.fields());
+  }
+
+  private static boolean bytesEquals(final Schema bytesA, final Schema bytesB) {
+    // from a Java schema perspective, all decimals are the same
+    // since they can all be cast to BigDecimal - other bytes types
+    // are not supported in UDFs
+    return DecimalUtil.isDecimal(bytesA) && DecimalUtil.isDecimal(bytesB);
   }
 
 }

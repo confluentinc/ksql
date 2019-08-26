@@ -363,7 +363,7 @@ public class InternalFunctionRegistryTest {
         // String UDF
         "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
         // Math UDF
-        "ABS", "CEIL", "ROUND", "RANDOM",
+        "CEIL", "ROUND", "RANDOM",
         // JSON UDF
         "EXTRACTJSONFIELD", "ARRAYCONTAINS",
         // Struct UDF

@@ -13,20 +13,21 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.math;
+package io.confluent.ksql.function.udf;
 
-import io.confluent.ksql.function.UdfUtil;
-import io.confluent.ksql.function.udf.Kudf;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public class AbsKudf implements Kudf {
-  public static final String NAME = "ABS";
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.METHOD})
+/**
+ * The {@code UdfSchemaProvider} annotation on a method tells KSQL to use this method to resolve
+ * the return type of the udf at runtime.
+ *
+ * <p>The corresponding udf annotation must have the {@code schemaProvider} specified.
+ */
+public @interface UdfSchemaProvider {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    UdfUtil.ensureCorrectArgs(NAME, args, Number.class);
-    if (args[0] == null) {
-      return null;
-    }
-    return Math.abs(((Number) args[0]).doubleValue());
-  }
 }

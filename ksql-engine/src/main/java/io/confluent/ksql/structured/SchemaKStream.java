@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.structured;
 
+import static io.confluent.ksql.execution.streams.ExecutionStepFactory.streamSource;
+import static io.confluent.ksql.execution.streams.ExecutionStepFactory.streamSourceWindowed;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
@@ -30,6 +32,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -46,7 +49,6 @@ import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -98,14 +100,15 @@ public class SchemaKStream<K> {
 
   private static <K> SchemaKStream<K> forSource(
       final KsqlQueryBuilder builder,
-      final StreamSource<K> streamSource,
+      final KeySerde<K> keySerde,
+      final StreamSource<KStream<K, GenericRow>> streamSource,
       final KeyField keyField,
       final QueryContext queryContext) {
-    final Pair<KeySerde<K>, KStream<K, GenericRow>> kstream = streamSource.buildWithSerde(builder);
+    final KStream<K, GenericRow> kstream = streamSource.build(builder);
     return new SchemaKStream<>(
-        kstream.right,
+        kstream,
         streamSource.getProperties().getSchema(),
-        kstream.left,
+        keySerde,
         keyField,
         ImmutableList.of(),
         SchemaKStream.Type.SOURCE,
@@ -126,7 +129,7 @@ public class SchemaKStream<K> {
   ) {
     final KsqlTopic topic = dataSource.getKsqlTopic();
     if (topic.getKeyFormat().isWindowed()) {
-      final StreamSource<Windowed<Struct>>  step = StreamSource.createWindowed(
+      final StreamSource<KStream<Windowed<Struct>, GenericRow>> step = streamSourceWindowed(
           queryContext,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
@@ -135,9 +138,14 @@ public class SchemaKStream<K> {
           timestampIndex,
           offsetReset
       );
-      return forSource(builder, step, keyField, queryContext);
+      return forSource(
+          builder,
+          StreamSourceBuilder.getWindowedKeySerde(builder, step),
+          step,
+          keyField,
+          queryContext);
     } else {
-      final StreamSource<Struct> step = StreamSource.createNonWindowed(
+      final StreamSource<KStream<Struct, GenericRow>> step = streamSource(
           queryContext,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
@@ -146,7 +154,12 @@ public class SchemaKStream<K> {
           timestampIndex,
           offsetReset
       );
-      return forSource(builder, step, keyField, queryContext);
+      return forSource(
+          builder,
+          StreamSourceBuilder.getKeySerde(builder, step),
+          step,
+          keyField,
+          queryContext);
     }
   }
 

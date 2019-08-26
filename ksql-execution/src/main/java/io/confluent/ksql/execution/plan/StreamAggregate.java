@@ -15,27 +15,24 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class StreamAggregate<K> implements ExecutionStep<KTable<K, GenericRow>> {
+public class StreamAggregate<T, G> implements ExecutionStep<T> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KGroupedStream<K, GenericRow>> source;
+  private final ExecutionStep<G> source;
   private final Formats formats;
   private final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap;
   private final Map<Integer, Integer> aggValToValColumnMap;
 
   public StreamAggregate(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KGroupedStream<K, GenericRow>> source,
+      final ExecutionStep<G> source,
       final Formats formats,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Map<Integer, Integer> aggValToValColumnMap) {
@@ -57,7 +54,7 @@ public class StreamAggregate<K> implements ExecutionStep<KTable<K, GenericRow>> 
   }
 
   @Override
-  public KTable<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
+  public T build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 
@@ -69,7 +66,7 @@ public class StreamAggregate<K> implements ExecutionStep<KTable<K, GenericRow>> 
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamAggregate<?> that = (StreamAggregate<?>) o;
+    final StreamAggregate<?, ?> that = (StreamAggregate<?, ?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

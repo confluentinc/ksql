@@ -24,14 +24,14 @@ public final class LogicalSchemaWithMetaAndKeyFields {
     this.schema = schema;
   }
 
-  static LogicalSchemaWithMetaAndKeyFields fromOriginal(
+  public static LogicalSchemaWithMetaAndKeyFields fromOriginal(
       final String alias,
       final LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(
         schema.withAlias(alias).withMetaAndKeyFieldsInValue());
   }
 
-  static LogicalSchemaWithMetaAndKeyFields fromTransformed(final LogicalSchema schema) {
+  public static LogicalSchemaWithMetaAndKeyFields fromTransformed(final LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(schema);
   }
 

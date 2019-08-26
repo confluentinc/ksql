@@ -162,7 +162,7 @@ SELECT ... FROM stream EMIT CHANGES;
 Inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://arxiv.org/pdf/1905.12133.pdf), as well as @big-andy-coates' [brainstorm](https://github.com/confluentinc/ksql/pull/3117#issuecomment-520524284), `EMIT CHANGES` has been proposed in favor of `EMIT STREAM` for the following reasons:
 
 * De-emphasizes the stream abstraction as we continue to consider making KSQL more table centric.
-* Not redundant in the context of CSAS (`CREATE STREAM s0 AS SELECT .. FROM s1 EMIT STREAM`).
+* Not redundant in the context of CSAS (`CREATE STREAM s0 AS SELECT ... FROM s1 EMIT STREAM`).
 * Intuitive and descriptive in the context of tables. A streaming query against a table effectively produces rows representing changes to the underlying table. Identifying this changelog as simply a stream isn't necessarily clear.
 * Similarly to the above, `EMIT CHANGES` is intuitive in the context of streaming aggregations, which produce incremental *changes* over time.
 * `EMIT STREAM` generally feels better suited for ad-hoc queries, for which there is no other `STREAM` context in the query (i.e. CSAS).

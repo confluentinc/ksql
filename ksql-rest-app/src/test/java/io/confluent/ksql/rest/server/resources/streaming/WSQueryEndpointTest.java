@@ -108,6 +108,8 @@ public class WSQueryEndpointTest {
   private static final KsqlRequest[] NO_REQUEST_PROPERTY = (KsqlRequest[]) null;
   private static final Duration COMMAND_QUEUE_CATCHUP_TIMEOUT = Duration.ofMillis(5000L);
 
+  private static final String USER1 = "user1";
+
   @Mock
   private KsqlConfig ksqlConfig;
   @Mock
@@ -161,6 +163,7 @@ public class WSQueryEndpointTest {
       mock(Select.class), mock(Relation.class),
         Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty()
     );
+    when(principal.getName()).thenReturn(USER1);
     when(session.getId()).thenReturn("session-id");
     when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))
@@ -172,8 +175,13 @@ public class WSQueryEndpointTest {
         .thenReturn(topicClientSupplier);
     when(securityExtension.getAuthorizationProvider())
         .thenReturn(Optional.of(authorizationProvider));
-    when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
-        .thenReturn(serviceContext);
+    when(serviceContextFactory.create(
+        ServiceContext.ContextType.CLIENT_CONTEXT,
+        Optional.of(principal.getName()),
+        ksqlConfig,
+        topicClientSupplier,
+        schemaRegistryClientSupplier)
+    ).thenReturn(serviceContext);
     when(defaultServiceContextProvider.apply(ksqlConfig)).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
@@ -415,6 +423,8 @@ public class WSQueryEndpointTest {
     verify(userContextProvider).getKafkaClientSupplier(eq(principal));
     verify(userContextProvider).getSchemaRegistryClientFactory(eq(principal));
     verify(serviceContextFactory).create(
+        ServiceContext.ContextType.CLIENT_CONTEXT,
+        Optional.of(principal.getName()),
         ksqlConfig,
         topicClientSupplier,
         schemaRegistryClientSupplier

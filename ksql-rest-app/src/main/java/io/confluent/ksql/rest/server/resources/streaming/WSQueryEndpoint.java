@@ -104,6 +104,8 @@ public class WSQueryEndpoint {
   @FunctionalInterface
   interface UserServiceContextFactory {
     ServiceContext create(
+        ServiceContext.ContextType contextType,
+        Optional<String> userName,
         KsqlConfig ksqlConfig,
         KafkaClientSupplier kafkaClientSupplier,
         Supplier<SchemaRegistryClient> srClientFactory
@@ -288,13 +290,15 @@ public class WSQueryEndpoint {
     // Creates a ServiceContext using the user's credentials, so the WS query topics are
     // accessed with the user permission context (defaults to KSQL service context)
 
-    if (!securityExtension.getUserContextProvider().isPresent()) {
+    if (principal == null || !securityExtension.getUserContextProvider().isPresent()) {
       return defaultServiceContextFactory.apply(ksqlConfig);
     }
 
     return securityExtension.getUserContextProvider()
         .map(provider ->
             serviceContextFactory.create(
+                ServiceContext.ContextType.CLIENT_CONTEXT,
+                Optional.of(principal.getName()),
                 ksqlConfig,
                 provider.getKafkaClientSupplier(principal),
                 provider.getSchemaRegistryClientFactory(principal)))

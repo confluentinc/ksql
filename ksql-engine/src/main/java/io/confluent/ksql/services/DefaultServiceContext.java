@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -27,6 +28,8 @@ import org.apache.kafka.streams.KafkaClientSupplier;
  */
 public class DefaultServiceContext implements ServiceContext, AutoCloseable {
 
+  private final ContextType contextType;
+  private final Optional<String> userName;
   private final KafkaClientSupplier kafkaClientSupplier;
   private final Admin adminClient;
   private final KafkaTopicClient topicClient;
@@ -41,12 +44,44 @@ public class DefaultServiceContext implements ServiceContext, AutoCloseable {
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient
   ) {
+    this(
+        ContextType.SERVER_CONTEXT,
+        Optional.empty(),
+        kafkaClientSupplier,
+        adminClient,
+        topicClient,
+        srClientFactory,
+        connectClient
+    );
+  }
+
+  DefaultServiceContext(
+      final ContextType contextType,
+      final Optional<String> userName,
+      final KafkaClientSupplier kafkaClientSupplier,
+      final Admin adminClient,
+      final KafkaTopicClient topicClient,
+      final Supplier<SchemaRegistryClient> srClientFactory,
+      final ConnectClient connectClient
+  ) {
+    this.contextType = Objects.requireNonNull(contextType, "contextType");
+    this.userName = Objects.requireNonNull(userName, "userName");
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClientFactory = Objects.requireNonNull(srClientFactory, "srClientFactory");
     this.srClient = Objects.requireNonNull(srClientFactory.get(), "srClient");
     this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
+  }
+
+  @Override
+  public ContextType getContextType() {
+    return contextType;
+  }
+
+  @Override
+  public Optional<String> getUsername() {
+    return userName;
   }
 
   @Override

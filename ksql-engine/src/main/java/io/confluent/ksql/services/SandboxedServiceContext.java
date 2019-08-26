@@ -18,6 +18,7 @@ package io.confluent.ksql.services;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.Sandbox;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -30,6 +31,8 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 @Sandbox
 public final class SandboxedServiceContext implements ServiceContext {
 
+  private final ContextType contextType;
+  private final Optional<String> userName;
   private final KafkaTopicClient topicClient;
   private final SchemaRegistryClient srClient;
   private final KafkaClientSupplier kafkaClientSupplier;
@@ -48,6 +51,8 @@ public final class SandboxedServiceContext implements ServiceContext {
     final ConnectClient connectClient = SandboxConnectClient.createProxy();
 
     return new SandboxedServiceContext(
+        serviceContext.getContextType(),
+        serviceContext.getUsername(),
         kafkaClientSupplier,
         kafkaTopicClient,
         schemaRegistryClient,
@@ -55,15 +60,29 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   private SandboxedServiceContext(
+      final ContextType contextType,
+      final Optional<String> userName,
       final KafkaClientSupplier kafkaClientSupplier,
       final KafkaTopicClient topicClient,
       final SchemaRegistryClient srClient,
       final ConnectClient connectClient
   ) {
+    this.contextType = Objects.requireNonNull(contextType, "contextType");
+    this.userName = Objects.requireNonNull(userName, "userName");
     this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
     this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
     this.srClient = Objects.requireNonNull(srClient, "srClient");
     this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
+  }
+
+  @Override
+  public ContextType getContextType() {
+    return contextType;
+  }
+
+  @Override
+  public Optional<String> getUsername() {
+    return userName;
   }
 
   @Override

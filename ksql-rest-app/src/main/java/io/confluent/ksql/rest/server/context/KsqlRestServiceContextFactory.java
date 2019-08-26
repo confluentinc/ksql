@@ -23,6 +23,7 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import javax.inject.Inject;
@@ -51,6 +52,8 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
   @FunctionalInterface
   interface UserServiceContextFactory {
     ServiceContext create(
+        ServiceContext.ContextType serviceContextType,
+        Optional<String> userName,
         KsqlConfig ksqlConfig,
         KafkaClientSupplier kafkaClientSupplier,
         Supplier<SchemaRegistryClient> srClientFactory
@@ -79,14 +82,16 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
 
   @Override
   public ServiceContext provide() {
-    if (!securityExtension.getUserContextProvider().isPresent()) {
+    final Principal principal = securityContext.getUserPrincipal();
+    if (principal == null || !securityExtension.getUserContextProvider().isPresent()) {
       return defaultServiceContextFactory.apply(ksqlConfig);
     }
 
-    final Principal principal = securityContext.getUserPrincipal();
     return securityExtension.getUserContextProvider()
         .map(provider ->
             userServiceContextFactory.create(
+                ServiceContext.ContextType.CLIENT_CONTEXT,
+                Optional.of(principal.getName()),
                 ksqlConfig,
                 provider.getKafkaClientSupplier(principal),
                 provider.getSchemaRegistryClientFactory(principal)))

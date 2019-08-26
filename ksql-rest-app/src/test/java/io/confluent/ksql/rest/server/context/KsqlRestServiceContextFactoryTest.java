@@ -49,7 +49,7 @@ public class KsqlRestServiceContextFactoryTest {
   @Mock
   private KsqlUserContextProvider userContextProvider;
   @Mock
-  private Principal user1;
+  private Principal principal;
   @Mock
   private Function<KsqlConfig, ServiceContext> defaultServiceContextProvider;
   @Mock
@@ -68,9 +68,15 @@ public class KsqlRestServiceContextFactoryTest {
         userServiceContextFactory
     );
 
-    when(securityContext.getUserPrincipal()).thenReturn(user1);
+    when(principal.getName()).thenReturn("user1");
+    when(securityContext.getUserPrincipal()).thenReturn(principal);
+    when(userServiceContext.getContextType())
+        .thenReturn(ServiceContext.ContextType.CLIENT_CONTEXT);
+    when(userServiceContext.getUsername()).thenReturn(Optional.of("user1"));
+    when(defaultServiceContext.getContextType())
+        .thenReturn(ServiceContext.ContextType.SERVER_CONTEXT);
     when(defaultServiceContextProvider.apply(ksqlConfig)).thenReturn(defaultServiceContext);
-    when(userServiceContextFactory.create(any(), any(), any()))
+    when(userServiceContextFactory.create(any(), any(), any(), any(), any()))
         .thenReturn(userServiceContext);
   }
 
@@ -85,6 +91,8 @@ public class KsqlRestServiceContextFactoryTest {
     // Then:
     verify(defaultServiceContextProvider).apply(ksqlConfig);
     assertThat(serviceContext, is(defaultServiceContext));
+    assertThat(serviceContext.getContextType(), is(ServiceContext.ContextType.SERVER_CONTEXT));
+    assertThat(serviceContext.getUsername(), is(Optional.empty()));
   }
 
   @Test
@@ -96,7 +104,9 @@ public class KsqlRestServiceContextFactoryTest {
     final ServiceContext serviceContext = serviceContextFactory.provide();
 
     // Then:
-    verify(userServiceContextFactory).create(eq(ksqlConfig), any(), any());
+    verify(userServiceContextFactory).create(any(), any(), eq(ksqlConfig), any(), any());
     assertThat(serviceContext, is(userServiceContext));
+    assertThat(serviceContext.getContextType(), is(ServiceContext.ContextType.CLIENT_CONTEXT));
+    assertThat(serviceContext.getUsername(), is(Optional.of("user1")));
   }
 }

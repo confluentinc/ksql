@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -28,7 +29,11 @@ public final class ServiceContextFactory {
   private ServiceContextFactory() {}
 
   public static ServiceContext create(final KsqlConfig ksqlConfig) {
+    // Default to SERVER_CONTEXT if no kafka/SR clients are provided which means they will run
+    // under the KSQL kafka/SR credentials found in the KsqlConfig
     return create(
+        ServiceContext.ContextType.SERVER_CONTEXT,
+        Optional.empty(),
         ksqlConfig,
         new DefaultKafkaClientSupplier(),
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get
@@ -36,6 +41,8 @@ public final class ServiceContextFactory {
   }
 
   public static ServiceContext create(
+      final ServiceContext.ContextType contextType,
+      final Optional<String> userName,
       final KsqlConfig ksqlConfig,
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory
@@ -45,6 +52,8 @@ public final class ServiceContextFactory {
     );
 
     return new DefaultServiceContext(
+        contextType,
+        userName,
         kafkaClientSupplier,
         adminClient,
         new KafkaTopicClientImpl(adminClient),

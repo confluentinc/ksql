@@ -28,6 +28,7 @@ import io.confluent.ksql.test.util.TestMethods.TestCase;
 import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
@@ -51,6 +52,8 @@ public final class SandboxedServiceContextTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase<SandboxedServiceContext>> getMethodsToTest() {
       return TestMethods.builder(SandboxedServiceContext.class)
+          .ignore("getContextType")
+          .ignore("getUsername")
           .ignore("getTopicClient")
           .ignore("getKafkaClientSupplier")
           .ignore("getSchemaRegistryClient")
@@ -77,6 +80,7 @@ public final class SandboxedServiceContextTest {
     public void setUp() {
       MockitoAnnotations.initMocks(this);
 
+      when(delegate.getContextType()).thenReturn(ServiceContext.ContextType.SERVER_CONTEXT);
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
 
@@ -91,6 +95,7 @@ public final class SandboxedServiceContextTest {
 
   @RunWith(MockitoJUnitRunner.class)
   public static class SupportedMethods {
+    private static final String USER_1 = "USER_1";
 
     @Mock
     private ServiceContext delegate;
@@ -102,6 +107,8 @@ public final class SandboxedServiceContextTest {
 
     @Before
     public void setUp() {
+      when(delegate.getContextType()).thenReturn(ServiceContext.ContextType.CLIENT_CONTEXT);
+      when(delegate.getUsername()).thenReturn(Optional.of(USER_1));
       when(delegate.getTopicClient()).thenReturn(delegateTopicClient);
       when(delegate.getSchemaRegistryClient()).thenReturn(delegateSrClient);
 
@@ -170,6 +177,24 @@ public final class SandboxedServiceContextTest {
 
       // Then:
       assertThat("Expected proxy class", Proxy.isProxyClass(client.getClass()));
+    }
+
+    @Test
+    public void shouldGetSandboxedContextType() {
+      // When:
+      final ServiceContext.ContextType contextType = sandboxedServiceContext.getContextType();
+
+      // Then:
+      assertThat(contextType, is(ServiceContext.ContextType.CLIENT_CONTEXT));
+    }
+
+    @Test
+    public void shouldGetSandboxedUsername() {
+      // When:
+      final Optional<String> username = sandboxedServiceContext.getUsername();
+
+      // Then:
+      assertThat(username.get(), is(USER_1));
     }
 
     @Test

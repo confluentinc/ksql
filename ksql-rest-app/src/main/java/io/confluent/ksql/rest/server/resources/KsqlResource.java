@@ -121,7 +121,9 @@ public class KsqlResource {
         new DistributingExecutor(
             commandQueue,
             distributedCmdResponseTimeout,
-            injectorFactory),
+            injectorFactory,
+            authorizationValidator
+        ),
         ksqlEngine,
         ksqlConfig,
         new DefaultCommandQueueSync(

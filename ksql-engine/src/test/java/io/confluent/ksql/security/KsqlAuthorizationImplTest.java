@@ -377,6 +377,39 @@ public class KsqlAuthorizationImplTest {
   }
 
   @Test
+  public void shouldCreateSourceWithReadPermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_NAME_1)
+    );
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
+  public void shouldThrowWhenCreateSourceWithoutReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_NAME_1)
+    );
+
+    // Then:
+    expectedException.expect(KsqlTopicAuthorizationException.class);
+    expectedException.expectMessage(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+    ));
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+  }
+
+  @Test
   public void shouldThrowExceptionWhenTopicClientFails() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));

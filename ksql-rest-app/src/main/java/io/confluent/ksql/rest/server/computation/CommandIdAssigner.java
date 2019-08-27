@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -49,6 +50,8 @@ public class CommandIdAssigner {
             command -> getSelectTableCommandId((CreateTableAsSelect) command))
           .put(RegisterType.class,
               command -> getRegisterTypeCommandId((RegisterType) command))
+          .put(DropType.class,
+              command -> getDropTypeCommandId((DropType) command))
           .put(InsertInto.class,
             command -> getInsertIntoCommandId((InsertInto) command))
           .put(TerminateQuery.class,
@@ -99,6 +102,10 @@ public class CommandIdAssigner {
 
   private static CommandId getRegisterTypeCommandId(final RegisterType registerType) {
     return new CommandId(CommandId.Type.TYPE, registerType.getName(), Action.CREATE);
+  }
+
+  private static CommandId getDropTypeCommandId(final DropType dropType) {
+    return new CommandId(CommandId.Type.TYPE, dropType.getTypeName(), Action.DROP);
   }
 
   private static CommandId getTerminateCommandId(final TerminateQuery terminateQuery) {

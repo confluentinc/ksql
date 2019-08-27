@@ -17,6 +17,7 @@ package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
+import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
 import static java.util.Objects.requireNonNull;
@@ -57,6 +58,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
+import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -614,6 +616,11 @@ public class AstBuilder {
       }
 
       return new ListConnectors(getLocation(ctx), scope);
+    }
+
+    @Override
+    public Node visitDropType(final DropTypeContext ctx) {
+      return new DropType(getLocation(ctx), getIdentifierText(ctx.identifier()));
     }
 
     @Override

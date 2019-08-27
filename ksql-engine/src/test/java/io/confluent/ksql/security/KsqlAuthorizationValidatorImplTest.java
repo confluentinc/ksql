@@ -53,7 +53,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class KsqlAuthorizationImplTest {
+public class KsqlAuthorizationValidatorImplTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()

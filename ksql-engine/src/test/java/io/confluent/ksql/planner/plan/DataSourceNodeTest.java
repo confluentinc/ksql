@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -394,7 +395,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildKeySerde(
+    verify(ksqlStreamBuilder, times(2)).buildKeySerde(
         eq(keyFormat.getFormatInfo()),
         eq(PHYSICAL_SCHEMA),
         any());
@@ -416,7 +417,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildKeySerde(
+    verify(ksqlStreamBuilder, times(2)).buildKeySerde(
         eq(keyFormat.getFormatInfo()),
         eq(keyFormat.getWindowInfo().get()),
         eq(PHYSICAL_SCHEMA),

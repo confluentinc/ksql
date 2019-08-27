@@ -16,14 +16,20 @@ package io.confluent.ksql.rest.server.computation;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.Statement;
@@ -32,6 +38,7 @@ import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
@@ -73,6 +80,9 @@ public class DistributingExecutorTest {
   @Mock ServiceContext serviceContext;
   @Mock Injector schemaInjector;
   @Mock Injector topicInjector;
+  @Mock KsqlAuthorizationValidator authorizationValidator;
+  @Mock KsqlExecutionContext executionContext;
+  @Mock MetaStore metaStore;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -86,17 +96,21 @@ public class DistributingExecutorTest {
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
+    when(executionContext.getMetaStore()).thenReturn(metaStore);
+    when(executionContext.getServiceContext()).thenReturn(serviceContext);
 
     distributor = new DistributingExecutor(
         queue,
         DURATION_10_MS,
-        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector));
+        (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
+        authorizationValidator
+    );
   }
 
   @Test
   public void shouldEnqueueSuccessfulCommand() throws InterruptedException {
     // When:
-    distributor.execute(EMPTY_STATEMENT, null, serviceContext);
+    distributor.execute(EMPTY_STATEMENT, executionContext, serviceContext);
 
     // Then:
     verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT));
@@ -105,7 +119,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldInferSchemas() {
     // When:
-    distributor.execute(EMPTY_STATEMENT, null, serviceContext);
+    distributor.execute(EMPTY_STATEMENT, executionContext, serviceContext);
 
     // Then:
     verify(schemaInjector, times(1)).inject(eq(EMPTY_STATEMENT));
@@ -117,7 +131,7 @@ public class DistributingExecutorTest {
     final CommandStatusEntity commandStatusEntity =
         (CommandStatusEntity) distributor.execute(
             EMPTY_STATEMENT,
-            null,
+            executionContext,
             serviceContext
         )
             .orElseThrow(null);
@@ -150,7 +164,7 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(configured, null, serviceContext);
+    distributor.execute(configured, executionContext, serviceContext);
   }
 
   @Test
@@ -167,7 +181,43 @@ public class DistributingExecutorTest {
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    distributor.execute(configured, null, serviceContext);
+    distributor.execute(configured, executionContext, serviceContext);
   }
 
+  @Test
+  public void shouldThrowExceptionIfUserServiceContextIsDeniedAuthorization() {
+    // Given:
+    final ServiceContext userServiceContext = mock(ServiceContext.class);
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new ListProperties(Optional.empty()));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
+        .checkAuthorization(eq(userServiceContext), any(), eq(configured.getStatement()));
+
+    // Expect:
+    expectedException.expect(KsqlTopicAuthorizationException.class);
+
+    // When:
+    distributor.execute(configured, executionContext, userServiceContext);
+  }
+
+  @Test
+  public void shouldThrowServerExceptionIfServerServiceContextIsDeniedAuthorization() {
+    // Given:
+    final ServiceContext userServiceContext = mock(ServiceContext.class);
+    final PreparedStatement<Statement> preparedStatement =
+        PreparedStatement.of("", new ListProperties(Optional.empty()));
+    final ConfiguredStatement<Statement> configured =
+        ConfiguredStatement.of(preparedStatement, ImmutableMap.of(), KSQL_CONFIG);
+    doThrow(KsqlTopicAuthorizationException.class).when(authorizationValidator)
+        .checkAuthorization(eq(serviceContext), any(), eq(configured.getStatement()));
+
+    // Expect:
+    expectedException.expect(KsqlServerException.class);
+    expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
+
+    // When:
+    distributor.execute(configured, executionContext, userServiceContext);
+  }
 }

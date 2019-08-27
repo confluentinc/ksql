@@ -114,14 +114,16 @@ public class KsqlResource {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        ksqlConfig,
-        authorizationValidator);
+        ksqlConfig
+    );
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
             commandQueue,
             distributedCmdResponseTimeout,
-            injectorFactory),
+            injectorFactory,
+            authorizationValidator
+        ),
         ksqlEngine,
         ksqlConfig,
         new DefaultCommandQueueSync(

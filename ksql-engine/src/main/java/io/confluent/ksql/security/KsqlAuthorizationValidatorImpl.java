@@ -19,6 +19,7 @@ import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -51,6 +52,8 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       validateCreateAsSelect(serviceContext, metaStore, (CreateAsSelect)statement);
     } else if (statement instanceof PrintTopic) {
       validatePrintTopic(serviceContext, (PrintTopic)statement);
+    } else if (statement instanceof CreateSource) {
+      validateCreateSource(serviceContext, (CreateSource)statement);
     }
   }
 
@@ -109,6 +112,14 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
           final PrintTopic printTopic
   ) {
     checkAccess(serviceContext, printTopic.getTopic().toString(), AclOperation.READ);
+  }
+
+  private void validateCreateSource(
+      final ServiceContext serviceContext,
+      final CreateSource createSource
+  ) {
+    final String sourceTopic = createSource.getProperties().getKafkaTopic();
+    checkAccess(serviceContext, sourceTopic, AclOperation.READ);
   }
 
   private String getSourceTopicName(final MetaStore metaStore, final String streamOrTable) {

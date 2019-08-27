@@ -22,27 +22,27 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 
 public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
-
-  public QueuedSchemaKStream(
-      final SchemaKStream<K> schemaKStream,
-      final QueryContext queryContext
-  ) {
+  public QueuedSchemaKStream(final SchemaKStream<K> schemaKStream) {
     super(
         schemaKStream.getKstream(),
-        schemaKStream.schema,
+        schemaKStream.getSourceStep(),
+        schemaKStream.getSourceProperties(),
+        schemaKStream.keyFormat,
         schemaKStream.keySerde,
         schemaKStream.keyField,
         schemaKStream.sourceSchemaKStreams,
         Type.SINK,
         schemaKStream.ksqlConfig,
         schemaKStream.functionRegistry,
-        queryContext
+        schemaKStream.streamsFactories
     );
   }
 
@@ -50,7 +50,11 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
   public SchemaKStream<K> into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
-      final Set<Integer> rowkeyIndexes
+      final LogicalSchema outputSchema,
+      final ValueFormat valueFormat,
+      final Set<SerdeOption> options,
+      final Set<Integer> rowkeyIndexes,
+      final QueryContext.Stacker contextStacker
   ) {
     throw new UnsupportedOperationException();
   }
@@ -76,6 +80,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
+      final ValueFormat valueFormat,
       final Serde<GenericRow> joinSerde,
       final QueryContext.Stacker contextStacker
   ) {
@@ -92,6 +97,7 @@ public class QueuedSchemaKStream<K> extends SchemaKStream<K> {
 
   @Override
   public SchemaKGroupedStream groupBy(
+      final ValueFormat valueFormat,
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
       final QueryContext.Stacker contextStacker) {

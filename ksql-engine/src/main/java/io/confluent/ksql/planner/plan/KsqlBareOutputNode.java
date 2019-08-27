@@ -60,8 +60,7 @@ public class KsqlBareOutputNode extends OutputNode {
         .buildStream(builder);
 
     return new QueuedSchemaKStream<>(
-        schemaKStream,
-        builder.buildNodeContext(getId().toString()).getQueryContext()
+        schemaKStream
     );
   }
 }

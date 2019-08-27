@@ -17,6 +17,10 @@ package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
@@ -25,7 +29,10 @@ import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -43,10 +50,12 @@ import org.apache.kafka.streams.kstream.Materialized;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
   private final KGroupedTable kgroupedTable;
+  private final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep;
 
   SchemaKGroupedTable(
       final KGroupedTable kgroupedTable,
-      final LogicalSchema schema,
+      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
+      final KeyFormat keyFormat,
       final KeySerde<Struct> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -55,7 +64,8 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   ) {
     this(
         kgroupedTable,
-        schema,
+        sourceTableStep,
+        keyFormat,
         keySerde,
         keyField,
         sourceSchemaKStreams,
@@ -66,7 +76,8 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
   SchemaKGroupedTable(
       final KGroupedTable kgroupedTable,
-      final LogicalSchema schema,
+      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
+      final KeyFormat keyFormat,
       final KeySerde<Struct> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -74,10 +85,24 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final FunctionRegistry functionRegistry,
       final MaterializedFactory materializedFactory
   ) {
-    super(null, schema, keySerde, keyField, sourceSchemaKStreams,
-        ksqlConfig, functionRegistry, materializedFactory);
+    super(
+        null,
+        null,
+        keyFormat,
+        keySerde,
+        keyField,
+        sourceSchemaKStreams,
+        ksqlConfig,
+        functionRegistry,
+        materializedFactory
+    );
 
     this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
+    this.sourceTableStep = Objects.requireNonNull(sourceTableStep, "sourceTableStep");
+  }
+
+  public ExecutionStep<KGroupedTable<Struct, GenericRow>> getSourceTableStep() {
+    return sourceTableStep;
   }
 
   @SuppressWarnings("unchecked")
@@ -86,8 +111,10 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final LogicalSchema aggregateSchema,
       final Initializer initializer,
       final int nonFuncColumnCount,
+      final List<FunctionCall> aggregations,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final WindowExpression windowExpression,
+      final ValueFormat valueFormat,
       final Serde<GenericRow> topicValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
@@ -137,14 +164,21 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
 
     return new SchemaKTable<>(
         aggKtable,
-        aggregateSchema,
+        ExecutionStepFactory.tableAggregate(
+            contextStacker,
+            sourceTableStep,
+            aggregateSchema,
+            Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+            nonFuncColumnCount,
+            aggregations
+        ),
+        keyFormat,
         keySerde,
         keyField,
         sourceSchemaKStreams,
         SchemaKStream.Type.AGGREGATE,
         ksqlConfig,
-        functionRegistry,
-        contextStacker.getQueryContext()
+        functionRegistry
     );
   }
 }

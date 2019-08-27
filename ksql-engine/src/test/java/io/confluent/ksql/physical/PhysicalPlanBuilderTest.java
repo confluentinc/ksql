@@ -444,7 +444,7 @@ public class PhysicalPlanBuilderTest {
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(3));
     assertThat(lines[0], containsString(
-        "> [ SINK ] | Schema: [ROWKEY STRING KEY, ROWTIME BIGINT, ROWKEY STRING, COL0 INTEGER]"));
+        "> [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 INTEGER]"));
 
     assertThat(lines[1], containsString(
         "> [ PROJECT ] | Schema: [ROWKEY STRING KEY, ROWTIME BIGINT, ROWKEY STRING, COL0 INTEGER]"));
@@ -477,7 +477,7 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCheckSinkAndResultKeysDoNotMatch() {
+  public void shouldRekeyIfPartitionByDoesNotMatchResultKey() {
     final String csasQuery = "CREATE STREAM s1 AS SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     final String insertIntoQuery = "INSERT INTO s1 SELECT col0, col1, col2 FROM test1 PARTITION BY col0;";
     givenKafkaTopicsExist("test1");
@@ -488,11 +488,11 @@ public class PhysicalPlanBuilderTest {
     final String planText = queryMetadataList.get(1).getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines.length, equalTo(4));
-    assertThat(lines[0],
-        equalTo(" > [ REKEY ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] "
-            + "| Logger: InsertQuery_1.S1"));
-    assertThat(lines[1], equalTo("\t\t > [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 "
+    assertThat(lines[0], equalTo(" > [ SINK ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 "
         + "DOUBLE] | Logger: InsertQuery_1.S1"));
+    assertThat(lines[1],
+        equalTo("\t\t > [ REKEY ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING, COL2 DOUBLE] "
+            + "| Logger: InsertQuery_1.S1"));
     assertThat(lines[2], equalTo("\t\t\t\t > [ PROJECT ] | Schema: [ROWKEY STRING KEY, COL0 BIGINT, COL1 STRING"
         + ", COL2 DOUBLE] | Logger: InsertQuery_1.Project"));
   }

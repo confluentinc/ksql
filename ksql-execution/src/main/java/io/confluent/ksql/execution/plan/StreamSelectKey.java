@@ -24,14 +24,17 @@ import java.util.Objects;
 public class StreamSelectKey<S> implements ExecutionStep<S> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<S> source;
+  private final String fieldName;
   private final boolean updateRowKey;
 
   public StreamSelectKey(
       final ExecutionStepProperties properties,
       final ExecutionStep<S> source,
+      final String fieldName,
       final boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
+    this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     this.updateRowKey = updateRowKey;
   }
 

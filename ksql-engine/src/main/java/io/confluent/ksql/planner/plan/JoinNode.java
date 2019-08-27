@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
@@ -280,15 +279,17 @@ public class JoinNode extends PlanNode {
       return stream.selectKey(joinFieldName, true, contextStacker);
     }
 
+    ValueFormat getFormatForSource(final DataSourceNode sourceNode) {
+      return sourceNode.getDataSource()
+          .getKsqlTopic()
+          .getValueFormat();
+    }
+
     Serde<GenericRow> getSerDeForSource(
         final DataSourceNode sourceNode,
         final QueryContext.Stacker contextStacker
     ) {
-      final DataSource<?> dataSource = sourceNode.getDataSource();
-
-      final ValueFormat valueFormat = dataSource
-          .getKsqlTopic()
-          .getValueFormat();
+      final ValueFormat valueFormat = getFormatForSource(sourceNode);
 
       final LogicalSchema logicalSchema = sourceNode.getSchema()
           .withoutAlias();
@@ -367,6 +368,8 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               joinNode.withinExpression.get().joinWindow(),
+              getFormatForSource(joinNode.left),
+              getFormatForSource(joinNode.right),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
@@ -376,6 +379,8 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getOuterJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               joinNode.withinExpression.get().joinWindow(),
+              getFormatForSource(joinNode.left),
+              getFormatForSource(joinNode.right),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
@@ -385,6 +390,8 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               joinNode.withinExpression.get().joinWindow(),
+              getFormatForSource(joinNode.left),
+              getFormatForSource(joinNode.right),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               getSerDeForSource(joinNode.right, contextStacker.push(RIGHT_SERDE_CONTEXT_NAME)),
               contextStacker);
@@ -424,6 +431,7 @@ public class JoinNode extends PlanNode {
               rightTable,
               joinNode.schema,
               getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
+              getFormatForSource(joinNode.left),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
 
@@ -432,6 +440,7 @@ public class JoinNode extends PlanNode {
               rightTable,
               joinNode.schema,
               getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
+              getFormatForSource(joinNode.left),
               getSerDeForSource(joinNode.left, contextStacker.push(LEFT_SERDE_CONTEXT_NAME)),
               contextStacker);
         case OUTER:

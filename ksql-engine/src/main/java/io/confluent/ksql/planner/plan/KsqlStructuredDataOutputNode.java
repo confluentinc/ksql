@@ -140,13 +140,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker.getQueryContext()
     );
 
-    result.into(
+    return result.into(
         getKsqlTopic().getKafkaTopicName(),
         outputRowSerde,
-        implicitAndKeyFieldIndexes
+        getSchema(),
+        getKsqlTopic().getValueFormat(),
+        serdeOptions,
+        implicitAndKeyFieldIndexes,
+        contextStacker
     );
-
-    return result;
   }
 
   @SuppressWarnings("unchecked")
@@ -164,7 +166,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getKeyField().legacy()
     );
 
-    final SchemaKStream result = schemaKStream.sink(resultKeyField, contextStacker);
+    final SchemaKStream result = schemaKStream.withKeyField(resultKeyField);
 
     if (!partitionByField.isPresent()) {
       return result;

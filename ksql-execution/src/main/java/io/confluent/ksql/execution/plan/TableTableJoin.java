@@ -24,19 +24,16 @@ import java.util.Objects;
 public class TableTableJoin<T> implements ExecutionStep<T> {
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
-  private final Formats formats;
   private final ExecutionStep<T> left;
   private final ExecutionStep<T> right;
 
   public TableTableJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
-      final Formats formats,
       final ExecutionStep<T> left,
       final ExecutionStep<T> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
-    this.formats = Objects.requireNonNull(formats, "formats");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
   }
@@ -67,7 +64,6 @@ public class TableTableJoin<T> implements ExecutionStep<T> {
     final TableTableJoin<?> that = (TableTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
-        && Objects.equals(formats, that.formats)
         && Objects.equals(left, that.left)
         && Objects.equals(right, that.right);
   }
@@ -75,6 +71,6 @@ public class TableTableJoin<T> implements ExecutionStep<T> {
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, joinType, formats, left, right);
+    return Objects.hash(properties, joinType, left, right);
   }
 }

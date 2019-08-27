@@ -67,6 +67,9 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -362,6 +365,32 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+  }
+
+  @Test
+  public void shouldIncrementQueryIdOnKsqlMissingSourceExceptionRestore() {
+    final TestUtils testUtils = new TestUtils();
+    ArrayList<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
+
+    // Scenario where previously a stream was successfully created and then a
+    // CREATE STREAM AS SELECT was executed, but on restore it fails for some reason
+    // ex: underlying stream Kafka topic was deleted
+    final Command unknownCsasCommand = new Command("CREATE STREAM failed_stream_copy "
+            + " AS select * from failed_stream;",
+            Collections.emptyMap(), Collections.emptyMap());
+
+    final CommandId unknownCsasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
+
+    priorCommands.add(new Pair<>(unknownCsasCommandId, unknownCsasCommand));
+    priorCommands.addAll(testUtils.getAllPriorCommandRecords());
+    priorCommands.forEach(
+        pair -> statementExecutor.handleRestore(
+            new QueuedCommand(pair.left, pair.right)
+        )
+    );
+
+    List<PersistentQueryMetadata> persistentQueries = ksqlEngine.getPersistentQueries();
+    Assert.assertEquals(persistentQueries.get(0).getQueryId().toString(), "CSAS_USER1PV_1");
   }
 
   @Test

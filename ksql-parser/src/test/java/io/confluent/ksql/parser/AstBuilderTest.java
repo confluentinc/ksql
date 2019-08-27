@@ -18,9 +18,12 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasLeft;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasRight;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
@@ -39,6 +42,7 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlMissingSourceException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
@@ -423,6 +427,24 @@ public class AstBuilderTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("UNKNOWN does not exist");
+
+    // When:
+    builder.build(stmt);
+  }
+
+  @Test
+  public void shoudThrowOnUnknownInsertIntoTarget() {
+    // Given:
+    final SingleStatementContext stmt = givenQuery("INSERT INTO UNKNOWN SELECT * FROM TEST2;");
+
+    // When:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UNKNOWN does not exist");
+    expectedException.expectCause(
+        allOf(
+            isA(KsqlMissingSourceException.class),
+            hasProperty("message", is("Could not find source: UNKNOWN")
+            )));
 
     // When:
     builder.build(stmt);

@@ -39,6 +39,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlMissingSourceException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
@@ -49,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -196,6 +198,11 @@ public class StatementExecutor implements KsqlConfigurable {
       executeStatement(
           statement, command, commandId, commandStatusFuture, mode);
     } catch (final KsqlException exception) {
+      final Throwable rootCause = ExceptionUtils.getRootCause(exception);
+      if (mode == Mode.RESTORE && rootCause instanceof KsqlMissingSourceException) {
+        ksqlEngine.incrementQueryId();
+      }
+
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,

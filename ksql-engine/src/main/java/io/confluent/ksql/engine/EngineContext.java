@@ -196,4 +196,8 @@ final class EngineContext {
 
     outerOnQueryCloseCallback.accept(serviceContext, query);
   }
+
+  void incrementQueryId() {
+    this.queryIdGenerator.getNextId();
+  }
 }

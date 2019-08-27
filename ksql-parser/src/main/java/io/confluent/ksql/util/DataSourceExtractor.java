@@ -145,7 +145,9 @@ public class DataSourceExtractor {
         fromAlias = alias;
         fromName = table.getName().getSuffix().toUpperCase();
         if (metaStore.getSource(table.getName().getSuffix()) == null) {
-          throw new KsqlException(table.getName().getSuffix() + " does not exist.");
+          throw new KsqlException(table.getName().getSuffix() + " does not exist.",
+              new KsqlMissingSourceException(
+                  "Could not find source: " + table.getName().getSuffix()));
         }
 
         return null;

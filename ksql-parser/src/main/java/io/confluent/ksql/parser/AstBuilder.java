@@ -124,6 +124,7 @@ import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlMissingSourceException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
@@ -1245,7 +1246,8 @@ public class AstBuilder {
     ) {
       final DataSource<?> source = metaStore.getSource(name);
       if (source == null) {
-        throw new InvalidColumnReferenceException(location, name + " does not exist.");
+        throw new InvalidColumnReferenceException(location, name + " does not exist.",
+            new KsqlMissingSourceException("Could not find source: " + name));
       }
 
       return source;
@@ -1258,6 +1260,14 @@ public class AstBuilder {
           final String message
       ) {
         super(location.map(loc -> loc + ": ").orElse("") + message);
+      }
+
+      private InvalidColumnReferenceException(
+              final Optional<NodeLocation> location,
+              final String message,
+              final Throwable cause
+      ) {
+        super(location.map(loc -> loc + ": ").orElse("") + message, cause);
       }
     }
   }

@@ -221,4 +221,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
 
     StreamsErrorCollector.notifyApplicationClose(applicationId);
   }
+
+  public void incrementQueryId() {
+    this.primaryContext.incrementQueryId();
+  }
 }

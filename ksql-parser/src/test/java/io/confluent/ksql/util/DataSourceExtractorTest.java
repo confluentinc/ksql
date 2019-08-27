@@ -16,8 +16,11 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasProperty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isA;
 import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.function.FunctionRegistry;
@@ -93,6 +96,11 @@ public class DataSourceExtractorTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("UNKNOWN does not exist.");
+    expectedException.expectCause(
+        allOf(
+            isA(KsqlMissingSourceException.class),
+            hasProperty("message", is("Could not find source: UNKNOWN")
+    )));
 
     // When:
     extractor.extractDataSources(stmt);

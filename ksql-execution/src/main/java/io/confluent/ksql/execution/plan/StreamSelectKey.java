@@ -15,22 +15,20 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
-public class StreamSelectKey<K> implements ExecutionStep<KStream<K, GenericRow>> {
+public class StreamSelectKey<S> implements ExecutionStep<S> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KStream<?, GenericRow>> source;
+  private final ExecutionStep<S> source;
   private final boolean updateRowKey;
 
   public StreamSelectKey(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KStream<?, GenericRow>> source,
+      final ExecutionStep<S> source,
       final boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -48,7 +46,7 @@ public class StreamSelectKey<K> implements ExecutionStep<KStream<K, GenericRow>>
   }
 
   @Override
-  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
+  public S build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 

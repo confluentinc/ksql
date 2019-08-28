@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -241,6 +242,10 @@ public class StandaloneExecutor implements Executable {
                 StatementExecutor::handleExecutableDdl,
                 CreateTable.class,
                 "CREATE TABLE"))
+            .put(RegisterType.class, createHandler(
+                StatementExecutor::handleExecutableDdl,
+                RegisterType.class,
+                "REGISTER TYPE"))
             .put(CreateStreamAsSelect.class, createHandler(
                 StatementExecutor::handlePersistentQuery,
                 CreateStreamAsSelect.class,

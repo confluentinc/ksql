@@ -16,27 +16,25 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
-public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>> {
+public class StreamStreamJoin<S> implements ExecutionStep<S> {
 
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
   private final Formats formats;
-  private final ExecutionStep<KStream<K, GenericRow>> left;
-  private final ExecutionStep<KStream<K, GenericRow>> right;
+  private final ExecutionStep<S> left;
+  private final ExecutionStep<S> right;
 
   public StreamStreamJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
       final Formats formats,
-      final ExecutionStep<KStream<K, GenericRow>> left,
-      final ExecutionStep<KStream<K, GenericRow>> right) {
+      final ExecutionStep<S> left,
+      final ExecutionStep<S> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
@@ -55,7 +53,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>
   }
 
   @Override
-  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
+  public S build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 

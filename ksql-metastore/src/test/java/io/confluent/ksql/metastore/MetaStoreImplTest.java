@@ -28,9 +28,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -92,6 +97,20 @@ public class MetaStoreImplTest {
     // Then:
     assertThat(copy.getAllDataSources().keySet(), contains(dataSource.getName()));
     assertThat(metaStore.getAllDataSources().keySet(), is(empty()));
+  }
+
+  @Test
+  public void shouldDeepCopyTypesOnCopy() {
+    // Given:
+    metaStore.registerType("foo", SqlPrimitiveType.of(SqlBaseType.STRING));
+
+    // When:
+    final MetaStore copy = metaStore.copy();
+    metaStore.deleteType("foo");
+
+    // Then:
+    assertThat(copy.resolveType("foo"), OptionalMatchers.of(is(SqlPrimitiveType.of(SqlBaseType.STRING))));
+    assertThat("Expected no types in the original", !metaStore.types().hasNext());
   }
 
   @Test
@@ -292,6 +311,29 @@ public class MetaStoreImplTest {
 
     // Then:
     assertThat(metaStore.getQueriesWithSink(dataSource.getName()), contains("some query"));
+  }
+
+  @Test
+  public void shouldRegisterType() {
+    // Given:
+    final SqlType type = SqlPrimitiveType.of(SqlBaseType.STRING);
+    metaStore.registerType("foo", type);
+
+    // When:
+    final Optional<SqlType> resolved = metaStore.resolveType("foo");
+
+    // Then:
+    assertThat("expected to find type", resolved.isPresent());
+    assertThat(resolved.get(), is(type));
+  }
+
+  @Test
+  public void shouldNotFindUnregisteredType() {
+    // When:
+    final Optional<SqlType> resolved = metaStore.resolveType("foo");
+
+    // Then:
+    assertThat("expected not to find type", !resolved.isPresent());
   }
 
   @Test

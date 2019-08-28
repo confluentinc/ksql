@@ -16,13 +16,18 @@
 package io.confluent.ksql.schema.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -123,6 +128,37 @@ public class SqlPrimitiveTypeTest {
         // Then:
         assertThat(SqlPrimitiveType.of(string).baseType(), is(expected))
     );
+  }
+
+  @Test
+  public void shouldSupportAllPrimitiveTypeNames() {
+    // Given:
+    final Set<String> typeNames = ImmutableSet.of(
+        "INT",
+        "VARCHAR",
+        "BOOLEAN",
+        "BIGINT",
+        "DOUBLE",
+        "STRING"
+    );
+
+    // When:
+    final List<Boolean> missing = typeNames.stream()
+        .map(SqlPrimitiveType::isPrimitiveTypeName)
+        .filter(x -> !x)
+        .collect(Collectors.toList());
+
+    // Then:
+    assertThat(missing, is(empty()));
+  }
+
+  @Test
+  public void shouldNotSupportRandomTypeName() {
+    // When:
+    final boolean isPrimitive = SqlPrimitiveType.isPrimitiveTypeName("WILL ROBINSON");
+
+    // Then:
+    assertThat("expected not primitive!", !isPrimitive);
   }
 
   @Test

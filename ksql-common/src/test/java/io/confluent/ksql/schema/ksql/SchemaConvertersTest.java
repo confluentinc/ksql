@@ -31,6 +31,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -121,6 +122,8 @@ public class SchemaConvertersTest {
     final Set<SqlBaseType> tested = SQL_TO_LOGICAL.keySet().stream()
         .map(SqlType::baseType)
         .collect(Collectors.toSet());
+    // we cannot resolve unknown types in the converters
+    tested.add(SqlBaseType.CUSTOM);
 
     final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
 
@@ -147,7 +150,9 @@ public class SchemaConvertersTest {
 
   @Test
   public void shouldHaveJavaTestsForAllSqlTypes() {
-    final Set<SqlBaseType> tested = SQL_TO_JAVA.keySet();
+    final Set<SqlBaseType> tested = new HashSet<>(SQL_TO_JAVA.keySet());
+    // we cannot resolve unknown types in the converters
+    tested.add(SqlBaseType.CUSTOM);
 
     final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
 

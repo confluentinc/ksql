@@ -404,6 +404,7 @@ public class StandaloneExecutorTest {
         + "CREATE TABLE\n"
         + "CREATE TABLE AS SELECT\n"
         + "INSERT INTO\n"
+        + "REGISTER TYPE\n"
         + "SET\n"
         + "UNSET");
 

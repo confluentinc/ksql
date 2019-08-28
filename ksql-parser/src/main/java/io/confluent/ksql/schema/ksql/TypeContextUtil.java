@@ -22,6 +22,7 @@ import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlCustomType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
@@ -50,7 +51,12 @@ public final class TypeContextUtil {
 
   private static SqlType getSqlType(final SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
-      return SqlPrimitiveType.of(baseTypeToString(type.baseType()));
+      final String baseType = baseTypeToString(type.baseType());
+      if (SqlPrimitiveType.isPrimitiveTypeName(baseType)) {
+        return SqlPrimitiveType.of(baseType);
+      } else {
+        return SqlCustomType.of(baseType);
+      }
     }
 
     if (type.DECIMAL() != null) {

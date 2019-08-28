@@ -174,4 +174,8 @@ public abstract class AstVisitor<R, C> {
   protected R visitSetProperty(final SetProperty node, final C context) {
     return visitStatement(node, context);
   }
+
+  public R visitRegisterType(final RegisterType node, final C context) {
+    return visitStatement(node, context);
+  }
 }

@@ -17,10 +17,10 @@ package io.confluent.ksql.execution.plan;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 
-public interface ExecutionStep<T> {
+public interface ExecutionStep<S> {
   ExecutionStepProperties getProperties();
 
   List<ExecutionStep<?>> getSources();
 
-  T build(KsqlQueryBuilder queryBuilder);
+  S build(KsqlQueryBuilder queryBuilder);
 }

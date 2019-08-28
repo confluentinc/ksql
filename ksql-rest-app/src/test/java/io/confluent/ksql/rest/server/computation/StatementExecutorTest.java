@@ -31,11 +31,13 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -47,7 +49,6 @@ import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.DropStream;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
@@ -73,15 +74,19 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMockSupport;
 import org.easymock.IArgumentMatcher;
+import org.easymock.Mock;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.integration.EasyMock2Adapter;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 public class StatementExecutorTest extends EasyMockSupport {
@@ -100,9 +105,19 @@ public class StatementExecutorTest extends EasyMockSupport {
   private StatementExecutor statementExecutorWithMocks;
   private ServiceContext serviceContext;
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private QueuedCommand queuedCommand;
+
   @Before
   public void setUp() {
-    ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
+    ksqlConfig = KsqlConfigTestUtil.create(
+        CLUSTER,
+        ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "host:1234")
+    );
+
     final FakeKafkaTopicClient fakeKafkaTopicClient = new FakeKafkaTopicClient();
     fakeKafkaTopicClient.createTopic("pageview_topic", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());
@@ -115,9 +130,11 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlConfig, ksqlEngine, statementParser);
-    statementExecutorWithMocks
-        = new StatementExecutor(ksqlConfig, mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(ksqlEngine, statementParser);
+    statementExecutorWithMocks = new StatementExecutor(mockEngine, mockParser);
+
+    statementExecutor.configure(ksqlConfig);
+    statementExecutorWithMocks.configure(ksqlConfig);
   }
 
   @After
@@ -133,32 +150,40 @@ public class StatementExecutorTest extends EasyMockSupport {
     .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
     .around(CLUSTER);
 
-  private void handleStatement(
-      final Command command,
-      final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatus) {
-    handleStatement(statementExecutor, command, commandId, commandStatus);
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnConfigureIfAppServerNotSet() {
+    // Given:
+    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
+
+    // When:
+    statementExecutorWithMocks.configure(configNoAppServer);
   }
 
-  private static void handleStatement(
-      final StatementExecutor statementExecutor,
-      final Command command,
-      final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatus) {
-    statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus));
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowOnHandleStatementIfNotConfigured() {
+    // Given:
+    statementExecutor = new StatementExecutor(mockEngine, mockParser);
+
+    // When:
+    statementExecutor.handleStatement(queuedCommand);
+  }
+
+  @Test(expected = IllegalStateException.class)
+  public void shouldThrowOnHandleRestoreIfNotConfigured() {
+    // Given:
+    statementExecutor = new StatementExecutor(mockEngine, mockParser);
+
+    // When:
+    statementExecutor.handleRestore(queuedCommand);
   }
 
   @Test
   public void shouldThrowOnUnexpectedException() {
     // Given:
     final String statementText = "mama said knock you out";
-    final StatementParser statementParser = mock(StatementParser.class);
-    final KsqlEngine mockEngine = mock(KsqlEngine.class);
-    final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
-    final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, statementParser);
+
     final RuntimeException exception = new RuntimeException("i'm gonna knock you out");
-    expect(statementParser.parseSingleStatement(statementText)).andThrow(
+    expect(mockParser.parseSingleStatement(statementText)).andThrow(
         exception);
     final Command command = new Command(
         statementText,
@@ -166,11 +191,11 @@ public class StatementExecutorTest extends EasyMockSupport {
         emptyMap());
     final CommandId commandId =  new CommandId(
         CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
-    replay(statementParser);
+    replay(mockParser);
 
     // When:
     try {
-      handleStatement(statementExecutor, command, commandId, Optional.empty());
+      handleStatement(statementExecutorWithMocks, command, commandId, Optional.empty());
       Assert.fail("handleStatement should throw");
     } catch (final RuntimeException caughtException) {
       // Then:
@@ -201,12 +226,8 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     expect(mockQueryMetadata.getQueryId()).andStubReturn(mock(QueryId.class));
 
-    final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
     final KsqlConfig expectedConfig = ksqlConfig.overrideBreakingConfigsWithOriginalValues(
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
-
-    final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig, mockEngine, mockParser);
 
     final Command csasCommand = new Command(
         statementText,
@@ -229,7 +250,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     replay(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
 
-    handleStatement(statementExecutor, csasCommand, csasCommandId, Optional.empty());
+    handleStatement(statementExecutorWithMocks, csasCommand, csasCommandId, Optional.empty());
 
     verify(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
   }
@@ -788,8 +809,21 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(
         dropTableCommandStatus1.get().getMessage(),
         containsString("You need to terminate them before dropping TABLE1."));
+  }
 
+  private void handleStatement(
+      final Command command,
+      final CommandId commandId,
+      final Optional<CommandStatusFuture> commandStatus) {
+    handleStatement(statementExecutor, command, commandId, commandStatus);
+  }
 
+  private static void handleStatement(
+      final StatementExecutor statementExecutor,
+      final Command command,
+      final CommandId commandId,
+      final Optional<CommandStatusFuture> commandStatus) {
+    statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus));
   }
 
   private void terminateQueries() {

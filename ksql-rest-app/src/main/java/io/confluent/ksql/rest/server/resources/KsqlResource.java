@@ -47,6 +47,7 @@ import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
@@ -64,12 +65,13 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.streams.StreamsConfig;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @Path("/ksql")
 @Consumes({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
-public class KsqlResource {
+public class KsqlResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final List<ParsedStatement> TERMINATE_CLUSTER =
@@ -89,12 +91,30 @@ public class KsqlResource {
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
-  private final RequestValidator validator;
-  private final RequestHandler handler;
+  private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
+  private final KsqlAuthorizationValidator authorizationValidator;
+  private RequestValidator validator;
+  private RequestHandler handler;
 
 
   public KsqlResource(
-      final KsqlConfig ksqlConfig,
+      final KsqlEngine ksqlEngine,
+      final CommandQueue commandQueue,
+      final Duration distributedCmdResponseTimeout,
+      final ActivenessRegistrar activenessRegistrar,
+      final KsqlAuthorizationValidator authorizationValidator
+  ) {
+    this(
+        ksqlEngine,
+        commandQueue,
+        distributedCmdResponseTimeout,
+        activenessRegistrar,
+        Injectors.DEFAULT,
+        authorizationValidator
+    );
+  }
+
+  KsqlResource(
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
@@ -108,13 +128,24 @@ public class KsqlResource {
         Objects.requireNonNull(distributedCmdResponseTimeout, "distributedCmdResponseTimeout");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
+    this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
+    this.authorizationValidator = Objects
+        .requireNonNull(authorizationValidator, "authorizationValidator");
+  }
+
+  @Override
+  public void configure(final KsqlConfig config) {
+    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalArgumentException("Need KS application server set");
+    }
 
     this.validator = new RequestValidator(
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        ksqlConfig
+        config
     );
+
     this.handler = new RequestHandler(
         CustomExecutors.EXECUTOR_MAP,
         new DistributingExecutor(
@@ -124,12 +155,13 @@ public class KsqlResource {
             authorizationValidator
         ),
         ksqlEngine,
-        ksqlConfig,
+        config,
         new DefaultCommandQueueSync(
             commandQueue,
             KsqlResource::shouldSynchronize,
-            distributedCmdResponseTimeout)
-        );
+            distributedCmdResponseTimeout
+        )
+    );
   }
 
   @POST
@@ -138,6 +170,8 @@ public class KsqlResource {
       @Context final ServiceContext serviceContext,
       final ClusterTerminateRequest request
   ) {
+    throwIfNotConfigured();
+
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       return Response.ok(
@@ -154,6 +188,8 @@ public class KsqlResource {
       @Context final ServiceContext serviceContext,
       final KsqlRequest request
   ) {
+    throwIfNotConfigured();
+
     activenessRegistrar.updateLastRequestTime();
 
     try {
@@ -186,6 +222,12 @@ public class KsqlResource {
     } catch (final Exception e) {
       return ErrorResponseUtil.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
+    }
+  }
+
+  private void throwIfNotConfigured() {
+    if (validator == null || handler == null) {
+      throw new KsqlRestException(Errors.notReady());
     }
   }
 

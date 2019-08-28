@@ -103,7 +103,7 @@ public class TopicDeleteInjector implements Injector {
             ExecutorUtil.RetryBehaviour.ALWAYS);
       } catch (Exception e) {
         throw new RuntimeException("Could not delete the corresponding kafka topic: "
-                + sourceName, e);
+                + source.getKafkaTopicName(), e);
       }
 
       try {

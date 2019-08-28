@@ -30,13 +30,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -214,6 +214,30 @@ public class TopicDeleteInjectorTest {
     expectedException.expectMessage(
         "Refusing to delete topic. "
             + "Found other data sources (OTHER1, OTHER2) using topic something");
+
+    // When:
+    deleteInjector.inject(dropStatement);
+  }
+
+  @Test
+  public void shouldThrowIfTopicDoesNotExist() {
+    // Given:
+    final String STREAM_1 = "stream1";
+    final DataSource<?> other1 = givenSource(STREAM_1, "topicName");
+    when(metaStore.getSource(STREAM_1)).thenAnswer(inv -> other1);
+    when(other1.getKafkaTopicName()).thenReturn("topicName");
+    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
+        "DROP stream1 DELETE TOPIC;",
+        new DropStream(QualifiedName.of("stream1"),
+            true,
+            true)
+    );
+    doThrow(RuntimeException.class).when(topicClient).deleteTopics(ImmutableList.of("topicName"));
+
+    // Expect:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("" +
+        "Could not delete the corresponding kafka topic: topicName");
 
     // When:
     deleteInjector.inject(dropStatement);

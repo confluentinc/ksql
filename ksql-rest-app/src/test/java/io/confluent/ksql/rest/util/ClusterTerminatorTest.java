@@ -109,7 +109,6 @@ public class ClusterTerminatorTest {
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
     when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
     clusterTerminator = new ClusterTerminator(
-        ksqlConfig,
         ksqlEngine,
         serviceContext,
         MANAGED_TOPICS);

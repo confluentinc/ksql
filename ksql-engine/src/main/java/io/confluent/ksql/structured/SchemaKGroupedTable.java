@@ -16,6 +16,7 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
@@ -27,7 +28,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
-import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -89,7 +89,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final WindowExpression windowExpression,
       final Serde<GenericRow> topicValueSerDe,
-      final Stacker contextStacker
+      final QueryContext.Stacker contextStacker
   ) {
     if (windowExpression != null) {
       throw new KsqlException("Windowing not supported for table aggregations.");

@@ -20,12 +20,15 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -39,18 +42,24 @@ public final class MetaStoreImpl implements MutableMetaStore {
   private final Map<String, SourceInfo> dataSources = new ConcurrentHashMap<>();
   private final Object referentialIntegrityLock = new Object();
   private final FunctionRegistry functionRegistry;
+  private final TypeRegistry typeRegistry;
 
   public MetaStoreImpl(final FunctionRegistry functionRegistry) {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.typeRegistry = new TypeRegistryImpl();
   }
 
   private MetaStoreImpl(
       final Map<String, SourceInfo> dataSources,
-      final FunctionRegistry functionRegistry
+      final FunctionRegistry functionRegistry,
+      final TypeRegistry typeRegistry
   ) {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.typeRegistry = new TypeRegistryImpl();
 
     dataSources.forEach((name, info) -> this.dataSources.put(name, info.copy()));
+    typeRegistry.types()
+        .forEachRemaining(type -> this.typeRegistry.registerType(type.getName(), type.getType()));
   }
 
   @Override
@@ -179,7 +188,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   @Override
   public MutableMetaStore copy() {
     synchronized (referentialIntegrityLock) {
-      return new MetaStoreImpl(dataSources, functionRegistry);
+      return new MetaStoreImpl(dataSources, functionRegistry, typeRegistry);
     }
   }
 
@@ -224,6 +233,26 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
           return sourceInfo;
         });
+  }
+
+  @Override
+  public void registerType(final String name, final SqlType type) {
+    typeRegistry.registerType(name, type);
+  }
+
+  @Override
+  public boolean deleteType(final String name) {
+    return typeRegistry.deleteType(name);
+  }
+
+  @Override
+  public Optional<SqlType> resolveType(final String name) {
+    return typeRegistry.resolveType(name);
+  }
+
+  @Override
+  public Iterator<CustomType> types() {
+    return typeRegistry.types();
   }
 
   private static final class SourceInfo {

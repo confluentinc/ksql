@@ -24,22 +24,26 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
-import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -48,6 +52,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -142,6 +147,23 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result, instanceOf(DropSourceCommand.class));
+  }
+
+  @Test
+  public void shouldCreateCommandForRegisterType() {
+    // Given:
+    final RegisterType ddlStatement = new RegisterType(
+        Optional.empty(),
+        "alias",
+        new Type(SqlStruct.builder().field("foo", SqlPrimitiveType.of(SqlBaseType.STRING)).build())
+    );
+
+    // When:
+    final DdlCommand result = commandFactories.create(
+        sqlExpression, ddlStatement, ksqlConfig, NO_PROPS);
+
+    // Then:
+    assertThat(result, instanceOf(RegisterTypeCommand.class));
   }
 
   @Test(expected = KsqlException.class)

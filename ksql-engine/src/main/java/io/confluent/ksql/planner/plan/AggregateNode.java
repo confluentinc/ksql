@@ -184,18 +184,17 @@ public class AggregateNode extends PlanNode {
     return visitor.visitAggregate(this, context);
   }
 
-  @SuppressWarnings("unchecked") // needs investigating
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
     final DataSourceNode streamSourceNode = getTheSourceNode();
-    final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder);
+    final SchemaKStream<?> sourceSchemaKStream = getSource().buildStream(builder);
 
     // Pre aggregate computations
     final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
         getAggregateFunctionArguments());
 
-    final SchemaKStream aggregateArgExpanded =
+    final SchemaKStream<?> aggregateArgExpanded =
         sourceSchemaKStream.select(
             internalSchema.getAggArgExpansionList(),
             contextStacker.push(PREPARE_OP_NAME),
@@ -247,34 +246,25 @@ public class AggregateNode extends PlanNode {
         aggregationContext.getQueryContext()
     );
 
-    final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
+    SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
+        aggStageSchema,
         initializer,
         requiredColumns.size(),
         aggValToFunctionMap,
         getWindowExpression(),
         aggValueGenericRowSerde,
         aggregationContext
-    );
 
-    SchemaKTable<?> result = new SchemaKTable<>(
-        schemaKTable.getKtable(), aggStageSchema,
-        schemaKTable.getKeySerde(),
-        schemaKTable.getKeyField(),
-        schemaKTable.getSourceSchemaKStreams(),
-        SchemaKStream.Type.AGGREGATE,
-        builder.getKsqlConfig(),
-        builder.getFunctionRegistry(),
-        aggregationContext.getQueryContext()
     );
 
     if (havingExpressions != null) {
-      result = result.filter(
+      aggregated = aggregated.filter(
           internalSchema.resolveToInternal(havingExpressions),
           contextStacker.push(FILTER_OP_NAME),
           builder.getProcessingLogContext());
     }
 
-    return result.select(
+    return aggregated.select(
         internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
         contextStacker.push(PROJECT_OP_NAME),
         builder.getProcessingLogContext());

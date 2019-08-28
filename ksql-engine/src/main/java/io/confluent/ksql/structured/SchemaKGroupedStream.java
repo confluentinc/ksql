@@ -102,6 +102,7 @@ public class SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
+      final LogicalSchema aggregateSchema,
       final Initializer initializer,
       final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
@@ -109,17 +110,21 @@ public class SchemaKGroupedStream {
       final Serde<GenericRow> topicValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
+    throwOnValueFieldCountMismatch(aggregateSchema, nonFuncColumnCount, aggValToFunctionMap);
+
     final KTable table;
     final KeySerde<?> newKeySerde;
     if (windowExpression != null) {
       newKeySerde = getKeySerde(windowExpression);
+
       table = aggregateWindowed(
           initializer,
           nonFuncColumnCount,
           aggValToFunctionMap,
           windowExpression,
           topicValueSerDe,
-          contextStacker);
+          contextStacker
+      );
     } else {
       newKeySerde = keySerde;
 
@@ -128,12 +133,13 @@ public class SchemaKGroupedStream {
           nonFuncColumnCount,
           aggValToFunctionMap,
           topicValueSerDe,
-          contextStacker);
+          contextStacker
+      );
     }
 
     return new SchemaKTable(
         table,
-        schema,
+        aggregateSchema,
         newKeySerde,
         keyField,
         sourceSchemaKStreams,
@@ -201,5 +207,24 @@ public class SchemaKGroupedStream {
     }
 
     return keySerde.rebind(windowExpression.getKsqlWindowExpression().getWindowInfo());
+  }
+
+  static void throwOnValueFieldCountMismatch(
+      final LogicalSchema aggregateSchema,
+      final int nonFuncColumnCount,
+      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap
+  ) {
+    final int nonAggColumnCount = aggValToFunctionMap.size();
+    final int totalColumnCount = nonAggColumnCount + nonFuncColumnCount;
+
+    final int valueColumnCount = aggregateSchema.valueFields().size();
+    if (valueColumnCount != totalColumnCount) {
+      throw new IllegalArgumentException(
+          "Aggregate schema value field count does not match expected."
+          + " expected: " + totalColumnCount
+          + ", actual: " + valueColumnCount
+          + ", schema: " + aggregateSchema
+      );
+    }
   }
 }

@@ -65,7 +65,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeySerde;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.MaterializedFactory;
@@ -168,8 +167,6 @@ public class SchemaKStreamTest {
   private KeySerde keySerde;
   @Mock
   private KeySerde reboundKeySerde;
-  @Mock
-  private KeySerde windowedKeySerde;
 
   @Before
   public void init() {
@@ -220,7 +217,6 @@ public class SchemaKStreamTest {
     joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
 
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
-    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
 
     whenCreateJoined();
   }

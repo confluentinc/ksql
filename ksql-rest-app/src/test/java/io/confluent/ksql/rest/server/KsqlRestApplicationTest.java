@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -64,7 +65,9 @@ import java.util.Queue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -125,6 +128,9 @@ public class KsqlRestApplicationTest {
   private KsqlServerPrecondition precondition2;
   private PreparedStatement<CreateSource> logCreateStatement;
   private KsqlRestApplication app;
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -386,6 +392,25 @@ public class KsqlRestApplicationTest {
     app.startKsql();
   }
 
+  @Test
+  public void shouldThrowIfFailToRocksDBConfigSetter() throws Exception {
+    // Given:
+    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
+        ImmutableMap.of(
+            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
+            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"))
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(containsString("Failed to configure Configurable RocksDBConfigSetter."));
+    expectedException.expectMessage(containsString(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG));
+    expectedException.expectMessage(containsString("io.confluent.ksql.rest.server.KsqlRestApplicationTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"));
+
+    // When:
+    app.startKsql();
+  }
+
   public static class ConfigurableTestRocksDBConfigSetter
       extends NonConfigurableTestRocksDBConfigSetter
       implements org.apache.kafka.common.Configurable {
@@ -396,6 +421,15 @@ public class KsqlRestApplicationTest {
     public void configure(final Map<String, ?> config) {
       final Runnable supplier = (Runnable) config.get(TEST_CONFIG);
       supplier.run();
+    }
+  }
+
+  static class ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor
+      extends NonConfigurableTestRocksDBConfigSetter
+      implements org.apache.kafka.common.Configurable {
+
+    @Override
+    public void configure(final Map<String, ?> config) {
     }
   }
 

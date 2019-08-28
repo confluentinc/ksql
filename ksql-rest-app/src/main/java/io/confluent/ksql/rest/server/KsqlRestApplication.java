@@ -630,8 +630,15 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         (Class) streamsProps.get(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG);
 
     if (clazz != null && org.apache.kafka.common.Configurable.class.isAssignableFrom(clazz)) {
-      ((org.apache.kafka.common.Configurable) Utils.newInstance(clazz))
-          .configure(ksqlConfig.originals());
+      try {
+        ((org.apache.kafka.common.Configurable) Utils.newInstance(clazz))
+            .configure(ksqlConfig.originals());
+      } catch (Exception e) {
+        throw new KsqlException(
+            "Failed to configure Configurable RocksDBConfigSetter. "
+                + StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG + ": " + clazz.getName(),
+            e);
+      }
     }
   }
 }

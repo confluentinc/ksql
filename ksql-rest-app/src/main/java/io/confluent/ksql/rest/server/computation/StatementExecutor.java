@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.ExceptionUtil;
@@ -32,6 +33,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandId.Action;
 import io.confluent.ksql.rest.server.computation.CommandId.Type;
+import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -47,6 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,35 +57,49 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-public class StatementExecutor {
+public class StatementExecutor implements KsqlConfigurable {
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
-  private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final Map<CommandId, CommandStatus> statusStore;
+  private KsqlConfig ksqlConfig;
 
   private enum Mode {
     RESTORE,
     EXECUTE
   }
 
-  public StatementExecutor(
-      final KsqlConfig ksqlConfig,
+  public StatementExecutor(final KsqlEngine ksqlEngine) {
+    this(
+        ksqlEngine,
+        new StatementParser(ksqlEngine)
+    );
+  }
+
+  @VisibleForTesting
+  StatementExecutor(
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser
   ) {
-    Objects.requireNonNull(ksqlConfig, "ksqlConfig cannot be null.");
     Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
 
-    this.ksqlConfig = ksqlConfig;
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.statusStore = new ConcurrentHashMap<>();
   }
 
-  protected KsqlEngine getKsqlEngine() {
+  @Override
+  public void configure(final KsqlConfig config) {
+    if (!config.getKsqlStreamConfigProps().containsKey(StreamsConfig.APPLICATION_SERVER_CONFIG)) {
+      throw new IllegalArgumentException("Need KS application server set");
+    }
+
+    ksqlConfig = config;
+  }
+
+  KsqlEngine getKsqlEngine() {
     return ksqlEngine;
   }
 
@@ -92,6 +109,8 @@ public class StatementExecutor {
    * @param queuedCommand The command to be executed
    */
   void handleStatement(final QueuedCommand queuedCommand) {
+    throwIfNotConfigured();
+
     handleStatementWithTerminatedQueries(
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
@@ -100,6 +119,8 @@ public class StatementExecutor {
   }
 
   void handleRestore(final QueuedCommand queuedCommand) {
+    throwIfNotConfigured();
+
     handleStatementWithTerminatedQueries(
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
@@ -124,6 +145,12 @@ public class StatementExecutor {
    */
   public Optional<CommandStatus> getStatus(final CommandId statementId) {
     return Optional.ofNullable(statusStore.get(statementId));
+  }
+
+  private void throwIfNotConfigured() {
+    if (ksqlConfig == null) {
+      throw new IllegalStateException("No initialized");
+    }
   }
 
   private void putStatus(final CommandId commandId,

@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.rest.server.KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG;
+import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -44,6 +45,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
+import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
@@ -64,7 +66,6 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
@@ -86,7 +87,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -100,6 +100,7 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
+import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
@@ -115,7 +116,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
 
-  private final KsqlConfig ksqlConfig;
+  private final KsqlConfig ksqlConfigNoPort;
   private final KsqlEngine ksqlEngine;
   private final CommandRunner commandRunner;
   private final CommandStore commandStore;
@@ -131,6 +132,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ProcessingLogContext processingLogContext;
   private final List<KsqlServerPrecondition> preconditions;
   private final KsqlConnect ksqlConnect;
+  private final List<KsqlConfigurable> configurables;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -155,39 +157,34 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
-      final KsqlConnect ksqlConnect
+      final KsqlConnect ksqlConnect,
+      final List<KsqlConfigurable> configurables
   ) {
     super(config);
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
-    this.rootDocument = Objects.requireNonNull(rootDocument, "rootDocument");
-    this.statusResource = Objects.requireNonNull(statusResource, "statusResource");
-    this.streamedQueryResource =
-        Objects.requireNonNull(streamedQueryResource, "streamedQueryResource");
-    this.ksqlResource = Objects.requireNonNull(ksqlResource, "ksqlResource");
-    this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
-    this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.processingLogContext = Objects.requireNonNull(
-        processingLogContext,
-        "processingLogContext");
-    this.preconditions = Objects.requireNonNull(preconditions, "preconditions");
-    this.versionCheckerAgent =
-        Objects.requireNonNull(versionCheckerAgent, "versionCheckerAgent");
-    this.serviceContextBinderFactory = Objects.requireNonNull(
-        serviceContextBinderFactory, "serviceContextBinderFactory");
-    this.securityExtension = Objects.requireNonNull(
-        securityExtension, "securityExtension"
-    );
-    this.ksqlConnect = Objects
-        .requireNonNull(ksqlConnect, "ksqlConnect");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.ksqlConfigNoPort = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
+    this.commandRunner = requireNonNull(commandRunner, "commandRunner");
+    this.rootDocument = requireNonNull(rootDocument, "rootDocument");
+    this.statusResource = requireNonNull(statusResource, "statusResource");
+    this.streamedQueryResource = requireNonNull(streamedQueryResource, "streamedQueryResource");
+    this.ksqlResource = requireNonNull(ksqlResource, "ksqlResource");
+    this.commandStore = requireNonNull(commandStore, "commandStore");
+    this.serverState = requireNonNull(serverState, "serverState");
+    this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
+    this.preconditions = requireNonNull(preconditions, "preconditions");
+    this.versionCheckerAgent = requireNonNull(versionCheckerAgent, "versionCheckerAgent");
+    this.serviceContextBinderFactory =
+        requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
+    this.securityExtension = requireNonNull(securityExtension, "securityExtension");
+    this.ksqlConnect = requireNonNull(ksqlConnect, "ksqlConnect");
+    this.configurables = requireNonNull(configurables, "configurables");
   }
 
   @Override
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
     config.register(rootDocument);
-    config.register(new ServerInfoResource(serviceContext, ksqlConfig));
+    config.register(new ServerInfoResource(serviceContext, ksqlConfigNoPort));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -198,6 +195,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   @Override
   public void start() throws Exception {
     super.start();
+    final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
+    configurables.forEach(c -> c.configure(ksqlConfigWithPort));
     startKsql();
     commandRunner.start();
     ksqlConnect.startAsync();
@@ -256,11 +255,11 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
         serviceContext.getTopicClient(),
         processingLogContext.getConfig(),
-        ksqlConfig
+        ksqlConfigNoPort
     );
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
-        ksqlConfig,
+        ksqlConfigNoPort,
         ksqlEngine,
         commandStore
     );
@@ -341,7 +340,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper);
     config.register(jsonProvider);
     config.register(JsonParseExceptionMapper.class);
-    config.register(serviceContextBinderFactory.apply(ksqlConfig, securityExtension));
+    config.register(serviceContextBinderFactory.apply(ksqlConfigNoPort, securityExtension));
 
     // Don't want to buffer rows when streaming JSON in a request to the query resource
     config.property(ServerProperties.OUTBOUND_CONTENT_LENGTH_BUFFER, 0);
@@ -369,7 +368,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
       final StatementParser statementParser = new StatementParser(ksqlEngine);
       final KsqlAuthorizationValidator authorizationValidator =
-          KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
+          KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -382,7 +381,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                 @SuppressWarnings("unchecked")
                 public <T> T getEndpointInstance(final Class<T> endpointClass) {
                   return (T) new WSQueryEndpoint(
-                      ksqlConfig,
+                      buildConfigWithPort(),
                       JsonMapper.INSTANCE.mapper,
                       statementParser,
                       ksqlEngine,
@@ -452,18 +451,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final String commandTopic = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
-    final StatementParser statementParser = new StatementParser(ksqlEngine);
-
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopic,
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());
 
-    final StatementExecutor statementExecutor = new StatementExecutor(
-        ksqlConfig,
-        ksqlEngine,
-        statementParser
-    );
+    final StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine);
 
     final RootDocument rootDocument = new RootDocument();
 
@@ -479,9 +472,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
-        ksqlConfig,
         ksqlEngine,
-        statementParser,
         commandStore,
         Duration.ofMillis(
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
@@ -491,13 +482,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
-        ksqlConfig,
         ksqlEngine,
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        Injectors.DEFAULT,
-        authorizationValidator);
+        authorizationValidator
+    );
 
     final List<String> managedTopics = new LinkedList<>();
     managedTopics.add(commandTopic);
@@ -508,7 +498,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statementExecutor,
         commandStore,
         maxStatementRetries,
-        new ClusterTerminator(ksqlConfig, ksqlEngine, serviceContext, managedTopics),
+        new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
         serverState
     );
 
@@ -524,6 +514,12 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             ksqlEngine.getServiceContext(),
             new KsqlRequest(SqlFormatter.formatSql(cs), null, null)
         )
+    );
+
+    final List<KsqlConfigurable> configurables = ImmutableList.of(
+        ksqlResource,
+        streamedQueryResource,
+        statementExecutor
     );
 
     return new KsqlRestApplication(
@@ -543,7 +539,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serverState,
         processingLogContext,
         preconditions,
-        ksqlConnect
+        ksqlConnect,
+        configurables
     );
   }
 
@@ -551,7 +548,11 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final String commandTopic = commandStore.getCommandTopicName();
 
-    KsqlInternalTopicUtils.ensureTopic(commandTopic, ksqlConfig, serviceContext.getTopicClient());
+    KsqlInternalTopicUtils.ensureTopic(
+        commandTopic,
+        ksqlConfigNoPort,
+        serviceContext.getTopicClient()
+    );
 
     final String createCmd = "CREATE STREAM " + COMMANDS_STREAM_NAME
         + " (STATEMENT STRING)"
@@ -559,7 +560,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfig));
+    ksqlEngine.execute(ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort));
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
@@ -623,5 +624,25 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     }
 
     commandQueue.enqueueCommand(configured.get());
+  }
+
+  /**
+   * Build a complete config with the KS IQ application.server set.
+   *
+   * @return true server config.
+   */
+  private KsqlConfig buildConfigWithPort() {
+    final Map<String, Object> props = ksqlConfigNoPort.originals();
+
+    // Wire up KS IQ endpoint discovery to the FIRST listener:
+    final URL firstListener = getListeners().get(0);
+    props.put(
+        KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.APPLICATION_SERVER_CONFIG,
+        firstListener.toString()
+    );
+
+    log.info("Using first listener URL for intra-node communication: {}", firstListener);
+
+    return new KsqlConfig(props);
   }
 }

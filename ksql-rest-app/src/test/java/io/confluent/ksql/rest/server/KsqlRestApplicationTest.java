@@ -177,7 +177,9 @@ public class KsqlRestApplicationTest {
         serverState,
         processingLogContext,
         ImmutableList.of(precondition1, precondition2),
-        ksqlConnect);
+        ksqlConnect,
+        ImmutableList.of(ksqlResource, streamedQueryResource)
+    );
   }
 
   @Test

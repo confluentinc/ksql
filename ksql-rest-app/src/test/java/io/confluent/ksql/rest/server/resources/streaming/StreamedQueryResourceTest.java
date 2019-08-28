@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.resources;
+package io.confluent.ksql.rest.server.resources.streaming;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
@@ -36,10 +36,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -53,8 +53,10 @@ import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
+import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -82,12 +84,14 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
+import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.easymock.EasyMock;
 import org.easymock.EasyMockRunner;
 import org.easymock.Mock;
 import org.easymock.MockType;
 import org.eclipse.jetty.http.HttpStatus.Code;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -103,11 +107,14 @@ public class StreamedQueryResourceTest {
       .field("f1", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
       .build());
 
+  private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(
+      StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1"
+  ));
+
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  @Mock(MockType.NICE)
-  private KsqlConfig ksqlConfig;
+
   @Mock(MockType.NICE)
   private KsqlEngine mockKsqlEngine;
   @Mock(MockType.NICE)
@@ -141,7 +148,6 @@ public class StreamedQueryResourceTest {
     replay(mockKsqlEngine, mockStatementParser);
 
     testResource = new StreamedQueryResource(
-        ksqlConfig,
         mockKsqlEngine,
         mockStatementParser,
         commandQueue,
@@ -150,10 +156,47 @@ public class StreamedQueryResourceTest {
         activenessRegistrar,
         authorizationValidator
     );
+
+    testResource.configure(VALID_CONFIG);
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnConfigureIfAppServerNotSet() {
+    // Given:
+    final KsqlConfig configNoAppServer = new KsqlConfig(ImmutableMap.of());
+
+    // When:
+    testResource.configure(configNoAppServer);
   }
 
   @Test
-  public void shouldReturn400OnBadStatement() throws Exception {
+  public void shouldThrowOnHandleStatementIfNotConfigured() {
+    // Given:
+    testResource = new StreamedQueryResource(
+        mockKsqlEngine,
+        mockStatementParser,
+        commandQueue,
+        DISCONNECT_CHECK_INTERVAL,
+        COMMAND_QUEUE_CATCHUP_TIMOEUT,
+        activenessRegistrar,
+        authorizationValidator
+    );
+
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.SERVICE_UNAVAILABLE)));
+    expectedException
+        .expect(exceptionErrorMessage(errorMessage(Matchers.is("Server initializing"))));
+
+    // When:
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest("query", Collections.emptyMap(), null)
+    );
+  }
+
+  @Test
+  public void shouldReturn400OnBadStatement() {
     // Given:
     reset(mockStatementParser);
     expect(mockStatementParser.parseSingleStatement(anyString()))
@@ -176,7 +219,7 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldNotWaitIfCommandSequenceNumberSpecified() throws Exception {
+  public void shouldNotWaitIfCommandSequenceNumberSpecified() {
     // Given:
     replay(commandQueue);
 
@@ -303,7 +346,7 @@ public class StreamedQueryResourceTest {
             queryCloseCallback);
     reset(mockOutputNode);
     expect(mockKsqlEngine.execute(serviceContext,
-        ConfiguredStatement.of(statement, requestStreamsProperties, ksqlConfig)))
+        ConfiguredStatement.of(statement, requestStreamsProperties, VALID_CONFIG)))
         .andReturn(ExecuteResult.of(transientQueryMetadata));
 
     replay(mockKsqlEngine, mockStatementParser, mockKafkaStreams, mockOutputNode);
@@ -426,7 +469,7 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldUpdateTheLastRequestTime() throws Exception {
+  public void shouldUpdateTheLastRequestTime() {
     // Given:
     activenessRegistrar.updateLastRequestTime();
     EasyMock.expectLastCall();
@@ -444,7 +487,7 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() throws Exception {
+  public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() {
     // Given:
     reset(mockStatementParser, authorizationValidator);
 
@@ -473,7 +516,7 @@ public class StreamedQueryResourceTest {
   }
 
   @Test
-  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() throws Exception {
+  public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() {
     // Given:
     reset(mockStatementParser, authorizationValidator);
 

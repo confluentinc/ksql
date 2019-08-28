@@ -29,8 +29,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;

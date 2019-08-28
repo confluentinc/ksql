@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.execution.builder;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -25,10 +25,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -40,10 +42,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueryContext;
-import io.confluent.ksql.structured.QueryContext.Stacker;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryLoggerUtil;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -145,11 +144,8 @@ public class KsqlQueryBuilderTest {
 
   @Test
   public void shouldBuildNodeContext() {
-    // Given:
-    final PlanNodeId planNodeId = new PlanNodeId("some-id");
-
     // When:
-    final Stacker result = ksqlQueryBuilder.buildNodeContext(planNodeId);
+    final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
 
     // Then:
     assertThat(result, is(new Stacker(QUERY_ID).push("some-id")));
@@ -240,7 +236,8 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(),
+    assertThat(
+        ksqlQueryBuilder.getSchemas().toString(),
         is("fred.context = STRUCT<f0 BOOLEAN> NOT NULL"));
   }
 
@@ -260,7 +257,6 @@ public class KsqlQueryBuilderTest {
     );
 
     // Then:
-    assertThat(ksqlQueryBuilder.getSchemas().toString(),
-        is("fred.context = BOOLEAN"));
+    assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = BOOLEAN"));
   }
 }

@@ -46,7 +46,7 @@ public final class KsqlContextTestUtil {
     final KafkaClientSupplier clientSupplier = new DefaultKafkaClientSupplier();
 
     final Admin adminClient = clientSupplier
-        .getAdminClient(ksqlConfig.getKsqlAdminClientConfigProps());
+        .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps());
 
     final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
 

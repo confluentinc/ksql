@@ -13,12 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.security;
 
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -31,30 +32,32 @@ import java.util.Set;
 import org.apache.kafka.common.acl.AclOperation;
 
 /**
- * Checks if a {@link ServiceContext} has access to the source and target topics of transient
- * and persistent query statements.
+ * This authorization implementation checks if the user can perform Kafka and/or SR operations
+ * on the topics or schemas found in the specified KSQL {@link Statement}.
  * </p>
  * This validator only works on Kakfa 2.3 or later.
  */
-public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
+public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidator {
   @Override
-  public void validate(
+  public void checkAuthorization(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
       final Statement statement
   ) {
     if (statement instanceof Query) {
-      validateQueryTopicSources(serviceContext, metaStore, (Query)statement);
+      validateQuery(serviceContext, metaStore, (Query)statement);
     } else if (statement instanceof InsertInto) {
       validateInsertInto(serviceContext, metaStore, (InsertInto)statement);
     } else if (statement instanceof CreateAsSelect) {
       validateCreateAsSelect(serviceContext, metaStore, (CreateAsSelect)statement);
     } else if (statement instanceof PrintTopic) {
       validatePrintTopic(serviceContext, (PrintTopic)statement);
+    } else if (statement instanceof CreateSource) {
+      validateCreateSource(serviceContext, (CreateSource)statement);
     }
   }
 
-  private void validateQueryTopicSources(
+  private void validateQuery(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
       final Query query
@@ -80,7 +83,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
      * the target topic using the same ServiceContext used for validation.
      */
 
-    validateQueryTopicSources(serviceContext, metaStore, createAsSelect.getQuery());
+    validateQuery(serviceContext, metaStore, createAsSelect.getQuery());
 
     // At this point, the topic should have been created by the TopicCreateInjector
     final String kafkaTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
@@ -98,7 +101,7 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
      * Validates Write on the target topic, and Read on the query sources topics.
      */
 
-    validateQueryTopicSources(serviceContext, metaStore, insertInto.getQuery());
+    validateQuery(serviceContext, metaStore, insertInto.getQuery());
 
     final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().getSuffix());
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
@@ -109,6 +112,14 @@ public class AuthorizationTopicAccessValidator implements TopicAccessValidator {
           final PrintTopic printTopic
   ) {
     checkAccess(serviceContext, printTopic.getTopic().toString(), AclOperation.READ);
+  }
+
+  private void validateCreateSource(
+      final ServiceContext serviceContext,
+      final CreateSource createSource
+  ) {
+    final String sourceTopic = createSource.getProperties().getKafkaTopic();
+    checkAccess(serviceContext, sourceTopic, AclOperation.READ);
   }
 
   private String getSourceTopicName(final MetaStore metaStore, final String streamOrTable) {

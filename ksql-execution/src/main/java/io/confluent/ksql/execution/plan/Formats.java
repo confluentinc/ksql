@@ -27,7 +27,14 @@ public final class Formats {
   private final ValueFormat valueFormat;
   private final Set<SerdeOption> options;
 
-  public Formats(
+  public static Formats of(
+      final KeyFormat keyFormat,
+      final ValueFormat valueFormat,
+      final Set<SerdeOption> options) {
+    return new Formats(keyFormat, valueFormat, options);
+  }
+
+  private Formats(
       final KeyFormat keyFormat,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options) {

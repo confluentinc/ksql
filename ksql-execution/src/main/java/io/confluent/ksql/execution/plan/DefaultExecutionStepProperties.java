@@ -15,25 +15,38 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 
 @Immutable
 public class DefaultExecutionStepProperties implements ExecutionStepProperties {
   private final String id;
+  private final QueryContext queryContext;
   private final LogicalSchema schema;
 
-  public DefaultExecutionStepProperties(final String id, final LogicalSchema schema) {
+  public DefaultExecutionStepProperties(
+      final String id,
+      final LogicalSchema schema,
+      final QueryContext queryContext) {
     this.id = Objects.requireNonNull(id, "id");
+    this.queryContext = Objects.requireNonNull(queryContext, "queryContext");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
 
+  @Override
   public LogicalSchema getSchema() {
     return schema;
   }
 
+  @Override
   public String getId() {
     return id;
+  }
+
+  @Override
+  public QueryContext getQueryContext() {
+    return queryContext;
   }
 
   @Override

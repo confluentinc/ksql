@@ -17,9 +17,9 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
@@ -54,7 +54,7 @@ public class TableTableJoin<K> implements ExecutionStep<KTable<K, GenericRow>> {
   }
 
   @Override
-  public KTable<K, GenericRow> build(final StreamsBuilder builder) {
+  public KTable<K, GenericRow> build(final KsqlQueryBuilder builder) {
     throw new UnsupportedOperationException();
   }
 

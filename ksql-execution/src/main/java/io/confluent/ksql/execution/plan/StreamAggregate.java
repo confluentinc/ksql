@@ -16,12 +16,12 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
 
@@ -57,7 +57,7 @@ public class StreamAggregate<K> implements ExecutionStep<KTable<K, GenericRow>> 
   }
 
   @Override
-  public KTable<K, GenericRow> build(final StreamsBuilder streamsBuilder) {
+  public KTable<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 

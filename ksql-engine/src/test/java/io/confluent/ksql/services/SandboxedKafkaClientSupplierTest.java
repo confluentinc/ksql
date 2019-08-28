@@ -46,7 +46,7 @@ public final class SandboxedKafkaClientSupplierTest {
     @Parameterized.Parameters(name = "{0}")
     public static Collection<TestCase<SandboxedKafkaClientSupplier>> getMethodsToTest() {
       return TestMethods.builder(SandboxedKafkaClientSupplier.class)
-          .ignore("getAdminClient", Map.class)
+          .ignore("getAdmin", Map.class)
           .ignore("getProducer", Map.class)
           .ignore("getConsumer", Map.class)
           .ignore("getRestoreConsumer", Map.class)
@@ -83,7 +83,7 @@ public final class SandboxedKafkaClientSupplierTest {
 
     @Test
     public void shouldReturnTryAdminClient() {
-      assertThat(sandboxedKafkaClientSupplier.getAdminClient(config),
+      assertThat(sandboxedKafkaClientSupplier.getAdmin(config),
           is(instanceOf(SandboxedAdminClient.class)));
     }
 

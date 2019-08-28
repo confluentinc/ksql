@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.function.Function;
@@ -131,7 +132,35 @@ public class KsqlFunctionTest {
     expectedException.expectMessage("KSQL only supports optional field types");
 
     // When:
-    createFunction(Schema.INT32_SCHEMA, ImmutableList.of());
+    final KsqlFunction function = createFunction(Schema.INT32_SCHEMA, ImmutableList.of());
+    function.getReturnType(ImmutableList.of());
+
+  }
+
+  @Test
+  public void shouldResolveSchemaProvider() {
+    // Given:
+    final Schema decimalSchema = DecimalUtil.builder(2,1).build();
+    final Function<List<Schema>, Schema> schemaProviderFunction = args -> {
+      return decimalSchema;
+    };
+
+    final KsqlFunction udf = KsqlFunction.create(
+        schemaProviderFunction,
+        decimalSchema,
+        ImmutableList.of(Schema.INT32_SCHEMA),
+        "funcName",
+        MyUdf.class,
+        udfFactory,
+        "the description",
+        "path/udf/loaded/from.jar",
+        false);
+
+    // When:
+    final Schema returnType = udf.getReturnType(ImmutableList.of(Schema.INT32_SCHEMA));
+
+    // Then:
+    assertThat(returnType, is(decimalSchema));
   }
 
   private KsqlFunction createFunction(final Schema returnSchema, final List<Schema> args) {
@@ -144,6 +173,7 @@ public class KsqlFunctionTest {
       final boolean isVariadic
   ) {
     return KsqlFunction.create(
+        ignored -> returnSchema,
         returnSchema,
         args,
         "funcName",

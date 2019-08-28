@@ -39,7 +39,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -55,6 +54,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -123,7 +123,7 @@ public class StreamedQueryResourceTest {
   @Mock
   private Consumer<QueryMetadata> queryCloseCallback;
   @Mock(MockType.NICE)
-  private TopicAccessValidator topicAccessValidator;
+  private KsqlAuthorizationValidator authorizationValidator;
   private StreamedQueryResource testResource;
 
   private final static String queryString = "SELECT * FROM test_stream;";
@@ -148,7 +148,7 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        topicAccessValidator
+        authorizationValidator
     );
   }
 
@@ -446,16 +446,16 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfKsqlTopicAuthorizationException() throws Exception {
     // Given:
-    reset(mockStatementParser, topicAccessValidator);
+    reset(mockStatementParser, authorizationValidator);
 
     statement = PreparedStatement.of("query", mock(Query.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
-    topicAccessValidator.validate(anyObject(), anyObject(), anyObject());
+    authorizationValidator.checkAuthorization(anyObject(), anyObject(), anyObject());
     expectLastCall().andThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
-    replay(mockStatementParser, topicAccessValidator);
+    replay(mockStatementParser, authorizationValidator);
 
     // When:
     final Response response = testResource.streamQuery(
@@ -475,19 +475,19 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfRootCauseKsqlTopicAuthorizationException() throws Exception {
     // Given:
-    reset(mockStatementParser, topicAccessValidator);
+    reset(mockStatementParser, authorizationValidator);
 
     statement = PreparedStatement.of("query", mock(Query.class));
     expect(mockStatementParser.parseSingleStatement(queryString))
         .andReturn(statement);
-    topicAccessValidator.validate(anyObject(), anyObject(), anyObject());
+    authorizationValidator.checkAuthorization(anyObject(), anyObject(), anyObject());
     expectLastCall().andThrow(
         new KsqlException(
             "",
             new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)
     )));
 
-    replay(mockStatementParser, topicAccessValidator);
+    replay(mockStatementParser, authorizationValidator);
 
     // When:
     final Response response = testResource.streamQuery(
@@ -509,16 +509,16 @@ public class StreamedQueryResourceTest {
   @Test
   public void shouldReturnForbiddenKafkaAccessIfPrintTopicKsqlTopicAuthorizationException() throws Exception {
     // Given:
-    reset(mockStatementParser, topicAccessValidator);
+    reset(mockStatementParser, authorizationValidator);
 
     statement = PreparedStatement.of("print", mock(PrintTopic.class));
     expect(mockStatementParser.parseSingleStatement(printString))
         .andReturn(statement);
-    topicAccessValidator.validate(anyObject(), anyObject(), anyObject());
+    authorizationValidator.checkAuthorization(anyObject(), anyObject(), anyObject());
     expectLastCall().andThrow(
         new KsqlTopicAuthorizationException(AclOperation.READ, Collections.singleton(topicName)));
 
-    replay(mockStatementParser, topicAccessValidator);
+    replay(mockStatementParser, authorizationValidator);
 
     // When:
     final Response response = testResource.streamQuery(

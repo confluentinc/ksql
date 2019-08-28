@@ -38,6 +38,7 @@ Folow these steps to create your custom functions:
      ``@Udf`` annotations.
    * If your class is a UDAF, mark it with the ``@UdafDescription`` and
      ``@UdafFactory`` annotations.
+
    For more information, see :ref:`example-udf-class` and :ref:`example-udaf-class`. 
 
 #. Deploy the JAR file to the KSQL extensions directory. For more information,

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
@@ -27,24 +28,24 @@ import org.apache.kafka.streams.kstream.Merger;
 
 public class KudafAggregator implements UdafAggregator {
 
+  private final int nonFuncColumnCount;
   private final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap;
-  private final Map<Integer, Integer> aggValToValColumnMap;
 
   public KudafAggregator(
-      final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap,
-      final Map<Integer, Integer> aggValToValColumnMap
+      final int nonFuncColumnCount,
+      final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap
   ) {
-    this.aggValToAggFunctionMap = aggValToAggFunctionMap;
-    this.aggValToValColumnMap = aggValToValColumnMap;
+    this.nonFuncColumnCount = nonFuncColumnCount;
+    this.aggValToAggFunctionMap = ImmutableMap.copyOf(aggValToAggFunctionMap);
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
     // copy over group-by and aggregate parameter columns into the output row
-    aggValToValColumnMap.forEach(
-        (destIdx, sourceIdx) ->
-            aggRowValue.getColumns().set(destIdx, rowValue.getColumns().get(sourceIdx)));
+    for (int idx = 0; idx < nonFuncColumnCount; idx++) {
+      aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
+    }
 
     // compute the aggregation and write it into the output row. Its assumed that
     // the columns written by this statement do not overlap with those written by
@@ -66,22 +67,21 @@ public class KudafAggregator implements UdafAggregator {
       final List<Object> columns = Stream.generate(String::new).limit(aggRowOne.getColumns().size())
           .collect(Collectors.toList());
 
-      aggValToValColumnMap.forEach((columnIndex, value) -> {
-        if (aggRowOne.getColumns().get(value) == null) {
-          columns.set(columnIndex, aggRowTwo.getColumns().get(value));
+      for (int idx = 0; idx < nonFuncColumnCount; idx++) {
+        if (aggRowOne.getColumns().get(idx) == null) {
+          columns.set(idx, aggRowTwo.getColumns().get(idx));
         } else {
-          columns.set(columnIndex, aggRowOne.getColumns().get(value));
+          columns.set(idx, aggRowOne.getColumns().get(idx));
         }
-      });
+      }
 
       aggValToAggFunctionMap.forEach((functionIndex, ksqlAggregateFunction) ->
           columns.set(functionIndex, ksqlAggregateFunction.getMerger()
-          .apply(key,
-              aggRowOne.getColumns().get(functionIndex),
-              aggRowTwo.getColumns().get(functionIndex))));
+              .apply(key,
+                  aggRowOne.getColumns().get(functionIndex),
+                  aggRowTwo.getColumns().get(functionIndex))));
 
       return new GenericRow(columns);
     };
   }
-
 }

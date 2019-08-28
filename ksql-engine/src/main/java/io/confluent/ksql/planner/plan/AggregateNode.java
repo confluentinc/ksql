@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -36,7 +38,6 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -46,7 +47,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.structured.QueryContext;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -187,7 +187,7 @@ public class AggregateNode extends PlanNode {
   @SuppressWarnings("unchecked") // needs investigating
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId());
+    final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
     final DataSourceNode streamSourceNode = getTheSourceNode();
     final SchemaKStream sourceSchemaKStream = getSource().buildStream(builder);
 
@@ -224,11 +224,6 @@ public class AggregateNode extends PlanNode {
     );
 
     // Aggregate computations
-    final Map<Integer, Integer> aggValToValColumnMap = createAggregateValueToValueColumnMap(
-        aggregateArgExpanded,
-        internalSchema
-    );
-
     final KudafInitializer initializer = new KudafInitializer(requiredColumns.size());
 
     final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = createAggValToFunctionMap(
@@ -254,11 +249,12 @@ public class AggregateNode extends PlanNode {
 
     final SchemaKTable<?> schemaKTable = schemaKGroupedStream.aggregate(
         initializer,
+        requiredColumns.size(),
         aggValToFunctionMap,
-        aggValToValColumnMap,
         getWindowExpression(),
         aggValueGenericRowSerde,
-        aggregationContext);
+        aggregationContext
+    );
 
     SchemaKTable<?> result = new SchemaKTable<>(
         schemaKTable.getKtable(), aggStageSchema,
@@ -288,26 +284,6 @@ public class AggregateNode extends PlanNode {
     return source.getPartitions(kafkaTopicClient);
   }
 
-  private Map<Integer, Integer> createAggregateValueToValueColumnMap(
-      final SchemaKStream aggregateArgExpanded,
-      final InternalSchema internalSchema
-  ) {
-    final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
-    int nonAggColumnIndex = 0;
-    for (final Expression expression : getRequiredColumns()) {
-      final String exprStr =
-          internalSchema.getInternalColumnForExpression(expression);
-
-      final int index = aggregateArgExpanded.getSchema().valueFieldIndex(exprStr)
-          .orElseThrow(IllegalStateException::new);
-
-      aggValToValColumnMap.put(nonAggColumnIndex, index);
-      nonAggColumnIndex++;
-    }
-    return aggValToValColumnMap;
-  }
-
-
   private Map<Integer, KsqlAggregateFunction> createAggValToFunctionMap(
       final SchemaKStream aggregateArgExpanded,
       final KudafInitializer initializer,
@@ -315,28 +291,18 @@ public class AggregateNode extends PlanNode {
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema
   ) {
-    try {
-      int udafIndexInAggSchema = initialUdafIndex;
-      final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
-      for (final FunctionCall functionCall : getFunctionCalls()) {
-        final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
-            functionRegistry,
-            internalSchema,
-            functionCall, aggregateArgExpanded.getSchema());
+    int udafIndexInAggSchema = initialUdafIndex;
+    final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap = new HashMap<>();
+    for (final FunctionCall functionCall : functionList) {
+      final KsqlAggregateFunction aggregateFunction = getAggregateFunction(
+          functionRegistry,
+          internalSchema,
+          functionCall, aggregateArgExpanded.getSchema());
 
-        aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
-        initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
-      }
-      return aggValToAggFunctionMap;
-    } catch (final Exception e) {
-      throw new KsqlException(
-          String.format(
-              "Failed to create aggregate val to function map. expressionNames:%s",
-              internalSchema.internalNameToIndexMap.keySet()
-          ),
-          e
-      );
+      aggValToAggFunctionMap.put(udafIndexInAggSchema++, aggregateFunction);
+      initializer.addAggregateIntializer(aggregateFunction.getInitialValueSupplier());
     }
+    return aggValToAggFunctionMap;
   }
 
   private static KsqlAggregateFunction getAggregateFunction(
@@ -345,21 +311,26 @@ public class AggregateNode extends PlanNode {
       final FunctionCall functionCall,
       final LogicalSchema schema
   ) {
-    final ExpressionTypeManager expressionTypeManager =
-        new ExpressionTypeManager(schema, functionRegistry);
-    final List<Expression> functionArgs = internalSchema.getInternalArgsExpressionList(
-        functionCall.getArguments());
-    final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
-    final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
-        .getAggregate(functionCall.getName().toString(), expressionType);
+    try {
+      final ExpressionTypeManager expressionTypeManager =
+          new ExpressionTypeManager(schema, functionRegistry);
+      final List<Expression> functionArgs = internalSchema.getInternalArgsExpressionList(
+          functionCall.getArguments());
+      final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
+      final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
+          .getAggregate(functionCall.getName().toString(), expressionType);
 
-    final List<String> args = functionArgs.stream()
-        .map(Expression::toString)
-        .collect(Collectors.toList());
+      final List<String> args = functionArgs.stream()
+          .map(Expression::toString)
+          .collect(Collectors.toList());
 
-    final int udafIndex = internalSchema.internalNameToIndexMap.get(args.get(0));
+      final int udafIndex = Integer
+          .parseInt(args.get(0).substring(INTERNAL_COLUMN_NAME_PREFIX.length()));
 
-    return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
+      return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
+    }
   }
 
   private LogicalSchema buildAggregateSchema(
@@ -391,9 +362,9 @@ public class AggregateNode extends PlanNode {
   }
 
   private static class InternalSchema {
-    private final List<SelectExpression> aggArgExpansionList = new ArrayList<>();
-    private final Map<String, Integer> internalNameToIndexMap = new HashMap<>();
-    private final Map<String, String> expressionToInternalColumnNameMap = new HashMap<>();
+
+    private final List<SelectExpression> aggArgExpansions = new ArrayList<>();
+    private final Map<String, String> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
         final List<DereferenceExpression> requiredColumns,
@@ -407,17 +378,19 @@ public class AggregateNode extends PlanNode {
         final Collection<? extends Expression> expressions,
         final Set<String> seen
     ) {
-      expressions.stream()
-          .filter(e -> !seen.contains(e.toString()))
-          .forEach(expression -> {
-            final String internalColumnName = INTERNAL_COLUMN_NAME_PREFIX
-                + aggArgExpansionList.size();
-            seen.add(expression.toString());
-            internalNameToIndexMap.put(internalColumnName, aggArgExpansionList.size());
-            aggArgExpansionList.add(SelectExpression.of(internalColumnName, expression));
-            expressionToInternalColumnNameMap
-                .putIfAbsent(expression.toString(), internalColumnName);
-          });
+      for (final Expression expression : expressions) {
+        if (seen.contains(expression.toString())) {
+          continue;
+        }
+
+        seen.add(expression.toString());
+
+        final String internalName = INTERNAL_COLUMN_NAME_PREFIX + aggArgExpansions.size();
+
+        aggArgExpansions.add(SelectExpression.of(internalName, expression));
+        expressionToInternalColumnName
+            .putIfAbsent(expression.toString(), internalName);
+      }
     }
 
     List<Expression> getInternalExpressionList(final List<Expression> expressionList) {
@@ -465,16 +438,16 @@ public class AggregateNode extends PlanNode {
     }
 
     String getInternalColumnForExpression(final Expression expression) {
-      return expressionToInternalColumnNameMap.get(expression.toString());
+      return expressionToInternalColumnName.get(expression.toString());
     }
 
     List<SelectExpression> getAggArgExpansionList() {
-      return aggArgExpansionList;
+      return aggArgExpansions;
     }
 
 
     private Expression resolveToInternal(final Expression exp) {
-      final String name = expressionToInternalColumnNameMap.get(exp.toString());
+      final String name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
         return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
       }
@@ -493,7 +466,7 @@ public class AggregateNode extends PlanNode {
           final DereferenceExpression node,
           final Context<Void> context
       ) {
-        final String name = expressionToInternalColumnNameMap.get(node.toString());
+        final String name = expressionToInternalColumnName.get(node.toString());
         if (name != null) {
           return Optional.of(
               new QualifiedNameReference(node.getLocation(), QualifiedName.of(name)));

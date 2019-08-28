@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.security;
 
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
@@ -25,22 +25,24 @@ import org.apache.kafka.common.errors.ClusterAuthorizationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class TopicAccessValidatorFactory {
-  private static final Logger LOG = LoggerFactory.getLogger(TopicAccessValidatorFactory.class);
+public final class KsqlAuthorizationValidatorFactory {
+  private static final Logger LOG = LoggerFactory
+      .getLogger(KsqlAuthorizationValidatorFactory.class);
   private static final String KAFKA_AUTHORIZER_CLASS_NAME = "authorizer.class.name";
-  private static final TopicAccessValidator DUMMY_VALIDATOR = (sc, metastore, statement) -> { };
+  private static final KsqlAuthorizationValidator DUMMY_VALIDATOR =
+      (sc, metastore, statement) -> { };
 
-  private TopicAccessValidatorFactory() {
+  private KsqlAuthorizationValidatorFactory() {
   }
 
-  public static TopicAccessValidator create(
+  public static KsqlAuthorizationValidator create(
       final KsqlConfig ksqlConfig,
       final ServiceContext serviceContext
   ) {
     final String enabled = ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR);
     if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON)) {
       LOG.info("Forcing topic access validator");
-      return new AuthorizationTopicAccessValidator();
+      return new KsqlAuthorizationValidatorImpl();
     } else if (enabled.equals(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF)) {
       return DUMMY_VALIDATOR;
     }
@@ -50,7 +52,7 @@ public final class TopicAccessValidatorFactory {
     if (isKafkaAuthorizerEnabled(adminClient)) {
       if (KafkaClusterUtil.isAuthorizedOperationsSupported(adminClient)) {
         LOG.info("KSQL topic authorization checks enabled.");
-        return new AuthorizationTopicAccessValidator();
+        return new KsqlAuthorizationValidatorImpl();
       }
 
       LOG.warn("The Kafka broker has an authorization service enabled, but the Kafka "

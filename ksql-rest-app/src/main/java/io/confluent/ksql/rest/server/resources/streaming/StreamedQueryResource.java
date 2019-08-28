@@ -18,7 +18,6 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -32,6 +31,7 @@ import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ErrorResponseUtil;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -69,7 +69,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Duration commandQueueCatchupTimeout;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
-  private final TopicAccessValidator topicAccessValidator;
+  private final KsqlAuthorizationValidator authorizationValidator;
   private KsqlConfig ksqlConfig;
 
   public StreamedQueryResource(
@@ -78,7 +78,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this(
         ksqlEngine,
@@ -87,7 +87,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
         disconnectCheckInterval,
         commandQueueCatchupTimeout,
         activenessRegistrar,
-        topicAccessValidator
+        authorizationValidator
     );
   }
 
@@ -99,7 +99,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -111,7 +111,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     this.objectMapper = JsonMapper.INSTANCE.mapper;
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
-    this.topicAccessValidator = topicAccessValidator;
+    this.authorizationValidator = authorizationValidator;
   }
 
   @Override
@@ -166,7 +166,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<?> statement
   )  {
     try {
-      topicAccessValidator.validate(
+      authorizationValidator.checkAuthorization(
           serviceContext,
           ksqlEngine.getMetaStore(),
           statement.getStatement()

@@ -35,11 +35,14 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -220,6 +223,120 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldLoadFunctionWithSchemaProvider() {
+    // Given:
+    final UdfFactory returnDecimal = FUNC_REG.getUdfFactory("returndecimal");
+
+    // When:
+    final Schema decimal = DecimalUtil.builder(2, 1).build();
+    final List<Schema> args = Collections.singletonList(decimal);
+    final KsqlFunction function = returnDecimal.getFunction(args);
+
+    // Then:
+    assertThat(function.getReturnType(args), equalTo(decimal));
+  }
+
+  @Test
+  public void shouldThrowOnReturnTypeMismatch() {
+    // Given:
+    final UdfFactory returnIncompatible = FUNC_REG.getUdfFactory("returnincompatible");
+    final Schema decimal = DecimalUtil.builder(2, 1).build();
+    final List<Schema> args = Collections.singletonList(decimal);
+    final KsqlFunction function = returnIncompatible.getFunction(args);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Return type Schema{org.apache.kafka.connect.data."
+                                           + "Decimal:BYTES} of UDF ReturnIncompatible does not "
+                                           + "match the declared return type Schema{STRING}."));
+
+    // When:
+    function.getReturnType(args);
+  }
+
+  @Test
+  public void shouldThrowOnMissingAnnotation() throws ClassNotFoundException {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+                                                                        PARENT_CLASS_LOADER,
+                                                                        resourceName -> false);
+    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources/udf-failing-tests.jar"),
+                                              udfClassLoader,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              true);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Cannot load UDF MissingAnnotation. BigDecimal return type "
+                                           + "is not supported without a schema provider method."));
+
+    // When:
+    udfLoader.loadUdfFromClass(clazz);
+
+  }
+
+  @Test
+  public void shouldThrowOnMissingSchemaProvider() throws ClassNotFoundException {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+                                                                        PARENT_CLASS_LOADER,
+                                                                        resourceName -> false);
+    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingSchemaProviderUdf");
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources/udf-failing-tests.jar"),
+                                              udfClassLoader,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              true);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Cannot find schema provider method with name provideSchema "
+                                           + "and parameter List<Schema> in class org.damian.ksql.udf."
+                                           + "MissingSchemaProviderUdf."));
+
+    /// When:
+    udfLoader.loadUdfFromClass(clazz);
+  }
+
+  @Test
+  public void shouldThrowOnReturnDecimalWithoutSchemaProvider() throws ClassNotFoundException {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final Path udfJar = new File("src/test/resources/udf-failing-tests.jar").toPath();
+    final UdfClassLoader udfClassLoader = UdfClassLoader.newClassLoader(udfJar,
+                                                                        PARENT_CLASS_LOADER,
+                                                                        resourceName -> false);
+    Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
+                                                  + "ReturnDecimalWithoutSchemaProviderUdf");
+    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+                                              new File("src/test/resources/udf-failing-tests.jar"),
+                                              udfClassLoader,
+                                              value -> false,
+                                              COMPILER,
+                                              Optional.empty(),
+                                              true);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(is("Cannot load UDF ReturnDecimalWithoutSchemaProvider. "
+                                           + "BigDecimal return type is not supported without a "
+                                           + "schema provider method."));
+
+    /// When:
+    udfLoader.loadUdfFromClass(clazz);
+  }
+
+  @Test
   public void shouldPutJarUdfsInClassLoaderForJar() throws Exception {
     final UdfFactory toString = FUNC_REG.getUdfFactory("tostring");
     final UdfFactory multiply = FUNC_REG.getUdfFactory("multiply");
@@ -313,7 +430,7 @@ public class UdfLoaderTest {
     expectedException.expectMessage(is("Can't find any functions with the name 'substring'"));
 
     // When:
-      functionRegistry.getUdfFactory("substring");
+    functionRegistry.getUdfFactory("substring");
   }
 
   @Test
@@ -473,7 +590,7 @@ public class UdfLoaderTest {
       final Optional<Metrics> metrics
   ) {
     return new UdfLoader(functionRegistry,
-        new File("src/test/resources"),
+        new File("src/test/resources/udf-example.jar"),
         PARENT_CLASS_LOADER,
         value -> false,
         COMPILER,
@@ -538,6 +655,42 @@ public class UdfLoaderTest {
     @Udf(schema = "STRUCT<f0 STRUCT<f1 INT>>")
     public Object foo(final String noValue) {
       return 0;
+    }
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
+  @UdfDescription(
+      name = "ReturnDecimal",
+      description = "A test-only UDF for testing 'SchemaProvider'")
+
+  public static class ReturnDecimalUdf {
+
+    @Udf(schemaProvider = "provideSchema")
+    public BigDecimal foo(@UdfParameter("justValue") final BigDecimal p) {
+      return p;
+    }
+
+    @UdfSchemaProvider
+    public Schema provideSchema(List<Schema> params) {
+      return DecimalUtil.builder(2, 1).build();
+    }
+  }
+
+  @SuppressWarnings({"unused", "MethodMayBeStatic"}) // Invoked via reflection in test.
+  @UdfDescription(
+      name = "ReturnIncompatible",
+      description = "A test-only UDF for testing 'SchemaProvider'")
+
+  public static class ReturnIncompatibleUdf {
+
+    @Udf(schemaProvider = "provideSchema")
+    public String foo(@UdfParameter("justValue") final BigDecimal p) {
+      return "lala";
+    }
+
+    @UdfSchemaProvider
+    public Schema provideSchema(List<Schema> params) {
+      return DecimalUtil.builder(2, 1).build();
     }
   }
 }

@@ -30,7 +30,7 @@ Stateful aggregate function (UDAF)
 Implement a Custom Function
 *************************** 
 
-Folow these steps to create your custom functions:
+Follow these steps to create your custom functions:
 
 #. Write your UDF or UDAF class in Java.
 
@@ -52,10 +52,10 @@ Folow these steps to create your custom functions:
 For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
 
 ======================
-Creating UDF and UDAFs
+Creating UDFs and UDAFs
 ======================
 
-KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAF) via custom jars that are
+KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAFs) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
 At start up time KSQL scans the jars in the directory looking for any classes that annotated
 with ``@UdfDescription`` (UDF) or ``@UdafDescription`` (UDAF).
@@ -103,6 +103,20 @@ the function will never return ``null``, where as a boxed type indicates it may 
 The KSQL server will check the value being passed to each parameter and report an error to the server
 log for any null values being passed to a primitive type. The associated column in the output row
 will be ``null``.
+
+
+Dynamic return type
+~~~~~~~~~~~~~~~~~~~
+
+UDFs support dynamic return types that are resolved at runtime. This is useful if you want to
+implement a UDF with a non-deterministic return type. A UDF which returns ``BigDecimal``,
+for example, may vary the precision and scale of the output based on the input schema.
+
+To use this functionality, you need to specify a method with signature
+``public Schema <your-method-name>(final List<Schema> params)`` and annotate it with ``@SchemaProvider``.
+Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
+parameter of the ``@Udf`` annotation.
+
 
 Generics in UDFS
 ~~~~~~~~~~~~~~~~

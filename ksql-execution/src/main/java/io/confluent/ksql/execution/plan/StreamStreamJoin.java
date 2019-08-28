@@ -17,9 +17,9 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
@@ -55,7 +55,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>
   }
 
   @Override
-  public KStream<K, GenericRow> build(final StreamsBuilder streamsBuilder) {
+  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 

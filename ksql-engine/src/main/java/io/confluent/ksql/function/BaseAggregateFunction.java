@@ -15,20 +15,29 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFunction<V, A> {
+
+  private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER
+      = SchemaConverters.connectToSqlConverter();
+
   /** An index of the function argument in the row that is used for computing the aggregate.
    * For instance, in the example SELECT key, SUM(ROWTIME), aggregation will be done on a row
    * with two columns (key, ROWTIME) and the `argIndexInValue` will be 1.
    **/
   private final int argIndexInValue;
   private final Supplier<A> initialValueSupplier;
-  private final Schema returnType;
+  private final Schema returnSchema;
+  private final SqlType returnType;
   private final List<Schema> arguments;
 
   protected final String functionName;
@@ -51,10 +60,11 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
       }
       return val;
     };
-    this.returnType = returnType;
-    this.arguments = arguments;
-    this.functionName = functionName;
-    this.description = description;
+    this.returnSchema = Objects.requireNonNull(returnType, "returnType");
+    this.returnType = CONNECT_TO_SQL_CONVERTER.toSqlType(returnType);
+    this.arguments = Objects.requireNonNull(arguments, "arguments");
+    this.functionName = Objects.requireNonNull(functionName, "functionName");
+    this.description = Objects.requireNonNull(description, "description");
 
     if (!returnType.isOptional()) {
       throw new IllegalArgumentException("KSQL only supports optional field types");
@@ -81,6 +91,11 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
   }
 
   public Schema getReturnType() {
+    return returnSchema;
+  }
+
+  @Override
+  public SqlType returnType() {
     return returnType;
   }
 

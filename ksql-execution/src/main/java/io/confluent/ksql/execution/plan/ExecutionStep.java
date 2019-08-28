@@ -14,13 +14,13 @@
 
 package io.confluent.ksql.execution.plan;
 
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
-import org.apache.kafka.streams.StreamsBuilder;
 
 public interface ExecutionStep<T> {
   ExecutionStepProperties getProperties();
 
   List<ExecutionStep<?>> getSources();
 
-  T build(StreamsBuilder builder);
+  T build(KsqlQueryBuilder queryBuilder);
 }

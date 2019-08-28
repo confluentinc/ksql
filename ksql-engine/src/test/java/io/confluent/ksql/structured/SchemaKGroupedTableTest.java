@@ -29,6 +29,11 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
@@ -37,10 +42,6 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.TumblingWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -173,10 +174,10 @@ public class SchemaKGroupedTableTest {
     try {
       kGroupedTable.aggregate(
           new KudafInitializer(1),
+          1,
           Collections.singletonMap(
               0,
               functionRegistry.getAggregate("SUM", Schema.OPTIONAL_INT64_SCHEMA)),
-          Collections.singletonMap(0, 0),
           windowExpression,
           GenericRowSerDe.from(
               FormatInfo.of(Format.JSON, Optional.empty()),
@@ -206,8 +207,8 @@ public class SchemaKGroupedTableTest {
           1, functionRegistry.getAggregate("MIN", Schema.OPTIONAL_INT64_SCHEMA));
       kGroupedTable.aggregate(
           new KudafInitializer(1),
+          1,
           aggValToFunctionMap,
-          Collections.singletonMap(0, 0),
           null,
           GenericRowSerDe.from(
               FormatInfo.of(Format.JSON, Optional.empty()),
@@ -271,7 +272,7 @@ public class SchemaKGroupedTableTest {
     // When:
     groupedTable.aggregate(
         () -> null,
-        Collections.emptyMap(),
+        0,
         Collections.emptyMap(),
         null,
         valueSerde,

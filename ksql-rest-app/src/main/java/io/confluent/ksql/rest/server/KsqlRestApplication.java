@@ -28,8 +28,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.connect.KsqlConnect;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
-import io.confluent.ksql.engine.TopicAccessValidatorFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
@@ -60,6 +58,8 @@ import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.LazyServiceContext;
@@ -367,8 +367,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       );
 
       final StatementParser statementParser = new StatementParser(ksqlEngine);
-      final TopicAccessValidator topicAccessValidator =
-          TopicAccessValidatorFactory.create(ksqlConfigNoPort, serviceContext);
+      final KsqlAuthorizationValidator authorizationValidator =
+          KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
 
       container.addEndpoint(
           ServerEndpointConfig.Builder
@@ -390,7 +390,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
                       versionCheckerAgent::updateLastRequestTime,
                       Duration.ofMillis(config.getLong(
                           KsqlRestConfig.DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-                      topicAccessValidator,
+                      authorizationValidator,
                       securityExtension,
                       serverState
                   );
@@ -468,8 +468,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
-    final TopicAccessValidator topicAccessValidator =
-        TopicAccessValidatorFactory.create(ksqlConfig, serviceContext);
+    final KsqlAuthorizationValidator authorizationValidator =
+        KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(
         ksqlEngine,
@@ -478,7 +478,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
             restConfig.getLong(KsqlRestConfig.STREAMED_QUERY_DISCONNECT_CHECK_MS_CONFIG)),
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        topicAccessValidator
+        authorizationValidator
     );
 
     final KsqlResource ksqlResource = new KsqlResource(
@@ -486,7 +486,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
-        topicAccessValidator
+        authorizationValidator
     );
 
     final List<String> managedTopics = new LinkedList<>();

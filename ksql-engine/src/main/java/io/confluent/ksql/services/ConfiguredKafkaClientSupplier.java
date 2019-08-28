@@ -19,7 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -49,8 +49,8 @@ public class ConfiguredKafkaClientSupplier implements KafkaClientSupplier {
   }
 
   @Override
-  public AdminClient getAdminClient(final Map<String, Object> config) {
-    return defaultSupplier.getAdminClient(injectSupplierProperties(config));
+  public Admin getAdmin(final Map<String, Object> config) {
+    return defaultSupplier.getAdmin(injectSupplierProperties(config));
   }
 
   @Override

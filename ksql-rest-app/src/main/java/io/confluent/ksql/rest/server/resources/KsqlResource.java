@@ -20,7 +20,6 @@ import static java.util.regex.Pattern.compile;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -44,6 +43,7 @@ import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
@@ -92,16 +92,17 @@ public class KsqlResource implements KsqlConfigurable {
   private final Duration distributedCmdResponseTimeout;
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
-  private final TopicAccessValidator topicAccessValidator;
+  private final KsqlAuthorizationValidator authorizationValidator;
   private RequestValidator validator;
   private RequestHandler handler;
+
 
   public KsqlResource(
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this(
         ksqlEngine,
@@ -109,7 +110,7 @@ public class KsqlResource implements KsqlConfigurable {
         distributedCmdResponseTimeout,
         activenessRegistrar,
         Injectors.DEFAULT,
-        topicAccessValidator
+        authorizationValidator
     );
   }
 
@@ -119,7 +120,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final TopicAccessValidator topicAccessValidator
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -128,8 +129,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
-    this.topicAccessValidator = Objects
-        .requireNonNull(topicAccessValidator, "topicAccessValidator");
+    this.authorizationValidator = Objects
+        .requireNonNull(authorizationValidator, "authorizationValidator");
   }
 
   @Override
@@ -142,8 +143,7 @@ public class KsqlResource implements KsqlConfigurable {
         CustomValidators.VALIDATOR_MAP,
         injectorFactory,
         ksqlEngine::createSandbox,
-        config,
-        topicAccessValidator
+        config
     );
 
     this.handler = new RequestHandler(
@@ -151,13 +151,16 @@ public class KsqlResource implements KsqlConfigurable {
         new DistributingExecutor(
             commandQueue,
             distributedCmdResponseTimeout,
-            injectorFactory),
+            injectorFactory,
+            authorizationValidator
+        ),
         ksqlEngine,
         config,
         new DefaultCommandQueueSync(
             commandQueue,
             KsqlResource::shouldSynchronize,
-            distributedCmdResponseTimeout)
+            distributedCmdResponseTimeout
+        )
     );
   }
 

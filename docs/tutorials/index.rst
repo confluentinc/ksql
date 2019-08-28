@@ -11,6 +11,7 @@ KSQL Tutorials and Examples
     basics-control-center
     clickstream-docker
     generate-custom-test-data
+    connect-integration
     examples
 
 KSQL Basics

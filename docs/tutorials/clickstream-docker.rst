@@ -106,7 +106,7 @@ populated. They hold information about the HTTP status codes, and users.
 
     .. codewithvars:: bash
 
-    docker-compose exec kafkacat \
+        docker-compose exec kafkacat \
             kafkacat -b kafka:29092 -C -c 3 -K: \
             -f '\nKey  : %k\tValue: %s' \
             -t clickstream_codes

@@ -25,7 +25,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.Pair;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -103,10 +102,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     newTopic.configs(toStringConfigs(configs));
 
     try {
-      LOG.info(String.format("Creating topic '{}' %s",
+      LOG.info("Creating topic '{}' {}",
           topic,
           (createOptions.shouldValidateOnly()) ? "(ONLY VALIDATE)" : ""
-      ));
+      );
 
       ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(

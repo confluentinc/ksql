@@ -32,9 +32,6 @@ public class KudafUndoAggregatorTest {
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final Map<Integer, Integer> aggValToValColumnMap = new HashMap<>();
-    aggValToValColumnMap.put(0, 1);
-    aggValToValColumnMap.put(1, 0);
     final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
     final KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
         "SUM", Schema.OPTIONAL_INT32_SCHEMA);
@@ -45,13 +42,13 @@ public class KudafUndoAggregatorTest {
         ));
 
     final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
-    final GenericRow aggRow = new GenericRow(Arrays.asList("jon", "snow", 5));
+    final GenericRow aggRow = new GenericRow(Arrays.asList("snow", "jon", 5));
 
     final KudafUndoAggregator aggregator = new KudafUndoAggregator(
-        aggValToAggFunctionMap, aggValToValColumnMap);
+        2, aggValToAggFunctionMap);
 
     final GenericRow resultRow = aggregator.apply(null, row, aggRow);
 
-    assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("jon", "snow", 2))));
+    assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("snow", "jon", 2))));
   }
 }

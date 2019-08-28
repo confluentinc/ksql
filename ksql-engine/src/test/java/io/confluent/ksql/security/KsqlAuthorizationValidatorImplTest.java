@@ -13,10 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.security;
 
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -51,7 +53,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AuthorizationTopicAccessValidatorTest {
+public class KsqlAuthorizationValidatorImplTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
       .struct()
@@ -75,7 +77,7 @@ public class AuthorizationTopicAccessValidatorTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private TopicAccessValidator accessValidator;
+  private KsqlAuthorizationValidator authorizationValidator;
   private KsqlEngine ksqlEngine;
   private MutableMetaStore metaStore;
 
@@ -84,7 +86,7 @@ public class AuthorizationTopicAccessValidatorTest {
     metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
 
-    accessValidator = new AuthorizationTopicAccessValidator();
+    authorizationValidator = new KsqlAuthorizationValidatorImpl();
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
 
     givenTopic(TOPIC_NAME_1, TOPIC_1);
@@ -110,7 +112,7 @@ public class AuthorizationTopicAccessValidatorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -123,7 +125,7 @@ public class AuthorizationTopicAccessValidatorTest {
     final Statement statement = givenStatement("SELECT * FROM " + STREAM_TOPIC_1 + ";");
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -144,7 +146,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -157,7 +159,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -179,7 +181,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -198,7 +200,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -217,7 +219,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -230,7 +232,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -252,7 +254,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -271,7 +273,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -289,7 +291,7 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -302,7 +304,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -325,7 +327,7 @@ public class AuthorizationTopicAccessValidatorTest {
 
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -339,7 +341,7 @@ public class AuthorizationTopicAccessValidatorTest {
     );
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -352,7 +354,7 @@ public class AuthorizationTopicAccessValidatorTest {
     final Statement statement = givenStatement(String.format("Print '%s';", TOPIC_NAME_1));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
     // Above command should not throw any exception
@@ -371,7 +373,40 @@ public class AuthorizationTopicAccessValidatorTest {
     ));
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+  }
+
+  @Test
+  public void shouldCreateSourceWithReadPermissionsAllowed() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_NAME_1)
+    );
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+
+    // Then:
+    // Above command should not throw any exception
+  }
+
+  @Test
+  public void shouldThrowWhenCreateSourceWithoutReadPermissionsDenied() {
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='JSON');", TOPIC_NAME_1)
+    );
+
+    // Then:
+    expectedException.expect(KsqlTopicAuthorizationException.class);
+    expectedException.expectMessage(String.format(
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+    ));
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test
@@ -385,7 +420,7 @@ public class AuthorizationTopicAccessValidatorTest {
     expectedException.expect(KafkaResponseGetFailedException.class);
 
     // When:
-    accessValidator.validate(serviceContext, metaStore, statement);
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   private void givenTopic(final String topicName, final TopicDescription topicDescription) {

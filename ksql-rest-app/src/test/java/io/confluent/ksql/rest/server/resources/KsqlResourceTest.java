@@ -66,7 +66,6 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.engine.TopicAccessValidator;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -119,6 +118,7 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -260,7 +260,7 @@ public class KsqlResourceTest {
   @Mock
   private Injector sandboxTopicInjector;
   @Mock
-  private TopicAccessValidator topicAccessValidator;
+  private KsqlAuthorizationValidator authorizationValidator;
 
   private KsqlResource ksqlResource;
   private SchemaRegistryClient schemaRegistryClient;
@@ -352,7 +352,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        topicAccessValidator
+        authorizationValidator
     );
 
     // Then:
@@ -380,7 +380,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        topicAccessValidator
+        authorizationValidator
     );
 
     // Then:
@@ -714,7 +714,7 @@ public class KsqlResourceTest {
     // Given:
     doThrow(new KsqlTopicAuthorizationException(
         AclOperation.DELETE,
-        Collections.singleton("topic"))).when(topicAccessValidator).validate(any(), any(), any());
+        Collections.singleton("topic"))).when(authorizationValidator).checkAuthorization(any(), any(), any());
 
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
@@ -732,7 +732,8 @@ public class KsqlResourceTest {
     doThrow(new KsqlException("Could not delete the corresponding kafka topic: topic",
         new KsqlTopicAuthorizationException(
           AclOperation.DELETE,
-          Collections.singleton("topic")))).when(topicAccessValidator).validate(any(), any(), any());
+          Collections.singleton("topic"))))
+        .when(authorizationValidator).checkAuthorization(any(), any(), any());
 
 
     // When:
@@ -1987,7 +1988,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        topicAccessValidator
+        authorizationValidator
     );
 
     ksqlResource.configure(ksqlConfig);

@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.planner.plan;
 
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.physical.KsqlQueryBuilder;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.QueuedSchemaKStream;
@@ -61,7 +61,7 @@ public class KsqlBareOutputNode extends OutputNode {
 
     return new QueuedSchemaKStream<>(
         schemaKStream,
-        builder.buildNodeContext(getId()).getQueryContext()
+        builder.buildNodeContext(getId().toString()).getQueryContext()
     );
   }
 }

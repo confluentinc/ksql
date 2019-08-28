@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -175,7 +176,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+        .aggregate(initializer, 0, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     verify(keySerde).rebind(windowInfo);
@@ -192,7 +193,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+        .aggregate(initializer, 0, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     verify(keySerde).rebind(windowInfo);
@@ -209,7 +210,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+        .aggregate(initializer, 0, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     verify(keySerde).rebind(windowInfo);
@@ -224,7 +225,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, emptyMap(), emptyMap(), windowExp, topicValueSerDe, queryContext);
+        .aggregate(initializer, 0, emptyMap(), windowExp, topicValueSerDe, queryContext);
 
     // Then:
     verify(keySerde)
@@ -247,7 +248,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
+        .aggregate(initializer, 0, funcMap, windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
@@ -267,7 +268,7 @@ public class SchemaKGroupedStreamTest {
 
     // When:
     final SchemaKTable result = schemaGroupedStream
-        .aggregate(initializer, funcMap, emptyMap(), windowExp, topicValueSerDe, queryContext);
+        .aggregate(initializer, 0, funcMap, windowExp, topicValueSerDe, queryContext);
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table2)));
@@ -293,7 +294,7 @@ public class SchemaKGroupedStreamTest {
     // When:
     schemaGroupedStream.aggregate(
         () -> null,
-        Collections.emptyMap(),
+        0,
         Collections.emptyMap(),
         null,
         topicValueSerDe,
@@ -320,7 +321,7 @@ public class SchemaKGroupedStreamTest {
     // When:
     schemaGroupedStream.aggregate(
         () -> null,
-        Collections.emptyMap(),
+        0,
         Collections.emptyMap(),
         windowExp,
         topicValueSerDe,

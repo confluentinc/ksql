@@ -58,6 +58,10 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
       return Optional.empty();
     }
 
+    if (targetType.baseType() == SqlBaseType.STRING) {
+      return optional(String.valueOf(value));
+    }
+
     final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
     return optional(result);
   }

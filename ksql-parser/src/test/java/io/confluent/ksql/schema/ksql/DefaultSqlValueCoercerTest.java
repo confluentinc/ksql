@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -138,6 +139,17 @@ public class DefaultSqlValueCoercerTest {
 
     // Expect:
     assertThat(coercer.coerce(val, SqlTypes.decimal(2, 1)), is(Optional.of(new BigDecimal("1.0"))));
+  }
+
+  @Test
+  public void shouldCoerceNumbersToString() {
+    ImmutableSet.of(
+        1,
+        2L,
+        3.3
+    ).forEach(number -> {
+      assertThat(coercer.coerce(number, SqlTypes.STRING), is(Optional.of(String.valueOf(number))));
+    });
   }
 
   @Test

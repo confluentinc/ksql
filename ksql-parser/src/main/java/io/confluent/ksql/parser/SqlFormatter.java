@@ -20,6 +20,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import com.google.common.base.Strings;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -182,7 +183,7 @@ public final class SqlFormatter {
 
     @Override
     protected Void visitTable(final Table node, final Integer indent) {
-      builder.append(node.getName().toString());
+      builder.append(escapedName(node.getName()));
       return null;
     }
 
@@ -212,7 +213,7 @@ public final class SqlFormatter {
       process(node.getRelation(), indent);
 
       builder.append(' ')
-              .append(node.getAlias());
+              .append(ParserUtil.escapeIfReservedIdentifier(node.getAlias()));
 
       return null;
     }
@@ -381,7 +382,7 @@ public final class SqlFormatter {
     @Override
     public Void visitRegisterType(final RegisterType node, final Integer context) {
       builder.append("CREATE TYPE ");
-      builder.append(node.getName());
+      builder.append(ParserUtil.escapeIfReservedIdentifier(node.getName()));
       builder.append(" AS ");
       builder.append(ExpressionFormatterUtil.formatExpression(node.getType()));
       builder.append(";");
@@ -395,7 +396,7 @@ public final class SqlFormatter {
       if (node.getIfExists()) {
         builder.append("IF EXISTS ");
       }
-      builder.append(node.getName());
+      builder.append(escapedName(node.getName()));
       if (node.isDeleteTopic()) {
         builder.append(" DELETE TOPIC");
       }
@@ -404,7 +405,7 @@ public final class SqlFormatter {
     private void processRelation(final Relation relation, final Integer indent) {
       if (relation instanceof Table) {
         builder.append("TABLE ")
-                .append(((Table) relation).getName())
+                .append(escapedName(((Table) relation).getName()))
                 .append('\n');
       } else {
         process(relation, indent);
@@ -434,7 +435,7 @@ public final class SqlFormatter {
         builder.append("IF NOT EXISTS ");
       }
 
-      builder.append(node.getName());
+      builder.append(escapedName(node.getName()));
 
       final String elements = node.getElements().stream()
           .map(Formatter::formatTableElement)
@@ -463,7 +464,7 @@ public final class SqlFormatter {
         builder.append("IF NOT EXISTS ");
       }
 
-      builder.append(node.getName());
+      builder.append(escapedName(node.getName()));
 
       final String tableProps = node.getProperties().toString();
       if (!tableProps.isEmpty()) {
@@ -486,5 +487,12 @@ public final class SqlFormatter {
               e.getType(), true, ParserUtil::isReservedIdentifier)
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
+  }
+
+  private static String escapedName(final QualifiedName name) {
+    return name.getParts()
+        .stream()
+        .map(ParserUtil::escapeIfReservedIdentifier)
+        .collect(Collectors.joining("."));
   }
 }

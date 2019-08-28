@@ -49,6 +49,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+
+import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -214,6 +216,30 @@ public class TopicDeleteInjectorTest {
     expectedException.expectMessage(
         "Refusing to delete topic. "
             + "Found other data sources (OTHER1, OTHER2) using topic something");
+
+    // When:
+    deleteInjector.inject(dropStatement);
+  }
+
+  @Test
+  public void shouldThrowIfTopicDoesNotExist() {
+    // Given:
+    final String STREAM_1 = "stream1";
+    final DataSource<?> other1 = givenSource(STREAM_1, "topicName");
+    when(metaStore.getSource(STREAM_1)).thenAnswer(inv -> other1);
+    when(other1.getKafkaTopicName()).thenReturn("topicName");
+    final ConfiguredStatement<DropStream> dropStatement = givenStatement(
+        "DROP stream1 DELETE TOPIC;",
+        new DropStream(QualifiedName.of("stream1"),
+            true,
+            true)
+    );
+    doThrow(RuntimeException.class).when(topicClient).deleteTopics(ImmutableList.of("topicName"));
+
+    // Expect:
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("" +
+        "Could not delete the corresponding kafka topic: topicName");
 
     // When:
     deleteInjector.inject(dropStatement);

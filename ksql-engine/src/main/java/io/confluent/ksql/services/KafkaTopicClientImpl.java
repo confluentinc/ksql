@@ -102,10 +102,10 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
     newTopic.configs(toStringConfigs(configs));
 
     try {
-      LOG.info(String.format("Creating topic '{}' %s",
+      LOG.info("Creating topic '{}' {}",
           topic,
           (createOptions.shouldValidateOnly()) ? "(ONLY VALIDATE)" : ""
-      ));
+      );
 
       ExecutorUtil.executeWithRetries(
           () -> adminClient.createTopics(

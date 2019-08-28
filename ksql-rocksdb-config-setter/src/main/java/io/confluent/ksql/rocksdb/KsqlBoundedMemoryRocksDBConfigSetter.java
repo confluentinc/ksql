@@ -49,13 +49,14 @@ public class KsqlBoundedMemoryRocksDBConfigSetter implements RocksDBConfigSetter
           "KsqlBoundedMemoryRocksDBConfigSetter has already been configured. Cannot re-configure.");
     }
 
-    final KsqlBoundedMemoryRocksDBConfig pluginConfig = new KsqlBoundedMemoryRocksDBConfig(config);
-
     try {
+      final KsqlBoundedMemoryRocksDBConfig pluginConfig =
+          new KsqlBoundedMemoryRocksDBConfig(config);
+
       limitTotalMemory(pluginConfig);
       configureNumThreads(pluginConfig, options);
     } catch (IllegalArgumentException e) {
-      configured.set(false);
+      reset();
       throw e;
     }
   }

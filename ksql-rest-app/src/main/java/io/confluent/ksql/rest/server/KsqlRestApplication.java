@@ -65,6 +65,7 @@ import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -96,6 +97,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -105,8 +107,6 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
-import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
@@ -138,11 +138,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
   private final List<KsqlServerPrecondition> preconditions;
+  private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
+  @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -161,7 +163,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
-      final List<KsqlServerPrecondition> preconditions
+      final List<KsqlServerPrecondition> preconditions,
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     super(config);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
@@ -184,8 +187,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.serviceContextBinderFactory = Objects.requireNonNull(
         serviceContextBinderFactory, "serviceContextBinderFactory");
     this.securityExtension = Objects.requireNonNull(
-        securityExtension, "securityExtension"
-    );
+        securityExtension, "securityExtension");
+    this.rocksDBConfigSetterHandler = Objects.requireNonNull(
+        rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
   }
 
   @Override
@@ -251,7 +255,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   private void initialize() {
-    maybeConfigureRocksDBConfigSetter(ksqlConfig);
+    rocksDBConfigSetterHandler.accept(ksqlConfig);
 
     final String commandTopic = commandStore.getCommandTopicName();
     KsqlInternalTopicUtils.ensureTopic(
@@ -545,6 +549,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         KsqlServerPrecondition.class
     );
 
+    final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
+        RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
+
     return new KsqlRestApplication(
         serviceContext,
         ksqlEngine,
@@ -561,7 +568,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         securityExtension,
         serverState,
         processingLogContext,
-        preconditions
+        preconditions,
+        rocksDBConfigSetterHandler
     );
   }
 
@@ -622,23 +630,5 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     }
 
     commandQueue.enqueueCommand(configured.get());
-  }
-
-  private static void maybeConfigureRocksDBConfigSetter(final KsqlConfig ksqlConfig) {
-    final Map<String, Object> streamsProps = ksqlConfig.getKsqlStreamConfigProps();
-    final Class<?> clazz =
-        (Class) streamsProps.get(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG);
-
-    if (clazz != null && org.apache.kafka.common.Configurable.class.isAssignableFrom(clazz)) {
-      try {
-        ((org.apache.kafka.common.Configurable) Utils.newInstance(clazz))
-            .configure(ksqlConfig.originals());
-      } catch (Exception e) {
-        throw new KsqlException(
-            "Failed to configure Configurable RocksDBConfigSetter. "
-                + StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG + ": " + clazz.getName(),
-            e);
-      }
-    }
   }
 }

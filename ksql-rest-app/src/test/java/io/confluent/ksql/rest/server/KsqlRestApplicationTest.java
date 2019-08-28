@@ -16,7 +16,6 @@
 package io.confluent.ksql.rest.server;
 
 import static io.confluent.ksql.parser.ParserMatchers.configured;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -30,7 +29,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import com.google.common.collect.ImmutableList;
@@ -57,23 +55,18 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
-import java.util.Map;
+import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.streams.state.RocksDBConfigSetter;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
-import org.rocksdb.Options;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestApplicationTest {
@@ -126,11 +119,10 @@ public class KsqlRestApplicationTest {
   private KsqlServerPrecondition precondition1;
   @Mock
   private KsqlServerPrecondition precondition2;
+  @Mock
+  private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private PreparedStatement<CreateSource> logCreateStatement;
   private KsqlRestApplication app;
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void setUp() {
@@ -174,7 +166,8 @@ public class KsqlRestApplicationTest {
         securityExtension,
         serverState,
         processingLogContext,
-        ImmutableList.of(precondition1, precondition2)
+        ImmutableList.of(precondition1, precondition2),
+        rocksDBConfigSetterHandler
     );
   }
 
@@ -361,90 +354,11 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldConfigureRocksDBConfigSetter() throws Exception {
-    // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
-        ImmutableMap.of(
-            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$ConfigurableTestRocksDBConfigSetter"))
-    );
-    final Runnable mockRunnable = mock(Runnable.class);
-    when(ksqlConfig.originals()).thenReturn(
-        ImmutableMap.of(ConfigurableTestRocksDBConfigSetter.TEST_CONFIG, mockRunnable));
-
+  public void shouldConfigureRocksDBConfigSetter() {
     // When:
     app.startKsql();
 
     // Then:
-    verify(mockRunnable).run();
-  }
-
-  @Test
-  public void shouldStartWithNonConfigurableRocksDBConfigSetter() throws Exception {
-    // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
-        ImmutableMap.of(
-            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$NonConfigurableTestRocksDBConfigSetter"))
-    );
-
-    // No error when:
-    app.startKsql();
-  }
-
-  @Test
-  public void shouldThrowIfFailToRocksDBConfigSetter() throws Exception {
-    // Given:
-    when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(
-        ImmutableMap.of(
-            StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG,
-            Class.forName("io.confluent.ksql.rest.server.KsqlRestApplicationTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"))
-    );
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString("Failed to configure Configurable RocksDBConfigSetter."));
-    expectedException.expectMessage(containsString(StreamsConfig.ROCKSDB_CONFIG_SETTER_CLASS_CONFIG));
-    expectedException.expectMessage(containsString("io.confluent.ksql.rest.server.KsqlRestApplicationTest$ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor"));
-
-    // When:
-    app.startKsql();
-  }
-
-  public static class ConfigurableTestRocksDBConfigSetter
-      extends NonConfigurableTestRocksDBConfigSetter
-      implements org.apache.kafka.common.Configurable {
-
-    static final String TEST_CONFIG = "test.runnable";
-
-    @Override
-    public void configure(final Map<String, ?> config) {
-      final Runnable supplier = (Runnable) config.get(TEST_CONFIG);
-      supplier.run();
-    }
-  }
-
-  static class ConfigurableTestRocksDBConfigSetterWithoutPublicConstructor
-      extends NonConfigurableTestRocksDBConfigSetter
-      implements org.apache.kafka.common.Configurable {
-
-    @Override
-    public void configure(final Map<String, ?> config) {
-    }
-  }
-
-  private static class NonConfigurableTestRocksDBConfigSetter implements RocksDBConfigSetter {
-
-    @Override
-    public void setConfig(
-        final String storeName,
-        final Options options,
-        final Map<String, Object> configs) {
-      // do nothing
-    }
-
-    @Override
-    public void close(final String storeName, final Options options) {
-    }
+    verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
   }
 }

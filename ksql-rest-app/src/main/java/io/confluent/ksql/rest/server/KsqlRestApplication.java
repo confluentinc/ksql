@@ -641,6 +641,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         firstListener.toString()
     );
 
+    log.info("Using first listener URL for intra-node communication: {}", firstListener);
+
     return new KsqlConfig(props);
   }
 }

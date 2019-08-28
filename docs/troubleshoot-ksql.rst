@@ -269,8 +269,6 @@ write access to:
 
     -Dorg.xerial.snappy.tempdir=/path/to/newtmp
 
-If you're using |c3|, see :ref:`rocksdb_tmp_dir`.
-
 .. _ksql-check-server-logs:
 
 

@@ -93,7 +93,6 @@ KSQL 5.3.0 includes bug fixes, including:
 * Fixed issues with using ``AS`` keyword when aliasing sources.
   See `#2732 <https://github.com/confluentinc/ksql/issues/2732>`_ for more info.
 
-
 Version 5.2.0
 -------------
 

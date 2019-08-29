@@ -104,6 +104,10 @@ public class SqlFormatterTest {
       .valueField("CATEGORY", categorySchema)
       .build();
 
+  private static final LogicalSchema tableSchema = LogicalSchema.builder()
+      .valueField("TABLE", SqlTypes.STRING)
+      .build();
+
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
       .valueField("ORDERTIME", SqlTypes.BIGINT)
       .valueField("ORDERID", SqlTypes.BIGINT)
@@ -185,6 +189,18 @@ public class SqlFormatterTest {
     );
 
     metaStore.putSource(ksqlTableOrders);
+
+    final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
+        "sqlexpression",
+        "TABLE",
+        tableSchema,
+        SerdeOption.none(),
+        KeyField.of("TABLE", tableSchema.findValueField("TABLE").get()),
+        new MetadataTimestampExtractionPolicy(),
+        ksqlTopicItems
+    );
+
+    metaStore.putSource(ksqlTableTable);
   }
 
   @Test
@@ -285,7 +301,7 @@ public class SqlFormatterTest {
                          criteria,
                          Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
-    final String expected = "left L\nLEFT OUTER JOIN right R WITHIN 10 SECONDS ON "
+    final String expected = "`left` L\nLEFT OUTER JOIN `right` R WITHIN 10 SECONDS ON "
                             + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
@@ -296,7 +312,7 @@ public class SqlFormatterTest {
                                criteria, Optional.empty());
 
     final String result = SqlFormatter.formatSql(join);
-    final String expected = "left L\nLEFT OUTER JOIN right R ON (('left.col0' = 'right.col0'))";
+    final String expected = "`left` L\nLEFT OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
     assertEquals(expected, result);
   }
 
@@ -306,7 +322,7 @@ public class SqlFormatterTest {
                                criteria,
                                Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
-    final String expected = "left L\nINNER JOIN right R WITHIN 10 SECONDS ON "
+    final String expected = "`left` L\nINNER JOIN `right` R WITHIN 10 SECONDS ON "
                             + "(('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
@@ -317,7 +333,7 @@ public class SqlFormatterTest {
                                criteria,
                                Optional.empty());
 
-    final String expected = "left L\nINNER JOIN right R ON (('left.col0' = 'right.col0'))";
+    final String expected = "`left` L\nINNER JOIN `right` R ON (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -328,7 +344,7 @@ public class SqlFormatterTest {
                                criteria,
                                Optional.of(new WithinExpression(10, TimeUnit.SECONDS)));
 
-    final String expected = "left L\nFULL OUTER JOIN right R WITHIN 10 SECONDS ON"
+    final String expected = "`left` L\nFULL OUTER JOIN `right` R WITHIN 10 SECONDS ON"
                             + " (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
@@ -340,7 +356,7 @@ public class SqlFormatterTest {
                                criteria,
                                Optional.empty());
 
-    final String expected = "left L\nFULL OUTER JOIN right R ON (('left.col0' = 'right.col0'))";
+    final String expected = "`left` L\nFULL OUTER JOIN `right` R ON (('left.col0' = 'right.col0'))";
     assertEquals(expected, SqlFormatter.formatSql(join));
   }
 
@@ -694,6 +710,30 @@ public class SqlFormatterTest {
 
     // Then:
     assertThat(result, is("CREATE STREAM S (FOO STRUCT<`END` STRING>) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldEscapeReservedSourceNames() {
+    // Given:
+    final Statement statement = parseSingle("CREATE STREAM `SELECT` (foo VARCHAR) WITH (kafka_topic='foo', value_format='JSON');");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM `SELECT` (FOO STRING) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='JSON');"));
+  }
+
+  @Test
+  public void shouldEscapeReservedNameAndAlias() {
+    // Given:
+    final Statement statement = parseSingle("CREATE STREAM a AS SELECT `SELECT` FROM `TABLE`;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM A AS SELECT `TABLE`.`SELECT` \"SELECT\"\nFROM `TABLE` `TABLE`"));
   }
 
   private Statement parseSingle(final String statementString) {

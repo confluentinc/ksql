@@ -19,11 +19,14 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Immutable
@@ -77,27 +80,29 @@ public class SchemaInfo {
     return Objects.hash(type, fields, memberSchema);
   }
 
+  private static final Map<SqlBaseType, Function<SchemaInfo, String>> TO_TYPE_STRING =
+      ImmutableMap.<SqlBaseType, Function<SchemaInfo, String>>builder()
+          .put(SqlBaseType.STRING, si -> "VARCHAR(STRING)")
+          .put(
+              SqlBaseType.ARRAY,
+              si -> SqlBaseType.ARRAY + "<" + si.memberSchema.toTypeString() + ">")
+          .put(
+              SqlBaseType.MAP,
+              si -> SqlBaseType.MAP
+                  + "<" + SqlBaseType.STRING
+                  + ", " + si.memberSchema.toTypeString()
+                  + ">")
+          .put(
+              SqlBaseType.STRUCT,
+              si -> si.fields
+                  .stream()
+                  .map(f -> f.getName() + " " + f.getSchema().toTypeString())
+                  .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">")))
+          .build();
+
   public String toTypeString() {
-    switch (getType()) {
-      case ARRAY:
-        return SqlBaseType.ARRAY + "<"
-            + memberSchema.toTypeString()
-            + ">";
-      case MAP:
-        return SqlBaseType.MAP
-            + "<"
-            + SqlBaseType.STRING + ", "
-            + memberSchema.toTypeString()
-            + ">";
-      case STRUCT:
-        return fields
-            .stream()
-            .map(f -> f.getName() + " " + f.getSchema().toTypeString())
-            .collect(Collectors.joining(", ", SqlBaseType.STRUCT + "<", ">"));
-      case STRING:
-        return "VARCHAR(STRING)";
-      default:
-        return type.name();
-    }
+    // needs a map instead of switch because for some reason switch creates an
+    // internal class with no annotations that messes up EntityTest
+    return TO_TYPE_STRING.getOrDefault(type, si -> si.type.name()).apply(this);
   }
 }

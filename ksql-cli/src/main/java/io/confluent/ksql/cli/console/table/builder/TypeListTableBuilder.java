@@ -18,7 +18,9 @@ package io.confluent.ksql.cli.console.table.builder;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.rest.entity.TypeList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map.Entry;
 
 public class TypeListTableBuilder implements TableBuilder<TypeList> {
 
@@ -32,6 +34,7 @@ public class TypeListTableBuilder implements TableBuilder<TypeList> {
             .getTypes()
             .entrySet()
             .stream()
+            .sorted(Comparator.comparing(Entry::getKey))
             .map(entry -> ImmutableList.of(entry.getKey(), entry.getValue().toTypeString())))
         .build();
   }

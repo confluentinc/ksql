@@ -28,6 +28,11 @@ public class ListTypes extends Statement {
   }
 
   @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitListTypes(this, context);
+  }
+
+  @Override
   public int hashCode() {
     return Objects.hashCode(getClass());
   }

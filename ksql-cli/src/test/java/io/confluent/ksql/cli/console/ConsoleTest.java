@@ -868,15 +868,15 @@ public class ConsoleTest {
     // Given:
     final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
         new TypeList("statement", ImmutableMap.of(
+            "typeB", new SchemaInfo(
+                SqlBaseType.ARRAY,
+                null,
+                new SchemaInfo(SqlBaseType.STRING, null, null)),
             "typeA", new SchemaInfo(
                 SqlBaseType.STRUCT,
                 ImmutableList.of(
                     new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null))),
-                null),
-            "typeB", new SchemaInfo(
-                SqlBaseType.ARRAY,
-                null,
-                new SchemaInfo(SqlBaseType.STRING, null, null))
+                null)
         ))
     ));
 
@@ -890,6 +890,15 @@ public class ConsoleTest {
           + "  \"@type\" : \"type_list\",\n"
           + "  \"statementText\" : \"statement\",\n"
           + "  \"types\" : {\n"
+          + "    \"typeB\" : {\n"
+          + "      \"type\" : \"ARRAY\",\n"
+          + "      \"fields\" : null,\n"
+          + "      \"memberSchema\" : {\n"
+          + "        \"type\" : \"STRING\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    },\n"
           + "    \"typeA\" : {\n"
           + "      \"type\" : \"STRUCT\",\n"
           + "      \"fields\" : [ {\n"
@@ -901,15 +910,6 @@ public class ConsoleTest {
           + "        }\n"
           + "      } ],\n"
           + "      \"memberSchema\" : null\n"
-          + "    },\n"
-          + "    \"typeB\" : {\n"
-          + "      \"type\" : \"ARRAY\",\n"
-          + "      \"fields\" : null,\n"
-          + "      \"memberSchema\" : {\n"
-          + "        \"type\" : \"STRING\",\n"
-          + "        \"fields\" : null,\n"
-          + "        \"memberSchema\" : null\n"
-          + "      }\n"
           + "    }\n"
           + "  },\n"
           + "  \"warnings\" : [ ]\n"

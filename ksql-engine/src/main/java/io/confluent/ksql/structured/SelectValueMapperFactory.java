@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 /**
  * Factor class for {@link SelectValueMapper}.
  */
-final class SelectValueMapperFactory {
+public final class SelectValueMapperFactory {
 
   private static final String EXP_TYPE = "Select";
 
@@ -41,7 +41,7 @@ final class SelectValueMapperFactory {
     this.codeGenerator = codeGenerator;
   }
 
-  static SelectValueMapper create(
+  public static SelectValueMapper create(
       final List<SelectExpression> selectExpressions,
       final LogicalSchema sourceSchema,
       final KsqlConfig ksqlConfig,

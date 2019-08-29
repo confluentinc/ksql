@@ -15,11 +15,18 @@
 
 package io.confluent.ksql.security;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KafkaResponseGetFailedException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -37,9 +44,14 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Set;
+
+import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
 import org.junit.After;
@@ -68,6 +80,8 @@ public class KsqlAuthorizationValidatorImplTest {
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
+  private SchemaRegistryClient schemaRegistryClient;
+  @Mock
   private TopicDescription TOPIC_1;
   @Mock
   private TopicDescription TOPIC_2;
@@ -86,6 +100,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     authorizationValidator = new KsqlAuthorizationValidatorImpl();
     when(serviceContext.getTopicClient()).thenReturn(kafkaTopicClient);
+    when(serviceContext.getSchemaRegistryClient()).thenReturn(schemaRegistryClient);
 
     givenTopic(TOPIC_NAME_1, TOPIC_1);
     givenStreamWithTopic(STREAM_TOPIC_1, TOPIC_1);
@@ -166,7 +181,7 @@ public class KsqlAuthorizationValidatorImplTest {
   @Test
   public void shouldThrowWhenJoinSelectWithoutReadPermissionsDenied() {
     // Given:
-    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.WRITE));
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
     givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
     final Statement statement = givenStatement(String.format(
         "SELECT * FROM %s A JOIN %s B ON A.F1 = B.F1;", STREAM_TOPIC_1, STREAM_TOPIC_2)
@@ -175,7 +190,7 @@ public class KsqlAuthorizationValidatorImplTest {
     // Then:
     expectedException.expect(KsqlTopicAuthorizationException.class);
     expectedException.expectMessage(String.format(
-        "Authorization denied to Read on topic(s): [%s]", TOPIC_1.name()
+        "Authorization denied to Read on topic(s): [%s]", TOPIC_2.name()
     ));
 
     // When:
@@ -346,6 +361,32 @@ public class KsqlAuthorizationValidatorImplTest {
   }
 
   @Test
+  public void shouldThrowWhenCreateAsSelectHasSinkSchemaAccessDenied()
+      throws IOException, RestClientException
+  {
+    final String sinkSchema = TOPIC_NAME_2 + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    givenTopicPermissions(TOPIC_2, Collections.singleton(AclOperation.WRITE));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM %s AS SELECT * FROM %s;", STREAM_TOPIC_2, STREAM_TOPIC_1)
+    );
+    doThrow(new RestClientException("", HttpStatus.SC_FORBIDDEN, -1)).when(schemaRegistryClient)
+        .getLatestSchemaMetadata(sinkSchema);
+
+    // Then:
+    expectedException.expect(KsqlSchemaAuthorizationException.class);
+    expectedException.expectMessage(String.format(
+        "Authorization denied to Write on Schema Registry subject(s): [%s]", sinkSchema
+    ));
+
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+  }
+
+  @Test
   public void shouldPrintTopicWithReadPermissionsAllowed() {
     // Given:
     givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
@@ -386,7 +427,51 @@ public class KsqlAuthorizationValidatorImplTest {
     authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
 
     // Then:
-    // Above command should not throw any exception
+    verifyZeroInteractions(schemaRegistryClient);
+  }
+
+  @Test
+  public void shouldCreateSourceFromAvroIfSchemaAccessIsAuthorized()
+      throws IOException, RestClientException
+  {
+    final String sourceSchema = TOPIC_NAME_1 + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='AVRO');", TOPIC_NAME_1)
+    );
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
+
+    // Then:
+    verify(schemaRegistryClient, times(1))
+        .getLatestSchemaMetadata(sourceSchema);
+  }
+
+  @Test
+  public void shouldThrowWhenCreateSourceFromAvroHasSchemaAccessDenied()
+      throws IOException, RestClientException
+  {
+    final String sourceSchema = TOPIC_NAME_1 + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    // Given:
+    givenTopicPermissions(TOPIC_1, Collections.singleton(AclOperation.READ));
+    final Statement statement = givenStatement(String.format(
+        "CREATE STREAM s1 WITH (kafka_topic='%s', value_format='AVRO');", TOPIC_NAME_1)
+    );
+    doThrow(new RestClientException("", HttpStatus.SC_FORBIDDEN, -1)).when(schemaRegistryClient)
+        .getLatestSchemaMetadata(sourceSchema);
+
+    // Then:
+    expectedException.expect(KsqlSchemaAuthorizationException.class);
+    expectedException.expectMessage(String.format(
+        "Authorization denied to Read on Schema Registry subject(s): [%s]", sourceSchema
+    ));
+
+    // When:
+    authorizationValidator.checkAuthorization(serviceContext, metaStore, statement);
   }
 
   @Test

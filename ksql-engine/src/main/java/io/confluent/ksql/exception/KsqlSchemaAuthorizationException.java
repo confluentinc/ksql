@@ -31,7 +31,7 @@ public class KsqlSchemaAuthorizationException extends RuntimeException {
       final Set<String> unauthorizedSchema
   ) {
     super(String.format(
-        "Authorization denied to %s on Schema Registry subject(s): ",
+        "Authorization denied to %s on Schema Registry subject(s): %s",
         StringUtils.capitalize(operation.toString().toLowerCase()), unauthorizedSchema
     ));
   }

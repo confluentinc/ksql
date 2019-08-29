@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.topic;
 
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
@@ -30,20 +31,20 @@ import java.util.Set;
  * Helper class that extracts all source topics from a query node.
  */
 public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void> {
-  private final Set<String> sourceTopics = new HashSet<>();
+  private final Set<KsqlTopic> sourceTopics = new HashSet<>();
   private final MetaStore metaStore;
 
-  private String primaryKafkaTopicName = null;
+  private KsqlTopic primaryKafkaTopicName = null;
 
   public SourceTopicsExtractor(final MetaStore metaStore) {
     this.metaStore = metaStore;
   }
 
-  public String getPrimaryKafkaTopicName() {
+  public KsqlTopic getPrimaryKsqlTopic() {
     return primaryKafkaTopicName;
   }
 
-  public Set<String> getSourceTopics() {
+  public Set<KsqlTopic> getKsqlTopics() {
     return sourceTopics;
   }
 
@@ -64,10 +65,10 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void
 
     // This method is called first with the primary kafka topic (or the node.getFrom() node)
     if (primaryKafkaTopicName == null) {
-      primaryKafkaTopicName = source.getKafkaTopicName();
+      primaryKafkaTopicName = source.getKsqlTopic();
     }
 
-    sourceTopics.add(source.getKafkaTopicName());
+    sourceTopics.add(source.getKsqlTopic());
     return node;
   }
 }

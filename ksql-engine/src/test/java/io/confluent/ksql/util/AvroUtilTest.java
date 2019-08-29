@@ -16,7 +16,10 @@
 
 package io.confluent.ksql.util;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.internal.matchers.ThrowableCauseMatcher.hasCause;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -27,6 +30,7 @@ import io.confluent.connect.avro.AvroData;
 import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -213,10 +217,9 @@ public class AvroUtilTest {
         .thenThrow(new RestClientException("Unknown subject", 403, 40401));
 
     // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not connect to Schema Registry service");
+    expectedException.expect(KsqlSchemaAuthorizationException.class);
     expectedException.expectMessage(containsString(String.format(
-        "Not authorized to access Schema Registry subject: [%s]",
+        "Authorization denied to access Schema Registry subject(s): [%s]",
         persistentQuery.getResultTopic().getKafkaTopicName()
             + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
     )));

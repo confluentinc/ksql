@@ -50,6 +50,9 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @RunWith(MockitoJUnitRunner.class)
 public class SourceTopicsExtractorTest {
 
@@ -107,7 +110,7 @@ public class SourceTopicsExtractorTest {
     extractor.process(statement, null);
 
     // Then:
-    assertThat(extractor.getPrimaryKafkaTopicName(), is(TOPIC_1.name()));
+    assertThat(extractor.getPrimaryKsqlTopic().getKafkaTopicName(), is(TOPIC_1.name()));
   }
 
   @Test
@@ -121,7 +124,7 @@ public class SourceTopicsExtractorTest {
     extractor.process(statement, null);
 
     // Then:
-    assertThat(extractor.getPrimaryKafkaTopicName(), is(TOPIC_1.name()));
+    assertThat(extractor.getPrimaryKsqlTopic().getKafkaTopicName(), is(TOPIC_1.name()));
   }
 
   @Test
@@ -135,7 +138,12 @@ public class SourceTopicsExtractorTest {
     extractor.process(statement, null);
 
     // Then:
-    assertThat(extractor.getSourceTopics(), contains(TOPIC_1.name(), TOPIC_2.name()));
+    final Set<String> topicsNames = extractor.getKsqlTopics()
+        .stream()
+        .map(k -> k.getKafkaTopicName())
+        .collect(Collectors.toSet());
+
+    assertThat(topicsNames, contains(TOPIC_1.name(), TOPIC_2.name()));
   }
 
   @Test

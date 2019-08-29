@@ -15,7 +15,11 @@
 
 package io.confluent.ksql.security;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -24,11 +28,15 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.topic.SourceTopicsExtractor;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Set;
+import org.apache.http.HttpStatus;
 import org.apache.kafka.common.acl.AclOperation;
 
 /**
@@ -62,10 +70,12 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       final MetaStore metaStore,
       final Query query
   ) {
-    final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
-    extractor.process(query, null);
-    for (String kafkaTopic : extractor.getSourceTopics()) {
-      checkAccess(serviceContext, kafkaTopic, AclOperation.READ);
+    for (KsqlTopic topic : extractQueryTopics(query, metaStore)) {
+      checkTopicAccess(
+          topic.getKafkaTopicName(),
+          AclOperation.READ,
+          serviceContext.getTopicClient()
+      );
     }
   }
 
@@ -87,7 +97,8 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
 
     // At this point, the topic should have been created by the TopicCreateInjector
     final String kafkaTopic = getCreateAsSelectSinkTopic(metaStore, createAsSelect);
-    checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
+    checkTopicAccess(kafkaTopic, AclOperation.WRITE, serviceContext.getTopicClient());
+    checkSchemaAccess(kafkaTopic, AclOperation.WRITE, serviceContext.getSchemaRegistryClient());
   }
 
   private void validateInsertInto(
@@ -103,15 +114,19 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
 
     validateQuery(serviceContext, metaStore, insertInto.getQuery());
 
-    final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().name());
-    checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
+    final String kafkaTopic = getSinkTopicName(metaStore, insertInto.getTarget().name());
+    checkTopicAccess(kafkaTopic, AclOperation.WRITE, serviceContext.getTopicClient());
   }
 
   private void validatePrintTopic(
-          final ServiceContext serviceContext,
-          final PrintTopic printTopic
+      final ServiceContext serviceContext,
+      final PrintTopic printTopic
   ) {
-    checkAccess(serviceContext, printTopic.getTopic().toString(), AclOperation.READ);
+    checkTopicAccess(
+        printTopic.getTopic().toString(),
+        AclOperation.READ,
+        serviceContext.getTopicClient()
+    );
   }
 
   private void validateCreateSource(
@@ -119,10 +134,14 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       final CreateSource createSource
   ) {
     final String sourceTopic = createSource.getProperties().getKafkaTopic();
-    checkAccess(serviceContext, sourceTopic, AclOperation.READ);
+    checkTopicAccess(sourceTopic, AclOperation.READ, serviceContext.getTopicClient());
+
+    if (createSource.getProperties().getValueFormat() == Format.AVRO) {
+      checkSchemaAccess(sourceTopic, AclOperation.READ, serviceContext.getSchemaRegistryClient());
+    }
   }
 
-  private String getSourceTopicName(final MetaStore metaStore, final String streamOrTable) {
+  private String getSinkTopicName(final MetaStore metaStore, final String streamOrTable) {
     final DataSource<?> dataSource = metaStore.getSource(streamOrTable);
     if (dataSource == null) {
       throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
@@ -132,23 +151,41 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
     return dataSource.getKafkaTopicName();
   }
 
-  /**
-   * Checks if the ServiceContext has access to the topic with the specified AclOperation.
-   */
-  private void checkAccess(
-      final ServiceContext serviceContext,
+  private void checkTopicAccess(
       final String topicName,
-      final AclOperation operation
+      final AclOperation operation,
+      final KafkaTopicClient topicClient
   ) {
-    final Set<AclOperation> authorizedOperations = serviceContext.getTopicClient()
-        .describeTopic(topicName).authorizedOperations();
+    final Set<AclOperation> authorizedOperations = topicClient.describeTopic(topicName)
+        .authorizedOperations();
 
     // Kakfa 2.2 or lower do not support authorizedOperations(). In case of running on a
     // unsupported broker version, then the authorizeOperation will be null.
     if (authorizedOperations != null && !authorizedOperations.contains(operation)) {
-      // This error message is similar to what Kafka throws when it cannot access the topic
-      // due to an authorization error. I used this message to keep a consistent message.
       throw new KsqlTopicAuthorizationException(operation, Collections.singleton(topicName));
+    }
+  }
+
+  private void checkSchemaAccess(
+      final String topicName,
+      final AclOperation operation,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
+    final String subject = topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX;
+
+    try {
+      schemaRegistryClient.getLatestSchemaMetadata(subject);
+    } catch (final RestClientException e) {
+      switch (e.getStatus()) {
+        case HttpStatus.SC_UNAUTHORIZED:
+        case HttpStatus.SC_FORBIDDEN:
+          throw new KsqlSchemaAuthorizationException(operation, Collections.singleton(subject));
+        default:
+          // Do nothing. We assume the NOT FOUND and other errors are caught and  displayed
+          // in different place
+      }
+    } catch (final Exception e) {
+      throw new KsqlException(e);
     }
   }
 
@@ -157,6 +194,12 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       final CreateAsSelect createAsSelect
   ) {
     return createAsSelect.getProperties().getKafkaTopic()
-        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName().name()));
+        .orElseGet(() -> getSinkTopicName(metaStore, createAsSelect.getName().name()));
+  }
+
+  private Set<KsqlTopic> extractQueryTopics(final Query query, final MetaStore metaStore) {
+    final SourceTopicsExtractor extractor = new SourceTopicsExtractor(metaStore);
+    extractor.process(query, null);
+    return extractor.getKsqlTopics();
   }
 }

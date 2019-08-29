@@ -19,11 +19,11 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 
 @UdfDescription(name = "Abs", description = Abs.DESCRIPTION)
 public class Abs {
@@ -54,12 +54,12 @@ public class Abs {
   }
 
   @UdfSchemaProvider
-  public Schema provideSchema(final List<Schema> params) {
+  public SqlType provideSchema(final List<SqlType> params) {
     if (params.size() != 1) {
       throw new KsqlException("Abs udf accepts one parameter");
     }
-    final Schema s = params.get(0);
-    if (!DecimalUtil.isDecimal(s)) {
+    final SqlType s = params.get(0);
+    if (!(s.baseType() == SqlBaseType.DECIMAL)) {
       throw new KsqlException("The schema provider method for Abs expects a BigDecimal parameter"
           + "type");
     }

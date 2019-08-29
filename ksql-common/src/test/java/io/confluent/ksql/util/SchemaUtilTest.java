@@ -32,8 +32,9 @@ import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SchemaUtilTest {
 
@@ -72,6 +73,9 @@ public class SchemaUtilTest {
               .field("ss0", STRUCT_SCHEMA))
           .build())
       .build();
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldGetCorrectJavaClassForBoolean() {
@@ -432,14 +436,13 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldFailForCorrectJavaType() {
-    try {
-      SchemaUtil.getJavaType(Schema.BYTES_SCHEMA);
-      Assert.fail();
-    } catch (final KsqlException ksqlException) {
-      assertThat("Invalid type retured.", ksqlException.getMessage(), equalTo("Type is not "
-          + "supported: BYTES"));
-    }
+  public void shouldFailForGetJavaTypeOnUnsuppportedConnectType() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Unexpected schema type: Schema{INT8}");
+
+    // When:
+    SchemaUtil.getJavaType(Schema.INT8_SCHEMA);
   }
 
   @Test

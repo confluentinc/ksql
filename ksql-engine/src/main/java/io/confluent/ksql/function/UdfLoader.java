@@ -424,8 +424,8 @@ public class UdfLoader {
       return m;
     } catch (NoSuchMethodException e) {
       throw new KsqlException(String.format(
-          "Cannot find schema provider method with name %s and parameter List<Schema> in class %s.",
-          schemaProviderName,theClass.getName()),e);
+          "Cannot find schema provider method with name %s and parameter List<SqlType> in class "
+              + "%s.", schemaProviderName,theClass.getName()),e);
     }
   }
 

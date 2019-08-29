@@ -113,7 +113,7 @@ implement a UDF with a non-deterministic return type. A UDF which returns ``BigD
 for example, may vary the precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
-``public Schema <your-method-name>(final List<Schema> params)`` and annotate it with ``@SchemaProvider``.
+``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@SchemaProvider``.
 Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
 parameter of the ``@Udf`` annotation.
 

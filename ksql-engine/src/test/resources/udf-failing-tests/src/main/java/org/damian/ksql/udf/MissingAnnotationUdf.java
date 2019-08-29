@@ -19,6 +19,8 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.util.List;
@@ -41,7 +43,7 @@ public class MissingAnnotationUdf {
   }
 
   @UdfSchemaProvider
-  public Schema provideSchema(List<Schema> params) {
-    return DecimalUtil.builder(2, 1).build();
+  public SqlType provideSchema(List<SqlType> params) {
+    return SqlDecimal.of(2, 1);
   }
 }

@@ -16,6 +16,7 @@
 package io.confluent.ksql.parser;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.parser.tree.AstVisitor;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.Objects;
@@ -33,6 +34,11 @@ public class DropType extends Statement implements ExecutableDdlStatement {
 
   public String getTypeName() {
     return typeName;
+  }
+
+  @Override
+  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+    return visitor.visitDropType(this, context);
   }
 
   @Override

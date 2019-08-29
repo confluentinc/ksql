@@ -121,7 +121,7 @@ public class CommandFactories implements DdlCommandFactory {
   }
 
   private DropTypeCommand handleDropType(final DropType statement) {
-    return new DropTypeCommand(statement);
+    return new DropTypeCommand(statement.getTypeName());
   }
 
   private static final class CallInfo {

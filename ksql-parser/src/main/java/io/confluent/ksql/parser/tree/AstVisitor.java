@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.parser.tree;
 
+import io.confluent.ksql.parser.DropType;
 import javax.annotation.Nullable;
 
 public abstract class AstVisitor<R, C> {
@@ -176,6 +177,10 @@ public abstract class AstVisitor<R, C> {
   }
 
   public R visitRegisterType(final RegisterType node, final C context) {
+    return visitStatement(node, context);
+  }
+
+  public R visitDropType(final DropType node, final C context) {
     return visitStatement(node, context);
   }
 }

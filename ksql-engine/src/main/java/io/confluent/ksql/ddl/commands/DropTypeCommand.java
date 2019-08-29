@@ -16,22 +16,21 @@
 package io.confluent.ksql.ddl.commands;
 
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.DropType;
 import java.util.Objects;
 
 public class DropTypeCommand implements DdlCommand {
 
-  private final DropType dropType;
+  private final String typeName;
 
-  public DropTypeCommand(final DropType dropType) {
-    this.dropType = Objects.requireNonNull(dropType, "dropType");
+  public DropTypeCommand(final String typeName) {
+    this.typeName = Objects.requireNonNull(typeName, "typeName");
   }
 
   @Override
   public DdlCommandResult run(final MutableMetaStore metaStore) {
-    final boolean wasDeleted = metaStore.deleteType(dropType.getTypeName());
+    final boolean wasDeleted = metaStore.deleteType(typeName);
     return wasDeleted
-        ? new DdlCommandResult(true, "Dropped type '" + dropType.getTypeName() + "'")
-        : new DdlCommandResult(true, "Type '" + dropType.getTypeName() + "' does not exist");
+        ? new DdlCommandResult(true, "Dropped type '" + typeName + "'")
+        : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
   }
 }

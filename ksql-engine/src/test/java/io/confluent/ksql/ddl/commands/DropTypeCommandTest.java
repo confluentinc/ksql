@@ -31,8 +31,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DropTypeCommandTest {
 
-  private static final DropTypeCommand DROP =
-      new DropTypeCommand(new DropType(Optional.empty(), "type"));
+  private static final DropTypeCommand DROP = new DropTypeCommand("type");
 
   @Mock
   private MutableMetaStore metaStore;
@@ -54,11 +53,10 @@ public class DropTypeCommandTest {
   @Test
   public void shouldDropMissingType() {
     // Given:
-    final DropTypeCommand command = new DropTypeCommand(new DropType(Optional.empty(), "type"));
     when(metaStore.deleteType("type")).thenReturn(false);
 
     // When:
-    final DdlCommandResult result = command.run(metaStore);
+    final DdlCommandResult result = DROP.run(metaStore);
 
     // Then:
     verify(metaStore).deleteType("type");

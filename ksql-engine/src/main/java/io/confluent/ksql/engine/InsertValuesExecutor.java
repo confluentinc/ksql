@@ -20,6 +20,7 @@ import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Literal;
@@ -47,6 +48,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -369,24 +371,36 @@ public class InsertValuesExecutor {
     try {
       return valueSerde.serializer().serialize(topicName, row);
     } catch (final Exception e) {
-      if (dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO) {
-        final Throwable rootCause = ExceptionUtils.getRootCause(e);
-        if (rootCause instanceof RestClientException) {
-          switch (((RestClientException) rootCause).getStatus()) {
-            case HttpStatus.SC_UNAUTHORIZED:
-            case HttpStatus.SC_FORBIDDEN:
-              throw new KsqlException(String.format(
-                  "Not authorized to write Schema Registry subject: [%s]",
-                  topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
-              ));
-            default:
-              break;
-          }
-        }
+      Throwable rootCause = ExceptionUtils.getRootCause(e);
+
+      if (isAvroSchema(dataSource) && isSchemaAccessUnauthorized(e)) {
+        rootCause = new KsqlSchemaAuthorizationException(
+            AclOperation.WRITE,
+            Collections.singleton(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+        );
       }
 
-      throw new KsqlException("Could not serialize row: " + row, e);
+      throw new KsqlException("Could not serialize row: " + row, rootCause);
     }
+  }
+
+  private boolean isAvroSchema(final DataSource dataSource) {
+    return dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO;
+  }
+
+  private boolean isSchemaAccessUnauthorized(final Exception e) {
+    final Throwable rootCause = ExceptionUtils.getRootCause(e);
+    if (rootCause instanceof RestClientException) {
+      switch (((RestClientException) rootCause).getStatus()) {
+        case HttpStatus.SC_UNAUTHORIZED:
+        case HttpStatus.SC_FORBIDDEN:
+          return true;
+        default:
+          return false;
+      }
+    }
+
+    return false;
   }
 
   @SuppressWarnings("TryFinallyCanBeTryWithResources")

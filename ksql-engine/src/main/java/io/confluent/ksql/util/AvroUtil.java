@@ -17,8 +17,10 @@ package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
+import java.util.Collections;
 
 import org.apache.http.HttpStatus;
 
@@ -86,16 +88,14 @@ public final class AvroUtil {
         return true;
       }
 
-      String errorMessage = e.getMessage();
       if (e.getStatus() == HttpStatus.SC_UNAUTHORIZED || e.getStatus() == HttpStatus.SC_FORBIDDEN) {
-        errorMessage = String.format(
-            "Not authorized to access Schema Registry subject: [%s]",
-            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+        throw new KsqlSchemaAuthorizationException(
+            Collections.singleton(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
         );
       }
 
       throw new KsqlException(String.format(
-          "Could not connect to Schema Registry service: %s", errorMessage
+          "Could not connect to Schema Registry service: %s", e.getMessage()
       ));
     }
   }

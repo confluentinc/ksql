@@ -18,9 +18,14 @@ package io.confluent.ksql.schema.registry;
 import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
+import java.util.Collections;
 import java.util.stream.Stream;
+import org.apache.http.HttpStatus;
+import org.apache.kafka.common.acl.AclOperation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,7 +69,24 @@ public final class SchemaRegistryUtil {
   public static void deleteSubjectWithRetries(
       final SchemaRegistryClient schemaRegistryClient,
       final String subject) throws Exception {
-    ExecutorUtil.executeWithRetries(() -> schemaRegistryClient.deleteSubject(subject), ALWAYS);
+    ExecutorUtil.executeWithRetries(() -> {
+      try {
+        schemaRegistryClient.deleteSubject(subject);
+      } catch (final RestClientException e) {
+        switch (e.getStatus()) {
+          case HttpStatus.SC_UNAUTHORIZED:
+          case HttpStatus.SC_FORBIDDEN:
+            throw new KsqlSchemaAuthorizationException(
+                AclOperation.DELETE,
+                Collections.singleton(subject)
+            );
+          default:
+            throw e;
+        }
+      } catch (final Exception e) {
+        throw e;
+      }
+    }, ALWAYS);
   }
 
   private static Stream<String> getInternalSubjectNames(

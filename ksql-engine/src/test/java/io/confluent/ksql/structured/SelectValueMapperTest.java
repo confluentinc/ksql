@@ -22,7 +22,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
@@ -33,16 +33,12 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
-import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.execution.plan.SelectExpression;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Rule;
@@ -141,34 +137,14 @@ public class SelectValueMapperTest {
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
-    final List<ExpressionMetadata> metadata = createExpressionMetadata(selectExpressions, schema);
-    final List<String> selectFieldNames = selectExpressions.stream()
-        .map(SelectExpression::getName)
-        .collect(Collectors.toList());
-    return new SelectValueMapper(
-        selectFieldNames,
-        metadata,
+
+    return SelectValueMapperFactory.create(
+        selectExpressions,
+        schema,
+        ksqlConfig,
+        new InternalFunctionRegistry(),
         processingLogger
     );
-  }
-
-  private List<ExpressionMetadata> createExpressionMetadata(
-      final List<SelectExpression> selectExpressions,
-      final LogicalSchema schema
-  ) {
-    try {
-      final CodeGenRunner codeGenRunner = new CodeGenRunner(
-          schema, ksqlConfig, new InternalFunctionRegistry());
-
-      final List<ExpressionMetadata> expressionEvaluators = new ArrayList<>();
-      for (final SelectExpression expressionPair : selectExpressions) {
-        expressionEvaluators
-            .add(codeGenRunner.buildCodeGenFromParseTree(expressionPair.getExpression(), "Select"));
-      }
-      return expressionEvaluators;
-    } catch (final Exception e) {
-      throw new AssertionError("Invalid test", e);
-    }
   }
 
   private static GenericRow genericRow(final Object... columns) {

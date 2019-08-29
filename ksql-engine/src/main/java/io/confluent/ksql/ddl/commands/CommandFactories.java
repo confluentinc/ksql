@@ -17,6 +17,7 @@ package io.confluent.ksql.ddl.commands;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
@@ -45,6 +46,7 @@ public class CommandFactories implements DdlCommandFactory {
       .put(DropStream.class, CommandFactories::handleDropStream)
       .put(DropTable.class, CommandFactories::handleDropTable)
       .put(RegisterType.class, CommandFactories::handleRegisterType)
+      .put(DropType.class, CommandFactories::handleDropType)
       .build();
 
   private final ServiceContext serviceContext;
@@ -116,6 +118,10 @@ public class CommandFactories implements DdlCommandFactory {
   @SuppressWarnings("MethodMayBeStatic")
   private RegisterTypeCommand handleRegisterType(final RegisterType statement) {
     return new RegisterTypeCommand(statement);
+  }
+
+  private DropTypeCommand handleDropType(final DropType statement) {
+    return new DropTypeCommand(statement.getTypeName());
   }
 
   private static final class CallInfo {

@@ -295,6 +295,7 @@ public class AggregateNode extends PlanNode {
     return aggValToAggFunctionMap;
   }
 
+  @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
   private static KsqlAggregateFunction getAggregateFunction(
       final FunctionRegistry functionRegistry,
       final InternalSchema internalSchema,

@@ -67,6 +67,7 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
+@SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
 public class ExpressionTypeManager {
 
   private static final SqlToConnectTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
@@ -86,6 +87,11 @@ public class ExpressionTypeManager {
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
+  /**
+   * @deprecated use getExpressionSqlType in new code.
+   */
+  @SuppressWarnings("DeprecatedIsStillUsed")
+  @Deprecated
   public Schema getExpressionSchema(final Expression expression) {
     final ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
     new Visitor().process(expression, expressionTypeContext);
@@ -121,6 +127,7 @@ public class ExpressionTypeManager {
   }
 
   private class Visitor implements ExpressionVisitor<Void, ExpressionTypeContext> {
+
     @Override
     public Void visitArithmeticBinary(
         final ArithmeticBinaryExpression node,

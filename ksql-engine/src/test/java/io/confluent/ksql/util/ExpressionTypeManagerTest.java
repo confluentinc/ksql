@@ -18,19 +18,19 @@ package io.confluent.ksql.util;
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.ExpressionParseTestUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -70,26 +70,26 @@ public class ExpressionTypeManagerTest {
   public void testArithmeticExpr() {
     final String simpleQuery = "SELECT col0+col3, col2, col3+10, col0+10, col0*25 FROM test1 WHERE col0 > 100;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-    final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-    final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-    final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
-    final Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
-    Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(exprType2.type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(exprType3.type() == Schema.Type.INT64);
-    Assert.assertTrue(exprType4.type() == Schema.Type.INT64);
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
+    final SqlType exprType2 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(2));
+    final SqlType exprType3 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(3));
+    final SqlType exprType4 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(4));
+    assertThat(exprType0, is(SqlTypes.DOUBLE));
+    assertThat(exprType2, is(SqlTypes.DOUBLE));
+    assertThat(exprType3, is(SqlTypes.BIGINT));
+    assertThat(exprType4, is(SqlTypes.BIGINT));
   }
 
   @Test
   public void testComparisonExpr() {
     final String simpleQuery = "SELECT col0>col3, col0*25<200, col2 = 'test' FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-    final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-    final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-    final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-    Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
-    Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
-    Assert.assertTrue(exprType2.type() == Schema.Type.BOOLEAN);
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
+    final SqlType exprType1 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1));
+    final SqlType exprType2 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(2));
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+    assertThat(exprType1, is(SqlTypes.BOOLEAN));
+    assertThat(exprType2, is(SqlTypes.BOOLEAN));
   }
 
   @Test
@@ -101,7 +101,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare STRING and INTEGER");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
   }
 
@@ -114,7 +114,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BOOLEAN");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
   }
 
@@ -130,7 +130,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare MAP and STRUCT");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
   }
 
   @Test
@@ -145,7 +145,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("Operator EQUAL cannot be used to compare STRUCT and STRUCT");
 
     // When:
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
   }
 
@@ -154,10 +154,10 @@ public class ExpressionTypeManagerTest {
     final String simpleQuery = "SELECT col1 LIKE 'foo%', col2 LIKE '%bar' FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-    final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-    Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
-    Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
+    final SqlType exprType1 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1));
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+    assertThat(exprType1, is(SqlTypes.BOOLEAN));
   }
 
   @Test
@@ -165,44 +165,44 @@ public class ExpressionTypeManagerTest {
     final String simpleQuery = "SELECT col1 NOT LIKE 'foo%', col2 NOT LIKE '%bar' FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-    final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-    final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-    Assert.assertTrue(exprType0.type() == Schema.Type.BOOLEAN);
-    Assert.assertTrue(exprType1.type() == Schema.Type.BOOLEAN);
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
+    final SqlType exprType1 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1));
+    assertThat(exprType0, is(SqlTypes.BOOLEAN));
+    assertThat(exprType1, is(SqlTypes.BOOLEAN));
   }
 
   @Test
   public void testUDFExpr() {
     final String simpleQuery = "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), RANDOM()+10, ROUND(col3*2)+12 FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-    final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-    final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-    final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-    final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
-    final Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
+    final SqlType exprType1 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1));
+    final SqlType exprType2 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(2));
+    final SqlType exprType3 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(3));
+    final SqlType exprType4 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(4));
 
-    Assert.assertTrue(exprType0.type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(exprType1.type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(exprType2.type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(exprType3.type() == Schema.Type.FLOAT64);
-    Assert.assertTrue(exprType4.type() == Schema.Type.INT64);
+    assertThat(exprType0, is(SqlTypes.DOUBLE));
+    assertThat(exprType1, is(SqlTypes.DOUBLE));
+    assertThat(exprType2, is(SqlTypes.DOUBLE));
+    assertThat(exprType3, is(SqlTypes.DOUBLE));
+    assertThat(exprType4, is(SqlTypes.BIGINT));
   }
 
   @Test
   public void testStringUDFExpr() {
     final String simpleQuery = "SELECT LCASE(col1), UCASE(col2), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 1, 3) FROM test1;";
     final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
-    final Schema exprType0 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
-    final Schema exprType1 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
-    final Schema exprType2 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2));
-    final Schema exprType3 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(3));
-    final Schema exprType4 = expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(4));
+    final SqlType exprType0 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
+    final SqlType exprType1 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1));
+    final SqlType exprType2 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(2));
+    final SqlType exprType3 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(3));
+    final SqlType exprType4 = expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(4));
 
-    Assert.assertTrue(exprType0.type() == Schema.Type.STRING);
-    Assert.assertTrue(exprType1.type() == Schema.Type.STRING);
-    Assert.assertTrue(exprType2.type() == Schema.Type.STRING);
-    Assert.assertTrue(exprType3.type() == Schema.Type.STRING);
-    Assert.assertTrue(exprType4.type() == Schema.Type.STRING);
+    assertThat(exprType0, is(SqlTypes.STRING));
+    assertThat(exprType1, is(SqlTypes.STRING));
+    assertThat(exprType2, is(SqlTypes.STRING));
+    assertThat(exprType3, is(SqlTypes.STRING));
+    assertThat(exprType4, is(SqlTypes.STRING));
   }
 
   @Test
@@ -210,24 +210,22 @@ public class ExpressionTypeManagerTest {
     final Analysis analysis = analyzeQuery("SELECT SUBSTRING(EXTRACTJSONFIELD(col1,'$.name'),"
         + "LEN(col1) - 2) FROM test1;", metaStore);
 
-    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-
+    assertThat(expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0)),
+        equalTo(SqlTypes.STRING));
   }
 
   @Test
   public void shouldHandleStruct() {
     final Analysis analysis = analyzeQuery("SELECT itemid, address->zipcode, address->state from orders;", metaStore);
 
-    assertThat(ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0)),
+        equalTo(SqlTypes.STRING));
 
-    assertThat(ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)),
-        equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1)),
+        equalTo(SqlTypes.BIGINT));
 
-    assertThat(ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(2)),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-
+    assertThat(ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(2)),
+        equalTo(SqlTypes.STRING));
   }
 
   @Test
@@ -240,7 +238,7 @@ public class ExpressionTypeManagerTest {
         metaStore.getSource("ORDERS").getSchema(),
         FUNCTION_REGISTRY
     );
-    expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1));
+    expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1));
   }
 
   @Test
@@ -250,10 +248,10 @@ public class ExpressionTypeManagerTest {
         metaStore.getSource("NESTED_STREAM").getSchema(),
         FUNCTION_REGISTRY
     );
-    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0)),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-    assertThat(expressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(1)),
-        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+    assertThat(expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0)),
+        is(SqlTypes.STRING));
+    assertThat(expressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(1)),
+        is(SqlTypes.DOUBLE));
 
   }
 
@@ -263,10 +261,10 @@ public class ExpressionTypeManagerTest {
     final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN 'small' WHEN orderunits < 100 THEN 'medium' ELSE 'large' END FROM orders;", metaStore);
 
     // When:
-    final Schema caseSchema = ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final SqlType result = ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
     // Then:
-    assertThat(caseSchema, equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(result, is(SqlTypes.STRING));
 
   }
 
@@ -276,7 +274,7 @@ public class ExpressionTypeManagerTest {
     final Analysis analysis = analyzeQuery("SELECT CASE WHEN orderunits < 10 THEN ADDRESS END FROM orders;", metaStore);
 
     // When:
-    final Schema caseSchema = ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    final SqlType result = ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
     // Then:
     final SqlType sqlType = metaStore
@@ -286,7 +284,7 @@ public class ExpressionTypeManagerTest {
         .get()
         .type();
 
-    assertThat(caseSchema, equalTo(SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType)));
+    assertThat(result, is(sqlType));
   }
 
   @Test
@@ -297,7 +295,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("When operand schema should be boolean. Schema for ((ORDERS.ORDERUNITS + 100)) is Schema{INT32}");
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
   }
 
@@ -309,7 +307,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("Invalid Case expression. Schemas for 'THEN' clauses should be the same. Result schema: Schema{STRING}. Schema for THEN expression 'WHEN (ORDERS.ORDERUNITS < 100) THEN 10' is Schema{INT32}");
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
 
   }
 
@@ -321,7 +319,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expectMessage("Invalid Case expression. Schema for the default clause should be the same as schema for THEN clauses. Result scheme: Schema{STRING}. Schema for default expression is Schema{BOOLEAN}");
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(analysis.getSelectExpressions().get(0));
+    ordersExpressionTypeManager.getExpressionSqlType(analysis.getSelectExpressions().get(0));
   }
 
   @Test
@@ -335,7 +333,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(UnsupportedOperationException.class);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(expression);
+    ordersExpressionTypeManager.getExpressionSqlType(expression);
   }
 
   @Test
@@ -349,7 +347,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(UnsupportedOperationException.class);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(expression);
+    ordersExpressionTypeManager.getExpressionSqlType(expression);
   }
 
   @Test
@@ -363,7 +361,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(UnsupportedOperationException.class);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(expression);
+    ordersExpressionTypeManager.getExpressionSqlType(expression);
   }
 
   @Test
@@ -380,6 +378,6 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(UnsupportedOperationException.class);
 
     // When:
-    ordersExpressionTypeManager.getExpressionSchema(expression);
+    ordersExpressionTypeManager.getExpressionSqlType(expression);
   }
 }

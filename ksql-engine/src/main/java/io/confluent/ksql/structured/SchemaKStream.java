@@ -62,8 +62,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Grouped;
@@ -443,17 +441,20 @@ public class SchemaKStream<K> {
         final List<SelectExpression> selectExpressions,
         final List<ExpressionMetadata> expressionEvaluators
     ) {
-      final SchemaBuilder valueSchema = SchemaBuilder.struct();
+      final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+
+      final List<Field> keyFields = SchemaKStream.this.schema.isAliased()
+          ? SchemaKStream.this.schema.withoutAlias().keyFields()
+          : SchemaKStream.this.schema.keyFields();
+
+      schemaBuilder.keyFields(keyFields);
+
       IntStream.range(0, selectExpressions.size()).forEach(
-          i -> valueSchema.field(
+          i -> schemaBuilder.valueField(
               selectExpressions.get(i).getName(),
               expressionEvaluators.get(i).getExpressionType()));
 
-      final ConnectSchema keySchema = SchemaKStream.this.schema.isAliased()
-          ? SchemaKStream.this.schema.withoutAlias().keySchema()
-          : SchemaKStream.this.schema.keySchema();
-
-      return LogicalSchema.of(keySchema, valueSchema.build());
+      return schemaBuilder.build();
     }
 
     List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
@@ -465,7 +466,7 @@ public class SchemaKStream<K> {
           expressions, "Select", SchemaKStream.this.getSchema(), ksqlConfig, functionRegistry);
     }
 
-    public LogicalSchema getProjectedSchema() {
+    LogicalSchema getProjectedSchema() {
       return schema;
     }
 

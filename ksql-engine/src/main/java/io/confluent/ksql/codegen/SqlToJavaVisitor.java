@@ -330,6 +330,7 @@ public class SqlToJavaVisitor {
       return new Pair<>(codeString, functionReturnSchema);
     }
 
+    @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     private Schema getFunctionReturnSchema(
         final FunctionCall node,
         final String functionName) {
@@ -701,6 +702,7 @@ public class SqlToJavaVisitor {
       );
     }
 
+    @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     @Override
     public Pair<String, Schema> visitSubscriptExpression(
         final SubscriptExpression node,
@@ -725,7 +727,7 @@ public class SqlToJavaVisitor {
               trueIdx);
 
           return new Pair<>(code, internalSchema.valueSchema());
-          
+
         case MAP:
           return new Pair<>(
               String.format("((%s) ((%s)%s).get(%s))",

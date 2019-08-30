@@ -47,6 +47,7 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
+import io.confluent.ksql.structured.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.ParserUtil;
@@ -57,13 +58,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Grouped;
@@ -350,16 +346,15 @@ public class SchemaKStream<K> {
         final List<SelectExpression> selectExpressions,
         final ProcessingLogger processingLogger
     ) {
-      key = findKeyField(selectExpressions);
-      final List<ExpressionMetadata> expressionEvaluators = buildExpressions(selectExpressions);
-      schema = buildSchema(selectExpressions, expressionEvaluators);
-      final List<String> selectFieldNames = selectExpressions.stream()
-          .map(SelectExpression::getName)
-          .collect(Collectors.toList());
-      selectValueMapper = new SelectValueMapper(
-          selectFieldNames,
-          expressionEvaluators,
-          processingLogger);
+      this.key = findKeyField(selectExpressions);
+      this.selectValueMapper = SelectValueMapperFactory.create(
+          selectExpressions,
+          SchemaKStream.this.schema,
+          ksqlConfig,
+          functionRegistry,
+          processingLogger
+      );
+      this.schema = buildSchema(selectValueMapper);
     }
 
     private KeyField findKeyField(final List<SelectExpression> selectExpressions) {
@@ -440,32 +435,24 @@ public class SchemaKStream<K> {
     }
 
     private LogicalSchema buildSchema(
-        final List<SelectExpression> selectExpressions,
-        final List<ExpressionMetadata> expressionEvaluators
+        final SelectValueMapper mapper
     ) {
-      final SchemaBuilder valueSchema = SchemaBuilder.struct();
-      IntStream.range(0, selectExpressions.size()).forEach(
-          i -> valueSchema.field(
-              selectExpressions.get(i).getName(),
-              expressionEvaluators.get(i).getExpressionType()));
+      final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
-      final ConnectSchema keySchema = SchemaKStream.this.schema.isAliased()
-          ? SchemaKStream.this.schema.withoutAlias().keySchema()
-          : SchemaKStream.this.schema.keySchema();
+      final List<Field> keyFields = SchemaKStream.this.schema.isAliased()
+          ? SchemaKStream.this.schema.withoutAlias().keyFields()
+          : SchemaKStream.this.schema.keyFields();
 
-      return LogicalSchema.of(keySchema, valueSchema.build());
+      schemaBuilder.keyFields(keyFields);
+
+      for (final SelectInfo select : mapper.getSelects()) {
+        schemaBuilder.valueField(select.getFieldName(), select.getExpressionType());
+      }
+
+      return schemaBuilder.build();
     }
 
-    List<ExpressionMetadata> buildExpressions(final List<SelectExpression> selectExpressions
-    ) {
-      final Stream<Expression> expressions = selectExpressions.stream()
-          .map(SelectExpression::getExpression);
-
-      return CodeGenRunner.compileExpressions(
-          expressions, "Select", SchemaKStream.this.getSchema(), ksqlConfig, functionRegistry);
-    }
-
-    public LogicalSchema getProjectedSchema() {
+    LogicalSchema getProjectedSchema() {
       return schema;
     }
 

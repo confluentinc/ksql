@@ -100,6 +100,7 @@ import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
@@ -195,6 +196,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   @Override
   public void start() throws Exception {
     super.start();
+    log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
     startKsql();

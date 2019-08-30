@@ -12,14 +12,15 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,7 +37,7 @@ public class ExpressionMetadataTest {
   private List<Kudf> udfs;
   @Mock
   private Kudf udf;
-  private final Schema expressionType = Schema.OPTIONAL_INT64_SCHEMA;
+  private final SqlType expressionType = SqlTypes.BIGINT;
   @Mock
   private GenericRowValueTypeEnforcer typeEnforcer;
   @Mock

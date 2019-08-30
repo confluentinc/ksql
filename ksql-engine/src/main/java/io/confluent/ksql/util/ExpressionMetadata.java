@@ -18,11 +18,11 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class ExpressionMetadata {
@@ -30,7 +30,7 @@ public class ExpressionMetadata {
   private final IExpressionEvaluator expressionEvaluator;
   private final List<Integer> indexes;
   private final List<Kudf> udfs;
-  private final Schema expressionType;
+  private final SqlType expressionType;
   private final GenericRowValueTypeEnforcer typeEnforcer;
   private final ThreadLocal<Object[]> threadLocalParameters;
   private final Expression expression;
@@ -39,9 +39,10 @@ public class ExpressionMetadata {
       final IExpressionEvaluator expressionEvaluator,
       final List<Integer> indexes,
       final List<Kudf> udfs,
-      final Schema expressionType,
+      final SqlType expressionType,
       final GenericRowValueTypeEnforcer typeEnforcer,
-      final Expression expression) {
+      final Expression expression
+  ) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
     this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
     this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
@@ -59,7 +60,7 @@ public class ExpressionMetadata {
     return udfs;
   }
 
-  public Schema getExpressionType() {
+  public SqlType getExpressionType() {
     return expressionType;
   }
 

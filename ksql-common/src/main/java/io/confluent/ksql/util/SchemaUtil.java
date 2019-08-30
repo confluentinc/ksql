@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import java.math.BigDecimal;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
@@ -41,7 +41,6 @@ import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 
 public final class SchemaUtil {
 
@@ -77,18 +76,6 @@ public final class SchemaUtil {
           .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
           .build();
 
-  private static final Map<Schema.Type, Class<?>> SCHEMA_TYPE_TO_JAVA_TYPE =
-      ImmutableMap.<Schema.Type, Class<?>>builder()
-          .put(Schema.Type.STRING, String.class)
-          .put(Schema.Type.BOOLEAN, Boolean.class)
-          .put(Schema.Type.INT32, Integer.class)
-          .put(Schema.Type.INT64, Long.class)
-          .put(Schema.Type.FLOAT64, Double.class)
-          .put(Schema.Type.ARRAY, List.class)
-          .put(Schema.Type.MAP, Map.class)
-          .put(Schema.Type.STRUCT, Struct.class)
-          .build();
-
   private static final char FIELD_NAME_DELIMITER = '.';
 
   private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_CAST_STRING =
@@ -112,17 +99,11 @@ public final class SchemaUtil {
   private SchemaUtil() {
   }
 
+  // Do Not use in new code - use `SchemaConverters` directly.
   public static Class<?> getJavaType(final Schema schema) {
-    if (DecimalUtil.isDecimal(schema)) {
-      return BigDecimal.class;
-    }
-
-    final Class<?> typeClazz = SCHEMA_TYPE_TO_JAVA_TYPE.get(schema.type());
-    if (typeClazz == null) {
-      throw new KsqlException("Type is not supported: " + schema.type());
-    }
-
-    return typeClazz;
+    return SchemaConverters.sqlToJavaConverter().toJavaType(
+        SchemaConverters.connectToSqlConverter().toSqlType(schema)
+    );
   }
 
   public static boolean matchFieldName(final Field field, final String fieldName) {

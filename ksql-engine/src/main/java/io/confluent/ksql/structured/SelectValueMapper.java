@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.structured;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.util.ExpressionMetadata;
 import java.util.ArrayList;
@@ -25,22 +29,20 @@ import java.util.Objects;
 import org.apache.kafka.streams.kstream.ValueMapper;
 
 class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
-  private final List<String> selectFieldNames;
-  private final List<ExpressionMetadata> expressionEvaluators;
+
+  private final ImmutableList<SelectInfo> selects;
   private final ProcessingLogger processingLogger;
 
   SelectValueMapper(
-      final List<String> selectFieldNames,
-      final List<ExpressionMetadata> expressionEvaluators,
+      final List<SelectInfo> selects,
       final ProcessingLogger processingLogger
   ) {
-    this.selectFieldNames = Objects.requireNonNull(selectFieldNames);
-    this.expressionEvaluators = Objects.requireNonNull(expressionEvaluators);
-    this.processingLogger = Objects.requireNonNull(processingLogger);
+    this.selects = ImmutableList.copyOf(requireNonNull(selects, "selects"));
+    this.processingLogger = requireNonNull(processingLogger, "processingLogger");
+  }
 
-    if (selectFieldNames.size() != expressionEvaluators.size()) {
-      throw new IllegalArgumentException("must have field names for all expressions");
-    }
+  List<SelectInfo> getSelects() {
+    return selects;
   }
 
   @Override
@@ -50,24 +52,28 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
     }
 
     final List<Object> newColumns = new ArrayList<>();
-    for (int i = 0; i < selectFieldNames.size(); i++) {
+
+    for (int i = 0; i < selects.size(); i++) {
       newColumns.add(processColumn(i, row));
     }
+
     return new GenericRow(newColumns);
   }
 
   private Object processColumn(final int column, final GenericRow row) {
+    final SelectInfo select = selects.get(column);
+
     try {
-      return expressionEvaluators
-          .get(column)
-          .evaluate(row);
+      return select.evaluator.evaluate(row);
     } catch (final Exception e) {
       final String errorMsg = String.format(
           "Error computing expression %s for column %s with index %d: %s",
-          expressionEvaluators.get(column).getExpression(),
-          selectFieldNames.get(column),
+          select.evaluator.getExpression(),
+          select.fieldName,
           column,
-          e.getMessage());
+          e.getMessage()
+      );
+
       processingLogger.error(
           EngineProcessingLogMessageFactory.recordProcessingError(
               errorMsg,
@@ -76,6 +82,47 @@ class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
           )
       );
       return null;
+    }
+  }
+
+  static final class SelectInfo {
+
+    final String fieldName;
+    final ExpressionMetadata evaluator;
+
+    static SelectInfo of(final String fieldName, final ExpressionMetadata evaluator) {
+      return new SelectInfo(fieldName, evaluator);
+    }
+
+    private SelectInfo(final String fieldName, final ExpressionMetadata evaluator) {
+      this.fieldName = requireNonNull(fieldName, "fieldName");
+      this.evaluator = requireNonNull(evaluator, "evaluator");
+    }
+
+    String getFieldName() {
+      return fieldName;
+    }
+
+    SqlType getExpressionType() {
+      return evaluator.getExpressionType();
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final SelectInfo that = (SelectInfo) o;
+      return Objects.equals(fieldName, that.fieldName)
+          && Objects.equals(evaluator, that.evaluator);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(fieldName, evaluator);
     }
   }
 }

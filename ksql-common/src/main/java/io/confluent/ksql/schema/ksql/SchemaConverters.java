@@ -130,6 +130,10 @@ public final class SchemaConverters {
      * @return the java type.
      */
     Class<?> toJavaType(SqlBaseType sqlBaseType);
+
+    default Class<?> toJavaType(SqlType sqlType) {
+      return toJavaType(sqlType.baseType());
+    }
   }
 
   public static ConnectToSqlTypeConverter connectToSqlConverter() {

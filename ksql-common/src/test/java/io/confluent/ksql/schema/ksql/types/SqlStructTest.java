@@ -71,12 +71,7 @@ public class SqlStructTest {
   }
 
   @Test
-  public void shouldThrowIfNoFields() {
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("STRUCT type must define fields");
-
-    // When:
+  public void shouldNotThrowIfNoFields() {
     SqlStruct.builder().build();
   }
 

@@ -100,9 +100,6 @@ public final class SqlStruct extends SqlType {
     }
 
     public SqlStruct build() {
-      if (fields.isEmpty()) {
-        throw new KsqlException("STRUCT type must define fields");
-      }
       return new SqlStruct(fields);
     }
 

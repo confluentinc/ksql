@@ -111,7 +111,7 @@ public class PhysicalPlanBuilder {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final String serviceId = getServiceId(serviceContext);
+    final String serviceId = getServiceId();
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
@@ -135,8 +135,12 @@ public class PhysicalPlanBuilder {
         ));
       }
 
-      final String transientQueryPrefix =
-          ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
+      // Transient queries might be accessed as the Client user. The Client username is
+      // appended so prefixed ACLs on internal groups/topics are granted to Client user.
+      final String transientQueryPrefix = appendClientUsername(
+          ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG),
+          serviceContext
+      );
 
       return buildPlanForBareQuery(
           (QueuedSchemaKStream<?>) resultStream,
@@ -437,21 +441,25 @@ public class PhysicalPlanBuilder {
   }
 
   // Package private because of test
-  String getServiceId(final ServiceContext serviceContext) {
-    final StringBuilder sb = new StringBuilder();
-    sb.append(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX);
-    sb.append(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG));
+  String getServiceId() {
+    return KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+        + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
+  }
 
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_APPEND_USERNAME_ON_APPLICATION_ID)
-        && serviceContext.getContextType() == ServiceContext.ContextType.CLIENT_CONTEXT
+  private String appendClientUsername(final String prefix, final ServiceContext serviceContext) {
+    final StringBuilder sb = new StringBuilder(prefix);
+
+    if (serviceContext.getContextType() == ServiceContext.ContextType.CLIENT_CONTEXT
+        && ksqlConfig.getBoolean(KsqlConfig.KSQL_TRANSIENT_APPLICATION_ID_APPEND_USERNAME)
     ) {
       serviceContext.getUsername().ifPresent(
-          user -> sb.append(Sanitizer.sanitize(user))
+          user -> sb.append(Sanitizer.sanitize(user)).append("_")
       );
     }
 
     return sb.toString();
   }
+
 
   private static Set<String> getSourceNames(final PlanNode outputNode) {
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();

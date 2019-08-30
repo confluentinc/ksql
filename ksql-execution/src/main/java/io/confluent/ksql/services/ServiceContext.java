@@ -29,8 +29,8 @@ public interface ServiceContext extends AutoCloseable {
   /**
    * The {@code ContexType} specifies how this {@code ServiceContext} is being executed.
    *
-   * <p>As an authenticated user using impersonation ({@code CLIENT_CONTEXT}, or as the
-   * KSQL service principal ({@code SERVER_CONTEXT}.
+   * <p>As an authenticated user using impersonation {@code CLIENT_CONTEXT}, or as the
+   * KSQL service principal {@code SERVER_CONTEXT}.
    */
   enum ContextType {
     CLIENT_CONTEXT, SERVER_CONTEXT

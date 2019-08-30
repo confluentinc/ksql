@@ -192,9 +192,9 @@ public class KsqlConfig extends AbstractConfig {
           + "whether the Kafka cluster supports the required API, and enables the validator if "
           + "it does.";
 
-  public static final String KSQL_APPEND_USERNAME_ON_APPLICATION_ID =
-      "ksql.append.username.on.application.id";
-  public static final String KSQL_APPEND_USERNAME_ON_APPLICATION_ID_DOC =
+  public static final String KSQL_TRANSIENT_APPLICATION_ID_APPEND_USERNAME =
+      "ksql.transient.application.id.append.username";
+  public static final String KSQL_TRANSIENT_APPLICATION_ID_APPEND_USERNAME_DOC =
       "Appends the authenticated username to the query application ID created when running "
           + "transient queries. This config affects the name of the internal groups/topics "
           + "created by transient queries. This config is only affected when a user impersonation "
@@ -566,11 +566,11 @@ public class KsqlConfig extends AbstractConfig {
             ConfigDef.Importance.LOW,
             KSQL_ACCESS_VALIDATOR_DOC
         ).define(
-            KSQL_APPEND_USERNAME_ON_APPLICATION_ID,
+            KSQL_TRANSIENT_APPLICATION_ID_APPEND_USERNAME,
             Type.BOOLEAN,
             true,
             ConfigDef.Importance.LOW,
-            KSQL_APPEND_USERNAME_ON_APPLICATION_ID_DOC
+            KSQL_TRANSIENT_APPLICATION_ID_APPEND_USERNAME_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

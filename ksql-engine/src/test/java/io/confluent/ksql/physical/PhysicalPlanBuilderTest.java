@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -80,6 +81,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerInterceptor;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
@@ -215,6 +217,13 @@ public class PhysicalPlanBuilderTest {
   }
 
   private PhysicalPlanBuilder buildPhysicalPlanBuilder(
+      final Map<String, Object> overrideProperties
+  ) {
+    return buildPhysicalPlanBuilder(serviceContext, overrideProperties);
+  }
+
+  private PhysicalPlanBuilder buildPhysicalPlanBuilder(
+      final ServiceContext serviceContext,
       final Map<String, Object> overrideProperties) {
     final StreamsBuilder streamsBuilder = new StreamsBuilder();
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -233,6 +242,13 @@ public class PhysicalPlanBuilderTest {
   }
 
   private QueryMetadata buildPhysicalPlan(final String query) {
+    return buildPhysicalPlan(physicalPlanBuilder, query);
+  }
+
+  private QueryMetadata buildPhysicalPlan(
+      final PhysicalPlanBuilder physicalPlanBuilder,
+      final String query
+  ) {
     final OutputNode logical = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);;
     return physicalPlanBuilder.buildPhysicalPlan(new LogicalPlanNode(query, Optional.of(logical)));
   }
@@ -247,6 +263,76 @@ public class PhysicalPlanBuilderTest {
   public void shouldMakeBareQuery() {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
     assertThat(queryMetadata, instanceOf(TransientQueryMetadata.class));
+  }
+
+  @Test
+  public void shouldBuildTransientQueryApplicationIdWithUsernameOnClientContext() {
+    // Given:
+    final String userNotSanitized = "User-1.2_A+B_A*B";
+    final String userSanitized = "User-1.2_A%2BB_A%2AB";
+    final ServiceContext clientContext = mock(ServiceContext.class);
+    when(clientContext.getContextType()).thenReturn(ServiceContext.ContextType.CLIENT_CONTEXT);
+    when(clientContext.getUsername()).thenReturn(Optional.of(userNotSanitized));
+    final PhysicalPlanBuilder planBuilder = buildPhysicalPlanBuilder(
+        clientContext,
+        Collections.emptyMap()
+    );
+
+    // When:
+    final QueryMetadata queryMetadata = buildPhysicalPlan(planBuilder, simpleSelectFilter);
+
+    // Then:
+    final Pattern expected = Pattern.compile(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+        + KsqlConfig.KSQL_SERVICE_ID_DEFAULT
+        + ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)
+        + userSanitized
+        + "_[0-9].*"
+    );
+    final String returned = queryMetadata.getQueryApplicationId();
+    assertThat(
+        "Expected query id matches: " + expected + "\nbut got: " + returned,
+        expected.matcher(queryMetadata.getQueryApplicationId()).matches()
+    );
+    assertThat(queryMetadata.getQueryApplicationId(), containsString(userSanitized));
+  }
+
+  @Test
+  public void shouldBuildTransientQueryApplicationIdWithoutUsernameOnServerContext() {
+    // When:
+    final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
+
+    // Then:
+    // Then:
+    final Pattern expected = Pattern.compile(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+        + KsqlConfig.KSQL_SERVICE_ID_DEFAULT
+        + ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG)
+        + "[0-9].*"
+    );
+    final String returned = queryMetadata.getQueryApplicationId();
+    assertThat(
+        "Expected query id matches: " + expected + "\nbut got: " + returned,
+        expected.matcher(queryMetadata.getQueryApplicationId()).matches()
+    );
+  }
+
+  @Test
+  public void shouldBuildPersistentQueryApplicationIdWithoutUsername() {
+    // When:
+    final QueryMetadata queryMetadata = buildPhysicalPlan(
+        "CREATE STREAM FOO AS " + simpleSelectFilter);
+
+    // Then:
+    // Then:
+    final Pattern expected = Pattern.compile(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
+        + KsqlConfig.KSQL_SERVICE_ID_DEFAULT
+        + ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG)
+        + "CSAS_FOO_[0-9]"
+    );
+    final String returned = queryMetadata.getQueryApplicationId();
+    assertThat(
+        "Expected query id matches: " + expected + "\nbut got: " + returned,
+        expected.matcher(queryMetadata.getQueryApplicationId()).matches()
+    );
   }
 
   @Test
@@ -730,30 +816,10 @@ public class PhysicalPlanBuilderTest {
   }
 
   @Test
-  public void shouldCreateExpectedServiceIdIfNoClientContextIsSet() {
-    final String serviceId = physicalPlanBuilder.getServiceId(serviceContext);
+  public void shouldCreateExpectedServiceId() {
+    final String serviceId = physicalPlanBuilder.getServiceId();
     assertThat(serviceId, equalTo(KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
         + KsqlConfig.KSQL_SERVICE_ID_DEFAULT));
-  }
-
-  @Test
-  public void shouldAppendUserNameOnServiceIdIfClientContextIsSet() {
-    // Given:
-    final String userNotSanitized = "User-1.2_A+B_A*B";
-    final String userSanitized = "User-1.2_A%2BB_A%2AB";
-    final ServiceContext userContext = mock(ServiceContext.class);
-    when(userContext.getContextType()).thenReturn(ServiceContext.ContextType.CLIENT_CONTEXT);
-    when(userContext.getUsername()).thenReturn(Optional.of(userNotSanitized));
-
-    // When:
-    final String serviceId = physicalPlanBuilder.getServiceId(userContext);
-
-    // Then:
-    assertThat(serviceId, equalTo(
-        KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX
-            + KsqlConfig.KSQL_SERVICE_ID_DEFAULT
-            + userSanitized
-    ));
   }
 
   @Test

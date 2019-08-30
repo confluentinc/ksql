@@ -34,7 +34,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -267,16 +266,6 @@ public class DefaultSchemaInjectorFunctionalTest {
             .optional()
             .build()
     );
-  }
-
-  @Test
-  public void shouldThrowIfNoFields() {
-    // expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("STRUCT type must define fields");
-
-    // when:
-    shouldInferConnectType(SchemaBuilder.struct(), null);
   }
 
   @Test

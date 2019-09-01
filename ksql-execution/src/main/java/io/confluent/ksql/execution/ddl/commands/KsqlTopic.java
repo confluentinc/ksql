@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.metastore.model;
+package io.confluent.ksql.execution.ddl.commands;
 
 import static java.util.Objects.requireNonNull;
 

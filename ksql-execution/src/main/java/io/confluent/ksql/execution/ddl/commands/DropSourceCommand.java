@@ -13,10 +13,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.metastore.MutableMetaStore;
+import java.util.Objects;
 
-public interface DdlCommand {
-  DdlCommandResult run(MutableMetaStore metaStore);
+public class DropSourceCommand implements DdlCommand {
+
+  private final String sourceName;
+
+  public DropSourceCommand(final String sourceName) {
+    this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
+  }
+
+  @Override
+  public DdlCommandResult execute(final Executor executor) {
+    return executor.executeDropSource(this);
+  }
+
+  public String getSourceName() {
+    return sourceName;
+  }
 }

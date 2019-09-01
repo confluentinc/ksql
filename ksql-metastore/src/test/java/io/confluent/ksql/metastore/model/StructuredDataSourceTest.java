@@ -18,6 +18,7 @@ package io.confluent.ksql.metastore.model;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;

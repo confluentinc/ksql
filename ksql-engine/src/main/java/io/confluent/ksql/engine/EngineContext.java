@@ -17,9 +17,9 @@ package io.confluent.ksql.engine;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.commands.CommandFactories;
-import io.confluent.ksql.ddl.commands.DdlCommand;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
-import io.confluent.ksql.ddl.commands.DdlCommandResult;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.DefaultKsqlParser;
@@ -69,7 +69,7 @@ final class EngineContext {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
-    this.ddlCommandFactory = new CommandFactories(serviceContext);
+    this.ddlCommandFactory = new CommandFactories(serviceContext, metaStore);
     this.outerOnQueryCloseCallback = Objects
         .requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
     this.ddlCommandExec = new DdlCommandExec(metaStore);

@@ -13,18 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.execution.ddl.commands.DdlCommand;
-import io.confluent.ksql.parser.tree.DdlStatement;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
+import java.util.Objects;
+import javax.annotation.concurrent.Immutable;
 
-public interface DdlCommandFactory {
-  DdlCommand create(
-      String sqlExpression,
-      DdlStatement ddlStatement,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> properties
-  );
+@Immutable
+public class DdlCommandResult {
+
+  private final boolean success;
+  private final String message;
+
+  public DdlCommandResult(final boolean success, final String message) {
+    this.success = success;
+    this.message = Objects.requireNonNull(message, "message");
+  }
+
+  public boolean isSuccess() {
+    return success;
+  }
+
+  public String getMessage() {
+    return message;
+  }
 }

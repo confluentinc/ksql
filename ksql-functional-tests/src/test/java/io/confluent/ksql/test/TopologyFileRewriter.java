@@ -15,12 +15,13 @@
 
 package io.confluent.ksql.test;
 
-import static io.confluent.ksql.test.EndToEndEngineTestUtil.CONFIG_END_MARKER;
-import static io.confluent.ksql.test.EndToEndEngineTestUtil.SCHEMAS_END_MARKER;
+import static io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader.CONFIG_END_MARKER;
+import static io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader.SCHEMAS_END_MARKER;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -74,7 +75,7 @@ public final class TopologyFileRewriter {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private static String getVersion(final Path versionDir) {
     try {
-      final Path versionFile = versionDir.resolve(QueryTranslationTest.TOPOLOGY_VERSION_FILE);
+      final Path versionFile = versionDir.resolve(ExpectedTopologiesTestLoader.TOPOLOGY_VERSION_FILE);
       if (Files.exists(versionFile)) {
         return new String(Files.readAllBytes(versionFile), UTF_8);
       }
@@ -92,7 +93,7 @@ public final class TopologyFileRewriter {
 
       Files.list(versionDir)
           .filter(Files::isRegularFile)
-          .filter(path -> !path.endsWith(QueryTranslationTest.TOPOLOGY_VERSION_FILE))
+          .filter(path -> !path.endsWith(ExpectedTopologiesTestLoader.TOPOLOGY_VERSION_FILE))
           .forEach(TopologyFileRewriter::rewriteTopologyFile);
 
       System.out.println("Done rewriting topology files in" + versionDir);

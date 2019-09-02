@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -271,6 +272,28 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
                           final int replication,
                           final Map<String, String> topicConfig) {
     broker.createTopic(topic, partitions, replication, topicConfig);
+  }
+
+  /**
+   * Delete topics.
+   * @param topics the topics to delete.
+   */
+  public void deleteTopics(final Collection<String> topics) {
+    broker.deleteTopics(topics);
+  }
+
+  /**
+   * Delete all topics in the cluster.
+   * @param blacklist expect any in the blacklist
+   */
+  public void deleteAllTopics(final Collection<String> blacklist) {
+    final Set<String> topics = broker.getTopics();
+    topics.removeAll(blacklist);
+    deleteTopics(topics);
+  }
+
+  public void deleteAllTopics(final String... blacklist) {
+    deleteAllTopics(Arrays.asList(blacklist));
   }
 
   /**

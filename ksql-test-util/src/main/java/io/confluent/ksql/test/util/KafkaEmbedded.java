@@ -19,8 +19,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
 import kafka.utils.TestUtils;
@@ -148,15 +150,12 @@ class KafkaEmbedded {
   void createTopic(final String topic,
       final int partitions,
       final int replication,
-      final Map<String, String> topicConfig) {
+      final Map<String, String> topicConfig
+  ) {
     log.debug("Creating topic { name: {}, partitions: {}, replication: {}, config: {} }",
         topic, partitions, replication, topicConfig);
 
-    final ImmutableMap<String, Object> props = ImmutableMap.of(
-        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
-        AdminClientConfig.RETRIES_CONFIG, 5);
-
-    try (Admin adminClient = AdminClient.create(props)) {
+    try (Admin adminClient = adminClient()) {
 
       final NewTopic newTopic = new NewTopic(topic, partitions, (short) replication);
       newTopic.configs(topicConfig);
@@ -166,6 +165,28 @@ class KafkaEmbedded {
         result.all().get();
       } catch (final Exception e) {
         throw new RuntimeException("Failed to create topic:" + topic, e);
+      }
+    }
+  }
+
+  Set<String> getTopics() {
+    try (Admin adminClient = adminClient()) {
+
+      try {
+        return adminClient.listTopics().names().get();
+      } catch (final Exception e) {
+        throw new RuntimeException("Failed to get topic names", e);
+      }
+    }
+  }
+
+  void deleteTopics(final Collection<String> topics) {
+    try (Admin adminClient = adminClient()) {
+
+      try {
+        adminClient.deleteTopics(topics);
+      } catch (final Exception e) {
+        throw new RuntimeException("Failed to delete topics: " + topics, e);
       }
     }
   }
@@ -188,5 +209,13 @@ class KafkaEmbedded {
 
   private String zookeeperConnect() {
     return effectiveConfig.getProperty(KafkaConfig.ZkConnectProp());
+  }
+
+  private AdminClient adminClient() {
+    final ImmutableMap<String, Object> props = ImmutableMap.of(
+        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
+        AdminClientConfig.RETRIES_CONFIG, 5);
+
+    return AdminClient.create(props);
   }
 }

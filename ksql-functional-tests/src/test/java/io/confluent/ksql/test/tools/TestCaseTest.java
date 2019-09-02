@@ -102,7 +102,7 @@ public class TestCaseTest {
 
 
   @Test
-  @SuppressWarnings("unchecked")
+  @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
   public void shouldProcessInputRecords() {
     // Given:
     final TopologyTestDriverContainer topologyTestDriverContainer = TopologyTestDriverContainer.of(
@@ -120,8 +120,7 @@ public class TestCaseTest {
     assertThat(captor.getValue().topic(), equalTo(record.topic.getName()));
     assertThat(new String((byte[])captor.getValue().key(), StandardCharsets.UTF_8), equalTo("k1"));
     assertThat(new String((byte[])captor.getValue().value(), StandardCharsets.UTF_8), equalTo("v1, v2"));
-    assertThat(captor.getValue().timestamp(), equalTo(record.timestamp));
-
+    assertThat(captor.getValue().timestamp(), equalTo(record.timestamp.get()));
   }
 
   @Test

@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
@@ -30,7 +29,6 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,8 +46,7 @@ public class TestExecutor implements Closeable {
 
   private final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
-  public void buildAndExecuteQuery(final TestCase testCase)
-      throws IOException, RestClientException {
+  public void buildAndExecuteQuery(final TestCase testCase) {
 
     final KsqlConfig currentConfigs = new KsqlConfig(config);
 

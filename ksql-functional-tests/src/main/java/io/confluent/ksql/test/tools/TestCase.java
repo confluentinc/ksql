@@ -17,7 +17,6 @@ package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
 import com.google.common.collect.ImmutableMap;
@@ -41,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -53,7 +53,7 @@ import org.apache.kafka.streams.test.OutputVerifier;
 import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class TestCase implements Test {
+public class TestCase implements VersionedTest {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Path testPath;
@@ -161,6 +161,13 @@ public class TestCase implements Test {
     return ksqlVersion;
   }
 
+  public Map<Topic, List<Record>> getOutputRecordsByTopic() {
+    return outputRecords.stream()
+        .collect(Collectors.groupingBy(
+            Record::topic
+        ));
+  }
+
   @SuppressWarnings("unchecked")
   public void processInput(final TopologyTestDriverContainer topologyTestDriverContainer,
       final SchemaRegistryClient schemaRegistryClient) {
@@ -174,7 +181,11 @@ public class TestCase implements Test {
             new ConsumerRecordFactory<>(
                 record.keySerializer(),
                 record.topic.getValueSerializer(schemaRegistryClient)
-            ).create(record.topic.getName(), record.key(), record.value, record.timestamp)
+            ).create(
+                record.topic.getName(),
+                record.key(),
+                record.value,
+                record.timestamp().orElse(0L))
         );
       }
     }
@@ -186,7 +197,7 @@ public class TestCase implements Test {
       final SchemaRegistryClient schemaRegistryClient
   ) {
     if (isAnyExceptionExpected()) {
-      failDueToMissingException();
+      throw failDueToMissingExceptionError();
     }
 
     int idx = -1;
@@ -209,7 +220,7 @@ public class TestCase implements Test {
             record,
             expectedOutput.key(),
             expectedOutput.value,
-            expectedOutput.timestamp);
+            expectedOutput.timestamp().orElse(record.timestamp()));
       }
     } catch (final AssertionError e) {
       final String rowMsg = idx == -1 ? "" : " while processing output row " + idx;
@@ -284,10 +295,9 @@ public class TestCase implements Test {
     return !ksqlExpectedException.matchers.isEmpty();
   }
 
-  private void failDueToMissingException() {
-    final String expectation = StringDescription.toString(ksqlExpectedException.build());
-    final String message = "Expected test to throw" + expectation;
-    fail(message);
+  AssertionError failDueToMissingExceptionError() {
+    return new AssertionError("Expected test to throw"
+        + StringDescription.toString(ksqlExpectedException.build()));
   }
 
   public void handleException(final RuntimeException e) {
@@ -323,7 +333,7 @@ public class TestCase implements Test {
         recordTopic.getName(),
         key,
         fakeKafkaRecord.getTestRecord().value(),
-        fakeKafkaRecord.getTestRecord().timestamp
+        fakeKafkaRecord.getTestRecord().timestamp().orElse(0L)
     );
     testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
 
@@ -376,37 +386,36 @@ public class TestCase implements Test {
   }
 
   void verifyOutputTopics(
-      final FakeKafkaService fakeKafkaService) {
-    final Map<String, List<FakeKafkaRecord>> expectedOutput = getExpectedRecordsMap();
-    final Map<String, List<FakeKafkaRecord>> outputRecordsFromKafka = new HashMap<>();
-    expectedOutput.keySet().forEach(
-        kafkaTopicName -> outputRecordsFromKafka.put(
-            kafkaTopicName,
-            fakeKafkaService.readRecords(kafkaTopicName)
-        )
-    );
-    expectedOutput.keySet().forEach(kafkaTopic -> validateTopicData(
-        kafkaTopic,
-        expectedOutput.get(kafkaTopic),
-        outputRecordsFromKafka.get(kafkaTopic),
-        inputRecords.size() == 0
-    ));
+      final FakeKafkaService fakeKafkaService
+  ) {
+    final Map<String, List<Record>> expectedByTopic = outputRecords.stream()
+        .collect(Collectors.groupingBy(r -> r.topic().getName()));
+
+    final Map<String, List<FakeKafkaRecord>> actualByTopic = expectedByTopic.keySet().stream()
+        .collect(Collectors.toMap(Function.identity(), fakeKafkaService::readRecords));
+
+    expectedByTopic.forEach((kafkaTopic, expectedRecords) ->
+        validateTopicData(
+            expectedRecords,
+            actualByTopic.get(kafkaTopic),
+            inputRecords.size() == 0
+        ));
   }
 
   private static void validateTopicData(
-      final String topicName,
-      final List<FakeKafkaRecord> expected,
+      final List<Record> expected,
       final List<FakeKafkaRecord> actual,
       final boolean ranWithInsertStatements) {
     if (actual.size() != expected.size()) {
       throw new KsqlException("Expected <" + expected.size()
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
-    for (int i = 0; i < expected.size(); i++) {
-      final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
-      final ProducerRecord<?, ?> expectedProducerRecord = expected.get(i).getProducerRecord();
 
-      validateCreatedMessage(actualProducerRecord, expectedProducerRecord, ranWithInsertStatements);
+    for (int i = 0; i < expected.size(); i++) {
+      final Record expectedRecord = expected.get(i);
+      final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
+
+      validateCreatedMessage(expectedRecord, actualProducerRecord, ranWithInsertStatements);
     }
   }
 
@@ -421,23 +430,42 @@ public class TestCase implements Test {
   }
 
   private static void validateCreatedMessage(
+      final Record expectedRecord,
       final ProducerRecord<?,?> actualProducerRecord,
-      final ProducerRecord<?,?> expectedProducerRecord,
       final boolean ranWithInsertStatements
   ) {
-    final boolean bothValuesNull = (actualProducerRecord.value() == null
-        && expectedProducerRecord.value() == null);
-    final boolean validTimestamps =
-            (ranWithInsertStatements && expectedProducerRecord.timestamp() == 0)
-            || actualProducerRecord.timestamp().equals(expectedProducerRecord.timestamp());
-    if (
-            !validTimestamps
-            || !actualProducerRecord.key().equals(expectedProducerRecord.key())
-            || (!bothValuesNull
-            && !actualProducerRecord.value().equals(expectedProducerRecord.value()))) {
-      throw new KsqlException(
-          "Expected " + getProducerRecordInString(expectedProducerRecord)
-              + " but was " + getProducerRecordInString(actualProducerRecord));
+    final Object actualKey = actualProducerRecord.key();
+    final Object actualValue = actualProducerRecord.value();
+    final long actualTimestamp = actualProducerRecord.timestamp();
+
+    final Object expectedKey = expectedRecord.key();
+    final Object expectedValue = expectedRecord.value();
+    final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
+
+    final AssertionError error = new AssertionError(
+        "Expected <" + expectedKey + ", " + expectedValue + "> "
+            + "with timestamp=" + expectedTimestamp
+            + " but was " + getProducerRecordInString(actualProducerRecord));
+
+    if (actualKey != null) {
+      if (!actualKey.equals(expectedKey)) {
+        throw error;
+      }
+    } else if (expectedKey != null) {
+      throw error;
+    }
+
+    if (actualValue != null) {
+      if (!actualValue.equals(expectedValue)) {
+        throw error;
+      }
+    } else if (expectedValue != null) {
+      throw error;
+    }
+
+    if ((actualTimestamp != expectedTimestamp)
+        && (!ranWithInsertStatements || expectedTimestamp != 0L)) {
+      throw error;
     }
   }
 
@@ -458,7 +486,7 @@ public class TestCase implements Test {
               FakeKafkaRecord.of(record, new ProducerRecord<>(
                   record.topic.getName(),
                   null,
-                  record.timestamp(),
+                  record.timestamp().get(),
                   record.key(),
                   record.value()
               )));

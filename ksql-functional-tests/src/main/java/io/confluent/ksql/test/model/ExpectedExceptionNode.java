@@ -25,7 +25,7 @@ import io.confluent.ksql.util.KsqlExceptionMatcher;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 
-final class ExpectedExceptionNode {
+public final class ExpectedExceptionNode {
 
   private final Optional<String> type;
   private final Optional<String> message;

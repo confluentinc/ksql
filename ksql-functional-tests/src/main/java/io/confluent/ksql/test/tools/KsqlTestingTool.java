@@ -16,7 +16,6 @@
 package io.confluent.ksql.test.tools;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
@@ -122,9 +121,8 @@ public final class KsqlTestingTool {
         true
     );
 
-    final TestCase testCase = testCaseNode.buildTests(
-        new File(statementFile).toPath(),
-        TestFunctionRegistry.INSTANCE.get())
+    final TestCase testCase = new TestCaseBuilder()
+        .buildTests(testCaseNode, new File(statementFile).toPath())
         .get(0);
 
     executeTestCase(

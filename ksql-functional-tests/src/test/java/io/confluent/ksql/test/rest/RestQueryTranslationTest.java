@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -30,6 +29,7 @@ import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.RestTestExecutor;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestCaseBuilder;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -133,6 +133,7 @@ public class RestQueryTranslationTest {
   static class RqttTestFile implements TestFile<TestCase> {
 
     private final List<TestCaseNode> tests;
+    private final TestCaseBuilder builder = new TestCaseBuilder();
 
     RqttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
@@ -146,7 +147,7 @@ public class RestQueryTranslationTest {
     public Stream<TestCase> buildTests(final Path testPath) {
       return tests
           .stream()
-          .flatMap(node -> node.buildTests(testPath, TestFunctionRegistry.INSTANCE.get()).stream());
+          .flatMap(node -> builder.buildTests(node, testPath).stream());
     }
   }
 }

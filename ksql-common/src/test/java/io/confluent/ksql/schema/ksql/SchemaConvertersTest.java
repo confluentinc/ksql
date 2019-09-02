@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -31,6 +33,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -174,6 +178,26 @@ public class SchemaConvertersTest {
   public void shouldGetSqlTypeForAllJavaTypes() {
     SQL_TO_JAVA.inverse().forEach((java, sqlType) -> {
       assertThat(SchemaConverters.javaToSqlConverter().toSqlType(java), is(sqlType));
+    });
+  }
+
+  @Test
+  public void shouldGetSqArrayForImplementationsOfJavaList() {
+    ImmutableList.<Class<?>>of(
+        ArrayList.class,
+        ImmutableList.class
+    ).forEach(javaType -> {
+      assertThat(SchemaConverters.javaToSqlConverter().toSqlType(javaType), is(SqlBaseType.ARRAY));
+    });
+  }
+
+  @Test
+  public void shouldGetSqlMapForImplementationsOfJavaMap() {
+    ImmutableList.<Class<?>>of(
+        HashMap.class,
+        ImmutableMap.class
+    ).forEach(javaType -> {
+      assertThat(SchemaConverters.javaToSqlConverter().toSqlType(javaType), is(SqlBaseType.MAP));
     });
   }
 

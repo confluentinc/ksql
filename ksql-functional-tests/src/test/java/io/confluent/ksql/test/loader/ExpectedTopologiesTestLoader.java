@@ -51,7 +51,7 @@ import org.apache.commons.lang3.StringUtils;
  * Loads the expected topology files for each test and creates a new test for each expected version
  * and sets the expected topology of the test.
  */
-public class ExpectedTopologiesTestLoader<T extends VersionedTest> {
+public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements TestLoader<T> {
 
   public static final String TOPOLOGY_VERSION_FILE = "__version";
   public static final String CONFIG_END_MARKER = "CONFIGS_END";

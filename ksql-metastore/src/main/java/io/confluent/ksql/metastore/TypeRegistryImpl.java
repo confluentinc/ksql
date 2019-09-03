@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
-class TypeRegistryImpl implements TypeRegistry {
+public class TypeRegistryImpl implements TypeRegistry {
 
   private final Map<String, SqlType> typeRegistry = new ConcurrentHashMap<>();
 

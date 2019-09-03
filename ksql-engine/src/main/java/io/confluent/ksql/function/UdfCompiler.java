@@ -21,6 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -154,13 +155,15 @@ public class UdfCompiler {
       final Schema argSchema = paramSchema.isEmpty()
           ? UdfUtil.getSchemaFromType(valueAndAggregateTypes.left)
           : SchemaConverters.sqlToConnectConverter()
-              .toConnectSchema(TypeContextUtil.getType(paramSchema).getSqlType());
+              .toConnectSchema(
+                  TypeContextUtil.getType(paramSchema, TypeRegistry.EMPTY).getSqlType());
       final List<Schema> args = Collections.singletonList(argSchema);
 
       final Schema returnValue = returnSchema.isEmpty()
           ? SchemaUtil.ensureOptional(UdfUtil.getSchemaFromType(valueAndAggregateTypes.right))
           : SchemaConverters.sqlToConnectConverter()
-              .toConnectSchema(TypeContextUtil.getType(returnSchema).getSqlType());
+              .toConnectSchema(
+                  TypeContextUtil.getType(returnSchema, TypeRegistry.EMPTY).getSqlType());
 
       return evaluator.apply(args, returnValue, metrics);
     } catch (final Exception e) {

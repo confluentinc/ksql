@@ -122,8 +122,6 @@ public class SchemaConvertersTest {
     final Set<SqlBaseType> tested = SQL_TO_LOGICAL.keySet().stream()
         .map(SqlType::baseType)
         .collect(Collectors.toSet());
-    // we cannot resolve unknown types in the converters
-    tested.add(SqlBaseType.CUSTOM);
 
     final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
 
@@ -151,8 +149,6 @@ public class SchemaConvertersTest {
   @Test
   public void shouldHaveJavaTestsForAllSqlTypes() {
     final Set<SqlBaseType> tested = new HashSet<>(SQL_TO_JAVA.keySet());
-    // we cannot resolve unknown types in the converters
-    tested.add(SqlBaseType.CUSTOM);
 
     final ImmutableSet<SqlBaseType> allTypes = ImmutableSet.copyOf(SqlBaseType.values());
 

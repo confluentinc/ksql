@@ -914,7 +914,7 @@ public class AstBuilder {
       return new Cast(
           getLocation(context),
           (Expression) visit(context.expression()),
-          getType(context.type())
+          getType(context.type(), metaStore)
       );
     }
 
@@ -1057,7 +1057,7 @@ public class AstBuilder {
           getLocation(context),
           context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
           ParserUtil.getIdentifierText(context.identifier()),
-          getType(context.type())
+          getType(context.type(), metaStore)
       );
     }
 
@@ -1156,7 +1156,7 @@ public class AstBuilder {
       return new RegisterType(
           getLocation(context),
           ParserUtil.getIdentifierText(context.identifier()),
-          getType(context.type())
+          getType(context.type(), metaStore)
       );
     }
 

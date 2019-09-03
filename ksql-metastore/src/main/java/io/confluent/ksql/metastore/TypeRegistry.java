@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.metastore;
 
+import com.google.common.collect.Iterators;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Iterator;
 import java.util.Objects;
@@ -71,5 +72,28 @@ public interface TypeRegistry {
       return type;
     }
   }
+
+  /**
+   * An empty type registry that does not support registering or deleting types.
+   */
+  TypeRegistry EMPTY = new TypeRegistry() {
+    @Override
+    public void registerType(final String name, final SqlType type) { }
+
+    @Override
+    public boolean deleteType(final String name) {
+      return false;
+    }
+
+    @Override
+    public Optional<SqlType> resolveType(final String name) {
+      return Optional.empty();
+    }
+
+    @Override
+    public Iterator<CustomType> types() {
+      return Iterators.forArray();
+    }
+  };
 
 }

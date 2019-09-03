@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql.inference;
 
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SchemaParser;
 import io.confluent.ksql.parser.SqlFormatter;
@@ -139,7 +140,8 @@ public class DefaultSchemaInjector implements Injector {
   ) {
     try {
       throwOnInvalidSchema(schema);
-      return SchemaParser.parse(FORMATTER.format(schema));
+      // custom types cannot be injected, so we can pass in an EMPTY type registry
+      return SchemaParser.parse(FORMATTER.format(schema), TypeRegistry.EMPTY);
     } catch (final Exception e) {
       throw new KsqlStatementException(
           "Failed to convert schema to KSQL model: " + e.getMessage(),

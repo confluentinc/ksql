@@ -19,6 +19,7 @@ import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -116,7 +117,7 @@ class SourceNode {
 
   private static Optional<Schema> parseSchema(final String schema) {
     return Optional.ofNullable(schema)
-        .map(TypeContextUtil::getType)
+        .map(schemaString -> TypeContextUtil.getType(schemaString, TypeRegistry.EMPTY))
         .map(Type::getSqlType)
         .map(SchemaConverters.sqlToConnectConverter()::toConnectSchema)
         .map(SourceNode::makeTopLevelStructNoneOptional);

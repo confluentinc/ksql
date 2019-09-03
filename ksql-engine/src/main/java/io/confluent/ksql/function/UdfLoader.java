@@ -405,8 +405,9 @@ public class UdfLoader {
     final Object instance = instantiateUdfClass(theClass, annotation);
 
     return parameterSchemas -> {
-      final List<SqlType> parameterTypes = parameterSchemas.stream().map(p -> SchemaConverters
-          .connectToSqlConverter().toSqlType(p)).collect(Collectors.toList());
+      final List<SqlType> parameterTypes = parameterSchemas.stream()
+          .map(p -> SchemaConverters.connectToSqlConverter().toSqlType(p))
+          .collect(Collectors.toList());
       return SchemaConverters.sqlToConnectConverter().toConnectSchema(invokeSchemaProviderMethod(
           instance, m, parameterTypes, annotation));
     };

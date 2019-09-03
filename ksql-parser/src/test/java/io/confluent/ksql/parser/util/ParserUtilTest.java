@@ -49,16 +49,6 @@ public class ParserUtilTest {
   }
 
   @Test
-  public void shouldEscapeStringIfLiteral() {
-    assertThat(ParserUtil.escapeIfReservedIdentifier("END"), equalTo("`END`"));
-  }
-
-  @Test
-  public void shouldNotEscapeStringIfNotLiteral() {
-    assertThat(ParserUtil.escapeIfReservedIdentifier("NOT_A_LITERAL"), equalTo("NOT_A_LITERAL"));
-  }
-
-  @Test
   public void shouldThrowWhenParsingDecimalIfNaN() {
     // Given:
     when(decimalLiteralContext.getText()).thenReturn("NaN");
@@ -95,17 +85,6 @@ public class ParserUtilTest {
 
     // When:
     ParserUtil.parseDecimalLiteral(decimalLiteralContext);
-  }
-
-  @Test
-  public void shouldHaveReservedLiteralInReservedSet() {
-    assertThat(ParserUtil.isReservedIdentifier("FROM"), is(true));
-  }
-
-  @Test
-  public void shouldExcludeNonReservedLiteralsFromReservedSet() {
-    // i.e. those in the "nonReserved" rule in SqlBase.g4
-    assertThat(ParserUtil.isReservedIdentifier("SHOW"), is(false));
   }
 
   private static void mockLocation(final ParserRuleContext ctx, final int line, final int col) {

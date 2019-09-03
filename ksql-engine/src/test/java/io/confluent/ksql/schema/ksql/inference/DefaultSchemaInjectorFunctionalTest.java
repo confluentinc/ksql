@@ -33,8 +33,8 @@ import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.ParserUtil;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
@@ -50,7 +50,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorFunctionalTest {
 
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier);
+      new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

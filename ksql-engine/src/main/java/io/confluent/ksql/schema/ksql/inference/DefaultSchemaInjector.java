@@ -31,8 +31,8 @@ import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlStatementException;
-import io.confluent.ksql.util.ParserUtil;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -52,7 +52,7 @@ import org.apache.kafka.connect.data.Schema;
 public class DefaultSchemaInjector implements Injector {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(
-      ParserUtil::isReservedIdentifier, Option.AS_COLUMN_LIST);
+      IdentifierUtil::needsQuotes, Option.AS_COLUMN_LIST);
 
   private final TopicSchemaSupplier schemaSupplier;
 

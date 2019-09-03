@@ -13,15 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools;
+package io.confluent.ksql.test.rest;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.test.model.PostConditionsNode;
-import io.confluent.ksql.test.model.TestCaseNode;
-import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
+import io.confluent.ksql.test.tools.Topic;
+import io.confluent.rest.entities.ErrorMessage;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +32,13 @@ import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 
 /**
- * Builds {@link TestCase}s from {@link TestCaseNode}.
+ * Builds {@link RestTestCase}s from {@link RestTestCaseNode}.
  */
-public final class TestCaseBuilder {
+final class RestTestCaseBuilder {
 
   private final FunctionRegistry functionRegistry = TestFunctionRegistry.INSTANCE.get();
 
-  public List<TestCase> buildTests(final TestCaseNode test, final Path testPath) {
+  List<RestTestCase> buildTests(final RestTestCaseNode test, final Path testPath) {
     if (!test.isEnabled()) {
       return ImmutableList.of();
     }
@@ -55,8 +56,8 @@ public final class TestCaseBuilder {
     }
   }
 
-  private TestCase createTest(
-      final TestCaseNode test,
+  private RestTestCase createTest(
+      final RestTestCaseNode test,
       final Optional<String> explicitFormat,
       final Path testPath
   ) {
@@ -72,7 +73,7 @@ public final class TestCaseBuilder {
           explicitFormat
       );
 
-      final Optional<Matcher<Throwable>> ee = test.expectedException()
+      final Optional<Matcher<ErrorMessage>> ee = test.expectedError()
           .map(een -> een.build(Iterables.getLast(statements)));
 
       final Map<String, Topic> topics = TestCaseBuilderUtil.getTopicsByName(
@@ -93,24 +94,21 @@ public final class TestCaseBuilder {
           .map(node -> node.build(topics))
           .collect(Collectors.toList());
 
-      final PostConditions post = test.postConditions()
-          .map(PostConditionsNode::build)
-          .orElse(PostConditions.NONE);
-
-      return new TestCase(
+      return new RestTestCase(
           testPath,
           testName,
-          Optional.empty(),
-          test.properties(),
           topics.values(),
           inputRecords,
           outputRecords,
           statements,
-          ee,
-          post
+          test.getResponses(),
+          ee
       );
     } catch (final Exception e) {
       throw new AssertionError(testName + ": Invalid test. " + e.getMessage(), e);
     }
   }
 }
+
+
+

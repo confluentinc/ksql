@@ -81,7 +81,7 @@ public class ClusterTerminationTest {
             + " AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
     );
 
-    TEST_HARNESS.waitForTopicsToBePresent(SINK_TOPIC);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBePresent(SINK_TOPIC);
 
     // Produce to stream so that schema is registered by AvroConverter
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, PAGE_VIEW_DATA_PROVIDER, JSON, System::currentTimeMillis);
@@ -92,7 +92,7 @@ public class ClusterTerminationTest {
     terminateCluster(ImmutableList.of(SINK_TOPIC));
 
     // Then:
-    TEST_HARNESS.waitForTopicsToBeAbsent(SINK_TOPIC);
+    TEST_HARNESS.getKafkaCluster().waitForTopicsToBeAbsent(SINK_TOPIC);
 
     TEST_HARNESS.waitForSubjectToBeAbsent(SINK_TOPIC + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
 

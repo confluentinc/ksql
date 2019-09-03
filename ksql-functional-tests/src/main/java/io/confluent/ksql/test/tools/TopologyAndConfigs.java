@@ -21,9 +21,9 @@ import java.util.Optional;
 
 public class TopologyAndConfigs {
 
-  final String topology;
-  final Optional<String> schemas;
-  final Optional<Map<String, String>> configs;
+  private final String topology;
+  private final Optional<String> schemas;
+  private Optional<Map<String, String>> configs;
 
   public TopologyAndConfigs(
       final String topology,
@@ -34,4 +34,16 @@ public class TopologyAndConfigs {
     this.schemas = Objects.requireNonNull(schemas, "schemas");
     this.configs = Objects.requireNonNull(configs, "configs");
   }
-} 
+
+  public String getTopology() {
+    return topology;
+  }
+
+  public Optional<String> getSchemas() {
+    return schemas;
+  }
+
+  public Optional<Map<String, String>> getConfigs() {
+    return configs;
+  }
+}

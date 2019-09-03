@@ -35,6 +35,7 @@ import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.tools.FakeKafkaService;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -124,7 +125,7 @@ public final class TopologyFileGenerator {
 
     private static List<TestCase> getTestCases() {
         return QueryTranslationTest.findTestCases()
-            .filter(q -> !q.isAnyExceptionExpected())
+            .filter(q -> !q.expectedException().isPresent())
             .collect(Collectors.toList());
     }
 
@@ -162,7 +163,7 @@ public final class TopologyFileGenerator {
                 configsToPersist.remove("ksql.streams.state.dir");
 
                 ExpectedTopologiesTestLoader.writeExpectedTopologyFile(
-                    testCase.name,
+                    testCase.getName(),
                     queryMetadata,
                     configsToPersist,
                     objectWriter,
@@ -202,21 +203,8 @@ public final class TopologyFileGenerator {
         final KsqlEngine ksqlEngine,
         final KsqlConfig ksqlConfig
     ) {
-        testCase.initializeTopics(
-            serviceContext.getTopicClient(),
-            fakeKafkaService,
-            serviceContext.getSchemaRegistryClient());
-
-        final String sql = testCase.statements().stream()
-            .collect(Collectors.joining(System.lineSeparator()));
-
-        final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
-            ksqlEngine,
-            sql,
-            ksqlConfig,
-            new HashMap<>(),
-            Optional.of(serviceContext.getSchemaRegistryClient())
-        );
+        final List<PersistentQueryMetadata> queries = TestExecutorUtil
+            .buildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, fakeKafkaService);
 
         final MetaStore metaStore = ksqlEngine.getMetaStore();
         for (QueryMetadata queryMetadata: queries) {
@@ -250,6 +238,6 @@ public final class TopologyFileGenerator {
         }
 
         assertThat("test did not generate any queries.", queries.isEmpty(), is(false));
-        return (PersistentQueryMetadata) queries.get(queries.size() - 1);
+        return queries.get(queries.size() - 1);
     }
 }

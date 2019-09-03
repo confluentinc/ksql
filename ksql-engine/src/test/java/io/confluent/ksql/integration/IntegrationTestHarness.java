@@ -478,26 +478,6 @@ public final class IntegrationTestHarness extends ExternalResource {
   }
 
   /**
-   * Wait for topics with names {@code topicNames} to not exist in Kafka.
-   *
-   * @param topicNames the names of the topics to await absence for.
-   */
-  public void waitForTopicsToBeAbsent(final String... topicNames) throws Exception {
-    TestUtils.waitForCondition(
-        () -> {
-          try {
-            final KafkaTopicClient topicClient = serviceContext.get().getTopicClient();
-            return Arrays.stream(topicNames)
-                .noneMatch(topicClient::isTopicExists);
-          } catch (Exception e) {
-            throw new RuntimeException("could not get subjects");
-          }
-        },
-        30_000,
-        "topics not all absent after 30 seconds. topics: " + Arrays.toString(topicNames));
-  }
-
-  /**
    * Wait for a subject with name {@code subjectName} to exist in Schema Registry.
    *
    * @param subjectName the name of the subject to await existence for.

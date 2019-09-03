@@ -297,6 +297,26 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   }
 
   /**
+   * Await the supplied {@code topicNames} to exist in the Cluster.
+   *
+   * @param topicNames the names of the topics
+   * @throws AssertionError on timeout
+   */
+  public void waitForTopicsToBePresent(final String... topicNames) {
+    broker.waitForTopicsToBePresent(topicNames);
+  }
+
+  /**
+   * Await the supplied {@code topicNames} to not exist in the Cluster.
+   *
+   * @param topicNames the names of the topics
+   * @throws AssertionError on timeout
+   */
+  public void waitForTopicsToBeAbsent(final String... topicNames) {
+    broker.waitForTopicsToBeAbsent(topicNames);
+  }
+
+  /**
    * Verify there are {@code expectedCount} records available on the supplied {@code topic}.
    *
    * @param topic the name of the topic to check.

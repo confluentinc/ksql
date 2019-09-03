@@ -26,10 +26,6 @@ import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
-import io.confluent.ksql.test.model.TestCaseNode;
-import io.confluent.ksql.test.tools.RestTestExecutor;
-import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.TestCaseBuilder;
 import io.confluent.ksql.util.KsqlConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -90,14 +86,14 @@ public class RestQueryTranslationTest {
         .collect(Collectors.toCollection(ArrayList::new));
   }
 
-  private final TestCase testCase;
+  private final RestTestCase testCase;
 
   /**
    * @param name - unused. Is just so the tests get named.
    * @param testCase - testCase to run.
    */
   @SuppressWarnings("unused")
-  public RestQueryTranslationTest(final String name, final TestCase testCase) {
+  public RestQueryTranslationTest(final String name, final RestTestCase testCase) {
     this.testCase = requireNonNull(testCase, "testCase");
   }
 
@@ -112,12 +108,14 @@ public class RestQueryTranslationTest {
   public void shouldBuildAndExecuteQueries() {
     try (RestTestExecutor testExecutor = textExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
-    } catch (final RuntimeException e) {
-      testCase.handleException(e);
     } catch (final AssertionError e) {
-      throw new AssertionError("test: " + testCase.getName() + System.lineSeparator()
-          + "file: " + testCase.getTestFile()
-          + "Failed with error:" + e.getMessage(), e);
+      throw new AssertionError(e.getMessage()
+          + System.lineSeparator()
+          + "failed test: " + testCase.getName()
+          + System.lineSeparator()
+          + "in file: " + testCase.getTestFile(),
+          e
+      );
     }
   }
 
@@ -125,17 +123,17 @@ public class RestQueryTranslationTest {
     return new RestTestExecutor(
         REST_APP.getListeners().get(0),
         TEST_HARNESS.getKafkaCluster(),
-        TEST_HARNESS.getSchemaRegistryClient()
+        TEST_HARNESS.getServiceContext()
     );
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  static class RqttTestFile implements TestFile<TestCase> {
+  static class RqttTestFile implements TestFile<RestTestCase> {
 
-    private final List<TestCaseNode> tests;
-    private final TestCaseBuilder builder = new TestCaseBuilder();
+    private final List<RestTestCaseNode> tests;
+    private final RestTestCaseBuilder builder = new RestTestCaseBuilder();
 
-    RqttTestFile(@JsonProperty("tests") final List<TestCaseNode> tests) {
+    RqttTestFile(@JsonProperty("tests") final List<RestTestCaseNode> tests) {
       this.tests = ImmutableList.copyOf(requireNonNull(tests, "tests collection missing"));
 
       if (tests.isEmpty()) {
@@ -144,7 +142,7 @@ public class RestQueryTranslationTest {
     }
 
     @Override
-    public Stream<TestCase> buildTests(final Path testPath) {
+    public Stream<RestTestCase> buildTests(final Path testPath) {
       return tests
           .stream()
           .flatMap(node -> builder.buildTests(node, testPath).stream());

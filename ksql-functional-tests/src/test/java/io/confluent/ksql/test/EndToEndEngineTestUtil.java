@@ -31,22 +31,23 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
 
-public final class EndToEndEngineTestUtil {
+final class EndToEndEngineTestUtil {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private EndToEndEngineTestUtil(){}
 
-  public static void shouldBuildAndExecuteQuery(final TestCase testCase) {
-
+  static void shouldBuildAndExecuteQuery(final TestCase testCase) {
     try (final TestExecutor testExecutor = new TestExecutor()) {
       testExecutor.buildAndExecuteQuery(testCase);
-    } catch (final RuntimeException e) {
-      testCase.handleException(e);
     } catch (final AssertionError e) {
-      throw new AssertionError("test: " + testCase.getName() + System.lineSeparator()
-          + "file: " + testCase.getTestFile()
-          + "Failed with error:" + e.getMessage(), e);
+      throw new AssertionError(e.getMessage()
+          + System.lineSeparator()
+          + "failed test: " + testCase.getName()
+          + System.lineSeparator()
+          + "in file: " + testCase.getTestFile(),
+          e
+      );
     }
   }
 

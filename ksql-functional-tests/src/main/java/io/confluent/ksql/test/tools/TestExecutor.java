@@ -15,6 +15,12 @@
 
 package io.confluent.ksql.test.tools;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.matchers.JUnitMatchers.isThrowable;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.common.utils.TestUtils;
@@ -27,24 +33,70 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
+import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
+import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.serialization.BytesDeserializer;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.kafka.streams.TopologyTestDriver;
+import org.apache.kafka.streams.test.ConsumerRecordFactory;
+import org.hamcrest.Matcher;
+import org.hamcrest.StringDescription;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class TestExecutor implements Closeable {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final ServiceContext serviceContext = getServiceContext();
-  private final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
+  private final ServiceContext serviceContext;
+  private final KsqlEngine ksqlEngine;
   private final Map<String, Object> config = getConfigs(new HashMap<>());
+  private final FakeKafkaService fakeKafkaService;
+  private final TopologyBuilder topologyBuilder;
 
-  private final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
+  public TestExecutor() {
+    this(FakeKafkaService.create(), getServiceContext());
+  }
+
+  @VisibleForTesting
+  TestExecutor(
+      final FakeKafkaService fakeKafkaService,
+      final ServiceContext serviceContext,
+      final KsqlEngine ksqlEngine,
+      final TopologyBuilder topologyBuilder
+  ) {
+    this.fakeKafkaService = Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.topologyBuilder = Objects.requireNonNull(topologyBuilder, "topologyBuilder");
+  }
+
+  private TestExecutor(
+      final FakeKafkaService fakeKafkaService,
+      final ServiceContext serviceContext
+  ) {
+    this(
+        fakeKafkaService,
+        serviceContext,
+        getKsqlEngine(serviceContext),
+        TestExecutorUtil::buildStreamsTopologyTestDrivers
+    );
+  }
 
   public void buildAndExecuteQuery(final TestCase testCase) {
 
@@ -56,14 +108,18 @@ public class TestExecutor implements Closeable {
         currentConfigs.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
     try {
-      final List<TopologyTestDriverContainer> topologyTestDrivers =
-          TestExecutorUtil.buildStreamsTopologyTestDrivers(
+      final List<TopologyTestDriverContainer> topologyTestDrivers = topologyBuilder
+          .buildStreamsTopologyTestDrivers(
               testCase,
               serviceContext,
               ksqlEngine,
               ksqlConfig,
               fakeKafkaService
-      );
+          );
+
+      testCase.expectedException().map(ee -> {
+        throw new AssertionError("Expected test to throw" + StringDescription.toString(ee));
+      });
 
       writeInputIntoTopics(testCase.getInputRecords(), fakeKafkaService);
       final Set<String> inputTopics = testCase.getInputRecords()
@@ -72,7 +128,7 @@ public class TestExecutor implements Closeable {
           .collect(Collectors.toSet());
 
       for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
-        testCase.verifyTopology();
+        verifyTopology(testCase);
 
         final Set<Topic> topicsFromInput = topologyTestDriverContainer.getSourceTopics()
             .stream()
@@ -98,16 +154,105 @@ public class TestExecutor implements Closeable {
               serviceContext);
         }
       }
-      testCase.verifyOutputTopics(fakeKafkaService);
-      testCase.verifyMetastore(ksqlEngine.getMetaStore());
+      verifyOutput(testCase);
+      testCase.getPostConditions().verify(ksqlEngine.getMetaStore());
     } catch (final RuntimeException e) {
-      testCase.handleException(e);
+      final Optional<Matcher<Throwable>> expectedExceptionMatcher = testCase.expectedException();
+      if (!expectedExceptionMatcher.isPresent()) {
+        throw e;
+      }
+
+      assertThat(e, isThrowable(expectedExceptionMatcher.get()));
     }
   }
 
   public void close() {
     serviceContext.close();
     ksqlEngine.close();
+  }
+
+  private void verifyOutput(final TestCase testCase) {
+    final boolean ranWithInsertStatements = testCase.getInputRecords().size() == 0;
+
+    final Map<String, List<Record>> expectedByTopic = testCase.getOutputRecords().stream()
+        .collect(Collectors.groupingBy(r -> r.topic().getName()));
+
+    final Map<String, List<FakeKafkaRecord>> actualByTopic = expectedByTopic.keySet().stream()
+        .collect(Collectors.toMap(Function.identity(), fakeKafkaService::readRecords));
+
+    expectedByTopic.forEach((kafkaTopic, expectedRecords) ->
+        validateTopicData(
+            expectedRecords,
+            actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
+            ranWithInsertStatements
+        ));
+  }
+
+  private static void throwIfMoreOutputAvailable(
+      final TopologyTestDriver driver,
+      final TestCase testCase
+  ) {
+    testCase.getTopics().forEach(topic -> {
+      final ProducerRecord<Bytes, Bytes> record = driver.readOutput(
+          topic.getName(),
+          new BytesDeserializer(),
+          new BytesDeserializer());
+
+      if (record != null) {
+        throw new AssertionError("Unexpected records available on topic: " + topic.getName());
+      }
+    });
+  }
+
+  private static void validateTopicData(
+      final List<Record> expected,
+      final List<FakeKafkaRecord> actual,
+      final boolean ranWithInsertStatements
+  ) {
+    if (actual.size() != expected.size()) {
+      throw new KsqlException("Expected <" + expected.size()
+          + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
+    }
+
+    for (int i = 0; i < expected.size(); i++) {
+      final Record expectedRecord = expected.get(i);
+      final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
+
+      validateCreatedMessage(expectedRecord, actualProducerRecord, ranWithInsertStatements);
+    }
+  }
+
+  private static String getActualsForErrorMessage(final List<FakeKafkaRecord> actual) {
+    final StringBuilder stringBuilder = new StringBuilder("Actual records: \n");
+    for (final FakeKafkaRecord fakeKafkaRecord : actual) {
+      final ProducerRecord<?, ?> producerRecord = fakeKafkaRecord.getProducerRecord();
+      stringBuilder.append(getProducerRecordInString(producerRecord))
+          .append(" \n");
+    }
+    return stringBuilder.toString();
+  }
+
+  private static String getProducerRecordInString(final ProducerRecord<?, ?> producerRecord) {
+    return "<" + producerRecord.key() + ", "
+        + producerRecord.value() + "> with timestamp="
+        + producerRecord.timestamp();
+  }
+
+  private static void verifyTopology(final TestCase testCase) {
+    testCase.getExpectedTopology().ifPresent(expected -> {
+      final String expectedTopology = expected.getTopology();
+      final String actualTopology = testCase.getGeneratedTopologies().get(0);
+      assertThat("Generated topology differs from that built by previous versions of KSQL"
+              + " - this likely means there is a non-backwards compatible change.\n"
+              + "THIS IS BAD!",
+          actualTopology, is(expectedTopology));
+
+      expected.getSchemas().ifPresent(schemas -> assertThat("Schemas used by topology differ "
+              + "from those used by previous versions"
+              + " of KSQL - this likely means there is a non-backwards compatible change.\n"
+              + "THIS IS BAD!",
+          testCase.getGeneratedSchemas().get(0), is(schemas)));
+    });
   }
 
   private static void pipeRecordsFromProvidedInput(
@@ -119,7 +264,8 @@ public class TestExecutor implements Closeable {
 
     for (final Record record : testCase.getInputRecords()) {
       if (topologyTestDriverContainer.getSourceTopicNames().contains(record.topic.getName())) {
-        testCase.processSingleRecord(
+        processSingleRecord(
+            testCase,
             FakeKafkaRecord.of(record, null),
             fakeKafkaService,
             topologyTestDriverContainer,
@@ -137,9 +283,9 @@ public class TestExecutor implements Closeable {
       final TopologyTestDriverContainer topologyTestDriverContainer,
       final ServiceContext serviceContext
   ) {
-    for (final FakeKafkaRecord fakeKafkaRecord : fakeKafkaService
-        .readRecords(kafkaTopicName)) {
-      testCase.processSingleRecord(
+    for (final FakeKafkaRecord fakeKafkaRecord : fakeKafkaService.readRecords(kafkaTopicName)) {
+      processSingleRecord(
+          testCase,
           fakeKafkaRecord,
           fakeKafkaService,
           topologyTestDriverContainer,
@@ -147,6 +293,101 @@ public class TestExecutor implements Closeable {
           Collections.emptySet()
       );
     }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void processSingleRecord(
+      final TestCase testCase,
+      final FakeKafkaRecord inputRecord,
+      final FakeKafkaService fakeKafkaService,
+      final TopologyTestDriverContainer testDriver,
+      final SchemaRegistryClient schemaRegistryClient,
+      final Set<Topic> possibleSinkTopics
+  ) {
+    final Topic recordTopic = fakeKafkaService
+        .getTopic(inputRecord.getTestRecord().topic.getName());
+    final Serializer<Object> keySerializer = recordTopic.getKeySerializer(schemaRegistryClient);
+
+    final Serializer<Object> valueSerializer =
+        recordTopic.getValueSerdeSupplier() instanceof AvroSerdeSupplier
+            ? new ValueSpecAvroSerdeSupplier().getSerializer(schemaRegistryClient)
+            : recordTopic.getValueSerializer(schemaRegistryClient);
+
+    final Object key = getKey(inputRecord);
+    final ConsumerRecord<byte[], byte[]> consumerRecord = new ConsumerRecordFactory<>(
+        keySerializer,
+        valueSerializer
+    ).create(
+        recordTopic.getName(),
+        key,
+        inputRecord.getTestRecord().value(),
+        inputRecord.getTestRecord().timestamp().orElse(0L)
+    );
+    testDriver.getTopologyTestDriver().pipeInput(consumerRecord);
+
+    final Topic sinkTopic = testDriver.getSinkTopic();
+
+    processRecordsForTopic(
+        testCase,
+        testDriver.getTopologyTestDriver(),
+        sinkTopic,
+        fakeKafkaService,
+        schemaRegistryClient
+    );
+
+    for (final Topic possibleSinkTopic : possibleSinkTopics) {
+      if (possibleSinkTopic.getName().equals(sinkTopic.getName())) {
+        continue;
+      }
+      processRecordsForTopic(
+          testCase,
+          testDriver.getTopologyTestDriver(),
+          possibleSinkTopic,
+          fakeKafkaService,
+          schemaRegistryClient
+      );
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private static void processRecordsForTopic(
+      final TestCase testCase,
+      final TopologyTestDriver topologyTestDriver,
+      final Topic sinkTopic,
+      final FakeKafkaService fakeKafkaService,
+      final SchemaRegistryClient schemaRegistryClient
+  ) {
+    final boolean legacySessionWindow = isLegacySessionWindow(testCase.properties());
+
+    while (true) {
+      final ProducerRecord<?, ?> producerRecord = topologyTestDriver.readOutput(
+          sinkTopic.getName(),
+          sinkTopic.getKeyDeserializer(schemaRegistryClient,
+              legacySessionWindow),
+          sinkTopic.getValueDeserializer(schemaRegistryClient)
+      );
+      if (producerRecord == null) {
+        break;
+      }
+
+      fakeKafkaService.writeRecord(
+          sinkTopic.getName(),
+          FakeKafkaRecord.of(
+              sinkTopic,
+              producerRecord)
+      );
+    }
+  }
+
+  private static boolean isLegacySessionWindow(final Map<String, Object> properties) {
+    final Object config = properties.get(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG);
+    return config != null && Boolean.parseBoolean(config.toString());
+  }
+
+  private static Object getKey(final FakeKafkaRecord fakeKafkaRecord) {
+    return fakeKafkaRecord.getProducerRecord() == null
+        ? fakeKafkaRecord.getTestRecord().key()
+        : fakeKafkaRecord.getProducerRecord().key();
   }
 
   static ServiceContext getServiceContext() {
@@ -192,4 +433,54 @@ public class TestExecutor implements Closeable {
     );
   }
 
+  private static void validateCreatedMessage(
+      final Record expectedRecord,
+      final ProducerRecord<?, ?> actualProducerRecord,
+      final boolean ranWithInsertStatements
+  ) {
+    final Object actualKey = actualProducerRecord.key();
+    final Object actualValue = actualProducerRecord.value();
+    final long actualTimestamp = actualProducerRecord.timestamp();
+
+    final Object expectedKey = expectedRecord.key();
+    final Object expectedValue = expectedRecord.value();
+    final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
+
+    final AssertionError error = new AssertionError(
+        "Expected <" + expectedKey + ", " + expectedValue + "> "
+            + "with timestamp=" + expectedTimestamp
+            + " but was " + getProducerRecordInString(actualProducerRecord));
+
+    if (actualKey != null) {
+      if (!actualKey.equals(expectedKey)) {
+        throw error;
+      }
+    } else if (expectedKey != null) {
+      throw error;
+    }
+
+    if (actualValue != null) {
+      if (!actualValue.equals(expectedValue)) {
+        throw error;
+      }
+    } else if (expectedValue != null) {
+      throw error;
+    }
+
+    if ((actualTimestamp != expectedTimestamp)
+        && (!ranWithInsertStatements || expectedTimestamp != 0L)) {
+      throw error;
+    }
+  }
+
+  interface TopologyBuilder {
+
+    List<TopologyTestDriverContainer> buildStreamsTopologyTestDrivers(
+        TestCase testCase,
+        ServiceContext serviceContext,
+        KsqlEngine ksqlEngine,
+        KsqlConfig ksqlConfig,
+        FakeKafkaService fakeKafkaService
+    );
+  }
 }

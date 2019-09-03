@@ -24,6 +24,7 @@ import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import io.confluent.ksql.util.KsqlExceptionMatcher;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
+import org.hamcrest.Matcher;
 
 public final class ExpectedExceptionNode {
 
@@ -42,7 +43,7 @@ public final class ExpectedExceptionNode {
     }
   }
 
-  public KsqlExpectedException build(final String lastStatement) {
+  public Matcher<Throwable> build(final String lastStatement) {
     final KsqlExpectedException expectedException = KsqlExpectedException.none();
 
     type
@@ -58,7 +59,7 @@ public final class ExpectedExceptionNode {
         });
 
     message.ifPresent(expectedException::expectMessage);
-    return expectedException;
+    return expectedException.build();
   }
 
   @SuppressWarnings("unchecked")
@@ -73,5 +74,4 @@ public final class ExpectedExceptionNode {
       throw new InvalidFieldException("expectedException.type", "Type was not found", e);
     }
   }
-
 }

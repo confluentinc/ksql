@@ -19,7 +19,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
@@ -69,7 +68,7 @@ public class TestExecutorUtilTest {
   }
 
   @Test
-  public void shouldBuildStreamsTopologyTestDrivers() throws IOException, RestClientException {
+  public void shouldBuildStreamsTopologyTestDrivers() {
 
     // Given:
     final Topic sourceTopic = new Topic(

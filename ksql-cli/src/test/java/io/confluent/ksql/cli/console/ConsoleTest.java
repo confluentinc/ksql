@@ -619,6 +619,7 @@ public class ConsoleTest {
           + "Type                 : source\n"
           + "State                : state\n"
           + "WorkerId             : worker\n"
+          + "Trace                : msg\n"
           + "\n"
           + " Task ID | State | Error Trace \n"
           + "-------------------------------\n"

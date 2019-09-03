@@ -17,7 +17,11 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -32,6 +36,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -45,6 +50,7 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 public final class LogicalSchema {
 
   private static final String KEY_KEYWORD = "KEY";
+  private static final String COL_NAME_PREFIX = "COL";
 
   private static final ImmutableList<Field> META_FIELDS = ImmutableList.of(
       Field.of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
@@ -57,6 +63,8 @@ public final class LogicalSchema {
   private final List<Field> metaFields;
   private final List<Field> keyFields;
   private final List<Field> valueFields;
+
+  private final BiMap<Field, String> internalFieldNames;
 
   public static Builder builder() {
     return new Builder();
@@ -84,6 +92,14 @@ public final class LogicalSchema {
     this.metaFields = ImmutableList.copyOf(requireNonNull(metaFields, "metaFields"));
     this.keyFields = ImmutableList.copyOf(requireNonNull(keyFields, "keyFields"));
     this.valueFields = ImmutableList.copyOf(requireNonNull(valueFields, "valueFields"));
+
+    final BiMap<Field, String> fieldNameBiMap = HashBiMap.create();
+    final AtomicInteger i = new AtomicInteger(0);
+    for (Field f : Iterables.concat(metaFields, keyFields, valueFields)) {
+      final String source = f.source().map(s -> s.toUpperCase() + "_").orElse("");
+      fieldNameBiMap.computeIfAbsent(f, ignored -> source + COL_NAME_PREFIX + i.getAndIncrement());
+    }
+    this.internalFieldNames = ImmutableBiMap.copyOf(fieldNameBiMap);
   }
 
   public ConnectSchema keySchema() {
@@ -124,6 +140,26 @@ public final class LogicalSchema {
         .addAll(keyFields)
         .addAll(valueFields)
         .build();
+  }
+
+  /**
+   * Returns the KSQL internal name for the field
+   *
+   * @param field the field
+   * @return the internal name for {@code field}
+   */
+  public String getInternalName(final Field field) {
+    return internalFieldNames.get(field);
+  }
+
+  /**
+   * Returns the field with the given internal name
+   *
+   * @param name  the name of the field
+   * @return the field corresponding to {@code name}
+   */
+  public Field getFieldFromInternalName(final String name) {
+    return internalFieldNames.inverse().get(name);
   }
 
   /**

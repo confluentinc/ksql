@@ -272,8 +272,9 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
+      final String internalColName = schema.getInternalName(schemaField);
       final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
-      return new Pair<>(fieldName.replace(".", "_"), schema);
+      return new Pair<>(internalColName, schema);
     }
 
     @Override
@@ -286,8 +287,9 @@ public class SqlToJavaVisitor {
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
+      final String internalColName = schema.getInternalName(schemaField);
       final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
-      return new Pair<>(fieldName.replace(".", "_"), schema);
+      return new Pair<>(internalColName, schema);
     }
 
     private String formatQualifiedName(final QualifiedName name) {

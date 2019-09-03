@@ -20,12 +20,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -34,9 +28,15 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
@@ -44,6 +44,8 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
@@ -58,6 +60,7 @@ public class SqlToJavaVisitorTest {
 
   private MetaStore metaStore;
   private SqlToJavaVisitor sqlToJavaVisitor;
+  private LogicalSchema logical;
 
   @Before
   public void init() {
@@ -85,6 +88,17 @@ public class SqlToJavaVisitorTest {
         .build();
 
     sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
+    logical = LogicalSchema.of(schema);
+  }
+
+  private String resolveInternalNames(String sql) {
+    Pattern pattern = Pattern.compile("TEST1_COL[0-9]+");
+    final Matcher matcher = pattern.matcher(sql);
+    while (matcher.find()) {
+      final String group = matcher.group();
+      sql = sql.replace(group, logical.getFieldFromInternalName(group).fullName().replace('.', '_'));
+    }
+    return sql;
   }
 
   @Test
@@ -93,7 +107,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col0+col3");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
@@ -105,11 +119,11 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col4[0]");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression,
-       equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))"));
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))"));
   }
 
   @Test
@@ -118,11 +132,11 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col4[-1]");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression,
-            equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))"));
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))"));
   }
 
   @Test
@@ -131,7 +145,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col5['key1']");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
@@ -148,9 +162,9 @@ public class SqlToJavaVisitorTest {
         parseExpression("cast(col3 as varchar)"));
 
     // Then:
-    assertThat(javaExpression0, equalTo("(new Long(TEST1_COL0).intValue())"));
-    assertThat(javaExpression1, equalTo("(new Double(TEST1_COL3).longValue())"));
-    assertThat(javaExpression2, equalTo("String.valueOf(TEST1_COL3)"));
+    assertThat(resolveInternalNames(javaExpression0), equalTo("(new Long(TEST1_COL0).intValue())"));
+    assertThat(resolveInternalNames(javaExpression1), equalTo("(new Double(TEST1_COL3).longValue())"));
+    assertThat(resolveInternalNames(javaExpression2), equalTo("String.valueOf(TEST1_COL3)"));
   }
 
   @Test
@@ -160,7 +174,7 @@ public class SqlToJavaVisitorTest {
         "CONCAT(SUBSTRING(col1,1,3),CONCAT('-',SUBSTRING(col1,4,5)))");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, is(
@@ -188,7 +202,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("'\\\"'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("\"\\\\\\\"\""));
@@ -200,7 +214,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col3 > -10.0");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
@@ -212,7 +226,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col1 LIKE '%foo'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).endsWith(\"foo\")"));
@@ -224,7 +238,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression(" col1 LIKE 'foo%'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).startsWith(\"foo\")"));
@@ -236,7 +250,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col1 LIKE '%foo%'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).contains(\"foo\")"));
@@ -248,7 +262,7 @@ public class SqlToJavaVisitorTest {
     final Expression expression = parseExpression("col1 LIKE 'foo'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).equals(\"foo\")"));
@@ -265,7 +279,7 @@ public class SqlToJavaVisitorTest {
             + "  END ");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // ThenL
     assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
@@ -281,7 +295,7 @@ public class SqlToJavaVisitorTest {
             + "  END ");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    final String javaExpression = resolveInternalNames(sqlToJavaVisitor.process(expression));
 
     // ThenL
     assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
@@ -297,7 +311,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.add(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))"));
@@ -313,7 +327,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, containsString("DecimalUtil.cast(TEST1_COL0, 19, 0)"));
@@ -329,7 +343,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8).doubleValue()"));
@@ -345,7 +359,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.subtract(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))"));
@@ -361,7 +375,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.multiply(TEST1_COL8, new MathContext(5, RoundingMode.UNNECESSARY)).setScale(2))"));
@@ -377,7 +391,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.divide(TEST1_COL8, new MathContext(8, RoundingMode.UNNECESSARY)).setScale(6))"));
@@ -393,7 +407,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.remainder(TEST1_COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))"));
@@ -409,7 +423,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) == 0))"));
@@ -425,7 +439,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) > 0))"));
@@ -441,7 +455,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) >= 0))"));
@@ -457,7 +471,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) < 0))"));
@@ -473,7 +487,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) <= 0))"));
@@ -489,7 +503,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) != 0))"));
@@ -505,7 +519,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(new BigDecimal(TEST1_COL3)) == 0))"));
@@ -521,7 +535,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(compExp));
 
     // Then:
     assertThat(java, containsString("(new BigDecimal(TEST1_COL3).compareTo(TEST1_COL8) == 0))"));
@@ -537,7 +551,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.negate(new MathContext(2, RoundingMode.UNNECESSARY)))"));
@@ -549,10 +563,10 @@ public class SqlToJavaVisitorTest {
     final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
         Optional.empty(),
         Sign.PLUS,
-    new QualifiedNameReference(QualifiedName.of("TEST1.COL8")));
+        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")));
 
-      // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    // When:
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(binExp));
 
     // Then:
     assertThat(java, is("(TEST1_COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
@@ -567,7 +581,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(cast));
 
     // Then:
     assertThat(java, is("(DecimalUtil.cast(TEST1_COL3, 2, 1))"));
@@ -582,7 +596,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(cast));
 
     // Then:
     assertThat(java, is("TEST1_COL8"));
@@ -597,7 +611,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(cast));
 
     // Then:
     assertThat(java, is("((TEST1_COL8).intValue())"));
@@ -612,7 +626,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(cast));
 
     // Then:
     assertThat(java, is("((TEST1_COL8).longValue())"));
@@ -627,7 +641,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(cast));
 
     // Then:
     assertThat(java, is("((TEST1_COL8).doubleValue())"));
@@ -642,7 +656,7 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    final String java = resolveInternalNames(sqlToJavaVisitor.process(cast));
 
     // Then:
     assertThat(java, is("DecimalUtil.format(2, 1, TEST1_COL8)"));

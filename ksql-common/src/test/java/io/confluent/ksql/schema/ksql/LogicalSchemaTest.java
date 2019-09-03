@@ -895,6 +895,36 @@ public class LogicalSchemaTest {
     ));
   }
 
+  @Test
+  public void shouldCreateConsistentInternalNameMapping() {
+    // Given:
+    final Field key = Field.of("key", SqlTypes.STRING);
+    final Field value = Field.of("value", SqlTypes.STRING);
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyField(key)
+        .valueField(key)
+        .valueField(value)
+        .build();
+
+    // Then:
+    assertThat(schema.getFieldFromInternalName(schema.getInternalName(key)), is(key));
+    assertThat(schema.getFieldFromInternalName(schema.getInternalName(value)), is(value));
+  }
+
+  @Test
+  public void shouldCreateInternalNamesWithSourcePrefix() {
+    // Given:
+    final Field key = Field.of("key", SqlTypes.STRING);
+    final Field value = Field.of("source", "value", SqlTypes.STRING);
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyField(key)
+        .valueField(value)
+        .build();
+
+    // Then:
+    assertThat(schema.getInternalName(value), containsString("SOURCE_"));
+  }
+
   private static org.apache.kafka.connect.data.Field connectField(
       final String fieldName,
       final int index,

@@ -181,7 +181,7 @@ public class CodeGenRunner {
       parameters.add(new ParameterType(
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaField.type()),
           schemaField.fullName(),
-          schemaField.fullName().replace(".", "_"),
+          schema.getInternalName(schemaField),
           ksqlConfig));
     }
 

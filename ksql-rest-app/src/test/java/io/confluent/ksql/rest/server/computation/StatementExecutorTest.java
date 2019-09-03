@@ -67,6 +67,9 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -362,6 +365,96 @@ public class StatementExecutorTest extends EasyMockSupport {
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.SUCCESS, statusStore.get(csasCommandId).getStatus());
     Assert.assertEquals(CommandStatus.Status.ERROR, statusStore.get(ctasCommandId).getStatus());
+  }
+
+  @Test
+  public void shouldIncrementQueryIdWhenCreateStreamAsSelectFails() {
+    final TestUtils testUtils = new TestUtils();
+    ArrayList<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
+
+    final Command unknownCsasCommand = new Command("CREATE STREAM failed_stream_copy "
+        + " AS select * from failed_stream;",
+        Collections.emptyMap(), Collections.emptyMap());
+
+    final CommandId unknownCsasCommandId =  new CommandId(CommandId.Type.STREAM, "_CSASGen", CommandId.Action.CREATE);
+
+    priorCommands.add(new Pair<>(unknownCsasCommandId, unknownCsasCommand));
+    priorCommands.addAll(testUtils.getAllPriorCommandRecords());
+    priorCommands.forEach(
+        pair -> statementExecutor.handleRestore(
+                new QueuedCommand(pair.left, pair.right)
+        )
+    );
+
+    List<PersistentQueryMetadata> persistentQueries = ksqlEngine.getPersistentQueries();
+    Assert.assertEquals(persistentQueries.get(0).getQueryId().toString(), "CSAS_USER1PV_1");
+  }
+
+  @Test
+  public void shouldIncrementQueryIdWhenCreateTableAsSelectFails() {
+    final TestUtils testUtils = new TestUtils();
+    ArrayList<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
+
+    final Command unknownCtasCommand = new Command("CREATE TABLE failed_table_copy "
+        + " AS select * from failed_table;",
+        Collections.emptyMap(), Collections.emptyMap());
+
+    final CommandId unknownCtasCommandId =  new CommandId(Type.TABLE, "_CTASGen", CommandId.Action.CREATE);
+
+    priorCommands.add(new Pair<>(unknownCtasCommandId, unknownCtasCommand));
+    priorCommands.addAll(testUtils.getAllPriorCommandRecords());
+    priorCommands.forEach(
+        pair -> statementExecutor.handleRestore(
+                new QueuedCommand(pair.left, pair.right)
+        )
+    );
+
+    List<PersistentQueryMetadata> persistentQueries = ksqlEngine.getPersistentQueries();
+    Assert.assertEquals(persistentQueries.get(0).getQueryId().toString(), "CSAS_USER1PV_1");
+  }
+
+  @Test
+  public void shouldIncrementQueryIdWhenInsertIntoFails() {
+    final TestUtils testUtils = new TestUtils();
+    ArrayList<Pair<CommandId, Command>> priorCommands = new ArrayList<>();
+
+    final Command csCommand = new Command(
+        "CREATE STREAM pageview ("
+                + "userid varchar) "
+                + "WITH (kafka_topic = 'pageview_topic_json', "
+                + "value_format = 'json');",
+        emptyMap(),
+        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+    final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
+        "_CSASStreamGen",
+        CommandId.Action.CREATE);
+
+    final Command insertIntoCommand_1 = new Command("INSERT INTO failed_stream "
+        + " SELECT * from pageview;",
+        Collections.emptyMap(), Collections.emptyMap());
+
+    final CommandId insertIntoCommandId_1 =
+        new CommandId(CommandId.Type.STREAM, "_InsertQuery0", CommandId.Action.CREATE);
+
+    final Command insertIntoCommand_2 = new Command("INSERT INTO pageview "
+        + " SELECT * from failed_stream;",
+        Collections.emptyMap(), Collections.emptyMap());
+
+    final CommandId insertIntoCommandId_2 =
+        new CommandId(CommandId.Type.STREAM, "_InsertQuery1", CommandId.Action.CREATE);
+
+    priorCommands.add(new Pair<>(csCommandId, csCommand));
+    priorCommands.add(new Pair<>(insertIntoCommandId_1, insertIntoCommand_1));
+    priorCommands.add(new Pair<>(insertIntoCommandId_2, insertIntoCommand_2));
+    priorCommands.addAll(testUtils.getAllPriorCommandRecords());
+    priorCommands.forEach(
+        pair -> statementExecutor.handleRestore(
+                new QueuedCommand(pair.left, pair.right)
+        )
+    );
+
+    List<PersistentQueryMetadata> persistentQueries = ksqlEngine.getPersistentQueries();
+    Assert.assertEquals(persistentQueries.get(0).getQueryId().toString(), "CSAS_USER1PV_2");
   }
 
   @Test

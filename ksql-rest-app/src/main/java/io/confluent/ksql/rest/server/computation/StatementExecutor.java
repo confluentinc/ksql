@@ -22,6 +22,7 @@ import io.confluent.ksql.exception.ExceptionUtil;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
@@ -196,6 +197,16 @@ public class StatementExecutor implements KsqlConfigurable {
       executeStatement(
           statement, command, commandId, commandStatusFuture, mode);
     } catch (final KsqlException exception) {
+      if (mode == Mode.RESTORE) {
+        final SqlBaseParser.StatementContext context =
+            ksqlEngine.parse(command.getStatement()).get(0).getStatement().statement();
+        if (context instanceof SqlBaseParser.CreateStreamAsContext
+            || context instanceof SqlBaseParser.CreateTableAsContext
+            || context instanceof SqlBaseParser.InsertIntoContext) {
+          ksqlEngine.incrementQueryId();
+        }
+      }
+
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
           CommandStatus.Status.ERROR,

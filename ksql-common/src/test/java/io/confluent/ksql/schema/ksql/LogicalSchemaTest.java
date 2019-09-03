@@ -616,8 +616,8 @@ public class LogicalSchemaTest {
     // Then:
     assertThat(s, is(
         "["
-            + "`t.ROWKEY` STRING KEY, "
-            + "`t.f0` BOOLEAN"
+            + "`t`.`ROWKEY` STRING KEY, "
+            + "`t`.`f0` BOOLEAN"
             + "]"));
   }
 

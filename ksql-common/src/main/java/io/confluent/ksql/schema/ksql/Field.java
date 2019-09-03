@@ -140,10 +140,13 @@ public final class Field {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final String formattedName = formatOptions.isReservedWord(fullName)
-        ? "`" + fullName + "`"
-        : fullName;
+    final Optional<String> base = source.map(val -> escape(val, formatOptions));
+    final String escaped = escape(name, formatOptions);
+    final String field = base.isPresent() ? base.get() + "." + escaped : escaped;
+    return field + " " + type.toString(formatOptions);
+  }
 
-    return formattedName + " " + type.toString(formatOptions);
+  private static String escape(final String string, final FormatOptions formatOptions) {
+    return formatOptions.isReservedWord(string) ? "`" + string + "`" : string;
   }
 }

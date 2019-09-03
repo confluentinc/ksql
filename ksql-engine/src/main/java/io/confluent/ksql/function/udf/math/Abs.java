@@ -59,7 +59,7 @@ public class Abs {
       throw new KsqlException("Abs udf accepts one parameter");
     }
     final SqlType s = params.get(0);
-    if (!(s.baseType() == SqlBaseType.DECIMAL)) {
+    if (s.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for Abs expects a BigDecimal parameter"
           + "type");
     }

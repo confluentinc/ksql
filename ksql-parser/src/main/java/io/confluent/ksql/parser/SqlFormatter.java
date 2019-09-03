@@ -56,7 +56,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
-import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -213,7 +213,7 @@ public final class SqlFormatter {
       process(node.getRelation(), indent);
 
       builder.append(' ')
-              .append(ParserUtil.escapeIfReservedIdentifier(node.getAlias()));
+              .append(IdentifierUtil.escape(node.getAlias()));
 
       return null;
     }
@@ -382,7 +382,7 @@ public final class SqlFormatter {
     @Override
     public Void visitRegisterType(final RegisterType node, final Integer context) {
       builder.append("CREATE TYPE ");
-      builder.append(ParserUtil.escapeIfReservedIdentifier(node.getName()));
+      builder.append(IdentifierUtil.escape(node.getName()));
       builder.append(" AS ");
       builder.append(ExpressionFormatterUtil.formatExpression(node.getType()));
       builder.append(";");
@@ -481,10 +481,9 @@ public final class SqlFormatter {
     }
 
     private static String formatTableElement(final TableElement e) {
-      return ParserUtil.escapeIfReservedIdentifier(e.getName())
+      return IdentifierUtil.escape(e.getName())
           + " "
-          + ExpressionFormatter.formatExpression(
-              e.getType(), true, ParserUtil::isReservedIdentifier)
+          + ExpressionFormatter.formatExpression(e.getType(), true, IdentifierUtil::needsQuotes)
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
   }
@@ -492,7 +491,7 @@ public final class SqlFormatter {
   private static String escapedName(final QualifiedName name) {
     return name.getParts()
         .stream()
-        .map(ParserUtil::escapeIfReservedIdentifier)
+        .map(IdentifierUtil::escape)
         .collect(Collectors.joining("."));
   }
 }

@@ -31,19 +31,19 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.inference.TopicSchemaSupplier.SchemaResult;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -435,22 +435,6 @@ public class DefaultSchemaInjectorTest {
 
     // Then:
     assertThat(inject.getStatementText(), containsString("`CREATE`"));
-  }
-
-  @Test
-  public void shouldFailIfAvroSchemaHasInvalidColumnName() {
-    // Given:
-    when(schemaSupplier.getValueSchema(any(), any()))
-        .thenReturn(SchemaResult.success(schemaAndId(
-            SchemaBuilder.struct().field("foo-bar", Schema.INT64_SCHEMA).build(),
-            SCHEMA_ID)));
-
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to convert schema to KSQL model");
-
-    // When:
-    injector.inject(ctStatement);
   }
 
   @Test

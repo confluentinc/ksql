@@ -89,6 +89,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -703,7 +704,7 @@ public class CliTest {
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeRootRequest()).thenReturn(
         RestResponse.erroneous(
-            HttpStatus.Code.OK,
+            Code.NOT_ACCEPTABLE,
             new KsqlErrorMessage(
                 Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
                 "Minimum supported client version: 1.0")

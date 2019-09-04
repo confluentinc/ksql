@@ -750,49 +750,57 @@ public class SqlFormatterTest {
   @Test
   public void shouldSupportExplicitEmitChanges() {
     // Given:
-    final Statement statement = parseSingle("SELECT `SELECT` FROM `TABLE` EMIT CHANGES;");
+    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS EMIT CHANGES;");
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("SELECT `SELECT` FROM `TABLE` EMIT CHANGES"));
+    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "EMIT CHANGES"));
   }
 
   @Test
   public void shouldSupportExplicitEmitFinal() {
     // Given:
-    final Statement statement = parseSingle("SELECT `SELECT` FROM `TABLE` EMIT FINAL;");
+    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS EMIT FINAL;");
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("SELECT `SELECT` FROM `TABLE` EMIT FINAL"));
+    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "EMIT FINAL"));
   }
 
   @Test
   public void shouldSupportExplicitWithChanges() {
     // Given:
-    final Statement statement = parseSingle("SELECT `SELECT` FROM `TABLE` WITH CHANGES;");
+    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS WITH CHANGES;");
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("SELECT `SELECT` FROM `TABLE` WITH CHANGES"));
+    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WITH CHANGES"));
   }
 
   @Test
   public void shouldSupportExplicitWithFinal() {
     // Given:
-    final Statement statement = parseSingle("SELECT `SELECT` FROM `TABLE` WITH FINAL;");
+    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS WITH FINAL;");
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("SELECT `SELECT` FROM `TABLE` WITH FINAL"));
+    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "WITH FINAL"));
   }
 
   private Statement parseSingle(final String statementString) {

@@ -76,7 +76,7 @@ public final class AnalysisTestUtil {
           ? Optional.of(((QueryContainer)statement).getSink())
           : Optional.empty();
 
-      this.analysis = queryAnalyzer.analyze(queryStr, query, sink);
+      this.analysis = queryAnalyzer.analyze(query, sink);
     }
 
     private static Statement parseStatement(

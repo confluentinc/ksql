@@ -32,6 +32,9 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
+import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -42,13 +45,10 @@ import io.confluent.ksql.parser.ExpressionFormatterUtil;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
-import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
-import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -273,8 +273,7 @@ public class AnalyzerTest {
     final Query query = createStreamAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
-    final Analysis analysis = analyzer
-        .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
     final Optional<Into> into = analysis.getInto();
@@ -291,8 +290,7 @@ public class AnalyzerTest {
     final Query query = createStreamAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
-    final Analysis analysis = analyzer
-        .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
@@ -307,8 +305,7 @@ public class AnalyzerTest {
     final Query query = createStreamAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
-    final Analysis analysis = analyzer
-        .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
@@ -324,8 +321,7 @@ public class AnalyzerTest {
     final Query query = createStreamAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
-    final Analysis analysis = analyzer
-          .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
@@ -365,8 +361,7 @@ public class AnalyzerTest {
     final Query query = createStreamAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(newAvroMetaStore, "", DEFAULT_SERDE_OPTIONS);
-    final Analysis analysis = analyzer
-        .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
@@ -382,8 +377,7 @@ public class AnalyzerTest {
     final Query query = createStreamAsSelect.getQuery();
 
     final Analyzer analyzer = new Analyzer(avroMetaStore, "", DEFAULT_SERDE_OPTIONS);
-    final Analysis analysis = analyzer
-        .analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
@@ -402,7 +396,7 @@ public class AnalyzerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Full schema name only supported with AVRO format");
 
-    analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
 
   @Test
@@ -419,7 +413,7 @@ public class AnalyzerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Schema name can not be empty");
 
-    analyzer.analyze("sqlExpression", query, Optional.of(createStreamAsSelect.getSink()));
+    analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
 
   @Test
@@ -432,7 +426,7 @@ public class AnalyzerTest {
     givenWrapSingleValues(true);
 
     // When:
-    final Analysis result = analyzer.analyze("sql", query, Optional.of(sink));
+    final Analysis result = analyzer.analyze(query, Optional.of(sink));
 
     // Then:
     verify(serdeOptiponsSupplier).build(
@@ -453,7 +447,7 @@ public class AnalyzerTest {
     query = parseSingle("Select ROWTIME, ROWKEY, ROWTIME AS TIME, ROWKEY AS KEY, COL0, COL1 from TEST1;");
 
     // When:
-    analyzer.analyze("sql", query, Optional.of(sink));
+    analyzer.analyze(query, Optional.of(sink));
 
     // Then:
     verify(serdeOptiponsSupplier).build(
@@ -476,7 +470,7 @@ public class AnalyzerTest {
         + " This format does not yet support GROUP BY.");
 
     // When:
-    analyzer.analyze("sql", query, Optional.of(sink));
+    analyzer.analyze(query, Optional.of(sink));
   }
 
   @Test
@@ -494,7 +488,7 @@ public class AnalyzerTest {
         + " This format does not yet support JOIN.");
 
     // When:
-    analyzer.analyze("sql", query, Optional.of(sink));
+    analyzer.analyze(query, Optional.of(sink));
   }
 
   @SuppressWarnings("unchecked")

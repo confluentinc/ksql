@@ -79,7 +79,6 @@ class QueryEngine {
 
     if (statement.getStatement() instanceof Query) {
       final OutputNode outputNode = buildQueryLogicalPlan(
-          statement.getStatementText(),
           (Query)statement.getStatement(),
           Optional.empty(),
           metaStore,
@@ -91,7 +90,6 @@ class QueryEngine {
 
     if (statement.getStatement() instanceof QueryContainer) {
       final OutputNode outputNode = buildQueryLogicalPlan(
-          statement.getStatementText(),
           (QueryContainer) statement.getStatement(),
           metaStore,
           statement.getConfig()
@@ -130,18 +128,16 @@ class QueryEngine {
   }
 
   private static OutputNode buildQueryLogicalPlan(
-      final String sqlExpression,
       final QueryContainer container,
       final MetaStore metaStore,
       final KsqlConfig config
   ) {
     final Query query = container.getQuery();
     final Sink sink = container.getSink();
-    return buildQueryLogicalPlan(sqlExpression, query, Optional.of(sink), metaStore, config);
+    return buildQueryLogicalPlan(query, Optional.of(sink), metaStore, config);
   }
 
   private static OutputNode buildQueryLogicalPlan(
-      final String sqlExpression,
       final Query query,
       final Optional<Sink> sink,
       final MetaStore metaStore,
@@ -154,7 +150,7 @@ class QueryEngine {
     final QueryAnalyzer queryAnalyzer =
         new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
 
-    final Analysis analysis = queryAnalyzer.analyze(sqlExpression, query, sink);
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();

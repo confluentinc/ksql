@@ -53,12 +53,11 @@ public class QueryAnalyzer {
   }
 
   public Analysis analyze(
-      final String sqlExpression,
       final Query query,
       final Optional<Sink> sink
   ) {
     return new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions)
-        .analyze(sqlExpression, query, sink);
+        .analyze(query, sink);
   }
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {

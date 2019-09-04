@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
 
+@Immutable
 public class RegisterTypeCommand implements DdlCommand {
   private final SqlType type;
   private final String name;

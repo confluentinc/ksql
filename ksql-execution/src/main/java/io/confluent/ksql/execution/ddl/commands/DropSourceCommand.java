@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+@Immutable
 public class DropSourceCommand implements DdlCommand {
 
   private final String sourceName;

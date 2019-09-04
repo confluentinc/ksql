@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.Set;
 
+@Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
 
   public CreateStreamCommand(

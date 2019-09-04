@@ -63,6 +63,7 @@ import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
@@ -99,6 +100,7 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -621,6 +623,11 @@ public class AstBuilder {
     @Override
     public Node visitDropType(final DropTypeContext ctx) {
       return new DropType(getLocation(ctx), getIdentifierText(ctx.identifier()));
+    }
+
+    @Override
+    public Node visitListTypes(final ListTypesContext ctx) {
+      return new ListTypes(getLocation(ctx));
     }
 
     @Override

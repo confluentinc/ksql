@@ -28,6 +28,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.TypeContextUtil;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -404,8 +405,12 @@ public class UdfLoader {
     final Method m = findSchemaProvider(theClass, schemaProviderName);
     final Object instance = instantiateUdfClass(theClass, annotation);
 
-    return parameterTypes -> {
-      return invokeSchemaProviderMethod(instance, m, parameterTypes, annotation);
+    return parameterSchemas -> {
+      final List<SqlType> parameterTypes = parameterSchemas.stream()
+          .map(p -> SchemaConverters.connectToSqlConverter().toSqlType(p))
+          .collect(Collectors.toList());
+      return SchemaConverters.sqlToConnectConverter().toConnectSchema(invokeSchemaProviderMethod(
+          instance, m, parameterTypes, annotation));
     };
   }
 
@@ -421,15 +426,17 @@ public class UdfLoader {
       return m;
     } catch (NoSuchMethodException e) {
       throw new KsqlException(String.format(
-          "Cannot find schema provider method with name %s and parameter List<Schema> in class %s.",
-          schemaProviderName,theClass.getName()),e);
+          "Cannot find schema provider method with name %s and parameter List<SqlType> in class "
+              + "%s.", schemaProviderName,theClass.getName()),e);
     }
   }
 
-  private Schema invokeSchemaProviderMethod(final Object instance, final Method m,
-      final List<Schema> args, final UdfDescription annotation) {
+  private SqlType invokeSchemaProviderMethod(final Object instance,
+                                            final Method m,
+                                            final List<SqlType> args,
+                                            final UdfDescription annotation) {
     try {
-      return (Schema) m.invoke(instance, args);
+      return (SqlType) m.invoke(instance, args);
     } catch (IllegalAccessException
         | InvocationTargetException e) {
       throw new KsqlException(String.format("Cannot invoke the schema provider "

@@ -29,6 +29,12 @@ import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -36,15 +42,9 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.InsertInto;
-import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.Format;
@@ -83,7 +83,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery("select orderid from orders;");
 
     // When:
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // Then:
     final AliasedDataSource fromDataSource = analysis.getFromDataSources().get(0);
@@ -102,7 +102,7 @@ public class QueryAnalyzerTest {
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
     // When:
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
     assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
@@ -125,7 +125,7 @@ public class QueryAnalyzerTest {
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
     // When:
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
     assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
@@ -148,7 +148,7 @@ public class QueryAnalyzerTest {
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
     // When:
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
     assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
@@ -174,7 +174,7 @@ public class QueryAnalyzerTest {
             "where orderunits > 5 group by itemid;");
 
     // When:
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression",query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     // Then:
@@ -189,7 +189,7 @@ public class QueryAnalyzerTest {
     // Given:
     final Query query = givenQuery("select itemid, sum(orderunits) from orders;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
@@ -205,7 +205,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select itemid, orderid, sum(orderunits) from orders group by itemid;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
@@ -221,7 +221,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select sum(orderunits) from orders group by itemid having orderid = 1;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException
@@ -237,7 +237,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select sum(orderunits) from orders group by itemid;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // When:
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -252,7 +252,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select sum(orderunits) from orders group by itemid + 1;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // When:
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -267,7 +267,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select sum(orderunits) from orders group by ucase(itemid);");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // When:
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -282,7 +282,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select sum(orderunits) from orders group by 1;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -296,7 +296,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery(
         "select sum(orderunits) from orders group by sum(orderid);");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -314,7 +314,7 @@ public class QueryAnalyzerTest {
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
             "where orderunits > 5 group by itemid having count(itemid) > 10;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // When:
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -339,14 +339,14 @@ public class QueryAnalyzerTest {
     ));
 
     // When:
-    queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    queryAnalyzer.analyze(query, Optional.empty());
   }
 
   @Test
   public void shouldFailOnSelectStarWithGroupBy() {
     // Given:
     final Query query = givenQuery("select *, count() from orders group by itemid;");
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
@@ -365,7 +365,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery("select *, count() from orders group by "
         + "ROWTIME, ROWKEY, ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     // When:
     final AggregateAnalysis aggregateAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
@@ -385,7 +385,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery("select substring(orderid, 1, 2), count(*) "
         + "from orders group by substring(orderid, 2, 5);");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
@@ -402,7 +402,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery("select itemid + address->street, count(*) "
         + "from orders group by address->street + itemid;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
@@ -420,7 +420,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery("select orderId, count(*) "
         + "from orders group by orderid + orderunits;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
@@ -437,7 +437,7 @@ public class QueryAnalyzerTest {
     final Query query = givenQuery("SELECT orderId - ordertime, COUNT(*) "
         + "FROM ORDERS GROUP BY ordertime - orderId;");
 
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
@@ -453,7 +453,7 @@ public class QueryAnalyzerTest {
   public void shouldThrowIfGroupByMissingAggregateSelectExpressions() {
     // Given:
     final Query query = givenQuery("select orderid from orders group by orderid;");
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, Optional.empty());
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(containsString(
@@ -473,7 +473,7 @@ public class QueryAnalyzerTest {
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
     // When:
-    final Analysis analysis = queryAnalyzer.analyze("sqlExpression", query, sink);
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),

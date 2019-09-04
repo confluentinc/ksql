@@ -45,6 +45,7 @@ import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.parser.tree.CreateConnector;
+import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -64,14 +65,19 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
+import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -1189,6 +1195,42 @@ public class KsqlParserTest {
     assertThat(createExternal.getStatement().getConfig(), hasEntry("foo.bar", new StringLiteral("foo")));
     assertThat(createExternal.getStatement().getName(), is("FOO"));
     assertThat(createExternal.getStatement().getType(), is(CreateConnector.Type.SINK));
+  }
+
+  @Test
+  public void shouldParseCustomTypesInCreateType() {
+    // Given:
+    final SqlStruct cookie = SqlStruct.builder().field("type", SqlTypes.STRING).build();
+    metaStore.registerType("cookie", cookie);
+
+    // When:
+    final PreparedStatement<RegisterType> registerType = KsqlParserTestUtil.buildSingleAst(
+        "CREATE TYPE pantry AS ARRAY<COOKIE>;",
+        metaStore
+    );
+
+    // Then:
+    assertThat(registerType.getStatement().getType().getSqlType(), is(SqlArray.of(cookie)));
+  }
+
+  @Test
+  public void shouldParseCustomTypesInCreateSource() {
+    // Given:
+    final SqlStruct cookie = SqlStruct.builder().field("type", SqlTypes.STRING).build();
+    metaStore.registerType("cookie", cookie);
+
+    // When:
+    final PreparedStatement<CreateSource> createSource = KsqlParserTestUtil.buildSingleAst(
+        "CREATE STREAM foo (cookie COOKIE) WITH (KAFKA_TOPIC='foo', VALUE_FORMAT='AVRO');",
+        metaStore
+    );
+
+    // Then:
+    final TableElements elements = createSource.getStatement().getElements();
+    assertThat(Iterables.size(elements), is(1));
+
+    final TableElement element = elements.iterator().next();
+    assertThat(element.getType().getSqlType(), is(cookie));
   }
 
   private static SearchedCaseExpression getSearchedCaseExpressionFromCsas(final Statement statement) {

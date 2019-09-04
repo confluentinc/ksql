@@ -18,6 +18,8 @@ package io.confluent.ksql.parser;
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -35,7 +37,12 @@ public final class SchemaParser {
 
   private SchemaParser() { }
 
-  public static TableElements parse(final String schema) {
+  @VisibleForTesting
+  static TableElements parse(final String schema) {
+    return parse(schema, TypeRegistry.EMPTY);
+  }
+
+  public static TableElements parse(final String schema, final TypeRegistry typeRegistry) {
     if (schema.trim().isEmpty()) {
       return TableElements.of();
     }
@@ -76,7 +83,7 @@ public final class SchemaParser {
             getLocation(ctx),
             ctx.KEY() == null ? Namespace.VALUE : Namespace.KEY,
             ParserUtil.getIdentifierText(ctx.identifier()),
-            getType(ctx.type())
+            getType(ctx.type(), typeRegistry)
         ))
         .collect(Collectors.toList());
 

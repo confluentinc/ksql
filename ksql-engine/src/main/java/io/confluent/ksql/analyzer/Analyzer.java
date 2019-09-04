@@ -124,20 +124,18 @@ class Analyzer {
   /**
    * Analyze the query.
    *
-   * @param sqlExpression the sql expression being analysed.
    * @param query the query to analyze.
    * @param sink the sink the query will output to.
    * @return the analysis.
    */
   Analysis analyze(
-      final String sqlExpression,
       final Query query,
       final Optional<Sink> sink
   ) {
     final Visitor visitor = new Visitor();
     visitor.process(query, null);
 
-    visitor.analyzeSink(sink, sqlExpression);
+    sink.ifPresent(visitor::analyzeNonStdOutSink);
 
     visitor.validate();
 
@@ -152,17 +150,7 @@ class Analyzer {
     private boolean isJoin = false;
     private boolean isGroupBy = false;
 
-    private void analyzeSink(
-        final Optional<Sink> sink,
-        final String sqlExpression
-    ) {
-      sink.ifPresent(s -> analyzeNonStdOutSink(s, sqlExpression));
-    }
-
-    private void analyzeNonStdOutSink(
-        final Sink sink,
-        final String sqlExpression
-    ) {
+    private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
       sink.getPartitionBy().ifPresent(analysis::setPartitionBy);
 
@@ -175,7 +163,6 @@ class Analyzer {
         }
 
         analysis.setInto(Into.of(
-            sqlExpression,
             sink.getName(),
             false,
             existing.getKsqlTopic()
@@ -201,7 +188,6 @@ class Analyzer {
       );
 
       analysis.setInto(Into.of(
-          sqlExpression,
           sink.getName(),
           true,
           intoKsqlTopic

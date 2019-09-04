@@ -74,12 +74,13 @@ public class QueryTest {
                 SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, Optional.empty(),
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, Optional.empty(), SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                Optional.empty(), SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
+                Optional.empty(),
+                SOME_GROUP_BY, SOME_HAVING, FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
@@ -90,8 +91,8 @@ public class QueryTest {
                 SOME_WHERE, SOME_GROUP_BY, Optional.empty(), FINAL, true, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, CHANGES, true, SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, CHANGES, true, SOME_LIMIT)
         )
         .addEqualityGroup(
             new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW,

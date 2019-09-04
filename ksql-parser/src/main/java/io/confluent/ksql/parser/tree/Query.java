@@ -39,19 +39,6 @@ public class Query extends Statement {
   private final OptionalInt limit;
 
   public Query(
-      final Select select,
-      final Relation from,
-      final Optional<WindowExpression> window,
-      final Optional<Expression> where,
-      final Optional<GroupBy> groupBy,
-      final Optional<Expression> having,
-      final OptionalInt limit
-  ) {
-    this(Optional.empty(), select, from, window, where, groupBy, having,
-        ResultMaterialization.CHANGES, false, limit);
-  }
-
-  public Query(
       final Optional<NodeLocation> location,
       final Select select,
       final Relation from,

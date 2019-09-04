@@ -74,13 +74,17 @@ public class ParserModelTest {
       .put(InListExpression.class, new InListExpression(ImmutableList.of(DEFAULT_TYPE)))
       .put(Type.class, DEFAULT_TYPE)
       .put(Query.class, new Query(
+          Optional.empty(),
           DEFAULT_SELECT,
           DEFAULT_RELATION,
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
-          OptionalInt.empty()))
+          ResultMaterialization.CHANGES,
+          false,
+          OptionalInt.empty()
+      ))
       .put(java.util.Map.class,
           ImmutableMap.of(
               CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),

@@ -193,34 +193,26 @@ public class Analysis {
   @Immutable
   public static final class Into {
 
-    private final String sqlExpression;
     private final String name;
     private final KsqlTopic topic;
     private final boolean create;
 
     public static <K> Into of(
-        final String sqlExpression,
         final String name,
         final boolean create,
         final KsqlTopic topic
     ) {
-      return new Into(sqlExpression, name, create, topic);
+      return new Into(name, create, topic);
     }
 
     private Into(
-        final String sqlExpression,
         final String name,
         final boolean create,
         final KsqlTopic topic
     ) {
-      this.sqlExpression = requireNonNull(sqlExpression, "sqlExpression");
       this.name = requireNonNull(name, "name");
       this.create = create;
       this.topic = requireNonNull(topic, "topic");
-    }
-
-    public String getSqlExpression() {
-      return sqlExpression;
     }
 
     public String getName() {

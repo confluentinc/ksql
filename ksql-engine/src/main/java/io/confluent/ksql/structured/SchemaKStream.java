@@ -49,8 +49,8 @@ import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.util.ExpressionMetadata;
+import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -79,7 +79,7 @@ public class SchemaKStream<K> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final FormatOptions FORMAT_OPTIONS =
-      FormatOptions.of(ParserUtil::isReservedIdentifier);
+      FormatOptions.of(IdentifierUtil::needsQuotes);
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 

@@ -111,7 +111,7 @@ public class FieldTest {
         is("`SomeName` BOOLEAN"));
 
     assertThat(Field.of("SomeSource", "SomeName", SqlTypes.INTEGER).toString(),
-        is("`SomeSource.SomeName` INTEGER"));
+        is("`SomeSource`.`SomeName` INTEGER"));
   }
 
   @Test
@@ -131,10 +131,10 @@ public class FieldTest {
         is("`reserved` BIGINT"));
 
     assertThat(Field.of("reserved", "word", SqlTypes.DOUBLE).toString(options),
-        is("reserved.word DOUBLE"));
+        is("`reserved`.`word` DOUBLE"));
 
     assertThat(Field.of("source", "word", SqlTypes.STRING).toString(options),
-        is("source.word STRING"));
+        is("source.`word` STRING"));
 
     final SqlStruct struct = SqlTypes.struct()
         .field("reserved", SqlTypes.BIGINT)
@@ -142,6 +142,6 @@ public class FieldTest {
         .build();
 
     assertThat(Field.of("reserved", "name", struct).toString(options),
-        is("`reserved.name` STRUCT<`reserved` BIGINT, other BIGINT>"));
+        is("`reserved`.name STRUCT<`reserved` BIGINT, other BIGINT>"));
   }
 }

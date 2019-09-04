@@ -29,6 +29,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -285,12 +286,11 @@ public final class SchemaConverters {
 
     @Override
     public SqlBaseType toSqlType(final Class<?> javaType) {
-      final SqlBaseType sqlType = JAVA_TO_SQL.get(javaType);
-      if (sqlType == null) {
-        throw new KsqlException("Unexpected java type: " + javaType);
-      }
-
-      return sqlType;
+      return JAVA_TO_SQL.entrySet().stream()
+          .filter(e -> e.getKey().isAssignableFrom(javaType))
+          .map(Entry::getValue)
+          .findAny()
+          .orElseThrow(() -> new KsqlException("Unexpected java type: " + javaType));
     }
   }
 

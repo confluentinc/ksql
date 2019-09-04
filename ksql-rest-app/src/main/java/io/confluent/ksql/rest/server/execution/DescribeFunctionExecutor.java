@@ -28,7 +28,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.ParserUtil;
+import io.confluent.ksql.util.IdentifierUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +37,7 @@ import org.apache.kafka.connect.data.Schema;
 public final class DescribeFunctionExecutor {
 
   private static final SqlSchemaFormatter FORMATTER =
-      new SqlSchemaFormatter(ParserUtil::isReservedIdentifier);
+      new SqlSchemaFormatter(IdentifierUtil::needsQuotes);
 
   private DescribeFunctionExecutor() { }
 

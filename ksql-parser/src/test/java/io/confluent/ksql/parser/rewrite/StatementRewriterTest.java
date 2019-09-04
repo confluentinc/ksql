@@ -6,6 +6,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -14,7 +17,6 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -22,10 +24,9 @@ import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Join.Type;
 import io.confluent.ksql.parser.tree.JoinCriteria;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
-import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SimpleGroupBy;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -85,6 +86,9 @@ public class StatementRewriterTest {
   private Query rewrittenQuery;
   @Mock
   private CreateSourceAsProperties csasProperties;
+  @Mock
+  private ResultMaterialization resultMaterialization;
+  private boolean staticQuery;
 
   private StatementRewriter<Object> rewriter;
 
@@ -122,10 +126,22 @@ public class StatementRewriterTest {
       final Optional<WindowExpression> window,
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
-      final Optional<Expression> having) {
+      final Optional<Expression> having
+  ) {
     when(mockRewriter.apply(select, context)).thenReturn(rewrittenSelect);
     when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
-    return new Query(location, select, relation, window, where, groupBy, having, optionalInt);
+    return new Query(
+        location,
+        select,
+        relation,
+        window,
+        where,
+        groupBy,
+        having,
+        resultMaterialization,
+        staticQuery,
+        optionalInt
+    );
   }
 
   @Test
@@ -138,18 +154,17 @@ public class StatementRewriterTest {
     final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(
-        rewritten,
-        equalTo(
-            new Query(
-                location,
-                rewrittenSelect,
-                rewrittenRelation,
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                optionalInt))
+    assertThat(rewritten, equalTo(new Query(
+        location,
+        rewrittenSelect,
+        rewrittenRelation,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        resultMaterialization,
+        staticQuery,
+        optionalInt))
     );
   }
 
@@ -164,18 +179,17 @@ public class StatementRewriterTest {
     final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(
-        rewritten,
-        equalTo(
-            new Query(
-                location,
-                rewrittenSelect,
-                rewrittenRelation,
-                Optional.empty(),
-                Optional.of(rewrittenExpression),
-                Optional.empty(),
-                Optional.empty(),
-                optionalInt))
+    assertThat(rewritten, equalTo(new Query(
+        location,
+        rewrittenSelect,
+        rewrittenRelation,
+        Optional.empty(),
+        Optional.of(rewrittenExpression),
+        Optional.empty(),
+        Optional.empty(),
+        resultMaterialization,
+        staticQuery,
+        optionalInt))
     );
   }
 
@@ -192,18 +206,17 @@ public class StatementRewriterTest {
     final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(
-        rewritten,
-        equalTo(
-            new Query(
-                location,
-                rewrittenSelect,
-                rewrittenRelation,
-                Optional.empty(),
-                Optional.empty(),
-                Optional.of(rewrittenGroupBy),
-                Optional.empty(),
-                optionalInt))
+    assertThat(rewritten, equalTo(new Query(
+        location,
+        rewrittenSelect,
+        rewrittenRelation,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(rewrittenGroupBy),
+        Optional.empty(),
+        resultMaterialization,
+        staticQuery,
+        optionalInt))
     );
   }
 
@@ -220,18 +233,17 @@ public class StatementRewriterTest {
     final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(
-        rewritten,
-        equalTo(
-            new Query(
-                location,
-                rewrittenSelect,
-                rewrittenRelation,
-                Optional.of(rewrittenWindow),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                optionalInt))
+    assertThat(rewritten, equalTo(new Query(
+        location,
+        rewrittenSelect,
+        rewrittenRelation,
+        Optional.of(rewrittenWindow),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        resultMaterialization,
+        staticQuery,
+        optionalInt))
     );
   }
 
@@ -246,18 +258,17 @@ public class StatementRewriterTest {
     final AstNode rewritten = rewriter.rewrite(query, context);
 
     // Then:
-    assertThat(
-        rewritten,
-        equalTo(
-            new Query(
-                location,
-                rewrittenSelect,
-                rewrittenRelation,
-                Optional.empty(),
-                Optional.empty(),
-                Optional.empty(),
-                Optional.of(rewrittenExpression),
-                optionalInt))
+    assertThat(rewritten, equalTo(new Query(
+        location,
+        rewrittenSelect,
+        rewrittenRelation,
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(rewrittenExpression),
+        resultMaterialization,
+        staticQuery,
+        optionalInt))
     );
   }
 

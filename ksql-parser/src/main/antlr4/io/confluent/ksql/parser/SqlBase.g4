@@ -77,7 +77,13 @@ query
       (WHERE where=booleanExpression)?
       (GROUP BY groupBy)?
       (HAVING having=booleanExpression)?
+      ((EMIT | WITH) resultMaterialization)?
       limitClause?
+    ;
+
+resultMaterialization
+    : CHANGES
+    | FINAL
     ;
 
 tableElements
@@ -324,8 +330,12 @@ nonReserved
     | IF
     | SOURCE | SINK
     | KEY
+    | FINAL | CHANGES
     ;
 
+EMIT: 'EMIT';
+CHANGES: 'CHANGES';
+FINAL: 'FINAL';
 SELECT: 'SELECT';
 FROM: 'FROM';
 AS: 'AS';

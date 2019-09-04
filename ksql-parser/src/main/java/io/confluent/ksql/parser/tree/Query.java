@@ -34,6 +34,8 @@ public class Query extends Statement {
   private final Optional<Expression> where;
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
+  private final ResultMaterialization resultMaterialization;
+  private final boolean staticQuery;
   private final OptionalInt limit;
 
   public Query(
@@ -45,7 +47,8 @@ public class Query extends Statement {
       final Optional<Expression> having,
       final OptionalInt limit
   ) {
-    this(Optional.empty(), select, from, window, where, groupBy, having, limit);
+    this(Optional.empty(), select, from, window, where, groupBy, having,
+        ResultMaterialization.CHANGES, false, limit);
   }
 
   public Query(
@@ -56,6 +59,8 @@ public class Query extends Statement {
       final Optional<Expression> where,
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
+      final ResultMaterialization resultMaterialization,
+      final boolean staticQuery,
       final OptionalInt limit
   ) {
     super(location);
@@ -65,6 +70,8 @@ public class Query extends Statement {
     this.where = requireNonNull(where, "where");
     this.groupBy = requireNonNull(groupBy, "groupBy");
     this.having = requireNonNull(having, "having");
+    this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+    this.staticQuery = staticQuery;
     this.limit = requireNonNull(limit, "limit");
   }
 
@@ -92,6 +99,14 @@ public class Query extends Statement {
     return having;
   }
 
+  public ResultMaterialization getResultMaterialization() {
+    return resultMaterialization;
+  }
+
+  public boolean isStatic() {
+    return staticQuery;
+  }
+
   public OptionalInt getLimit() {
     return limit;
   }
@@ -110,13 +125,18 @@ public class Query extends Statement {
         .add("where", where.orElse(null))
         .add("groupBy", groupBy.orElse(null))
         .add("having", having.orElse(null))
+        .add("resultMaterialization", resultMaterialization)
+        .add("static", staticQuery)
         .add("limit", limit)
         .omitNullValues()
         .toString();
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object obj) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+
     if (this == obj) {
       return true;
     }
@@ -124,17 +144,29 @@ public class Query extends Statement {
       return false;
     }
     final Query o = (Query) obj;
-    return Objects.equals(select, o.select)
+    return staticQuery == o.staticQuery
+        && Objects.equals(select, o.select)
         && Objects.equals(from, o.from)
         && Objects.equals(where, o.where)
         && Objects.equals(window, o.window)
         && Objects.equals(groupBy, o.groupBy)
         && Objects.equals(having, o.having)
+        && Objects.equals(resultMaterialization, o.resultMaterialization)
         && Objects.equals(limit, o.limit);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(select, from, where, window, groupBy, having, limit);
+    return Objects.hash(
+        select,
+        from,
+        where,
+        window,
+        groupBy,
+        having,
+        resultMaterialization,
+        staticQuery,
+        limit
+    );
   }
 }

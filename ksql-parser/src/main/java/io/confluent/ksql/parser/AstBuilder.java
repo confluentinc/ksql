@@ -103,6 +103,7 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -135,6 +136,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
@@ -167,6 +169,7 @@ public class AstBuilder {
     private final MetaStore metaStore;
 
     private int selectItemIndex = 0;
+    private boolean buildingPersistentQuery = false;
 
     Visitor(
         final DataSourceExtractor dataSourceExtractor,
@@ -255,10 +258,12 @@ public class AstBuilder {
     public Node visitCreateStreamAs(final SqlBaseParser.CreateStreamAsContext context) {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
+      final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
       return new CreateStreamAsSelect(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
-          visitQuery(context.query()),
+          query,
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties),
           getPartitionBy(context.identifier())
@@ -269,10 +274,12 @@ public class AstBuilder {
     public Node visitCreateTableAs(final SqlBaseParser.CreateTableAsContext context) {
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
+      final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
       return new CreateTableAsSelect(
           getLocation(context),
           ParserUtil.getQualifiedName(context.qualifiedName()),
-          visitQuery(context.query()),
+          query,
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties)
       );
@@ -307,10 +314,12 @@ public class AstBuilder {
                 + targetName + " is a table.");
       }
 
+      final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
+
       return new InsertInto(
           getLocation(context),
           targetName,
-          visitQuery(context.query()),
+          query,
           getPartitionBy(context.identifier()));
     }
 
@@ -373,6 +382,20 @@ public class AstBuilder {
           visit(context.selectItem(), SelectItem.class)
       );
 
+      final boolean staticQuery = context.WITH() != null
+          || (context.EMIT() == null && !buildingPersistentQuery);
+
+      final ResultMaterialization resultMaterialization = Optional
+          .ofNullable(context.resultMaterialization())
+          .map(rm -> rm.CHANGES() == null
+              ? ResultMaterialization.FINAL
+              : ResultMaterialization.CHANGES
+          )
+          .orElse(buildingPersistentQuery
+              ? ResultMaterialization.CHANGES
+              : ResultMaterialization.FINAL
+          );
+
       final OptionalInt limit = getLimit(context.limitClause());
 
       return new Query(
@@ -383,6 +406,8 @@ public class AstBuilder {
           visitIfPresent(context.where, Expression.class),
           visitIfPresent(context.groupBy(), GroupBy.class),
           visitIfPresent(context.having, Expression.class),
+          resultMaterialization,
+          staticQuery,
           limit
       );
     }
@@ -1256,6 +1281,19 @@ public class AstBuilder {
       }
 
       return source;
+    }
+
+    private <T> T withinPersistentQuery(final Supplier<T> task) {
+      if (buildingPersistentQuery) {
+        throw new UnsupportedOperationException("Nested query building not supported yet");
+      }
+
+      try {
+        buildingPersistentQuery = true;
+        return task.get();
+      } finally {
+        buildingPersistentQuery = false;
+      }
     }
 
     private static final class InvalidColumnReferenceException extends KsqlException {

@@ -24,17 +24,19 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
@@ -426,6 +428,162 @@ public class AstBuilderTest {
 
     // When:
     builder.build(stmt);
+  }
+
+  @Test
+  public void shouldDefaultToEmitFinalForBareQueries() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM TEST1;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
+  }
+
+  @Test
+  public void shouldDefaultToEmitChangesForCsas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldDefaultToEmitChangesForCtas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldDefaultToEmitChangesForInsertInto() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalOnBaseQuery() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM TEST1 EMIT FINAL;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitChangesOnBaseQuery() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("SELECT * FROM TEST1 EMIT CHANGES;");
+
+    // When:
+    final Query result = (Query) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitChangesForCsas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 EMIT CHANGES;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalForCsas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 EMIT FINAL;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.FINAL));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitChangesForCtas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY EMIT CHANGES;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalForCtas() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY EMIT Final;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.FINAL));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitChangesForInsertInto() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 EMIT CHANGES;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.CHANGES));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitFinalForInsertInto() {
+    // Given:
+    final SingleStatementContext stmt =
+        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 EMIT FINAL;");
+
+    // When:
+    final QueryContainer result = (QueryContainer) builder.build(stmt);
+
+    // Then:
+    assertThat(result.getQuery().getResultMaterialization(), is(ResultMaterialization.FINAL));
   }
 
   private static SingleStatementContext givenQuery(final String sql) {

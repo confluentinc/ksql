@@ -433,11 +433,11 @@ public class TestExecutor implements Closeable {
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 
-    if (!Objects.equals(expectedKey, actualKey)) {
+    if (!Objects.equals(actualKey, expectedKey)) {
       throw error;
     }
 
-    if (!Objects.equals(expectedValue, actualValue)) {
+    if (!Objects.equals(actualValue, expectedValue)) {
       throw error;
     }
 

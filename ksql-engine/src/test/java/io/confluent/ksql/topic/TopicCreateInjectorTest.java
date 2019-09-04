@@ -382,7 +382,8 @@ public class TopicCreateInjectorTest {
     assertThat(result.getStatementText(),
         equalTo(
             "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1) AS SELECT *"
-                + "\nFROM SOURCE SOURCE;"));
+                + "\nFROM SOURCE SOURCE\n"
+                + "EMIT CHANGES;"));
   }
 
   @Test

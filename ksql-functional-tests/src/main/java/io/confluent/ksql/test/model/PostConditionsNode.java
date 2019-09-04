@@ -26,7 +26,7 @@ import java.util.List;
 import org.hamcrest.Matcher;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PostConditionsNode {
+public final class PostConditionsNode {
 
   private final List<SourceNode> sources;
 

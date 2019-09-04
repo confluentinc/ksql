@@ -35,7 +35,6 @@ import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.RetryUtil;
-import io.confluent.rest.entities.ErrorMessage;
 import java.io.Closeable;
 import java.net.URL;
 import java.util.List;
@@ -143,7 +142,7 @@ public class RestTestExecutor implements Closeable {
     final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(statements);
 
     if (resp.isErroneous()) {
-      final Optional<Matcher<ErrorMessage>> expectedError = testCase.expectedError();
+      final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
       if (!expectedError.isPresent()) {
         throw new AssertionError(
             "Server failed to execute statement" + System.lineSeparator()
@@ -156,7 +155,7 @@ public class RestTestExecutor implements Closeable {
           + System.lineSeparator()
           + "Actual: " + resp.getErrorMessage();
 
-      assertThat(reason, resp.getErrorMessage(), expectedError.get());
+      assertThat(reason, resp, expectedError.get());
       return Optional.empty();
     }
 
@@ -255,20 +254,12 @@ public class RestTestExecutor implements Closeable {
             + " but was <" + actualKey + ", " + actualValue + "> "
             + "with timestamp=" + actualTimestamp);
 
-    if (actualKey != null) {
-      if (!actualKey.equals(expectedKey)) {
+    if (!Objects.equals(actualKey, expectedKey)) {
         throw error;
-      }
-    } else if (expectedKey != null) {
-      throw error;
     }
 
-    if (actualValue != null) {
-      if (!actualValue.equals(expectedValue)) {
+    if (!Objects.equals(actualValue, expectedValue)) {
         throw error;
-      }
-    } else if (expectedValue != null) {
-      throw error;
     }
 
     if (actualTimestamp != expectedTimestamp) {

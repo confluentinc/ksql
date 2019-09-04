@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
-public class RecordNode {
+public final class RecordNode {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 

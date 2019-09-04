@@ -74,7 +74,8 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Failed to prepare statement: Expected number columns and values to match: [ROWKEY, ID], ['10']"
+        "message": "Failed to prepare statement: Expected number columns and values to match: [ROWKEY, ID], ['10']",
+        "status": 400
       }
     }
   ]

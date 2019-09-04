@@ -19,10 +19,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCaseBuilderUtil;
 import io.confluent.ksql.test.tools.Topic;
-import io.confluent.rest.entities.ErrorMessage;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +73,7 @@ final class RestTestCaseBuilder {
           explicitFormat
       );
 
-      final Optional<Matcher<ErrorMessage>> ee = test.expectedError()
+      final Optional<Matcher<RestResponse<?>>> ee = test.expectedError()
           .map(een -> een.build(Iterables.getLast(statements)));
 
       final Map<String, Topic> topics = TestCaseBuilderUtil.getTopicsByName(

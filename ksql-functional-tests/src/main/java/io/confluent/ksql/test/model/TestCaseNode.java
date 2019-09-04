@@ -30,7 +30,7 @@ import java.util.Optional;
  * JSON serializable Pojo representing a test case.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TestCaseNode {
+public final class TestCaseNode {
 
   private final String name;
   private final List<String> formats;

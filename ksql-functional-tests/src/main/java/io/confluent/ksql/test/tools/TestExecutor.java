@@ -50,9 +50,7 @@ import java.util.stream.Collectors;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.common.serialization.BytesDeserializer;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.apache.kafka.streams.test.ConsumerRecordFactory;
@@ -186,22 +184,6 @@ public class TestExecutor implements Closeable {
             actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
             ranWithInsertStatements
         ));
-  }
-
-  private static void throwIfMoreOutputAvailable(
-      final TopologyTestDriver driver,
-      final TestCase testCase
-  ) {
-    testCase.getTopics().forEach(topic -> {
-      final ProducerRecord<Bytes, Bytes> record = driver.readOutput(
-          topic.getName(),
-          new BytesDeserializer(),
-          new BytesDeserializer());
-
-      if (record != null) {
-        throw new AssertionError("Unexpected records available on topic: " + topic.getName());
-      }
-    });
   }
 
   private static void validateTopicData(
@@ -451,19 +433,11 @@ public class TestExecutor implements Closeable {
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 
-    if (actualKey != null) {
-      if (!actualKey.equals(expectedKey)) {
-        throw error;
-      }
-    } else if (expectedKey != null) {
+    if (!Objects.equals(expectedKey, actualKey)) {
       throw error;
     }
 
-    if (actualValue != null) {
-      if (!actualValue.equals(expectedValue)) {
-        throw error;
-      }
-    } else if (expectedValue != null) {
+    if (!Objects.equals(expectedValue, actualValue)) {
       throw error;
     }
 

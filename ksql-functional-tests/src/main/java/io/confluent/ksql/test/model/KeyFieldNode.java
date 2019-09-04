@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 
 @JsonDeserialize(using = KeyFieldDeserializer.class)
-public class KeyFieldNode {
+public final class KeyFieldNode {
 
   public static final Optional<String> EXCLUDE_NAME = Optional
       .of("explicit check that name is not set");

@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.containsString;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.rest.client.RestResponse;
+import io.confluent.ksql.rest.client.RestResponseMatchers;
 import io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers;
@@ -35,35 +37,31 @@ public final class ExpectedErrorNode {
 
   private final Optional<String> type;
   private final Optional<String> message;
+  private final Optional<Integer> status;
 
   ExpectedErrorNode(
       @JsonProperty("type") final String type,
-      @JsonProperty("message") final String message
+      @JsonProperty("message") final String message,
+      @JsonProperty("status") final Integer status
   ) {
     this.type = Optional.ofNullable(type);
     this.message = Optional.ofNullable(message);
+    this.status = Optional.ofNullable(status);
 
-    if (!this.type.isPresent() && !this.message.isPresent()) {
-      throw new MissingFieldException("expectedException.type or expectedException.message");
+    if (!this.type.isPresent() && !this.message.isPresent() && !this.status.isPresent()) {
+      throw new MissingFieldException(
+          "expectedError.type, expectedError.message or expectedError.status");
     }
   }
 
-  public Matcher<ErrorMessage> build(final String lastStatement) {
+  public Matcher<RestResponse<?>> build(final String lastStatement) {
     final MatcherBuilder builder = new MatcherBuilder();
 
-    type
-        .map(ExpectedErrorNode::parseRestError)
-        .ifPresent(type -> {
-          builder.expect(type);
+    type.map(ExpectedErrorNode::parseRestError)
+        .ifPresent(type -> builder.expectErrorType(type, lastStatement));
 
-          if (KsqlStatementErrorMessage.class.isAssignableFrom(type)) {
-            // Ensure exception contains last statement, otherwise the test case is invalid:
-            builder
-                .expect(KsqlStatementErrorMessageMatchers.statement(containsString(lastStatement)));
-          }
-        });
-
-    message.ifPresent(builder::expectMessage);
+    message.ifPresent(builder::expectErrorMessage);
+    status.ifPresent(builder::expectStatus);
     return builder.build();
   }
 
@@ -82,23 +80,45 @@ public final class ExpectedErrorNode {
 
   private static class MatcherBuilder {
 
-    private final List<Matcher<?>> matchers = new ArrayList<>();
-
-    void expect(final Class<? extends ErrorMessage> type) {
-      matchers.add(instanceOf(type));
-    }
-
-    void expect(final Matcher<?> matcher) {
-      matchers.add(matcher);
-    }
-
-    void expectMessage(final String substring) {
-      matchers.add(KsqlErrorMessageMatchers.errorMessage(containsString(substring)));
-    }
+    private final List<Matcher<? super RestResponse<?>>> matchers = new ArrayList<>();
 
     @SuppressWarnings("unchecked")
-    Matcher<ErrorMessage> build() {
-      return allOf((List) new ArrayList<>(matchers));
+    void expectErrorType(
+        final Class<? extends ErrorMessage> type,
+        final String lastStatement
+    ) {
+      matchers.add(
+          RestResponseMatchers.hasErrorMessage(
+              instanceOf(type)
+          )
+      );
+
+      if (KsqlStatementErrorMessage.class.isAssignableFrom(type)) {
+          // Ensure exception contains last statement, otherwise the test case is invalid:
+          matchers.add(
+              RestResponseMatchers.hasErrorMessage(
+                  (Matcher)KsqlStatementErrorMessageMatchers.statement(containsString(lastStatement))
+              )
+          );
+      }
+    }
+
+    void expectErrorMessage(final String substring) {
+      matchers.add(
+          RestResponseMatchers.hasErrorMessage(
+            KsqlErrorMessageMatchers.errorMessage(containsString(substring))
+          )
+      );
+    }
+
+    void expectStatus(final int status) {
+      matchers.add(
+          RestResponseMatchers.hasStatus(status)
+      );
+    }
+
+    Matcher<RestResponse<?>> build() {
+      return allOf(matchers);
     }
   }
 }

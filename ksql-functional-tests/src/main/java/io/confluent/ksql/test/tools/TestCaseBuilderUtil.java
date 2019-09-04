@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.tools;
 
+import static com.google.common.io.Files.getNameWithoutExtension;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import io.confluent.connect.avro.AvroData;
@@ -78,7 +80,7 @@ public final class TestCaseBuilderUtil {
       final String testName,
       final Optional<String> explicitFormat
   ) {
-    final String fileName = com.google.common.io.Files.getNameWithoutExtension(testPath.toString());
+    final String fileName = getNameWithoutExtension(testPath.toString());
 
     final String pf = explicitFormat
         .map(f -> " - " + f)

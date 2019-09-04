@@ -20,11 +20,11 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Test;
 import io.confluent.ksql.test.tools.Topic;
-import io.confluent.rest.entities.ErrorMessage;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
@@ -43,7 +43,7 @@ class RestTestCase implements Test {
   private final ImmutableList<Record> outputRecords;
   private final ImmutableList<String> statements;
   private final ImmutableList<Response> responses;
-  private final Optional<Matcher<ErrorMessage>> expectedError;
+  private final Optional<Matcher<RestResponse<?>>> expectedError;
 
   RestTestCase(
       final Path testPath,
@@ -53,7 +53,7 @@ class RestTestCase implements Test {
       final Collection<Record> outputRecords,
       final Collection<String> statements,
       final Collection<Response> responses,
-      final Optional<Matcher<ErrorMessage>> expectedError
+      final Optional<Matcher<RestResponse<?>>> expectedError
   ) {
     this.name = requireNonNull(name, "name");
     this.testPath = requireNonNull(testPath, "testPath");
@@ -97,7 +97,7 @@ class RestTestCase implements Test {
     return responses;
   }
 
-  public Optional<Matcher<ErrorMessage>> expectedError() {
+  public Optional<Matcher<RestResponse<?>>> expectedError() {
     return expectedError;
   }
 }

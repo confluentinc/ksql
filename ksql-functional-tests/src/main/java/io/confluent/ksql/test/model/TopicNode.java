@@ -33,7 +33,7 @@ import io.confluent.ksql.test.utils.SerdeUtil;
 import java.util.Optional;
 import org.apache.avro.Schema;
 
-public class TopicNode {
+public final class TopicNode {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final String FORMAT_REPLACE_ERROR =

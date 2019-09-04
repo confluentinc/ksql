@@ -1163,7 +1163,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldExplainQueryStatement() {
     // Given:
-    final String ksqlQueryString = "SELECT * FROM test_stream;";
+    final String ksqlQueryString = "SELECT * FROM test_stream EMIT CHANGES;";
     final String ksqlString = "EXPLAIN " + ksqlQueryString;
 
     // When:

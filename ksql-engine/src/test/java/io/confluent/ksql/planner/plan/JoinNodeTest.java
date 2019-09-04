@@ -331,7 +331,7 @@ public class JoinNodeTest {
     // When:
     buildJoin(
           "SELECT t1.col0, t2.col0, t2.col1 "
-              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;"
+              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;"
     );
   }
 
@@ -1037,7 +1037,7 @@ public class JoinNodeTest {
     buildJoin(
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
             + "FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON t1.col1 = t2.col0;"
+            + "ON t1.col1 = t2.col0 EMIT CHANGES;"
     );
   }
 

@@ -126,7 +126,7 @@ public class AggregateNodeTest {
     // When:
     buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
         + "window TUMBLING (size 2 second) "
-        + "WHERE col0 > 100 GROUP BY col0;");
+        + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
@@ -145,7 +145,7 @@ public class AggregateNodeTest {
 
     // When:
     buildQuery("SELECT col0, col1, col2, sum(col3), count(col3) FROM test1 "
-        + "GROUP BY col0,col1,col2;");
+        + "GROUP BY col0,col1,col2 EMIT CHANGES;");
 
     // Then:
     final List<ValueMapper> valueMappers = mocker.collectValueMappers();
@@ -165,7 +165,7 @@ public class AggregateNodeTest {
     builder = mocker.createMockStreamBuilder();
 
     // When:
-    buildQuery("SELECT col0, sum(col3), count(col3), max(col3) FROM test1 GROUP BY col0;");
+    buildQuery("SELECT col0, sum(col3), count(col3), max(col3) FROM test1 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
     final List<ValueMapper> valueMappers = mocker.collectValueMappers();
@@ -181,7 +181,7 @@ public class AggregateNodeTest {
     // When:
     buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
         + "window TUMBLING (size 2 second) "
-        + "WHERE col0 > 100 GROUP BY col0;");
+        + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
     assertThat(builder.build().describe().subtopologies(), hasSize(1));
@@ -192,7 +192,7 @@ public class AggregateNodeTest {
     // When:
     buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
         + "window TUMBLING (size 2 second) "
-        + "GROUP BY col1;");
+        + "GROUP BY col1 EMIT CHANGES;");
 
     // Then:
     assertThat(builder.build().describe().subtopologies(), hasSize(2));
@@ -284,7 +284,7 @@ public class AggregateNodeTest {
     // When:
     buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 "
         + "window TUMBLING (size 2 second) "
-        + "GROUP BY col1;");
+        + "GROUP BY col1 EMIT CHANGES;");
 
     // Then:
     final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000007");
@@ -298,7 +298,7 @@ public class AggregateNodeTest {
     // When:
     final SchemaKStream stream = buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 "
         + "window TUMBLING (size 2 second) "
-        + "WHERE col0 > 100 GROUP BY col0;");
+        + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
     assertThat(stream.getSchema().valueFields(), contains(
@@ -321,7 +321,7 @@ public class AggregateNodeTest {
     return buildQuery("SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( "
         + "size 2 "
         + "second) "
-        + "WHERE col0 > 100 GROUP BY col0;", ksqlConfig);
+        + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;", ksqlConfig);
   }
 
   @SuppressWarnings("UnusedReturnValue")
@@ -334,14 +334,14 @@ public class AggregateNodeTest {
     return buildQuery("SELECT col1, sum(col3), count(col3) FROM test1 window TUMBLING ( "
         + "size 2 "
         + "second) "
-        + "GROUP BY col1;", ksqlConfig);
+        + "GROUP BY col1 EMIT CHANGES;", ksqlConfig);
   }
 
   @Test
   public void shouldCreateLoggers() {
     // When:
     final AggregateNode node = buildAggregateNode(
-        "SELECT col0, sum(col3), count(col3) FROM test1 GROUP BY col0;");
+        "SELECT col0, sum(col3), count(col3) FROM test1 GROUP BY col0 EMIT CHANGES;");
     buildQuery(node, KSQL_CONFIG);
 
     // Then:
@@ -366,7 +366,7 @@ public class AggregateNodeTest {
   public void shouldGroupByFunction() {
     // Given:
     final SchemaKStream<?> stream = buildQuery("SELECT UCASE(col1), sum(col3), count(col3) FROM test1 "
-        + "GROUP BY UCASE(col1);");
+        + "GROUP BY UCASE(col1) EMIT CHANGES;");
 
     // Then:
     assertThat(stream.getKeyField().name(), is(Optional.empty()));
@@ -377,7 +377,7 @@ public class AggregateNodeTest {
   public void shouldGroupByArithmetic() {
     // Given:
     final SchemaKStream<?> stream = buildQuery("SELECT col0 + 10, sum(col3), count(col3) FROM test1 "
-        + "GROUP BY col0 + 10;");
+        + "GROUP BY col0 + 10 EMIT CHANGES;");
 
     // Then:
     assertThat(stream.getKeyField().name(), is(Optional.empty()));

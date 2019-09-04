@@ -224,7 +224,7 @@ public class SchemaKTableTest {
   @Test
   public void testSelectSchemaKStream() {
     // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
@@ -258,7 +258,7 @@ public class SchemaKTableTest {
   @Test
   public void testSelectWithExpression() {
     // Given:
-    final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100;";
+    final String selectQuery = "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = new SchemaKTable<>(
@@ -291,7 +291,7 @@ public class SchemaKTableTest {
   @Test
   public void testFilter() {
     // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
@@ -329,7 +329,7 @@ public class SchemaKTableTest {
   @Test
   public void testGroupBy() {
     // Given:
-    final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
         kTable, logicalPlan.getTheSourceNode().getSchema(),
@@ -403,7 +403,7 @@ public class SchemaKTableTest {
     replay(mockKTable, mockKGroupedTable);
 
     // Build our test object from the mocks
-    final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = new SchemaKTable<>(
         mockKTable, logicalPlan.getTheSourceNode().getSchema(),
@@ -515,7 +515,7 @@ public class SchemaKTableTest {
   public void shouldUpdateKeyIfRenamed() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT col0 as NEWKEY, col2, col3 FROM test1;");
+        "SELECT col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -529,7 +529,7 @@ public class SchemaKTableTest {
   public void shouldUpdateKeyIfRenamedViaFullyQualifiedName() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1;");
+        "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -544,7 +544,7 @@ public class SchemaKTableTest {
   public void shouldUpdateKeyIfRenamedAndSourceIsAliased() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t;");
+        "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -559,7 +559,7 @@ public class SchemaKTableTest {
   public void shouldPreserveKeyOnSelectStar() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT * FROM test1;");
+        "SELECT * FROM test1 EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -575,7 +575,7 @@ public class SchemaKTableTest {
   public void shouldUpdateKeyIfMovedToDifferentIndex() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT col2, col0, col3 FROM test1;");
+        "SELECT col2, col0, col3 FROM test1 EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -590,7 +590,7 @@ public class SchemaKTableTest {
   public void shouldDropKeyIfNotSelected() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT col2, col3 FROM test1;");
+        "SELECT col2, col3 FROM test1 EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -604,7 +604,7 @@ public class SchemaKTableTest {
   public void shouldHandleSourceWithoutKey() {
     // Given:
     final List<SelectExpression> selectExpressions = givenInitialKTableOf(
-        "SELECT * FROM test4;");
+        "SELECT * FROM test4 EMIT CHANGES;");
 
     // When:
     final SchemaKStream result = initialSchemaKTable
@@ -617,7 +617,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldSetKeyOnGroupBySingleExpressionThatIsInProjection() {
     // Given:
-    givenInitialKTableOf("SELECT * FROM test2;");
+    givenInitialKTableOf("SELECT * FROM test2 EMIT CHANGES;");
     final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
 
     // When:

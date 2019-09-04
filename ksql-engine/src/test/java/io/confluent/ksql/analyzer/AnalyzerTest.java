@@ -124,7 +124,7 @@ public class AnalyzerTest {
 
   @Test
   public void testSimpleQueryAnalysis() {
-    final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+    final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
     Assert.assertNotNull("INTO is null", analysis.getInto());
     Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
@@ -167,7 +167,7 @@ public class AnalyzerTest {
     final Analysis analysis = analyzeQuery(
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
             + "FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON t1.col1 = t2.col1;", jsonMetaStore);
+            + "ON t1.col1 = t2.col1 EMIT CHANGES;", jsonMetaStore);
 
     // Then:
     assertThat(analysis.getFromDataSources(), hasSize(2));
@@ -194,7 +194,7 @@ public class AnalyzerTest {
   public void shouldHandleJoinOnRowKey() {
     // When:
     final Optional<JoinInfo> join = analyzeQuery(
-        "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.ROWKEY = t2.ROWKEY;",
+        "SELECT * FROM test1 t1 LEFT JOIN test2 t2 ON t1.ROWKEY = t2.ROWKEY EMIT CHANGES;",
         jsonMetaStore)
         .getJoin();
 
@@ -207,7 +207,7 @@ public class AnalyzerTest {
 
   @Test
   public void testBooleanExpressionAnalysis() {
-    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1;";
+    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());
@@ -236,7 +236,7 @@ public class AnalyzerTest {
 
   @Test
   public void testFilterAnalysis() {
-    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20;";
+    final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     Assert.assertNotNull("INTO is null", analysis.getInto());

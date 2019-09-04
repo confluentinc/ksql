@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
@@ -37,6 +38,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
+
+  private static final String NEW_QUERY_SYNTAX_HELP =
+      "'EMIT (CHANGES|FINAL)' is used to indicate a query is continuous."
+      + System.lineSeparator()
+      + "'WITH (CHANGES|FINAL)' is used to indicate a query is static."
+      + System.lineSeparator()
+      + "'FINAL' requests final results only, where as"
+      + System.lineSeparator()
+      + "'CHANGES' requests intermediate results.";
+
   private final MetaStore metaStore;
   private final String outputTopicPrefix;
   private final Set<SerdeOption> defaultSerdeOptions;
@@ -56,6 +67,23 @@ public class QueryAnalyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
+    if (query.isStatic()) {
+      throw new KsqlException("Static queries are not yet supported. "
+          + "Consider adding 'EMIT CHANGES' to any bare query, "
+          + "or removing 'WITH (CHANGES|FINAL)' if you've added it."
+          + System.lineSeparator()
+          + NEW_QUERY_SYNTAX_HELP
+      );
+    }
+
+    if (query.getResultMaterialization() != ResultMaterialization.CHANGES) {
+      throw new KsqlException("Continous queries do not yet support `EMIT FINAL`. "
+          + "Consider changing to `EMIT CHANGES`."
+          + System.lineSeparator()
+          + NEW_QUERY_SYNTAX_HELP
+      );
+    }
+
     return new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions)
         .analyze(query, sink);
   }

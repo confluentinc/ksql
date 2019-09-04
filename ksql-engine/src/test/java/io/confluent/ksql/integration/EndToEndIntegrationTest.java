@@ -165,7 +165,7 @@ public class EndToEndIntegrationTest {
 
   @Test
   public void shouldSelectAllFromUsers() throws Exception {
-    final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s;", USER_TABLE);
+    final TransientQueryMetadata queryMetadata = executeStatement("SELECT * from %s EMIT CHANGES;", USER_TABLE);
 
     final Set<?> expectedUsers = USER_DATA_PROVIDER.data().keySet();
 
@@ -184,7 +184,7 @@ public class EndToEndIntegrationTest {
   @Test
   public void shouldSelectFromPageViewsWithSpecificColumn() throws Exception {
     final TransientQueryMetadata queryMetadata =
-        executeStatement("SELECT pageid from %s;", PAGE_VIEW_STREAM);
+        executeStatement("SELECT pageid from %s EMIT CHANGES;", PAGE_VIEW_STREAM);
 
     final List<String> expectedPages =
         Arrays.asList("PAGE_1", "PAGE_2", "PAGE_3", "PAGE_4", "PAGE_5", "PAGE_5", "PAGE_5");
@@ -213,7 +213,7 @@ public class EndToEndIntegrationTest {
         USER_TABLE);
 
     final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT * from pageviews_female;");
+        "SELECT * from pageviews_female EMIT CHANGES;");
 
     final List<KeyValue<String, GenericRow>> results = new ArrayList<>();
     final BlockingQueue<KeyValue<String, GenericRow>> rowQueue = queryMetadata.getRowQueue();
@@ -275,7 +275,7 @@ public class EndToEndIntegrationTest {
         PAGE_VIEW_STREAM);
 
     final TransientQueryMetadata queryMetadata =
-        executeStatement("SELECT userid, pageid from pageviews_like_p5;");
+        executeStatement("SELECT userid, pageid from pageviews_like_p5 EMIT CHANGES;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
@@ -293,7 +293,7 @@ public class EndToEndIntegrationTest {
         PAGE_VIEW_STREAM);
 
     final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT * from pageviews_by_viewtime;");
+        "SELECT * from pageviews_by_viewtime EMIT CHANGES;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
@@ -320,7 +320,7 @@ public class EndToEndIntegrationTest {
     executeStatement(createStreamStatement);
 
     final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT * from cart_event_product;");
+        "SELECT * from cart_event_product EMIT CHANGES;");
 
     final List<Object> columns = waitForFirstRow(queryMetadata);
 
@@ -356,7 +356,7 @@ public class EndToEndIntegrationTest {
   public void shouldSupportConfigurableUdfs() throws Exception {
     // When:
     final TransientQueryMetadata queryMetadata = executeStatement(
-        "SELECT E2EConfigurableUdf(registertime) AS x from %s;", USER_TABLE);
+        "SELECT E2EConfigurableUdf(registertime) AS x from %s EMIT CHANGES;", USER_TABLE);
 
     // Then:
     final List<GenericRow> rows = verifyAvailableRows(queryMetadata, 5);

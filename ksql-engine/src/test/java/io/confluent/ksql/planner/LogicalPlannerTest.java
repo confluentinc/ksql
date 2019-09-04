@@ -22,7 +22,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -37,7 +36,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Assert;
@@ -57,7 +55,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void shouldCreatePlanWithTableAsSource() {
-    final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 limit 5;");
+    final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 EMIT CHANGES limit 5;");
     assertThat(planNode.getSources().size(), equalTo(1));
     final DataSource<?> dataSource = ((DataSourceNode) planNode
         .getSources()
@@ -73,7 +71,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleQueryLogicalPlan() {
-    final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+    final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
@@ -87,7 +85,7 @@ public class LogicalPlannerTest {
 
   @Test
   public void testSimpleLeftJoinLogicalPlan() {
-    final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1;";
+    final String simpleQuery = "SELECT t1.col1, t2.col1, t1.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON t1.col1 = t2.col1 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
@@ -106,7 +104,7 @@ public class LogicalPlannerTest {
     final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-        + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
+        + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
@@ -130,7 +128,7 @@ public class LogicalPlannerTest {
   public void testSimpleAggregateLogicalPlan() {
     final String simpleQuery = "SELECT col0, sum(col3), count(col3) FROM test1 window TUMBLING ( size 2 "
                          + "second) "
-                         + "WHERE col0 > 100 GROUP BY col0;";
+                         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
 
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
@@ -152,7 +150,7 @@ public class LogicalPlannerTest {
   public void testComplexAggregateLogicalPlan() {
     final String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
                          + "HOPPING ( size 2 second, advance by 1 second) "
-                         + "WHERE col0 > 100 GROUP BY col0;";
+                         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
 
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
@@ -173,7 +171,7 @@ public class LogicalPlannerTest {
   public void shouldCreateTableOutputForAggregateQuery() {
     final String simpleQuery = "SELECT col0, sum(floor(col3)*100)/count(col3) FROM test1 window "
         + "HOPPING ( size 2 second, advance by 1 second) "
-        + "WHERE col0 > 100 GROUP BY col0;";
+        + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
 
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
@@ -184,7 +182,7 @@ public class LogicalPlannerTest {
     final String
         simpleQuery =
         "SELECT t1.col1, t2.col1, col5, t2.col4, t2.col2 FROM test1 t1 LEFT JOIN test2 t2 ON "
-            + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8;";
+            + "t1.col1 = t2.col1 WHERE t1.col1 > 10 AND t2.col4 = 10.8 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
@@ -192,7 +190,7 @@ public class LogicalPlannerTest {
   @Test
   public void shouldCreateStreamOutputForStreamFilter() {
     final String
-        simpleQuery = "SELECT * FROM test1 WHERE col0 > 100;";
+        simpleQuery = "SELECT * FROM test1 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
@@ -200,7 +198,7 @@ public class LogicalPlannerTest {
   @Test
   public void shouldCreateTableOutputForTableFilter() {
     final String
-        simpleQuery = "SELECT * FROM test2 WHERE col4 = 10.8;";
+        simpleQuery = "SELECT * FROM test2 WHERE col4 = 10.8 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
@@ -208,7 +206,7 @@ public class LogicalPlannerTest {
   @Test
   public void shouldCreateStreamOutputForStreamProjection() {
     final String
-        simpleQuery = "SELECT col0 FROM test1;";
+        simpleQuery = "SELECT col0 FROM test1 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
@@ -216,21 +214,21 @@ public class LogicalPlannerTest {
   @Test
   public void shouldCreateTableOutputForTableProjection() {
     final String
-        simpleQuery = "SELECT col4 FROM test2;";
+        simpleQuery = "SELECT col4 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
 
   @Test
   public void shouldCreateStreamOutputForStreamStreamJoin() {
-    final String simpleQuery = "SELECT * FROM ORDERS INNER JOIN TEST1 ON ORDERS.ORDERID=TEST1.COL0;";
+    final String simpleQuery = "SELECT * FROM ORDERS INNER JOIN TEST1 ON ORDERS.ORDERID=TEST1.COL0 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KSTREAM));
   }
 
   @Test
   public void shouldCreateTableOutputForTableTableJoin() {
-    final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0;";
+    final String simpleQuery = "SELECT * FROM TEST2 INNER JOIN TEST3 ON TEST2.COL0=TEST3.COL0 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
     assertThat(logicalPlan.getNodeOutputType(), equalTo(DataSourceType.KTABLE));
   }
@@ -238,7 +236,7 @@ public class LogicalPlannerTest {
   @Test
   public void shouldUpdateKeyToReflectProjectionAlias() {
     // Given:
-    final String simpleQuery = "SELECT COL0 AS NEW_KEY FROM TEST2;";
+    final String simpleQuery = "SELECT COL0 AS NEW_KEY FROM TEST2 EMIT CHANGES;";
 
     // When:
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);

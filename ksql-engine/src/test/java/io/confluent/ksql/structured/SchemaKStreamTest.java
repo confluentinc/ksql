@@ -235,7 +235,7 @@ public class SchemaKStreamTest {
   public void testSelectSchemaKStream() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
@@ -261,7 +261,7 @@ public class SchemaKStreamTest {
   public void shouldUpdateKeyIfRenamed() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0 as NEWKEY, col2, col3 FROM test1;");
+        "SELECT col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -278,7 +278,7 @@ public class SchemaKStreamTest {
   public void shouldUpdateKeyIfRenamedViaFullyQualifiedName() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1;");
+        "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -295,7 +295,7 @@ public class SchemaKStreamTest {
   public void shouldUpdateKeyIfRenamedAndSourceIsAliased() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t;");
+        "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -311,7 +311,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldPreserveKeyOnSelectStar() {
     // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test1;");
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -328,7 +328,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldUpdateKeyIfMovedToDifferentIndex() {
     // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col0, col3 FROM test1;");
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col0, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -344,7 +344,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldDropKeyIfNotSelected() {
     // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col3 FROM test1;");
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -359,7 +359,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldHandleSourceWithoutKey() {
     // Given:
-    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test4;");
+    final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test4 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -375,7 +375,7 @@ public class SchemaKStreamTest {
   public void testSelectWithExpression() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, LEN(UCASE(col2)), col3*3+5 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     // When:
@@ -398,7 +398,7 @@ public class SchemaKStreamTest {
   public void testFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
@@ -425,7 +425,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldSelectKey() {
     // Given:
-    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final KeyField expected = KeyField.of(
         "TEST1.COL1",
@@ -445,7 +445,7 @@ public class SchemaKStreamTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnSelectKeyIfKeyNotInSchema() {
-    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
         "won't find me",
@@ -458,7 +458,7 @@ public class SchemaKStreamTest {
   @Test
   public void testGroupByKey() {
     // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final List<Expression> groupBy = Collections.singletonList(
         new DereferenceExpression(
@@ -479,7 +479,7 @@ public class SchemaKStreamTest {
   @Test
   public void testGroupByMultipleColumns() {
     // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final List<Expression> groupBy = ImmutableList.of(
         new DereferenceExpression(
@@ -502,7 +502,7 @@ public class SchemaKStreamTest {
   @Test
   public void testGroupByMoreComplexExpression() {
     // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final Expression groupBy = new FunctionCall(QualifiedName.of("UCASE"), ImmutableList.of(COL1));
 

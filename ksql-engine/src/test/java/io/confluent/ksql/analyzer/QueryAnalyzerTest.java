@@ -21,11 +21,12 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
@@ -80,7 +81,7 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldCreateAnalysisForSimpleQuery() {
     // Given:
-    final Query query = givenQuery("select orderid from orders;");
+    final Query query = givenQuery("select orderid from orders EMIT CHANGES;");
 
     // When:
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
@@ -97,7 +98,7 @@ public class QueryAnalyzerTest {
   public void shouldCreateAnalysisForCsas() {
     // Given:
     final PreparedStatement<CreateStreamAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create stream s as select col1 from test1;", metaStore);
+        "create stream s as select col1 from test1 EMIT CHANGES;", metaStore);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -120,7 +121,7 @@ public class QueryAnalyzerTest {
   public void shouldCreateAnalysisForCtas() {
     // Given:
     final PreparedStatement<CreateTableAsSelect> statement = KsqlParserTestUtil.buildSingleAst(
-        "create table t as select col1 from test2;", metaStore);
+        "create table t as select col1 from test2 EMIT CHANGES;", metaStore);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -143,7 +144,7 @@ public class QueryAnalyzerTest {
   public void shouldCreateAnalysisForInsertInto() {
     // Given:
     final PreparedStatement<InsertInto> statement = KsqlParserTestUtil.buildSingleAst(
-        "insert into test0 select col1 from test1;", metaStore);
+        "insert into test0 select col1 from test1 EMIT CHANGES;", metaStore);
     final Query query = statement.getStatement().getQuery();
     final Optional<Sink> sink = Optional.of(statement.getStatement().getSink());
 
@@ -171,7 +172,7 @@ public class QueryAnalyzerTest {
     // Given:
     final Query query = givenQuery(
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
-            "where orderunits > 5 group by itemid;");
+            "where orderunits > 5 group by itemid EMIT CHANGES;");
 
     // When:
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
@@ -187,7 +188,7 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldThrowIfAggregateAnalysisDoesNotHaveGroupBy() {
     // Given:
-    final Query query = givenQuery("select itemid, sum(orderunits) from orders;");
+    final Query query = givenQuery("select itemid, sum(orderunits) from orders EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -203,7 +204,7 @@ public class QueryAnalyzerTest {
   public void shouldThrowOnAdditionalNonAggregateSelects() {
     // Given:
     final Query query = givenQuery(
-        "select itemid, orderid, sum(orderunits) from orders group by itemid;");
+        "select itemid, orderid, sum(orderunits) from orders group by itemid EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -219,7 +220,7 @@ public class QueryAnalyzerTest {
   public void shouldThrowOnAdditionalNonAggregateHavings() {
     // Given:
     final Query query = givenQuery(
-        "select sum(orderunits) from orders group by itemid having orderid = 1;");
+        "select sum(orderunits) from orders group by itemid having orderid = 1 EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -235,7 +236,7 @@ public class QueryAnalyzerTest {
   public void shouldProcessGroupByExpression() {
     // Given:
     final Query query = givenQuery(
-        "select sum(orderunits) from orders group by itemid;");
+        "select sum(orderunits) from orders group by itemid EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -250,7 +251,7 @@ public class QueryAnalyzerTest {
   public void shouldProcessGroupByArithmetic() {
     // Given:
     final Query query = givenQuery(
-        "select sum(orderunits) from orders group by itemid + 1;");
+        "select sum(orderunits) from orders group by itemid + 1 EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -265,7 +266,7 @@ public class QueryAnalyzerTest {
   public void shouldProcessGroupByFunction() {
     // Given:
     final Query query = givenQuery(
-        "select sum(orderunits) from orders group by ucase(itemid);");
+        "select sum(orderunits) from orders group by ucase(itemid) EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -280,7 +281,7 @@ public class QueryAnalyzerTest {
   public void shouldProcessGroupByConstant() {
     // Given:
     final Query query = givenQuery(
-        "select sum(orderunits) from orders group by 1;");
+        "select sum(orderunits) from orders group by 1 EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -294,7 +295,7 @@ public class QueryAnalyzerTest {
   public void shouldThrowIfGroupByAggFunction() {
     // Given:
     final Query query = givenQuery(
-        "select sum(orderunits) from orders group by sum(orderid);");
+        "select sum(orderunits) from orders group by sum(orderid) EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -312,7 +313,7 @@ public class QueryAnalyzerTest {
     // Given:
     final Query query = givenQuery(
         "select itemid, sum(orderunits) from orders window TUMBLING ( size 30 second) " +
-            "where orderunits > 5 group by itemid having count(itemid) > 10;");
+            "where orderunits > 5 group by itemid having count(itemid) > 10 EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -330,13 +331,13 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldFailWithIncorrectJoinCriteria() {
     // Given:
-    final Query query = givenQuery("select * from test1 join test2 on test1.col1 = test2.coll;");
+    final Query query = givenQuery("select * from test1 join test2 on test1.col1 = test2.coll EMIT CHANGES;");
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). "
             + "Could not find a join criteria operand for TEST2."
-    ));
+    );
 
     // When:
     queryAnalyzer.analyze(query, Optional.empty());
@@ -345,15 +346,15 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldFailOnSelectStarWithGroupBy() {
     // Given:
-    final Query query = givenQuery("select *, count() from orders group by itemid;");
+    final Query query = givenQuery("select *, count() from orders group by itemid EMIT CHANGES;");
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
             + "[ORDERS.ORDERTIME, ORDERS.ROWTIME, ORDERS.ROWKEY, ORDERS.ORDERUNITS, ORDERS.MAPCOL, "
             + "ORDERS.ORDERID, ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
-    ));
+    );
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -363,7 +364,8 @@ public class QueryAnalyzerTest {
   public void shouldHandleSelectStarWithCorrectGroupBy() {
     // Given:
     final Query query = givenQuery("select *, count() from orders group by "
-        + "ROWTIME, ROWKEY, ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS;");
+        + "ROWTIME, ROWKEY, ITEMID, ORDERTIME, ORDERUNITS, MAPCOL, ORDERID, ITEMINFO, ARRAYCOL, ADDRESS"
+        + " EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
@@ -383,14 +385,14 @@ public class QueryAnalyzerTest {
   public void shouldThrowIfSelectContainsUdfNotInGroupBy() {
     // Given:
     final Query query = givenQuery("select substring(orderid, 1, 2), count(*) "
-        + "from orders group by substring(orderid, 2, 5);");
+        + "from orders group by substring(orderid, 2, 5) EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: [SUBSTRING(ORDERS.ORDERID, 1, 2)]"
-    ));
+    );
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -400,15 +402,15 @@ public class QueryAnalyzerTest {
   public void shouldThrowIfSelectContainsReversedStringConcatExpression() {
     // Given:
     final Query query = givenQuery("select itemid + address->street, count(*) "
-        + "from orders group by address->street + itemid;");
+        + "from orders group by address->street + itemid EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
             + "[(ORDERS.ITEMID + FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET'))]"
-    ));
+    );
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -418,14 +420,14 @@ public class QueryAnalyzerTest {
   public void shouldThrowIfSelectContainsFieldsUsedInExpressionInGroupBy() {
     // Given:
     final Query query = givenQuery("select orderId, count(*) "
-        + "from orders group by orderid + orderunits;");
+        + "from orders group by orderid + orderunits EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: [ORDERS.ORDERID]"
-    ));
+    );
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -435,15 +437,15 @@ public class QueryAnalyzerTest {
   public void shouldThrowIfSelectContainsIncompatibleBinaryArithmetic() {
     // Given:
     final Query query = givenQuery("SELECT orderId - ordertime, COUNT(*) "
-        + "FROM ORDERS GROUP BY ordertime - orderId;");
+        + "FROM ORDERS GROUP BY ordertime - orderId EMIT CHANGES;");
 
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
             + "[(ORDERS.ORDERID - ORDERS.ORDERTIME)]"
-    ));
+    );
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -452,13 +454,13 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldThrowIfGroupByMissingAggregateSelectExpressions() {
     // Given:
-    final Query query = givenQuery("select orderid from orders group by orderid;");
+    final Query query = givenQuery("select orderid from orders group by orderid EMIT CHANGES;");
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(containsString(
+    expectedException.expectMessage(
         "GROUP BY requires columns using aggregate functions in SELECT clause."
-    ));
+    );
 
     // When:
     queryAnalyzer.analyzeAggregate(query, analysis);
@@ -478,6 +480,20 @@ public class QueryAnalyzerTest {
     // Then:
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat().getFormat(),
         is(Format.DELIMITED));
+  }
+
+  @Test
+  public void shouldRejectStaticQueries() {
+    // Given:
+    final Query query = mock(Query.class);
+    when(query.isStatic()).thenReturn(true);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Static queries are not yet supported");
+
+    // When:
+    queryAnalyzer.analyze(query, Optional.empty());
   }
 
   private Query givenQuery(final String sql) {

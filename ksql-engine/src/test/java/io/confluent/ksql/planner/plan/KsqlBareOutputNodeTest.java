@@ -63,7 +63,7 @@ public class KsqlBareOutputNodeTest {
   private static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
   private static final String FILTER_NODE = "KSTREAM-FILTER-0000000003";
   private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
-  private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+  private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 
   private SchemaKStream stream;
   private StreamsBuilder builder;
@@ -78,7 +78,6 @@ public class KsqlBareOutputNodeTest {
   @Mock
   private KeySerde<Struct> keySerde;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void before() {
     builder = new StreamsBuilder();
@@ -140,7 +139,7 @@ public class KsqlBareOutputNodeTest {
     // Given:
     final KsqlBareOutputNode node
         = (KsqlBareOutputNode) AnalysisTestUtil
-        .buildLogicalPlan(ksqlConfig, "select col0 from test1;", metaStore);
+        .buildLogicalPlan(ksqlConfig, "select col0 from test1 EMIT CHANGES;", metaStore);
     final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
     // When:

@@ -63,7 +63,7 @@ public class SelectValueMapperTest {
   public void shouldSelectChosenColumns() {
     // Given:
     final SelectValueMapper selectMapper = givenSelectMapperFor(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
     final GenericRow transformed = selectMapper.apply(
@@ -77,7 +77,7 @@ public class SelectValueMapperTest {
   public void shouldApplyUdfsToColumns() {
     // Given:
     final SelectValueMapper selectMapper = givenSelectMapperFor(
-        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
     final GenericRow row = selectMapper.apply(
@@ -91,7 +91,7 @@ public class SelectValueMapperTest {
   public void shouldHandleNullRows() {
     // Given:
     final SelectValueMapper selectMapper = givenSelectMapperFor(
-        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
     final GenericRow row = selectMapper.apply(null);
@@ -105,7 +105,7 @@ public class SelectValueMapperTest {
   public void shouldWriteProcessingLogOnError() {
     // Given:
     final SelectValueMapper selectMapper = givenSelectMapperFor(
-        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
     selectMapper.apply(

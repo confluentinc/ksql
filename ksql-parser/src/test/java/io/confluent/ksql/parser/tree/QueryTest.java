@@ -57,42 +57,42 @@ public class QueryTest {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new Query(SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT),
-            new Query(SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT),
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT),
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT),
             new Query(Optional.of(SOME_LOCATION), SOME_SELECT, SOME_FROM, SOME_WINDOW,
                 SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT),
             new Query(Optional.of(OTHER_LOCATION), SOME_SELECT, SOME_FROM, SOME_WINDOW,
                 SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(OTHER_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
+            new Query(Optional.empty(), OTHER_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(SOME_SELECT, OTHER_RELATION, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, OTHER_RELATION, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(SOME_SELECT, SOME_FROM, Optional.empty(),
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, Optional.empty(), SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                Optional.empty(), SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, Optional.empty(),
+                SOME_GROUP_BY, SOME_HAVING, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, Optional.empty(), SOME_HAVING, SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                Optional.empty(), SOME_HAVING, SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, Optional.empty(), SOME_LIMIT)
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, Optional.empty(), SOME_LIMIT)
         )
         .addEqualityGroup(
-            new Query(SOME_SELECT, SOME_FROM, SOME_WINDOW,
-                SOME_WHERE, SOME_GROUP_BY, SOME_HAVING, OptionalInt.empty())
+            new Query(Optional.empty(), SOME_SELECT, SOME_FROM, SOME_WINDOW, SOME_WHERE,
+                SOME_GROUP_BY, SOME_HAVING, OptionalInt.empty())
         )
         .testEquals();
   }

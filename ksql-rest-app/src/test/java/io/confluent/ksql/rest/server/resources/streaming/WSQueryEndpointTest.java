@@ -157,10 +157,8 @@ public class WSQueryEndpointTest {
 
   @Before
   public void setUp() {
-    query = new Query(
-      mock(Select.class), mock(Relation.class),
-        Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty()
-    );
+    query = new Query(Optional.empty(), mock(Select.class), mock(Relation.class), Optional.empty(),
+        Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty());
     when(session.getId()).thenReturn("session-id");
     when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))

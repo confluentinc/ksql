@@ -74,6 +74,7 @@ public class ParserModelTest {
       .put(InListExpression.class, new InListExpression(ImmutableList.of(DEFAULT_TYPE)))
       .put(Type.class, DEFAULT_TYPE)
       .put(Query.class, new Query(
+          Optional.empty(),
           DEFAULT_SELECT,
           DEFAULT_RELATION,
           Optional.empty(),

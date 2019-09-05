@@ -56,6 +56,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
+import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
 import java.util.LinkedList;
 import java.util.Optional;
@@ -119,6 +120,8 @@ public class KsqlRestApplicationTest {
   private KsqlServerPrecondition precondition1;
   @Mock
   private KsqlServerPrecondition precondition2;
+  @Mock
+  private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private PreparedStatement<CreateSource> logCreateStatement;
   private KsqlRestApplication app;
 
@@ -164,7 +167,8 @@ public class KsqlRestApplicationTest {
         securityExtension,
         serverState,
         processingLogContext,
-        ImmutableList.of(precondition1, precondition2)
+        ImmutableList.of(precondition1, precondition2),
+        rocksDBConfigSetterHandler
     );
   }
 
@@ -350,5 +354,14 @@ public class KsqlRestApplicationTest {
     inOrder.verify(serverState).setInitializingReason(error2);
     inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
     inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+  }
+
+  @Test
+  public void shouldConfigureRocksDBConfigSetter() {
+    // When:
+    app.startKsql();
+
+    // Then:
+    verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
   }
 }

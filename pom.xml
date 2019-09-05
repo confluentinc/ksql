@@ -57,6 +57,7 @@
         <module>ksql-test-util</module>
         <module>ksql-benchmark</module>
         <module>ksql-functional-tests</module>
+        <module>ksql-rocksdb-config-setter</module>
     </modules>
 
     <repositories>

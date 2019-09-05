@@ -66,6 +66,7 @@ import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -97,6 +98,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -137,11 +139,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
   private final List<KsqlServerPrecondition> preconditions;
+  private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
+  @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -160,7 +164,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
-      final List<KsqlServerPrecondition> preconditions
+      final List<KsqlServerPrecondition> preconditions,
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     super(config);
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
@@ -183,8 +188,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.serviceContextBinderFactory = Objects.requireNonNull(
         serviceContextBinderFactory, "serviceContextBinderFactory");
     this.securityExtension = Objects.requireNonNull(
-        securityExtension, "securityExtension"
-    );
+        securityExtension, "securityExtension");
+    this.rocksDBConfigSetterHandler = Objects.requireNonNull(
+        rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
   }
 
   @Override
@@ -250,6 +256,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   private void initialize() {
+    rocksDBConfigSetterHandler.accept(ksqlConfig);
+
     final String commandTopic = commandStore.getCommandTopicName();
     KsqlInternalTopicUtils.ensureTopic(
         commandTopic,
@@ -543,6 +551,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         KsqlServerPrecondition.class
     );
 
+    final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
+        RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
+
     return new KsqlRestApplication(
         serviceContext,
         ksqlEngine,
@@ -559,7 +570,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         securityExtension,
         serverState,
         processingLogContext,
-        preconditions
+        preconditions,
+        rocksDBConfigSetterHandler
     );
   }
 
@@ -596,7 +608,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     writer.flush();
   }
 
-  static void maybeCreateProcessingLogStream(
+  private static void maybeCreateProcessingLogStream(
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,

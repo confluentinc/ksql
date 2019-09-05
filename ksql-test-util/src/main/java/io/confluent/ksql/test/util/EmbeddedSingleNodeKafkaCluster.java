@@ -43,7 +43,6 @@ import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
 import kafka.security.auth.PermissionType$;
 import kafka.security.auth.ResourceType$;
-import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -91,7 +90,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private final Map<String, Object> brokerConfig = new HashMap<>();
   private final Map<String, Object> clientConfig = new HashMap<>();
   private final TemporaryFolder tmpFolder = new TemporaryFolder();
-  private final SimpleAclAuthorizer authorizer = new SimpleAclAuthorizer();
+  @SuppressWarnings("deprecation")
+  private final kafka.security.auth.SimpleAclAuthorizer authorizer =
+      new kafka.security.auth.SimpleAclAuthorizer();
   private final Set<kafka.security.auth.Resource> addedAcls = new HashSet<>();
   private final Map<AclKey, Set<AclOperation>> initialAcls;
 
@@ -121,12 +122,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Creates and starts a Kafka cluster.
    */
+  @SuppressWarnings("deprecation")
   public void start() throws Exception {
     log.debug("Initiating embedded Kafka cluster startup");
 
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
-    brokerConfig.put(SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
+    brokerConfig.put(kafka.security.auth.SimpleAclAuthorizer.ZkUrlProp(),
+        zookeeper.connectString());
     // Streams runs multiple consumers, so let's give them all a chance to join.
     // (Tests run quicker and with a more stable consumer group):
     brokerConfig.put("group.initial.rebalance.delay.ms", 100);
@@ -454,9 +457,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final StringBuilder additionalJaasConfig = new StringBuilder();
     private final Map<AclKey, Set<AclOperation>> acls = new HashMap<>();
 
+    @SuppressWarnings("deprecation")
     Builder() {
-      brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(), SimpleAclAuthorizer.class.getName());
-      brokerConfig.put(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(), true);
+      brokerConfig.put(KafkaConfig.AuthorizerClassNameProp(),
+          kafka.security.auth.SimpleAclAuthorizer.class.getName());
+      brokerConfig.put(kafka.security.auth.SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp(),
+          true);
       brokerConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
     }
 
@@ -485,9 +491,11 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
       return this;
     }
 
+    @SuppressWarnings("deprecation")
     public Builder withAclsEnabled(final String... superUsers) {
-      brokerConfig.remove(SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
-      brokerConfig.put(SimpleAclAuthorizer.SuperUsersProp(),
+      brokerConfig.remove(
+          kafka.security.auth.SimpleAclAuthorizer.AllowEveryoneIfNoAclIsFoundProp());
+      brokerConfig.put(kafka.security.auth.SimpleAclAuthorizer.SuperUsersProp(),
           Stream.concat(Arrays.stream(superUsers), Stream.of("broker"))
               .map(s -> "User:" + s)
               .collect(Collectors.joining(";")));

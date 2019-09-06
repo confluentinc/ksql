@@ -79,33 +79,65 @@ public class DataGenProducer {
         valueSerializer
     );
 
-    for (int i = 0; i < messageCount; i++) {
-      rateLimiter.ifPresent(RateLimiter::acquire);
-
-      final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
-
-      final ProducerRecord<Struct, GenericRow> producerRecord = new ProducerRecord<>(
-          kafkaTopicName,
-          genericRowPair.getLeft(),
-          genericRowPair.getRight()
-      );
-
-      producer.send(producerRecord,
-          new LoggingCallback(kafkaTopicName,
-              genericRowPair.getLeft(),
-              genericRowPair.getRight(),
-              printRows));
-
-      try {
-        final long interval = maxInterval < 0 ? INTER_MESSAGE_MAX_INTERVAL : maxInterval;
-
-        Thread.sleep((long) (interval * Math.random()));
-      } catch (final InterruptedException e) {
-        // Ignore the exception.
+    if (messageCount != -1) {
+      for (int i = 0; i < messageCount; i++) {
+        produceOne(
+            rowGenerator,
+            producer,
+            kafkaTopicName,
+            maxInterval,
+            printRows,
+            rateLimiter
+        );
+      }
+    } else {
+      while (true) {
+        produceOne(
+            rowGenerator,
+            producer,
+            kafkaTopicName,
+            maxInterval,
+            printRows,
+            rateLimiter
+        );
       }
     }
+
     producer.flush();
     producer.close();
+  }
+
+  private void produceOne(
+      final RowGenerator rowGenerator,
+      final KafkaProducer<Struct, GenericRow> producer,
+      final String kafkaTopicName,
+      final long maxInterval,
+      final boolean printRows,
+      final Optional<RateLimiter> rateLimiter
+  ) {
+    rateLimiter.ifPresent(RateLimiter::acquire);
+
+    final Pair<Struct, GenericRow> genericRowPair = rowGenerator.generateRow();
+
+    final ProducerRecord<Struct, GenericRow> producerRecord = new ProducerRecord<>(
+        kafkaTopicName,
+        genericRowPair.getLeft(),
+        genericRowPair.getRight()
+    );
+
+    producer.send(producerRecord,
+        new LoggingCallback(kafkaTopicName,
+            genericRowPair.getLeft(),
+            genericRowPair.getRight(),
+            printRows));
+
+    try {
+      final long interval = maxInterval < 0 ? INTER_MESSAGE_MAX_INTERVAL : maxInterval;
+
+      Thread.sleep((long) (interval * Math.random()));
+    } catch (final InterruptedException e) {
+      // Ignore the exception.
+    }
   }
 
   private Serializer<Struct> getKeySerializer() {

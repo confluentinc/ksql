@@ -1,0 +1,7 @@
+{
+  "inputs": [
+    {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
+    {"topic": "test_topic", "key": 100, "value": "100,foo,0.0"},
+    {"topic": "test_topic", "key": 101, "value": "101,BaR,0.0"}
+  ]
+}

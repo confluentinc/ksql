@@ -200,3 +200,9 @@ the testing tool first processes the input messages provided in the input file. 
 the testing tool inspects the source topics for the query in the simulated Kafka cluster and processes any messages in these topics.
 For the JOIN queries where we have more than one source topic, the testing tool first processes the left-side topic and
 then processes the right hand side topic.
+
+UDFs and UDAFs
+--------------
+
+The KSQL testing tool supports UDFs and UDAFs the same as KSQL. However, unlike KSQL where the location of the jar file that contains the UDF/UDAF code is configured by ``ksql.extension.dir``,
+in the KSQL testing tool, you should put the jar file in the same folder as the test statements file.

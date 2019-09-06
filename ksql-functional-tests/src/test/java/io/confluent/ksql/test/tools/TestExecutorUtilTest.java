@@ -27,6 +27,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.utils.TestRunnerFunctionRegistryUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
@@ -59,7 +60,10 @@ public class TestExecutorUtilTest {
     ).get(0);
 
     serviceContext = TestExecutor.getServiceContext();
-    ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
+    ksqlEngine = TestExecutor.getKsqlEngine(
+        serviceContext,
+        TestRunnerFunctionRegistryUtil.getFunctionRegistry(
+            new File("src/test/resources/testing_tool_tests.json")));
     ksqlConfig = new KsqlConfig(TestExecutor.getConfigs(Collections.emptyMap()));
     fakeKafkaService = FakeKafkaService.create();
   }

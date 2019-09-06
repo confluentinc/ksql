@@ -23,7 +23,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,9 +42,15 @@ import org.apache.kafka.streams.StreamsConfig;
 
 public class TestExecutor implements Closeable {
 
-  private final ServiceContext serviceContext = getServiceContext();
-  private final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext);
-  private final Map<String, Object> config = getConfigs(new HashMap<>());
+  private final ServiceContext serviceContext;
+  private final KsqlEngine ksqlEngine;
+  private final Map<String, Object> config;
+
+  public TestExecutor(final FunctionRegistry functionRegistry) {
+    serviceContext = getServiceContext();
+    ksqlEngine = getKsqlEngine(serviceContext, functionRegistry);
+    config = getConfigs(new HashMap<>());
+  }
 
   private final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
 
@@ -157,8 +163,11 @@ public class TestExecutor implements Closeable {
     return TestServiceContext.create(() -> schemaRegistryClient);
   }
 
-  static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
-    final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
+  static KsqlEngine getKsqlEngine(
+      final ServiceContext serviceContext,
+      final FunctionRegistry functionRegistry) {
+    final MutableMetaStore metaStore = new MetaStoreImpl(
+        functionRegistry);
     return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
   }
 

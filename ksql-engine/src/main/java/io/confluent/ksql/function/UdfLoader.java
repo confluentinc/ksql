@@ -85,7 +85,7 @@ public class UdfLoader {
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  UdfLoader(
+  public UdfLoader(
       final MutableFunctionRegistry functionRegistry,
       final File pluginDir,
       final ClassLoader parentClassLoader,
@@ -125,7 +125,7 @@ public class UdfLoader {
   }
 
   // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
-  public void loadUdfFromClass(final Class<?> ... udfClass) {
+  void loadUdfFromClass(final Class<?> ... udfClass) {
     for (final Class<?> theClass: udfClass) {
       //classes must be annotated with @UdfDescription
       final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
@@ -134,7 +134,7 @@ public class UdfLoader {
             + "be annotated with @UdfDescription.", theClass.getName()));
       }
       //method must be public and annotated with @Udf
-      for (Method m: theClass.getDeclaredMethods()) {
+      for (final Method m: theClass.getDeclaredMethods()) {
         if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
           handleUdfAnnotation(theClass,
                               udfDescription,

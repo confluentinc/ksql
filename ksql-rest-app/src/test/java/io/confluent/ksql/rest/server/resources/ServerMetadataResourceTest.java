@@ -15,24 +15,12 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerClusterId;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import javax.ws.rs.core.Response;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DescribeClusterResult;
 import org.apache.kafka.common.KafkaFuture;
@@ -43,7 +31,21 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
-public class ServerInfoResourceTest {
+import javax.ws.rs.core.Response;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
+public class ServerMetadataResourceTest {
   private static final String KSQL_SERVICE_ID = "ksql.foo";
   private static final String KAFKA_CLUSTER_ID = "kafka.bar";
 
@@ -56,11 +58,11 @@ public class ServerInfoResourceTest {
   @Mock
   private KafkaFuture<String> future;
 
-  private ServerInfoResource serverInfoResource = null;
+  private ServerMetadataResource serverMetadataResource;
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(
       ImmutableMap.of(
-        KsqlConfig.KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID
+          KsqlConfig.KSQL_SERVICE_ID_CONFIG, KSQL_SERVICE_ID
       )
   );
 
@@ -74,29 +76,48 @@ public class ServerInfoResourceTest {
     when(describeClusterResult.clusterId()).thenReturn(future);
     when(future.get(anyLong(), any())).thenReturn(KAFKA_CLUSTER_ID);
 
-    serverInfoResource = new ServerInfoResource(serviceContext, ksqlConfig);
+    serverMetadataResource = ServerMetadataResource.create(serviceContext, ksqlConfig);
   }
 
   @Test
-  public void shouldReturnServerInfo() {
+  public void shouldReturnServerMetadata() {
     // When:
-    final Response response = serverInfoResource.get();
+    final Response response = serverMetadataResource.getServerMetadata();
 
     // Then:
     assertThat(response.getStatus(), equalTo(200));
-    assertThat(response.getEntity(), instanceOf(ServerInfo.class));
-    final ServerInfo serverInfo = (ServerInfo)response.getEntity();
+    assertThat(response.getEntity(), instanceOf(ServerMetadata.class));
+    final ServerMetadata serverMetadata = (ServerMetadata)response.getEntity();
     assertThat(
-        serverInfo,
-        equalTo(new ServerInfo(Version.getVersion(), KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
+        serverMetadata,
+        equalTo(new ServerMetadata(
+            Version.getVersion(),
+            ServerClusterId.of(KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
+        )
     );
   }
+
+  @Test
+  public void shouldReturnServerClusterId() {
+    // When:
+    final Response response = serverMetadataResource.getServerClusterId();
+
+    // Then:
+    assertThat(response.getStatus(), equalTo(200));
+    assertThat(response.getEntity(), instanceOf(ServerClusterId.class));
+    final ServerClusterId serverClusterId = (ServerClusterId)response.getEntity();
+    assertThat(
+        serverClusterId,
+        equalTo(ServerClusterId.of(KAFKA_CLUSTER_ID, KSQL_SERVICE_ID))
+    );
+  }
+
 
   @Test
   public void shouldGetKafkaClusterIdWithTimeout()
       throws InterruptedException, ExecutionException, TimeoutException{
     // When:
-    serverInfoResource.get();
+    serverMetadataResource.getServerMetadata();
 
     // Then:
     verify(future).get(30, TimeUnit.SECONDS);
@@ -105,8 +126,8 @@ public class ServerInfoResourceTest {
   @Test
   public void shouldGetKafkaClusterIdOnce() {
     // When:
-    serverInfoResource.get();
-    serverInfoResource.get();
+    serverMetadataResource.getServerMetadata();
+    serverMetadataResource.getServerMetadata();
 
     // Then:
     verify(adminClient).describeCluster();

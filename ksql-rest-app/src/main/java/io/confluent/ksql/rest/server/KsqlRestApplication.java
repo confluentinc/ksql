@@ -50,6 +50,7 @@ import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
@@ -193,6 +194,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
     config.register(rootDocument);
     config.register(new ServerInfoResource(serviceContext, ksqlConfigNoPort));
+    config.register(ServerMetadataResource.create(serviceContext, ksqlConfigNoPort));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -15,37 +15,50 @@
 
 package io.confluent.ksql.rest.server.resources;
 
-import com.google.common.base.Suppliers;
-import io.confluent.ksql.rest.entity.ServerInfo;
+import io.confluent.ksql.rest.entity.ServerClusterId;
+import io.confluent.ksql.rest.entity.ServerMetadata;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
-import java.util.function.Supplier;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-@Path("/info")
+@Path("/metadata")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
-public class ServerInfoResource {
-  private final Supplier<ServerInfo> serverInfo;
+public final class ServerMetadataResource {
+  private final ServerMetadata serverMetadata;
 
-  public ServerInfoResource(final ServiceContext serviceContext, final KsqlConfig ksqlConfig) {
-    this.serverInfo = Suppliers.memoize(
-        () -> new ServerInfo(
-            Version.getVersion(),
-            KafkaClusterUtil.getKafkaClusterId(serviceContext),
-            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
-        )
-    )::get;
+  private ServerMetadataResource(final ServerMetadata serverMetadata) {
+    this.serverMetadata = serverMetadata;
   }
 
   @GET
-  public Response get() {
-    return Response.ok(serverInfo.get()).build();
+  public Response getServerMetadata() {
+    return Response.ok(serverMetadata).build();
+  }
+
+  @GET
+  @Path("/id")
+  public Response getServerClusterId() {
+    return Response.ok(serverMetadata.getClusterId()).build();
+  }
+
+  public static ServerMetadataResource create(
+      final ServiceContext serviceContext,
+      final KsqlConfig ksqlConfig
+  ) {
+    return new ServerMetadataResource(new ServerMetadata(
+        Version.getVersion(),
+        ServerClusterId.of(
+            KafkaClusterUtil.getKafkaClusterId(serviceContext),
+            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)
+        )
+    ));
   }
 }

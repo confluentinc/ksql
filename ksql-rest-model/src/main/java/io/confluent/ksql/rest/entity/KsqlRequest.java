@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.config.PropertyParser;
 import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
@@ -35,7 +36,7 @@ public class KsqlRequest {
   private static final PropertyParser PROPERTY_PARSER = new LocalPropertyParser();
 
   private final String ksql;
-  private final Map<String, Object> streamsProperties;
+  private final ImmutableMap<String, Object> streamsProperties;
   private final Optional<Long> commandSequenceNumber;
 
   @JsonCreator
@@ -46,8 +47,8 @@ public class KsqlRequest {
   ) {
     this.ksql = ksql == null ? "" : ksql;
     this.streamsProperties = streamsProperties == null
-        ? Collections.emptyMap()
-        : Collections.unmodifiableMap(new HashMap<>(serializeClassValues(streamsProperties)));
+        ? ImmutableMap.of()
+        : ImmutableMap.copyOf(serializeClassValues(streamsProperties));
     this.commandSequenceNumber = Optional.ofNullable(commandSequenceNumber);
   }
 
@@ -91,7 +92,7 @@ public class KsqlRequest {
    * to serialize the class properties prior to send this KsqlRequest object as part of the HTTP
    * request. The error thrown by Jackson is "Class ... not be found".
    */
-  private Map<String, ?> serializeClassValues(final Map<String, ?> properties) {
+  private static Map<String, ?> serializeClassValues(final Map<String, ?> properties) {
     return properties.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getKey, kv -> {
           if (kv.getValue() instanceof Class) {

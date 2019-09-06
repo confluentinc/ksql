@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -20,8 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.rest.entities.ErrorMessage;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,23 +30,26 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonTypeInfo(
-    use = JsonTypeInfo.Id.NAME,
-    include = JsonTypeInfo.As.PROPERTY)
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME)
 @JsonSubTypes({
     @JsonSubTypes.Type(value = KsqlErrorMessage.class, name = "generic_error"),
-    @JsonSubTypes.Type(value = KsqlStatementErrorMessage.class, name = "statement_error")})
-public class KsqlErrorMessage extends ErrorMessage {
+    @JsonSubTypes.Type(value = KsqlStatementErrorMessage.class, name = "statement_error")
+})
+public class KsqlErrorMessage {
 
-  private final List<String> stackTrace;
+  private final int errorCode;
+  private final String errorMessage;
+  private final ImmutableList<String> stackTrace;
 
   @JsonCreator
   public KsqlErrorMessage(
       @JsonProperty("error_code") final int errorCode,
       @JsonProperty("message") final String message,
-      @JsonProperty("stackTrace") final List<String> stackTrace) {
-    super(errorCode, message);
-    this.stackTrace = stackTrace;
+      @JsonProperty("stackTrace") final List<String> stackTrace
+  ) {
+    this.errorCode = errorCode;
+    this.errorMessage = message == null ? "" : message;
+    this.stackTrace = stackTrace == null ? ImmutableList.of() : ImmutableList.copyOf(stackTrace);
   }
 
   public KsqlErrorMessage(final int errorCode, final Throwable exception) {
@@ -57,10 +60,18 @@ public class KsqlErrorMessage extends ErrorMessage {
     this(errorCode, message, Collections.emptyList());
   }
 
-  protected static List<String> getStackTraceStrings(final Throwable exception) {
+  static List<String> getStackTraceStrings(final Throwable exception) {
     return Arrays.stream(exception.getStackTrace())
         .map(StackTraceElement::toString)
         .collect(Collectors.toList());
+  }
+
+  public int getErrorCode() {
+    return errorCode;
+  }
+
+  public String getMessage() {
+    return errorMessage;
   }
 
   public List<String> getStackTrace() {
@@ -84,16 +95,17 @@ public class KsqlErrorMessage extends ErrorMessage {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof KsqlErrorMessage)) {
+    if (o == null || getClass() != o.getClass()) {
       return false;
     }
     final KsqlErrorMessage that = (KsqlErrorMessage) o;
-    return Objects.equals(getMessage(), that.getMessage())
-           && Objects.equals(getStackTrace(), that.getStackTrace());
+    return errorCode == that.errorCode
+        && Objects.equals(errorMessage, that.errorMessage)
+        && Objects.equals(stackTrace, that.stackTrace);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(getMessage(), getStackTrace());
+    return Objects.hash(errorCode, errorMessage, stackTrace);
   }
 }

@@ -18,10 +18,6 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -59,36 +55,6 @@ public class QueryDescription {
     this.topology = topology;
     this.executionPlan = executionPlan;
     this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
-  }
-
-  private QueryDescription(
-      final String id,
-      final QueryMetadata queryMetadata,
-      final Set<String> sinks,
-      final boolean valueSchemaOnly
-  ) {
-    this(
-        new EntityQueryId(id),
-        queryMetadata.getStatementString(),
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly),
-        queryMetadata.getSourceNames(),
-        sinks,
-        queryMetadata.getTopologyDescription(),
-        queryMetadata.getExecutionPlan(),
-        queryMetadata.getOverriddenProperties());
-  }
-
-  public static QueryDescription forQueryMetadata(final QueryMetadata queryMetadata) {
-    if (queryMetadata instanceof PersistentQueryMetadata) {
-      final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
-      return new QueryDescription(
-          persistentQuery.getQueryId().getId(),
-          persistentQuery,
-          ImmutableSet.of(persistentQuery.getSinkName()),
-          false
-      );
-    }
-    return new QueryDescription("", queryMetadata, Collections.emptySet(), true);
   }
 
   public EntityQueryId getId() {

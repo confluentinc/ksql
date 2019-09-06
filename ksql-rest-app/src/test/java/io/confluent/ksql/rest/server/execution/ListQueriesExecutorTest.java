@@ -28,7 +28,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.Queries;
-import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -96,7 +96,7 @@ public class ListQueriesExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     assertThat(queries.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescription.forQueryMetadata(metadata)));
+        QueryDescriptionFactory.forQueryMetadata(metadata)));
   }
 
   @SuppressWarnings("SameParameterValue")

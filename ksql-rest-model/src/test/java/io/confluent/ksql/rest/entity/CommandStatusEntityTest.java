@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -21,7 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.json.JsonMapper;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

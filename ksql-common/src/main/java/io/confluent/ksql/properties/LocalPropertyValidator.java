@@ -17,8 +17,8 @@ package io.confluent.ksql.properties;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.config.ImmutableProperties;
 import io.confluent.ksql.config.PropertyValidator;
-import io.confluent.ksql.engine.KsqlEngineProps;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
@@ -53,7 +53,7 @@ public class LocalPropertyValidator implements PropertyValidator {
       .build();
 
   LocalPropertyValidator() {
-    this(KsqlEngineProps.getImmutableProperties());
+    this(ImmutableProperties.getImmutableProperties());
   }
 
   LocalPropertyValidator(final Collection<String> immutableProps) {

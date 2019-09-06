@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -46,7 +46,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SourceDescriptionTest {
+public class SourceDescriptionFactoryTest {
   private final static String CLIENT_ID = "client";
   private final static String APP_ID = "test-app";
 
@@ -110,7 +110,7 @@ public class SourceDescriptionTest {
     StreamsErrorCollector.recordError(APP_ID, kafkaTopicName);
 
     // When
-    final SourceDescription sourceDescription = new SourceDescription(
+    final SourceDescription sourceDescription = SourceDescriptionFactory.create(
         dataSource,
         true,
         "json",

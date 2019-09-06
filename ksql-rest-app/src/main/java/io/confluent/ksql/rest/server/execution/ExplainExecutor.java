@@ -25,6 +25,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -104,7 +105,7 @@ public final class ExplainExecutor {
         .orElseThrow(() ->
             new IllegalStateException("The provided statement did not run a ksql query"));
 
-    return QueryDescription.forQueryMetadata(metadata);
+    return QueryDescriptionFactory.forQueryMetadata(metadata);
   }
 
   private static QueryDescription explainQuery(
@@ -117,7 +118,7 @@ public final class ExplainExecutor {
             "Query with id:" + queryId + " does not exist, "
                 + "use SHOW QUERIES to view the full set of queries."));
 
-    return QueryDescription.forQueryMetadata(metadata);
+    return QueryDescriptionFactory.forQueryMetadata(metadata);
   }
 
 }

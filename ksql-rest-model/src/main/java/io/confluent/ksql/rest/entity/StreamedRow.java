@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -37,10 +36,10 @@ public class StreamedRow {
     return new StreamedRow(row, null, null);
   }
 
-  public static StreamedRow error(final Throwable exception) {
+  public static StreamedRow error(final Throwable exception, final int errorCode) {
     return new StreamedRow(
         null,
-        new KsqlErrorMessage(Errors.ERROR_CODE_SERVER_ERROR, exception),
+        new KsqlErrorMessage(errorCode, exception),
         null);
   }
 

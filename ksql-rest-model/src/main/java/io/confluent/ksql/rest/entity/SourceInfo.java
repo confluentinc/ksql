@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -20,8 +20,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.rest.entity.SourceInfo.Stream;
 import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import java.util.Objects;
@@ -53,14 +51,6 @@ public class SourceInfo {
     ) {
       super(name, topic, format);
     }
-
-    public Stream(final KsqlStream<?> ksqlStream) {
-      this(
-          ksqlStream.getName(),
-          ksqlStream.getKsqlTopic().getKafkaTopicName(),
-          ksqlStream.getKsqlTopic().getValueFormat().getFormat().name()
-      );
-    }
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
@@ -76,15 +66,6 @@ public class SourceInfo {
     ) {
       super(name, topic, format);
       this.isWindowed = isWindowed;
-    }
-
-    public Table(final KsqlTable<?> ksqlTable) {
-      this(
-          ksqlTable.getName(),
-          ksqlTable.getKsqlTopic().getKafkaTopicName(),
-          ksqlTable.getKsqlTopic().getValueFormat().getFormat().name(),
-          ksqlTable.getKsqlTopic().getKeyFormat().isWindowed()
-      );
     }
 
     public boolean getIsWindowed() {

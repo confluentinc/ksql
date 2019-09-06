@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -20,15 +20,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeName;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metrics.MetricCollectors;
-import io.confluent.ksql.rest.util.EntityUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import org.apache.kafka.clients.admin.TopicDescription;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonTypeName("description")
@@ -83,37 +77,6 @@ public class SourceDescription {
     this.topic = topic;
     this.partitions = partitions;
     this.replication = replication;
-  }
-
-  public SourceDescription(
-      final DataSource<?> dataSource,
-      final boolean extended,
-      final String format,
-      final List<RunningQuery> readQueries,
-      final List<RunningQuery> writeQueries,
-      final Optional<TopicDescription> topicDescription
-  ) {
-    this(
-        dataSource.getName(),
-        readQueries,
-        writeQueries,
-        EntityUtil.buildSourceSchemaEntity(dataSource.getSchema(), false),
-        dataSource.getDataSourceType().getKsqlType(),
-        dataSource.getKeyField().name().orElse(""),
-        Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
-            .map(TimestampExtractionPolicy::timestampField).orElse(""),
-        (extended
-            ? MetricCollectors.getAndFormatStatsFor(
-                dataSource.getKafkaTopicName(), false) : ""),
-        (extended
-            ? MetricCollectors.getAndFormatStatsFor(
-                dataSource.getKafkaTopicName(), true) : ""),
-        extended,
-        format,
-        dataSource.getKafkaTopicName(),
-        topicDescription.map(td -> td.partitions().size()).orElse(0),
-        topicDescription.map(td -> td.partitions().get(0).replicas().size()).orElse(0)
-    );
   }
 
   public int getPartitions() {

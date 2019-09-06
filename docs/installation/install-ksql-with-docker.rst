@@ -182,6 +182,7 @@ Run a KSQL Server that enables manual interaction by using the KSQL CLI:
 
 ``KSQL_LISTENERS``
     A list of URIs, including the protocol, that the broker listens on.
+    If you are using IP6 then you should set to ``http://[::]:8088``.
 
 In interactive mode, a KSQL CLI instance running outside of Docker can connect
 to the KSQL server running in Docker.
@@ -214,7 +215,8 @@ the KSQL CLI:
     internal topics created by KSQL.
 
 ``KSQL_LISTENERS``
-    A list of URIs, including the protocol, that the broker listens on.    
+    A list of URIs, including the protocol, that the broker listens on.
+    If you are using IP6 then you should set to ``http://[::]:8088``.
 
 ``KSQL_PRODUCER_INTERCEPTOR_CLASSES``
     A list of fully qualified class names for producer interceptors.
@@ -262,6 +264,7 @@ Run a KSQL Server that uses a secure connection to a Kafka cluster:
 
 ``KSQL_LISTENERS``
     A list of URIs, including the protocol, that the broker listens on.
+    If you are using IP6 then you should set to ``http://[::]:8088``.
     
 ``KSQL_KSQL_SINK_REPLICAS``
     The default number of replicas for the topics created by KSQL.
@@ -392,6 +395,7 @@ running in a different container.
 
 ``KSQL_OPTS``
     A space-separated list of Java options.
+    If you are using IP6 then you should set listeners to ``http://[::]:8088``.
 
 The Docker network created by KSQL Server enables you to connect with a
 dockerized KSQL CLI.

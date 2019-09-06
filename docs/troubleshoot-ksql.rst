@@ -172,6 +172,12 @@ setting in the file and verify it is set correctly.
 
     listeners=http://0.0.0.0:8088
 
+Or if you are running over IP6:
+
+.. code:: bash
+
+    listeners=http://[::]:8088
+
 See :ref:`Starting KSQL Server <start_ksql-server>` for more information.
 
 

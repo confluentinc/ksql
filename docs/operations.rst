@@ -171,6 +171,13 @@ setting:
 
     listeners=http://0.0.0.0:8088
 
+Or if you are running over IP6:
+
+.. code:: bash
+
+    listeners=http://[::]:8088
+
+
 For more info, see :ref:`Starting KSQL Server <start_ksql-server>`.
 
 Check for a port conflict

@@ -45,6 +45,6 @@ services:
       - schema-registry
     environment:
       KSQL_BOOTSTRAP_SERVERS: kafka:39092
-      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_LISTENERS: http://0.0.0.0:8088,http://[::]:8088
       KSQL_KSQL_SCHEMA_REGISTRY_URL: http://schema-registry:8081
 

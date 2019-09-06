@@ -382,7 +382,7 @@ public class AstBuilder {
           visit(context.selectItem(), SelectItem.class)
       );
 
-      final boolean staticQuery = context.WITH() != null
+      final boolean staticQuery = context.YIELD() != null
           || (context.EMIT() == null && !buildingPersistentQuery);
 
       final ResultMaterialization resultMaterialization = Optional

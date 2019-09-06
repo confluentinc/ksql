@@ -60,16 +60,16 @@ public class FieldTest {
   }
 
   @Test
-  public void shouldReturnName() {
+  public void shouldReturnFieldName() {
     assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).fieldName(),
         is(FieldName.of(Optional.empty(), "SomeName")));
 
-    assertThat(Field.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).name(),
+    assertThat(Field.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).fieldName(),
         is(FieldName.of(Optional.of("SomeSource"), "SomeName")));
   }
 
   @Test
-  public void shouldReturnName2() {
+  public void shouldReturnName() {
     assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).name(),
         is("SomeName"));
 

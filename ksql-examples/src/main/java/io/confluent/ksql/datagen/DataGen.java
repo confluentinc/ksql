@@ -149,7 +149,7 @@ public final class DataGen {
             + "'delimited') " + newLine
         + "topic=<kafka topic name> " + newLine
         + "key=<name of key column> " + newLine
-        + "[iterations=<number of rows> (defaults to 1,000,000; pass -1 to produce "
+        + "[iterations=<number of rows> (if no value is specified, datagen will produce "
             + "indefinitely)] " + newLine
         + "[maxInterval=<Max time in ms between rows> (defaults to 500)] " + newLine
         + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
@@ -230,7 +230,7 @@ public final class DataGen {
               .put("format", (builder, argVal) -> builder.valueFormat = parseFormat(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
-              .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, -1))
+              .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, 1))
               .put("maxInterval",
                   (builder, argVal) -> builder.maxInterval = parseInt(argVal, 0))
               .put("schemaRegistryUrl", (builder, argVal) -> builder.schemaRegistryUrl = argVal)
@@ -267,7 +267,7 @@ public final class DataGen {
         valueFormat = null;
         topicName = null;
         keyName = null;
-        iterations = 1000000;
+        iterations = -1;
         maxInterval = -1;
         schemaRegistryUrl = "http://localhost:8081";
         propertiesFile = null;

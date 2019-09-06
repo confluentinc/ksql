@@ -13,18 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test;
+package io.confluent.ksql.test.loader;
 
-/**
- * Exception indicating an issue with the test or test framework, as opposed to KSQL's operation.
- */
-public class TestFrameworkException extends RuntimeException {
+import io.confluent.ksql.test.tools.Test;
+import java.nio.file.Path;
+import java.util.stream.Stream;
 
-  public TestFrameworkException(final String msg) {
-    super(msg);
-  }
+public interface TestFile<TestTypeT extends Test> {
 
-  public TestFrameworkException(final String msg, final Throwable cause) {
-    super(msg, cause);
-  }
+  Stream<TestTypeT> buildTests(Path testPath);
 }

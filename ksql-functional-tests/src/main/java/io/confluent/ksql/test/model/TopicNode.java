@@ -33,9 +33,11 @@ import io.confluent.ksql.test.utils.SerdeUtil;
 import java.util.Optional;
 import org.apache.avro.Schema;
 
-class TopicNode {
+public final class TopicNode {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final String FORMAT_REPLACE_ERROR =
+      "To use {FORMAT} in your topics please set the 'format' test case element";
 
   private final String name;
   private final String format;
@@ -61,8 +63,9 @@ class TopicNode {
     }
   }
 
-  Topic build(final String defaultFormat) {
-    final String formatToUse = format.replace("{FORMAT}", defaultFormat);
+  public Topic build(final Optional<String> defaultFormat) {
+    final String formatToUse = format
+        .replace("{FORMAT}", defaultFormat.orElse(FORMAT_REPLACE_ERROR));
 
     final SerdeSupplier<?> keySerdeSupplier = new StringSerdeSupplier();
 

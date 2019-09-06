@@ -26,6 +26,7 @@ import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
 public final class FakeInsertValuesExecutor  {
@@ -59,7 +60,7 @@ public final class FakeInsertValuesExecutor  {
                   fakeKafkaService.getTopic(record.topic()),
                   new String(record.key(), StandardCharsets.UTF_8),
                   value,
-                  record.timestamp(),
+                  Optional.of(record.timestamp()),
                   null
               ),
               null)

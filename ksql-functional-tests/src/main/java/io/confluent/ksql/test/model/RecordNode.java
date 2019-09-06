@@ -29,14 +29,14 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
-public class RecordNode {
+public final class RecordNode {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private final String topicName;
   private final String key;
   private final JsonNode value;
-  private final long timestamp;
+  private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
 
   RecordNode(
@@ -49,7 +49,7 @@ public class RecordNode {
     this.topicName = topicName == null ? "" : topicName;
     this.key = key == null ? "" : key;
     this.value = requireNonNull(value, "value");
-    this.timestamp = timestamp == null ? 0L : timestamp;
+    this.timestamp = Optional.ofNullable(timestamp);
     this.window = Optional.ofNullable(window);
 
     if (this.topicName.isEmpty()) {

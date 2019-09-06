@@ -13,18 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test;
+package io.confluent.ksql.test.rest.model;
+
+import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
+
+import com.fasterxml.jackson.annotation.JsonCreator;
+import java.util.Map;
 
 /**
- * Exception indicating an issue with the test or test framework, as opposed to KSQL's operation.
+ * JSON Pojo for response from rest api
  */
-public class TestFrameworkException extends RuntimeException {
+public final class Response {
 
-  public TestFrameworkException(final String msg) {
-    super(msg);
+  private final Map<String, Object> content;
+
+  @JsonCreator
+  public Response(final Map<String, Object> content) {
+    this.content = immutableCopyOf(content);
   }
 
-  public TestFrameworkException(final String msg, final Throwable cause) {
-    super(msg, cause);
+  public Map<String, Object> getContent() {
+    return content;
   }
 }

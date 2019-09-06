@@ -3,7 +3,6 @@ package io.confluent.ksql.test;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.avroToValueSpec;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildAvroSchema;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildTestName;
-import static io.confluent.ksql.test.EndToEndEngineTestUtil.findTestCases;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -11,7 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.ImmutableList;
 import io.confluent.avro.random.generator.Generator;
-import io.confluent.ksql.test.EndToEndEngineTestUtil.TestFile;
+import io.confluent.ksql.test.loader.JsonTestLoader;
+import io.confluent.ksql.test.loader.TestFile;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
@@ -19,7 +19,6 @@ import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
-import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -69,9 +68,8 @@ public class SchemaTranslationTest {
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
-    final List<String> testFiles = EndToEndEngineTestUtil.getTestFilesParam();
-
-    return findTestCases(SCHEMA_VALIDATION_TEST_DIR, testFiles, SttTestFile.class)
+    return JsonTestLoader.of(SCHEMA_VALIDATION_TEST_DIR, SttTestFile.class)
+        .load()
         .map(test -> new Object[]{test.getName(), test})
         .collect(Collectors.toList());
   }
@@ -185,7 +183,7 @@ public class SchemaTranslationTest {
             inputRecords,
             outputRecords,
             ImmutableList.of(DDL_STATEMENT, csasStatement),
-            KsqlExpectedException.none(),
+            Optional.empty(),
             PostConditions.NONE
         ));
       } catch (final Exception e) {

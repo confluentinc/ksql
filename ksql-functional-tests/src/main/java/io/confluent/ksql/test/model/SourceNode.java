@@ -38,7 +38,7 @@ import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 
 @SuppressWarnings("rawtypes")
-class SourceNode {
+final class SourceNode {
 
   private final String name;
   private final Optional<Class<? extends DataSource>> type;

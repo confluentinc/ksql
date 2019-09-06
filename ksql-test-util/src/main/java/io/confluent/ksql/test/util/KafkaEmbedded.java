@@ -15,12 +15,21 @@
 
 package io.confluent.ksql.test.util;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
+import java.util.function.Supplier;
 import kafka.server.KafkaConfig;
 import kafka.server.KafkaServer;
 import kafka.utils.TestUtils;
@@ -148,15 +157,12 @@ class KafkaEmbedded {
   void createTopic(final String topic,
       final int partitions,
       final int replication,
-      final Map<String, String> topicConfig) {
+      final Map<String, String> topicConfig
+  ) {
     log.debug("Creating topic { name: {}, partitions: {}, replication: {}, config: {} }",
         topic, partitions, replication, topicConfig);
 
-    final ImmutableMap<String, Object> props = ImmutableMap.of(
-        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
-        AdminClientConfig.RETRIES_CONFIG, 5);
-
-    try (Admin adminClient = AdminClient.create(props)) {
+    try (Admin adminClient = adminClient()) {
 
       final NewTopic newTopic = new NewTopic(topic, partitions, (short) replication);
       newTopic.configs(topicConfig);
@@ -167,6 +173,85 @@ class KafkaEmbedded {
       } catch (final Exception e) {
         throw new RuntimeException("Failed to create topic:" + topic, e);
       }
+    }
+  }
+
+  Set<String> getTopics() {
+    try (Admin adminClient = adminClient()) {
+      return getTopicNames(adminClient);
+    }
+  }
+
+  /**
+   * Delete topics from the cluster.
+   *
+   * <p><b>IMPORTANT:</b> topic deletion is asynchronous. Attempts to recreate the same topic may
+   * fail for a short period of time.  Avoid recreating topics with the same name if at all
+   * possible. Where this is not possible, wrap the creation in a retry loop.
+   *
+   * @param topics the topics to delete.
+   */
+  void deleteTopics(final Collection<String> topics) {
+    try (Admin adminClient = adminClient()) {
+
+      try {
+        adminClient.deleteTopics(topics);
+      } catch (final Exception e) {
+        throw new RuntimeException("Failed to delete topics: " + topics, e);
+      }
+    }
+  }
+
+  /**
+   * Wait for topics with names {@code topicNames} to not exist in Kafka.
+   *
+   * @param topicNames the names of the topics to await absence for.
+   */
+  void waitForTopicsToBePresent(final String... topicNames) {
+    try (Admin adminClient = adminClient()) {
+      final Set<String> required = ImmutableSet.copyOf(topicNames);
+
+      final Supplier<Collection<String>> remaining = () -> {
+        final Set<String> names = getTopicNames(adminClient);
+        names.retainAll(required);
+        return names;
+      };
+
+      assertThatEventually(
+          "topics not all prresent after timeout",
+          remaining,
+          is(required)
+      );
+    }
+  }
+
+  /**
+   * Wait for topics with names {@code topicNames} to not exist in Kafka.
+   *
+   * @param topicNames the names of the topics to await absence for.
+   */
+  void waitForTopicsToBeAbsent(final String... topicNames) {
+    try (Admin adminClient = adminClient()) {
+
+      final Supplier<Collection<String>> remaining = () -> {
+        final Set<String> names = getTopicNames(adminClient);
+        names.retainAll(Arrays.asList(topicNames));
+        return names;
+      };
+
+      assertThatEventually(
+          "topics not all absent after timeout",
+          remaining,
+          is(empty())
+      );
+    }
+  }
+
+  private static Set<String> getTopicNames(final Admin adminClient) {
+    try {
+      return adminClient.listTopics().names().get();
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to get topic names", e);
     }
   }
 
@@ -188,5 +273,13 @@ class KafkaEmbedded {
 
   private String zookeeperConnect() {
     return effectiveConfig.getProperty(KafkaConfig.ZkConnectProp());
+  }
+
+  private AdminClient adminClient() {
+    final ImmutableMap<String, Object> props = ImmutableMap.of(
+        AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, brokerList(),
+        AdminClientConfig.RETRIES_CONFIG, 5);
+
+    return AdminClient.create(props);
   }
 }

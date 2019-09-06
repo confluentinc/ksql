@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class InputRecordsNode {
+public final class InputRecordsNode {
 
   private final List<RecordNode> inputRecords;
 

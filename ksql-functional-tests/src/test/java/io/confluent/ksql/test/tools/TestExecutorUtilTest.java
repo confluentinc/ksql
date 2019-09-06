@@ -19,9 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
@@ -53,9 +51,8 @@ public class TestExecutorUtilTest {
     final QttTestFile qttTestFile = JsonMapper.INSTANCE.mapper
         .readValue(new File("src/test/resources/testing_tool_tests.json"), QttTestFile.class);
     final TestCaseNode testCaseNode = qttTestFile.tests.get(0);
-    testCase = testCaseNode.buildTests(
-        new File("src/test/resources/testing_tool_tests.json").toPath(),
-        TestFunctionRegistry.INSTANCE.get()
+    testCase = new TestCaseBuilder().buildTests(testCaseNode,
+        new File("src/test/resources/testing_tool_tests.json").toPath()
     ).get(0);
 
     serviceContext = TestExecutor.getServiceContext();
@@ -71,7 +68,7 @@ public class TestExecutorUtilTest {
   }
 
   @Test
-  public void shouldBuildStreamsTopologyTestDrivers() throws IOException, RestClientException {
+  public void shouldBuildStreamsTopologyTestDrivers() {
 
     // Given:
     final Topic sourceTopic = new Topic(

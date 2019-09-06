@@ -13,24 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
+package io.confluent.ksql.test.rest;
 
-package io.confluent.ksql.test.model;
+import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.test.model.RecordNode;
+import io.confluent.ksql.test.model.TopicNode;
+import io.confluent.ksql.test.rest.model.ExpectedErrorNode;
+import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
- * JSON serializable Pojo representing a test case.
+ * JSON serializable Pojo representing the test case used by {@link RestQueryTranslationTest}.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public final class TestCaseNode {
+public class RestTestCaseNode {
 
   private final String name;
   private final List<String> formats;
@@ -38,21 +40,19 @@ public final class TestCaseNode {
   private final List<RecordNode> outputs;
   private final List<TopicNode> topics;
   private final List<String> statements;
-  private final Map<String, Object> properties;
-  private final Optional<ExpectedExceptionNode> expectedException;
-  private final Optional<PostConditionsNode> postConditions;
+  private final List<Response> responses;
+  private final Optional<ExpectedErrorNode> expectedError;
   private final boolean enabled;
 
-  public TestCaseNode(
+  public RestTestCaseNode(
       @JsonProperty("name") final String name,
       @JsonProperty("format") final List<String> formats,
       @JsonProperty("inputs") final List<RecordNode> inputs,
       @JsonProperty("outputs") final List<RecordNode> outputs,
       @JsonProperty("topics") final List<TopicNode> topics,
       @JsonProperty("statements") final List<String> statements,
-      @JsonProperty("properties") final Map<String, Object> properties,
-      @JsonProperty("expectedException") final ExpectedExceptionNode expectedException,
-      @JsonProperty("post") final PostConditionsNode postConditions,
+      @JsonProperty("expectedError") final ExpectedErrorNode expectedError,
+      @JsonProperty("responses") final List<Response> responses,
       @JsonProperty("enabled") final Boolean enabled
   ) {
     this.name = name == null ? "" : name;
@@ -61,9 +61,8 @@ public final class TestCaseNode {
     this.inputs = immutableCopyOf(inputs);
     this.outputs = immutableCopyOf(outputs);
     this.topics = immutableCopyOf(topics);
-    this.properties = immutableCopyOf(properties);
-    this.expectedException = Optional.ofNullable(expectedException);
-    this.postConditions = Optional.ofNullable(postConditions);
+    this.expectedError = Optional.ofNullable(expectedError);
+    this.responses = immutableCopyOf(responses);
     this.enabled = !Boolean.FALSE.equals(enabled);
 
     validate();
@@ -85,8 +84,8 @@ public final class TestCaseNode {
     return statements;
   }
 
-  public Optional<ExpectedExceptionNode> expectedException() {
-    return expectedException;
+  public Optional<ExpectedErrorNode> expectedError() {
+    return expectedError;
   }
 
   public List<TopicNode> topics() {
@@ -101,12 +100,8 @@ public final class TestCaseNode {
     return outputs;
   }
 
-  public Optional<PostConditionsNode> postConditions() {
-    return postConditions;
-  }
-
-  public Map<String, Object> properties() {
-    return properties;
+  public List<Response> getResponses() {
+    return responses;
   }
 
   private void validate() {
@@ -118,17 +113,9 @@ public final class TestCaseNode {
       throw new InvalidFieldException("statements", "was empty");
     }
 
-    if (!this.inputs.isEmpty() && this.expectedException.isPresent()) {
-      throw new InvalidFieldException("inputs and expectedException",
+    if (!this.inputs.isEmpty() && this.expectedError.isPresent()) {
+      throw new InvalidFieldException("inputs and expectedError",
           "can not both be set");
     }
-  }
-
-  private static <T> ImmutableList<T> immutableCopyOf(final List<T> source) {
-    return source == null ? ImmutableList.of() : ImmutableList.copyOf(source);
-  }
-
-  private static <K, V> ImmutableMap<K, V> immutableCopyOf(final Map<K, V> source) {
-    return source == null ? ImmutableMap.of() : ImmutableMap.copyOf(source);
   }
 }

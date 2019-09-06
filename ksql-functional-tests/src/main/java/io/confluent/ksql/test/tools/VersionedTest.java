@@ -13,18 +13,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test;
+package io.confluent.ksql.test.tools;
 
-/**
- * Exception indicating an issue with the test or test framework, as opposed to KSQL's operation.
- */
-public class TestFrameworkException extends RuntimeException {
+import io.confluent.ksql.test.model.KsqlVersion;
 
-  public TestFrameworkException(final String msg) {
-    super(msg);
-  }
+public interface VersionedTest extends Test {
 
-  public TestFrameworkException(final String msg, final Throwable cause) {
-    super(msg, cause);
-  }
-}
+  VersionedTest withVersion(KsqlVersion version);
+
+  void setExpectedTopology(TopologyAndConfigs expectedTopology);
+}  

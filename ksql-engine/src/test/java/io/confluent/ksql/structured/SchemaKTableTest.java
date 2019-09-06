@@ -184,7 +184,7 @@ public class SchemaKTableTest {
   private ExecutionStep buildSourceStep(final LogicalSchema schema) {
     final ExecutionStep sourceStep = Mockito.mock(ExecutionStep.class);
     when(sourceStep.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties("id", schema, queryContext.getQueryContext()));
+        new DefaultExecutionStepProperties(schema, queryContext.getQueryContext()));
     return sourceStep;
   }
 

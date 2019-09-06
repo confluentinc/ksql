@@ -72,7 +72,6 @@ public final class ExecutionStepFactory {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSource<>(
         new DefaultExecutionStepProperties(
-            queryContext.toString(),
             schema.getSchema(),
             queryContext),
         topicName,
@@ -97,7 +96,6 @@ public final class ExecutionStepFactory {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSource<>(
         new DefaultExecutionStepProperties(
-            queryContext.toString(),
             schema.getSchema(),
             queryContext),
         topicName,
@@ -119,11 +117,7 @@ public final class ExecutionStepFactory {
     return new StreamToTable<>(
         source,
         formats,
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            source.getProperties().getSchema(),
-            queryContext
-        )
+        source.getProperties().withQueryContext(queryContext)
     );
   }
 
@@ -136,11 +130,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSink<>(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            outputSchema,
-            queryContext
-        ),
+        new DefaultExecutionStepProperties(outputSchema, queryContext),
         source,
         formats,
         topicName
@@ -154,11 +144,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFilter<>(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            source.getProperties().getSchema(),
-            queryContext
-        ),
+        source.getProperties().withQueryContext(queryContext),
         source,
         filterExpression
     );
@@ -170,10 +156,9 @@ public final class ExecutionStepFactory {
       final List<SelectExpression> selectExpressions,
       final LogicalSchema resultSchema
   ) {
-    // TODO: compute result schema from source and selectExpressions
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamMapValues<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         source,
         selectExpressions
     );
@@ -190,7 +175,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamTableJoin<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         joinType,
         formats,
         left,
@@ -210,7 +195,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamStreamJoin<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         joinType,
         leftFormats,
         rightFormats,
@@ -230,7 +215,6 @@ public final class ExecutionStepFactory {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSelectKey<>(
         new DefaultExecutionStepProperties(
-            queryContext.toString(),
             source.getProperties().getSchema(),
             queryContext
         ),
@@ -249,7 +233,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableSink<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), outputSchema, queryContext),
+        new DefaultExecutionStepProperties(outputSchema, queryContext),
         source,
         formats,
         topicName
@@ -263,11 +247,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableFilter<>(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            source.getProperties().getSchema(),
-            queryContext
-        ),
+        source.getProperties().withQueryContext(queryContext),
         source,
         filterExpression
     );
@@ -281,7 +261,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableMapValues<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         source,
         selectExpressions
     );
@@ -296,7 +276,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableTableJoin<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         joinType,
         left,
         right
@@ -314,7 +294,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamAggregate<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
@@ -331,11 +311,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamGroupBy<>(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            sourceStep.getProperties().getSchema(),
-            queryContext
-        ),
+        sourceStep.getProperties().withQueryContext(queryContext),
         sourceStep,
         format,
         groupingExpressions
@@ -353,7 +329,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableAggregate<>(
-        new DefaultExecutionStepProperties(queryContext.toString(), resultSchema, queryContext),
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
@@ -370,11 +346,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableGroupBy<>(
-        new DefaultExecutionStepProperties(
-            queryContext.toString(),
-            sourceStep.getProperties().getSchema(),
-            queryContext
-        ),
+        sourceStep.getProperties().withQueryContext(queryContext),
         sourceStep,
         format,
         groupingExpressions

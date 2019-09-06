@@ -193,7 +193,6 @@ public class SchemaKStream<K> {
         functionRegistry,
         StreamsFactories.create(ksqlConfig)
     );
-    this.keyField.validateKeyExistsIn(getSchema());
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
@@ -216,7 +215,7 @@ public class SchemaKStream<K> {
     this.sourceStep = sourceStep;
     this.sourceProperties = Objects.requireNonNull(sourceProperties, "sourceProperties");
     this.kstream = kstream;
-    this.keyField = requireNonNull(keyField, "keyField");
+    this.keyField = requireNonNull(keyField, "keyField").validateKeyExistsIn(getSchema());
     this.sourceSchemaKStreams = requireNonNull(sourceSchemaKStreams, "sourceSchemaKStreams");
     this.type = requireNonNull(type, "type");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -252,13 +251,14 @@ public class SchemaKStream<K> {
             () -> null,
             (k, value, oldValue) -> value.orElse(null),
             materialized);
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.streamToTable(
+        contextStacker,
+        Formats.of(keyFormat, valueFormat, Collections.emptySet()),
+        sourceStep
+    );
     return new SchemaKTable<>(
         ktable,
-        ExecutionStepFactory.streamToTable(
-            contextStacker,
-            Formats.of(keyFormat, valueFormat, Collections.emptySet()),
-            sourceStep
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -305,15 +305,16 @@ public class SchemaKStream<K> {
           }
           return new GenericRow(columns);
         }).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamSink(
+        contextStacker,
+        outputSchema,
+        Formats.of(keyFormat, valueFormat, options),
+        sourceStep,
+        kafkaTopicName
+    );
     return new SchemaKStream<>(
         kstream,
-        ExecutionStepFactory.streamSink(
-            contextStacker,
-            outputSchema,
-            Formats.of(keyFormat, valueFormat, options),
-            sourceStep,
-            kafkaTopicName
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -341,13 +342,14 @@ public class SchemaKStream<K> {
     );
 
     final KStream<K, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamFilter(
+        contextStacker,
+        sourceStep,
+        filterExpression
+    );
     return new SchemaKStream<>(
         filteredKStream,
-        ExecutionStepFactory.streamFilter(
-            contextStacker,
-            sourceStep,
-            filterExpression
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -368,14 +370,15 @@ public class SchemaKStream<K> {
             QueryLoggerUtil.queryLoggerName(
                 contextStacker.push(Type.PROJECT.name()).getQueryContext()))
     );
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamMapValues(
+        contextStacker,
+        sourceStep,
+        selectExpressions,
+        selection.getProjectedSchema()
+    );
     return new SchemaKStream<>(
         kstream.mapValues(selection.getSelectValueMapper()),
-        ExecutionStepFactory.streamMapValues(
-            contextStacker,
-            sourceStep,
-            selectExpressions,
-            selection.getProjectedSchema()
-        ),
+        step,
         keyFormat,
         keySerde,
         selection.getKey(),
@@ -534,17 +537,17 @@ public class SchemaKStream<K> {
                 null,
                 StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
-
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamTableJoin(
+        contextStacker,
+        JoinType.LEFT,
+        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        sourceStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKStream<>(
         joinedKStream,
-        ExecutionStepFactory.streamTableJoin(
-            contextStacker,
-            JoinType.LEFT,
-            Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-            sourceStep,
-            schemaKTable.getSourceTableStep(),
-            joinSchema
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -578,19 +581,19 @@ public class SchemaKStream<K> {
                     rightSerde,
                     StreamsUtil.buildOpName(contextStacker.getQueryContext()))
             );
-
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamStreamJoin(
+        contextStacker,
+        JoinType.LEFT,
+        Formats.of(keyFormat, leftFormat, SerdeOption.none()),
+        Formats.of(keyFormat, rightFormat, SerdeOption.none()),
+        sourceStep,
+        otherSchemaKStream.sourceStep,
+        joinSchema,
+        joinWindows
+    );
     return new SchemaKStream<>(
         joinStream,
-        ExecutionStepFactory.streamStreamJoin(
-            contextStacker,
-            JoinType.LEFT,
-            Formats.of(keyFormat, leftFormat, SerdeOption.none()),
-            Formats.of(keyFormat, rightFormat, SerdeOption.none()),
-            sourceStep,
-            otherSchemaKStream.sourceStep,
-            joinSchema,
-            joinWindows
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -620,17 +623,17 @@ public class SchemaKStream<K> {
                 null,
                 StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
-
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamTableJoin(
+        contextStacker,
+        JoinType.INNER,
+        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        sourceStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKStream<>(
         joinedKStream,
-        ExecutionStepFactory.streamTableJoin(
-            contextStacker,
-            JoinType.INNER,
-            Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-            sourceStep,
-            schemaKTable.getSourceTableStep(),
-            joinSchema
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -663,19 +666,19 @@ public class SchemaKStream<K> {
                     rightSerde,
                     StreamsUtil.buildOpName(contextStacker.getQueryContext()))
             );
-
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamStreamJoin(
+        contextStacker,
+        JoinType.INNER,
+        Formats.of(keyFormat, leftFormat, SerdeOption.none()),
+        Formats.of(keyFormat, rightFormat, SerdeOption.none()),
+        sourceStep,
+        otherSchemaKStream.sourceStep,
+        joinSchema,
+        joinWindows
+    );
     return new SchemaKStream<>(
         joinStream,
-        ExecutionStepFactory.streamStreamJoin(
-            contextStacker,
-            JoinType.INNER,
-            Formats.of(keyFormat, leftFormat, SerdeOption.none()),
-            Formats.of(keyFormat, rightFormat, SerdeOption.none()),
-            sourceStep,
-            otherSchemaKStream.sourceStep,
-            joinSchema,
-            joinWindows
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -707,19 +710,19 @@ public class SchemaKStream<K> {
                 rightSerde,
                 StreamsUtil.buildOpName(contextStacker.getQueryContext()))
         );
-
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamStreamJoin(
+        contextStacker,
+        JoinType.OUTER,
+        Formats.of(keyFormat, leftFormat, SerdeOption.none()),
+        Formats.of(keyFormat, rightFormat, SerdeOption.none()),
+        sourceStep,
+        otherSchemaKStream.sourceStep,
+        joinSchema,
+        joinWindows
+    );
     return new SchemaKStream<>(
         joinStream,
-        ExecutionStepFactory.streamStreamJoin(
-            contextStacker,
-            JoinType.OUTER,
-            Formats.of(keyFormat, leftFormat, SerdeOption.none()),
-            Formats.of(keyFormat, rightFormat, SerdeOption.none()),
-            sourceStep,
-            otherSchemaKStream.sourceStep,
-            joinSchema,
-            joinWindows
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -794,15 +797,15 @@ public class SchemaKStream<K> {
         : resultantKeyField;
 
     final KeySerde<Struct> selectKeySerde = keySerde.rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
-
+    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamSelectKey(
+        contextStacker,
+        sourceStep,
+        fieldName,
+        updateRowKey
+    );
     return (SchemaKStream<Struct>) new SchemaKStream(
         keyedKStream,
-        ExecutionStepFactory.streamSelectKey(
-            contextStacker,
-            sourceStep,
-            fieldName,
-            updateRowKey
-        ),
+        step,
         keyFormat,
         selectKeySerde,
         newKeyField,
@@ -888,15 +891,16 @@ public class SchemaKStream<K> {
       }
 
       final KeySerde<Struct> structKeySerde = (KeySerde) keySerde;
-
-      return new SchemaKGroupedStream(
-          kgroupedStream,
+      final ExecutionStep<KGroupedStream<Struct, GenericRow>> step =
           ExecutionStepFactory.streamGroupBy(
               contextStacker,
               sourceStep,
               Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none()),
               groupByExpressions
-          ),
+          );
+      return new SchemaKGroupedStream(
+          kgroupedStream,
+          step,
           keyFormat,
           structKeySerde,
           keyField,
@@ -927,15 +931,16 @@ public class SchemaKStream<K> {
 
     final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
         .map(Field::name);
-
-    return new SchemaKGroupedStream(
-        kgroupedStream,
+    final ExecutionStep<KGroupedStream<Struct, GenericRow>> source =
         ExecutionStepFactory.streamGroupBy(
             contextStacker,
             sourceStep,
             Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none()),
             groupByExpressions
-        ),
+        );
+    return new SchemaKGroupedStream(
+        kgroupedStream,
+        source,
         rekeyedKeyFormat,
         groupedKeySerde,
         KeyField.of(newKeyField, Optional.of(legacyKeyField)),
@@ -945,16 +950,12 @@ public class SchemaKStream<K> {
     );
   }
 
-  public ExecutionStep<KStream<K, GenericRow>> getSourceStep() {
+  ExecutionStep<KStream<K, GenericRow>> getSourceStep() {
     return sourceStep;
   }
 
   public KeyField getKeyField() {
     return keyField;
-  }
-
-  public ExecutionStepProperties getSourceProperties() {
-    return sourceProperties;
   }
 
   public QueryContext getQueryContext() {

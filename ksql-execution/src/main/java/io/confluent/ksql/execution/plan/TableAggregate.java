@@ -38,7 +38,7 @@ public class TableAggregate<T, G> implements ExecutionStep<T> {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
-    this.nonFuncColumnCount = Objects.requireNonNull(nonFuncColumnCount, "nonFuncColumnCount");
+    this.nonFuncColumnCount = nonFuncColumnCount;
     this.aggregations = Objects.requireNonNull(aggregations, "aggValToFunctionMap");
   }
 
@@ -69,7 +69,7 @@ public class TableAggregate<T, G> implements ExecutionStep<T> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
-        && Objects.equals(nonFuncColumnCount, that.nonFuncColumnCount)
+        && nonFuncColumnCount == that.nonFuncColumnCount
         && Objects.equals(aggregations, that.aggregations);
   }
 

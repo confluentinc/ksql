@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +43,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -1264,12 +1266,20 @@ public class SchemaKStreamTest {
     );
   }
 
+  private void givenSourcePropertiesWithSchema(final LogicalSchema schema) {
+    reset(sourceProperties);
+    when(sourceProperties.getSchema()).thenReturn(schema);
+    when(sourceProperties.withQueryContext(any())).thenAnswer(
+        i -> new DefaultExecutionStepProperties(schema, (QueryContext) i.getArguments()[0])
+    );
+  }
+
   private SchemaKStream buildSchemaKStream(
       final LogicalSchema schema,
       final KeyField keyField,
       final KStream kStream,
       final StreamsFactories streamsFactories) {
-    when(sourceProperties.getSchema()).thenReturn(schema);
+    givenSourcePropertiesWithSchema(schema);
     return new SchemaKStream(
         kStream,
         sourceStep,
@@ -1347,7 +1357,7 @@ public class SchemaKStreamTest {
         metaStore
     );
 
-    when(sourceProperties.getSchema()).thenReturn(logicalPlan.getTheSourceNode().getSchema());
+    givenSourcePropertiesWithSchema(logicalPlan.getTheSourceNode().getSchema());
     initialSchemaKStream = new SchemaKStream(
         kStream,
         sourceStep,

@@ -70,7 +70,7 @@ public class StreamAggregate<T, G> implements ExecutionStep<T> {
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
         && Objects.equals(aggregations, that.aggregations)
-        && Objects.equals(nonFuncColumnCount, that.nonFuncColumnCount);
+        && nonFuncColumnCount == that.nonFuncColumnCount;
   }
 
   @Override

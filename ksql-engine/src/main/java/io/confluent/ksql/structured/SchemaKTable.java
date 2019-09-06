@@ -112,12 +112,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
     this.ktable = ktable;
     this.sourceTableStep = sourceTableStep;
-    this.keyField.validateKeyExistsIn(getSchema());
-  }
-
-  @Override
-  public LogicalSchema getSchema() {
-    return sourceTableStep.getProperties().getSchema();
   }
 
   @Override
@@ -146,15 +140,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             }
         ).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
 
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableSink(
+        contextStacker,
+        outputSchema,
+        sourceTableStep,
+        Formats.of(keyFormat, valueFormat, options),
+        kafkaTopicName
+    );
     return new SchemaKTable<>(
         ktable,
-        ExecutionStepFactory.tableSink(
-            contextStacker,
-            outputSchema,
-            sourceTableStep,
-            Formats.of(keyFormat, valueFormat, options),
-            kafkaTopicName
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -183,13 +178,14 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
 
     final KTable filteredKTable = ktable.filter(predicate.getPredicate());
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableFilter(
+        contextStacker,
+        sourceTableStep,
+        filterExpression
+    );
     return new SchemaKTable<>(
         filteredKTable,
-        ExecutionStepFactory.tableFilter(
-            contextStacker,
-            sourceTableStep,
-            filterExpression
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -211,14 +207,15 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             QueryLoggerUtil.queryLoggerName(
                 contextStacker.push(Type.PROJECT.name()).getQueryContext()))
     );
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableMapValues(
+        contextStacker,
+        sourceTableStep,
+        selection.getProjectedSchema(),
+        selectExpressions
+    );
     return new SchemaKTable<>(
         ktable.mapValues(selection.getSelectValueMapper()),
-        ExecutionStepFactory.tableMapValues(
-            contextStacker,
-            sourceTableStep,
-            selection.getProjectedSchema(),
-            selectExpressions
-        ),
+        step,
         keyFormat,
         keySerde,
         selection.getKey(),
@@ -277,14 +274,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
         .map(Field::fullName);
 
-    return new SchemaKGroupedTable(
-        kgroupedTable,
+    final ExecutionStep<KGroupedTable<Struct, GenericRow>> step =
         ExecutionStepFactory.tableGroupBy(
             contextStacker,
             sourceTableStep,
             Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
             groupByExpressions
-        ),
+        );
+    return new SchemaKGroupedTable(
+        kgroupedTable,
+        step,
         groupedKeyFormat,
         groupedKeySerde,
         KeyField.of(newKeyField, Optional.of(legacyKeyField)),
@@ -304,16 +303,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         schemaKTable.getKtable(),
         new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
     );
-
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        JoinType.INNER,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKTable<>(
         joinedKTable,
-        ExecutionStepFactory.tableTableJoin(
-            contextStacker,
-            JoinType.INNER,
-            sourceTableStep,
-            schemaKTable.getSourceTableStep(),
-            joinSchema
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -336,16 +335,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
         );
-
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        JoinType.LEFT,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKTable<>(
         joinedKTable,
-        ExecutionStepFactory.tableTableJoin(
-            contextStacker,
-            JoinType.LEFT,
-            sourceTableStep,
-            schemaKTable.getSourceTableStep(),
-            joinSchema
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,
@@ -368,16 +367,16 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
         );
-
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        JoinType.OUTER,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKTable<>(
         joinedKTable,
-        ExecutionStepFactory.tableTableJoin(
-            contextStacker,
-            JoinType.OUTER,
-            sourceTableStep,
-            schemaKTable.getSourceTableStep(),
-            joinSchema
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,

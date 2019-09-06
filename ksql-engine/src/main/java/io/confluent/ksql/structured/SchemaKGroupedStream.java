@@ -161,16 +161,17 @@ public class SchemaKGroupedStream {
       );
     }
 
+    final ExecutionStep step = ExecutionStepFactory.streamAggregate(
+        contextStacker,
+        sourceStep,
+        aggregateSchema,
+        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        nonFuncColumnCount,
+        aggregations
+    );
     return new SchemaKTable(
         table,
-        ExecutionStepFactory.streamAggregate(
-            contextStacker,
-            sourceStep,
-            aggregateSchema,
-            Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-            nonFuncColumnCount,
-            aggregations
-        ),
+        step,
         keyFormat,
         newKeySerde,
         keyField,

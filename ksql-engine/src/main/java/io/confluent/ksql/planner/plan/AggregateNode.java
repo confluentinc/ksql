@@ -247,15 +247,15 @@ public class AggregateNode extends PlanNode {
         aggregationContext.getQueryContext()
     );
 
+    final List<FunctionCall> functionsWithInternalIdentifiers = functionList.stream()
+        .map(internalSchema::resolveToInternal)
+        .map(FunctionCall.class::cast)
+        .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
         aggStageSchema,
         initializer,
         requiredColumns.size(),
-        functionList
-            .stream()
-            .map(internalSchema::resolveToInternal)
-            .map(FunctionCall.class::cast)
-            .collect(Collectors.toList()),
+        functionsWithInternalIdentifiers,
         aggValToFunctionMap,
         getWindowExpression(),
         valueFormat,

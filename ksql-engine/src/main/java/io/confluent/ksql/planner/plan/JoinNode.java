@@ -279,7 +279,7 @@ public class JoinNode extends PlanNode {
       return stream.selectKey(joinFieldName, true, contextStacker);
     }
 
-    ValueFormat getFormatForSource(final DataSourceNode sourceNode) {
+    static ValueFormat getFormatForSource(final DataSourceNode sourceNode) {
       return sourceNode.getDataSource()
           .getKsqlTopic()
           .getValueFormat();

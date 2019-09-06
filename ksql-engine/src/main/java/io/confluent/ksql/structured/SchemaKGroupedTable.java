@@ -162,16 +162,17 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         subtractor,
         materialized);
 
+    final ExecutionStep step = ExecutionStepFactory.tableAggregate(
+        contextStacker,
+        sourceTableStep,
+        aggregateSchema,
+        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+        nonFuncColumnCount,
+        aggregations
+    );
     return new SchemaKTable<>(
         aggKtable,
-        ExecutionStepFactory.tableAggregate(
-            contextStacker,
-            sourceTableStep,
-            aggregateSchema,
-            Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-            nonFuncColumnCount,
-            aggregations
-        ),
+        step,
         keyFormat,
         keySerde,
         keyField,

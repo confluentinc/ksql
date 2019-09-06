@@ -173,7 +173,7 @@ public class SchemaKGroupedTableTest {
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
     final ExecutionStep<S> step = Mockito.mock(ExecutionStep.class);
     when(step.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties("id", schema, queryContext.getQueryContext())
+        new DefaultExecutionStepProperties(schema, queryContext.getQueryContext())
     );
     return step;
   }

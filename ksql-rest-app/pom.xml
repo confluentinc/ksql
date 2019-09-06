@@ -107,6 +107,12 @@
             <scope>test</scope>
         </dependency>
 
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-rest-client</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>

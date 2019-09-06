@@ -15,8 +15,7 @@
 
 package io.confluent.ksql.rest.util;
 
-import io.confluent.ksql.rest.server.resources.Errors;
-
+import io.confluent.ksql.rest.Errors;
 import javax.ws.rs.core.Response;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.common.errors.TopicAuthorizationException;

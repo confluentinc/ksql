@@ -43,9 +43,10 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
@@ -55,8 +56,6 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
@@ -136,6 +135,8 @@ public class CliTest {
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(CLUSTER)
       .around(REST_APP);
+
+  private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
 
   @Rule
   public final Timeout timeout = Timeout.builder()
@@ -675,7 +676,7 @@ public class CliTest {
     givenRunInteractivelyWillExit();
 
     final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeRootRequest())
+    when(mockRestClient.getServerInfo())
         .thenThrow(new KsqlRestClientException("Boom", new ProcessingException("")));
 
     new Cli(1L, 1L, mockRestClient, console)
@@ -702,7 +703,7 @@ public class CliTest {
     givenRunInteractivelyWillExit();
 
     final KsqlRestClient mockRestClient = givenMockRestClient();
-    when(mockRestClient.makeRootRequest()).thenReturn(
+    when(mockRestClient.getServerInfo()).thenReturn(
         RestResponse.erroneous(
             Code.NOT_ACCEPTABLE,
             new KsqlErrorMessage(
@@ -984,8 +985,8 @@ public class CliTest {
     final KsqlRestClient mockRestClient = givenMockRestClient();
     givenCommandSequenceNumber(mockRestClient, 5L);
     givenRequestPipelining("ON");
-    when(mockRestClient.makeRootRequest()).thenReturn(
-        RestResponse.successful(HttpStatus.Code.OK, new RootDocument()));
+    when(mockRestClient.getServerInfo()).thenReturn(
+        RestResponse.successful(HttpStatus.Code.OK, SERVER_INFO));
 
     // When:
     runCliSpecificCommand("server foo");

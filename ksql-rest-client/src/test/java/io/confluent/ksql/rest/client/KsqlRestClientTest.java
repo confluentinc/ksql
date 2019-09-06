@@ -21,8 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.ssl.SslClientConfigurer;
+import io.confluent.ksql.rest.client.ssl.SslClientConfigurer;
 import io.confluent.rest.RestConfig;
 import java.util.HashMap;
 import java.util.Map;

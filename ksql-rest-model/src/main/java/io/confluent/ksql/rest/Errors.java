@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.resources;
+package io.confluent.ksql.rest;
 
 import static javax.ws.rs.core.Response.Status.BAD_REQUEST;
 import static javax.ws.rs.core.Response.Status.FORBIDDEN;
@@ -31,7 +31,7 @@ import javax.ws.rs.core.Response;
 public final class Errors {
   private static final int HTTP_TO_ERROR_CODE_MULTIPLIER = 100;
 
-  static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
+  public static final int ERROR_CODE_BAD_REQUEST = toErrorCode(BAD_REQUEST.getStatusCode());
   public static final int ERROR_CODE_BAD_STATEMENT = toErrorCode(BAD_REQUEST.getStatusCode()) + 1;
   private static final int ERROR_CODE_QUERY_ENDPOINT = toErrorCode(BAD_REQUEST.getStatusCode()) + 2;
 
@@ -41,9 +41,9 @@ public final class Errors {
   public static final int ERROR_CODE_FORBIDDEN_KAFKA_ACCESS =
       toErrorCode(FORBIDDEN.getStatusCode()) + 1;
 
-  static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
+  public static final int ERROR_CODE_NOT_FOUND = toErrorCode(NOT_FOUND.getStatusCode());
 
-  static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
+  public static final int ERROR_CODE_SERVER_SHUTTING_DOWN =
       toErrorCode(SERVICE_UNAVAILABLE.getStatusCode());
 
   public static final int ERROR_CODE_COMMAND_QUEUE_CATCHUP_TIMEOUT =
@@ -102,7 +102,7 @@ public final class Errors {
         .build();
   }
 
-  static Response badStatement(final String msg, final String statementText) {
+  public static Response badStatement(final String msg, final String statementText) {
     return badStatement(msg, statementText, new KsqlEntityList());
   }
 
@@ -144,14 +144,14 @@ public final class Errors {
         .build();
   }
 
-  static Response notFound(final String msg) {
+  public static Response notFound(final String msg) {
     return Response
         .status(NOT_FOUND)
         .entity(new KsqlErrorMessage(ERROR_CODE_NOT_FOUND, msg))
         .build();
   }
 
-  static Response serverErrorForStatement(final Throwable t, final String statementText) {
+  public static Response serverErrorForStatement(final Throwable t, final String statementText) {
     return serverErrorForStatement(t, statementText, new KsqlEntityList());
   }
 

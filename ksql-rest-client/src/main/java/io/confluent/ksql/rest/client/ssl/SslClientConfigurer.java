@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.ssl;
+package io.confluent.ksql.rest.client.ssl;
 
 import java.util.Map;
 import javax.ws.rs.client.ClientBuilder;

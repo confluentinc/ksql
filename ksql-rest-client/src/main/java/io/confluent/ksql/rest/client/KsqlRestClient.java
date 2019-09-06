@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -21,7 +21,9 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.client.ssl.DefaultSslClientConfigurer;
+import io.confluent.ksql.rest.client.ssl.SslClientConfigurer;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -29,10 +31,6 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.resources.Errors;
-import io.confluent.ksql.rest.server.resources.RootDocument;
-import io.confluent.ksql.rest.ssl.DefaultSslClientConfigurer;
-import io.confluent.ksql.rest.ssl.SslClientConfigurer;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.IOException;
@@ -154,10 +152,6 @@ public class KsqlRestClient implements Closeable {
 
   public void setServerAddress(final String serverAddress) {
     this.serverAddresses = parseServerAddresses(serverAddress);
-  }
-
-  public RestResponse<RootDocument> makeRootRequest() {
-    return getRequest("/", RootDocument.class);
   }
 
   public RestResponse<ServerInfo> getServerInfo() {

@@ -28,8 +28,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
@@ -37,6 +35,7 @@ import java.io.StringWriter;
 import java.net.URI;
 import javax.net.ssl.SSLException;
 import javax.ws.rs.ProcessingException;
+import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,7 +64,7 @@ public class RemoteServerSpecificCommandTest {
     terminal = new PrintWriter(out);
     command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
-    when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(ROOT_DOCUMENT));
+    when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(Code.OK, ROOT_DOCUMENT));
     when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
   }
 
@@ -125,7 +124,7 @@ public class RemoteServerSpecificCommandTest {
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
     // Given:
     when(restClient.makeRootRequest()).thenReturn(RestResponse.erroneous(
-        Errors.ERROR_CODE_SERVER_ERROR, "it is broken"));
+        Code.INTERNAL_SERVER_ERROR, "it is broken"));
 
     // When:
     command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);

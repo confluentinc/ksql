@@ -4,10 +4,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.metastore.TypeRegistryImpl;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
-import io.confluent.ksql.schema.ksql.types.SqlCustomType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -17,13 +19,20 @@ public class TypeContextUtilTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
+  private TypeRegistry typeRegistry;
+
+  @Before
+  public void setUp() {
+    typeRegistry = new TypeRegistryImpl();
+  }
+
   @Test
   public void shouldGetTypeFromVarchar() {
     // Given:
     final String schemaString = "VARCHAR";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlTypes.STRING)));
@@ -35,7 +44,7 @@ public class TypeContextUtilTest {
     final String schemaString = "DECIMAL(2, 1)";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlTypes.decimal(2, 1))));
@@ -47,7 +56,7 @@ public class TypeContextUtilTest {
     final String schemaString = "ARRAY<VARCHAR>";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlTypes.array(SqlTypes.STRING))));
@@ -59,7 +68,7 @@ public class TypeContextUtilTest {
     final String schemaString = "ARRAY<INT>";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlTypes.array(SqlTypes.INTEGER))));
@@ -71,7 +80,7 @@ public class TypeContextUtilTest {
     final String schemaString = "MAP<VARCHAR, INT>";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlTypes.map(SqlTypes.INTEGER))));
@@ -83,7 +92,7 @@ public class TypeContextUtilTest {
     final String schemaString = "STRUCT<A VARCHAR>";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlTypes.struct().field("A", SqlTypes.STRING).build())));
@@ -95,7 +104,7 @@ public class TypeContextUtilTest {
     final String schemaString = "STRUCT<A VARCHAR, B INT>";
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
     assertThat(type, is(new Type(SqlStruct.builder()
@@ -105,16 +114,16 @@ public class TypeContextUtilTest {
   }
 
   @Test
-  public void shouldReturnCustomTypeOnUnknownType() {
+  public void shouldReturnCustomTypeOnUnknownTypeName() {
     // Given:
     final String schemaString = "SHAKESPEARE";
+    typeRegistry.registerType(schemaString, SqlTypes.STRING);
 
     // When:
-    final Type type = TypeContextUtil.getType(schemaString);
+    final Type type = TypeContextUtil.getType(schemaString, typeRegistry);
 
     // Then:
-    assertThat(type.getSqlType().baseType(), is(SqlBaseType.CUSTOM));
-    assertThat(type.getSqlType(), is(SqlCustomType.of("SHAKESPEARE")));
+    assertThat(type.getSqlType(), is(SqlTypes.STRING));
   }
 
   @Test
@@ -127,7 +136,7 @@ public class TypeContextUtilTest {
     expectedException.expectMessage("Value must be integer for command: DECIMAL(PRECISION)");
 
     // When:
-    TypeContextUtil.getType(schemaString);
+    TypeContextUtil.getType(schemaString, typeRegistry);
   }
 
 
@@ -141,7 +150,7 @@ public class TypeContextUtilTest {
     expectedException.expectMessage("Value must be integer for command: DECIMAL(SCALE)");
 
     // When:
-    TypeContextUtil.getType(schemaString);
+    TypeContextUtil.getType(schemaString, typeRegistry);
   }
 
 }

@@ -168,6 +168,10 @@ public abstract class AstVisitor<R, C> {
     return visitStatement(node, context);
   }
 
+  protected R visitListTypes(final ListTypes listTypes, final C context) {
+    return visitStatement(listTypes, context);
+  }
+
   protected R visitUnsetProperty(final UnsetProperty node, final C context) {
     return visitStatement(node, context);
   }

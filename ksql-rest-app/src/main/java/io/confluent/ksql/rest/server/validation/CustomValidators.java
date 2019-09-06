@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
@@ -70,6 +71,7 @@ public enum CustomValidators {
   LIST_QUERIES(ListQueries.class, StatementValidator.NO_VALIDATION),
   LIST_PROPERTIES(ListProperties.class, StatementValidator.NO_VALIDATION),
   LIST_CONNECTORS(ListConnectors.class, StatementValidator.NO_VALIDATION),
+  LIST_TYPES(ListTypes.class, StatementValidator.NO_VALIDATION),
   CREATE_CONNECTOR(CreateConnector.class, StatementValidator.NO_VALIDATION),
   DROP_CONNECTOR(DropConnector.class, StatementValidator.NO_VALIDATION),
 

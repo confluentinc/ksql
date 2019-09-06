@@ -64,6 +64,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
+import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -860,6 +861,67 @@ public class ConsoleTest {
           + " foo            | SOURCE  | clazz \n"
           + " bar            | UNKNOWN |       \n"
           + "----------------------------------\n"));
+    }
+  }
+
+  @Test
+  public void shouldPrintTypesList() throws IOException {
+    // Given:
+    final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
+        new TypeList("statement", ImmutableMap.of(
+            "typeB", new SchemaInfo(
+                SqlBaseType.ARRAY,
+                null,
+                new SchemaInfo(SqlBaseType.STRING, null, null)),
+            "typeA", new SchemaInfo(
+                SqlBaseType.STRUCT,
+                ImmutableList.of(
+                    new FieldInfo("f1", new SchemaInfo(SqlBaseType.STRING, null, null))),
+                null)
+        ))
+    ));
+
+    // When:
+    console.printKsqlEntityList(entities);
+
+    // Then:
+    final String output = terminal.getOutputString();
+    if (console.getOutputFormat() == OutputFormat.JSON) {
+      assertThat(output, is("[ {\n"
+          + "  \"@type\" : \"type_list\",\n"
+          + "  \"statementText\" : \"statement\",\n"
+          + "  \"types\" : {\n"
+          + "    \"typeB\" : {\n"
+          + "      \"type\" : \"ARRAY\",\n"
+          + "      \"fields\" : null,\n"
+          + "      \"memberSchema\" : {\n"
+          + "        \"type\" : \"STRING\",\n"
+          + "        \"fields\" : null,\n"
+          + "        \"memberSchema\" : null\n"
+          + "      }\n"
+          + "    },\n"
+          + "    \"typeA\" : {\n"
+          + "      \"type\" : \"STRUCT\",\n"
+          + "      \"fields\" : [ {\n"
+          + "        \"name\" : \"f1\",\n"
+          + "        \"schema\" : {\n"
+          + "          \"type\" : \"STRING\",\n"
+          + "          \"fields\" : null,\n"
+          + "          \"memberSchema\" : null\n"
+          + "        }\n"
+          + "      } ],\n"
+          + "      \"memberSchema\" : null\n"
+          + "    }\n"
+          + "  },\n"
+          + "  \"warnings\" : [ ]\n"
+          + "} ]\n"));
+    } else {
+      assertThat(output, is("\n"
+          + " Type Name | Schema                     \n"
+          + "----------------------------------------\n"
+          + " typeA     | STRUCT<f1 VARCHAR(STRING)> \n"
+          + " typeB     | ARRAY<VARCHAR(STRING)>     \n"
+          + "----------------------------------------\n"));
     }
   }
 

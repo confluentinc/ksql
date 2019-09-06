@@ -57,6 +57,7 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -234,7 +235,8 @@ public class KsqlRestClientFunctionalTest {
     final RestResponse<?> response = ksqlRestClient.getServerInfo();
 
     // Then:
-    assertThat(response.getErrorMessage().getErrorCode(), is(404));
+    assertThat(response.getStatusCode().getCode(), is(HttpStatus.SC_NOT_FOUND));
+    assertThat(response.getErrorMessage().getErrorCode(), is(40400));
     assertThat(response.getErrorMessage().getMessage(),
         containsString("Path not found. Path='/info'. "
             + "Check your ksql http url to make sure you are connecting to a ksql server."));
@@ -249,7 +251,8 @@ public class KsqlRestClientFunctionalTest {
     final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
-    assertThat(response.getErrorMessage().getErrorCode(), is(404));
+    assertThat(response.getStatusCode().getCode(), is(HttpStatus.SC_NOT_FOUND));
+    assertThat(response.getErrorMessage().getErrorCode(), is(40400));
     assertThat(response.getErrorMessage().getMessage(),
         containsString("Path not found. Path='ksql'. "
             + "Check your ksql http url to make sure you are connecting to a ksql server."));
@@ -314,13 +317,14 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void shouldHandleErrorMessageOnGetRequests() {
     // Given:
-    givenServerWillReturn(new KsqlErrorMessage(12300, "ouch", ImmutableList.of("s1", "s2")));
+    givenServerWillReturn(new KsqlErrorMessage(40000, "ouch", ImmutableList.of("s1", "s2")));
 
     // When:
     final RestResponse<?> response = ksqlRestClient.getServerInfo();
 
     // Then:
-    assertThat(response.getErrorMessage().getErrorCode(), is(12300));
+    assertThat(response.getStatusCode().getCode(), is(HttpStatus.SC_BAD_REQUEST));
+    assertThat(response.getErrorMessage().getErrorCode(), is(40000));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
     assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
   }
@@ -328,13 +332,14 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void shouldHandleErrorMessageOnPostRequests() {
     // Given:
-    givenServerWillReturn(new KsqlErrorMessage(12300, "ouch", ImmutableList.of("s1", "s2")));
+    givenServerWillReturn(new KsqlErrorMessage(40100, "ouch", ImmutableList.of("s1", "s2")));
 
     // When:
     final RestResponse<?> response = ksqlRestClient.makeKsqlRequest("whateva", null);
 
     // Then:
-    assertThat(response.getErrorMessage().getErrorCode(), is(12300));
+    assertThat(response.getStatusCode().getCode(), is(HttpStatus.SC_UNAUTHORIZED));
+    assertThat(response.getErrorMessage().getErrorCode(), is(40100));
     assertThat(response.getErrorMessage().getMessage(), is("ouch"));
     assertThat(response.getErrorMessage().getStackTrace(), is(ImmutableList.of("s1", "s2")));
   }

@@ -23,7 +23,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class QttTestFile {
+public final class QttTestFile {
 
   public final List<TestCaseNode> tests;
 

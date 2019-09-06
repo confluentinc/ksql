@@ -63,6 +63,7 @@ import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
+import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
@@ -99,6 +100,7 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.ListTypes;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
@@ -649,6 +651,11 @@ public class AstBuilder {
     }
 
     @Override
+    public Node visitListTypes(final ListTypesContext ctx) {
+      return new ListTypes(getLocation(ctx));
+    }
+
+    @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       return new TerminateQuery(getLocation(context), context.qualifiedName().getText());
     }
@@ -939,7 +946,7 @@ public class AstBuilder {
       return new Cast(
           getLocation(context),
           (Expression) visit(context.expression()),
-          getType(context.type())
+          getType(context.type(), metaStore)
       );
     }
 
@@ -1082,7 +1089,7 @@ public class AstBuilder {
           getLocation(context),
           context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
           ParserUtil.getIdentifierText(context.identifier()),
-          getType(context.type())
+          getType(context.type(), metaStore)
       );
     }
 
@@ -1181,7 +1188,7 @@ public class AstBuilder {
       return new RegisterType(
           getLocation(context),
           ParserUtil.getIdentifierText(context.identifier()),
-          getType(context.type())
+          getType(context.type(), metaStore)
       );
     }
 

@@ -88,6 +88,8 @@ import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
+import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -702,9 +704,11 @@ public class CliTest {
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeRootRequest()).thenReturn(
         RestResponse.erroneous(
+            Code.NOT_ACCEPTABLE,
             new KsqlErrorMessage(
                 Errors.toErrorCode(NOT_ACCEPTABLE.getStatusCode()),
-                "Minimum supported client version: 1.0")));
+                "Minimum supported client version: 1.0")
+        ));
 
     new Cli(1L, 1L, mockRestClient, console)
         .runInteractively();
@@ -867,8 +871,10 @@ public class CliTest {
     final KsqlRestClient mockRestClient = givenMockRestClient();
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(new KsqlEntityList(
-            Collections.singletonList(stubEntity))));
+        .thenReturn(RestResponse.successful(
+            HttpStatus.Code.OK,
+            new KsqlEntityList(Collections.singletonList(stubEntity))
+        ));
 
     // When:
     localCli.handleLine(statementText);
@@ -885,8 +891,10 @@ public class CliTest {
     final CommandStatusEntity firstEntity = stubCommandStatusEntityWithSeqNum(12L);
     final CommandStatusEntity secondEntity = stubCommandStatusEntityWithSeqNum(14L);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(new KsqlEntityList(
-            ImmutableList.of(firstEntity, secondEntity))));
+        .thenReturn(RestResponse.successful(
+            HttpStatus.Code.OK,
+            new KsqlEntityList(ImmutableList.of(firstEntity, secondEntity))
+        ));
 
     // When:
     localCli.handleLine(statementText);
@@ -901,7 +909,7 @@ public class CliTest {
     final String statementText = "create stream foo;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+        .thenReturn(RestResponse.successful(HttpStatus.Code.OK, new KsqlEntityList()));
 
     // When:
     localCli.handleLine(statementText);
@@ -916,7 +924,7 @@ public class CliTest {
     final String statementText = "create stream foo;";
     final KsqlRestClient mockRestClient = givenMockRestClient();
     when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
-        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+        .thenReturn(RestResponse.successful(HttpStatus.Code.OK, new KsqlEntityList()));
 
     givenRequestPipelining("ON");
 
@@ -934,8 +942,10 @@ public class CliTest {
     final KsqlRestClient mockRestClient = givenMockRestClient();
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(12L);
     when(mockRestClient.makeKsqlRequest(anyString(), eq(null)))
-        .thenReturn(RestResponse.successful(new KsqlEntityList(
-            Collections.singletonList(stubEntity))));
+        .thenReturn(RestResponse.successful(
+            HttpStatus.Code.OK,
+            new KsqlEntityList(Collections.singletonList(stubEntity))
+        ));
 
     givenRequestPipelining("ON");
 
@@ -975,7 +985,7 @@ public class CliTest {
     givenCommandSequenceNumber(mockRestClient, 5L);
     givenRequestPipelining("ON");
     when(mockRestClient.makeRootRequest()).thenReturn(
-        RestResponse.successful(new RootDocument()));
+        RestResponse.successful(HttpStatus.Code.OK, new RootDocument()));
 
     // When:
     runCliSpecificCommand("server foo");
@@ -1000,8 +1010,11 @@ public class CliTest {
   private KsqlRestClient givenMockRestClient() throws Exception {
     final KsqlRestClient mockRestClient = mock(KsqlRestClient.class);
 
-    when(mockRestClient.getServerInfo()).thenReturn(
-        RestResponse.of(new ServerInfo("1.x", "testClusterId", "testServiceId")));
+    when(mockRestClient.getServerInfo()).thenReturn(RestResponse.successful(
+        HttpStatus.Code.OK,
+        new ServerInfo("1.x", "testClusterId", "testServiceId")
+    ));
+
     when(mockRestClient.getServerAddress()).thenReturn(new URI("http://someserver:8008"));
 
     localCli = new Cli(
@@ -1022,9 +1035,11 @@ public class CliTest {
   private void givenCommandSequenceNumber(
       final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(seqNum);
-    when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(new KsqlEntityList(
-            Collections.singletonList(stubEntity))));
+    when(mockRestClient.makeKsqlRequest(anyString(), anyLong())).thenReturn(
+        RestResponse.successful(
+            HttpStatus.Code.OK,
+            new KsqlEntityList(Collections.singletonList(stubEntity))
+        ));
     localCli.handleLine("create stream foo;");
   }
 
@@ -1034,7 +1049,7 @@ public class CliTest {
     reset(mockRestClient);
     final String statementText = "list streams;";
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong()))
-        .thenReturn(RestResponse.successful(new KsqlEntityList()));
+        .thenReturn(RestResponse.successful(HttpStatus.Code.OK, new KsqlEntityList()));
 
     // When:
     localCli.handleLine(statementText);

@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -177,9 +178,11 @@ public final class KsqlFunction implements IndexedFunction {
     if (!SchemaUtil.areCompatible(s1, s2)) {
       throw new KsqlException(String.format("Return type %s of UDF %s does not match the declared "
                                                 + "return type %s.",
-                                            s1.toString(),
+                                            SchemaConverters.connectToSqlConverter().toSqlType(
+                                                s1).toString(),
                                             functionName,
-                                            s2.toString()));
+                                            SchemaConverters.connectToSqlConverter().toSqlType(
+                                                s2).toString()));
     }
   }
 

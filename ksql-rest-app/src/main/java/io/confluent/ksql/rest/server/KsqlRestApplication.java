@@ -58,6 +58,7 @@ import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
+import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidatorFactory;
 import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
@@ -91,6 +92,7 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -134,11 +136,13 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final List<KsqlServerPrecondition> preconditions;
   private final KsqlConnect ksqlConnect;
   private final List<KsqlConfigurable> configurables;
+  private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
   public static String getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
+  @VisibleForTesting
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   KsqlRestApplication(
       // CHECKSTYLE_RULES.ON: ParameterNumberCheck
@@ -159,7 +163,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
       final KsqlConnect ksqlConnect,
-      final List<KsqlConfigurable> configurables
+      final List<KsqlConfigurable> configurables,
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     super(config);
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -180,6 +185,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
     this.ksqlConnect = requireNonNull(ksqlConnect, "ksqlConnect");
     this.configurables = requireNonNull(configurables, "configurables");
+    this.rocksDBConfigSetterHandler =
+        requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
   }
 
   @Override
@@ -250,6 +257,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   private void initialize() {
+    rocksDBConfigSetterHandler.accept(ksqlConfigNoPort);
+
     registerCommandTopic();
 
     commandStore.start();
@@ -524,6 +533,9 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statementExecutor
     );
 
+    final Consumer<KsqlConfig> rocksDBConfigSetterHandler =
+        RocksDBConfigSetterHandler::maybeConfigureRocksDBConfigSetter;
+
     return new KsqlRestApplication(
         serviceContext,
         ksqlEngine,
@@ -542,7 +554,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         processingLogContext,
         preconditions,
         ksqlConnect,
-        configurables
+        configurables,
+        rocksDBConfigSetterHandler
     );
   }
 

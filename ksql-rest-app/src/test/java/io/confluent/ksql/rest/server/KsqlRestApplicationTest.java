@@ -62,6 +62,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
+import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
 import org.junit.Before;
 import org.junit.Test;
@@ -126,6 +127,8 @@ public class KsqlRestApplicationTest {
   private ParsedStatement parsedStatement;
   @Mock
   private PreparedStatement<?> preparedStatement;
+  @Mock
+  private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   private PreparedStatement<?> logCreateStatement;
   private KsqlRestApplication app;
 
@@ -178,7 +181,8 @@ public class KsqlRestApplicationTest {
         processingLogContext,
         ImmutableList.of(precondition1, precondition2),
         ksqlConnect,
-        ImmutableList.of(ksqlResource, streamedQueryResource)
+        ImmutableList.of(ksqlResource, streamedQueryResource),
+        rocksDBConfigSetterHandler
     );
   }
 
@@ -383,5 +387,14 @@ public class KsqlRestApplicationTest {
     inOrder.verify(serverState).setInitializingReason(error2);
     inOrder.verify(precondition1).checkPrecondition(restConfig, serviceContext);
     inOrder.verify(precondition2).checkPrecondition(restConfig, serviceContext);
+  }
+
+  @Test
+  public void shouldConfigureRocksDBConfigSetter() {
+    // When:
+    app.startKsql();
+
+    // Then:
+    verify(rocksDBConfigSetterHandler).accept(ksqlConfig);
   }
 }

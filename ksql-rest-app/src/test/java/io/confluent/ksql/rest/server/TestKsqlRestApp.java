@@ -20,6 +20,7 @@ import static org.easymock.EasyMock.niceMock;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -32,6 +33,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
+import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -157,6 +159,13 @@ public class TestKsqlRestApp extends ExternalResource {
   @SuppressWarnings("unused") // Part of public API
   public KsqlRestClient buildKsqlClient() {
     return new KsqlRestClient(getHttpListener().toString());
+  }
+
+  public static String getCommandTopicName() {
+    return KsqlInternalTopicUtils.getTopicName(
+        new KsqlConfig(ImmutableMap.of()),
+        KsqlRestConfig.COMMAND_TOPIC_SUFFIX
+    );
   }
 
   public Set<String> getPersistentQueries() {

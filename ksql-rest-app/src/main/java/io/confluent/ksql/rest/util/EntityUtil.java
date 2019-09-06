@@ -59,7 +59,7 @@ public final class EntityUtil {
         .collect(Collectors.toList());
   }
 
-  private static SchemaInfo getSchema(final SqlType type) {
+  public static SchemaInfo schemaInfo(final SqlType type) {
     return SqlTypeWalker.visit(type, new Converter());
   }
 

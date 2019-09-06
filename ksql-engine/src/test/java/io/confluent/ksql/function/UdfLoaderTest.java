@@ -36,6 +36,8 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -246,9 +248,8 @@ public class UdfLoaderTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Return type Schema{org.apache.kafka.connect.data."
-                                           + "Decimal:BYTES} of UDF ReturnIncompatible does not "
-                                           + "match the declared return type Schema{STRING}."));
+    expectedException.expectMessage(is("Return type DECIMAL(2, 1) of UDF ReturnIncompatible does not "
+                                           + "match the declared return type STRING."));
 
     // When:
     function.getReturnType(args);
@@ -301,7 +302,7 @@ public class UdfLoaderTest {
     // Expect:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(is("Cannot find schema provider method with name provideSchema "
-                                           + "and parameter List<Schema> in class org.damian.ksql.udf."
+                                           + "and parameter List<SqlType> in class org.damian.ksql.udf."
                                            + "MissingSchemaProviderUdf."));
 
     /// When:
@@ -671,8 +672,8 @@ public class UdfLoaderTest {
     }
 
     @UdfSchemaProvider
-    public Schema provideSchema(List<Schema> params) {
-      return DecimalUtil.builder(2, 1).build();
+    public SqlType provideSchema(List<SqlType> params) {
+      return SqlDecimal.of(2, 1);
     }
   }
 
@@ -689,8 +690,8 @@ public class UdfLoaderTest {
     }
 
     @UdfSchemaProvider
-    public Schema provideSchema(List<Schema> params) {
-      return DecimalUtil.builder(2, 1).build();
+    public SqlType provideSchema(List<Schema> params) {
+      return SqlDecimal.of(2, 1);
     }
   }
 }

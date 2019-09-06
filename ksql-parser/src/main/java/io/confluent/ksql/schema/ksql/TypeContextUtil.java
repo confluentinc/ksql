@@ -16,13 +16,13 @@
 package io.confluent.ksql.schema.ksql;
 
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.CaseInsensitiveStream;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.SqlBaseLexer;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.TypeContext;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
-import io.confluent.ksql.schema.ksql.types.SqlCustomType;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
@@ -39,23 +39,31 @@ public final class TypeContextUtil {
 
   private TypeContextUtil() { }
 
-  public static Type getType(final String schema) {
-    return getType(parseTypeContext(schema));
+  public static Type getType(final String schema, final TypeRegistry typeRegistry) {
+    return getType(parseTypeContext(schema), typeRegistry);
   }
 
-  public static Type getType(final SqlBaseParser.TypeContext type) {
+  public static Type getType(
+      final SqlBaseParser.TypeContext type,
+      final TypeRegistry typeRegistry
+  ) {
     final Optional<NodeLocation> location = ParserUtil.getLocation(type);
-    final SqlType sqlType = getSqlType(type);
+    final SqlType sqlType = getSqlType(type, typeRegistry);
     return new Type(location, sqlType);
   }
 
-  private static SqlType getSqlType(final SqlBaseParser.TypeContext type) {
+  private static SqlType getSqlType(
+      final SqlBaseParser.TypeContext type,
+      final TypeRegistry typeRegistry
+  ) {
     if (type.baseType() != null) {
       final String baseType = baseTypeToString(type.baseType());
       if (SqlPrimitiveType.isPrimitiveTypeName(baseType)) {
         return SqlPrimitiveType.of(baseType);
       } else {
-        return SqlCustomType.of(baseType);
+        return typeRegistry
+            .resolveType(baseType)
+            .orElseThrow(() -> new KsqlException("Cannot resolve unknown type: " + baseType));
       }
     }
 
@@ -67,11 +75,11 @@ public final class TypeContextUtil {
     }
 
     if (type.ARRAY() != null) {
-      return SqlArray.of(getSqlType(type.type(0)));
+      return SqlArray.of(getSqlType(type.type(0), typeRegistry));
     }
 
     if (type.MAP() != null) {
-      return SqlMap.of(getSqlType(type.type(1)));
+      return SqlMap.of(getSqlType(type.type(1), typeRegistry));
     }
 
     if (type.STRUCT() != null) {
@@ -79,7 +87,7 @@ public final class TypeContextUtil {
 
       for (int i = 0; i < type.identifier().size(); i++) {
         final String fieldName = ParserUtil.getIdentifierText(type.identifier(i));
-        final SqlType fieldType = getSqlType(type.type(i));
+        final SqlType fieldType = getSqlType(type.type(i), typeRegistry);
         builder.field(fieldName, fieldType);
       }
       return builder.build();

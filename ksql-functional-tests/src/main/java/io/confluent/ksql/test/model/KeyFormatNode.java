@@ -29,7 +29,7 @@ import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 
-public class KeyFormatNode {
+public final class KeyFormatNode {
 
   private final Optional<Format> format;
   private final Optional<WindowType> windowType;

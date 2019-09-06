@@ -446,24 +446,6 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldMatchName() {
-    final Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
-    assertThat(SchemaUtil.matchFieldName(field, "foo"), is(true));
-  }
-
-  @Test
-  public void shouldNotMatchDifferentName() {
-    final Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
-    assertThat(SchemaUtil.matchFieldName(field, "bar"), is(false));
-  }
-
-  @Test
-  public void shouldMatchNameWithAlias() {
-    final Field field = new Field("foo", 0, Schema.INT32_SCHEMA);
-    assertThat(SchemaUtil.matchFieldName(field, "bar.foo"), is(true));
-  }
-
-  @Test
   public void shouldMatchFieldNameOnExactMatch() {
     assertThat(SchemaUtil.isFieldName("bob", "bob"), is(true));
     assertThat(SchemaUtil.isFieldName("aliased.bob", "aliased.bob"), is(true));
@@ -483,44 +465,6 @@ public class SchemaUtilTest {
   @Test
   public void shouldNotMatchFieldNamesIfRequiredIsAliased() {
     assertThat(SchemaUtil.isFieldName("bob", "aliased.bob"), is(false));
-  }
-
-  @Test
-  public void shouldGetTheCorrectJavaCastClass() {
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.OPTIONAL_BOOLEAN_SCHEMA),
-        equalTo("(Boolean)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.OPTIONAL_INT32_SCHEMA),
-        equalTo("(Integer)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.OPTIONAL_INT64_SCHEMA),
-        equalTo("(Long)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        equalTo("(Double)"));
-    assertThat("Incorrect class.", SchemaUtil.getJavaCastString(Schema.OPTIONAL_STRING_SCHEMA),
-        equalTo("(String)"));
-  }
-
-  @Test
-  public void shouldStripAliasFromField() {
-    // Given:
-    final Field field = new Field("alias.some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
-
-    // When:
-    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
-
-    // Then:
-    assertThat(result, is("some-field-name"));
-  }
-
-  @Test
-  public void shouldReturnFieldWithoutAliasAsIs() {
-    // Given:
-    final Field field = new Field("some-field-name", 1, Schema.OPTIONAL_STRING_SCHEMA);
-
-    // When:
-    final String result = SchemaUtil.getFieldNameWithNoAlias(field);
-
-    // Then:
-    assertThat(result, is("some-field-name"));
   }
 
   @Test
@@ -859,31 +803,6 @@ public class SchemaUtilTest {
 
     // Then:
     assertThat(result, is("SomeAlias.SomeFieldName"));
-  }
-
-  @Test
-  public void shouldBuildAliasedField() {
-    // Given:
-    final Field field = new Field("col0", 1, Schema.INT64_SCHEMA);
-
-    // When:
-    final Field result = SchemaUtil
-        .buildAliasedField("TheAlias", field);
-
-    // Then:
-    assertThat(result, is(new Field("TheAlias.col0", 1, Schema.INT64_SCHEMA)));
-  }
-
-  @Test
-  public void shouldBuildAliasedFieldThatIsAlreadyAliased() {
-    // Given:
-    final Field field = new Field("TheAlias.col0", 1, Schema.INT64_SCHEMA);
-
-    // When:
-    final Field result = SchemaUtil.buildAliasedField("TheAlias", field);
-
-    // Then:
-    assertThat(result, is(field));
   }
 
   @Test

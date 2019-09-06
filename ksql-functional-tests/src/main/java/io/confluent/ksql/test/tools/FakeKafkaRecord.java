@@ -20,6 +20,7 @@ import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -53,7 +54,7 @@ public final class FakeKafkaRecord {
         serdeSupplier instanceof AvroSerdeSupplier
             ? ((ValueSpec)producerRecord.value()).getSpec()
             : producerRecord.value(),
-        producerRecord.timestamp(),
+        Optional.of(producerRecord.timestamp()),
         getWindowData(producerRecord)
     );
     return new FakeKafkaRecord(testRecord, producerRecord);

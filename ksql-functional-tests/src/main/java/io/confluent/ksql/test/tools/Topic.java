@@ -63,7 +63,7 @@ public class Topic {
     return name;
   }
 
-  Optional<Schema> getSchema() {
+  public Optional<Schema> getSchema() {
     return schema;
   }
 
@@ -83,7 +83,7 @@ public class Topic {
     return valueSerdeSupplier;
   }
 
-  Serializer getValueSerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer getValueSerializer(final SchemaRegistryClient schemaRegistryClient) {
     final Serializer<?> serializer = valueSerdeSupplier.getSerializer(schemaRegistryClient);
     serializer.configure(ImmutableMap.of(
         KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
@@ -91,7 +91,7 @@ public class Topic {
     return serializer;
   }
 
-  Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Deserializer getValueDeserializer(final SchemaRegistryClient schemaRegistryClient) {
     final Deserializer<?> deserializer = valueSerdeSupplier.getDeserializer(schemaRegistryClient);
     deserializer.configure(ImmutableMap.of(
         KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "foo"
@@ -99,7 +99,7 @@ public class Topic {
     return deserializer;
   }
 
-  Serializer getKeySerializer(final SchemaRegistryClient schemaRegistryClient) {
+  public Serializer getKeySerializer(final SchemaRegistryClient schemaRegistryClient) {
     final Serializer<?> serializer = keySerdeFactory.getSerializer(schemaRegistryClient);
     serializer.configure(ImmutableMap.of(
         KafkaAvroSerializerConfig.SCHEMA_REGISTRY_URL_CONFIG, "something"
@@ -107,7 +107,7 @@ public class Topic {
     return serializer;
   }
 
-  Deserializer<?> getKeyDeserializer(
+  public Deserializer<?> getKeyDeserializer(
       final SchemaRegistryClient schemaRegistryClient,
       final boolean isLegacySessionWindow) {
     final Deserializer<?> deserializer = createKeyDeserializer(

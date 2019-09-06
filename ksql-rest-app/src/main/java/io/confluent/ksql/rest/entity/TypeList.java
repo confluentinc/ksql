@@ -13,39 +13,33 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.schema.ksql.types;
+package io.confluent.ksql.rest.entity;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
+import java.util.Map;
 import java.util.Objects;
 
 @Immutable
-public final class SqlCustomType extends SqlType {
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class TypeList extends KsqlEntity {
 
-  private final String name;
+  private final ImmutableMap<String, SchemaInfo> types;
 
-  public static SqlCustomType of(final String name) {
-    return new SqlCustomType(name);
+  @JsonCreator
+  public TypeList(
+      @JsonProperty("statementText")  final String statementText,
+      @JsonProperty("types")          final Map<String, SchemaInfo> types
+  ) {
+    super(statementText);
+    this.types = ImmutableMap.copyOf(Objects.requireNonNull(types, "types"));
   }
 
-  private SqlCustomType(final String name) {
-    super(SqlBaseType.CUSTOM);
-    this.name = Objects.requireNonNull(name, "name").toUpperCase();
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  @Override
-  public boolean supportsCast() {
-    return false;
-  }
-
-  @Override
-  public String toString(final FormatOptions formatOptions) {
-    return name;
+  public Map<String, SchemaInfo> getTypes() {
+    return types;
   }
 
   @Override
@@ -56,12 +50,12 @@ public final class SqlCustomType extends SqlType {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SqlCustomType that = (SqlCustomType) o;
-    return Objects.equals(name, that.name);
+    final TypeList typeList = (TypeList) o;
+    return Objects.equals(types, typeList.types);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name);
+    return Objects.hash(types);
   }
 }

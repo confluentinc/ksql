@@ -16,6 +16,8 @@
 package io.confluent.ksql.test.tools;
 
 import io.confluent.ksql.test.model.WindowData;
+import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
@@ -32,18 +34,30 @@ public class Record {
   final Topic topic;
   private final String key;
   final Object value;
-  final long timestamp;
+  final Optional<Long> timestamp;
   private final WindowData window;
 
-  public Record(final Topic topic,
+  public Record(
+      final Topic topic,
       final String key,
       final Object value,
       final long timestamp,
-      final WindowData window) {
+      final WindowData window
+  ) {
+    this(topic, key, value, Optional.of(timestamp), window);
+  }
+
+  public Record(
+      final Topic topic,
+      final String key,
+      final Object value,
+      final Optional<Long> timestamp,
+      final WindowData window
+  ) {
     this.topic = topic;
     this.key = key;
     this.value = value;
-    this.timestamp = timestamp;
+    this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.window = window;
   }
 
@@ -86,11 +100,18 @@ public class Record {
     return value;
   }
 
-  public long timestamp() {
+  /**
+   * @return expected timestamp, or {@link Optional#empty()} if timestamp can be anything.
+   */
+  public Optional<Long> timestamp() {
     return timestamp;
   }
 
   public WindowData getWindow() {
     return window;
+  }
+
+  public Topic topic() {
+    return topic;
   }
 }

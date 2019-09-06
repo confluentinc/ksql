@@ -18,7 +18,6 @@ package io.confluent.ksql.parser;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
-import io.confluent.ksql.parser.rewrite.CustomTypeRewriter;
 import io.confluent.ksql.parser.rewrite.StatementRewriteForStruct;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
@@ -74,11 +73,7 @@ public class DefaultKsqlParser implements KsqlParser {
   ) {
     try {
       final AstBuilder astBuilder = new AstBuilder(metaStore);
-      Statement root = astBuilder.build(stmt.getStatement());
-
-      if (CustomTypeRewriter.requiresRewrite(root)) {
-        root = new CustomTypeRewriter(metaStore, root).rewrite();
-      }
+      final Statement root = astBuilder.build(stmt.getStatement());
 
       if (!StatementRewriteForStruct.requiresRewrite(root)) {
         return PreparedStatement.of(stmt.getStatementText(), root);

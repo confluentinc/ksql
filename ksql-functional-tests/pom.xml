@@ -76,6 +76,21 @@
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-rest-app</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-rest-app</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
       <artifactId>ksql-test-util</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

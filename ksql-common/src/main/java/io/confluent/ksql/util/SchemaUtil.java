@@ -106,11 +106,6 @@ public final class SchemaUtil {
     );
   }
 
-  public static boolean matchFieldName(final Field field, final String fieldName) {
-    return field.name().equals(fieldName)
-        || field.name().equals(getFieldNameWithNoAlias(fieldName));
-  }
-
   /**
    * Check if the supplied {@code actual} field name matches the supplied {@code required}.
    *
@@ -125,25 +120,12 @@ public final class SchemaUtil {
         || required.equals(getFieldNameWithNoAlias(actual));
   }
 
-  public static Field buildAliasedField(final String alias, final Field field) {
-    return new Field(buildAliasedFieldName(alias, field.name()), field.index(), field.schema());
-  }
-
   public static String buildAliasedFieldName(final String alias, final String fieldName) {
     final String prefix = alias + FIELD_NAME_DELIMITER;
     if (fieldName.startsWith(prefix)) {
       return fieldName;
     }
     return prefix + fieldName;
-  }
-
-  public static String getJavaCastString(final Schema schema) {
-    final String castString = SCHEMA_TYPE_TO_CAST_STRING.get(schema.type());
-    if (castString == null) {
-      return "";
-    }
-
-    return castString;
   }
 
   public static org.apache.avro.Schema buildAvroSchema(
@@ -222,11 +204,6 @@ public final class SchemaUtil {
 
   private static org.apache.avro.Schema unionWithNull(final org.apache.avro.Schema schema) {
     return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
-  }
-
-  public static String getFieldNameWithNoAlias(final Field field) {
-    final String name = field.name();
-    return getFieldNameWithNoAlias(name);
   }
 
   public static String getFieldNameWithNoAlias(final String fieldName) {
@@ -311,7 +288,7 @@ public final class SchemaUtil {
     return DecimalUtil.builder(precision, scale).build();
   }
 
-  public static boolean isNumber(final Schema.Type type) {
+  static boolean isNumber(final Schema.Type type) {
     return ARITHMETIC_TYPES.contains(type);
   }
 

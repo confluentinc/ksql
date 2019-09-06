@@ -86,7 +86,7 @@ public final class FakeInsertValuesExecutorTest {
     verify(fakeKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
 
     final Record actual = recordCaptor.getValue().getTestRecord();
-    assertThat(actual.timestamp(), is(timestamp));
+    assertThat(actual.timestamp(), is(Optional.of(timestamp)));
     assertThat(actual.getWindow(), is(nullValue()));
     assertThat(actual.key(), is("the-key"));
   }

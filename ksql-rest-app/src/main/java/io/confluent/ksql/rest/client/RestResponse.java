@@ -16,40 +16,57 @@
 package io.confluent.ksql.rest.client;
 
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Objects;
+import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.http.HttpStatus.Code;
 
-// Don't tell anybody, but this is basically Haskell's Either datatype...
-// I swear it seemed like the best way to do things
 public abstract class RestResponse<R> {
-  private RestResponse() { }
 
-  public abstract boolean isSuccessful();
+  private final Code statusCode;
 
-  public abstract boolean isErroneous();
+  private RestResponse(final HttpStatus.Code statusCode) {
+    this.statusCode = Objects.requireNonNull(statusCode, "statusCode");
+  }
+
+  public boolean isSuccessful() {
+    return statusCode.isSuccess();
+  }
+
+  public boolean isErroneous() {
+    return !isSuccessful();
+  }
 
   public abstract KsqlErrorMessage getErrorMessage();
 
   public abstract R getResponse();
 
-  public static <R> RestResponse<R> erroneous(final KsqlErrorMessage errorMessage) {
-    return new Erroneous<>(errorMessage);
+  public HttpStatus.Code getStatusCode() {
+    return statusCode;
   }
 
-  public static <R> RestResponse<R> erroneous(final int errorCode, final String message) {
+  public static <R> RestResponse<R> erroneous(
+      final HttpStatus.Code statusCode,
+      final KsqlErrorMessage errorMessage
+  ) {
+    return new Erroneous<>(statusCode, errorMessage);
+  }
+
+  public static <R> RestResponse<R> erroneous(
+      final HttpStatus.Code statusCode,
+      final String message
+  ) {
     return new Erroneous<>(
-        new KsqlErrorMessage(errorCode, message));
+        statusCode,
+        new KsqlErrorMessage(Errors.toErrorCode(statusCode.getCode()), message)
+    );
   }
 
-  public static <R> RestResponse<R> successful(final R response) {
-    return new Successful<>(response);
-  }
-
-  public static <R> RestResponse<R> of(final KsqlErrorMessage errorMessage) {
-    return erroneous(errorMessage);
-  }
-
-  public static <R> RestResponse<R> of(final R response) {
-    return successful(response);
+  public static <R> RestResponse<R> successful(
+      final HttpStatus.Code statusCode,
+      final R response
+  ) {
+    return new Successful<>(statusCode, response);
   }
 
   public Object get() {
@@ -61,20 +78,19 @@ public abstract class RestResponse<R> {
   }
 
   private static final class Erroneous<R> extends RestResponse<R> {
+
     private final KsqlErrorMessage errorMessage;
 
-    private Erroneous(final KsqlErrorMessage errorMessage) {
+    private Erroneous(
+        final HttpStatus.Code statusCode,
+        final KsqlErrorMessage errorMessage
+    ) {
+      super(statusCode);
       this.errorMessage = errorMessage;
-    }
 
-    @Override
-    public boolean isSuccessful() {
-      return false;
-    }
-
-    @Override
-    public boolean isErroneous() {
-      return true;
+      if (statusCode.isSuccess()) {
+        throw new IllegalArgumentException("Success code passed to error!");
+      }
     }
 
     @Override
@@ -89,20 +105,19 @@ public abstract class RestResponse<R> {
   }
 
   private static final class Successful<R> extends RestResponse<R> {
+
     private final R response;
 
-    private Successful(final R response) {
+    private Successful(
+        final HttpStatus.Code statusCode,
+        final R response
+    ) {
+      super(statusCode);
       this.response = response;
-    }
 
-    @Override
-    public boolean isSuccessful() {
-      return true;
-    }
-
-    @Override
-    public boolean isErroneous() {
-      return false;
+      if (!statusCode.isSuccess()) {
+        throw new IllegalArgumentException("Error code passed to success!");
+      }
     }
 
     @Override
@@ -124,12 +139,13 @@ public abstract class RestResponse<R> {
         return false;
       }
       final Successful<?> that = (Successful<?>) o;
-      return Objects.equals(getResponse(), that.getResponse());
+      return Objects.equals(getResponse(), that.getResponse())
+          && Objects.equals(getStatusCode(), that.getStatusCode());
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(getResponse());
+      return Objects.hash(getResponse(), getStatusCode());
     }
   }
 }

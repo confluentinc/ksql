@@ -23,4 +23,8 @@ public class TestFrameworkException extends RuntimeException {
   public TestFrameworkException(final String msg) {
     super(msg);
   }
+
+  public TestFrameworkException(final String msg, final Throwable cause) {
+    super(msg, cause);
+  }
 }

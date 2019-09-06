@@ -16,6 +16,9 @@
 package io.confluent.ksql.test.tools;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
@@ -39,6 +42,7 @@ import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.serde.SerdeSupplier;
@@ -60,10 +64,23 @@ import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyTestDriver;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-final class TestExecutorUtil {
+public final class TestExecutorUtil {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private TestExecutorUtil() {
+  }
+
+  public static List<PersistentQueryMetadata> buildQueries(
+      final TestCase testCase,
+      final ServiceContext serviceContext,
+      final KsqlEngine ksqlEngine,
+      final KsqlConfig ksqlConfig,
+      final FakeKafkaService fakeKafkaService
+  ) {
+    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, fakeKafkaService)
+        .stream()
+        .map(q -> q.persistentQueryMetadata)
+        .collect(Collectors.toList());
   }
 
   static List<TopologyTestDriverContainer> buildStreamsTopologyTestDrivers(
@@ -76,7 +93,7 @@ final class TestExecutorUtil {
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
 
-    final List<PersistentQueryAndSortedSources> queryMetadataList = buildQueries(
+    final List<PersistentQueryAndSortedSources> queryMetadataList = doBuildQueries(
         testCase,
         serviceContext,
         ksqlEngine,
@@ -173,18 +190,14 @@ final class TestExecutorUtil {
     return Optional.empty();
   }
 
-
-  private static List<PersistentQueryAndSortedSources> buildQueries(
+  private static List<PersistentQueryAndSortedSources> doBuildQueries(
       final TestCase testCase,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
       final FakeKafkaService fakeKafkaService
   ) {
-    testCase.initializeTopics(
-        serviceContext.getTopicClient(),
-        fakeKafkaService,
-        serviceContext.getSchemaRegistryClient());
+    initializeTopics(testCase, serviceContext, fakeKafkaService);
 
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
@@ -198,8 +211,34 @@ final class TestExecutorUtil {
         fakeKafkaService
     );
 
-    assertThat("test did not generate any queries.", !queries.isEmpty());
+    assertThat("test did not generate any queries.", queries, is(not(empty())));
     return queries;
+  }
+
+  private static void initializeTopics(
+      final TestCase testCase,
+      final ServiceContext serviceContext,
+      final FakeKafkaService fakeKafkaService
+  ) {
+    final KafkaTopicClient topicClient = serviceContext.getTopicClient();
+    final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
+
+    for (final Topic topic : testCase.getTopics()) {
+      fakeKafkaService.createTopic(topic);
+      topicClient.createTopic(
+          topic.getName(),
+          topic.getNumPartitions(),
+          topic.getReplicas());
+
+      topic.getSchema().ifPresent(schema -> {
+        try {
+          srClient
+              .register(topic.getName() + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, schema);
+        } catch (final Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+    }
   }
 
   /**

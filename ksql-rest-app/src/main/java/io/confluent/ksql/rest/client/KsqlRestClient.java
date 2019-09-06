@@ -62,8 +62,9 @@ import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.apache.commons.compress.utils.IOUtils;
+import org.eclipse.jetty.http.HttpStatus;
+import org.eclipse.jetty.http.HttpStatus.Code;
 import org.glassfish.jersey.client.ClientProperties;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
@@ -206,8 +207,9 @@ public class KsqlRestClient implements Closeable {
         .request(MediaType.APPLICATION_JSON_TYPE)
         .get()) {
 
-      return response.getStatus() == Response.Status.OK.getStatusCode()
-          ? RestResponse.successful(response.readEntity(type))
+      final Code statusCode = HttpStatus.getCode(response.getStatus());
+      return statusCode == HttpStatus.Code.OK
+          ? RestResponse.successful(statusCode, response.readEntity(type))
           : createErrorResponse(path, response);
 
     } catch (final Exception e) {
@@ -234,8 +236,9 @@ public class KsqlRestClient implements Closeable {
           .request(MediaType.APPLICATION_JSON_TYPE)
           .post(Entity.json(jsonEntity));
 
-      return response.getStatus() == Response.Status.OK.getStatusCode()
-          ? RestResponse.successful(mapper.apply(response))
+      final Code statusCode = HttpStatus.getCode(response.getStatus());
+      return statusCode == HttpStatus.Code.OK
+          ? RestResponse.successful(statusCode, mapper.apply(response))
           : createErrorResponse(path, response);
 
     } catch (final ProcessingException e) {
@@ -266,28 +269,31 @@ public class KsqlRestClient implements Closeable {
 
   private static <T> RestResponse<T> createErrorResponse(
       final String path,
-      final Response response) {
-
+      final Response response
+  ) {
+    final HttpStatus.Code statusCode = HttpStatus.getCode(response.getStatus());
     final KsqlErrorMessage errorMessage = response.readEntity(KsqlErrorMessage.class);
     if (errorMessage != null) {
-      return RestResponse.erroneous(errorMessage);
+      return RestResponse.erroneous(statusCode, errorMessage);
     }
 
-    if (response.getStatus() == Status.NOT_FOUND.getStatusCode()) {
-      return RestResponse.erroneous(404, "Path not found. Path='" + path + "'. "
-          + "Check your ksql http url to make sure you are connecting to a ksql server.");
+    if (statusCode == Code.NOT_FOUND) {
+      return RestResponse.erroneous(statusCode,
+          "Path not found. Path='" + path + "'. "
+          + "Check your ksql http url to make sure you are connecting to a ksql server."
+      );
     }
 
-    if (response.getStatus() == Status.UNAUTHORIZED.getStatusCode()) {
-      return RestResponse.erroneous(UNAUTHORIZED_ERROR_MESSAGE);
+    if (statusCode == Code.UNAUTHORIZED) {
+      return RestResponse.erroneous(statusCode, UNAUTHORIZED_ERROR_MESSAGE);
     }
 
-    if (response.getStatus() == Status.FORBIDDEN.getStatusCode()) {
-      return RestResponse.erroneous(FORBIDDEN_ERROR_MESSAGE);
+    if (statusCode == Code.FORBIDDEN) {
+      return RestResponse.erroneous(statusCode, FORBIDDEN_ERROR_MESSAGE);
     }
 
     return RestResponse.erroneous(
-        Errors.toErrorCode(response.getStatus()),
+        statusCode,
         "The server returned an unexpected error: "
             + response.getStatusInfo().getReasonPhrase());
   }

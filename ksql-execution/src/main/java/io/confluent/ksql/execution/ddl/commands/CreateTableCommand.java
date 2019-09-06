@@ -13,40 +13,40 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.parser.tree.CreateTable;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Optional;
+import java.util.Set;
 
+@Immutable
 public class CreateTableCommand extends CreateSourceCommand {
 
-  CreateTableCommand(
+  public CreateTableCommand(
       final String sqlExpression,
-      final CreateTable createTable,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext
+      final String sourceName,
+      final LogicalSchema schema,
+      final Optional<String> keyField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final Set<SerdeOption> serdeOptions,
+      final KsqlTopic ksqlTopic
   ) {
-    super(sqlExpression, createTable, ksqlConfig, serviceContext);
-  }
-
-  @Override
-  public DdlCommandResult run(final MutableMetaStore metaStore) {
-
-    final KsqlTable<?> ksqlTable = new KsqlTable<>(
+    super(
         sqlExpression,
         sourceName,
         schema,
-        getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        getTopic()
+        serdeOptions,
+        ksqlTopic
     );
+  }
 
-    metaStore.putSource(ksqlTable);
-
-    return new DdlCommandResult(true, "Table created");
+  @Override
+  public DdlCommandResult execute(final Executor executor) {
+    return executor.executeCreateTable(this);
   }
 }

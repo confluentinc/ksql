@@ -13,18 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.execution.ddl.commands.DdlCommand;
-import io.confluent.ksql.parser.tree.DdlStatement;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Map;
+import com.google.errorprone.annotations.Immutable;
+import java.util.Objects;
 
-public interface DdlCommandFactory {
-  DdlCommand create(
-      String sqlExpression,
-      DdlStatement ddlStatement,
-      KsqlConfig ksqlConfig,
-      Map<String, Object> properties
-  );
+@Immutable
+public class DropSourceCommand implements DdlCommand {
+
+  private final String sourceName;
+
+  public DropSourceCommand(final String sourceName) {
+    this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
+  }
+
+  @Override
+  public DdlCommandResult execute(final Executor executor) {
+    return executor.executeDropSource(this);
+  }
+
+  public String getSourceName() {
+    return sourceName;
+  }
 }

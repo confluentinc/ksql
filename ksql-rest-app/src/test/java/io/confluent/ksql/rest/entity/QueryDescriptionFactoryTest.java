@@ -21,8 +21,8 @@ import static org.hamcrest.Matchers.isEmptyString;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;

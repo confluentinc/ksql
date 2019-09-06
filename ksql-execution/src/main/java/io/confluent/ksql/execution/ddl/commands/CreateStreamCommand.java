@@ -13,40 +13,40 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.parser.tree.CreateStream;
-import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlConfig;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Optional;
+import java.util.Set;
 
+@Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
 
   public CreateStreamCommand(
       final String sqlExpression,
-      final CreateStream createStream,
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext
+      final String sourceName,
+      final LogicalSchema schema,
+      final Optional<String> keyField,
+      final TimestampExtractionPolicy timestampExtractionPolicy,
+      final Set<SerdeOption> serdeOptions,
+      final KsqlTopic ksqlTopic
   ) {
-    super(sqlExpression, createStream, ksqlConfig, serviceContext);
-  }
-
-  @Override
-  public DdlCommandResult run(final MutableMetaStore metaStore) {
-
-    final KsqlStream<?> ksqlStream = new KsqlStream<>(
+    super(
         sqlExpression,
         sourceName,
         schema,
-        getSerdeOptions(),
         keyField,
         timestampExtractionPolicy,
-        getTopic()
+        serdeOptions,
+        ksqlTopic
     );
+  }
 
-    metaStore.putSource(ksqlStream);
-
-    return new DdlCommandResult(true, "Stream created");
+  @Override
+  public DdlCommandResult execute(final Executor executor) {
+    return executor.executeCreateStream(this);
   }
 }

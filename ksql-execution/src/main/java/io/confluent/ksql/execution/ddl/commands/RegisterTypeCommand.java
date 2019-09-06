@@ -13,30 +13,32 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.parser.tree.RegisterType;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
 
+@Immutable
 public class RegisterTypeCommand implements DdlCommand {
+  private final SqlType type;
+  private final String name;
 
-  private final RegisterType statement;
-
-  public RegisterTypeCommand(final RegisterType statement) {
-    this.statement = Objects.requireNonNull(statement, "statement");
+  public RegisterTypeCommand(final SqlType type, final String name) {
+    this.type = Objects.requireNonNull(type, "type");
+    this.name = Objects.requireNonNull(name, "name");
   }
 
   @Override
-  public DdlCommandResult run(final MutableMetaStore metaStore) {
-    final SqlType sqlType = statement.getType().getSqlType();
+  public DdlCommandResult execute(final Executor executor) {
+    return executor.executeRegisterType(this);
+  }
 
-    metaStore.registerType(statement.getName(), sqlType);
+  public SqlType getType() {
+    return type;
+  }
 
-    return new DdlCommandResult(
-        true,
-        "Registered custom type with name '" + statement.getName() + "' and SQL type " + sqlType
-    );
+  public String getName() {
+    return name;
   }
 }

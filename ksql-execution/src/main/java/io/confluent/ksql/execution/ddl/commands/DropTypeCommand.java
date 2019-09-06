@@ -13,24 +13,26 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.ddl.commands;
+package io.confluent.ksql.execution.ddl.commands;
 
-import io.confluent.ksql.metastore.MutableMetaStore;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
+@Immutable
 public class DropTypeCommand implements DdlCommand {
 
   private final String typeName;
+
+  @Override
+  public DdlCommandResult execute(final Executor executor) {
+    return executor.executeDropType(this);
+  }
 
   public DropTypeCommand(final String typeName) {
     this.typeName = Objects.requireNonNull(typeName, "typeName");
   }
 
-  @Override
-  public DdlCommandResult run(final MutableMetaStore metaStore) {
-    final boolean wasDeleted = metaStore.deleteType(typeName);
-    return wasDeleted
-        ? new DdlCommandResult(true, "Dropped type '" + typeName + "'")
-        : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
+  public String getTypeName() {
+    return typeName;
   }
 }

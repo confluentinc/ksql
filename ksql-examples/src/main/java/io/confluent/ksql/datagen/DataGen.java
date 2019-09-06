@@ -149,7 +149,8 @@ public final class DataGen {
             + "'delimited') " + newLine
         + "topic=<kafka topic name> " + newLine
         + "key=<name of key column> " + newLine
-        + "[iterations=<number of rows> (defaults to 1,000,000)] " + newLine
+        + "[iterations=<number of rows> (if no value is specified, datagen will produce "
+            + "indefinitely)] " + newLine
         + "[maxInterval=<Max time in ms between rows> (defaults to 500)] " + newLine
         + "[propertiesFile=<file specifying Kafka client properties>] " + newLine
         + "[nThreads=<number of producer threads to start>] " + newLine
@@ -266,7 +267,7 @@ public final class DataGen {
         valueFormat = null;
         topicName = null;
         keyName = null;
-        iterations = 1000000;
+        iterations = -1;
         maxInterval = -1;
         schemaRegistryUrl = "http://localhost:8081";
         propertiesFile = null;

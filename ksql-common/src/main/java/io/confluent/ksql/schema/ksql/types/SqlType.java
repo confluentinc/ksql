@@ -38,5 +38,7 @@ public abstract class SqlType {
 
   public abstract boolean supportsCast();
 
+  public abstract void validateValue(Object value);
+
   public abstract String toString(FormatOptions formatOptions);
 }

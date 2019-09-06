@@ -18,7 +18,9 @@ package io.confluent.ksql.schema.ksql.types;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -80,6 +82,20 @@ public final class SqlPrimitiveType extends SqlType {
   @Override
   public boolean supportsCast() {
     return true;
+  }
+
+  @Override
+  public void validateValue(final Object value) {
+    if (value == null) {
+      return;
+    }
+
+    final SqlBaseType actualType = SchemaConverters.javaToSqlConverter()
+        .toSqlType(value.getClass());
+
+    if (!baseType().equals(actualType)) {
+      throw new DataException("Expected " + baseType() + ", got " + actualType);
+    }
   }
 
   @Override

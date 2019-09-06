@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
@@ -32,22 +31,9 @@ public class FieldTest {
   public void shouldThrowNPE() {
     new NullPointerTester()
         .setDefault(SqlType.class, SqlTypes.BIGINT)
+        .setDefault(String.class, "field0")
+        .setDefault(FieldName.class, FieldName.of(Optional.empty(), "fred"))
         .testAllPublicStaticMethods(Field.class);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnLeadingWhiteSpace() {
-    Field.of("  name_with_leading_white_space", SqlTypes.STRING);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnTrailingWhiteSpace() {
-    Field.of("name_with_leading_white_space  ", SqlTypes.STRING);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnEmptyName() {
-    Field.of("", SqlTypes.STRING);
   }
 
   @Test
@@ -75,6 +61,15 @@ public class FieldTest {
 
   @Test
   public void shouldReturnName() {
+    assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).fieldName(),
+        is(FieldName.of(Optional.empty(), "SomeName")));
+
+    assertThat(Field.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).name(),
+        is(FieldName.of(Optional.of("SomeSource"), "SomeName")));
+  }
+
+  @Test
+  public void shouldReturnName2() {
     assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).name(),
         is("SomeName"));
 
@@ -89,15 +84,6 @@ public class FieldTest {
 
     assertThat(Field.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).fullName(),
         is("SomeSource.SomeName"));
-  }
-
-  @Test
-  public void shouldReturnSource() {
-    assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).source(),
-        is(Optional.empty()));
-
-    assertThat(Field.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).source(),
-        is(Optional.of("SomeSource")));
   }
 
   @Test
@@ -135,13 +121,5 @@ public class FieldTest {
 
     assertThat(Field.of("source", "word", SqlTypes.STRING).toString(options),
         is("source.`word` STRING"));
-
-    final SqlStruct struct = SqlTypes.struct()
-        .field("reserved", SqlTypes.BIGINT)
-        .field("other", SqlTypes.BIGINT)
-        .build();
-
-    assertThat(Field.of("reserved", "name", struct).toString(options),
-        is("`reserved`.name STRUCT<`reserved` BIGINT, other BIGINT>"));
   }
 }

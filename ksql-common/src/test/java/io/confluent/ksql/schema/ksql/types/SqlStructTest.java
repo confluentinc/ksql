@@ -20,9 +20,11 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.types.KsqlStruct;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -139,5 +141,69 @@ public class SqlStructTest {
             + ", `F1` " + SqlTypes.array(SqlTypes.DOUBLE)
             + ">"
     ));
+  }
+
+  @Test
+  public void shouldThrowIfValueNotStruct() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    // Then:
+    expectedException.expect(DataException.class);
+    expectedException.expectMessage("Expected STRUCT, got BIGINT");
+
+    // When:
+    schema.validateValue(10L);
+  }
+
+  @Test
+  public void shouldThrowIfValueHasSchema() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    final SqlStruct mismatching = SqlTypes.struct()
+        .field("f0", SqlTypes.DOUBLE)
+        .build();
+
+    final KsqlStruct value = KsqlStruct.builder(mismatching)
+        .set("f0", 10.0D)
+        .build();
+
+    // Then:
+    expectedException.expect(DataException.class);
+    expectedException.expectMessage("Expected STRUCT<`f0` BIGINT>, got STRUCT<`f0` DOUBLE>");
+
+    // When:
+    schema.validateValue(value);
+  }
+
+  @Test
+  public void shouldNotThrowWhenValidatingNullValue() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    schema.validateValue(null);
+  }
+
+  @Test
+  public void shouldValidateValue() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    final KsqlStruct value = KsqlStruct.builder(schema)
+        .set("f0", 10L)
+        .build();
+
+    // When:
+    schema.validateValue(value);
   }
 }

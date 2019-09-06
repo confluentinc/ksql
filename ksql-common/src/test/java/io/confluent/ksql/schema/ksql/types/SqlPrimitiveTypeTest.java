@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -173,5 +174,38 @@ public class SqlPrimitiveTypeTest {
       // Then:
       assertThat(SqlPrimitiveType.of(type).toString(), is(type.toString()));
     });
+  }
+
+  @Test
+  public void shoudlValidatePrimitiveTypes() {
+    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(true);
+    SqlPrimitiveType.of(SqlBaseType.INTEGER).validateValue(19);
+    SqlPrimitiveType.of(SqlBaseType.BIGINT).validateValue(33L);
+    SqlPrimitiveType.of(SqlBaseType.DOUBLE).validateValue(45.0D);
+    SqlPrimitiveType.of(SqlBaseType.STRING).validateValue("");
+  }
+
+  @SuppressWarnings("UnnecessaryBoxing")
+  @Test
+  public void shouldValidateBoxedTypes() {
+    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(Boolean.FALSE);
+    SqlPrimitiveType.of(SqlBaseType.INTEGER).validateValue(Integer.valueOf(19));
+    SqlPrimitiveType.of(SqlBaseType.BIGINT).validateValue(Long.valueOf(33L));
+    SqlPrimitiveType.of(SqlBaseType.DOUBLE).validateValue(Double.valueOf(45.0D));
+  }
+
+  @Test
+  public void shouldValidateNullValue() {
+    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(null);
+  }
+
+  @Test
+  public void shouldFailValidationForWrongType() {
+    // Then:
+    expectedException.expect(DataException.class);
+    expectedException.expectMessage("Expected BOOLEAN, got INT");
+
+    // When:
+    SqlPrimitiveType.of(SqlBaseType.BOOLEAN).validateValue(10);
   }
 }

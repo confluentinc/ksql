@@ -229,7 +229,7 @@ public final class LogicalSchema {
    * @return {@code true} is aliased, {@code false} otherwise.
    */
   public boolean isAliased() {
-    return metaFields.get(0).source().isPresent();
+    return metaFields.get(0).fieldName().source().isPresent();
   }
 
   /**
@@ -411,7 +411,7 @@ public final class LogicalSchema {
       final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
       final SqlType fieldType = converter.toSqlType(field.schema());
 
-      builder.add(Field.of(source, fieldName, fieldType));
+      builder.add(Field.of(FieldName.of(source, fieldName), fieldType));
     }
 
     return builder.build();

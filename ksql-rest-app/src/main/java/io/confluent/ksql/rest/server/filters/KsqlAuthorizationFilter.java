@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.rest.server.filters;
 
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import java.security.Principal;
+import java.util.Set;
 import javax.annotation.Priority;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -32,6 +34,11 @@ import org.slf4j.LoggerFactory;
 public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
   private static final Logger log = LoggerFactory.getLogger(KsqlAuthorizationFilter.class);
 
+  private static final Set<String> UNAUTHORIZED_ENDPOINTS = ImmutableSet.of(
+      "/metadata",
+      "/metadata/id"
+  );
+
   private final KsqlAuthorizationProvider authorizationProvider;
 
   public KsqlAuthorizationFilter(final KsqlAuthorizationProvider authorizationProvider) {
@@ -44,6 +51,10 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
     final String method = requestContext.getMethod(); // i.e GET, POST
     final String path = "/" + requestContext.getUriInfo().getPath();
 
+    if (!requiresAuthorization(path)) {
+      return;
+    }
+
     try {
       authorizationProvider.checkEndpointAccess(user, method, path);
     } catch (final Throwable t) {
@@ -51,5 +62,9 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
           user.getName(), method, path), t);
       requestContext.abortWith(Errors.accessDenied(t.getMessage()));
     }
+  }
+
+  private boolean requiresAuthorization(final String path) {
+    return !UNAUTHORIZED_ENDPOINTS.contains(path);
   }
 }

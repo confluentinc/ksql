@@ -445,48 +445,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldSupportExplicitYieldFinalForBareQueries() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("SELECT * FROM TEST1 YIELD FINAL;");
-
-    // When:
-    final Query result = (Query) builder.build(stmt);
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldChangesForBareQueries() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("SELECT * FROM TEST1 YIELD CHANGES;");
-
-    // When:
-    final Query result = (Query) builder.build(stmt);
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
-  }
-
-  @Test
-  public void shouldSupportExplicitEmitFinalOnBareQuery() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("SELECT * FROM TEST1 EMIT FINAL;");
-
-    // When:
-    final Query result = (Query) builder.build(stmt);
-
-    // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
-  @Test
   public void shouldSupportExplicitEmitChangesOnBareQuery() {
     // Given:
     final SingleStatementContext stmt =
@@ -558,48 +516,6 @@ public class AstBuilderTest {
   }
 
   @Test
-  public void shouldSupportExplicitEmitFinalForCsas() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 EMIT FINAL;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldChangesForCsas() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 YIELD CHANGES;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldFinalForCsas() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 YIELD FINAL;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
-  @Test
   public void shouldSupportExplicitEmitChangesForCtas() {
     // Given:
     final SingleStatementContext stmt =
@@ -612,49 +528,6 @@ public class AstBuilderTest {
     assertThat("Should be continuous", result.isStatic(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
-
-  @Test
-  public void shouldSupportExplicitEmitFinalForCtas() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY EMIT Final;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldChangesForCtas() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY YIELD CHANGES;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldFinalForCtas() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY YIELD FINAL;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
   @Test
   public void shouldSupportExplicitEmitChangesForInsertInto() {
     // Given:
@@ -667,48 +540,6 @@ public class AstBuilderTest {
     // Then:
     assertThat("Should be continuous", result.isStatic(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
-  }
-
-  @Test
-  public void shouldSupportExplicitEmitFinalForInsertInto() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 EMIT FINAL;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldChangesForInsertInto() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 YIELD CHANGES;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
-  }
-
-  @Test
-  public void shouldSupportExplicitYieldFinalForInsertInto() {
-    // Given:
-    final SingleStatementContext stmt =
-        givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 YIELD FINAL;");
-
-    // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
-
-    // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
-    assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
   }
 
   private static SingleStatementContext givenQuery(final String sql) {

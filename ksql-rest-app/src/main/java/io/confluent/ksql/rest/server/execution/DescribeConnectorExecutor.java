@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.SourceDescription;
+import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -93,7 +94,7 @@ public final class DescribeConnectorExecutor {
           .values()
           .stream()
           .filter(source -> connector.get().matches(source.getKafkaTopicName()))
-          .map(source -> new SourceDescription(
+          .map(source -> SourceDescriptionFactory.create(
               source,
               false,
               source.getKsqlTopic().getValueFormat().getFormat().name(),

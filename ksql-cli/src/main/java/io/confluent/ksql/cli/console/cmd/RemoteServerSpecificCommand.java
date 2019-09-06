@@ -18,11 +18,11 @@ package io.confluent.ksql.cli.console.cmd;
 import static javax.ws.rs.core.Response.Status.NOT_ACCEPTABLE;
 
 import io.confluent.ksql.links.DocumentationLinks;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
@@ -89,7 +89,7 @@ public final class RemoteServerSpecificCommand implements CliSpecificCommand {
       final KsqlRestClient restClient
   ) {
     try {
-      final RestResponse<?> restResponse = restClient.makeRootRequest();
+      final RestResponse<?> restResponse = restClient.getServerInfo();
       if (restResponse.isErroneous()) {
         final KsqlErrorMessage ksqlError = restResponse.getErrorMessage();
         if (Errors.toStatusCode(ksqlError.getErrorCode()) == NOT_ACCEPTABLE.getStatusCode()) {

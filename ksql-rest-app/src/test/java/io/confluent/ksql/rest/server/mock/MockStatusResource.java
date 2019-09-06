@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.rest.server.mock;
 
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import java.util.HashMap;
 import java.util.Map;
 import javax.ws.rs.GET;

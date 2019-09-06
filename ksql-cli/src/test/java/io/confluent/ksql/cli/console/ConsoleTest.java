@@ -36,7 +36,9 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
@@ -65,7 +67,6 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -172,7 +173,7 @@ public class ConsoleTest {
   public void testPrintErrorStreamedRow() throws IOException {
     final FakeException exception = new FakeException();
 
-    console.printStreamedRow(StreamedRow.error(exception), HEADER);
+    console.printStreamedRow(StreamedRow.error(exception, Errors.ERROR_CODE_SERVER_ERROR), HEADER);
 
     assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
   }

@@ -20,7 +20,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.QueryDescription;
+import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
@@ -42,7 +42,7 @@ public final class ListQueriesExecutor {
       return Optional.of(new QueryDescriptionList(
           statement.getStatementText(),
           executionContext.getPersistentQueries().stream()
-              .map(QueryDescription::forQueryMetadata)
+              .map(QueryDescriptionFactory::forQueryMetadata)
               .collect(Collectors.toList())));
     }
 

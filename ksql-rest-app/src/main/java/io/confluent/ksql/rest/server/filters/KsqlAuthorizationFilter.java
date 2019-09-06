@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.rest.server.filters;
 
-import io.confluent.ksql.rest.server.resources.Errors;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import java.security.Principal;
 import javax.annotation.Priority;

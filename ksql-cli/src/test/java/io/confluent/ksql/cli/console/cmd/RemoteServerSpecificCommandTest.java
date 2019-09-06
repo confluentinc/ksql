@@ -20,15 +20,16 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.KsqlRestClientException;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
-import io.confluent.ksql.rest.server.resources.RootDocument;
+import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.util.Event;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -47,7 +48,7 @@ public class RemoteServerSpecificCommandTest {
 
   private static final String INITIAL_SERVER_ADDRESS = "http://192.168.0.1:8080";
   private static final String VALID_SERVER_ADDRESS = "http://localhost:8088";
-  private static final RootDocument ROOT_DOCUMENT = new RootDocument();
+  private static final ServerInfo SERVER_INFO = mock(ServerInfo.class);
 
   @Mock
   private KsqlRestClient restClient;
@@ -64,7 +65,7 @@ public class RemoteServerSpecificCommandTest {
     terminal = new PrintWriter(out);
     command = RemoteServerSpecificCommand.create(restClient, resetCliForNewServer);
 
-    when(restClient.makeRootRequest()).thenReturn(RestResponse.successful(Code.OK, ROOT_DOCUMENT));
+    when(restClient.getServerInfo()).thenReturn(RestResponse.successful(Code.OK, SERVER_INFO));
     when(restClient.getServerAddress()).thenReturn(new URI(INITIAL_SERVER_ADDRESS));
   }
 
@@ -100,7 +101,7 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldPrintErrorWhenCantConnectToNewAddress() {
     // Given:
-    when(restClient.makeRootRequest()).thenThrow(
+    when(restClient.getServerInfo()).thenThrow(
         new KsqlRestClientException("Failed to connect", new ProcessingException("Boom")));
 
     // When:
@@ -123,7 +124,7 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldPrintErrorOnErrorResponseFromRestClient() {
     // Given:
-    when(restClient.makeRootRequest()).thenReturn(RestResponse.erroneous(
+    when(restClient.getServerInfo()).thenReturn(RestResponse.erroneous(
         Code.INTERNAL_SERVER_ERROR, "it is broken"));
 
     // When:
@@ -145,7 +146,7 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldReportErrorIfFailedToGetRemoteKsqlServerInfo() {
     // Given:
-    when(restClient.makeRootRequest()).thenThrow(genericConnectionIssue());
+    when(restClient.getServerInfo()).thenThrow(genericConnectionIssue());
 
     // When:
     command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);
@@ -159,7 +160,7 @@ public class RemoteServerSpecificCommandTest {
   @Test
   public void shouldReportErrorIfRemoteKsqlServerIsUsingSSL() {
     // Given:
-    when(restClient.makeRootRequest()).thenThrow(sslConnectionIssue());
+    when(restClient.getServerInfo()).thenThrow(sslConnectionIssue());
 
     // When:
     command.execute(ImmutableList.of(VALID_SERVER_ADDRESS), terminal);

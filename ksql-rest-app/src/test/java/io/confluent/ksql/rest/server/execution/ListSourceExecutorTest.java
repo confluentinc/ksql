@@ -30,18 +30,18 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
-import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
@@ -87,8 +87,16 @@ public class ListSourceExecutorTest {
 
     // Then:
     assertThat(descriptionList.getStreams(), containsInAnyOrder(
-        new SourceInfo.Stream(stream1),
-        new SourceInfo.Stream(stream2)
+        new SourceInfo.Stream(
+            stream1.getName(),
+            stream1.getKafkaTopicName(),
+            stream1.getKsqlTopic().getValueFormat().getFormat().name()
+        ),
+        new SourceInfo.Stream(
+            stream2.getName(),
+            stream2.getKafkaTopicName(),
+            stream2.getKsqlTopic().getValueFormat().getFormat().name()
+        )
     ));
   }
 
@@ -109,14 +117,14 @@ public class ListSourceExecutorTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             stream1,
             true,
             "JSON",
             ImmutableList.of(),
             ImmutableList.of(),
             Optional.empty()),
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             stream2,
             true,
             "JSON",
@@ -143,8 +151,18 @@ public class ListSourceExecutorTest {
 
     // Then:
     assertThat(descriptionList.getTables(), containsInAnyOrder(
-        new SourceInfo.Table(table1),
-        new SourceInfo.Table(table2)
+        new SourceInfo.Table(
+            table1.getName(),
+            table1.getKsqlTopic().getKafkaTopicName(),
+            table1.getKsqlTopic().getValueFormat().getFormat().name(),
+            table1.getKsqlTopic().getKeyFormat().isWindowed()
+        ),
+        new SourceInfo.Table(
+            table2.getName(),
+            table2.getKsqlTopic().getKafkaTopicName(),
+            table2.getKsqlTopic().getValueFormat().getFormat().name(),
+            table2.getKsqlTopic().getKeyFormat().isWindowed()
+        )
     ));
   }
 
@@ -166,7 +184,7 @@ public class ListSourceExecutorTest {
     // Then:
     final KafkaTopicClient client = engine.getServiceContext().getTopicClient();
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             table1,
             true,
             "JSON",
@@ -174,7 +192,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             Optional.of(client.describeTopic(table1.getKafkaTopicName()))
         ),
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             table2,
             true,
             "JSON",
@@ -212,7 +230,7 @@ public class ListSourceExecutorTest {
 
     // Then:
     assertThat(sourceDescription.getSourceDescription(),
-        equalTo(new SourceDescription(
+        equalTo(SourceDescriptionFactory.create(
             stream,
             false,
             "JSON",
@@ -273,7 +291,7 @@ public class ListSourceExecutorTest {
             Arrays.stream(sources)
                 .map(
                     s -> equalTo(
-                        new SourceDescription(
+                        SourceDescriptionFactory.create(
                             s,
                             true,
                             "JSON",
@@ -357,7 +375,7 @@ public class ListSourceExecutorTest {
     assertThat(
         description.getSourceDescription(),
         equalTo(
-            new SourceDescription(
+            SourceDescriptionFactory.create(
                 stream1,
                 true,
                 "JSON",

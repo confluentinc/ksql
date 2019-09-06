@@ -26,8 +26,8 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -62,7 +62,7 @@ public class ExplainExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(query.getQueryDescription(), equalTo(QueryDescription.forQueryMetadata(metadata)));
+    assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata)));
   }
 
 

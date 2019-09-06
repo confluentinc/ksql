@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;

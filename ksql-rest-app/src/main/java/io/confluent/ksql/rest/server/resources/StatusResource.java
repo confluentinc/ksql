@@ -15,10 +15,11 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import java.util.Optional;
 import javax.ws.rs.GET;

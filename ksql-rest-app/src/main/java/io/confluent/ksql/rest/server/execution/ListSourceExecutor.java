@@ -30,8 +30,10 @@ import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
-import io.confluent.ksql.rest.entity.SourceInfo;
+import io.confluent.ksql.rest.entity.SourceInfo.Stream;
+import io.confluent.ksql.rest.entity.SourceInfo.Table;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestApplication;
@@ -97,7 +99,7 @@ public final class ListSourceExecutor {
     return Optional.of(new StreamsList(
         statement.getStatementText(),
         ksqlStreams.stream()
-            .map(SourceInfo.Stream::new)
+            .map(ListSourceExecutor::sourceSteam)
             .collect(Collectors.toList())));
   }
 
@@ -120,7 +122,7 @@ public final class ListSourceExecutor {
     return Optional.of(new TablesList(
         statement.getStatementText(),
         ksqlTables.stream()
-            .map(SourceInfo.Table::new)
+            .map(ListSourceExecutor::sourceTable)
             .collect(Collectors.toList())));
   }
 
@@ -196,7 +198,7 @@ public final class ListSourceExecutor {
 
     return new SourceDescriptionWithWarnings(
         warnings,
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             dataSource,
             extended,
             dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
@@ -220,6 +222,23 @@ public final class ListSourceExecutor {
             new EntityQueryId(q.getQueryId())
         ))
         .collect(Collectors.toList());
+  }
+
+  private static Stream sourceSteam(final KsqlStream<?> dataSource) {
+    return new Stream(
+        dataSource.getName(),
+        dataSource.getKsqlTopic().getKafkaTopicName(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat().name()
+    );
+  }
+
+  private static Table sourceTable(final KsqlTable<?> dataSource) {
+    return new Table(
+        dataSource.getName(),
+        dataSource.getKsqlTopic().getKafkaTopicName(),
+        dataSource.getKsqlTopic().getValueFormat().getFormat().name(),
+        dataSource.getKsqlTopic().getKeyFormat().isWindowed()
+    );
   }
 
   private static final class SourceDescriptionWithWarnings {

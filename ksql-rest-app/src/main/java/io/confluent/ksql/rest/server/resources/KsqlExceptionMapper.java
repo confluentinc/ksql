@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources;
 
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;

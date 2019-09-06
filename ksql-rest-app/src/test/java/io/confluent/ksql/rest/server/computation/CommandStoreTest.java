@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.statement.ConfiguredStatement;

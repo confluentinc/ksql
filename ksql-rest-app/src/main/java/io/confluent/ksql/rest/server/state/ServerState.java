@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.rest.server.state;
 
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.resources.Errors;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.core.Response;

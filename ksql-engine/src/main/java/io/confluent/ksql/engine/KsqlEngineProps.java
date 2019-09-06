@@ -15,28 +15,18 @@
 
 package io.confluent.ksql.engine;
 
-import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.config.ImmutableProperties;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.streams.StreamsConfig;
 
 /**
  * Utility class for dealing with engine properties
  */
-public final class KsqlEngineProps {
-
-  private static final Set<String> IMMUTABLE_PROPERTIES = ImmutableSet.<String>builder()
-      .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
-      .add(KsqlConfig.KSQL_EXT_DIR)
-      .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
-      .addAll(KsqlConfig.SSL_CONFIG_NAMES)
-      .build();
+final class KsqlEngineProps {
 
   static void throwOnImmutableOverride(final Map<String, Object> overriddenProperties) {
     final String immutableProps = overriddenProperties.keySet().stream()
-        .filter(IMMUTABLE_PROPERTIES::contains)
+        .filter(ImmutableProperties.getImmutableProperties()::contains)
         .distinct()
         .collect(Collectors.joining(","));
 
@@ -46,9 +36,5 @@ public final class KsqlEngineProps {
   }
 
   private KsqlEngineProps() {
-  }
-
-  public static Set<String> getImmutableProperties() {
-    return IMMUTABLE_PROPERTIES;
   }
 }

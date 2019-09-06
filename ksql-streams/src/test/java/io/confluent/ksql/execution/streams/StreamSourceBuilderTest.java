@@ -171,7 +171,7 @@ public class StreamSourceBuilderTest {
 
   private void givenWindowedSource() {
     streamSource = new StreamSource<>(
-        new DefaultExecutionStepProperties("id", SCHEMA, ctx),
+        new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
         extractionPolicy,
@@ -184,7 +184,7 @@ public class StreamSourceBuilderTest {
 
   private void givenUnwindowedSource() {
     streamSource = new StreamSource<>(
-        new DefaultExecutionStepProperties("id", SCHEMA, ctx),
+        new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
         extractionPolicy,
@@ -313,7 +313,7 @@ public class StreamSourceBuilderTest {
   public void shouldThrowOnMultiFieldKey() {
     // Given:
     final StreamSource<KStream<?, GenericRow>> streamSource = new StreamSource<>(
-        new DefaultExecutionStepProperties("id", SCHEMA, ctx),
+        new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
         extractionPolicy,

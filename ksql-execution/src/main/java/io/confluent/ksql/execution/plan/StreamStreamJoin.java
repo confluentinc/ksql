@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -25,21 +26,30 @@ public class StreamStreamJoin<S> implements ExecutionStep<S> {
 
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
-  private final Formats formats;
+  private final Formats leftFormats;
+  private final Formats rightFormats;
   private final ExecutionStep<S> left;
   private final ExecutionStep<S> right;
+  private final Duration before;
+  private final Duration after;
 
   public StreamStreamJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
-      final Formats formats,
+      final Formats leftFormats,
+      final Formats rightFormats,
       final ExecutionStep<S> left,
-      final ExecutionStep<S> right) {
+      final ExecutionStep<S> right,
+      final Duration before,
+      final Duration after) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.formats = Objects.requireNonNull(formats, "formats");
+    this.leftFormats = Objects.requireNonNull(leftFormats, "formats");
+    this.rightFormats = Objects.requireNonNull(rightFormats, "rightFormats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
     this.right = Objects.requireNonNull(right, "right");
+    this.before = Objects.requireNonNull(before, "before");
+    this.after = Objects.requireNonNull(after, "after");
   }
 
   @Override
@@ -57,6 +67,7 @@ public class StreamStreamJoin<S> implements ExecutionStep<S> {
     throw new UnsupportedOperationException();
   }
 
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -68,14 +79,26 @@ public class StreamStreamJoin<S> implements ExecutionStep<S> {
     final StreamStreamJoin<?> that = (StreamStreamJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
-        && Objects.equals(formats, that.formats)
+        && Objects.equals(leftFormats, that.leftFormats)
+        && Objects.equals(rightFormats, that.rightFormats)
         && Objects.equals(left, that.left)
-        && Objects.equals(right, that.right);
+        && Objects.equals(right, that.right)
+        && Objects.equals(before, that.before)
+        && Objects.equals(after, that.after);
   }
+  // CHECKSTYLE_RULES.ON: CyclomaticComplexity
 
   @Override
   public int hashCode() {
-
-    return Objects.hash(properties, joinType, formats, left, right);
+    return Objects.hash(
+        properties,
+        joinType,
+        leftFormats,
+        rightFormats,
+        left,
+        right,
+        before,
+        after
+    );
   }
 }

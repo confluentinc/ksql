@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.structured;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,9 +30,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -40,7 +47,12 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsUtil;
@@ -71,8 +83,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKGroupedStreamTest {
   @Mock
-  private LogicalSchema schema;
-  @Mock
   private LogicalSchema aggregateSchema;
   @Mock
   private KGroupedStream groupedStream;
@@ -95,6 +105,8 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private KsqlAggregateFunction otherFunc;
   @Mock
+  private FunctionCall aggCall;
+  @Mock
   private KTable table;
   @Mock
   private KTable table2;
@@ -112,6 +124,12 @@ public class SchemaKGroupedStreamTest {
   private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Mock
   private Field field;
+  @Mock
+  private ExecutionStep sourceStep;
+  @Mock
+  private KeyFormat keyFormat;
+  @Mock
+  private ValueFormat valueFormat;
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
@@ -119,7 +137,14 @@ public class SchemaKGroupedStreamTest {
   @Before
   public void setUp() {
     schemaGroupedStream = new SchemaKGroupedStream(
-        groupedStream, schema, keySerde, keyField, sourceStreams, config, funcRegistry,
+        groupedStream,
+        sourceStep,
+        keyFormat,
+        keySerde,
+        keyField,
+        sourceStreams,
+        config,
+        funcRegistry,
         materializedFactory
     );
 
@@ -186,8 +211,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         initializer,
         0,
+        emptyList(),
         emptyMap(),
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -210,8 +237,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         initializer,
         0,
+        emptyList(),
         emptyMap(),
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -234,8 +263,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         initializer,
         0,
+        emptyList(),
         emptyMap(),
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -256,8 +287,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         initializer,
         0,
+        emptyList(),
         emptyMap(),
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -287,9 +320,11 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-       0, funcMap,
-
+        0,
+        emptyList(),
+        funcMap,
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -315,9 +350,11 @@ public class SchemaKGroupedStreamTest {
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
         initializer,
-       0, funcMap,
-
+        0,
+        emptyList(),
+        funcMap,
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -348,8 +385,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         () -> null,
         0,
+        emptyList(),
         Collections.emptyMap(),
         null,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
@@ -376,8 +415,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         () -> null,
         0,
+        emptyList(),
         Collections.emptyMap(),
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext);
 
@@ -397,14 +438,87 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         initializer,
         0,
+        emptyList(),
         emptyMap(),
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );
 
     // Then:
     assertThat(result.getSchema(), is(aggregateSchema));
+  }
+
+  @Test
+  public void shouldBuildStepForAggregate() {
+    // Given:
+    final Map<Integer, KsqlAggregateFunction> functions = ImmutableMap.of(1,  otherFunc);
+    when(aggregateSchema.valueFields())
+        .thenReturn(ImmutableList.of(mock(Field.class), mock(Field.class)));
+
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        1,
+        ImmutableList.of(aggCall),
+        functions,
+        null,
+        valueFormat,
+        topicValueSerDe,
+        queryContext
+    );
+
+    // Then:
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.streamAggregate(
+                queryContext,
+                schemaGroupedStream.getSourceStep(),
+                aggregateSchema,
+                Formats.of(keyFormat, valueFormat, SerdeOption.none()),
+                1,
+                ImmutableList.of(aggCall)
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepKeyFormatForWindowedAggregate() {
+    // When:
+    final SchemaKTable result = schemaGroupedStream.aggregate(
+        aggregateSchema,
+        initializer,
+        0,
+        emptyList(),
+        Collections.emptyMap(),
+        windowExp,
+        valueFormat,
+        topicValueSerDe,
+        queryContext
+    );
+
+    // Then:
+    final KeyFormat expected = KeyFormat.windowed(
+        FormatInfo.of(Format.KAFKA),
+        WindowInfo.of(WindowType.SESSION, Optional.empty())
+    );
+    assertThat(
+        result.getSourceTableStep(),
+        equalTo(
+            ExecutionStepFactory.streamAggregate(
+                queryContext,
+                schemaGroupedStream.getSourceStep(),
+                aggregateSchema,
+                Formats.of(expected, valueFormat, SerdeOption.none()),
+                0,
+                Collections.emptyList()
+            )
+        )
+    );
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -421,8 +535,10 @@ public class SchemaKGroupedStreamTest {
         aggregateSchema,
         initializer,
         2,
+        ImmutableList.of(aggCall),
         aggColumns,
         windowExp,
+        valueFormat,
         topicValueSerDe,
         queryContext
     );

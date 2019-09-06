@@ -23,4 +23,6 @@ public interface ExecutionStepProperties {
   String getId();
 
   QueryContext getQueryContext();
+
+  ExecutionStepProperties withQueryContext(QueryContext queryContext);
 }

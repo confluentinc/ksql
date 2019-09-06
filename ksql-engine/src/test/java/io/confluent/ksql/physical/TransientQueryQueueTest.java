@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.physical.TransientQueryQueue.QueuePopulator;
-import io.confluent.ksql.structured.QueuedSchemaKStream;
+import io.confluent.ksql.structured.SchemaKStream;
 import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.stream.IntStream;
@@ -54,7 +54,7 @@ public class TransientQueryQueueTest {
   @Mock
   private KStream<String, GenericRow> kStreamsApp;
   @Mock
-  private QueuedSchemaKStream<String> queuedKStream;
+  private SchemaKStream<String> queuedKStream;
   @Captor
   private ArgumentCaptor<QueuePopulator<String>> queuePopulatorCaptor;
   private Queue<KeyValue<String, GenericRow>> queue;

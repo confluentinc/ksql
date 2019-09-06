@@ -17,7 +17,6 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -37,7 +36,6 @@ import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.config.ConfigException;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
@@ -134,7 +132,7 @@ public class DataSourceNode extends PlanNode {
         builder,
         dataSource,
         schema,
-        contextStacker.push(SOURCE_OP_NAME).getQueryContext(),
+        contextStacker.push(SOURCE_OP_NAME),
         timestampIndex(),
         getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
         keyField
@@ -143,12 +141,15 @@ public class DataSourceNode extends PlanNode {
       return schemaKStream;
     }
     final Stacker reduceContextStacker = contextStacker.push(REDUCE_OP_NAME);
-    final Serde<GenericRow> tableSerde = builder.buildValueSerde(
-        dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
-        PhysicalSchema.from(getSchema(), SerdeOption.none()),
-        reduceContextStacker.getQueryContext()
-    );
-    return schemaKStream.toTable(tableSerde, reduceContextStacker);
+    return schemaKStream.toTable(
+        dataSource.getKsqlTopic().getKeyFormat(),
+        dataSource.getKsqlTopic().getValueFormat(),
+        builder.buildValueSerde(
+            dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
+            PhysicalSchema.from(getSchema(), SerdeOption.none()),
+            reduceContextStacker.getQueryContext()
+        ),
+        reduceContextStacker);
   }
 
   interface SchemaKStreamFactory {
@@ -156,7 +157,7 @@ public class DataSourceNode extends PlanNode {
         KsqlQueryBuilder builder,
         DataSource<?> dataSource,
         LogicalSchemaWithMetaAndKeyFields schemaWithMetaAndKeyFields,
-        QueryContext queryContext,
+        QueryContext.Stacker contextStacker,
         int timestampIndex,
         Optional<AutoOffsetReset> offsetReset,
         KeyField keyField

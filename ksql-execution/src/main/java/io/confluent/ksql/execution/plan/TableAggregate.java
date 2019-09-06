@@ -16,10 +16,9 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 @Immutable
@@ -27,20 +26,20 @@ public class TableAggregate<T, G> implements ExecutionStep<T> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<G> source;
   private final Formats formats;
-  private final Map<Integer, KsqlAggregateFunction> indexToFunctionMap;
-  private final Map<Integer, Integer> indexToValColumnMap;
+  private final int nonFuncColumnCount;
+  private final List<FunctionCall> aggregations;
 
   public TableAggregate(
       final ExecutionStepProperties properties,
       final ExecutionStep<G> source,
       final Formats formats,
-      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
-      final Map<Integer, Integer> indexToValColumnMap) {
+      final int nonFuncColumnCount,
+      final List<FunctionCall> aggregations) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
-    this.indexToFunctionMap = Objects.requireNonNull(indexToFunctionMap, "indexToFunctionMap");
-    this.indexToValColumnMap = Objects.requireNonNull(indexToValColumnMap, "indexToValColumnMap");
+    this.nonFuncColumnCount = nonFuncColumnCount;
+    this.aggregations = Objects.requireNonNull(aggregations, "aggValToFunctionMap");
   }
 
   @Override
@@ -70,13 +69,13 @@ public class TableAggregate<T, G> implements ExecutionStep<T> {
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
-        && Objects.equals(indexToFunctionMap, that.indexToFunctionMap)
-        && Objects.equals(indexToValColumnMap, that.indexToValColumnMap);
+        && nonFuncColumnCount == that.nonFuncColumnCount
+        && Objects.equals(aggregations, that.aggregations);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, indexToFunctionMap, indexToValColumnMap);
+    return Objects.hash(properties, source, formats, nonFuncColumnCount, aggregations);
   }
 }

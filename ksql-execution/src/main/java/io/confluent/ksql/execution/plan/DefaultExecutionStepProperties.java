@@ -21,15 +21,12 @@ import java.util.Objects;
 
 @Immutable
 public class DefaultExecutionStepProperties implements ExecutionStepProperties {
-  private final String id;
   private final QueryContext queryContext;
   private final LogicalSchema schema;
 
   public DefaultExecutionStepProperties(
-      final String id,
       final LogicalSchema schema,
       final QueryContext queryContext) {
-    this.id = Objects.requireNonNull(id, "id");
     this.queryContext = Objects.requireNonNull(queryContext, "queryContext");
     this.schema = Objects.requireNonNull(schema, "schema");
   }
@@ -41,12 +38,17 @@ public class DefaultExecutionStepProperties implements ExecutionStepProperties {
 
   @Override
   public String getId() {
-    return id;
+    return queryContext.toString();
   }
 
   @Override
   public QueryContext getQueryContext() {
     return queryContext;
+  }
+
+  @Override
+  public ExecutionStepProperties withQueryContext(final QueryContext queryContext) {
+    return new DefaultExecutionStepProperties(schema, queryContext);
   }
 
   @Override
@@ -58,19 +60,19 @@ public class DefaultExecutionStepProperties implements ExecutionStepProperties {
       return false;
     }
     final DefaultExecutionStepProperties that = (DefaultExecutionStepProperties) o;
-    return Objects.equals(id, that.id)
+    return Objects.equals(queryContext, that.queryContext)
         && Objects.equals(schema, that.schema);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(id, schema);
+    return Objects.hash(queryContext, schema);
   }
 
   @Override
   public String toString() {
     return "ExecutionStepProperties{"
-        + "id='" + id + '\''
+        + "queryContext='" + queryContext.toString() + '\''
         + ", schema=" + schema
         + '}';
   }

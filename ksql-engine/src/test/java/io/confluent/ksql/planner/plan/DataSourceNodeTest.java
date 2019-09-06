@@ -215,7 +215,7 @@ public class DataSourceNodeTest {
     when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
     when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any()))
         .thenReturn(stream);
-    when(stream.toTable(any(), any())).thenReturn(table);
+    when(stream.toTable(any(), any(), any(), any())).thenReturn(table);
   }
 
   @Test
@@ -483,13 +483,13 @@ public class DataSourceNodeTest {
         same(ksqlStreamBuilder),
         same(dataSource),
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
-        queryContextCaptor.capture(),
+        stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
         same(node.getKeyField())
     );
     assertThat(
-        queryContextCaptor.getValue().getContext(),
+        stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "source"))
     );
   }
@@ -508,13 +508,13 @@ public class DataSourceNodeTest {
         same(ksqlStreamBuilder),
         same(dataSource),
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
-        queryContextCaptor.capture(),
+        stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
         same(node.getKeyField())
     );
     assertThat(
-        queryContextCaptor.getValue().getContext(),
+        stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "source"))
     );
   }
@@ -529,7 +529,7 @@ public class DataSourceNodeTest {
     final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), any());
+    verify(stream).toTable(any(), any(), any(), any());
     assertThat(returned, is(table));
   }
 
@@ -552,7 +552,7 @@ public class DataSourceNodeTest {
         queryContextCaptor.getValue().getContext(),
         equalTo(ImmutableList.of("0", "reduce"))
     );
-    verify(stream).toTable(same(rowSerde), any());
+    verify(stream).toTable(any(), any(), same(rowSerde), any());
   }
 
   @Test
@@ -565,7 +565,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), stackerCaptor.capture());
+    verify(stream).toTable(any(), any(), any(), stackerCaptor.capture());
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "reduce")));

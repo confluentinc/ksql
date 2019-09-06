@@ -217,6 +217,7 @@ public class AggregateNode extends PlanNode {
         getGroupByExpressions());
 
     final SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupBy(
+        valueFormat,
         genericRowSerde,
         internalGroupByColumns,
         groupByContext
@@ -246,15 +247,20 @@ public class AggregateNode extends PlanNode {
         aggregationContext.getQueryContext()
     );
 
+    final List<FunctionCall> functionsWithInternalIdentifiers = functionList.stream()
+        .map(internalSchema::resolveToInternal)
+        .map(FunctionCall.class::cast)
+        .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
         aggStageSchema,
         initializer,
         requiredColumns.size(),
+        functionsWithInternalIdentifiers,
         aggValToFunctionMap,
         getWindowExpression(),
+        valueFormat,
         aggValueGenericRowSerde,
         aggregationContext
-
     );
 
     if (havingExpressions != null) {

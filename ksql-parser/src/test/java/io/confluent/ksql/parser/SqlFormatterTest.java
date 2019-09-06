@@ -748,7 +748,7 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldSupportExplicitEmitChanges() {
+  public void shouldSupportExplicitEmitChangesOnBareQuery() {
     // Given:
     final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS EMIT CHANGES;");
 
@@ -762,45 +762,31 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldSupportExplicitEmitFinal() {
+  public void shouldSupportExplicitEmitChangesOnPersistentQuery() {
     // Given:
-    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS EMIT FINAL;");
+    final Statement statement = parseSingle("CREATE STREAM X AS SELECT ITEMID FROM ORDERS EMIT CHANGES;");
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+    assertThat(result, is("CREATE STREAM X AS SELECT ORDERS.ITEMID \"ITEMID\"\n"
         + "FROM ORDERS ORDERS\n"
-        + "EMIT FINAL"));
+        + "EMIT CHANGES"));
   }
 
   @Test
-  public void shouldSupportExplicitWithChanges() {
+  public void shouldSupportImplicitEmitChangesOnPersistentQuery() {
     // Given:
-    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS WITH CHANGES;");
+    final Statement statement = parseSingle("CREATE STREAM X AS SELECT ITEMID FROM ORDERS;");
 
     // When:
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+    assertThat(result, is("CREATE STREAM X AS SELECT ORDERS.ITEMID \"ITEMID\"\n"
         + "FROM ORDERS ORDERS\n"
-        + "WITH CHANGES"));
-  }
-
-  @Test
-  public void shouldSupportExplicitWithFinal() {
-    // Given:
-    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS WITH FINAL;");
-
-    // When:
-    final String result = SqlFormatter.formatSql(statement);
-
-    // Then:
-    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
-        + "FROM ORDERS ORDERS\n"
-        + "WITH FINAL"));
+        + "EMIT CHANGES"));
   }
 
   private Statement parseSingle(final String statementString) {

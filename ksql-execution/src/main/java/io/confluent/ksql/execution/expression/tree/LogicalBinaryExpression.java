@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,19 +26,26 @@ import java.util.Optional;
 
 @Immutable
 public class LogicalBinaryExpression extends Expression {
+  private static final String TYPE = "type";
+  private static final String LEFT = "left";
+  private static final String RIGHT = "right";
 
   public enum Type {
     AND, OR
   }
 
+  @JsonProperty(TYPE)
   private final Type type;
+  @JsonProperty(LEFT)
   private final Expression left;
+  @JsonProperty(RIGHT)
   private final Expression right;
 
+  @JsonCreator
   public LogicalBinaryExpression(
-      final Type type,
-      final Expression left,
-      final Expression right
+      @JsonProperty(TYPE) final Type type,
+      @JsonProperty(LEFT) final Expression left,
+      @JsonProperty(RIGHT) final Expression right
   ) {
     this(Optional.empty(), type, left, right);
   }

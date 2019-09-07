@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -23,15 +25,22 @@ import java.util.Objects;
 
 @Immutable
 public final class SqlDecimal extends SqlType {
+  private static final String PRECISION = "precision";
+  private static final String SCALE = "scale";
 
+  @JsonProperty(PRECISION)
   private final int precision;
+  @JsonProperty(SCALE)
   private final int scale;
 
   public static SqlDecimal of(final int precision, final int scale) {
     return new SqlDecimal(precision, scale);
   }
 
-  private SqlDecimal(final int precision, final int scale) {
+  @JsonCreator
+  private SqlDecimal(
+      @JsonProperty(PRECISION) final int precision,
+      @JsonProperty(SCALE) final int scale) {
     super(SqlBaseType.DECIMAL);
     this.precision = precision;
     this.scale = scale;

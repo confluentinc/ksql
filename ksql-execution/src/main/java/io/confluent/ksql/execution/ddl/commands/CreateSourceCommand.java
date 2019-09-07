@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -26,12 +27,27 @@ import java.util.Set;
  * Base class of create table/stream command
  */
 abstract class CreateSourceCommand implements DdlCommand {
+  final static String SQL_EXPRESSION = "sqlExpression";
+  final static String SOURCE_NAME = "sourceName";
+  final static String SCHEMA = "schema";
+  final static String KEY_FIELD = "keyField";
+  final static String TIMESTAMP_EXTRACTION_POLICY = "timestampExtractionPolicy";
+  final static String SERDE_OPTIONS = "serdeOptions";
+  final static String TOPIC = "topic";
+
+  @JsonProperty(SQL_EXPRESSION)
   private final String sqlExpression;
+  @JsonProperty(SOURCE_NAME)
   private final String sourceName;
+  @JsonProperty(SCHEMA)
   private final LogicalSchema schema;
+  @JsonProperty(KEY_FIELD)
   private final Optional<String> keyField;
+  @JsonProperty(TIMESTAMP_EXTRACTION_POLICY)
   private final TimestampExtractionPolicy timestampExtractionPolicy;
+  @JsonProperty(SERDE_OPTIONS)
   private final Set<SerdeOption> serdeOptions;
+  @JsonProperty(TOPIC)
   private final KsqlTopic topic;
 
   CreateSourceCommand(

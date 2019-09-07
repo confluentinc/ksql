@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,10 +26,13 @@ import java.util.Optional;
 
 @Immutable
 public class QualifiedNameReference extends Expression {
+  private static final String NAME = "name";
 
+  @JsonProperty(NAME)
   private final QualifiedName name;
 
-  public QualifiedNameReference(final QualifiedName name) {
+  @JsonCreator
+  public QualifiedNameReference(@JsonProperty(NAME) final QualifiedName name) {
     this(Optional.empty(), name);
   }
 

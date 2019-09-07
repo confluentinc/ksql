@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
@@ -24,15 +26,15 @@ import java.util.Set;
 
 @Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
-
+  @JsonCreator
   public CreateStreamCommand(
-      final String sqlExpression,
-      final String sourceName,
-      final LogicalSchema schema,
-      final Optional<String> keyField,
-      final TimestampExtractionPolicy timestampExtractionPolicy,
-      final Set<SerdeOption> serdeOptions,
-      final KsqlTopic ksqlTopic
+      @JsonProperty(SQL_EXPRESSION) final String sqlExpression,
+      @JsonProperty(SOURCE_NAME) final String sourceName,
+      @JsonProperty(SCHEMA) final LogicalSchema schema,
+      @JsonProperty(KEY_FIELD) final Optional<String> keyField,
+      @JsonProperty(TIMESTAMP_EXTRACTION_POLICY) final TimestampExtractionPolicy timestampExtractionPolicy,
+      @JsonProperty(SERDE_OPTIONS) final Set<SerdeOption> serdeOptions,
+      @JsonProperty(TOPIC) final KsqlTopic ksqlTopic
   ) {
     super(
         sqlExpression,

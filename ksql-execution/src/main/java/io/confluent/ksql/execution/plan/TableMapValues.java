@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
@@ -22,14 +24,21 @@ import java.util.Objects;
 
 @Immutable
 public class TableMapValues<T> implements ExecutionStep<T> {
+  private static final String SOURCE = "source";
+  private static final String SELECT_EXPRESSIONS = "selectExpressions";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(SOURCE)
   private final ExecutionStep<T> source;
+  @JsonProperty(SELECT_EXPRESSIONS)
   private final List<SelectExpression> selectExpressions;
 
+  @JsonCreator
   public TableMapValues(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<T> source,
-      final List<SelectExpression> selectExpressions
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(SOURCE) final ExecutionStep<T> source,
+      @JsonProperty(SELECT_EXPRESSIONS) final List<SelectExpression> selectExpressions
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");

@@ -79,8 +79,7 @@ public final class ExecutionStepFactory {
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        schema.getOriginalSchema(),
-        StreamSourceBuilder::buildWindowed
+        schema.getOriginalSchema()
     );
   }
 
@@ -103,8 +102,7 @@ public final class ExecutionStepFactory {
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        schema.getOriginalSchema(),
-        StreamSourceBuilder::buildUnwindowed
+        schema.getOriginalSchema()
     );
   }
 

@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -23,25 +25,41 @@ import java.util.Objects;
 
 @Immutable
 public class StreamStreamJoin<S> implements ExecutionStep<S> {
+  private static final String JOIN_TYPE = "joinType";
+  private static final String LEFT_FORMATS = "leftFormats";
+  private static final String RIGHT_FORMATS = "rightFormats";
+  private static final String LEFT = "left";
+  private static final String RIGHT = "right";
+  private static final String BEFORE = "before";
+  private static final String AFTER = "after";
 
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(JOIN_TYPE)
   private final JoinType joinType;
+  @JsonProperty(LEFT_FORMATS)
   private final Formats leftFormats;
+  @JsonProperty(RIGHT_FORMATS)
   private final Formats rightFormats;
+  @JsonProperty(LEFT)
   private final ExecutionStep<S> left;
+  @JsonProperty(RIGHT)
   private final ExecutionStep<S> right;
+  @JsonProperty(BEFORE)
   private final Duration before;
+  @JsonProperty(AFTER)
   private final Duration after;
 
+  @JsonCreator
   public StreamStreamJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final Formats leftFormats,
-      final Formats rightFormats,
-      final ExecutionStep<S> left,
-      final ExecutionStep<S> right,
-      final Duration before,
-      final Duration after) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(JOIN_TYPE) final JoinType joinType,
+      @JsonProperty(LEFT_FORMATS) final Formats leftFormats,
+      @JsonProperty(RIGHT_FORMATS) final Formats rightFormats,
+      @JsonProperty(LEFT) final ExecutionStep<S> left,
+      @JsonProperty(RIGHT) final ExecutionStep<S> right,
+      @JsonProperty(BEFORE) final Duration before,
+      @JsonProperty(AFTER) final Duration after) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.leftFormats = Objects.requireNonNull(leftFormats, "formats");
     this.rightFormats = Objects.requireNonNull(rightFormats, "rightFormats");

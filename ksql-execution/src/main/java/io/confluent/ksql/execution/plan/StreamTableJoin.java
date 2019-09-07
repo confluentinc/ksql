@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -22,19 +24,29 @@ import java.util.Objects;
 
 @Immutable
 public class StreamTableJoin<S, T> implements ExecutionStep<S> {
+  private static final String JOIN_TYPE = "joinType";
+  private static final String FORMATS = "formats";
+  private static final String LEFT = "left";
+  private static final String RIGHT = "right";
 
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(JOIN_TYPE)
   private final JoinType joinType;
+  @JsonProperty(FORMATS)
   private final Formats formats;
+  @JsonProperty(LEFT)
   private final ExecutionStep<S> left;
+  @JsonProperty(RIGHT)
   private final ExecutionStep<T> right;
 
+  @JsonCreator
   public StreamTableJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final Formats formats,
-      final ExecutionStep<S> left,
-      final ExecutionStep<T> right) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(JOIN_TYPE) final JoinType joinType,
+      @JsonProperty(FORMATS) final Formats formats,
+      @JsonProperty(LEFT) final ExecutionStep<S> left,
+      @JsonProperty(RIGHT) final ExecutionStep<T> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");

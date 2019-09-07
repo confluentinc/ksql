@@ -15,15 +15,20 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @Immutable
 public class DropSourceCommand implements DdlCommand {
+  private static final String SOURCE_NAME = "sourceName";
 
+  @JsonProperty(SOURCE_NAME)
   private final String sourceName;
 
-  public DropSourceCommand(final String sourceName) {
+  @JsonCreator
+  public DropSourceCommand(@JsonProperty(SOURCE_NAME) final String sourceName) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
   }
 

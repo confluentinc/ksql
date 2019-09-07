@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.Operator;
@@ -23,15 +25,22 @@ import java.util.Optional;
 
 @Immutable
 public class ArithmeticBinaryExpression extends Expression {
+  private static final String OPERATOR = "operator";
+  private static final String LEFT = "left";
+  private static final String RIGHT = "right";
 
+  @JsonProperty(OPERATOR)
   private final Operator operator;
+  @JsonProperty(LEFT)
   private final Expression left;
+  @JsonProperty(RIGHT)
   private final Expression right;
 
+  @JsonCreator
   public ArithmeticBinaryExpression(
-      final Operator operator,
-      final Expression left,
-      final Expression right
+      @JsonProperty(OPERATOR) final Operator operator,
+      @JsonProperty(LEFT) final Expression left,
+      @JsonProperty(RIGHT) final Expression right
   ) {
     this(Optional.empty(), operator, left, right);
   }

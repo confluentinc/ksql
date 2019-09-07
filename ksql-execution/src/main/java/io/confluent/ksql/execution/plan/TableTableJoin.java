@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -22,16 +24,25 @@ import java.util.Objects;
 
 @Immutable
 public class TableTableJoin<T> implements ExecutionStep<T> {
+  private static final String JOIN_TYPE = "joinType";
+  private static final String LEFT = "left";
+  private static final String RIGHT = "right";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(JOIN_TYPE)
   private final JoinType joinType;
+  @JsonProperty(LEFT)
   private final ExecutionStep<T> left;
+  @JsonProperty(RIGHT)
   private final ExecutionStep<T> right;
 
+  @JsonCreator
   public TableTableJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final ExecutionStep<T> left,
-      final ExecutionStep<T> right) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(JOIN_TYPE) final JoinType joinType,
+      @JsonProperty(LEFT) final ExecutionStep<T> left,
+      @JsonProperty(RIGHT) final ExecutionStep<T> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");

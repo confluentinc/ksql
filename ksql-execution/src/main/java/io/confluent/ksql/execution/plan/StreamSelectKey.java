@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
@@ -22,18 +24,28 @@ import java.util.Objects;
 
 @Immutable
 public class StreamSelectKey<S> implements ExecutionStep<S> {
+  private static final String PROPERTIES = "properties";
+  private static final String SOURCE = "source";
+  private static final String FIELD_NAME = "fieldName";
+  private static final String UPDATE_ROW_KEY = "updateRowKey";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(SOURCE)
   private final ExecutionStep<S> source;
+  @JsonProperty(FIELD_NAME)
   private final String fieldName;
+  @JsonProperty(UPDATE_ROW_KEY)
   private final boolean updateRowKey;
 
+  @JsonCreator
   public StreamSelectKey(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<S> source,
-      final String fieldName,
-      final boolean updateRowKey) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(SOURCE) final ExecutionStep<S> source,
+      @JsonProperty(FIELD_NAME) final String fieldName,
+      @JsonProperty(UPDATE_ROW_KEY) final boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.source = Objects.requireNonNull(source, "source");
+    this.source = source;  // Objects.requireNonNull(source, "source");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
     this.updateRowKey = updateRowKey;
   }
@@ -46,6 +58,10 @@ public class StreamSelectKey<S> implements ExecutionStep<S> {
   @Override
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
+  }
+
+  public ExecutionStep<S> getSource() {
+    return source;
   }
 
   @Override

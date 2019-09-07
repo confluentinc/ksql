@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
@@ -65,7 +67,8 @@ public final class SqlPrimitiveType extends SqlType {
     }
   }
 
-  public static SqlPrimitiveType of(final SqlBaseType sqlType) {
+  @JsonCreator
+  public static SqlPrimitiveType of(@JsonProperty(BASE_TYPE) final SqlBaseType sqlType) {
     final SqlPrimitiveType primitive = TYPES.get(Objects.requireNonNull(sqlType, "sqlType"));
     if (primitive == null) {
       throw new KsqlException("Invalid primitive type: " + sqlType);

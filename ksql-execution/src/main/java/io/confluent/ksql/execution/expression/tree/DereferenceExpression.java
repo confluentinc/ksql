@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.ArrayList;
@@ -26,13 +28,18 @@ import java.util.Optional;
 
 @Immutable
 public class DereferenceExpression extends Expression {
+  private static final String BASE = "base";
+  private static final String FIELD_NAME = "fieldName";
 
+  @JsonProperty(BASE)
   private final Expression base;
+  @JsonProperty(FIELD_NAME)
   private final String fieldName;
 
+  @JsonCreator
   public DereferenceExpression(
-      final Expression base,
-      final String fieldName
+      @JsonProperty(BASE) final Expression base,
+      @JsonProperty(FIELD_NAME) final String fieldName
   ) {
     this(Optional.empty(), base, fieldName);
   }

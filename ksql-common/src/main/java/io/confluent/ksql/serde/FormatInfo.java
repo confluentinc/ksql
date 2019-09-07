@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
@@ -25,8 +27,12 @@ import java.util.Optional;
  */
 @Immutable
 public final class FormatInfo {
+  private static final String FORMAT = "format";
+  private static final String AVRO_SCHEMA_FULL_NAME = "avroSchemaFullName";
 
+  @JsonProperty(FORMAT)
   private final Format format;
+  @JsonProperty(AVRO_SCHEMA_FULL_NAME)
   private final Optional<String> avroFullSchemaName;
 
   public static FormatInfo of(final Format format) {
@@ -40,9 +46,10 @@ public final class FormatInfo {
     return new FormatInfo(format, avroFullSchemaName);
   }
 
+  @JsonCreator
   private FormatInfo(
-      final Format format,
-      final Optional<String> avroFullSchemaName
+      @JsonProperty(FORMAT) final Format format,
+      @JsonProperty(AVRO_SCHEMA_FULL_NAME) final Optional<String> avroFullSchemaName
   ) {
     this.format = Objects.requireNonNull(format, "format");
     this.avroFullSchemaName = Objects.requireNonNull(avroFullSchemaName, "avroFullSchemaName");

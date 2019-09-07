@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,13 +26,18 @@ import java.util.Optional;
 
 @Immutable
 public class SubscriptExpression extends Expression {
+  private static final String BASE = "base";
+  private static final String INDEX = "index";
 
+  @JsonProperty(BASE)
   private final Expression base;
+  @JsonProperty(INDEX)
   private final Expression index;
 
+  @JsonCreator
   public SubscriptExpression(
-      final Expression base,
-      final Expression index
+      @JsonProperty(BASE) final Expression base,
+      @JsonProperty(INDEX) final Expression index
   ) {
     this(Optional.empty(), base, index);
   }

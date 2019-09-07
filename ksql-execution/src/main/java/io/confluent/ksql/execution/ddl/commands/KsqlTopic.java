@@ -17,23 +17,34 @@ package io.confluent.ksql.execution.ddl.commands;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.ValueFormat;
 
 @Immutable
 public class KsqlTopic {
+  private static final String KAFKA_TOPIC_NAME = "kafkaTopicName";
+  private static final String KEY_FORMAT = "keyFormat";
+  private static final String VALUE_FORMAT = "valueFormat";
+  private static final String IS_KSQL_SINK = "isKsqlSink";
 
+  @JsonProperty(KAFKA_TOPIC_NAME)
   private final String kafkaTopicName;
+  @JsonProperty(KEY_FORMAT)
   private final KeyFormat keyFormat;
+  @JsonProperty(VALUE_FORMAT)
   private final ValueFormat valueFormat;
+  @JsonProperty(IS_KSQL_SINK)
   private final boolean isKsqlSink;
 
+  @JsonCreator
   public KsqlTopic(
-      final String kafkaTopicName,
-      final KeyFormat keyFormat,
-      final ValueFormat valueFormat,
-      final boolean isKsqlSink
+      @JsonProperty(KAFKA_TOPIC_NAME) final String kafkaTopicName,
+      @JsonProperty(KEY_FORMAT) final KeyFormat keyFormat,
+      @JsonProperty(VALUE_FORMAT) final ValueFormat valueFormat,
+      @JsonProperty(IS_KSQL_SINK) final boolean isKsqlSink
   ) {
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");

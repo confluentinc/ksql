@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
@@ -26,13 +28,18 @@ import java.util.Optional;
 
 @Immutable
 public class FunctionCall extends Expression {
+  private static final String NAME = "name";
+  private static final String ARGUMENTS = "arguments";
 
+  @JsonProperty(NAME)
   private final QualifiedName name;
+  @JsonProperty(ARGUMENTS)
   private final ImmutableList<Expression> arguments;
 
+  @JsonCreator
   public FunctionCall(
-      final QualifiedName name,
-      final List<Expression> arguments
+      @JsonProperty(NAME) final QualifiedName name,
+      @JsonProperty(ARGUMENTS) final List<Expression> arguments
   ) {
     this(Optional.empty(), name,  arguments);
   }

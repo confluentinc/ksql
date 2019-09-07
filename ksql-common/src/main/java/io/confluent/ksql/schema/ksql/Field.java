@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.SchemaUtil;
@@ -26,11 +28,18 @@ import java.util.Optional;
  */
 @Immutable
 public final class Field {
+  private static final String SOURCE = "source";
+  private static final String NAME = "name";
+  private static final String TYPE = "type";
 
+  @JsonProperty(SOURCE)
   private final Optional<String> source;
-  private final String fullName;
+  @JsonProperty(NAME)
   private final String name;
+  @JsonProperty(TYPE)
   private final SqlType type;
+
+  private transient final String fullName;
 
   /**
    * @param name the name of the field.
@@ -61,7 +70,11 @@ public final class Field {
     return new Field(source, name, type);
   }
 
-  private Field(final Optional<String> source, final String name, final SqlType type) {
+  @JsonCreator
+  private Field(
+      @JsonProperty(SOURCE) final Optional<String> source,
+      @JsonProperty(NAME) final String name,
+      @JsonProperty(TYPE) final SqlType type) {
     this.source = Objects.requireNonNull(source, "source");
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");

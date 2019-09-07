@@ -19,6 +19,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.collect.Iterables.isEmpty;
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -29,7 +31,9 @@ import java.util.Optional;
 
 @Immutable
 public final class QualifiedName {
+  private static final String PARTS = "parts";
 
+  @JsonProperty(PARTS)
   private final ImmutableList<String> parts;
 
   public static QualifiedName of(final String first, final String... rest) {
@@ -48,7 +52,8 @@ public final class QualifiedName {
     return new QualifiedName(ImmutableList.copyOf(parts));
   }
 
-  private QualifiedName(final ImmutableList<String> parts) {
+  @JsonCreator
+  private QualifiedName(@JsonProperty(PARTS) final ImmutableList<String> parts) {
     this.parts = requireNonNull(parts, "parts");
   }
 

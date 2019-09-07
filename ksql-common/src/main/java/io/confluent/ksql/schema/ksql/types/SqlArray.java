@@ -17,6 +17,8 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -24,14 +26,17 @@ import java.util.Objects;
 
 @Immutable
 public final class SqlArray extends SqlType {
+  private static final String ITEM_TYPE = "itemType";
 
+  @JsonProperty(ITEM_TYPE)
   private final SqlType itemType;
 
   public static SqlArray of(final SqlType itemType) {
     return new SqlArray(itemType);
   }
 
-  private SqlArray(final SqlType itemType) {
+  @JsonCreator
+  private SqlArray(@JsonProperty(ITEM_TYPE) final SqlType itemType) {
     super(SqlBaseType.ARRAY);
     this.itemType = requireNonNull(itemType, "itemType");
   }

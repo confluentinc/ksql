@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,13 +26,18 @@ import java.util.Optional;
 
 @Immutable
 public final class Cast extends Expression {
+  private static final String EXPRESSION = "expression";
+  private static final String TYPE = "type";
 
+  @JsonProperty(EXPRESSION)
   private final Expression expression;
+  @JsonProperty(TYPE)
   private final Type type;
 
+  @JsonCreator
   public Cast(
-      final Expression expression,
-      final Type type
+      @JsonProperty(EXPRESSION) final Expression expression,
+      @JsonProperty(TYPE) final Type type
   ) {
     this(Optional.empty(), expression, type);
   }

@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -25,10 +27,13 @@ import java.util.Optional;
 
 @Immutable
 public final class Type extends Expression {
+  private static final String SQL_TYPE = "sqlType";
 
+  @JsonProperty(SQL_TYPE)
   private final SqlType sqlType;
 
-  public Type(final SqlType sqlType) {
+  @JsonCreator
+  public Type(@JsonProperty(SQL_TYPE) final SqlType sqlType) {
     this(Optional.empty(), sqlType);
   }
 

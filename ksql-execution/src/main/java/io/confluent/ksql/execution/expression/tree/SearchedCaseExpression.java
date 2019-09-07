@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
@@ -26,13 +28,18 @@ import java.util.Optional;
 
 @Immutable
 public class SearchedCaseExpression extends Expression {
+  private static final String WHEN_CLAUSES = "whenClauses";
+  private static final String DEFAULT_VALUE = "defaultValue";
 
+  @JsonProperty(WHEN_CLAUSES)
   private final ImmutableList<WhenClause> whenClauses;
+  @JsonProperty(DEFAULT_VALUE)
   private final Optional<Expression> defaultValue;
 
+  @JsonCreator
   public SearchedCaseExpression(
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue
+      @JsonProperty(WHEN_CLAUSES) final List<WhenClause> whenClauses,
+      @JsonProperty(DEFAULT_VALUE) final Optional<Expression> defaultValue
   ) {
     this(Optional.empty(), whenClauses, defaultValue);
   }

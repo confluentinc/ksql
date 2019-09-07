@@ -15,16 +15,21 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 
 @Immutable
 public class DoubleLiteral extends Literal {
+  private static final String VALUE = "value";
 
+  @JsonProperty(VALUE)
   private final double value;
 
-  public DoubleLiteral(final double value) {
+  @JsonCreator
+  public DoubleLiteral(@JsonProperty(VALUE) final double value) {
     this(Optional.empty(), value);
   }
 

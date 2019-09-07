@@ -24,11 +24,13 @@ import java.util.Objects;
 
 @Immutable
 public class QueryId {
+  private static final String ID = "id";
 
+  @JsonProperty(ID)
   private final String id;
 
   @JsonCreator
-  public QueryId(@JsonProperty("id") final String id) {
+  public QueryId(@JsonProperty(ID) final String id) {
     this.id = requireNonNull(id, "id");
   }
 

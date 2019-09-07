@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,11 +26,18 @@ import java.util.Optional;
 
 @Immutable
 public class WhenClause extends Expression {
+  private static final String OPERAND = "operand";
+  private static final String RESULT = "result";
 
+  @JsonProperty(OPERAND)
   private final Expression operand;
+  @JsonProperty(RESULT)
   private final Expression result;
 
-  public WhenClause(final Expression operand, final Expression result) {
+  @JsonCreator
+  public WhenClause(
+      @JsonProperty(OPERAND) final Expression operand,
+      @JsonProperty(RESULT) final Expression result) {
     this(Optional.empty(), operand, result);
   }
 

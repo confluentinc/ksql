@@ -177,8 +177,7 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        SOURCE_SCHEMA,
-        StreamSourceBuilder::buildWindowed
+        SOURCE_SCHEMA
     );
   }
 
@@ -190,8 +189,7 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        SOURCE_SCHEMA,
-        StreamSourceBuilder::buildUnwindowed
+        SOURCE_SCHEMA
     );
   }
 
@@ -202,7 +200,8 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When:
-    final KStream<?, GenericRow> builtKstream = streamSource.build(queryBuilder);
+    final KStream<?, GenericRow> builtKstream =
+        StreamSourceBuilder.buildUnwindowed(queryBuilder, streamSource);
 
     // Then:
     assertThat(builtKstream, is(kStream));
@@ -226,7 +225,7 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When
-    streamSource.build(queryBuilder);
+    StreamSourceBuilder.buildUnwindowed(queryBuilder, streamSource);
 
     verify(streamsBuilder).stream(anyString(), consumedCaptor.capture());
     final Consumed consumed = consumedCaptor.getValue();
@@ -245,7 +244,7 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    StreamSourceBuilder.buildUnwindowed(queryBuilder, streamSource);
 
     // Then:
     verify(queryBuilder).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
@@ -257,7 +256,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    StreamSourceBuilder.buildUnwindowed(queryBuilder, streamSource);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -270,8 +269,9 @@ public class StreamSourceBuilderTest {
 
   @SuppressWarnings("unchecked")
   private ValueMapperWithKey<?, GenericRow, GenericRow> getMapperFromStreamSource(
-      final StreamSource<?> streamSource) {
-    streamSource.build(queryBuilder);
+      final StreamSource<?> streamSource,
+      final BiFunction<KsqlQueryBuilder, StreamSource, KStream> builder) {
+    builder.apply(queryBuilder, streamSource);
     verify(kStream).mapValues(mapperCaptor.capture());
     return mapperCaptor.getValue();
   }
@@ -283,7 +283,10 @@ public class StreamSourceBuilderTest {
     when(keyFormat.isWindowed()).thenReturn(true);
     final Windowed<Struct> key = new Windowed<>(KEY, new TimeWindow(100, 200));
     givenWindowedSource();
-    final ValueMapperWithKey mapper = getMapperFromStreamSource(streamSource);
+    final ValueMapperWithKey mapper = getMapperFromStreamSource(
+        streamSource,
+        StreamSourceBuilder::buildWindowed
+    );
 
     // When:
     final GenericRow result = (GenericRow) mapper.apply(key, row);
@@ -299,7 +302,10 @@ public class StreamSourceBuilderTest {
   public void shouldAddNonWindowedKey() {
     // Given:
     givenUnwindowedSource();
-    final ValueMapperWithKey mapper = getMapperFromStreamSource(streamSource);
+    final ValueMapperWithKey mapper = getMapperFromStreamSource(
+        streamSource,
+        StreamSourceBuilder::buildUnwindowed
+    );
 
     // When:
     final GenericRow result = (GenericRow) mapper.apply(KEY, row);
@@ -325,20 +331,21 @@ public class StreamSourceBuilderTest {
                 .field( "f2", Schema.INT64_SCHEMA)
                 .build(),
             SCHEMA.valueSchema()
-        ),
-        StreamSourceBuilder::buildUnwindowed
+        )
     );
 
     // Then:
     expectedException.expect(instanceOf(IllegalStateException.class));
 
     // When:
-    streamSource.build(queryBuilder);
+    StreamSourceBuilder.buildUnwindowed(queryBuilder, streamSource);
   }
 
   @SuppressWarnings("unchecked")
-  private ValueTransformer getTransformerFromStreamSource(final StreamSource<?> streamSource) {
-    streamSource.build(queryBuilder);
+  private ValueTransformer getTransformerFromStreamSource(
+      final StreamSource<?> streamSource,
+      final BiFunction<KsqlQueryBuilder, StreamSource, KStream> builder) {
+    builder.apply(queryBuilder, streamSource);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
     return transformSupplierCaptor.getValue().get();
   }
@@ -348,7 +355,10 @@ public class StreamSourceBuilderTest {
   public void shouldAddTimestampColumn() {
     // Given:
     givenUnwindowedSource();
-    final ValueTransformer transformer = getTransformerFromStreamSource(streamSource);
+    final ValueTransformer transformer = getTransformerFromStreamSource(
+        streamSource,
+        StreamSourceBuilder::buildUnwindowed
+    );
     transformer.init(processorCtx);
 
     // When:
@@ -365,7 +375,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    StreamSourceBuilder.buildWindowed(queryBuilder, streamSource);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -383,7 +393,7 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    StreamSourceBuilder.buildUnwindowed(queryBuilder, streamSource);
 
     // Then:
     verify(queryBuilder).buildKeySerde(

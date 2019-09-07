@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,13 +26,17 @@ import java.util.Optional;
 
 @Immutable
 public class ArithmeticUnaryExpression extends Expression {
+  private final static String VALUE = "value";
+  private final static String SIGN = "sign";
 
   public enum Sign {
     PLUS,
     MINUS
   }
 
+  @JsonProperty(VALUE)
   private final Expression value;
+  @JsonProperty(SIGN)
   private final Sign sign;
 
   public ArithmeticUnaryExpression(
@@ -41,6 +47,14 @@ public class ArithmeticUnaryExpression extends Expression {
     super(location);
     this.value = requireNonNull(value, "value");
     this.sign = requireNonNull(sign, "sign");
+  }
+
+  @JsonCreator
+  private ArithmeticUnaryExpression(
+      @JsonProperty(SIGN) final Sign sign,
+      @JsonProperty(VALUE) final Expression value
+  ) {
+    this(Optional.empty(), sign, value);
   }
 
   public static ArithmeticUnaryExpression positive(

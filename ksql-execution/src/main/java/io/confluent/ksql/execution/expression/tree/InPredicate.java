@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,13 +26,18 @@ import java.util.Optional;
 
 @Immutable
 public class InPredicate extends Expression {
+  private static final String VALUE = "value";
+  private static final String VALUE_LIST = "valueList";
 
+  @JsonProperty(VALUE)
   private final Expression value;
+  @JsonProperty(VALUE_LIST)
   private final InListExpression valueList;
 
+  @JsonCreator
   public InPredicate(
-      final Expression value,
-      final InListExpression valueList
+      @JsonProperty(VALUE) final Expression value,
+      @JsonProperty(VALUE_LIST) final InListExpression valueList
   ) {
     this(Optional.empty(), value, valueList);
   }

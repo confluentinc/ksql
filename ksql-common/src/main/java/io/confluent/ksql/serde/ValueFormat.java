@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
@@ -23,7 +25,9 @@ import java.util.Objects;
  */
 @Immutable
 public final class ValueFormat {
+  private final static String FORMAT = "format";
 
+  @JsonProperty(FORMAT)
   private final FormatInfo format;
 
   public static ValueFormat of(
@@ -32,9 +36,8 @@ public final class ValueFormat {
     return new ValueFormat(format);
   }
 
-  private ValueFormat(
-      final FormatInfo format
-  ) {
+  @JsonCreator
+  private ValueFormat(@JsonProperty(FORMAT) final FormatInfo format) {
     this.format = Objects.requireNonNull(format, "format");
   }
 

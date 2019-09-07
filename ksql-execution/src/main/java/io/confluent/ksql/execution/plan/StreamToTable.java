@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -22,14 +24,21 @@ import java.util.Objects;
 
 @Immutable
 public class StreamToTable<S, T> implements ExecutionStep<T> {
+  private static final String FORMATS = "formats";
+  private static final String SOURCE = "source";
+
+  @JsonProperty(SOURCE)
   private final ExecutionStep<S> source;
+  @JsonProperty(FORMATS)
   private final Formats formats;
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
 
+  @JsonCreator
   public StreamToTable(
-      final ExecutionStep<S> source,
-      final Formats formats,
-      final ExecutionStepProperties properties) {
+      @JsonProperty(SOURCE) final ExecutionStep<S> source,
+      @JsonProperty(FORMATS) final Formats formats,
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties) {
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.properties = Objects.requireNonNull(properties, "properties");

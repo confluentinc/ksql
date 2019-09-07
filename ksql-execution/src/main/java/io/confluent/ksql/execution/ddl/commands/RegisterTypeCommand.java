@@ -15,16 +15,26 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
 
 @Immutable
 public class RegisterTypeCommand implements DdlCommand {
+  private final static String TYPE = "TYPE";
+  private final static String NAME = "NAME";
+
+  @JsonProperty(TYPE)
   private final SqlType type;
+  @JsonProperty(NAME)
   private final String name;
 
-  public RegisterTypeCommand(final SqlType type, final String name) {
+  @JsonCreator
+  public RegisterTypeCommand(
+      @JsonProperty(TYPE) final SqlType type,
+      @JsonProperty(NAME) final String name) {
     this.type = Objects.requireNonNull(type, "type");
     this.name = Objects.requireNonNull(name, "name");
   }

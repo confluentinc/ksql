@@ -18,6 +18,8 @@ package io.confluent.ksql.execution.expression.tree;
 import static java.util.Locale.ENGLISH;
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
@@ -26,10 +28,13 @@ import java.util.Optional;
 
 @Immutable
 public class BooleanLiteral extends Literal {
+  private static final String VALUE = "value";
 
+  @JsonProperty(VALUE)
   private final boolean value;
 
-  public BooleanLiteral(final String value) {
+  @JsonCreator
+  public BooleanLiteral(@JsonProperty(VALUE) final String value) {
     this(Optional.empty(), value);
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
@@ -22,6 +23,7 @@ import java.util.Optional;
 @Immutable
 public class NullLiteral extends Literal {
 
+  @JsonCreator
   public NullLiteral() {
     super(Optional.empty());
   }

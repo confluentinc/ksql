@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,15 +26,22 @@ import java.util.Optional;
 
 @Immutable
 public class BetweenPredicate extends Expression {
+  private static final String VALUE = "value";
+  private static final String MIN = "min";
+  private static final String MAX = "max";
 
+  @JsonProperty(VALUE)
   private final Expression value;
+  @JsonProperty(MIN)
   private final Expression min;
+  @JsonProperty(MAX)
   private final Expression max;
 
+  @JsonCreator
   public BetweenPredicate(
-      final Expression value,
-      final Expression min,
-      final Expression max
+      @JsonProperty(VALUE) final Expression value,
+      @JsonProperty(MIN) final Expression min,
+      @JsonProperty(MAX) final Expression max
   ) {
     this(Optional.empty(), value, min, max);
   }

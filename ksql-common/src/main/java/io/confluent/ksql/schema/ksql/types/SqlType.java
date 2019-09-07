@@ -15,6 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -24,8 +29,21 @@ import java.util.Objects;
  * Base for all SQL types in KSQL.
  */
 @Immutable
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = As.WRAPPER_OBJECT
+)
+@JsonSubTypes({
+    @Type(value = SqlPrimitiveType.class, name = "primitive"),
+    @Type(value = SqlStruct.class, name = "struct"),
+    @Type(value = SqlArray.class, name = "array"),
+    @Type(value = SqlMap.class, name = "map"),
+    @Type(value = SqlDecimal.class, name = "decimal")
+})
 public abstract class SqlType {
+  static final String BASE_TYPE = "baseType";
 
+  @JsonProperty(BASE_TYPE)
   private final SqlBaseType baseType;
 
   SqlType(final SqlBaseType baseType) {

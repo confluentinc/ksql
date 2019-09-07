@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -23,14 +25,21 @@ import java.util.Objects;
 
 @Immutable
 public class StreamMapValues<S> implements ExecutionStep<S> {
+  private static final String SOURCE = "source";
+  private static final String SELECT_EXPRESSIONS = "selectExpressions";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(SOURCE)
   private final ExecutionStep<S> source;
+  @JsonProperty(SELECT_EXPRESSIONS)
   private final List<SelectExpression> selectExpressions;
 
+  @JsonCreator
   public StreamMapValues(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<S> source,
-      final List<SelectExpression> selectExpressions) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(SOURCE) final ExecutionStep<S> source,
+      @JsonProperty(SELECT_EXPRESSIONS) final List<SelectExpression> selectExpressions) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);

@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
@@ -28,14 +30,27 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
 public class StreamSource<S> implements ExecutionStep<S> {
+  private static final String TOPIC_NAME = "topicName";
+  private static final String FORMATS = "formats";
+  private static final String TIMESTAMP_POLICY = "timestampPolicy";
+  private static final String TIMESTMAP_INDEX = "timestampIndex";
+  private static final String OFFSET_RESET = "offsetReset";
+  private static final String SOURCE_SCHEMA = "sourceSchema";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(TOPIC_NAME)
   private final String topicName;
+  @JsonProperty(FORMATS)
   private final Formats formats;
+  @JsonProperty(TIMESTAMP_POLICY)
   private final TimestampExtractionPolicy timestampPolicy;
+  @JsonProperty(TIMESTMAP_INDEX)
   private final int timestampIndex;
+  @JsonProperty(OFFSET_RESET)
   private final Optional<AutoOffsetReset> offsetReset;
+  @JsonProperty(SOURCE_SCHEMA)
   private final LogicalSchema sourceSchema;
-  private final BiFunction<KsqlQueryBuilder, StreamSource<S>, S> builder;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
       final String alias,
@@ -44,15 +59,15 @@ public class StreamSource<S> implements ExecutionStep<S> {
   }
 
   @VisibleForTesting
+  @JsonCreator
   public StreamSource(
-      final ExecutionStepProperties properties,
-      final String topicName,
-      final Formats formats,
-      final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset,
-      final LogicalSchema sourceSchema,
-      final BiFunction<KsqlQueryBuilder, StreamSource<S>, S> builder) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(TOPIC_NAME) final String topicName,
+      @JsonProperty(FORMATS) final Formats formats,
+      @JsonProperty(TIMESTAMP_POLICY) final TimestampExtractionPolicy timestampPolicy,
+      @JsonProperty(TIMESTMAP_INDEX) final int timestampIndex,
+      @JsonProperty(OFFSET_RESET) final Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty(SOURCE_SCHEMA) final LogicalSchema sourceSchema) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -60,12 +75,11 @@ public class StreamSource<S> implements ExecutionStep<S> {
     this.timestampIndex = timestampIndex;
     this.offsetReset = Objects.requireNonNull(offsetReset, "offsetReset");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
-    this.builder = Objects.requireNonNull(builder, "builder");
   }
 
   @Override
   public S build(final KsqlQueryBuilder ksqlQueryBuilder) {
-    return builder.apply(ksqlQueryBuilder, this);
+    return null;
   }
 
   @Override

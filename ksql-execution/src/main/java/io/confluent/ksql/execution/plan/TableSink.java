@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
@@ -22,16 +24,25 @@ import java.util.Objects;
 
 @Immutable
 public class TableSink<T> implements ExecutionStep<T> {
+  private static final String SOURCE = "source";
+  private static final String FORMATS = "formats";
+  private static final String TOPIC_NAME = "topicName";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(SOURCE)
   private final ExecutionStep<T> source;
+  @JsonProperty(FORMATS)
   private final Formats formats;
+  @JsonProperty(TOPIC_NAME)
   private final String topicName;
 
+  @JsonCreator
   public TableSink(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<T> source,
-      final Formats formats,
-      final String topicName
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(SOURCE) final ExecutionStep<T> source,
+      @JsonProperty(FORMATS) final Formats formats,
+      @JsonProperty(TOPIC_NAME) final String topicName
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");

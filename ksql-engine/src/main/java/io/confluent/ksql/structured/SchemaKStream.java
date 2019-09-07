@@ -108,8 +108,8 @@ public class SchemaKStream<K> {
       final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
       final StreamSource<KStream<K, GenericRow>> streamSource,
-      final KeyField keyField) {
-    final KStream<K, GenericRow> kstream = streamSource.build(builder);
+      final KeyField keyField,
+      final KStream<K, GenericRow> kstream) {
     return new SchemaKStream<>(
         kstream,
         streamSource,
@@ -148,7 +148,8 @@ public class SchemaKStream<K> {
           topic.getKeyFormat(),
           StreamSourceBuilder.getWindowedKeySerde(builder, step),
           step,
-          keyField);
+          keyField,
+          StreamSourceBuilder.buildWindowed(builder, step));
     } else {
       final StreamSource<KStream<Struct, GenericRow>> step = streamSource(
           contextStacker,
@@ -164,7 +165,8 @@ public class SchemaKStream<K> {
           topic.getKeyFormat(),
           StreamSourceBuilder.getKeySerde(builder, step),
           step,
-          keyField);
+          keyField,
+          StreamSourceBuilder.buildUnwindowed(builder, step));
     }
   }
 

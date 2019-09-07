@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -23,18 +25,29 @@ import java.util.Objects;
 
 @Immutable
 public class StreamAggregate<T, G> implements ExecutionStep<T> {
+  private static final String FORMATS = "formats";
+  private static final String SOURCE = "source";
+  private static final String NON_FUNC_COLUMN_COUNT = "nonFuncColumnCount";
+  private static final String AGGREGATIONS = "aggregations";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<G> source;
+  @JsonProperty(FORMATS)
   private final Formats formats;
+  @JsonProperty(SOURCE)
+  private final ExecutionStep<G> source;
+  @JsonProperty(NON_FUNC_COLUMN_COUNT)
   private final int nonFuncColumnCount;
+  @JsonProperty(AGGREGATIONS)
   private final List<FunctionCall> aggregations;
 
+  @JsonCreator
   public StreamAggregate(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<G> source,
-      final Formats formats,
-      final int nonFuncColumnCount,
-      final List<FunctionCall> aggregations) {
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(SOURCE) final ExecutionStep<G> source,
+      @JsonProperty(FORMATS) final Formats formats,
+      @JsonProperty(NON_FUNC_COLUMN_COUNT) final int nonFuncColumnCount,
+      @JsonProperty(AGGREGATIONS) final List<FunctionCall> aggregations) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");

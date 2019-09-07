@@ -17,6 +17,8 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -24,14 +26,17 @@ import java.util.Objects;
 
 @Immutable
 public final class SqlMap extends SqlType {
+  private static final String VALUE_TYPE = "valueType";
 
+  @JsonProperty(VALUE_TYPE)
   private final SqlType valueType;
 
   public static SqlMap of(final SqlType valueType) {
     return new SqlMap(valueType);
   }
 
-  private SqlMap(final SqlType valueType) {
+  @JsonCreator
+  private SqlMap(@JsonProperty(VALUE_TYPE) final SqlType valueType) {
     super(SqlBaseType.MAP);
     this.valueType = requireNonNull(valueType, "valueType");
   }

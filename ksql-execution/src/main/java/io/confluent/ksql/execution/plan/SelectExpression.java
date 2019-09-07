@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
@@ -24,11 +26,18 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class SelectExpression {
+  private static final String NAME = "name";
+  private static final String EXPRESSION = "expression";
 
+  @JsonProperty(NAME)
   private final String name;
+  @JsonProperty(EXPRESSION)
   private final Expression expression;
 
-  private SelectExpression(final String name, final Expression expression) {
+  @JsonCreator
+  private SelectExpression(
+      @JsonProperty(NAME) final String name,
+      @JsonProperty(EXPRESSION) final Expression expression) {
     this.name = Objects.requireNonNull(name, "name");
     this.expression = Objects.requireNonNull(expression, "expression");
   }

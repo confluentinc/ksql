@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,10 +26,13 @@ import java.util.Optional;
 
 @Immutable
 public class IsNullPredicate extends Expression {
+  private static final String VALUE = "value";
 
+  @JsonProperty(VALUE)
   private final Expression value;
 
-  public IsNullPredicate(final Expression value) {
+  @JsonCreator
+  public IsNullPredicate(@JsonProperty(VALUE) final Expression value) {
     this(Optional.empty(), value);
   }
 

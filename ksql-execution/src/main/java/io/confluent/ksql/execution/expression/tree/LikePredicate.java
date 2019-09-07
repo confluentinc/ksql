@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.expression.tree;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
@@ -24,13 +26,18 @@ import java.util.Optional;
 
 @Immutable
 public class LikePredicate extends Expression {
+  private static final String VALUE = "value";
+  private static final String PATTERN = "pattern";
 
+  @JsonProperty(VALUE)
   private final Expression value;
+  @JsonProperty(PATTERN)
   private final Expression pattern;
 
+  @JsonCreator
   public LikePredicate(
-      final Expression value,
-      final Expression pattern
+      @JsonProperty(VALUE) final Expression value,
+      @JsonProperty(PATTERN) final Expression pattern
   ) {
     this(Optional.empty(), value, pattern);
   }

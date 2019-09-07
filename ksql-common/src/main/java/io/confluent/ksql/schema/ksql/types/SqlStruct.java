@@ -17,6 +17,8 @@ package io.confluent.ksql.schema.ksql.types;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.Field;
@@ -30,14 +32,17 @@ import java.util.stream.Collectors;
 
 @Immutable
 public final class SqlStruct extends SqlType {
+  private static final String FIELDS = "fields";
 
+  @JsonProperty(FIELDS)
   private final ImmutableList<Field> fields;
 
   public static Builder builder() {
     return new Builder();
   }
 
-  private SqlStruct(final List<Field> fields) {
+  @JsonCreator
+  private SqlStruct(@JsonProperty(FIELDS) final List<Field> fields) {
     super(SqlBaseType.STRUCT);
     this.fields = ImmutableList.copyOf(requireNonNull(fields, "fields"));
   }

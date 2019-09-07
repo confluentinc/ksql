@@ -17,6 +17,8 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
@@ -43,6 +45,9 @@ import org.apache.kafka.connect.data.SchemaBuilder;
  */
 @Immutable
 public final class LogicalSchema {
+  private static final String FIELD_META_FIELDS = "metaFields";
+  private static final String FIELD_KEY_FIELDS = "keyFields";
+  private static final String FIELD_VALUE_FIELDS = "valueFields";
 
   private static final String KEY_KEYWORD = "KEY";
 
@@ -54,8 +59,11 @@ public final class LogicalSchema {
       Field.of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
   );
 
+  @JsonProperty(FIELD_META_FIELDS)
   private final List<Field> metaFields;
+  @JsonProperty(FIELD_KEY_FIELDS)
   private final List<Field> keyFields;
+  @JsonProperty(FIELD_VALUE_FIELDS)
   private final List<Field> valueFields;
 
   public static Builder builder() {
@@ -76,10 +84,11 @@ public final class LogicalSchema {
     return new LogicalSchema(META_FIELDS, keyFields, valueFields);
   }
 
+  @JsonCreator
   public LogicalSchema(
-      final List<Field> metaFields,
-      final List<Field> keyFields,
-      final List<Field> valueFields
+      @JsonProperty(FIELD_META_FIELDS) final List<Field> metaFields,
+      @JsonProperty(FIELD_KEY_FIELDS) final List<Field> keyFields,
+      @JsonProperty(FIELD_VALUE_FIELDS) final List<Field> valueFields
   ) {
     this.metaFields = ImmutableList.copyOf(requireNonNull(metaFields, "metaFields"));
     this.keyFields = ImmutableList.copyOf(requireNonNull(keyFields, "keyFields"));

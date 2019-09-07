@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -23,16 +25,25 @@ import java.util.Objects;
 
 @Immutable
 public class TableGroupBy<T, G> implements ExecutionStep<G> {
+  private static final String SOURCE = "source";
+  private static final String FORMATS = "formats";
+  private static final String GROUP_BY_EXPRESSIONS = "groupByExpressions";
+
+  @JsonProperty(PROPERTIES)
   private final ExecutionStepProperties properties;
+  @JsonProperty(SOURCE)
   private final ExecutionStep<T> source;
+  @JsonProperty(FORMATS)
   private final Formats formats;
+  @JsonProperty(GROUP_BY_EXPRESSIONS)
   private final List<Expression> groupByExpressions;
 
+  @JsonCreator
   public TableGroupBy(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<T> source,
-      final Formats formats,
-      final List<Expression> groupByExpressions
+      @JsonProperty(PROPERTIES) final ExecutionStepProperties properties,
+      @JsonProperty(SOURCE) final ExecutionStep<T> source,
+      @JsonProperty(FORMATS) final Formats formats,
+      @JsonProperty(GROUP_BY_EXPRESSIONS) final List<Expression> groupByExpressions
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");

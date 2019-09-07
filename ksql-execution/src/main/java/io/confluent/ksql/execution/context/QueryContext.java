@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.context;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;
 import java.util.Arrays;
@@ -23,14 +25,22 @@ import java.util.List;
 import java.util.Objects;
 
 public final class QueryContext {
+  private static final String QUERY_ID = "queryId";
+  private static final String CONTEXT = "context";
+
+  @JsonProperty(QUERY_ID)
   private final QueryId queryId;
+  @JsonProperty(CONTEXT)
   private final List<String> context;
 
   private QueryContext(final QueryId queryId) {
     this(queryId, Collections.emptyList());
   }
 
-  private QueryContext(final QueryId queryId, final List<String> context) {
+  @JsonCreator
+  private QueryContext(
+      @JsonProperty(QUERY_ID) final QueryId queryId,
+      @JsonProperty(CONTEXT) final List<String> context) {
     this.queryId = Objects.requireNonNull(queryId);
     this.context = Objects.requireNonNull(context);
   }

@@ -395,7 +395,7 @@ running in a different container.
 
 ``KSQL_OPTS``
     A space-separated list of Java options.
-    If you are using IP6 then you should set listeners to ``http://[::]:8088``.
+    If you are using IPv6, set ``listeners`` to ``http://[::]:8088``.
 
 The Docker network created by KSQL Server enables you to connect with a
 dockerized KSQL CLI.

@@ -46,6 +46,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.FieldName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -422,8 +423,9 @@ public class SchemaKStream<K> {
       final String fullFieldName = getKeyField().name().get();
       final Optional<String> fieldAlias = SchemaUtil.getFieldNameAlias(fullFieldName);
       final String fieldNameWithNoAlias = SchemaUtil.getFieldNameWithNoAlias(fullFieldName);
+      final FieldName fieldName = FieldName.of(fieldAlias, fieldNameWithNoAlias);
 
-      final Field keyField = Field.of(fieldAlias, fieldNameWithNoAlias, SqlTypes.STRING);
+      final Field keyField = Field.of(fieldName, SqlTypes.STRING);
 
       return doFindKeyField(selectExpressions, keyField)
           .map(Field::fullName);

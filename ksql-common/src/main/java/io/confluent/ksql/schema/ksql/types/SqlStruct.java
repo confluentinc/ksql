@@ -19,9 +19,12 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.types.KsqlStruct;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
@@ -49,6 +52,25 @@ public final class SqlStruct extends SqlType {
   @Override
   public boolean supportsCast() {
     return false;
+  }
+
+  @Override
+  public void validateValue(final Object value) {
+    if (value == null) {
+      return;
+    }
+
+    if (!(value instanceof KsqlStruct)) {
+      final SqlBaseType sqlBaseType = SchemaConverters.javaToSqlConverter()
+          .toSqlType(value.getClass());
+
+      throw new DataException("Expected STRUCT, got " + sqlBaseType);
+    }
+
+    final KsqlStruct struct = (KsqlStruct)value;
+    if (!struct.schema().equals(this)) {
+      throw new DataException("Expected " + this + ", got " + struct.schema());
+    }
   }
 
   @Override

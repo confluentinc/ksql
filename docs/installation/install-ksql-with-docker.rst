@@ -182,7 +182,7 @@ Run a KSQL Server that enables manual interaction by using the KSQL CLI:
 
 ``KSQL_LISTENERS``
     A list of URIs, including the protocol, that the broker listens on.
-    If you are using IP6 then you should set to ``http://[::]:8088``.
+    If you are using IPv6, set to ``http://[::]:8088``.
 
 In interactive mode, a KSQL CLI instance running outside of Docker can connect
 to the KSQL server running in Docker.

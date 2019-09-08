@@ -20,7 +20,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -28,13 +32,17 @@ import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
@@ -48,66 +56,73 @@ import org.apache.kafka.streams.kstream.Produced;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
-
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private final KTable<K, GenericRow> ktable;
+  private final ExecutionStep<KTable<K, GenericRow>> sourceTableStep;
 
   public SchemaKTable(
       final KTable<K, GenericRow> ktable,
-      final LogicalSchema schema,
+      final ExecutionStep<KTable<K, GenericRow>> sourceTableStep,
+      final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final Type type,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final QueryContext queryContext
+      final FunctionRegistry functionRegistry
   ) {
     this(
-        ktable, schema,
+        ktable,
+        sourceTableStep,
+        keyFormat,
         keySerde,
         keyField,
         sourceSchemaKStreams,
         type,
         ksqlConfig,
         functionRegistry,
-        StreamsFactories.create(ksqlConfig),
-        queryContext
+        StreamsFactories.create(ksqlConfig)
     );
   }
 
   SchemaKTable(
       final KTable<K, GenericRow> ktable,
-      final LogicalSchema schema,
+      final ExecutionStep<KTable<K, GenericRow>> sourceTableStep,
+      final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final Type type,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final StreamsFactories streamsFactories,
-      final QueryContext queryContext
+      final StreamsFactories streamsFactories
   ) {
     super(
         null,
-        schema,
+        null,
+        Objects.requireNonNull(sourceTableStep, "sourceTableStep").getProperties(),
+        keyFormat,
         keySerde,
         keyField,
         sourceSchemaKStreams,
         type,
         ksqlConfig,
         functionRegistry,
-        streamsFactories,
-        queryContext
+        streamsFactories
     );
     this.ktable = ktable;
+    this.sourceTableStep = sourceTableStep;
   }
 
   @Override
   public SchemaKTable<K> into(
       final String kafkaTopicName,
       final Serde<GenericRow> topicValueSerDe,
-      final Set<Integer> rowkeyIndexes
+      final LogicalSchema outputSchema,
+      final ValueFormat valueFormat,
+      final Set<SerdeOption> options,
+      final Set<Integer> rowkeyIndexes,
+      final QueryContext.Stacker contextStacker
   ) {
 
     ktable.toStream()
@@ -125,7 +140,24 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             }
         ).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
 
-    return this;
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableSink(
+        contextStacker,
+        outputSchema,
+        sourceTableStep,
+        Formats.of(keyFormat, valueFormat, options),
+        kafkaTopicName
+    );
+    return new SchemaKTable<>(
+        ktable,
+        step,
+        keyFormat,
+        keySerde,
+        keyField,
+        sourceSchemaKStreams,
+        type,
+        ksqlConfig,
+        functionRegistry
+    );
   }
 
   @SuppressWarnings("unchecked")
@@ -137,7 +169,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   ) {
     final SqlPredicate predicate = new SqlPredicate(
         filterExpression,
-        schema,
+        getSchema(),
         ksqlConfig,
         functionRegistry,
         processingLogContext.getLoggerFactory().getLogger(
@@ -146,16 +178,21 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
 
     final KTable filteredKTable = ktable.filter(predicate.getPredicate());
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableFilter(
+        contextStacker,
+        sourceTableStep,
+        filterExpression
+    );
     return new SchemaKTable<>(
         filteredKTable,
-        schema,
+        step,
+        keyFormat,
         keySerde,
         keyField,
         Collections.singletonList(this),
         Type.FILTER,
         ksqlConfig,
-        functionRegistry,
-        contextStacker.getQueryContext()
+        functionRegistry
     );
   }
 
@@ -170,16 +207,22 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             QueryLoggerUtil.queryLoggerName(
                 contextStacker.push(Type.PROJECT.name()).getQueryContext()))
     );
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableMapValues(
+        contextStacker,
+        sourceTableStep,
+        selection.getProjectedSchema(),
+        selectExpressions
+    );
     return new SchemaKTable<>(
         ktable.mapValues(selection.getSelectValueMapper()),
-        selection.getProjectedSchema(),
+        step,
+        keyFormat,
         keySerde,
         selection.getKey(),
         Collections.singletonList(this),
         Type.PROJECT,
         ksqlConfig,
-        functionRegistry,
-        contextStacker.getQueryContext()
+        functionRegistry
     );
   }
 
@@ -193,14 +236,20 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return ktable;
   }
 
+  public ExecutionStep<KTable<K, GenericRow>> getSourceTableStep() {
+    return sourceTableStep;
+  }
+
   @Override
   public SchemaKGroupedStream groupBy(
+      final ValueFormat valueFormat,
       final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
       final QueryContext.Stacker contextStacker
   ) {
 
     final GroupBy groupBy = new GroupBy(groupByExpressions);
+    final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
     final KeySerde<Struct> groupedKeySerde = keySerde
         .rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
@@ -222,12 +271,20 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final LegacyField legacyKeyField = LegacyField
         .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
 
-    final Optional<String> newKeyField = schema.findValueField(groupBy.aggregateKeyName)
+    final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
         .map(Field::fullName);
 
+    final ExecutionStep<KGroupedTable<Struct, GenericRow>> step =
+        ExecutionStepFactory.tableGroupBy(
+            contextStacker,
+            sourceTableStep,
+            Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
+            groupByExpressions
+        );
     return new SchemaKGroupedTable(
         kgroupedTable,
-        schema,
+        step,
+        groupedKeyFormat,
         groupedKeySerde,
         KeyField.of(newKeyField, Optional.of(legacyKeyField)),
         Collections.singletonList(this),
@@ -246,17 +303,23 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         schemaKTable.getKtable(),
         new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
     );
-
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        JoinType.INNER,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKTable<>(
         joinedKTable,
-        joinSchema,
+        step,
+        keyFormat,
         keySerde,
         keyField,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        contextStacker.getQueryContext()
+        functionRegistry
     );
   }
 
@@ -272,17 +335,23 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
         );
-
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        JoinType.LEFT,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKTable<>(
         joinedKTable,
-        joinSchema,
+        step,
+        keyFormat,
         keySerde,
         keyField,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        contextStacker.getQueryContext()
+        functionRegistry
     );
   }
 
@@ -298,17 +367,23 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
             schemaKTable.getKtable(),
             new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
         );
-
+    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+        contextStacker,
+        JoinType.OUTER,
+        sourceTableStep,
+        schemaKTable.getSourceTableStep(),
+        joinSchema
+    );
     return new SchemaKTable<>(
         joinedKTable,
-        joinSchema,
+        step,
+        keyFormat,
         keySerde,
         keyField,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
         ksqlConfig,
-        functionRegistry,
-        contextStacker.getQueryContext()
+        functionRegistry
     );
   }
 }

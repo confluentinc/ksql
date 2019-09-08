@@ -16,14 +16,16 @@
 package io.confluent.ksql.cli;
 
 import com.github.rvesse.airline.HelpOption;
+import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.annotations.Arguments;
 import com.github.rvesse.airline.annotations.Command;
 import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.restrictions.Once;
 import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
+import com.github.rvesse.airline.help.Help;
+import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.rest.util.OptionsParser;
 import io.confluent.ksql.util.Pair;
 import java.io.IOException;
 import java.util.Optional;
@@ -112,7 +114,28 @@ public class Options {
   private String outputFormat = OutputFormat.TABULAR.name();
 
   public static Options parse(final String...args) throws IOException {
-    return OptionsParser.parse(args, Options.class);
+    final SingleCommand<Options> optionsParser = SingleCommand.singleCommand(Options.class);
+
+    // If just a help flag is given, an exception will be thrown due to missing required options;
+    // hence, this workaround
+    for (final String arg : args) {
+      if ("--help".equals(arg) || "-h".equals(arg)) {
+        Help.help(optionsParser.getCommandMetadata());
+        return null;
+      }
+    }
+
+    try {
+      return optionsParser.parse(args);
+    } catch (final ParseException exception) {
+      if (exception.getMessage() != null) {
+        System.err.println(exception.getMessage());
+      } else {
+        System.err.println("Options parsing failed for an unknown reason");
+      }
+      System.err.println("See the -h or --help flags for usage information");
+    }
+    return null;
   }
 
   public String getServer() {

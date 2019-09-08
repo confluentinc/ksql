@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -56,12 +55,6 @@ public class KsqlBareOutputNode extends OutputNode {
 
   @Override
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
-    final SchemaKStream<?> schemaKStream = getSource()
-        .buildStream(builder);
-
-    return new QueuedSchemaKStream<>(
-        schemaKStream,
-        builder.buildNodeContext(getId().toString()).getQueryContext()
-    );
+    return getSource().buildStream(builder);
   }
 }

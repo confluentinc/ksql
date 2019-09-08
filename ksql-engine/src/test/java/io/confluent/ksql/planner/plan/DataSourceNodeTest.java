@@ -39,13 +39,13 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -215,7 +215,7 @@ public class DataSourceNodeTest {
     when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
     when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any()))
         .thenReturn(stream);
-    when(stream.toTable(any(), any())).thenReturn(table);
+    when(stream.toTable(any(), any(), any(), any())).thenReturn(table);
   }
 
   @Test
@@ -483,13 +483,13 @@ public class DataSourceNodeTest {
         same(ksqlStreamBuilder),
         same(dataSource),
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
-        queryContextCaptor.capture(),
+        stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
         same(node.getKeyField())
     );
     assertThat(
-        queryContextCaptor.getValue().getContext(),
+        stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "source"))
     );
   }
@@ -508,13 +508,13 @@ public class DataSourceNodeTest {
         same(ksqlStreamBuilder),
         same(dataSource),
         eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
-        queryContextCaptor.capture(),
+        stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
         same(node.getKeyField())
     );
     assertThat(
-        queryContextCaptor.getValue().getContext(),
+        stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "source"))
     );
   }
@@ -529,7 +529,7 @@ public class DataSourceNodeTest {
     final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), any());
+    verify(stream).toTable(any(), any(), any(), any());
     assertThat(returned, is(table));
   }
 
@@ -552,7 +552,7 @@ public class DataSourceNodeTest {
         queryContextCaptor.getValue().getContext(),
         equalTo(ImmutableList.of("0", "reduce"))
     );
-    verify(stream).toTable(same(rowSerde), any());
+    verify(stream).toTable(any(), any(), same(rowSerde), any());
   }
 
   @Test
@@ -565,7 +565,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), stackerCaptor.capture());
+    verify(stream).toTable(any(), any(), any(), stackerCaptor.capture());
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "reduce")));

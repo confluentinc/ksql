@@ -16,7 +16,7 @@
 package io.confluent.ksql.physical;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.structured.QueuedSchemaKStream;
+import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -37,7 +37,7 @@ class TransientQueryQueue<K> {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
-  TransientQueryQueue(final QueuedSchemaKStream<K> schemaKStream, final OptionalInt limit) {
+  TransientQueryQueue(final SchemaKStream<K> schemaKStream, final OptionalInt limit) {
     this.callback = limit.isPresent()
         ? new LimitedQueueCallback(limit.getAsInt())
         : new UnlimitedQueueCallback();

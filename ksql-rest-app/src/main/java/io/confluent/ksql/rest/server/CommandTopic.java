@@ -16,8 +16,8 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.collect.Lists;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.QueuedCommand;
 import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import java.time.Duration;

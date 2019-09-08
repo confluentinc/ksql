@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.rest.util;
 
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import java.time.Duration;
 import java.util.Optional;

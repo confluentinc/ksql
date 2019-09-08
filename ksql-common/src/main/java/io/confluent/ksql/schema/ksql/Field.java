@@ -17,7 +17,6 @@ package io.confluent.ksql.schema.ksql;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -27,9 +26,7 @@ import java.util.Optional;
 @Immutable
 public final class Field {
 
-  private final Optional<String> source;
-  private final String fullName;
-  private final String name;
+  private final FieldName name;
   private final SqlType type;
 
   /**
@@ -38,7 +35,7 @@ public final class Field {
    * @return the immutable field.
    */
   public static Field of(final String name, final SqlType type) {
-    return new Field(Optional.empty(), name, type);
+    return new Field(FieldName.of(Optional.empty(), name), type);
   }
 
   /**
@@ -48,55 +45,39 @@ public final class Field {
    * @return the immutable field.
    */
   public static Field of(final String source, final String name, final SqlType type) {
-    return new Field(Optional.of(source), name, type);
+    return new Field(FieldName.of(Optional.of(source), name), type);
   }
 
   /**
-   * @param source the name of the source of the field.
    * @param name the name of the field.
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Field of(final Optional<String> source, final String name, final SqlType type) {
-    return new Field(source, name, type);
+  public static Field of(final FieldName name, final SqlType type) {
+    return new Field(name, type);
   }
 
-  private Field(final Optional<String> source, final String name, final SqlType type) {
-    this.source = Objects.requireNonNull(source, "source");
+  private Field(final FieldName name, final SqlType type) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = Objects.requireNonNull(type, "type");
-    this.fullName = source
-        .map(s -> SchemaUtil.buildAliasedFieldName(s, name))
-        .orElse(name);
-
-    if (!name.trim().equals(name)) {
-      throw new IllegalArgumentException("name is not trimmed: '" + name + "'");
-    }
-
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("name is empty");
-    }
   }
 
-  /**
-   * @return the name of the source of the field, where known.
-   */
-  public Optional<String> source() {
-    return source;
+  public FieldName fieldName() {
+    return name;
   }
 
   /**
    * @return the fully qualified field name.
    */
   public String fullName() {
-    return fullName;
+    return name.fullName();
   }
 
   /**
    * @return the name of the field, without any source / alias.
    */
   public String name() {
-    return name;
+    return name.name();
   }
 
   /**
@@ -113,7 +94,7 @@ public final class Field {
    * @return the new field.
    */
   public Field withSource(final String source) {
-    return new Field(Optional.of(source), name, type);
+    return new Field(name.withSource(source), type);
   }
 
   @Override
@@ -125,13 +106,13 @@ public final class Field {
       return false;
     }
     final Field field = (Field) o;
-    return Objects.equals(fullName, field.fullName)
+    return Objects.equals(name, field.name)
         && Objects.equals(type, field.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(fullName, type);
+    return Objects.hash(name, type);
   }
 
   @Override
@@ -140,13 +121,6 @@ public final class Field {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final Optional<String> base = source.map(val -> escape(val, formatOptions));
-    final String escaped = escape(name, formatOptions);
-    final String field = base.isPresent() ? base.get() + "." + escaped : escaped;
-    return field + " " + type.toString(formatOptions);
-  }
-
-  private static String escape(final String string, final FormatOptions formatOptions) {
-    return formatOptions.isReservedWord(string) ? "`" + string + "`" : string;
+    return name.toString(formatOptions) + " " + type.toString(formatOptions);
   }
 }

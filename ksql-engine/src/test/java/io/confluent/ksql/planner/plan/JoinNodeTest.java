@@ -35,13 +35,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
@@ -122,6 +122,7 @@ public class JoinNodeTest {
 
   private static final Optional<String> NO_KEY_FIELD = Optional.empty();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;
@@ -206,8 +207,8 @@ public class JoinNodeTest {
     when(left.getPartitions(mockKafkaTopicClient)).thenReturn(2);
     when(right.getPartitions(mockKafkaTopicClient)).thenReturn(2);
 
-    setUpSource(left, leftSource, "Foobar1");
-    setUpSource(right, rightSource, "Foobar2");
+    setUpSource(left, VALUE_FORMAT, leftSource, "Foobar1");
+    setUpSource(right, OTHER_FORMAT, rightSource, "Foobar2");
 
     when(leftSchemaKStream.getKeyField()).thenReturn(leftJoinField);
     when(leftSchemaKTable.getKeyField()).thenReturn(leftJoinField);
@@ -360,6 +361,8 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
+        eq(VALUE_FORMAT),
+        eq(OTHER_FORMAT),
         any(),
         any(),
         eq(CONTEXT_STACKER));
@@ -390,6 +393,8 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
+        eq(VALUE_FORMAT),
+        eq(OTHER_FORMAT),
         any(),
         any(),
         eq(CONTEXT_STACKER));
@@ -420,6 +425,8 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField.withName(Optional.empty())),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
+        eq(VALUE_FORMAT),
+        eq(OTHER_FORMAT),
         any(),
         any(),
         eq(CONTEXT_STACKER));
@@ -560,6 +567,7 @@ public class JoinNodeTest {
         eq(rightSchemaKTable),
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
+        eq(VALUE_FORMAT),
         any(),
         eq(CONTEXT_STACKER));
   }
@@ -588,6 +596,7 @@ public class JoinNodeTest {
         eq(rightSchemaKTable),
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
+        eq(VALUE_FORMAT),
         any(),
         eq(CONTEXT_STACKER));
   }
@@ -616,6 +625,7 @@ public class JoinNodeTest {
         eq(rightSchemaKTable),
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
+        eq(VALUE_FORMAT),
         any(),
         eq(CONTEXT_STACKER));
   }
@@ -1108,6 +1118,7 @@ public class JoinNodeTest {
   @SuppressWarnings("unchecked")
   private static void setUpSource(
       final DataSourceNode node,
+      final ValueFormat valueFormat,
       final DataSource<?> dataSource,
       final String name
   ) {
@@ -1115,7 +1126,7 @@ public class JoinNodeTest {
     when(node.getDataSource()).thenReturn((DataSource)dataSource);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);
-    when(ksqlTopic.getValueFormat()).thenReturn(VALUE_FORMAT);
+    when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
   }
 }

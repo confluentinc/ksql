@@ -18,13 +18,22 @@ package io.confluent.ksql.schema.ksql.types;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import java.util.HashMap;
+import java.util.Map;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class SqlMapTest {
 
   private static final SqlType SOME_TYPE = SqlPrimitiveType.of(SqlBaseType.DOUBLE);
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
@@ -52,5 +61,66 @@ public class SqlMapTest {
             + SOME_TYPE
             + ">"
     ));
+  }
+
+  @Test
+  public void shouldThrowIfValueNotMap() {
+    // Given:
+    final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
+
+    // Then:
+    expectedException.expect(DataException.class);
+    expectedException.expectMessage("Expected MAP, got BIGINT");
+
+    // When:
+    schema.validateValue(10L);
+  }
+
+  @Test
+  public void shouldThrowIfAnyKeyInValueNotKeyType() {
+    // Given:
+    final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
+
+    // Then:
+    expectedException.expect(DataException.class);
+    expectedException.expectMessage("MAP key: Expected STRING, got INT");
+
+    // When:
+    schema.validateValue(ImmutableMap.of("first", 9L, 2, 9L));
+  }
+
+  @Test
+  public void shouldThrowIfAnyValueInValueNotValueType() {
+    // Given:
+    final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
+
+    // Then:
+    expectedException.expect(DataException.class);
+    expectedException.expectMessage("MAP value for key '2': Expected BIGINT, got INT");
+
+    // When:
+    schema.validateValue(ImmutableMap.of("1", 11L, "2", 9));
+  }
+
+  @Test
+  public void shouldNotThrowWhenValidatingNullValue() {
+    // Given:
+    final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
+
+    // When:
+    schema.validateValue(null);
+  }
+
+  @Test
+  public void shouldValidateValue() {
+    // Given:
+    final SqlMap schema = SqlTypes.map(SqlTypes.BIGINT);
+    final Map<Object, Object> mapWithNull = new HashMap<>();
+    mapWithNull.put("valid", 44L);
+    mapWithNull.put(null, 44L);
+    mapWithNull.put("v", null);
+
+    // When:
+    schema.validateValue(mapWithNull);
   }
 }

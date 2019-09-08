@@ -15,20 +15,45 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import static io.confluent.ksql.model.WindowType.HOPPING;
+import static io.confluent.ksql.model.WindowType.SESSION;
+import static io.confluent.ksql.model.WindowType.TUMBLING;
+import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.JSON;
+import static io.confluent.ksql.serde.Format.KAFKA;
+import static java.util.Collections.emptyMap;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.ddl.commands.CommandFactories.SerdeOptionsSupplier;
+import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
+import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
+import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
+import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
@@ -41,20 +66,35 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
+import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.ValueFormat;
+import io.confluent.ksql.serde.ValueSerdeFactory;
+import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -63,34 +103,79 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandFactoriesTest {
 
   private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
+  private static final QualifiedName TABLE_NAME = QualifiedName.of("tablename");
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
-  private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
-
+  private static final TableElement ELEMENT1 =
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
+  private static final TableElement ELEMENT2 =
+      new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING));
+  private static final TableElements SOME_ELEMENTS = TableElements.of(ELEMENT1);
+  private static final TableElements TWO_ELEMENTS = TableElements.of(ELEMENT1, ELEMENT2);
+  private static final String TOPIC_NAME = "some topic";
   private static final Map<String, Literal> MINIMIM_PROPS = ImmutableMap.of(
       CommonCreateConfigs.VALUE_FORMAT_PROPERTY, new StringLiteral("JSON"),
-      CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic")
+      CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
+  private static final TableElements ONE_ELEMENT = TableElements.of(
+      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
+  private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
+      .of(SerdeOption.UNWRAP_SINGLE_VALUES);
+  private static final String SOME_TYPE_NAME = "newtype";
 
+  @Mock
+  private KsqlStream ksqlStream;
+  @Mock
+  private KsqlTable ksqlTable;
   @Mock
   private KafkaTopicClient topicClient;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private MetaStore metaStore;
+  @Mock
+  private SerdeOptionsSupplier serdeOptionsSupplier;
+  @Mock
+  private ValueSerdeFactory serdeFactory;
+  @Mock
+  private Serde<GenericRow> serde;
 
   private CommandFactories commandFactories;
-
   private KsqlConfig ksqlConfig = new KsqlConfig(ImmutableMap.of());
   private CreateSourceProperties withProperties =
       CreateSourceProperties.from(MINIMIM_PROPS);
 
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Before
+  @SuppressWarnings("unchecked")
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
+    when(metaStore.getSource(SOME_NAME.getSuffix())).thenReturn(ksqlStream);
+    when(metaStore.getSource(TABLE_NAME.getSuffix())).thenReturn(ksqlTable);
+    when(ksqlStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
+    when(ksqlTable.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
+    when(serdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(serde);
 
-    commandFactories = new CommandFactories(serviceContext);
+    givenCommandFactories();
+  }
+
+  private void givenCommandFactories() {
+    commandFactories = new CommandFactories(
+        serviceContext,
+        metaStore
+    );
+  }
+
+  private void givenCommandFactoriesWithMocks() {
+    commandFactories = new CommandFactories(
+        serviceContext,
+        metaStore,
+        serdeOptionsSupplier,
+        serdeFactory
+    );
   }
 
   @Test
@@ -139,7 +224,7 @@ public class CommandFactoriesTest {
   @Test
   public void shouldCreateCommandForDropTable() {
     // Given:
-    final DropTable ddlStatement = new DropTable(SOME_NAME, true, true);
+    final DropTable ddlStatement = new DropTable(TABLE_NAME, true, true);
 
     // When:
     final DdlCommand result = commandFactories
@@ -164,6 +249,23 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result, instanceOf(RegisterTypeCommand.class));
+  }
+
+  @Test
+  public void shouldCreateDropType() {
+    // Given:
+    final DropType dropType = new DropType(Optional.empty(), SOME_TYPE_NAME);
+
+    // When:
+    final DropTypeCommand cmd = (DropTypeCommand) commandFactories.create(
+        "sqlExpression",
+        dropType,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getTypeName(), equalTo(SOME_TYPE_NAME));
   }
 
   @Test(expected = KsqlException.class)
@@ -197,8 +299,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, overrides);
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
+    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -221,8 +323,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, overrides);
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
+    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -241,8 +343,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, ImmutableMap.of());
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
+    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -257,8 +359,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, ImmutableMap.of());
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
+    assertThat(((CreateStreamCommand) cmd).getSerdeOptions(),
         not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
@@ -283,8 +385,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, overrides);
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
+    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -307,8 +409,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, overrides);
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
+    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -327,8 +429,8 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, ImmutableMap.of());
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
+    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
         contains(SerdeOption.UNWRAP_SINGLE_VALUES));
   }
 
@@ -343,14 +445,407 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, ImmutableMap.of());
 
     // Then:
-    assertThat(cmd, is(instanceOf(CreateSourceCommand.class)));
-    assertThat(((CreateSourceCommand) cmd).getSerdeOptions(),
+    assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
+    assertThat(((CreateTableCommand) cmd).getSerdeOptions(),
         not(contains(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
+  @Test
+  public void shouldThrowOnNoElementsInCreateStream() {
+    // Given:
+    final DdlStatement statement
+        = new CreateStream(SOME_NAME, TableElements.of(), true, withProperties);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The statement does not define any columns.");
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldThrowOnNoElementsInCreateTable() {
+    // Given:
+    final DdlStatement statement
+        = new CreateTable(SOME_NAME, TableElements.of(), true, withProperties);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The statement does not define any columns.");
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldNotThrowWhenThereAreElementsInCreateStream() {
+    // Given:
+    final DdlStatement statement =
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+
+    // Then: not exception thrown
+  }
+
+  @Test
+  public void shouldNotThrowWhenThereAreElementsInCreateTable() {
+    // Given:
+    final DdlStatement statement =
+        new CreateTable(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+
+    // Then: not exception thrown
+  }
+
+  @Test
+  public void shouldThrowIfTopicDoesNotExistForStream() {
+    // Given:
+    when(topicClient.isTopicExists(any())).thenReturn(false);
+    final DdlStatement statement =
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @Test
+  public void shouldNotThrowIfTopicDoesExist() {
+    // Given:
+    final DdlStatement statement =
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+
+    // Then:
+    verify(topicClient).isTopicExists(TOPIC_NAME);
+  }
+
+  @Test
+  public void shouldThrowIfKeyFieldNotInSchemaForStream() {
+    // Given:
+    givenProperty(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me"));
+    final DdlStatement statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The KEY column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'");
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldThrowIfTimestampColumnDoesNotExistForStream() {
+    // Given:
+    givenProperty(
+        CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
+        new StringLiteral("will-not-find-me")
+    );
+    final DdlStatement statement =
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
+            + "'WILL-NOT-FIND-ME'");
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldBuildSerdeOptionsForStream() {
+    // Given:
+    givenCommandFactoriesWithMocks();
+    final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
+        .struct()
+        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
+    when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
+
+    // When:
+    final CreateStreamCommand cmd = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    verify(serdeOptionsSupplier).build(
+        schema,
+        statement.getProperties().getValueFormat(),
+        statement.getProperties().getWrapSingleValues(),
+        ksqlConfig
+    );
+    assertThat(cmd.getSerdeOptions(), is(SOME_SERDE_OPTIONS));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithImplicitKeyFieldForStream() {
+    // Given:
+    final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand result = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(result.getSchema(), is(LogicalSchema.of(
+        SchemaBuilder
+            .struct()
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithExplicitKeyFieldForStream() {
+    // Given:
+    final CreateStream statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(
+            new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+            ELEMENT1,
+            ELEMENT2
+        ),
+        true,
+        withProperties
+    );
+
+    // When:
+    final CreateStreamCommand result = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(result.getSchema(), is(LogicalSchema.of(
+        SchemaBuilder
+            .struct()
+            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
+            .build(),
+        SchemaBuilder
+            .struct()
+            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+            .build()
+    )));
+  }
+
+  @Test
+  public void shouldCreateSerdeToValidateValueFormatCanHandleValueSchemaForStream() {
+    // Given:
+    givenCommandFactoriesWithMocks();
+    final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
+    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
+        .struct()
+        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
+        .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
+        .build());
+
+    // When:
+    commandFactories.create("expression", statement, ksqlConfig, emptyMap());
+
+    // Then:
+    verify(serdeFactory).create(
+        FormatInfo.of(JSON, Optional.empty()),
+        PersistenceSchema.from(schema.valueSchema(), false),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    );
+  }
+
+  @Test
+  public void shouldDefaultToKafkaKeySerdeForStream() {
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.nonWindowed(FormatInfo.of(KAFKA))));
+  }
+
+  @Test
+  public void shouldHandleValueAvroSchemaNameForStream() {
+    // Given:
+    givenCommandFactoriesWithMocks();
+    givenProperty("VALUE_FORMAT", new StringLiteral("Avro"));
+    givenProperty("value_avro_schema_full_name", new StringLiteral("full.schema.name"));
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getTopic().getValueFormat(),
+        is(ValueFormat.of(FormatInfo.of(AVRO, Optional.of("full.schema.name")))));
+  }
+
+  @Test
+  public void shouldHandleSessionWindowedKeyForStream() {
+    // Given:
+    givenProperty("window_type", new StringLiteral("session"));
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(SESSION, Optional.empty()))
+    ));
+  }
+
+  @Test
+  public void shouldHandleTumblingWindowedKeyForStream() {
+    // Given:
+    givenProperties(ImmutableMap.of(
+        "window_type", new StringLiteral("tumbling"),
+        "window_size", new StringLiteral("1 MINUTE")
+    ));
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(TUMBLING, Optional.of(Duration.ofMinutes(1))))
+    ));
+  }
+
+  @Test
+  public void shouldHandleHoppingWindowedKeyForStream() {
+    // Given:
+    givenProperties(ImmutableMap.of(
+        "window_type", new StringLiteral("Hopping"),
+        "window_size", new StringLiteral("2 SECONDS")
+    ));
+    final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
+
+    // When:
+    final CreateStreamCommand cmd = (CreateStreamCommand) commandFactories.create(
+        "expression",
+        statement,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getTopic().getKeyFormat(), is(KeyFormat.windowed(
+        FormatInfo.of(KAFKA),
+        WindowInfo.of(HOPPING, Optional.of(Duration.ofSeconds(2))))
+    ));
+  }
+
+  @Test
+  public void shouldCreateDropSourceOnMissingSourceWithIfExistsForStream() {
+    // Given:
+    final DropStream dropStream = new DropStream(SOME_NAME, false, true);
+    when(metaStore.getSource(SOME_NAME.getSuffix())).thenReturn(null);
+
+    // When:
+    final DropSourceCommand cmd = (DropSourceCommand) commandFactories.create(
+        "sqlExpression",
+        dropStream,
+        ksqlConfig,
+        emptyMap()
+    );
+
+    // Then:
+    assertThat(cmd.getSourceName(), equalTo("bob"));
+  }
+
+  @Test
+  public void shouldFailDropSourceOnMissingSourceWithNoIfExistsForStream() {
+    // Given:
+    final DropStream dropStream = new DropStream(SOME_NAME, true, true);
+    when(metaStore.getSource("bob")).thenReturn(null);
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Source bob does not exist.");
+
+    // When:
+    commandFactories.create("sqlExpression", dropStream, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldFailDropSourceOnDropIncompatibleSourceForStream() {
+    // Given:
+    final DropStream dropStream = new DropStream(SOME_NAME, false, true);
+    when(metaStore.getSource(SOME_NAME.getSuffix())).thenReturn(ksqlTable);
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Incompatible data source type is TABLE");
+
+    // When:
+    commandFactories.create("sqlExpression", dropStream, ksqlConfig, emptyMap());
+  }
+
   private void givenProperty(final String name, final Literal value) {
+    givenProperties(ImmutableMap.of(name, value));
+  }
+
+  private void givenProperties(final Map<String, Literal> properties) {
     final Map<String, Literal> props = withProperties.copyOfOriginalLiterals();
-    props.put(name, value);
+    props.putAll(properties);
     withProperties = CreateSourceProperties.from(props);
   }
 }

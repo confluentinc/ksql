@@ -27,8 +27,9 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TerminateQuery;
-import io.confluent.ksql.rest.server.computation.CommandId.Action;
-import io.confluent.ksql.rest.server.computation.CommandId.Type;
+import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.CommandId.Action;
+import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import java.util.Map;
 

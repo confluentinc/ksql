@@ -18,15 +18,15 @@ package io.confluent.ksql.rest.server.resources;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatementText;
+import static io.confluent.ksql.rest.entity.CommandId.Action.CREATE;
+import static io.confluent.ksql.rest.entity.CommandId.Action.DROP;
+import static io.confluent.ksql.rest.entity.CommandId.Action.EXECUTE;
+import static io.confluent.ksql.rest.entity.CommandId.Type.STREAM;
+import static io.confluent.ksql.rest.entity.CommandId.Type.TABLE;
+import static io.confluent.ksql.rest.entity.CommandId.Type.TOPIC;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
-import static io.confluent.ksql.rest.server.computation.CommandId.Action.CREATE;
-import static io.confluent.ksql.rest.server.computation.CommandId.Action.DROP;
-import static io.confluent.ksql.rest.server.computation.CommandId.Action.EXECUTE;
-import static io.confluent.ksql.rest.server.computation.CommandId.Type.STREAM;
-import static io.confluent.ksql.rest.server.computation.CommandId.Type.TABLE;
-import static io.confluent.ksql.rest.server.computation.CommandId.Type.TOPIC;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatementErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
@@ -67,6 +67,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -75,7 +76,6 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -85,7 +85,9 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.TerminateQuery;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.EntityQueryId;
@@ -100,17 +102,18 @@ import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
+import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
+import io.confluent.ksql.rest.entity.SourceDescriptionFactory;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -441,11 +444,11 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource("TEST_STREAM"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2"))),
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource("new_stream"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
@@ -470,11 +473,11 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource("TEST_TABLE"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1"))),
-        new SourceDescription(
+        SourceDescriptionFactory.create(
             ksqlEngine.getMetaStore().getSource("new_table"),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
@@ -497,8 +500,8 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(descriptionList.getQueryDescriptions(), containsInAnyOrder(
-        QueryDescription.forQueryMetadata(queryMetadata.get(0)),
-        QueryDescription.forQueryMetadata(queryMetadata.get(1))));
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(0)),
+        QueryDescriptionFactory.forQueryMetadata(queryMetadata.get(1))));
   }
 
   @Test
@@ -514,7 +517,7 @@ public class KsqlResourceTest {
         "DESCRIBE DESCRIBED_STREAM;", SourceDescriptionEntity.class);
 
     // Then:
-    final SourceDescription expectedDescription = new SourceDescription(
+    final SourceDescription expectedDescription = SourceDescriptionFactory.create(
         ksqlEngine.getMetaStore().getSource("DESCRIBED_STREAM"),
         false,
         "JSON",
@@ -1814,13 +1817,22 @@ public class KsqlResourceTest {
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
     final KsqlTable<?> table = (KsqlTable) ksqlEngine.getMetaStore().getSource(name);
-    return new SourceInfo.Table(table);
+    return new SourceInfo.Table(
+        table.getName(),
+        table.getKsqlTopic().getKafkaTopicName(),
+        table.getKsqlTopic().getValueFormat().getFormat().name(),
+        table.getKsqlTopic().getKeyFormat().isWindowed()
+    );
   }
 
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Stream sourceStream(final String name) {
     final KsqlStream<?> stream = (KsqlStream) ksqlEngine.getMetaStore().getSource(name);
-    return new SourceInfo.Stream(stream);
+    return new SourceInfo.Stream(
+        stream.getName(),
+        stream.getKsqlTopic().getKafkaTopicName(),
+        stream.getKsqlTopic().getValueFormat().getFormat().name()
+    );
   }
 
   private void givenMockEngine() {

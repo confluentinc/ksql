@@ -23,9 +23,9 @@ import com.google.common.collect.Streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -140,13 +140,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         contextStacker.getQueryContext()
     );
 
-    result.into(
+    return result.into(
         getKsqlTopic().getKafkaTopicName(),
         outputRowSerde,
-        implicitAndKeyFieldIndexes
+        getSchema(),
+        getKsqlTopic().getValueFormat(),
+        serdeOptions,
+        implicitAndKeyFieldIndexes,
+        contextStacker
     );
-
-    return result;
   }
 
   @SuppressWarnings("unchecked")
@@ -164,7 +166,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getKeyField().legacy()
     );
 
-    final SchemaKStream result = schemaKStream.sink(resultKeyField, contextStacker);
+    final SchemaKStream result = schemaKStream.withKeyField(resultKeyField);
 
     if (!partitionByField.isPresent()) {
       return result;

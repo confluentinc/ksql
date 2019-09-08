@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import io.confluent.ksql.rest.entity.CommandId;
 import java.util.Objects;
 import java.util.Optional;
 

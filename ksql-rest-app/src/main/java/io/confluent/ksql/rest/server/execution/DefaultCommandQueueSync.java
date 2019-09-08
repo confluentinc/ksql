@@ -16,11 +16,11 @@
 package io.confluent.ksql.rest.server.execution;
 
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.resources.Errors;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import java.time.Duration;
 import java.util.ArrayList;

@@ -22,12 +22,12 @@ import static org.hamcrest.Matchers.containsString;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.client.RestResponseMatchers;
+import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
-import io.confluent.rest.entities.ErrorMessage;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -66,13 +66,13 @@ public final class ExpectedErrorNode {
   }
 
   @SuppressWarnings("unchecked")
-  private static Class<? extends ErrorMessage> parseRestError(final String className) {
+  private static Class<? extends KsqlErrorMessage> parseRestError(final String className) {
     try {
       final Class<?> theClass = Class.forName(className);
-      if (!ErrorMessage.class.isAssignableFrom(theClass)) {
+      if (!KsqlErrorMessage.class.isAssignableFrom(theClass)) {
         throw new InvalidFieldException("expectedError.type", "Type was not an ErrorMessage");
       }
-      return (Class<? extends ErrorMessage>) theClass;
+      return (Class<? extends KsqlErrorMessage>) theClass;
     } catch (final ClassNotFoundException e) {
       throw new InvalidFieldException("expectedError.type", "Type was not found", e);
     }
@@ -84,7 +84,7 @@ public final class ExpectedErrorNode {
 
     @SuppressWarnings("unchecked")
     void expectErrorType(
-        final Class<? extends ErrorMessage> type,
+        final Class<? extends KsqlErrorMessage> type,
         final String lastStatement
     ) {
       matchers.add(

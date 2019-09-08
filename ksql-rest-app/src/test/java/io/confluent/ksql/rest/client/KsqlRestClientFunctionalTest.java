@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -30,8 +30,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
-import io.confluent.ksql.rest.client.exception.KsqlRestClientException;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
@@ -39,11 +40,9 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
-import io.confluent.ksql.rest.server.computation.CommandId;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource.TestStreamWriter;
-import io.confluent.ksql.rest.server.resources.Errors;
 import java.net.URI;
 import java.time.Duration;
 import java.util.Collections;

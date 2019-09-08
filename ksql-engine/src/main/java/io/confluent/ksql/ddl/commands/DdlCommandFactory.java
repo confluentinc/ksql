@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.ddl.commands;
 
+import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Map;

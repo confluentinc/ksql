@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -107,9 +108,11 @@ class QueryStreamWriter implements StreamingOutput {
     try {
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       if (exception.getCause() instanceof KsqlException) {
-        objectMapper.writeValue(out, StreamedRow.error(exception.getCause()));
+        objectMapper.writeValue(out, StreamedRow
+            .error(exception.getCause(), Errors.ERROR_CODE_SERVER_ERROR));
       } else {
-        objectMapper.writeValue(out, StreamedRow.error(exception));
+        objectMapper.writeValue(out, StreamedRow
+            .error(exception, Errors.ERROR_CODE_SERVER_ERROR));
       }
       out.write("\n".getBytes(StandardCharsets.UTF_8));
       out.flush();

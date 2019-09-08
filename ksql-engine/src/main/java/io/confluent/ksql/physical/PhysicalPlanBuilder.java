@@ -39,7 +39,6 @@ import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.structured.QueuedSchemaKStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
@@ -124,20 +123,11 @@ public class PhysicalPlanBuilder {
     final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
 
     if (outputNode instanceof KsqlBareOutputNode) {
-      if (!(resultStream instanceof QueuedSchemaKStream)) {
-        throw new KsqlException(String.format(
-            "Mismatch between logical and physical output; "
-                + "expected a QueuedSchemaKStream based on logical "
-                + "KsqlBareOutputNode, found a %s instead",
-            resultStream.getClass().getCanonicalName()
-        ));
-      }
-
       final String transientQueryPrefix =
           ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
 
       return buildPlanForBareQuery(
-          (QueuedSchemaKStream<?>) resultStream,
+          resultStream,
           (KsqlBareOutputNode) outputNode,
           getServiceId(),
           transientQueryPrefix,
@@ -147,15 +137,6 @@ public class PhysicalPlanBuilder {
     }
 
     if (outputNode instanceof KsqlStructuredDataOutputNode) {
-      if (resultStream instanceof QueuedSchemaKStream) {
-        throw new KsqlException(String.format(
-            "Mismatch between logical and physical output; "
-                + "expected a SchemaKStream based on logical "
-                + "QueuedSchemaKStream, found a %s instead",
-            resultStream.getClass().getCanonicalName()
-        ));
-      }
-
       final KsqlStructuredDataOutputNode ksqlStructuredDataOutputNode =
           (KsqlStructuredDataOutputNode) outputNode;
 
@@ -177,7 +158,7 @@ public class PhysicalPlanBuilder {
   }
 
   private QueryMetadata buildPlanForBareQuery(
-      final QueuedSchemaKStream<?> schemaKStream,
+      final SchemaKStream<?> schemaKStream,
       final KsqlBareOutputNode bareOutputNode,
       final String serviceId,
       final String transientQueryPrefix,

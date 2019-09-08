@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.cli;
 
-import static io.confluent.ksql.rest.server.resources.Errors.ERROR_CODE_FORBIDDEN;
-import static io.confluent.ksql.rest.server.resources.Errors.ERROR_CODE_UNAUTHORIZED;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_FORBIDDEN;
+import static io.confluent.ksql.rest.Errors.ERROR_CODE_UNAUTHORIZED;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;

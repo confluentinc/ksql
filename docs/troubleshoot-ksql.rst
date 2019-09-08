@@ -172,7 +172,7 @@ setting in the file and verify it is set correctly.
 
     listeners=http://0.0.0.0:8088
 
-Or if you are running over IP6:
+Or if you are running over IPv6:
 
 .. code:: bash
 

@@ -216,7 +216,7 @@ the KSQL CLI:
 
 ``KSQL_LISTENERS``
     A list of URIs, including the protocol, that the broker listens on.
-    If you are using IP6 then you should set to ``http://[::]:8088``.
+    If you are using IPv6, set to ``http://[::]:8088``.
 
 ``KSQL_PRODUCER_INTERCEPTOR_CLASSES``
     A list of fully qualified class names for producer interceptors.

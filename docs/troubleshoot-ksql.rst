@@ -174,7 +174,7 @@ setting in the file and verify it is set correctly.
 
 Or if you are running over IPv6:
 
-.. code:: bash
+::
 
     listeners=http://[::]:8088
 

@@ -361,7 +361,7 @@ Update this to a specific interface to bind only to a single interface. For exam
 
 ::
 
-    # Bind to all interfaces IP.
+    # Bind to all interfaces, (both IPv4 and IPv6).
     listeners=http://0.0.0.0:8088,http://[::]:8088
 
     # Bind only to localhost.

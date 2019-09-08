@@ -264,7 +264,7 @@ Run a KSQL Server that uses a secure connection to a Kafka cluster:
 
 ``KSQL_LISTENERS``
     A list of URIs, including the protocol, that the broker listens on.
-    If you are using IP6 then you should set to ``http://[::]:8088``.
+    If you are using IPv6 , set to ``http://[::]:8088``.
     
 ``KSQL_KSQL_SINK_REPLICAS``
     The default number of replicas for the topics created by KSQL.

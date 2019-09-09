@@ -283,7 +283,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForSelect() {
     // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -366,7 +366,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForFilter() {
     // Given:
-    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100;";
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -417,7 +417,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldBuildStepForGroupBy() {
     // Given:
-    final String selectQuery = "SELECT col0, col1, col2 FROM test2;";
+    final String selectQuery = "SELECT col0, col1, col2 FROM test2 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
     final Serde<GenericRow> rowSerde = mock(Serde.class);

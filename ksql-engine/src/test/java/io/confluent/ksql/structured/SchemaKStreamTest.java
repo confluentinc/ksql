@@ -288,7 +288,7 @@ public class SchemaKStreamTest {
   public void shouldBuildStepForSelect() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
     final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
 
@@ -481,7 +481,7 @@ public class SchemaKStreamTest {
   public void shouldBuildStepForFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
@@ -527,7 +527,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldBuildStepForSelectKey() {
     // Given:
-    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
@@ -586,7 +586,7 @@ public class SchemaKStreamTest {
   @Test
   public void shouldBuildStepForGroupBy() {
     // Given:
-    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100;");
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
         new DereferenceExpression(
             new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0")

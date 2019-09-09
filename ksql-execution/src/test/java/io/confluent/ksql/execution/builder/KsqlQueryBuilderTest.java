@@ -34,6 +34,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerde;
@@ -47,8 +48,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -63,9 +62,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
-      LogicalSchema.of(SchemaBuilder.struct()
-          .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-          .build()),
+      LogicalSchema.builder()
+          .valueField("f0", SqlTypes.BOOLEAN)
+          .build(),
       SerdeOption.none()
   );
 

@@ -293,8 +293,8 @@ public class LogicalPlanner {
     final Builder builder = LogicalSchema.builder();
 
     final List<Field> keyFields = sourcePlanNode.getSchema().isAliased()
-        ? sourcePlanNode.getSchema().withoutAlias().keyFields()
-        : sourcePlanNode.getSchema().keyFields();
+        ? sourcePlanNode.getSchema().withoutAlias().key().fields()
+        : sourcePlanNode.getSchema().key().fields();
 
     builder.keyFields(keyFields);
 

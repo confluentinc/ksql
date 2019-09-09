@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.TestFrameworkException;
 import io.confluent.ksql.test.serde.SerdeSupplier;
@@ -94,7 +97,14 @@ public final class TopicNode {
     final org.apache.kafka.connect.data.Schema valueSchema = new AvroData(1)
         .toConnectSchema(avroSchema.get());
 
-    return LogicalSchema.of(valueSchema);
+    final SqlStruct valueType = (SqlStruct) SchemaConverters.connectToSqlConverter()
+        .toSqlType(valueSchema);
+
+    final Builder schemaBuilder = LogicalSchema.builder();
+
+    valueType.fields().forEach(schemaBuilder::valueField);
+
+    return schemaBuilder.build();
   }
 
   private static Optional<Schema> buildAvroSchema(final JsonNode schema) {

@@ -25,10 +25,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
@@ -43,9 +43,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
-  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("f0", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+      .valueField("f0", SqlTypes.STRING)
+      .build();
   private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");
 
   @Mock

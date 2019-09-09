@@ -47,6 +47,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -159,6 +160,8 @@ public class SchemaKGroupedStreamTest {
         .thenReturn(WindowInfo.of(WindowType.SESSION, Optional.empty()));
 
     when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
+
+    when(aggregateSchema.value()).thenReturn(mock(SqlStruct.class));
   }
 
   @Test
@@ -454,7 +457,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldBuildStepForAggregate() {
     // Given:
     final Map<Integer, KsqlAggregateFunction> functions = ImmutableMap.of(1,  otherFunc);
-    when(aggregateSchema.valueFields())
+    when(aggregateSchema.value().fields())
         .thenReturn(ImmutableList.of(mock(Field.class), mock(Field.class)));
 
     // When:
@@ -550,6 +553,6 @@ public class SchemaKGroupedStreamTest {
         .mapToObj(i -> field)
         .collect(Collectors.toList());
 
-    when(aggregateSchema.valueFields()).thenReturn(valueFields);
+    when(aggregateSchema.value().fields()).thenReturn(valueFields);
   }
 }

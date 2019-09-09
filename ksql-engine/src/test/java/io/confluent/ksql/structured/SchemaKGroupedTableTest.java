@@ -17,18 +17,15 @@ package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.easymock.EasyMock.anyObject;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.mock;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.same;
-import static org.easymock.EasyMock.verify;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -60,6 +57,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -86,7 +84,6 @@ import java.util.stream.IntStream;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.kstream.Consumed;
@@ -101,7 +98,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -111,10 +107,10 @@ public class SchemaKGroupedTableTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
-  private final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-      .field("GROUPING_COLUMN", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("AGG_VALUE", Schema.OPTIONAL_INT32_SCHEMA)
-      .build());
+  private final LogicalSchema schema = LogicalSchema.builder()
+      .valueField("GROUPING_COLUMN", SqlTypes.STRING)
+      .valueField("AGG_VALUE", SqlTypes.INTEGER)
+      .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private final QueryContext.Stacker queryContext
@@ -154,7 +150,7 @@ public class SchemaKGroupedTableTest {
 
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         ksqlTable.getKsqlTopic().getValueFormat().getFormatInfo(),
-        PersistenceSchema.from(ksqlTable.getSchema().valueSchema(), false),
+        PersistenceSchema.from(ksqlTable.getSchema().valueConnectSchema(), false),
         new KsqlConfig(Collections.emptyMap()),
         MockSchemaRegistryClient::new,
         "",
@@ -168,10 +164,12 @@ public class SchemaKGroupedTableTest {
 
     when(aggregateSchema.findValueField("GROUPING_COLUMN"))
         .thenReturn(Optional.of(Field.of("GROUPING_COLUMN", SqlTypes.STRING)));
+
+    when(aggregateSchema.value()).thenReturn(mock(SqlStruct.class));
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
-    final ExecutionStep<S> step = Mockito.mock(ExecutionStep.class);
+    final ExecutionStep<S> step = mock(ExecutionStep.class);
     when(step.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(schema, queryContext.getQueryContext())
     );
@@ -204,7 +202,8 @@ public class SchemaKGroupedTableTest {
 
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema.from(initialSchemaKTable.getSchema().withoutAlias().valueSchema(), false),
+        PersistenceSchema
+            .from(initialSchemaKTable.getSchema().withoutAlias().valueConnectSchema(), false),
         null,
         () -> null,
         "test",
@@ -267,7 +266,7 @@ public class SchemaKGroupedTableTest {
           valueFormat,
           GenericRowSerDe.from(
               FormatInfo.of(Format.JSON, Optional.empty()),
-              PersistenceSchema.from(ksqlTable.getSchema().valueSchema(), false),
+              PersistenceSchema.from(ksqlTable.getSchema().valueConnectSchema(), false),
               ksqlConfig,
               () -> null,
               "test",
@@ -292,7 +291,7 @@ public class SchemaKGroupedTableTest {
         buildSourceTableStep(schema),
         keyFormat,
         keySerde,
-        KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
+        KeyField.of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,
@@ -307,21 +306,12 @@ public class SchemaKGroupedTableTest {
         Serdes.String(),
         valueSerde,
         StreamsUtil.buildOpName(queryContext.getQueryContext()));
-    expect(
-        materializedFactory.create(
-            anyObject(Serdes.String().getClass()),
-            same(valueSerde),
-            eq(StreamsUtil.buildOpName(queryContext.getQueryContext()))))
-        .andReturn(materialized);
+
+    when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
+
     final KTable mockKTable = mock(KTable.class);
-    expect(
-        mockKGroupedTable.aggregate(
-            anyObject(),
-            anyObject(),
-            anyObject(),
-            same(materialized)))
-        .andReturn(mockKTable);
-    replay(materializedFactory, mockKGroupedTable);
+    when(mockKGroupedTable.aggregate(any(), any(), any(), any())).thenReturn(mockKTable);
+
     final SchemaKGroupedTable groupedTable =
         buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
 
@@ -338,7 +328,18 @@ public class SchemaKGroupedTableTest {
         queryContext);
 
     // Then:
-    verify(materializedFactory, mockKGroupedTable);
+    verify(materializedFactory).create(
+        eq(keySerde),
+        same(valueSerde),
+        eq(StreamsUtil.buildOpName(queryContext.getQueryContext()))
+    );
+
+    verify(mockKGroupedTable).aggregate(
+        any(),
+        any(),
+        any(),
+        same(materialized)
+    );
   }
 
   @Test
@@ -347,8 +348,8 @@ public class SchemaKGroupedTableTest {
     final Map<Integer, KsqlAggregateFunction> functions = ImmutableMap.of(1, tableFunc);
     final SchemaKGroupedTable groupedTable =
         buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
-    when(aggregateSchema.valueFields()).thenReturn(
-        ImmutableList.of(Mockito.mock(Field.class), Mockito.mock(Field.class)));
+    when(aggregateSchema.value().fields()).thenReturn(
+        ImmutableList.of(mock(Field.class), mock(Field.class)));
 
     // When:
     final SchemaKTable result = groupedTable.aggregate(
@@ -434,6 +435,6 @@ public class SchemaKGroupedTableTest {
         .mapToObj(i -> field)
         .collect(Collectors.toList());
 
-    when(aggregateSchema.valueFields()).thenReturn(valueFields);
+    when(aggregateSchema.value().fields()).thenReturn(valueFields);
   }
 }

@@ -58,6 +58,7 @@ import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -84,8 +85,6 @@ import javax.ws.rs.ProcessingException;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
@@ -534,14 +533,11 @@ public class CliTest {
             new Double[]{1100.0, 1110.99, 970.0})));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        LogicalSchema.of(SchemaBuilder.struct()
-            .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-            .field("PRICEARRAY", SchemaBuilder
-                .array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-                .optional()
-                .build())
-            .build()),
+        LogicalSchema.builder()
+            .valueField("ITEMID", SqlTypes.STRING)
+            .valueField("ORDERUNITS", SqlTypes.DOUBLE)
+            .valueField("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
+            .build(),
         SerdeOption.none()
     );
 
@@ -640,15 +636,14 @@ public class CliTest {
         orderDataProvider.kstreamName()
     );
 
-    final Schema sourceSchema = orderDataProvider.schema().logicalSchema().valueSchema();
     final PhysicalSchema resultSchema = PhysicalSchema.from(
-        LogicalSchema.of(SchemaBuilder.struct()
-            .field("ITEMID", sourceSchema.field("ITEMID").schema())
-            .field("COL1", sourceSchema.field("ORDERUNITS").schema())
-            .field("COL2", sourceSchema.field("PRICEARRAY").schema().valueSchema())
-            .field("COL3", sourceSchema.field("KEYVALUEMAP").schema().valueSchema())
-            .field("COL4", SchemaBuilder.OPTIONAL_BOOLEAN_SCHEMA)
-            .build()),
+        LogicalSchema.builder()
+            .valueField("ITEMID", SqlTypes.STRING)
+            .valueField("COL1", SqlTypes.DOUBLE)
+            .valueField("COL2", SqlTypes.DOUBLE)
+            .valueField("COL3", SqlTypes.DOUBLE)
+            .valueField("COL4", SqlTypes.BOOLEAN)
+            .build(),
         SerdeOption.none()
     );
 

@@ -495,8 +495,8 @@ public class SchemaKStream<K> {
       final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
       final List<Field> keyFields = SchemaKStream.this.getSchema().isAliased()
-          ? SchemaKStream.this.getSchema().withoutAlias().keyFields()
-          : SchemaKStream.this.getSchema().keyFields();
+          ? SchemaKStream.this.getSchema().withoutAlias().key().fields()
+          : SchemaKStream.this.getSchema().key().fields();
 
       schemaBuilder.keyFields(keyFields);
 
@@ -827,7 +827,7 @@ public class SchemaKStream<K> {
   }
 
   private Object extractColumn(final int keyIndexInValue, final GenericRow value) {
-    if (value.getColumns().size() != getSchema().valueFields().size()) {
+    if (value.getColumns().size() != getSchema().value().fields().size()) {
       throw new IllegalStateException("Field count mismatch. "
           + "Schema fields: " + getSchema()
           + ", row:" + value);
@@ -1040,13 +1040,13 @@ public class SchemaKStream<K> {
       if (left != null) {
         columns.addAll(left.getColumns());
       } else {
-        fillWithNulls(columns, leftSchema.valueFields().size());
+        fillWithNulls(columns, leftSchema.value().fields().size());
       }
 
       if (right != null) {
         columns.addAll(right.getColumns());
       } else {
-        fillWithNulls(columns, rightSchema.valueFields().size());
+        fillWithNulls(columns, rightSchema.value().fields().size());
       }
 
       return new GenericRow(columns);

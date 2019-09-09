@@ -81,8 +81,8 @@ public final class PhysicalSchema {
   ) {
     this.logicalSchema = requireNonNull(logicalSchema, "logicalSchema");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
-    this.keySchema = buildKeyPhysical(logicalSchema.keySchema());
-    this.valueSchema = buildValuePhysical(logicalSchema.valueSchema(), serdeOptions);
+    this.keySchema = buildKeyPhysical(logicalSchema.keyConnectSchema());
+    this.valueSchema = buildValuePhysical(logicalSchema.valueConnectSchema(), serdeOptions);
   }
 
   @Override

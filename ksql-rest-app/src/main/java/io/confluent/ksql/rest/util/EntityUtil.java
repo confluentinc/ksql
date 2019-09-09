@@ -41,10 +41,10 @@ public final class EntityUtil {
 
     final List<FieldInfo> allFields = new ArrayList<>();
     if (!valueSchemaOnly) {
-      allFields.addAll(getFields(schema.metaFields(), "meta"));
-      allFields.addAll(getFields(schema.keyFields(), "key"));
+      allFields.addAll(getFields(schema.metadata().fields(), "meta"));
+      allFields.addAll(getFields(schema.key().fields(), "key"));
     }
-    allFields.addAll(getFields(schema.valueFields(), "value"));
+    allFields.addAll(getFields(schema.value().fields(), "value"));
 
     return allFields;
   }

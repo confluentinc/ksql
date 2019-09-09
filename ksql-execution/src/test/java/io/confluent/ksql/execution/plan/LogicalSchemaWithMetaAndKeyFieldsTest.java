@@ -19,16 +19,15 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
 public class LogicalSchemaWithMetaAndKeyFieldsTest {
   private static final String ALIAS = "alias";
-  private static final LogicalSchema ORIGINAL = LogicalSchema.of(SchemaBuilder.struct()
-      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field2", Schema.OPTIONAL_INT64_SCHEMA)
-      .build());
+  private static final LogicalSchema ORIGINAL = LogicalSchema.builder()
+      .valueField("field1", SqlTypes.STRING)
+      .valueField("field2", SqlTypes.BIGINT)
+      .build();
 
   private final LogicalSchemaWithMetaAndKeyFields schema
       = LogicalSchemaWithMetaAndKeyFields.fromOriginal(ALIAS, ORIGINAL);

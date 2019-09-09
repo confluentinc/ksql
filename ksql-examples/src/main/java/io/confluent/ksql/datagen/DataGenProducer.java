@@ -71,7 +71,7 @@ public class DataGenProducer {
     final Serializer<Struct> keySerializer = getKeySerializer();
 
     final Serializer<GenericRow> valueSerializer =
-        getValueSerializer(rowGenerator.schema().valueSchema());
+        getValueSerializer(rowGenerator.schema().valueConnectSchema());
 
     final KafkaProducer<Struct, GenericRow> producer = new KafkaProducer<>(
         props,

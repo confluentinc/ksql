@@ -69,7 +69,10 @@ import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,8 +82,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.ConnectorState;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo.TaskState;
@@ -108,7 +109,7 @@ public class ConsoleTest {
       "TestSource",
       Collections.emptyList(),
       Collections.emptyList(),
-      buildTestSchema(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+      buildTestSchema(SqlTypes.INTEGER, SqlTypes.STRING),
       DataSourceType.KTABLE.getKsqlType(),
       "key",
       "2000-01-01",
@@ -304,23 +305,15 @@ public class ConsoleTest {
   public void testPrintSourceDescription() throws IOException {
     // Given:
     final List<FieldInfo> fields = buildTestSchema(
-        Schema.OPTIONAL_BOOLEAN_SCHEMA,
-        Schema.OPTIONAL_INT32_SCHEMA,
-        Schema.OPTIONAL_INT64_SCHEMA,
-        Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Schema.OPTIONAL_STRING_SCHEMA,
-        SchemaBuilder
-            .array(Schema.OPTIONAL_STRING_SCHEMA)
-            .optional()
-            .build(),
-        SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build(),
-        SchemaBuilder
-            .struct()
-            .field("a", Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .optional()
+        SqlTypes.BOOLEAN,
+        SqlTypes.INTEGER,
+        SqlTypes.BIGINT,
+        SqlTypes.DOUBLE,
+        SqlTypes.STRING,
+        SqlTypes.array(SqlTypes.STRING),
+        SqlTypes.map(SqlTypes.BIGINT),
+        SqlTypes.struct()
+            .field("a", SqlTypes.DOUBLE)
             .build()
     );
 
@@ -971,7 +964,7 @@ public class ConsoleTest {
                 "TestSource",
                 readQueries,
                 writeQueries,
-                buildTestSchema(Schema.OPTIONAL_STRING_SCHEMA),
+                buildTestSchema(SqlTypes.STRING),
                 DataSourceType.KTABLE.getKsqlType(),
                 "key",
                 "2000-01-01",
@@ -1387,13 +1380,15 @@ public class ConsoleTest {
     assertThat(result, is("not a CLI command;"));
   }
 
-  private static List<FieldInfo> buildTestSchema(final Schema... fieldTypes) {
-    final SchemaBuilder dataSourceBuilder = SchemaBuilder.struct().name("TestSchema");
+  private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
+    final Builder schemaBuilder = LogicalSchema.builder();
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
-      dataSourceBuilder.field("f_" + idx, fieldTypes[idx]);
+      schemaBuilder.valueField("f_" + idx, fieldTypes[idx]);
     }
 
-    return EntityUtil.buildSourceSchemaEntity(LogicalSchema.of(dataSourceBuilder.build()), false);
+    final LogicalSchema schema = schemaBuilder.build();
+
+    return EntityUtil.buildSourceSchemaEntity(schema, false);
   }
 }

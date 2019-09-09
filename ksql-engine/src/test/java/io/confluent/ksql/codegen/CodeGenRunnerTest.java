@@ -33,6 +33,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -41,8 +43,6 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -173,8 +173,7 @@ public class CodeGenRunnerTest {
 
         metaStore.putSource(ksqlStream);
 
-        final LogicalSchema schema = LogicalSchema.of(META_STORE_SCHEMA.valueSchema())
-            .withAlias("CODEGEN_TEST");
+        final LogicalSchema schema = META_STORE_SCHEMA.withAlias("CODEGEN_TEST");
 
         codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     }

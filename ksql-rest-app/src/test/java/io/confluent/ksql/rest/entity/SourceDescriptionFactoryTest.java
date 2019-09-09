@@ -19,13 +19,14 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -40,8 +41,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.record.TimestampType;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -66,9 +65,9 @@ public class SourceDescriptionFactoryTest {
   }
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("field0", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field0", SqlTypes.INTEGER)
+        .build();
 
     final KsqlTopic topic = new KsqlTopic(
         kafkaTopicName,
@@ -82,7 +81,7 @@ public class SourceDescriptionFactoryTest {
         "stream",
         schema,
         SerdeOption.none(),
-        KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
+        KeyField.of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
         new MetadataTimestampExtractionPolicy(),
         topic
     );

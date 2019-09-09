@@ -18,10 +18,10 @@ package io.confluent.ksql.serde.delimited;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,10 +42,7 @@ public class KsqlDelimitedSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfArray() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .optional()
-        .build());
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.array(SqlTypes.STRING));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -58,10 +55,7 @@ public class KsqlDelimitedSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMap() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-        .optional()
-        .build());
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -74,11 +68,10 @@ public class KsqlDelimitedSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfStruct() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
-        .struct()
-        .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional()
-        .build());
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.struct()
+        .field("f0", SqlTypes.STRING)
+        .build()
+    );
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -88,14 +81,13 @@ public class KsqlDelimitedSerdeFactoryTest {
     factory.validate(schema);
   }
 
-  private static PersistenceSchema schemaWithFieldOfType(final Schema fieldSchema) {
-    final Schema connectSchema = SchemaBuilder
-        .struct()
-        .field("f0", fieldSchema)
+  private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyField("k0", fieldSchema)
+        .valueField("v0", fieldSchema)
         .build();
 
-    final LogicalSchema logicalSchema = LogicalSchema.of(connectSchema, connectSchema);
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(logicalSchema, SerdeOption.none());
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, SerdeOption.none());
     return physicalSchema.valueSchema();
   }
 }

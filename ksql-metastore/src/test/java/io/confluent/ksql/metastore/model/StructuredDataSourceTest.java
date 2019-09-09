@@ -20,11 +20,10 @@ import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -33,11 +32,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class StructuredDataSourceTest {
 
-  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(
-      SchemaBuilder.struct()
-          .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-          .build()
-  );
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+      .valueField("f0", SqlTypes.BIGINT)
+      .build();
 
   @Mock
   public KeyField keyField;
@@ -57,12 +54,10 @@ public class StructuredDataSourceTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfSchemaContainsRowTime() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-            .build()
-    );
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueField("f0", SqlTypes.BIGINT)
+        .build();
 
     // When:
     new TestStructuredDataSource(
@@ -74,12 +69,10 @@ public class StructuredDataSourceTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfSchemaContainsRowKey() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-            .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-            .build()
-    );
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueField("f0", SqlTypes.BIGINT)
+        .build();
 
     // When:
     new TestStructuredDataSource(

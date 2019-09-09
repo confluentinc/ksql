@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -41,12 +42,12 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -57,7 +58,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
@@ -79,8 +79,6 @@ import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.errors.TopicAuthorizationException;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.junit.Before;
@@ -95,24 +93,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
-  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
+      .valueField("COL0", SqlTypes.STRING)
+      .build();
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("COL0", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("COL1", Schema.OPTIONAL_INT64_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("COL0", SqlTypes.STRING)
+      .valueField("COL1", SqlTypes.BIGINT)
+      .build();
 
-  private static final LogicalSchema BIG_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("COL0", Schema.OPTIONAL_STRING_SCHEMA) // named COL0 for auto-ROWKEY
-      .field("INT", Schema.OPTIONAL_INT32_SCHEMA)
-      .field("BIGINT", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("DOUBLE", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .field("BOOLEAN", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .field("VARCHAR", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("DECIMAL", DecimalUtil.builder(2, 1).build())
-      .build());
+  private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
+      .valueField("COL0", SqlTypes.STRING) // named COL0 for auto-ROWKEY
+      .valueField("INT", SqlTypes.INTEGER)
+      .valueField("BIGINT", SqlTypes.BIGINT)
+      .valueField("DOUBLE", SqlTypes.DOUBLE)
+      .valueField("BOOLEAN", SqlTypes.BOOLEAN)
+      .valueField("VARCHAR", SqlTypes.STRING)
+      .valueField("DECIMAL", SqlTypes.decimal(2, 1))
+      .build();
 
   private static final byte[] KEY = new byte[]{1};
   private static final byte[] VALUE = new byte[]{2};
@@ -657,7 +655,7 @@ public class InsertValuesExecutorTest {
     // Then:
     verify(keySerdeFactory).create(
         FormatInfo.of(Format.KAFKA, Optional.empty()),
-        PersistenceSchema.from(SCHEMA.keySchema(), false),
+        PersistenceSchema.from(SCHEMA.keyConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -666,7 +664,7 @@ public class InsertValuesExecutorTest {
 
     verify(valueSerdeFactory).create(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema.from(SCHEMA.valueSchema(), false),
+        PersistenceSchema.from(SCHEMA.valueConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
         "",
@@ -719,13 +717,13 @@ public class InsertValuesExecutorTest {
   }
 
   private static Struct keyStruct(final String rowKey) {
-    final Struct key = new Struct(SCHEMA.keySchema());
+    final Struct key = new Struct(SCHEMA.keyConnectSchema());
     key.put("ROWKEY", rowKey);
     return key;
   }
 
   private static List<String> valueFieldNames(final LogicalSchema schema) {
-    return schema.valueFields().stream().map(Field::name).collect(Collectors.toList());
+    return schema.value().fields().stream().map(Field::name).collect(Collectors.toList());
   }
 
   private static List<String> allFieldNames(final LogicalSchema schema) {

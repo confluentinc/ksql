@@ -22,7 +22,6 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -37,7 +36,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-
 import java.util.Collections;
 import java.util.Optional;
 import org.junit.Assert;
@@ -81,7 +79,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources().get(0),
         instanceOf(DataSourceNode.class));
 
-    assertThat(logicalPlan.getSchema().valueFields().size(), equalTo( 3));
+    assertThat(logicalPlan.getSchema().value().fields().size(), equalTo( 3));
     Assert.assertNotNull(((FilterNode) logicalPlan.getSources().get(0).getSources().get(0)).getPredicate());
   }
 
@@ -97,7 +95,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0).getSources().get(0).getSources()
                           .get(1), instanceOf(DataSourceNode.class));
 
-    assertThat(logicalPlan.getSchema().valueFields().size(), equalTo(4));
+    assertThat(logicalPlan.getSchema().value().fields().size(), equalTo(4));
 
   }
 
@@ -114,7 +112,7 @@ public class LogicalPlannerTest {
 
     assertThat(projectNode.getKeyField().name(), is(Optional.of("T1_COL1")));
     assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("T1.COL1")));
-    assertThat(projectNode.getSchema().valueFields().size(), equalTo(5));
+    assertThat(projectNode.getSchema().value().fields().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
     final FilterNode filterNode = (FilterNode) projectNode.getSources().get(0);
@@ -142,9 +140,9 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().valueFields().get(1).type(), equalTo(SqlTypes.DOUBLE));
-    assertThat(aggregateNode.getSchema().valueFields().get(2).type(), equalTo(SqlTypes.BIGINT));
-    assertThat(logicalPlan.getSources().get(0).getSchema().valueFields().size(), equalTo(3));
+    assertThat(aggregateNode.getSchema().value().fields().get(1).type(), equalTo(SqlTypes.DOUBLE));
+    assertThat(aggregateNode.getSchema().value().fields().get(2).type(), equalTo(SqlTypes.BIGINT));
+    assertThat(logicalPlan.getSources().get(0).getSchema().value().fields().size(), equalTo(3));
 
   }
 
@@ -164,8 +162,8 @@ public class LogicalPlannerTest {
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
-    assertThat(aggregateNode.getSchema().valueFields().get(1).type(), equalTo(SqlTypes.DOUBLE));
-    assertThat(logicalPlan.getSources().get(0).getSchema().valueFields().size(), equalTo(2));
+    assertThat(aggregateNode.getSchema().value().fields().get(1).type(), equalTo(SqlTypes.DOUBLE));
+    assertThat(logicalPlan.getSources().get(0).getSchema().value().fields().size(), equalTo(2));
 
   }
 

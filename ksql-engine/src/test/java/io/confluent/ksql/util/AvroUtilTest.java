@@ -17,8 +17,6 @@
 package io.confluent.ksql.util;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -31,7 +29,10 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -40,6 +41,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
+import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -255,7 +257,16 @@ public class AvroUtilTest {
     final org.apache.avro.Schema avroSchema =
         new org.apache.avro.Schema.Parser().parse(avroSchemaString);
     final AvroData avroData = new AvroData(new AvroDataConfig(Collections.emptyMap()));
-    return LogicalSchema.of(new ConnectSchemaTranslator()
-        .toKsqlSchema(avroData.toConnectSchema(avroSchema)));
+    final Schema connectSchema = new ConnectSchemaTranslator()
+        .toKsqlSchema(avroData.toConnectSchema(avroSchema));
+
+    final ConnectToSqlTypeConverter converter = SchemaConverters
+        .connectToSqlConverter();
+
+    final Builder builder = LogicalSchema.builder();
+    connectSchema.fields()
+        .forEach(f -> builder.valueField(f.name(), converter.toSqlType(f.schema())));
+
+    return builder.build();
   }
 }

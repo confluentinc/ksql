@@ -162,17 +162,17 @@ public class AggregateNode extends PlanNode {
 
   private List<SelectExpression> getFinalSelectExpressions() {
     final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
-    if (finalSelectExpressions.size() != schema.valueFields().size()) {
+    if (finalSelectExpressions.size() != schema.value().fields().size()) {
       throw new RuntimeException(
           "Incompatible aggregate schema, field count must match, "
               + "selected field count:"
               + finalSelectExpressions.size()
               + " schema field count:"
-              + schema.valueFields().size());
+              + schema.value().fields().size());
     }
     for (int i = 0; i < finalSelectExpressions.size(); i++) {
       finalSelectExpressionList.add(SelectExpression.of(
-          schema.valueFields().get(i).name(),
+          schema.value().fields().get(i).name(),
           finalSelectExpressions.get(i)
       ));
     }
@@ -335,9 +335,9 @@ public class AggregateNode extends PlanNode {
       final Map<Integer, KsqlAggregateFunction> aggregateFunctions
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Field> fields = inputSchema.valueFields();
+    final List<Field> fields = inputSchema.value().fields();
 
-    schemaBuilder.keyFields(inputSchema.keyFields());
+    schemaBuilder.keyFields(inputSchema.key().fields());
 
     for (int i = 0; i < requiredColumns.size(); i++) {
       schemaBuilder.valueField(fields.get(i));

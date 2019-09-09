@@ -35,13 +35,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
@@ -76,7 +76,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
@@ -95,17 +94,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class JoinNodeTest {
 
-  private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-      .field("L1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
+      .valueField("C0", SqlTypes.BIGINT)
+      .valueField("L1", SqlTypes.STRING)
+      .build();
 
-  private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-      .field("R1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.builder()
+      .valueField("C0", SqlTypes.BIGINT)
+      .valueField("R1", SqlTypes.STRING)
+      .build();
 
   private static final String LEFT_ALIAS = "left";
   private static final String RIGHT_ALIAS = "right";
@@ -873,18 +870,17 @@ public class JoinNodeTest {
     );
 
     // When:
-    assertThat(joinNode.getSchema(), is(LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field(LEFT_ALIAS + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(LEFT_ALIAS + ".ROWKEY", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field(LEFT_ALIAS + ".C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(LEFT_ALIAS + ".L1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field(RIGHT_ALIAS + ".ROWTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(RIGHT_ALIAS + ".ROWKEY", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .field(RIGHT_ALIAS + ".C0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .field(RIGHT_ALIAS + ".R1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-            .build()
-    )));
+    assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
+        .valueField(LEFT_ALIAS + ".ROWTIME", SqlTypes.BIGINT)
+        .valueField(LEFT_ALIAS + ".ROWKEY", SqlTypes.STRING)
+        .valueField(LEFT_ALIAS + ".C0", SqlTypes.BIGINT)
+        .valueField(LEFT_ALIAS + ".L1", SqlTypes.STRING)
+        .valueField(RIGHT_ALIAS + ".ROWTIME", SqlTypes.BIGINT)
+        .valueField(RIGHT_ALIAS + ".ROWKEY", SqlTypes.STRING)
+        .valueField(RIGHT_ALIAS + ".C0", SqlTypes.BIGINT)
+        .valueField(RIGHT_ALIAS + ".R1", SqlTypes.STRING)
+        .build()
+    ));
   }
 
   @Test
@@ -1038,8 +1034,8 @@ public class JoinNodeTest {
   @SuppressWarnings("Duplicates")
   private static LogicalSchema joinSchema() {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    schemaBuilder.valueFields(LEFT_NODE_SCHEMA.valueFields());
-    schemaBuilder.valueFields(RIGHT_NODE_SCHEMA.valueFields());
+    schemaBuilder.valueFields(LEFT_NODE_SCHEMA.value().fields());
+    schemaBuilder.valueFields(RIGHT_NODE_SCHEMA.value().fields());
     return schemaBuilder.build();
   }
 
@@ -1090,7 +1086,7 @@ public class JoinNodeTest {
   }
 
   private static Optional<String> getColumn(final LogicalSchema schema, final Predicate<String> filter) {
-    return schema.valueFields().stream()
+    return schema.value().fields().stream()
         .map(Field::name)
         .filter(filter)
         .findFirst();

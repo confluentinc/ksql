@@ -301,7 +301,7 @@ public class AggregateNodeTest {
         + "WHERE col0 > 100 GROUP BY col0;");
 
     // Then:
-    assertThat(stream.getSchema().valueFields(), contains(
+    assertThat(stream.getSchema().value().fields(), contains(
         Field.of("COL0", SqlTypes.BIGINT),
         Field.of("KSQL_COL_1", SqlTypes.DOUBLE),
         Field.of("KSQL_COL_2", SqlTypes.BIGINT)));

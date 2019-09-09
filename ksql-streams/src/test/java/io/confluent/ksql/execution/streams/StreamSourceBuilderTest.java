@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
@@ -78,10 +79,11 @@ import org.mockito.junit.MockitoRule;
 
 
 public class StreamSourceBuilderTest {
-  private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field2", Schema.OPTIONAL_INT64_SCHEMA)
-      .build());
+
+  private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
+      .valueField("field1", SqlTypes.STRING)
+      .valueField("field2", SqlTypes.BIGINT)
+      .build();
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
       .field("k1", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
@@ -309,7 +311,6 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldThrowOnMultiFieldKey() {
     // Given:
     final StreamSource<KStream<?, GenericRow>> streamSource = new StreamSource<>(
@@ -319,13 +320,11 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        LogicalSchema.of(
-            SchemaBuilder.struct()
-                .field("f1", Schema.INT32_SCHEMA)
-                .field( "f2", Schema.INT64_SCHEMA)
-                .build(),
-            SCHEMA.valueSchema()
-        ),
+        LogicalSchema.builder()
+            .keyField("f1", SqlTypes.INTEGER)
+            .keyField("f2", SqlTypes.BIGINT)
+            .valueFields(SCHEMA.value().fields())
+            .build(),
         StreamSourceBuilder::buildUnwindowed
     );
 

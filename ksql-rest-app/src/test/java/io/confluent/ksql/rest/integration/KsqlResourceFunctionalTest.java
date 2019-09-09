@@ -34,6 +34,7 @@ import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlConstants;
@@ -43,8 +44,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -150,10 +149,10 @@ public class KsqlResourceFunctionalTest {
   public void shouldInsertIntoValuesForAvroTopic() throws Exception {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
-        LogicalSchema.of(SchemaBuilder.struct()
-            .field("AUTHOR", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("TITLE", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()),
+        LogicalSchema.builder()
+            .valueField("AUTHOR", SqlTypes.STRING)
+            .valueField("TITLE", SqlTypes.STRING)
+            .build(),
         SerdeOption.none()
     );
 

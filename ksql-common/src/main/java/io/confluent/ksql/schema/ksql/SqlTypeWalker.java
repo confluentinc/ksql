@@ -139,7 +139,7 @@ public final class SqlTypeWalker {
       final SqlType type
   ) {
     final SqlStruct struct = (SqlStruct) type;
-    final List<F> fields = struct.getFields().stream()
+    final List<F> fields = struct.fields().stream()
         .map(field -> visitField(visitor, field))
         .collect(Collectors.toList());
 

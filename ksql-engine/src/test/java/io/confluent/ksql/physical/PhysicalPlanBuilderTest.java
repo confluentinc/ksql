@@ -55,6 +55,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
@@ -87,8 +88,6 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerInterceptor;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -255,13 +254,12 @@ public class PhysicalPlanBuilderTest {
     final QueryMetadata queryMetadata = buildPhysicalPlan(simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-            .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .build()
-    )));
+    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+        .valueField("COL0", SqlTypes.BIGINT)
+        .valueField("COL2", SqlTypes.STRING)
+        .valueField("COL3", SqlTypes.DOUBLE)
+        .build()
+    ));
   }
 
   @Test
@@ -271,13 +269,13 @@ public class PhysicalPlanBuilderTest {
         "CREATE STREAM FOO AS " + simpleSelectFilter);
 
     // Then:
-    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
-            .field("COL2", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("COL3", Schema.OPTIONAL_FLOAT64_SCHEMA)
-            .build()
-    )));
+    assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
+
+        .valueField("COL0", SqlTypes.BIGINT)
+        .valueField("COL2", SqlTypes.STRING)
+        .valueField("COL3", SqlTypes.DOUBLE)
+        .build()
+    ));
   }
 
   @Test

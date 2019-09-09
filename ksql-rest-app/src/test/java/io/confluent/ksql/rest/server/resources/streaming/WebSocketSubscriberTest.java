@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.io.IOException;
 import java.util.Map;
 import javax.websocket.CloseReason;
@@ -30,8 +31,6 @@ import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.RemoteEndpoint.Async;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.easymock.Capture;
 import org.easymock.CaptureType;
 import org.easymock.EasyMock;
@@ -118,10 +117,10 @@ public class WebSocketSubscriberTest {
 
     EasyMock.replay(subscription, session, basic);
 
-    subscriber.onSchema(LogicalSchema.of(SchemaBuilder.struct()
-        .field("currency", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("amount", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build()));
+    subscriber.onSchema(LogicalSchema.builder()
+        .valueField("currency", SqlTypes.STRING)
+        .valueField("amount", SqlTypes.DOUBLE)
+        .build());
 
     subscriber.close();
 

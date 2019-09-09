@@ -80,7 +80,7 @@ public class KsqlStructTest {
 
     // When:
     KsqlStruct.builder(SCHEMA)
-        .set("f0", "field is BIGINT, so won't like this");
+        .set("f0", Optional.of("field is BIGINT, so won't like this"));
   }
 
   @Test

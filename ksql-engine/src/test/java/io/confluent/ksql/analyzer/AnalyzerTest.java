@@ -32,6 +32,7 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -40,7 +41,6 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.ExpressionFormatterUtil;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
@@ -66,8 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -518,8 +516,8 @@ public class AnalyzerTest {
   }
 
   private void registerKafkaSource() {
-    final Schema schema = SchemaBuilder.struct()
-        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("COL0", SqlTypes.BIGINT)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(
@@ -531,7 +529,7 @@ public class AnalyzerTest {
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
         "KAFKA_SOURCE",
-        LogicalSchema.of(schema),
+        schema,
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),

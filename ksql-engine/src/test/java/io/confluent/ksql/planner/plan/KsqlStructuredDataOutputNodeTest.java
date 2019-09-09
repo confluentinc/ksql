@@ -33,13 +33,14 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
@@ -52,8 +53,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.kstream.KStream;
 import org.junit.Before;
 import org.junit.Rule;
@@ -76,13 +75,13 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("field1", SqlTypes.STRING)
+      .valueField("field2", SqlTypes.STRING)
+      .valueField("field3", SqlTypes.STRING)
+      .valueField("timestamp", SqlTypes.BIGINT)
+      .valueField("key", SqlTypes.STRING)
+      .build();
 
   private static final KeyField KEY_FIELD =
       KeyField.of("key", SCHEMA.findValueField("key").get());
@@ -404,15 +403,15 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKeyRegardlessOfLocation() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("timestamp", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-        .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field1", SqlTypes.STRING)
+        .valueField("field2", SqlTypes.STRING)
+        .valueField("ROWKEY", SqlTypes.STRING)
+        .valueField("field3", SqlTypes.STRING)
+        .valueField("timestamp", SqlTypes.BIGINT)
+        .valueField("ROWTIME", SqlTypes.BIGINT)
+        .valueField("key", SqlTypes.STRING)
+        .build();
 
     givenNodeWithSchema(schema);
 

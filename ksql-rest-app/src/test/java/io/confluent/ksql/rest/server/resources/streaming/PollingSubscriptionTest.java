@@ -28,12 +28,11 @@ import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.rest.server.resources.streaming.StreamingTestUtils.TestSubscriber;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Queue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
 
@@ -68,10 +67,9 @@ public class PollingSubscriptionTest {
       super(
           MoreExecutors.listeningDecorator(exec),
           subscriber,
-          LogicalSchema.of(SchemaBuilder
-              .struct()
-              .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-              .build())
+          LogicalSchema.builder()
+              .valueField("f0", SqlTypes.STRING)
+              .build()
       );
     }
 

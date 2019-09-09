@@ -19,14 +19,12 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,7 +33,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 /**
@@ -46,73 +43,59 @@ public final class LogicalSchema {
 
   private static final String KEY_KEYWORD = "KEY";
 
-  private static final ImmutableList<Field> META_FIELDS = ImmutableList.of(
-      Field.of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-  );
+  private static final SqlStruct METADATA_SCHEMA = SqlTypes.struct()
+      .field(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+      .build();
 
-  private static final ImmutableList<Field> IMPLICIT_KEY_FIELDS = ImmutableList.of(
-      Field.of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-  );
+  private static final SqlStruct IMPLICIT_KEY_SCHEMA = SqlTypes.struct()
+      .field(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .build();
 
-  private final List<Field> metaFields;
-  private final List<Field> keyFields;
-  private final List<Field> valueFields;
+  private final SqlStruct metadata;
+  private final SqlStruct key;
+  private final SqlStruct value;
 
   public static Builder builder() {
     return new Builder();
   }
 
-  public static LogicalSchema of(final Schema valueSchema) {
-    final List<Field> valueFields = fromConnectSchema(valueSchema);
-    return new LogicalSchema(META_FIELDS, IMPLICIT_KEY_FIELDS, valueFields);
-  }
-
-  public static LogicalSchema of(
-      final Schema keySchema,
-      final Schema valueSchema
+  private LogicalSchema(
+      final SqlStruct metadata,
+      final SqlStruct key,
+      final SqlStruct value
   ) {
-    final List<Field> keyFields = fromConnectSchema(keySchema);
-    final List<Field> valueFields = fromConnectSchema(valueSchema);
-    return new LogicalSchema(META_FIELDS, keyFields, valueFields);
+    this.metadata = requireNonNull(metadata, "metadata");
+    this.key = requireNonNull(key, "key");
+    this.value = requireNonNull(value, "value");
   }
 
-  public LogicalSchema(
-      final List<Field> metaFields,
-      final List<Field> keyFields,
-      final List<Field> valueFields
-  ) {
-    this.metaFields = ImmutableList.copyOf(requireNonNull(metaFields, "metaFields"));
-    this.keyFields = ImmutableList.copyOf(requireNonNull(keyFields, "keyFields"));
-    this.valueFields = ImmutableList.copyOf(requireNonNull(valueFields, "valueFields"));
+  public ConnectSchema keyConnectSchema() {
+    return toConnectSchema(key);
   }
 
-  public ConnectSchema keySchema() {
-    return toConnectSchema(keyFields);
-  }
-
-  public ConnectSchema valueSchema() {
-    return toConnectSchema(valueFields);
+  public ConnectSchema valueConnectSchema() {
+    return toConnectSchema(value);
   }
 
   /**
-   * @return the metadata fields in the schema.
+   * @return the schema of the metadata.
    */
-  public List<Field> metaFields() {
-    return metaFields;
+  public SqlStruct metadata() {
+    return metadata;
   }
 
   /**
-   * @return the key fields in the schema.
+   * @return the schema of the key.
    */
-  public List<Field> keyFields() {
-    return keyFields;
+  public SqlStruct key() {
+    return key;
   }
 
   /**
-   * @return the value fields in the schema.
+   * @return the schema of the value.
    */
-  public List<Field> valueFields() {
-    return valueFields;
+  public SqlStruct value() {
+    return value;
   }
 
   /**
@@ -120,9 +103,9 @@ public final class LogicalSchema {
    */
   public List<Field> fields() {
     return ImmutableList.<Field>builder()
-        .addAll(metaFields)
-        .addAll(keyFields)
-        .addAll(valueFields)
+        .addAll(metadata.fields())
+        .addAll(key.fields())
+        .addAll(value.fields())
         .build();
   }
 
@@ -140,17 +123,17 @@ public final class LogicalSchema {
    * @return the field if found, else {@code Optiona.empty()}.
    */
   public Optional<Field> findField(final String fieldName) {
-    Optional<Field> found = doFindField(fieldName, metaFields);
+    Optional<Field> found = doFindField(fieldName, metadata.fields());
     if (found.isPresent()) {
       return found;
     }
 
-    found = doFindField(fieldName, keyFields);
+    found = doFindField(fieldName, key.fields());
     if (found.isPresent()) {
       return found;
     }
 
-    return doFindField(fieldName, valueFields);
+    return doFindField(fieldName, value.fields());
   }
 
   /**
@@ -165,7 +148,7 @@ public final class LogicalSchema {
    * @return the value field if found, else {@code Optiona.empty()}.
    */
   public Optional<Field> findValueField(final String fieldName) {
-    return doFindField(fieldName, valueFields);
+    return doFindField(fieldName, value.fields());
   }
 
   /**
@@ -176,7 +159,7 @@ public final class LogicalSchema {
    */
   public OptionalInt valueFieldIndex(final String fullFieldName) {
     int idx = 0;
-    for (final Field field : valueFields) {
+    for (final Field field : value.fields()) {
       if (field.fullName().equals(fullFieldName)) {
         return OptionalInt.of(idx);
       }
@@ -202,9 +185,9 @@ public final class LogicalSchema {
     }
 
     return new LogicalSchema(
-        addAlias(alias, metaFields),
-        addAlias(alias, keyFields),
-        addAlias(alias, valueFields)
+        addAlias(alias, metadata),
+        addAlias(alias, key),
+        addAlias(alias, value)
     );
   }
 
@@ -219,9 +202,9 @@ public final class LogicalSchema {
     }
 
     return new LogicalSchema(
-        removeAlias(metaFields),
-        removeAlias(keyFields),
-        removeAlias(valueFields)
+        removeAlias(metadata),
+        removeAlias(key),
+        removeAlias(value)
     );
   }
 
@@ -229,7 +212,8 @@ public final class LogicalSchema {
    * @return {@code true} is aliased, {@code false} otherwise.
    */
   public boolean isAliased() {
-    return metaFields.get(0).fieldName().source().isPresent();
+    // Either all fields are aliased, or none:
+    return metadata.fields().get(0).fieldName().source().isPresent();
   }
 
   /**
@@ -240,22 +224,27 @@ public final class LogicalSchema {
    * @return the new schema.
    */
   public LogicalSchema withMetaAndKeyFieldsInValue() {
-    final List<Field> newValueFields =
-        new ArrayList<>(metaFields.size() + keyFields.size() + valueFields.size());
+    final List<Field> newValueFields = new ArrayList<>(
+        metadata.fields().size()
+            + key.fields().size()
+            + value.fields().size());
 
-    newValueFields.addAll(metaFields);
-    newValueFields.addAll(keyFields);
+    newValueFields.addAll(metadata.fields());
+    newValueFields.addAll(key.fields());
 
-    valueFields().forEach(f -> {
+    value.fields().forEach(f -> {
       if (!doFindField(f.name(), newValueFields).isPresent()) {
         newValueFields.add(f);
       }
     });
 
+    final SqlStruct.Builder builder = SqlTypes.struct();
+    newValueFields.forEach(builder::field);
+
     return new LogicalSchema(
-        metaFields,
-        keyFields,
-        newValueFields
+        metadata,
+        key,
+        builder.build()
     );
   }
 
@@ -265,17 +254,17 @@ public final class LogicalSchema {
    * @return the new schema with the fields removed.
    */
   public LogicalSchema withoutMetaAndKeyFieldsInValue() {
-    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
+    final SqlStruct.Builder builder = SqlTypes.struct();
 
     final Set<String> excluded = metaAndKeyFieldNames();
 
-    valueFields.stream()
+    value.fields().stream()
         .filter(f -> !excluded.contains(f.name()))
-        .forEach(builder::add);
+        .forEach(builder::field);
 
     return new LogicalSchema(
-        metaFields,
-        keyFields,
+        metadata,
+        key,
         builder.build()
     );
   }
@@ -305,13 +294,14 @@ public final class LogicalSchema {
       return false;
     }
     final LogicalSchema that = (LogicalSchema) o;
-    return Objects.equals(keyFields, that.keyFields)
-        && Objects.equals(valueFields, that.valueFields);
+    // Meta fields deliberately excluded.
+    return Objects.equals(key, that.key)
+        && Objects.equals(value, that.value);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(keyFields, valueFields);
+    return Objects.hash(key, value);
   }
 
   @Override
@@ -322,11 +312,11 @@ public final class LogicalSchema {
   public String toString(final FormatOptions formatOptions) {
     // Meta fields deliberately excluded.
 
-    final String keys = keyFields.stream()
+    final String keys = key.fields().stream()
         .map(f -> f.toString(formatOptions) + " " + KEY_KEYWORD)
         .collect(Collectors.joining(", "));
 
-    final String values = valueFields.stream()
+    final String values = value.fields().stream()
         .map(f -> f.toString(formatOptions))
         .collect(Collectors.joining(", "));
 
@@ -338,11 +328,11 @@ public final class LogicalSchema {
   }
 
   private Set<String> metaFieldNames() {
-    return fieldNames(metaFields);
+    return fieldNames(metadata);
   }
 
   private Set<String> keyFieldNames() {
-    return fieldNames(keyFields);
+    return fieldNames(key);
   }
 
   private Set<String> metaAndKeyFieldNames() {
@@ -351,26 +341,26 @@ public final class LogicalSchema {
     return names;
   }
 
-  private static Set<String> fieldNames(final Collection<Field> fields) {
-    return fields.stream()
+  private static Set<String> fieldNames(final SqlStruct struct) {
+    return struct.fields().stream()
         .map(Field::name)
         .collect(Collectors.toSet());
   }
 
-  private static List<Field> addAlias(final String alias, final List<Field> fields) {
-    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
+  private static SqlStruct addAlias(final String alias, final SqlStruct struct) {
+    final SqlStruct.Builder builder = SqlTypes.struct();
 
-    for (final Field field : fields) {
-      builder.add(field.withSource(alias));
+    for (final Field field : struct.fields()) {
+      builder.field(field.withSource(alias));
     }
     return builder.build();
   }
 
-  private static List<Field> removeAlias(final List<Field> fields) {
-    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
+  private static SqlStruct removeAlias(final SqlStruct struct) {
+    final SqlStruct.Builder builder = SqlTypes.struct();
 
-    for (final Field field : fields) {
-      builder.add(Field.of(field.name(), field.type()));
+    for (final Field field : struct.fields()) {
+      builder.field(Field.of(field.name(), field.type()));
     }
     return builder.build();
   }
@@ -383,12 +373,12 @@ public final class LogicalSchema {
   }
 
   private static ConnectSchema toConnectSchema(
-      final List<Field> fields
+      final SqlStruct struct
   ) {
     final SqlToConnectTypeConverter converter = SchemaConverters.sqlToConnectConverter();
 
     final SchemaBuilder builder = SchemaBuilder.struct();
-    for (final Field field : fields) {
+    for (final Field field : struct.fields()) {
 
       final Schema fieldSchema = converter.toConnectSchema(field.type());
       builder.field(field.fullName(), fieldSchema);
@@ -397,33 +387,10 @@ public final class LogicalSchema {
     return (ConnectSchema) builder.build();
   }
 
-  private static List<Field> fromConnectSchema(final Schema schema) {
-    if (schema.type() != Type.STRUCT) {
-      throw new IllegalArgumentException("Top level schema must be STRUCT");
-    }
-
-    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
-
-    final ImmutableList.Builder<Field> builder = ImmutableList.builder();
-
-    for (final org.apache.kafka.connect.data.Field field : schema.fields()) {
-      final Optional<String> source = SchemaUtil.getFieldNameAlias(field.name());
-      final String fieldName = SchemaUtil.getFieldNameWithNoAlias(field.name());
-      final SqlType fieldType = converter.toSqlType(field.schema());
-
-      builder.add(Field.of(FieldName.of(source, fieldName), fieldType));
-    }
-
-    return builder.build();
-  }
-
   public static class Builder {
 
-    private final ImmutableList.Builder<Field> keyFields = ImmutableList.builder();
-    private final ImmutableList.Builder<Field> valueFields = ImmutableList.builder();
-
-    private final Set<String> keyFieldNames = new HashSet<>();
-    private final Set<String> valueFieldNames = new HashSet<>();
+    private final SqlStruct.Builder keyBuilder = SqlTypes.struct();
+    private final SqlStruct.Builder valueBuilder = SqlTypes.struct();
 
     public Builder keyField(final String fieldName, final SqlType fieldType) {
       keyField(Field.of(fieldName, fieldType));
@@ -431,9 +398,7 @@ public final class LogicalSchema {
     }
 
     public Builder keyField(final Field field) {
-      throwOnDuplicateName(field.fullName(), keyFieldNames);
-      keyFields.add(field);
-      keyFieldNames.add(field.fullName());
+      keyBuilder.field(field);
       return this;
     }
 
@@ -448,9 +413,7 @@ public final class LogicalSchema {
     }
 
     public Builder valueField(final Field field) {
-      throwOnDuplicateName(field.fullName(), valueFieldNames);
-      valueFields.add(field);
-      valueFieldNames.add(field.fullName());
+      valueBuilder.field(field);
       return this;
     }
 
@@ -460,23 +423,17 @@ public final class LogicalSchema {
     }
 
     public LogicalSchema build() {
-      final ImmutableList<Field> suppliedKeys = this.keyFields.build();
+      final SqlStruct suppliedKey = keyBuilder.build();
 
-      final ImmutableList<Field> keys = suppliedKeys.isEmpty()
-          ? IMPLICIT_KEY_FIELDS
-          : suppliedKeys;
+      final SqlStruct key = suppliedKey.fields().isEmpty()
+          ? IMPLICIT_KEY_SCHEMA
+          : suppliedKey;
 
       return new LogicalSchema(
-          META_FIELDS,
-          keys,
-          valueFields.build()
+          METADATA_SCHEMA,
+          key,
+          valueBuilder.build()
       );
-    }
-
-    private static void throwOnDuplicateName(final String fullName, final Set<String> existing) {
-      if (existing.contains(fullName)) {
-        throw new IllegalArgumentException("Duplicate field name: " + fullName);
-      }
     }
   }
 }

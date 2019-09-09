@@ -39,17 +39,18 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -74,8 +75,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
@@ -105,13 +104,13 @@ public class DataSourceNodeTest {
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
-  private static final LogicalSchema REAL_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
-      .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-      .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
+      .valueField("field1", SqlTypes.STRING)
+      .valueField("field2", SqlTypes.STRING)
+      .valueField("field3", SqlTypes.STRING)
+      .valueField(TIMESTAMP_FIELD, SqlTypes.BIGINT)
+      .valueField("key", SqlTypes.STRING)
+      .build();
   private static final KeyField KEY_FIELD
       = KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get());
   private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
@@ -372,15 +371,15 @@ public class DataSourceNodeTest {
 
     // Then:
     assertThat(schema, is(
-        LogicalSchema.of(SchemaBuilder.struct()
-            .field(SchemaUtil.ROWTIME_NAME, Schema.OPTIONAL_INT64_SCHEMA)
-            .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field3", Schema.OPTIONAL_STRING_SCHEMA)
-            .field(TIMESTAMP_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
-            .field("key", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()).withAlias(sourceName)));
+        LogicalSchema.builder()
+            .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+            .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+            .valueField("field1", SqlTypes.STRING)
+            .valueField("field2", SqlTypes.STRING)
+            .valueField("field3", SqlTypes.STRING)
+            .valueField(TIMESTAMP_FIELD, SqlTypes.BIGINT)
+            .valueField("key", SqlTypes.STRING)
+            .build().withAlias(sourceName)));
   }
 
   @Test

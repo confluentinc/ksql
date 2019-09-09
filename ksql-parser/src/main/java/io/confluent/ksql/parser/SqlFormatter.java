@@ -130,9 +130,11 @@ public final class SqlFormatter {
             .append('\n');
       }
 
-      append(indent, node.isStatic() ? "WITH " : "EMIT ");
-      append(indent, node.getResultMaterialization().toString())
-          .append('\n');
+      if (!node.isStatic()) {
+        append(indent, "EMIT ");
+        append(indent, node.getResultMaterialization().toString())
+            .append('\n');
+      }
 
       if (node.getLimit().isPresent()) {
         append(indent, "LIMIT " + node.getLimit().getAsInt())

@@ -503,7 +503,7 @@ public class SqlFormatterTest {
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, is("EXPLAIN \nSELECT *\nFROM ADDRESS ADDRESS\nWITH FINAL"));
+    assertThat(result, is("EXPLAIN \nSELECT *\nFROM ADDRESS ADDRESS"));
   }
 
   @Test

@@ -40,13 +40,18 @@ import java.util.stream.Collectors;
 public class QueryAnalyzer {
 
   private static final String NEW_QUERY_SYNTAX_HELP =
-      "'EMIT (CHANGES|FINAL)' is used to indicate a query is continuous."
-      + System.lineSeparator()
-      + "'WITH (CHANGES|FINAL)' is used to indicate a query is static."
-      + System.lineSeparator()
-      + "'FINAL' requests final results only, where as"
-      + System.lineSeparator()
-      + "'CHANGES' requests intermediate results.";
+      "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
+          + System.lineSeparator()
+          + "'Bare queries, e.g. those in the format 'SELECT * FROM X ...' are now, by default, "
+          + "static queries, i.e. they query the current state of the system and return a final "
+          + "result."
+          + System.lineSeparator()
+          + "To turn a static query into a streaming query, as was the default in older versions "
+          + "of KSQL, add `EMIT CHANGES` to the end of the statement, before any limit clause."
+          + System.lineSeparator()
+          + "Persistent queries, e.g. `CREATE STREAM AS ...`, currently have an implicit "
+          + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
+          + "as a this will be required in a future release.";
 
   private final MetaStore metaStore;
   private final String outputTopicPrefix;
@@ -70,7 +75,6 @@ public class QueryAnalyzer {
     if (query.isStatic()) {
       throw new KsqlException("Static queries are not yet supported. "
           + "Consider adding 'EMIT CHANGES' to any bare query, "
-          + "or removing 'WITH (CHANGES|FINAL)' if you've added it."
           + System.lineSeparator()
           + NEW_QUERY_SYNTAX_HELP
       );

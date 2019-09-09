@@ -20,8 +20,10 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -76,6 +78,7 @@ import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
+import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
@@ -91,6 +94,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -102,6 +106,7 @@ import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
+import javax.ws.rs.Path;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.streams.StreamsConfig;
@@ -167,7 +172,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
-    super(config);
+    super(injectRestConfigDefaults(config));
+
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfigNoPort = requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
@@ -188,6 +194,20 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
+  }
+
+  private static KsqlRestConfig injectRestConfigDefaults(final KsqlRestConfig restConfig) {
+    final Map<String, Object> restConfigs = restConfig.getOriginals();
+
+    final Set<String> authenticationSkipPaths = ImmutableSet.of(
+        ServerMetadataResource.class.getAnnotation(Path.class).value() + "/*"
+    );
+
+    // REST paths that are public and do not require authentication
+    restConfigs.put(RestConfig.AUTHENTICATION_SKIP_PATHS,
+        Joiner.on(",").join(authenticationSkipPaths));
+
+    return new KsqlRestConfig(restConfigs);
   }
 
   @Override

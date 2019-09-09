@@ -356,13 +356,17 @@ listeners
 The ``listeners`` setting controls the REST API endpoint for the KSQL server.
 For more info, see :ref:`ksql-rest-api`.
 
-The default ``listeners`` is ``http://0.0.0.0:8088,http://[::]:8088``, which binds to all IPv4 and IPv6 interfaces.
+The default ``listeners`` is ``http://0.0.0.0:8088``, which binds to all IPv4 interfaces.
+Set ``listeners`` to ``http://[::]:8088`` to bind to all IPv6 interfaces.
 Update this to a specific interface to bind only to a single interface. For example:
 
 ::
 
-    # Bind to all interfaces, (both IPv4 and IPv6).
-    listeners=http://0.0.0.0:8088,http://[::]:8088
+    # Bind to all IPv4 interfaces.
+    listeners=http://0.0.0.0:8088
+
+    # Bind to all IPv6 interfaces.
+    listeners=http://[::]:8088
 
     # Bind only to localhost.
     listeners=http://localhost:8088

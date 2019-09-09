@@ -17,8 +17,8 @@ package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.util.ExpressionMetadata;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;

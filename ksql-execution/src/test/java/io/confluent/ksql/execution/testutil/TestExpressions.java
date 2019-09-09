@@ -1,0 +1,57 @@
+package io.confluent.ksql.execution.testutil;
+
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.DecimalUtil;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+
+public final class TestExpressions {
+  private TestExpressions() {
+  }
+
+  private final static SqlStruct ADDRESS_SCHEMA = SqlTypes.struct()
+      .field("NUMBER", SqlTypes.BIGINT)
+      .field("STREET", SqlTypes.STRING)
+      .field("CITY", SqlTypes.STRING)
+      .field("STATE", SqlTypes.STRING)
+      .field("ZIPCODE", SqlTypes.BIGINT)
+      .build();
+
+  public final static LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("TEST1.COL0", SqlTypes.BIGINT)
+      .valueField("TEST1.COL1", SqlTypes.STRING)
+      .valueField("TEST1.COL2", SqlTypes.STRING)
+      .valueField("TEST1.COL3", SqlTypes.DOUBLE)
+      .valueField("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueField("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueField("TEST1.COL6", ADDRESS_SCHEMA)
+      .valueField("TEST1.COL7", SqlTypes.INTEGER)
+      .valueField("TEST1.COL8", SqlTypes.decimal(2, 1))
+      .valueField("TEST1.COL9", SqlTypes.decimal(2, 1))
+      .build();
+
+  private static final String TEST1 = "TEST1";
+  public static final DereferenceExpression COL0 = columnRef(TEST1, "COL0");
+  public static final DereferenceExpression COL1 = columnRef(TEST1, "COL1");
+  public static final DereferenceExpression COL2 = columnRef(TEST1, "COL2");
+  public static final DereferenceExpression COL3 = columnRef(TEST1, "COL3");
+  public static final DereferenceExpression ADDRESS = columnRef(TEST1, "COL6");
+  public static final DereferenceExpression ARRAYCOL = columnRef(TEST1, "COL4");
+  public static final DereferenceExpression MAPCOL = columnRef(TEST1, "COL5");
+  public static final DereferenceExpression COL7 = columnRef(TEST1, "COL7");
+
+  private static DereferenceExpression columnRef(final String source, final String name) {
+    return new DereferenceExpression(new QualifiedNameReference(QualifiedName.of(source)), name);
+  }
+
+  public static Expression literal(int value) {
+    return new IntegerLiteral(value);
+  }
+}

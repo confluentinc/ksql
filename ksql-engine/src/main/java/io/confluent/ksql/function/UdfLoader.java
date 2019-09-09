@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udf.Kudf;

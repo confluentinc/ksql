@@ -48,6 +48,11 @@
             <artifactId>connect-runtime</artifactId>
         </dependency>
 
+	<dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+
         <!-- Required for running tests -->
 
         <dependency>

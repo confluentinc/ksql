@@ -108,7 +108,7 @@ public class ProjectNode extends PlanNode {
         .select(
             getProjectSelectExpressions(),
             builder.buildNodeContext(getId().toString()),
-            builder.getProcessingLogContext()
+            builder
         );
   }
 }

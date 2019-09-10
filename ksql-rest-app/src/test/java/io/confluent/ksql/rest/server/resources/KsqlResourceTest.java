@@ -67,6 +67,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
@@ -75,7 +76,6 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -1166,7 +1166,7 @@ public class KsqlResourceTest {
   @Test
   public void shouldExplainQueryStatement() {
     // Given:
-    final String ksqlQueryString = "SELECT * FROM test_stream;";
+    final String ksqlQueryString = "SELECT * FROM test_stream EMIT CHANGES;";
     final String ksqlString = "EXPLAIN " + ksqlQueryString;
 
     // When:

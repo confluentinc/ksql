@@ -26,12 +26,12 @@ import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -382,7 +382,8 @@ public class TopicCreateInjectorTest {
     assertThat(result.getStatementText(),
         equalTo(
             "CREATE STREAM X WITH (KAFKA_TOPIC='name', PARTITIONS=1, REPLICAS=1) AS SELECT *"
-                + "\nFROM SOURCE SOURCE;"));
+                + "\nFROM SOURCE SOURCE\n"
+                + "EMIT CHANGES;"));
   }
 
   @Test

@@ -33,6 +33,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -41,8 +43,6 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -195,7 +195,7 @@ public class CodeGenRunnerTest {
 
     @Test
     public void testIsNull() {
-        final String simpleQuery = "SELECT col0 IS NULL FROM CODEGEN_TEST;";
+        final String simpleQuery = "SELECT col0 IS NULL FROM CODEGEN_TEST EMIT CHANGES;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
@@ -213,7 +213,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleMultiDimensionalArray() {
         // Given:
-        final String simpleQuery = "SELECT col14[0][0] FROM CODEGEN_TEST;";
+        final String simpleQuery = "SELECT col14[0][0] FROM CODEGEN_TEST EMIT CHANGES;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         // When:
@@ -227,7 +227,7 @@ public class CodeGenRunnerTest {
 
     @Test
     public void testIsNotNull() {
-        final String simpleQuery = "SELECT col0 IS NOT NULL FROM CODEGEN_TEST;";
+        final String simpleQuery = "SELECT col0 IS NOT NULL FROM CODEGEN_TEST EMIT CHANGES;";
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
@@ -514,7 +514,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleArithmeticExpr() {
         // Given:
         final String query =
-            "SELECT col0+col3, col3+10, col0*25, 12*4+2 FROM codegen_test WHERE col0 > 100;";
+            "SELECT col0+col3, col3+10, col0*25, 12*4+2 FROM codegen_test WHERE col0 > 100 EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 5L, 3, 15.0);
 
@@ -537,7 +537,7 @@ public class CodeGenRunnerTest {
                 + "CAST((col5 - col0) AS BIGINT),"
                 + "CAST((col5 - col0) AS DOUBLE),"
                 + "CAST((col5 - col0) AS STRING)"
-                + "FROM codegen_test;",
+                + "FROM codegen_test EMIT CHANGES;",
             inputValues), contains(4, 4L, 4.0, "4"));
 
         // FLOAT64 - FLOAT64
@@ -547,7 +547,7 @@ public class CodeGenRunnerTest {
                 + "CAST((col4 - col3) AS BIGINT),"
                 + "CAST((col4 - col3) AS DOUBLE),"
                 + "CAST((col4 - col3) AS STRING)"
-                + "FROM codegen_test;",
+                + "FROM codegen_test EMIT CHANGES;",
             inputValues), contains(1, 1L, 1.0, "1.0"));
 
         // FLOAT64 - INT64
@@ -557,14 +557,14 @@ public class CodeGenRunnerTest {
                 + "CAST((col4 - col0) AS BIGINT),"
                 + "CAST((col4 - col0) AS DOUBLE),"
                 + "CAST((col4 - col0) AS STRING)"
-                + "FROM codegen_test;",
+                + "FROM codegen_test EMIT CHANGES;",
             inputValues), contains(3, 3L, 3.0, "3.0"));
     }
 
     @Test
     public void shouldHandleStringLiteralWithCharactersThatMustBeEscaped() {
         // Given:
-        final String query = "SELECT CONCAT(CONCAT('\\\"', 'foo'), '\\\"') FROM CODEGEN_TEST;";
+        final String query = "SELECT CONCAT(CONCAT('\\\"', 'foo'), '\\\"') FROM CODEGEN_TEST EMIT CHANGES;";
 
         // When:
         final List<Object> columns = executeExpression(query, Collections.emptyMap());
@@ -577,7 +577,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleMathUdfs() {
         // Given:
         final String query =
-            "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), ROUND(col3*2)+12 FROM codegen_test;";
+            "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), ROUND(col3*2)+12 FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15, 3, 1.5);
 
@@ -591,7 +591,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleRandomUdf() {
         // Given:
-        final String query = "SELECT RANDOM()+10, RANDOM()+col0 FROM codegen_test;";
+        final String query = "SELECT RANDOM()+10, RANDOM()+col0 FROM codegen_test EMIT CHANGES;";
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15);
 
         // When:
@@ -612,7 +612,7 @@ public class CodeGenRunnerTest {
         // Given:
         final String query =
             "SELECT LCASE(col1), UCASE(col1), TRIM(col1), CONCAT(col1,'_test'), SUBSTRING(col1, 2, 4)"
-            + " FROM codegen_test;";
+            + " FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(1, " Hello ");
 
@@ -628,7 +628,7 @@ public class CodeGenRunnerTest {
         final String query =
             "SELECT "
             + "CONCAT(EXTRACTJSONFIELD(col1,'$.name'),CONCAT('-',EXTRACTJSONFIELD(col1,'$.value')))"
-            + " FROM codegen_test;";
+            + " FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(1, "{\"name\":\"fred\",\"value\":1}");
 
@@ -640,7 +640,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleMaps() {
         // Given:
         final Expression expression = analyzeQuery(
-            "SELECT col11['key1'] as Address FROM codegen_test;", metaStore)
+            "SELECT col11['key1'] as Address FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -662,7 +662,7 @@ public class CodeGenRunnerTest {
                 + "     WHEN col0 < 100 THEN 'medium' "
                 + "     ELSE 'large' "
                 + "END "
-                + "FROM codegen_test;", metaStore)
+                + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -684,7 +684,7 @@ public class CodeGenRunnerTest {
                 + "     WHEN WHENCONDITION(true, false) THEN WHENRESULT(200, false) "
                 + "     ELSE WHENRESULT(300, false) "
                 + "END "
-                + "FROM codegen_test;", metaStore)
+                + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -706,7 +706,7 @@ public class CodeGenRunnerTest {
                 + "     WHEN WHENCONDITION(false, true) THEN WHENRESULT(200, false) "
                 + "     ELSE WHENRESULT(300, true) "
                 + "END "
-                + "FROM codegen_test;", metaStore)
+                + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -727,7 +727,7 @@ public class CodeGenRunnerTest {
                 + "     WHEN col0 > 10 THEN 'small' "
                 + "     ELSE 'large' "
                 + "END "
-                + "FROM codegen_test;", metaStore)
+                + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -747,7 +747,7 @@ public class CodeGenRunnerTest {
             "SELECT CASE "
                 + "     WHEN col0 > 10 THEN 'small' "
                 + "END "
-                + "FROM codegen_test;", metaStore)
+                + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
             .get(0);
 
@@ -765,7 +765,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleUdfsExtractingFromMaps() {
         // Given:
         final Expression expression = analyzeQuery(
-            "SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM codegen_test;",
+            "SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM codegen_test EMIT CHANGES;",
             metaStore)
             .getSelectExpressions()
             .get(0);
@@ -782,7 +782,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleFunctionWithNullArgument() {
         final String query =
-            "SELECT test_udf(col0, NULL) FROM codegen_test;";
+            "SELECT test_udf(col0, NULL) FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
         final List<Object> columns = executeExpression(query, inputValues);
@@ -793,7 +793,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldHandleFunctionWithVarargs() {
         final String query =
-            "SELECT test_udf(col0, col0, col0, col0, col0) FROM codegen_test;";
+            "SELECT test_udf(col0, col0, col0, col0, col0) FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
         final List<Object> columns = executeExpression(query, inputValues);
@@ -805,7 +805,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleFunctionWithStruct() {
         // Given:
         final String query =
-            "SELECT test_udf(col" + STRUCT_INDEX + ") FROM codegen_test;";
+            "SELECT test_udf(col" + STRUCT_INDEX + ") FROM codegen_test EMIT CHANGES;";
 
         // When:
         final List<Object> columns = executeExpression(query, ImmutableMap.of());
@@ -817,7 +817,7 @@ public class CodeGenRunnerTest {
     @Test
     public void shouldChoseFunctionWithCorrectNumberOfArgsWhenNullArgument() {
         final String query =
-            "SELECT test_udf(col0, col0, NULL) FROM codegen_test;";
+            "SELECT test_udf(col0, col0, NULL) FROM codegen_test EMIT CHANGES;";
 
         final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
         final List<Object> columns = executeExpression(query, inputValues);
@@ -838,35 +838,35 @@ public class CodeGenRunnerTest {
     }
 
     private boolean evalBooleanExprEq(final int cola, final int colb, final Object[] values) {
-        return evalBooleanExpr("SELECT col%d = col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d = col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExprNeq(final int cola, final int colb, final Object[] values) {
-        return evalBooleanExpr("SELECT col%d != col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d != col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExprIsDistinctFrom(final int cola, final int colb,
         final Object[] values) {
-        return evalBooleanExpr("SELECT col%d IS DISTINCT FROM col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d IS DISTINCT FROM col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExprLessThan(final int cola, final int colb, final Object[] values) {
-        return evalBooleanExpr("SELECT col%d < col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d < col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExprLessThanEq(final int cola, final int colb,
         final Object[] values) {
-        return evalBooleanExpr("SELECT col%d <= col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d <= col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExprGreaterThan(final int cola, final int colb,
         final Object[] values) {
-        return evalBooleanExpr("SELECT col%d > col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d > col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExprGreaterThanEq(final int cola, final int colb,
         final Object[] values) {
-        return evalBooleanExpr("SELECT col%d >= col%d FROM CODEGEN_TEST;", cola, colb, values);
+        return evalBooleanExpr("SELECT col%d >= col%d FROM CODEGEN_TEST EMIT CHANGES;", cola, colb, values);
     }
 
     private boolean evalBooleanExpr(
@@ -889,27 +889,27 @@ public class CodeGenRunnerTest {
     }
 
     private boolean evalBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s;", col, min.toString(), max.toString());
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
         return evalBetweenClause(simpleQuery, col, val);
     }
 
     private boolean evalNotBetweenClauseScalar(final int col, final Number val, final Number min, final Number max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min.toString(), max.toString());
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min.toString(), max.toString());
         return evalBetweenClause(simpleQuery, col, val);
     }
 
     private boolean evalBetweenClauseString(final int col, final String val, final String min, final String max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s;", col, min, max);
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d BETWEEN %s AND %s EMIT CHANGES;", col, min, max);
         return evalBetweenClause(simpleQuery, col, val);
     }
 
     private boolean evalNotBetweenClauseString(final int col, final String val, final String min, final String max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min, max);
         return evalBetweenClause(simpleQuery, col, val);
     }
 
     private void evalNotBetweenClauseObject(final int col, final Object val, final String min, final String max) {
-        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s;", col, min, max);
+        final String simpleQuery = String.format("SELECT * FROM CODEGEN_TEST WHERE col%d NOT BETWEEN %s AND %s EMIT CHANGES;", col, min, max);
         evalBetweenClause(simpleQuery, col, val);
     }
 

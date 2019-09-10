@@ -39,6 +39,7 @@ import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -158,7 +159,8 @@ public class WSQueryEndpointTest {
   @Before
   public void setUp() {
     query = new Query(Optional.empty(), mock(Select.class), mock(Relation.class), Optional.empty(),
-        Optional.empty(), Optional.empty(), Optional.empty(), OptionalInt.empty());
+        Optional.empty(), Optional.empty(), Optional.empty(), ResultMaterialization.CHANGES, false,
+        OptionalInt.empty());
     when(session.getId()).thenReturn("session-id");
     when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))

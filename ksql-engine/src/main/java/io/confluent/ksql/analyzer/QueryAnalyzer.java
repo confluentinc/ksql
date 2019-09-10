@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
@@ -37,6 +38,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
+
+  private static final String NEW_QUERY_SYNTAX_HELP =
+      "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
+          + System.lineSeparator()
+          + "'Bare queries, e.g. those in the format 'SELECT * FROM X ...' are now, by default, "
+          + "static queries, i.e. they query the current state of the system and return a final "
+          + "result."
+          + System.lineSeparator()
+          + "To turn a static query into a streaming query, as was the default in older versions "
+          + "of KSQL, add `EMIT CHANGES` to the end of the statement, before any limit clause."
+          + System.lineSeparator()
+          + "Persistent queries, e.g. `CREATE STREAM AS ...`, currently have an implicit "
+          + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
+          + "as a this will be required in a future release.";
+
   private final MetaStore metaStore;
   private final String outputTopicPrefix;
   private final Set<SerdeOption> defaultSerdeOptions;
@@ -56,6 +72,22 @@ public class QueryAnalyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
+    if (query.isStatic()) {
+      throw new KsqlException("Static queries are not yet supported. "
+          + "Consider adding 'EMIT CHANGES' to any bare query, "
+          + System.lineSeparator()
+          + NEW_QUERY_SYNTAX_HELP
+      );
+    }
+
+    if (query.getResultMaterialization() != ResultMaterialization.CHANGES) {
+      throw new KsqlException("Continous queries do not yet support `EMIT FINAL`. "
+          + "Consider changing to `EMIT CHANGES`."
+          + System.lineSeparator()
+          + NEW_QUERY_SYNTAX_HELP
+      );
+    }
+
     return new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions)
         .analyze(query, sink);
   }

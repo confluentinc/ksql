@@ -90,7 +90,7 @@ public class ExplainExecutorTest {
   public void shouldExplainStatement() {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "Y");
-    final String statementText = "SELECT * FROM Y;";
+    final String statementText = "SELECT * FROM Y EMIT CHANGES;";
     final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
 
     // When:

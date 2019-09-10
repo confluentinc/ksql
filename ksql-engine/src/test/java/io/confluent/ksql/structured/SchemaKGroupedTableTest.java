@@ -246,7 +246,7 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldFailUnsupportedAggregateFunction() {
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTableFromQuery(
-        "SELECT col0, col1, col2 FROM test1;", "COL1", "COL2");
+        "SELECT col0, col1, col2 FROM test1 EMIT CHANGES;", "COL1", "COL2");
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     try {
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap = new HashMap<>();

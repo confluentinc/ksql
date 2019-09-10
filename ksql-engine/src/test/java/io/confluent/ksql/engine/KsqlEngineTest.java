@@ -460,7 +460,7 @@ public class KsqlEngineTest {
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
-        "select * from test1;",
+        "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     query.start();
@@ -511,7 +511,7 @@ public class KsqlEngineTest {
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
     final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
-        "select * from test1;",
+        "select * from test1 EMIT CHANGES;",
         KSQL_CONFIG, Collections.emptyMap()).get(0);
 
     // When:

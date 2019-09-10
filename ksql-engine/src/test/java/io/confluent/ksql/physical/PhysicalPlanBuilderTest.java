@@ -141,7 +141,7 @@ public class PhysicalPlanBuilderTest {
       + "(ID BIGINT, COL0 VARCHAR, COL1 DOUBLE) "
       + " WITH (KAFKA_TOPIC = 'test7', VALUE_FORMAT = 'JSON');";
 
-  private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;";
+  private static final String simpleSelectFilter = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
   private PhysicalPlanBuilder physicalPlanBuilder;
   private final MutableMetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
   private static final KsqlConfig INITIAL_CONFIG = KsqlConfigTestUtil.create("what-eva");
@@ -320,7 +320,7 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldCreateExecutionPlan() {
     final String queryString = "SELECT col0, sum(col3), count(col3) FROM test1 "
-        + "WHERE col0 > 100 GROUP BY col0;";
+        + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
     final QueryMetadata metadata = buildPhysicalPlan(queryString);
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");

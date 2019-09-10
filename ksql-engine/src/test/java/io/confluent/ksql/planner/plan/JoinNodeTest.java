@@ -35,13 +35,13 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
@@ -332,7 +332,7 @@ public class JoinNodeTest {
     // When:
     buildJoin(
           "SELECT t1.col0, t2.col0, t2.col1 "
-              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0;"
+              + "FROM test1 t1 LEFT JOIN test2 t2 ON t1.col0 = t2.col0 EMIT CHANGES;"
     );
   }
 
@@ -1047,7 +1047,7 @@ public class JoinNodeTest {
     buildJoin(
         "SELECT t1.col1, t2.col1, t2.col4, col5, t2.col2 "
             + "FROM test1 t1 LEFT JOIN test2 t2 "
-            + "ON t1.col1 = t2.col0;"
+            + "ON t1.col1 = t2.col0 EMIT CHANGES;"
     );
   }
 

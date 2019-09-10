@@ -133,7 +133,7 @@ public class RestApiTest {
   public void shouldExecuteStreamingQueryWithV1ContentType() throws Exception {
     // When:
     final List<String> messages = makeStreamingRequest(
-        "SELECT * from " + PAGE_VIEW_STREAM + " LIMIT " + LIMIT + ";",
+        "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         Versions.KSQL_V1_JSON_TYPE,
         Versions.KSQL_V1_JSON_TYPE
     );
@@ -146,7 +146,7 @@ public class RestApiTest {
   public void shouldExecuteStreamingQueryWithJsonContentType() throws Exception {
     // When:
     final List<String> messages = makeStreamingRequest(
-        "SELECT * from " + PAGE_VIEW_STREAM + " LIMIT " + LIMIT + ";",
+        "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );

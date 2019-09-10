@@ -144,6 +144,8 @@ public final class StatementRewriter<C> {
           where,
           groupBy,
           having,
+          node.getResultMaterialization(),
+          node.isStatic(),
           node.getLimit()
       );
     }

@@ -130,6 +130,12 @@ public final class SqlFormatter {
             .append('\n');
       }
 
+      if (!node.isStatic()) {
+        append(indent, "EMIT ");
+        append(indent, node.getResultMaterialization().toString())
+            .append('\n');
+      }
+
       if (node.getLimit().isPresent()) {
         append(indent, "LIMIT " + node.getLimit().getAsInt())
                 .append('\n');

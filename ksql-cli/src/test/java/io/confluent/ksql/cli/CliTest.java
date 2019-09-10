@@ -584,7 +584,7 @@ public class CliTest {
     final List<Object> row3 = streamData.get("3").getColumns();
 
     selectWithLimit(
-        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName(),
+        "SELECT ORDERID, ITEMID FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
             row(row1.get(1).toString(), row1.get(2).toString()),
@@ -601,7 +601,7 @@ public class CliTest {
     final List<Object> row3 = streamData.get("3").getColumns();
 
     selectWithLimit(
-        "SELECT * FROM " + orderDataProvider.kstreamName(),
+        "SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES",
         3,
         containsRows(
             row(prependWithRowTimeAndKey(row1)),
@@ -614,7 +614,7 @@ public class CliTest {
   public void testTransientHeader() {
     // When:
     rowCaptor.resetTestResult();
-    run("SELECT * FROM " + orderDataProvider.kstreamName() + " LIMIT 1", localCli);
+    run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
     assertThat(terminal.getOutputString(), containsString("ROWTIME"));

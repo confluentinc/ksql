@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -33,7 +34,6 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -366,7 +366,7 @@ public class SqlFormatterTest {
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
     final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
-        + "FROM ADDRESS A"));
+        + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
   @Test
@@ -375,7 +375,7 @@ public class SqlFormatterTest {
     final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT *\n"
-            + "FROM ADDRESS ADDRESS"));
+            + "FROM ADDRESS ADDRESS\nEMIT CHANGES"));
   }
 
   @Test
@@ -384,7 +384,7 @@ public class SqlFormatterTest {
     final Statement statement = parseSingle(statementString);
     assertThat(SqlFormatter.formatSql(statement),
         equalTo("CREATE STREAM S AS SELECT\n" +
-            "  ADDRESS.ITEMID \"ITEMID\",\n  ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS"));
+            "  ADDRESS.ITEMID \"ITEMID\",\n  ADDRESS.`SIZE` \"SIZE\"\nFROM ADDRESS ADDRESS\nEMIT CHANGES"));
   }
 
   @Test
@@ -395,7 +395,7 @@ public class SqlFormatterTest {
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  *,\n"
             + "  ADDRESS.ADDRESS \"CITY\"\n"
-            + "FROM ADDRESS ADDRESS"));
+            + "FROM ADDRESS ADDRESS\nEMIT CHANGES"));
   }
 
   @Test
@@ -408,7 +408,8 @@ public class SqlFormatterTest {
             + "  ADDRESS.*,\n"
             + "  ITEMID.*\n"
             + "FROM ADDRESS ADDRESS\n"
-            + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
+            + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))\n"
+            + "EMIT CHANGES"));
   }
 
   @Test
@@ -421,7 +422,8 @@ public class SqlFormatterTest {
             + "  ADDRESS.*,\n"
             + "  ITEMID.ORDERTIME \"ORDERTIME\"\n"
             + "FROM ADDRESS ADDRESS\n"
-            + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))"));
+            + "INNER JOIN ITEMID ITEMID ON ((ADDRESS.ADDRESS = ITEMID.ADDRESS->ADDRESS))\n"
+            + "EMIT CHANGES"));
   }
 
   @Test
@@ -432,7 +434,8 @@ public class SqlFormatterTest {
         equalTo("CREATE STREAM S AS SELECT\n"
             + "  ADDRESS.ADDRESS \"ONE\",\n"
             + "  ADDRESS.ADDRESS \"TWO\"\n"
-            + "FROM ADDRESS ADDRESS"));
+            + "FROM ADDRESS ADDRESS\n"
+            + "EMIT CHANGES"));
   }
 
   @Test
@@ -462,9 +465,11 @@ public class SqlFormatterTest {
 
     final String result = SqlFormatter.formatSql(statement);
 
-    assertThat(result, startsWith("CREATE STREAM S AS SELECT *\n"
+    assertThat(result, is("CREATE STREAM S AS SELECT *\n"
         + "FROM ADDRESS ADDRESS\n"
-        + "PARTITION BY ADDRESS"));
+        + "EMIT CHANGES\n"
+        + "PARTITION BY ADDRESS"
+    ));
   }
 
   @Test
@@ -476,7 +481,9 @@ public class SqlFormatterTest {
 
     assertThat(result, startsWith("INSERT INTO ADDRESS SELECT *\n"
         + "FROM ADDRESS ADDRESS\n"
-        + "PARTITION BY ADDRESS"));
+        + "EMIT CHANGES\n"
+        + "PARTITION BY ADDRESS"
+    ));
   }
 
   @Test
@@ -653,7 +660,8 @@ public class SqlFormatterTest {
         + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW TUMBLING ( SIZE 7 DAYS ) \n"
-        + "GROUP BY ORDERS.ITEMID"));
+        + "GROUP BY ORDERS.ITEMID\n"
+        + "EMIT CHANGES"));
   }
 
   @Test
@@ -669,7 +677,8 @@ public class SqlFormatterTest {
         + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW HOPPING ( SIZE 20 SECONDS , ADVANCE BY 5 SECONDS ) \n"
-        + "GROUP BY ORDERS.ITEMID"));
+        + "GROUP BY ORDERS.ITEMID\n"
+        + "EMIT CHANGES"));
   }
 
   @Test
@@ -685,7 +694,8 @@ public class SqlFormatterTest {
         + "  COUNT(*) \"KSQL_COL_1\"\n"
         + "FROM ORDERS ORDERS\n"
         + "WINDOW SESSION ( 15 MINUTES ) \n"
-        + "GROUP BY ORDERS.ITEMID"));
+        + "GROUP BY ORDERS.ITEMID\n"
+        + "EMIT CHANGES"));
   }
 
   @Test
@@ -733,7 +743,50 @@ public class SqlFormatterTest {
     final String result = SqlFormatter.formatSql(statement);
 
     // Then:
-    assertThat(result, is("CREATE STREAM A AS SELECT `TABLE`.`SELECT` \"SELECT\"\nFROM `TABLE` `TABLE`"));
+    assertThat(result,
+        is("CREATE STREAM A AS SELECT `TABLE`.`SELECT` \"SELECT\"\nFROM `TABLE` `TABLE`\nEMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitChangesOnBareQuery() {
+    // Given:
+    final Statement statement = parseSingle("SELECT ITEMID FROM ORDERS EMIT CHANGES;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "EMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldSupportExplicitEmitChangesOnPersistentQuery() {
+    // Given:
+    final Statement statement = parseSingle("CREATE STREAM X AS SELECT ITEMID FROM ORDERS EMIT CHANGES;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM X AS SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "EMIT CHANGES"));
+  }
+
+  @Test
+  public void shouldSupportImplicitEmitChangesOnPersistentQuery() {
+    // Given:
+    final Statement statement = parseSingle("CREATE STREAM X AS SELECT ITEMID FROM ORDERS;");
+
+    // When:
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("CREATE STREAM X AS SELECT ORDERS.ITEMID \"ITEMID\"\n"
+        + "FROM ORDERS ORDERS\n"
+        + "EMIT CHANGES"));
   }
 
   private Statement parseSingle(final String statementString) {

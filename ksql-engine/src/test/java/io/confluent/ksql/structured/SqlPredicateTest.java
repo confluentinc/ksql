@@ -69,7 +69,7 @@ public class SqlPredicateTest {
   public void testFilter() {
     // Given:
     final SqlPredicate predicate = givenSqlPredicateFor(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100;");
+        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When/Then:
     assertThat(
@@ -84,7 +84,7 @@ public class SqlPredicateTest {
     // Given:
     final SqlPredicate predicate =
         givenSqlPredicateFor(
-            "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 AND LEN(col2) = 5;");
+            "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 AND LEN(col2) = 5 EMIT CHANGES;");
 
     // When/Then:
     assertThat(
@@ -97,7 +97,7 @@ public class SqlPredicateTest {
   public void shouldIgnoreNullRows() {
     // Given:
     final SqlPredicate sqlPredicate =
-        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100;");
+        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When/Then:
     assertThat(sqlPredicate.getPredicate().test("key", null), is(false));
@@ -107,7 +107,7 @@ public class SqlPredicateTest {
   public void shouldWriteProcessingLogOnError() {
     // Given:
     final SqlPredicate sqlPredicate =
-        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100;");
+        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
     sqlPredicate.getPredicate().test(

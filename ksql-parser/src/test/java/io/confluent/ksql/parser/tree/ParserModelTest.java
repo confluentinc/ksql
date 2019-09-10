@@ -81,7 +81,10 @@ public class ParserModelTest {
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
-          OptionalInt.empty()))
+          ResultMaterialization.CHANGES,
+          false,
+          OptionalInt.empty()
+      ))
       .put(java.util.Map.class,
           ImmutableMap.of(
               CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral("topic_test"),

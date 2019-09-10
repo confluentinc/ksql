@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
@@ -125,6 +124,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -167,6 +167,7 @@ public class AstBuilder {
 
     private final DataSourceExtractor dataSourceExtractor;
     private final MetaStore metaStore;
+    private final SqlTypeParser typeParser;
 
     private int selectItemIndex = 0;
 
@@ -176,6 +177,7 @@ public class AstBuilder {
     ) {
       this.dataSourceExtractor = Objects.requireNonNull(dataSourceExtractor, "dataSourceExtractor");
       this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
+      this.typeParser = SqlTypeParser.create(metaStore);
     }
 
     @Override
@@ -921,7 +923,7 @@ public class AstBuilder {
       return new Cast(
           getLocation(context),
           (Expression) visit(context.expression()),
-          getType(context.type(), metaStore)
+          typeParser.getType(context.type())
       );
     }
 
@@ -1064,7 +1066,7 @@ public class AstBuilder {
           getLocation(context),
           context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
           ParserUtil.getIdentifierText(context.identifier()),
-          getType(context.type(), metaStore)
+          typeParser.getType(context.type())
       );
     }
 
@@ -1163,7 +1165,7 @@ public class AstBuilder {
       return new RegisterType(
           getLocation(context),
           ParserUtil.getIdentifierText(context.identifier()),
-          getType(context.type(), metaStore)
+          typeParser.getType(context.type())
       );
     }
 

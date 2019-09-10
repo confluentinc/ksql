@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
-import io.confluent.ksql.schema.ksql.TypeContextUtil;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.test.model.KeyFieldNode;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
@@ -81,7 +81,7 @@ public class KeyFieldDeserializer extends StdDeserializer<KeyFieldNode> {
 
     try {
       return Optional.ofNullable(valueSchema)
-          .map(schema -> TypeContextUtil.getType(schema, TypeRegistry.EMPTY))
+          .map(schema -> SqlTypeParser.create(TypeRegistry.EMPTY).parse(schema))
           .map(Type::getSqlType);
     } catch (final Exception e) {
       throw new InvalidFieldException("legacySchema", "Failed to parse: " + valueSchema, e);

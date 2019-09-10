@@ -23,7 +23,7 @@ import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udaf.UdfArgSupplier;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.TypeContextUtil;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
@@ -89,10 +89,12 @@ public class UdfCompiler {
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private final Optional<Metrics> metrics;
+  private final SqlTypeParser typeParser;
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   public UdfCompiler(final Optional<Metrics> metrics) {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
+    this.typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
   }
 
   @VisibleForTesting
@@ -155,15 +157,13 @@ public class UdfCompiler {
       final Schema argSchema = paramSchema.isEmpty()
           ? UdfUtil.getSchemaFromType(valueAndAggregateTypes.left)
           : SchemaConverters.sqlToConnectConverter()
-              .toConnectSchema(
-                  TypeContextUtil.getType(paramSchema, TypeRegistry.EMPTY).getSqlType());
+              .toConnectSchema(typeParser.parse(paramSchema).getSqlType());
       final List<Schema> args = Collections.singletonList(argSchema);
 
       final Schema returnValue = returnSchema.isEmpty()
           ? SchemaUtil.ensureOptional(UdfUtil.getSchemaFromType(valueAndAggregateTypes.right))
           : SchemaConverters.sqlToConnectConverter()
-              .toConnectSchema(
-                  TypeContextUtil.getType(returnSchema, TypeRegistry.EMPTY).getSqlType());
+              .toConnectSchema(typeParser.parse(returnSchema).getSqlType());
 
       return evaluator.apply(args, returnValue, metrics);
     } catch (final Exception e) {

@@ -30,32 +30,38 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
+import java.util.Objects;
 import java.util.Optional;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.atn.PredictionMode;
 
-public final class TypeContextUtil {
+public final class SqlTypeParser {
 
-  private TypeContextUtil() { }
+  private final TypeRegistry typeRegistry;
 
-  public static Type getType(final String schema, final TypeRegistry typeRegistry) {
-    return getType(parseTypeContext(schema), typeRegistry);
+  public static SqlTypeParser create(final TypeRegistry typeRegistry) {
+    return new SqlTypeParser(typeRegistry);
   }
 
-  public static Type getType(
-      final SqlBaseParser.TypeContext type,
-      final TypeRegistry typeRegistry
+  private SqlTypeParser(final TypeRegistry typeRegistry) {
+    this.typeRegistry = Objects.requireNonNull(typeRegistry, "typeRegistry");
+  }
+
+  public Type parse(final String schema) {
+    final TypeContext typeContext = parseTypeContext(schema);
+    return getType(typeContext);
+  }
+
+  public Type getType(
+      final SqlBaseParser.TypeContext type
   ) {
     final Optional<NodeLocation> location = ParserUtil.getLocation(type);
-    final SqlType sqlType = getSqlType(type, typeRegistry);
+    final SqlType sqlType = getSqlType(type);
     return new Type(location, sqlType);
   }
 
-  private static SqlType getSqlType(
-      final SqlBaseParser.TypeContext type,
-      final TypeRegistry typeRegistry
-  ) {
+  private SqlType getSqlType(final SqlBaseParser.TypeContext type) {
     if (type.baseType() != null) {
       final String baseType = baseTypeToString(type.baseType());
       if (SqlPrimitiveType.isPrimitiveTypeName(baseType)) {
@@ -75,11 +81,11 @@ public final class TypeContextUtil {
     }
 
     if (type.ARRAY() != null) {
-      return SqlArray.of(getSqlType(type.type(0), typeRegistry));
+      return SqlArray.of(getSqlType(type.type(0)));
     }
 
     if (type.MAP() != null) {
-      return SqlMap.of(getSqlType(type.type(1), typeRegistry));
+      return SqlMap.of(getSqlType(type.type(1)));
     }
 
     if (type.STRUCT() != null) {
@@ -87,7 +93,7 @@ public final class TypeContextUtil {
 
       for (int i = 0; i < type.identifier().size(); i++) {
         final String fieldName = ParserUtil.getIdentifierText(type.identifier(i));
-        final SqlType fieldType = getSqlType(type.type(i), typeRegistry);
+        final SqlType fieldType = getSqlType(type.type(i));
         builder.field(fieldName, fieldType);
       }
       return builder.build();

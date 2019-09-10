@@ -122,6 +122,18 @@ public class SqlStructTest {
   }
 
   @Test
+  public void shouldImplementToStringForEmptyStruct() {
+    // Given:
+    final SqlStruct emptyStruct = SqlStruct.builder().build();
+
+    // When:
+    final String sql = emptyStruct.toString();
+
+    // Then:
+    assertThat(sql, is("STRUCT< >"));
+  }
+
+  @Test
   public void shouldImplementToStringWithReservedWordHandling() {
     // Given:
     final SqlStruct struct = SqlStruct.builder()

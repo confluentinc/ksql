@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser;
 
-import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -23,6 +22,7 @@ import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
@@ -77,13 +77,15 @@ public final class SchemaParser {
     parser.removeErrorListeners();
     parser.addErrorListener(errorListener);
 
+    final SqlTypeParser typeParser = SqlTypeParser.create(typeRegistry);
+
     final List<TableElement> elements = parser.tableElements().tableElement()
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
             ctx.KEY() == null ? Namespace.VALUE : Namespace.KEY,
             ParserUtil.getIdentifierText(ctx.identifier()),
-            getType(ctx.type(), typeRegistry)
+            typeParser.getType(ctx.type())
         ))
         .collect(Collectors.toList());
 

@@ -34,6 +34,10 @@ import java.util.stream.Collectors;
 @Immutable
 public final class SqlStruct extends SqlType {
 
+  private static final String PREFIX = "STRUCT<";
+  private static final String POSTFIX = ">";
+  private static final String EMPTY_STRUCT = PREFIX + " " + POSTFIX;
+
   private final ImmutableList<Field> fields;
 
   public static Builder builder() {
@@ -97,9 +101,13 @@ public final class SqlStruct extends SqlType {
 
   @Override
   public String toString(final FormatOptions formatOptions) {
+    if (fields.isEmpty()) {
+      return EMPTY_STRUCT;
+    }
+
     return fields.stream()
         .map(f -> f.toString(formatOptions))
-        .collect(Collectors.joining(", ", "STRUCT<", ">"));
+        .collect(Collectors.joining(", ", PREFIX, POSTFIX));
   }
 
   public static final class Builder {

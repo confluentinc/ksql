@@ -20,12 +20,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.function.TestFunctionRegistry;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.DefaultKsqlParser;
-import io.confluent.ksql.parser.KsqlParser;
-import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
-import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign;
@@ -34,18 +28,22 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,28 +61,28 @@ public class SqlToJavaVisitorTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(TestFunctionRegistry.INSTANCE.get());
 
-    final Schema addressSchema = SchemaBuilder.struct()
-        .field("NUMBER",Schema.OPTIONAL_INT64_SCHEMA)
-        .field("STREET", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("CITY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("STATE", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ZIPCODE", Schema.OPTIONAL_INT64_SCHEMA)
-        .optional().build();
-
-    final Schema schema = SchemaBuilder.struct()
-        .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-        .field("TEST1.COL4", SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("TEST1.COL5", SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build())
-        .field("TEST1.COL6", addressSchema)
-        .field("TEST1.COL7", SchemaBuilder.OPTIONAL_INT32_SCHEMA)
-        .field("TEST1.COL8", DecimalUtil.builder(2, 1).build())
-        .field("TEST1.COL9", DecimalUtil.builder(2, 1).build())
+    final SqlStruct addressSchema = SqlTypes.struct()
+        .field("NUMBER", SqlTypes.BIGINT)
+        .field("STREET", SqlTypes.STRING)
+        .field("CITY", SqlTypes.STRING)
+        .field("STATE", SqlTypes.STRING)
+        .field("ZIPCODE", SqlTypes.BIGINT)
         .build();
 
-    sqlToJavaVisitor = new SqlToJavaVisitor(LogicalSchema.of(schema), TestFunctionRegistry.INSTANCE.get());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("TEST1.COL0", SqlTypes.BIGINT)
+        .valueField("TEST1.COL1", SqlTypes.STRING)
+        .valueField("TEST1.COL2", SqlTypes.STRING)
+        .valueField("TEST1.COL3", SqlTypes.DOUBLE)
+        .valueField("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE))
+        .valueField("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
+        .valueField("TEST1.COL6", addressSchema)
+        .valueField("TEST1.COL7", SqlTypes.INTEGER)
+        .valueField("TEST1.COL8", SqlTypes.decimal(2, 1))
+        .valueField("TEST1.COL9", SqlTypes.decimal(2, 1))
+        .build();
+
+    sqlToJavaVisitor = new SqlToJavaVisitor(schema, TestFunctionRegistry.INSTANCE.get());
   }
 
   @Test

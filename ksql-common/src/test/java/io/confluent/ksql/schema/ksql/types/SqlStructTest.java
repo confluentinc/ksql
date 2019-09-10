@@ -26,6 +26,7 @@ import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.types.KsqlStruct;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -66,7 +67,7 @@ public class SqlStructTest {
         .build();
 
     // Then:
-    assertThat(struct.getFields(), contains(
+    assertThat(struct.fields(), contains(
         Field.of("f0", SqlTypes.BIGINT),
         Field.of("f1", SqlTypes.DOUBLE)
     ));
@@ -170,7 +171,7 @@ public class SqlStructTest {
         .build();
 
     final KsqlStruct value = KsqlStruct.builder(mismatching)
-        .set("f0", 10.0D)
+        .set("f0", Optional.of(10.0D))
         .build();
 
     // Then:
@@ -200,7 +201,7 @@ public class SqlStructTest {
         .build();
 
     final KsqlStruct value = KsqlStruct.builder(schema)
-        .set("f0", 10L)
+        .set("f0", Optional.of(10L))
         .build();
 
     // When:

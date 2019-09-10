@@ -22,14 +22,13 @@ import static org.hamcrest.Matchers.not;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,16 +39,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class SerdeOptionsTest {
 
-  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-      .build());
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
+      .valueField("f0", SqlTypes.BIGINT)
+      .build();
 
-  private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("f0", Schema.OPTIONAL_INT64_SCHEMA)
-      .field("f1", Schema.OPTIONAL_FLOAT64_SCHEMA)
-      .build());
+  private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.builder()
+      .valueField("f0", SqlTypes.BIGINT)
+      .valueField("f1", SqlTypes.DOUBLE)
+      .build();
 
   private static final List<String> SINGLE_COLUMN_NAME = ImmutableList.of("bob");
   private static final List<String> MULTI_FIELD_NAMES = ImmutableList.of("bob", "vic");

@@ -163,8 +163,6 @@ import org.apache.avro.Schema.Type;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.CoreMatchers;
@@ -191,9 +189,9 @@ public class KsqlResourceTest {
       "CREATE STREAM S AS SELECT * FROM test_stream;",
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
-  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
+      .valueField("val", SqlTypes.STRING)
+      .build();
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
@@ -232,9 +230,9 @@ public class KsqlResourceTest {
       new KsqlConfig(getDefaultKsqlConfig())
   );
 
-  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("f1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+      .valueField("f1", SqlTypes.STRING)
+      .build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -429,10 +427,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldShowStreamsExtended() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("FIELD1", SqlTypes.BOOLEAN)
+        .valueField("FIELD2", SqlTypes.STRING)
+        .build();
 
     givenSource(
         DataSourceType.KSTREAM, "new_stream", "new_topic",
@@ -458,10 +456,10 @@ public class KsqlResourceTest {
   @Test
   public void shouldShowTablesExtended() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("FIELD1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .field("FIELD2", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("FIELD1", SqlTypes.BOOLEAN)
+        .valueField("FIELD2", SqlTypes.STRING)
+        .build();
 
     givenSource(
         DataSourceType.KTABLE, "new_table", "new_topic",
@@ -2015,17 +2013,17 @@ public class KsqlResourceTest {
   }
 
   private void addTestTopicAndSources() {
-    final LogicalSchema schema1 = LogicalSchema.of(SchemaBuilder.struct()
-            .field("S1_F1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-            .build());
+    final LogicalSchema schema1 = LogicalSchema.builder()
+        .valueField("S1_F1", SqlTypes.BOOLEAN)
+        .build();
 
     givenSource(
         DataSourceType.KTABLE,
         "TEST_TABLE", "KAFKA_TOPIC_1", schema1);
 
-    final LogicalSchema schema2 = LogicalSchema.of(SchemaBuilder.struct()
-        .field("S2_F1", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema2 = LogicalSchema.builder()
+        .valueField("S2_F1", SqlTypes.STRING)
+        .build();
 
     givenSource(
         DataSourceType.KSTREAM,
@@ -2054,7 +2052,8 @@ public class KsqlResourceTest {
               sourceName,
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
+              KeyField
+                  .of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));
@@ -2066,7 +2065,8 @@ public class KsqlResourceTest {
               sourceName,
               schema,
               SerdeOption.none(),
-              KeyField.of(schema.valueFields().get(0).name(), schema.valueFields().get(0)),
+              KeyField
+                  .of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));

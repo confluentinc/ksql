@@ -49,7 +49,10 @@ public class KafkaSerdeSupplier implements SerdeSupplier<Object> {
 
   private ConnectSchema getConnectSchema(final boolean isKey) {
     final LogicalSchema schema = schemaSupplier.get();
-    final ConnectSchema connectSchema = isKey ? schema.keySchema() : schema.valueSchema();
+    final ConnectSchema connectSchema = isKey
+        ? schema.keyConnectSchema()
+        : schema.valueConnectSchema();
+
     final List<Field> fields = connectSchema.fields();
     if (fields.isEmpty()) {
       throw new IllegalStateException("No fields in schema");

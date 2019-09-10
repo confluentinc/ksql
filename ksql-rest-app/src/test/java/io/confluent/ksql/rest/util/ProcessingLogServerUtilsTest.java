@@ -155,7 +155,7 @@ public class ProcessingLogServerUtilsTest {
     assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(Format.JSON));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(
-        stream.getSchema().valueFields().stream().map(Field::name).collect(toList()),
+        stream.getSchema().value().fields().stream().map(Field::name).collect(toList()),
         equalTo(
             new ImmutableList.Builder<String>()
                 .addAll(
@@ -168,7 +168,7 @@ public class ProcessingLogServerUtilsTest {
     expected.fields().forEach(
         f -> assertLogSchema(
             f.schema(),
-            stream.getSchema().valueSchema().field(f.name().toUpperCase()).schema(),
+            stream.getSchema().valueConnectSchema().field(f.name().toUpperCase()).schema(),
             ImmutableList.of(f.name())));
   }
 

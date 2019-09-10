@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -41,8 +42,6 @@ import java.util.Collections;
 import java.util.Set;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.acl.AclOperation;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -55,10 +54,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlAuthorizationValidatorImplTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("F1", SqlTypes.STRING)
+      .build();
 
   private static final String STREAM_TOPIC_1 = "s1";
   private static final String STREAM_TOPIC_2 = "s2";

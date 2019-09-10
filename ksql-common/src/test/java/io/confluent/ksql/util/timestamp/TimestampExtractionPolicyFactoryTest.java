@@ -21,11 +21,11 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
-import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.StreamsConfig;
@@ -38,6 +38,8 @@ import org.junit.rules.ExpectedException;
 
 public class TimestampExtractionPolicyFactoryTest {
 
+  private final LogicalSchema.Builder schemaBuilder2 = LogicalSchema.builder()
+      .valueField("id", SqlTypes.BIGINT);
 
   private final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
       .field("id", Schema.OPTIONAL_INT64_SCHEMA);
@@ -58,7 +60,7 @@ public class TimestampExtractionPolicyFactoryTest {
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
-            LogicalSchema.of(schemaBuilder.build()),
+            schemaBuilder2.build(),
             Optional.empty(),
             Optional.empty()
         );
@@ -85,7 +87,7 @@ public class TimestampExtractionPolicyFactoryTest {
     TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
-            LogicalSchema.of(schemaBuilder.build()),
+            schemaBuilder2.build(),
             Optional.empty(),
             Optional.empty()
         );
@@ -97,7 +99,7 @@ public class TimestampExtractionPolicyFactoryTest {
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
-            LogicalSchema.of(schemaBuilder.build()),
+            schemaBuilder2.build(),
             Optional.empty(),
             Optional.empty()
         );
@@ -119,7 +121,7 @@ public class TimestampExtractionPolicyFactoryTest {
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
-            LogicalSchema.of(schemaBuilder.build()),
+            schemaBuilder2.build(),
             Optional.empty(),
             Optional.empty()
         );
@@ -133,13 +135,13 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldCreateLongTimestampPolicyWhenTimestampFieldIsOfTypeLong() {
     // Given:
     final String timestamp = "timestamp";
-    final Schema schema = schemaBuilder
-        .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+    final LogicalSchema schema = schemaBuilder2
+        .valueField(timestamp.toUpperCase(), SqlTypes.BIGINT)
         .build();
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(ksqlConfig, LogicalSchema.of(schema), Optional.of(timestamp), Optional.empty());
+        .create(ksqlConfig, schema, Optional.of(timestamp), Optional.empty());
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
@@ -155,7 +157,7 @@ public class TimestampExtractionPolicyFactoryTest {
     TimestampExtractionPolicyFactory
         .create(
             ksqlConfig,
-            LogicalSchema.of(schemaBuilder.build()),
+            schemaBuilder2.build(),
             Optional.of("whateva"),
             Optional.empty()
         );
@@ -165,13 +167,13 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldCreateStringTimestampPolicyWhenTimestampFieldIsStringTypeAndFormatProvided() {
     // Given:
     final String field = "my_string_field";
-    final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+    final LogicalSchema schema = schemaBuilder2
+        .valueField(field.toUpperCase(), SqlTypes.STRING)
         .build();
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(ksqlConfig, LogicalSchema.of(schema), Optional.of(field), Optional.of("yyyy-MM-DD"));
+        .create(ksqlConfig, schema, Optional.of(field), Optional.of("yyyy-MM-DD"));
 
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
@@ -182,8 +184,8 @@ public class TimestampExtractionPolicyFactoryTest {
   public void shouldFailIfStringTimestampTypeAndFormatNotSupplied() {
     // Given:
     final String field = "my_string_field";
-    final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.OPTIONAL_STRING_SCHEMA)
+    final LogicalSchema schema = schemaBuilder2
+        .valueField(field.toUpperCase(), SqlTypes.STRING)
         .build();
 
     // Then:
@@ -191,15 +193,15 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(ksqlConfig, LogicalSchema.of(schema), Optional.of(field), Optional.empty());
+        .create(ksqlConfig, schema, Optional.of(field), Optional.empty());
   }
 
   @Test
   public void shouldThorwIfLongTimestampTypeAndFormatIsSupplied() {
     // Given:
     final String timestamp = "timestamp";
-    final Schema schema = schemaBuilder
-        .field(timestamp.toUpperCase(), Schema.OPTIONAL_INT64_SCHEMA)
+    final LogicalSchema schema = schemaBuilder2
+        .valueField(timestamp.toUpperCase(), SqlTypes.BIGINT)
         .build();
 
     // Then:
@@ -207,15 +209,15 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(ksqlConfig, LogicalSchema.of(schema), Optional.of(timestamp), Optional.of("b"));
+        .create(ksqlConfig, schema, Optional.of(timestamp), Optional.of("b"));
   }
 
   @Test
   public void shouldThrowIfTimestampFieldTypeIsNotLongOrString() {
     // Given:
     final String field = "blah";
-    final Schema schema = schemaBuilder
-        .field(field.toUpperCase(), Schema.OPTIONAL_FLOAT64_SCHEMA)
+    final LogicalSchema schema = schemaBuilder2
+        .valueField(field.toUpperCase(), SqlTypes.DOUBLE)
         .build();
 
     // Then:
@@ -223,6 +225,6 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(ksqlConfig, LogicalSchema.of(schema), Optional.of(field), Optional.empty());
+        .create(ksqlConfig, schema, Optional.of(field), Optional.empty());
   }
 }

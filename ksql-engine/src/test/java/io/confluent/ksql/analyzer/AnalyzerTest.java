@@ -66,8 +66,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -518,8 +516,8 @@ public class AnalyzerTest {
   }
 
   private void registerKafkaSource() {
-    final Schema schema = SchemaBuilder.struct()
-        .field("COL0", Schema.OPTIONAL_INT64_SCHEMA)
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("COL0", SqlTypes.BIGINT)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(
@@ -531,7 +529,7 @@ public class AnalyzerTest {
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
         "KAFKA_SOURCE",
-        LogicalSchema.of(schema),
+        schema,
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),

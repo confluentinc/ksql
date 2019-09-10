@@ -15,12 +15,13 @@
 
 package io.confluent.ksql.datagen;
 
-import static io.confluent.ksql.datagen.DataGenSchemaUtil.getOptionalSchema;
-
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.SchemaUtil;
 import java.text.SimpleDateFormat;
@@ -60,10 +61,7 @@ public class RowGenerator {
     this.generator = Objects.requireNonNull(generator, "generator");
     this.avroData = new AvroData(1);
     this.key = Objects.requireNonNull(key, "key");
-    this.ksqlSchema = LogicalSchema.of(
-        KEY_SCHEMA,
-        getOptionalSchema(avroData.toConnectSchema(generator.schema()))
-    );
+    this.ksqlSchema = buildLogicalSchema(generator, avroData);
 
     if (!ksqlSchema.findValueField(key).isPresent()) {
       throw new IllegalArgumentException("key field does not exist in schema: " + key);
@@ -131,7 +129,7 @@ public class RowGenerator {
       } else {
         final Object value = randomAvroMessage.get(field.name());
         if (value instanceof Record) {
-          final Field ksqlField = ksqlSchema.valueSchema().field(field.name());
+          final Field ksqlField = ksqlSchema.valueConnectSchema().field(field.name());
           final Record record = (Record) value;
           final Object ksqlValue = avroData.toConnectData(record.getSchema(), record).value();
           genericRowValues.add(DataGenSchemaUtil.getOptionalValue(ksqlField.schema(), ksqlValue));
@@ -266,6 +264,24 @@ public class RowGenerator {
       sessionMap.put(sessionisationValue, vvalue);
     }
     return sessionMap.get(sessionisationValue);
+  }
 
+  private static LogicalSchema buildLogicalSchema(
+      final Generator generator,
+      final AvroData avroData
+  ) {
+    final org.apache.kafka.connect.data.Schema connectSchema = avroData
+        .toConnectSchema(generator.schema());
+
+    final Builder schemaBuilder = LogicalSchema.builder();
+    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
+
+    KEY_SCHEMA.fields()
+        .forEach(f -> schemaBuilder.keyField(f.name(), converter.toSqlType(f.schema())));
+
+    connectSchema.fields()
+        .forEach(f -> schemaBuilder.valueField(f.name(), converter.toSqlType(f.schema())));
+
+    return schemaBuilder.build();
   }
 }

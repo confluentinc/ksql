@@ -26,6 +26,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -42,8 +43,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -158,9 +157,9 @@ public class StandaloneExecutorFunctionalTest {
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
-        LogicalSchema.of(SchemaBuilder.struct()
-            .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-            .build()),
+        LogicalSchema.builder()
+            .valueField("ORDERTIME", SqlTypes.BIGINT)
+            .build(),
         SerdeOption.none()
     );
 
@@ -199,9 +198,9 @@ public class StandaloneExecutorFunctionalTest {
         + "CREATE STREAM " + s2 + " AS SELECT * FROM S;\n");
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
-        LogicalSchema.of(SchemaBuilder.struct()
-            .field("ORDERTIME", Schema.OPTIONAL_INT64_SCHEMA)
-            .build()),
+        LogicalSchema.builder()
+            .valueField("ORDERTIME", SqlTypes.BIGINT)
+            .build(),
         SerdeOption.none()
     );
 
@@ -298,16 +297,12 @@ public class StandaloneExecutorFunctionalTest {
   }
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
-    final LogicalSchema logical = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("ORDERID", SchemaBuilder
-                .struct()
-                .field("fred", Schema.OPTIONAL_INT32_SCHEMA)
-                .optional()
-                .build())
-            .field("Other", Schema.OPTIONAL_INT64_SCHEMA)
-            .build()
-    );
+    final LogicalSchema logical = LogicalSchema.builder()
+        .valueField("ORDERID", SqlTypes.struct()
+            .field("fred", SqlTypes.INTEGER)
+            .build())
+        .valueField("Other", SqlTypes.BIGINT)
+        .build();
 
     final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(
         logical,

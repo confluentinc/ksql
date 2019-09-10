@@ -141,10 +141,10 @@ public final class StreamSourceBuilder {
 
   private static org.apache.kafka.connect.data.Field getKeySchemaSingleField(
       final LogicalSchema schema) {
-    if (schema.keySchema().fields().size() != 1) {
+    if (schema.keyConnectSchema().fields().size() != 1) {
       throw new IllegalStateException("Only single key fields are currently supported");
     }
-    return schema.keySchema().fields().get(0);
+    return schema.keyConnectSchema().fields().get(0);
   }
 
   private static ValueMapperWithKey<Windowed<Struct>, GenericRow, GenericRow> windowedMapper(

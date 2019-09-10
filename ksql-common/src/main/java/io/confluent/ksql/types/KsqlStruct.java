@@ -82,7 +82,7 @@ public final class KsqlStruct {
   }
 
   private static FieldInfo getField(final FieldName name, final SqlStruct schema) {
-    final List<Field> fields = schema.getFields();
+    final List<Field> fields = schema.fields();
 
     for (int idx = 0; idx < fields.size(); idx++) {
       final Field field = fields.get(idx);
@@ -101,8 +101,8 @@ public final class KsqlStruct {
 
     public Builder(final SqlStruct schema) {
       this.schema = Objects.requireNonNull(schema, "schema");
-      this.values = new ArrayList<>(schema.getFields().size());
-      schema.getFields().forEach(f -> values.add(Optional.empty()));
+      this.values = new ArrayList<>(schema.fields().size());
+      schema.fields().forEach(f -> values.add(Optional.empty()));
     }
 
     public Builder set(final FieldName field, final Optional<?> value) {
@@ -112,8 +112,8 @@ public final class KsqlStruct {
       return this;
     }
 
-    public Builder set(final String field, final Object value) {
-      return set(FieldName.of(field), Optional.ofNullable(value));
+    public Builder set(final String field, final Optional<?> value) {
+      return set(FieldName.of(field), value);
     }
 
     public KsqlStruct build() {

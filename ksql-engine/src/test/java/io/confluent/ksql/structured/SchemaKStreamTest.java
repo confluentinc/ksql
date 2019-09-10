@@ -199,7 +199,7 @@ public class SchemaKStreamTest {
         ksqlStream.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-          getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema().valueSchema())
+          getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema().valueConnectSchema())
         ));
 
     when(mockGroupedFactory.create(anyString(), any(Serde.class), any(Serde.class)))
@@ -212,14 +212,14 @@ public class SchemaKStreamTest {
             secondKsqlStream.getKsqlTopic().getKafkaTopicName(),
             Consumed.with(
                 Serdes.String(),
-                getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueSchema())
+                getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueConnectSchema())
             ));
 
     final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
     final KTable kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema())));
+            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema())));
 
     when(tableSourceStep.getProperties()).thenReturn(tableSourceProperties);
     when(tableSourceProperties.getSchema()).thenReturn(ksqlTable.getSchema());
@@ -227,8 +227,8 @@ public class SchemaKStreamTest {
 
     secondSchemaKStream = buildSchemaKStreamForJoin(secondKsqlStream, secondKStream);
 
-    leftSerde = getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema().valueSchema());
-    rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueSchema());
+    leftSerde = getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema().valueConnectSchema());
+    rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueConnectSchema());
 
     schemaKTable = new SchemaKTable(
         kTable,
@@ -275,7 +275,7 @@ public class SchemaKStreamTest {
         processingLogContext);
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().value().fields(), contains(
         Field.of("COL0", SqlTypes.BIGINT),
         Field.of("COL2", SqlTypes.STRING),
         Field.of("COL3", SqlTypes.DOUBLE)
@@ -440,7 +440,7 @@ public class SchemaKStreamTest {
         processingLogContext);
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().value().fields(), contains(
         Field.of("COL0", SqlTypes.BIGINT),
         Field.of("KSQL_COL_1", SqlTypes.INTEGER),
         Field.of("KSQL_COL_2", SqlTypes.DOUBLE)
@@ -463,7 +463,7 @@ public class SchemaKStreamTest {
         processingLogContext);
 
     // Then:
-    assertThat(filteredSchemaKStream.getSchema().valueFields(), contains(
+    assertThat(filteredSchemaKStream.getSchema().value().fields(), contains(
         Field.of("TEST1.ROWTIME", SqlTypes.BIGINT),
         Field.of("TEST1.ROWKEY", SqlTypes.STRING),
         Field.of("TEST1.COL0", SqlTypes.BIGINT),
@@ -1340,11 +1340,11 @@ public class SchemaKStreamTest {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final String leftAlias = "left";
     final String rightAlias = "right";
-    for (final Field field : leftSchema.valueFields()) {
+    for (final Field field : leftSchema.value().fields()) {
       schemaBuilder.valueField(Field.of(leftAlias, field.name(), field.type()));
     }
 
-    for (final Field field : rightSchema.valueFields()) {
+    for (final Field field : rightSchema.value().fields()) {
       schemaBuilder.valueField(Field.of(rightAlias, field.name(), field.type()));
     }
     return schemaBuilder.build();
@@ -1372,7 +1372,7 @@ public class SchemaKStreamTest {
 
     rowSerde = GenericRowSerDe.from(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema.from(initialSchemaKStream.getSchema().valueSchema(), false),
+        PersistenceSchema.from(initialSchemaKStream.getSchema().valueConnectSchema(), false),
         null,
         () -> null,
         "test",

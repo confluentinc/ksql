@@ -18,12 +18,11 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class OrderDataProvider extends TestDataProvider {
 
@@ -35,22 +34,15 @@ public class OrderDataProvider extends TestDataProvider {
 
   private static final String key = "ORDERTIME";
 
-  private static final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ORDERTIME", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-      .field("ORDERID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("ITEMID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("ORDERUNITS", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-      .field("TIMESTAMP", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("PRICEARRAY", SchemaBuilder
-          .array(SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-          .optional()
-          .build())
-      .field("KEYVALUEMAP", SchemaBuilder
-          .map(SchemaBuilder.OPTIONAL_STRING_SCHEMA, SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
-          .optional()
-          .build())
-      .optional()
-      .build());
+  private static final LogicalSchema schema = LogicalSchema.builder()
+      .valueField("ORDERTIME", SqlTypes.BIGINT)
+      .valueField("ORDERID", SqlTypes.STRING)
+      .valueField("ITEMID", SqlTypes.STRING)
+      .valueField("ORDERUNITS", SqlTypes.DOUBLE)
+      .valueField("TIMESTAMP", SqlTypes.STRING)
+      .valueField("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueField("KEYVALUEMAP", SqlTypes.map(SqlTypes.DOUBLE))
+      .build();
 
   private static final Map<String, GenericRow> data = buildData();
 

@@ -21,49 +21,46 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Test;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class EntityUtilTest {
 
   @Test
   public void shouldBuildCorrectIntegerField() {
-    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_INT32_SCHEMA, "INTEGER");
+    shouldBuildCorrectPrimitiveField(SqlTypes.INTEGER, "INTEGER");
   }
 
   @Test
   public void shouldBuildCorrectBigintField() {
-    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_INT64_SCHEMA, "BIGINT");
+    shouldBuildCorrectPrimitiveField(SqlTypes.BIGINT, "BIGINT");
   }
 
   @Test
   public void shouldBuildCorrectDoubleField() {
-    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_FLOAT64_SCHEMA, "DOUBLE");
+    shouldBuildCorrectPrimitiveField(SqlTypes.DOUBLE, "DOUBLE");
   }
 
   @Test
   public void shouldBuildCorrectStringField() {
-    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_STRING_SCHEMA, "STRING");
+    shouldBuildCorrectPrimitiveField(SqlTypes.STRING, "STRING");
   }
 
   @Test
   public void shouldBuildCorrectBooleanField() {
-    shouldBuildCorrectPrimitiveField(Schema.OPTIONAL_BOOLEAN_SCHEMA, "BOOLEAN");
+    shouldBuildCorrectPrimitiveField(SqlTypes.BOOLEAN, "BOOLEAN");
   }
 
   @Test
   public void shouldBuildCorrectMapField() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("field", SchemaBuilder
-            .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA)
-            .optional()
-            .build())
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field", SqlTypes.map(SqlTypes.INTEGER))
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
@@ -80,13 +77,9 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildCorrectArrayField() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("field", SchemaBuilder
-            .array(SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-            .optional()
-            .build())
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field", SqlTypes.array(SqlTypes.BIGINT))
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
@@ -103,16 +96,11 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildCorrectStructField() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field(
-            "field",
-            SchemaBuilder.
-                struct()
-                .field("innerField", Schema.OPTIONAL_STRING_SCHEMA)
-                .optional()
-                .build())
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field", SqlTypes.struct()
+            .field("innerField", SqlTypes.STRING)
+            .build())
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
@@ -130,11 +118,10 @@ public class EntityUtilTest {
   @Test
   public void shouldBuildMiltipleFieldsCorrectly() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("field2", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field1", SqlTypes.INTEGER)
+        .valueField("field2", SqlTypes.BIGINT)
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
@@ -150,12 +137,11 @@ public class EntityUtilTest {
   @Test
   public void shouldSupportRowTimeAndKeyInValueSchema() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("ROWTIME", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("ROWKEY", SqlTypes.STRING)
+        .valueField("ROWTIME", SqlTypes.INTEGER)
+        .valueField("field1", SqlTypes.INTEGER)
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
@@ -169,10 +155,9 @@ public class EntityUtilTest {
   @Test
   public void shouldSupportGettingFullSchema() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field1", SqlTypes.INTEGER)
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, false);
@@ -187,14 +172,13 @@ public class EntityUtilTest {
   }
 
   private static void shouldBuildCorrectPrimitiveField(
-      final Schema primitiveSchema,
+      final SqlType primitiveSchema,
       final String schemaName
   ) {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("field", primitiveSchema)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field", primitiveSchema)
+        .build();
 
     // When:
     final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);

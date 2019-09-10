@@ -173,8 +173,7 @@ public class CodeGenRunnerTest {
 
         metaStore.putSource(ksqlStream);
 
-        final LogicalSchema schema = LogicalSchema.of(META_STORE_SCHEMA.valueSchema())
-            .withAlias("CODEGEN_TEST");
+        final LogicalSchema schema = META_STORE_SCHEMA.withAlias("CODEGEN_TEST");
 
         codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     }

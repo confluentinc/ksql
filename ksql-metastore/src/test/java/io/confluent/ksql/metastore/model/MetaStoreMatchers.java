@@ -64,7 +64,7 @@ public final class MetaStoreMatchers {
         (schemaMatcher, "source with value schema", "value schema") {
       @Override
       protected Schema featureValueOf(final DataSource<?> actual) {
-        return actual.getSchema().valueSchema();
+        return actual.getSchema().valueConnectSchema();
       }
     };
   }

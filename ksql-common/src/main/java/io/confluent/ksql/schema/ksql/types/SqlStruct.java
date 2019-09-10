@@ -45,7 +45,7 @@ public final class SqlStruct extends SqlType {
     this.fields = ImmutableList.copyOf(requireNonNull(fields, "fields"));
   }
 
-  public List<Field> getFields() {
+  public List<Field> fields() {
     return fields;
   }
 

@@ -28,6 +28,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -38,8 +39,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
@@ -53,11 +52,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionFactoryTest {
 
-  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.of(
-      SchemaBuilder.struct()
-          .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-          .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-          .build());
+  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+      .valueField("field1", SqlTypes.INTEGER)
+      .valueField("field2", SqlTypes.STRING)
+      .build();
 
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
   private static final Map<String, Object> PROP_OVERRIDES = Collections.singletonMap("k2", "v2");
@@ -182,12 +180,11 @@ public class QueryDescriptionFactoryTest {
   @Test
   public void shouldHandleRowTimeInValueSchemaForTransientQuery() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-            .field("ROWTIME", Schema.OPTIONAL_INT64_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field1", SqlTypes.INTEGER)
+        .valueField("ROWTIME", SqlTypes.BIGINT)
+        .valueField("field2", SqlTypes.STRING)
+        .build();
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
@@ -217,12 +214,11 @@ public class QueryDescriptionFactoryTest {
   @Test
   public void shouldHandleRowKeyInValueSchemaForTransientQuery() {
     // Given:
-    final LogicalSchema schema = LogicalSchema.of(
-        SchemaBuilder.struct()
-            .field("field1", Schema.OPTIONAL_INT32_SCHEMA)
-            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-            .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("field1", SqlTypes.INTEGER)
+        .valueField("ROWKEY", SqlTypes.STRING)
+        .valueField("field2", SqlTypes.STRING)
+        .build();
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,

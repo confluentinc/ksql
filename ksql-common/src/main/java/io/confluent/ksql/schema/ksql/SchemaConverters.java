@@ -261,7 +261,7 @@ public final class SchemaConverters {
     private static SchemaBuilder fromSqlStruct(final SqlStruct struct) {
       final SchemaBuilder builder = SchemaBuilder.struct();
 
-      struct.getFields()
+      struct.fields()
           .forEach(field -> builder.field(field.fullName(), connectType(field.type()).build()));
 
       return builder

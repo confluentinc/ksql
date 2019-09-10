@@ -22,14 +22,13 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.function.Supplier;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
 import org.junit.Rule;
@@ -59,10 +58,9 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMultipleFields() {
     // Given:
-    final PersistenceSchema schema = getPersistenceSchema(SchemaBuilder
-        .struct()
-        .field("f0", Schema.OPTIONAL_INT32_SCHEMA)
-        .field("f1", Schema.OPTIONAL_INT64_SCHEMA)
+    final PersistenceSchema schema = getPersistenceSchema(LogicalSchema.builder()
+        .valueField("f0", SqlTypes.INTEGER)
+        .valueField("f1", SqlTypes.BIGINT)
         .build());
 
     // Then:
@@ -77,7 +75,7 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfBoolean() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(Schema.OPTIONAL_BOOLEAN_SCHEMA);
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.BOOLEAN);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -91,10 +89,7 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfDecimal() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(DecimalUtil
-        .builder(1, 1)
-        .optional()
-        .build());
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.decimal(1, 1));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -108,10 +103,7 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfArray() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
-        .array(Schema.OPTIONAL_STRING_SCHEMA)
-        .optional()
-        .build());
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.array(SqlTypes.STRING));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -125,10 +117,7 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfMap() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
-        .map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA)
-        .optional()
-        .build());
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.map(SqlTypes.STRING));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -142,10 +131,8 @@ public class KafkaSerdeFactoryTest {
   @Test
   public void shouldThrowOnValidateIfStruct() {
     // Given:
-    final PersistenceSchema schema = schemaWithFieldOfType(SchemaBuilder
-        .struct()
-        .field("f0", Schema.OPTIONAL_STRING_SCHEMA)
-        .optional()
+    final PersistenceSchema schema = schemaWithFieldOfType(SqlTypes.struct()
+        .field("f0", SqlTypes.STRING)
         .build());
 
     // Then:
@@ -159,37 +146,37 @@ public class KafkaSerdeFactoryTest {
 
   @Test
   public void shouldHandleNulls() {
-    shouldHandle(Schema.OPTIONAL_INT32_SCHEMA, null);
+    shouldHandle(SqlTypes.INTEGER, null);
   }
 
   @Test
   public void shouldHandleInt() {
-    shouldHandle(Schema.OPTIONAL_INT32_SCHEMA, 1);
-    shouldHandle(Schema.OPTIONAL_INT32_SCHEMA, Integer.MIN_VALUE);
-    shouldHandle(Schema.OPTIONAL_INT32_SCHEMA, Integer.MAX_VALUE);
+    shouldHandle(SqlTypes.INTEGER, 1);
+    shouldHandle(SqlTypes.INTEGER, Integer.MIN_VALUE);
+    shouldHandle(SqlTypes.INTEGER, Integer.MAX_VALUE);
   }
 
   @Test
   public void shouldHandleBigInt() {
-    shouldHandle(Schema.OPTIONAL_INT64_SCHEMA, 1L);
-    shouldHandle(Schema.OPTIONAL_INT64_SCHEMA, Long.MIN_VALUE);
-    shouldHandle(Schema.OPTIONAL_INT64_SCHEMA, Long.MAX_VALUE);
+    shouldHandle(SqlTypes.BIGINT, 1L);
+    shouldHandle(SqlTypes.BIGINT, Long.MIN_VALUE);
+    shouldHandle(SqlTypes.BIGINT, Long.MAX_VALUE);
   }
 
   @Test
   public void shouldHandleDouble() {
-    shouldHandle(Schema.OPTIONAL_FLOAT64_SCHEMA, 1.1D);
-    shouldHandle(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.MIN_VALUE);
-    shouldHandle(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.MAX_VALUE);
-    shouldHandle(Schema.OPTIONAL_FLOAT64_SCHEMA, Double.MIN_NORMAL);
+    shouldHandle(SqlTypes.DOUBLE, 1.1D);
+    shouldHandle(SqlTypes.DOUBLE, Double.MIN_VALUE);
+    shouldHandle(SqlTypes.DOUBLE, Double.MAX_VALUE);
+    shouldHandle(SqlTypes.DOUBLE, Double.MIN_NORMAL);
   }
 
   @Test
   public void shouldHandleString() {
-    shouldHandle(Schema.OPTIONAL_STRING_SCHEMA, "Yo!");
+    shouldHandle(SqlTypes.STRING, "Yo!");
   }
 
-  private void shouldHandle(final Schema fieldSchema, final Object value) {
+  private void shouldHandle(final SqlType fieldSchema, final Object value) {
     // Given:
     final PersistenceSchema schema = schemaWithFieldOfType(fieldSchema);
 
@@ -207,18 +194,16 @@ public class KafkaSerdeFactoryTest {
     assertThat(result, is(struct));
   }
 
-  private static PersistenceSchema schemaWithFieldOfType(final Schema fieldSchema) {
-    final Schema connectSchema = SchemaBuilder
-        .struct()
-        .field("f0", fieldSchema)
+  private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {
+    final LogicalSchema logical = LogicalSchema.builder()
+        .valueField("f0", fieldSchema)
         .build();
 
-    return getPersistenceSchema(connectSchema);
+    return getPersistenceSchema(logical);
   }
 
-  private static PersistenceSchema getPersistenceSchema(final Schema connectSchema) {
-    final LogicalSchema logicalSchema = LogicalSchema.of(connectSchema, connectSchema);
-    final PhysicalSchema physicalSchema = PhysicalSchema.from(logicalSchema, SerdeOption.none());
+  private static PersistenceSchema getPersistenceSchema(final LogicalSchema logical) {
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(logical, SerdeOption.none());
     return physicalSchema.valueSchema();
   }
 }

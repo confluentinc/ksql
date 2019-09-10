@@ -18,11 +18,11 @@ package io.confluent.ksql.util;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class ItemDataProvider extends TestDataProvider {
 
@@ -34,10 +34,10 @@ public class ItemDataProvider extends TestDataProvider {
 
   private static final String key = "ID";
 
-  private static final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-      .field("ID", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .field("DESCRIPTION", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema schema = LogicalSchema.builder()
+      .valueField("ID", SqlTypes.STRING)
+      .valueField("DESCRIPTION", SqlTypes.STRING)
+      .build();
 
   private static final Map<String, GenericRow> data = buildData();
 

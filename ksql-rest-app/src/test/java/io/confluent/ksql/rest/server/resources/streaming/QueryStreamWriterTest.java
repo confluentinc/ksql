@@ -33,6 +33,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.ByteArrayOutputStream;
@@ -43,8 +44,6 @@ import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.KeyValue;
@@ -92,9 +91,9 @@ public class QueryStreamWriterTest {
     drainCapture = newCapture();
     limitHandlerCapture = newCapture();
 
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("col1", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("col1", SqlTypes.STRING)
+        .build();
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);
 

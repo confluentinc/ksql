@@ -40,8 +40,6 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,10 +53,10 @@ public class ProjectNodeTest {
   private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
   private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
   private static final String KEY_FIELD_NAME = "field1";
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("field1", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("field2", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("field1", SqlTypes.STRING)
+      .valueField("field2", SqlTypes.STRING)
+      .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
       .of("source-key", Field.of("legacy-source-key", SqlTypes.STRING));
 

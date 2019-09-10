@@ -110,11 +110,11 @@ final class SourceSchemas {
   }
 
   private static Set<String> nonValueFieldNames(final LogicalSchema schema) {
-    final Set<String> fieldNames = schema.metaFields().stream()
+    final Set<String> fieldNames = schema.metadata().fields().stream()
         .map(Field::fullName)
         .collect(Collectors.toSet());
 
-    schema.keyFields().stream()
+    schema.key().fields().stream()
         .map(Field::fullName)
         .forEach(fieldNames::add);
 

@@ -159,7 +159,7 @@ public class SchemaKTableTest {
         ksqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema())
+            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema())
         ));
 
     final KsqlTable secondKsqlTable = (KsqlTable) metaStore.getSource("TEST3");
@@ -167,7 +167,7 @@ public class SchemaKTableTest {
         secondKsqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
             Serdes.String(),
-            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().valueSchema())
+            getRowSerde(secondKsqlTable.getKsqlTopic(), secondKsqlTable.getSchema().valueConnectSchema())
         ));
 
     mockKTable = EasyMock.niceMock(KTable.class);
@@ -271,7 +271,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().value().fields(), contains(
         Field.of("COL0", SqlTypes.BIGINT),
         Field.of("COL2", SqlTypes.STRING),
         Field.of("COL3", SqlTypes.DOUBLE)
@@ -325,7 +325,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().valueFields(), contains(
+    assertThat(projectedSchemaKStream.getSchema().value().fields(), contains(
         Field.of("COL0", SqlTypes.BIGINT),
         Field.of("KSQL_COL_1", SqlTypes.INTEGER),
         Field.of("KSQL_COL_2", SqlTypes.DOUBLE)
@@ -350,7 +350,7 @@ public class SchemaKTableTest {
     );
 
     // Then:
-    assertThat(filteredSchemaKStream.getSchema().valueFields(), contains(
+    assertThat(filteredSchemaKStream.getSchema().value().fields(), contains(
         Field.of("TEST2.ROWTIME", SqlTypes.BIGINT),
         Field.of("TEST2.ROWKEY", SqlTypes.STRING),
         Field.of("TEST2.COL0", SqlTypes.BIGINT),
@@ -448,7 +448,7 @@ public class SchemaKTableTest {
   public void shouldUseOpNameForGrouped() {
     // Given:
     final Serde<GenericRow> valSerde =
-        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueSchema());
+        getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema());
     expect(
         groupedFactory.create(
             eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
@@ -501,7 +501,7 @@ public class SchemaKTableTest {
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema.from(initialSchemaKTable.getSchema().valueSchema(), false),
+        PersistenceSchema.from(initialSchemaKTable.getSchema().valueConnectSchema(), false),
         null,
         () -> null,
         "test",
@@ -768,11 +768,11 @@ public class SchemaKTableTest {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final String leftAlias = "left";
     final String rightAlias = "right";
-    for (final Field field : leftSchema.valueFields()) {
+    for (final Field field : leftSchema.value().fields()) {
       schemaBuilder.valueField(Field.of(leftAlias, field.name(), field.type()));
     }
 
-    for (final Field field : rightSchema.valueFields()) {
+    for (final Field field : rightSchema.value().fields()) {
       schemaBuilder.valueField(Field.of(rightAlias, field.name(), field.type()));
     }
     return schemaBuilder.build();
@@ -799,7 +799,7 @@ public class SchemaKTableTest {
 
     rowSerde = GenericRowSerDe.from(
         FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema.from(initialSchemaKTable.getSchema().valueSchema(), false),
+        PersistenceSchema.from(initialSchemaKTable.getSchema().valueConnectSchema(), false),
         null,
         () -> null,
         "test",

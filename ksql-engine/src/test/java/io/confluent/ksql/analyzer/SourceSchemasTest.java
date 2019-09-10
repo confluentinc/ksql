@@ -23,8 +23,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,17 +33,15 @@ public class SourceSchemasTest {
   private static final String ALIAS_2 = "S2";
   private static final String COMMON_FIELD_NAME = "F0";
 
-  private static final LogicalSchema SCHEMA_1 = LogicalSchema.of(SchemaBuilder.struct()
-      .field(COMMON_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-      .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build()
-  );
+  private static final LogicalSchema SCHEMA_1 = LogicalSchema.builder()
+      .valueField(COMMON_FIELD_NAME, SqlTypes.STRING)
+      .valueField("F1", SqlTypes.STRING)
+      .build();
 
-  private static final LogicalSchema SCHEMA_2 = LogicalSchema.of(SchemaBuilder.struct()
-      .field(COMMON_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
-      .field("F2", Schema.OPTIONAL_STRING_SCHEMA)
-      .build()
-  );
+  private static final LogicalSchema SCHEMA_2 = LogicalSchema.builder()
+      .valueField(COMMON_FIELD_NAME, SqlTypes.STRING)
+      .valueField("F2", SqlTypes.STRING)
+      .build();
 
   private SourceSchemas sourceSchemas;
 

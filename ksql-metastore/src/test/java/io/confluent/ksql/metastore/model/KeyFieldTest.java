@@ -49,9 +49,9 @@ public class KeyFieldTest {
       LegacyField.of("won't find me anywhere", SqlTypes.STRING);
 
   private static final LegacyField LEGACY_FIELD = LegacyField
-      .of(SCHEMA.valueFields().get(0).fullName(), SCHEMA.valueFields().get(0).type());
+      .of(SCHEMA.value().fields().get(0).fullName(), SCHEMA.value().fields().get(0).type());
 
-  private static final Field OTHER_SCHEMA_FIELD = SCHEMA.valueFields().get(1);
+  private static final Field OTHER_SCHEMA_FIELD = SCHEMA.value().fields().get(1);
 
   private static final String SOME_ALIAS = "fred";
 

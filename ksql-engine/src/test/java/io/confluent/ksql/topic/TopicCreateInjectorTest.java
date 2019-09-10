@@ -40,6 +40,7 @@ import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -56,8 +57,6 @@ import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.config.TopicConfig;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.Before;
@@ -71,10 +70,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TopicCreateInjectorTest {
 
-  private static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder
-      .struct()
-      .field("F1", Schema.OPTIONAL_STRING_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("F1", SqlTypes.STRING)
+      .build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

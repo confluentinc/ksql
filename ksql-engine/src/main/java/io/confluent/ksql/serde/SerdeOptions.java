@@ -63,7 +63,7 @@ public final class SerdeOptions {
       final Optional<Boolean> wrapSingleValues,
       final KsqlConfig ksqlConfig
   ) {
-    final boolean singleField = schema.valueSchema().fields().size() == 1;
+    final boolean singleField = schema.valueConnectSchema().fields().size() == 1;
     final Set<SerdeOption> singleFieldDefaults = buildDefaults(ksqlConfig);
     return build(singleField, valueFormat, wrapSingleValues, singleFieldDefaults);
   }

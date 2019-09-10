@@ -89,8 +89,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -574,10 +572,9 @@ public class CommandFactoriesTest {
     // Given:
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("bob", SqlTypes.STRING)
+        .build();
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
     // When:
@@ -612,17 +609,12 @@ public class CommandFactoriesTest {
     );
 
     // Then:
-    assertThat(result.getSchema(), is(LogicalSchema.of(
-        SchemaBuilder
-            .struct()
-            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
-            .build(),
-        SchemaBuilder
-            .struct()
-            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()
-    )));
+    assertThat(result.getSchema(), is(LogicalSchema.builder()
+        .keyField("ROWKEY", SqlTypes.STRING)
+        .valueField("bob", SqlTypes.STRING)
+        .valueField("hojjat", SqlTypes.STRING)
+        .build()
+    ));
   }
 
   @Test
@@ -648,17 +640,12 @@ public class CommandFactoriesTest {
     );
 
     // Then:
-    assertThat(result.getSchema(), is(LogicalSchema.of(
-        SchemaBuilder
-            .struct()
-            .field("ROWKEY", Schema.OPTIONAL_STRING_SCHEMA)
-            .build(),
-        SchemaBuilder
-            .struct()
-            .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
-            .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
-            .build()
-    )));
+    assertThat(result.getSchema(), is(LogicalSchema.builder()
+        .keyField("ROWKEY", SqlTypes.STRING)
+        .valueField("bob", SqlTypes.STRING)
+        .valueField("hojjat", SqlTypes.STRING)
+        .build()
+    ));
   }
 
   @Test
@@ -666,11 +653,10 @@ public class CommandFactoriesTest {
     // Given:
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder
-        .struct()
-        .field("bob", Schema.OPTIONAL_STRING_SCHEMA)
-        .field("hojjat", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("bob", SqlTypes.STRING)
+        .valueField("hojjat", SqlTypes.STRING)
+        .build();
 
     // When:
     commandFactories.create("expression", statement, ksqlConfig, emptyMap());
@@ -678,7 +664,7 @@ public class CommandFactoriesTest {
     // Then:
     verify(serdeFactory).create(
         FormatInfo.of(JSON, Optional.empty()),
-        PersistenceSchema.from(schema.valueSchema(), false),
+        PersistenceSchema.from(schema.valueConnectSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
         "",

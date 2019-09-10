@@ -20,25 +20,24 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.ImmutableTester;
 import io.confluent.ksql.util.KsqlException;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class PhysicalSchemaTest {
 
-  private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.of(SchemaBuilder.struct()
-      .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .field("f1", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.builder()
+      .valueField("f0", SqlTypes.BOOLEAN)
+      .valueField("f1", SqlTypes.BOOLEAN)
+      .build();
 
-  private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.of(SchemaBuilder.struct()
-      .field("f0", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-      .build());
+  private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
+      .valueField("f0", SqlTypes.BOOLEAN)
+      .build();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -81,7 +80,7 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().serializedSchema(),
-        is(SCHEMA_WITH_MULTIPLE_FIELDS.valueSchema()));
+        is(SCHEMA_WITH_MULTIPLE_FIELDS.valueConnectSchema()));
   }
 
   @Test
@@ -104,7 +103,7 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().serializedSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.valueSchema()));
+        is(SCHEMA_WITH_SINGLE_FIELD.valueConnectSchema()));
   }
 
   @Test
@@ -115,6 +114,6 @@ public class PhysicalSchemaTest {
 
     // Then:
     assertThat(result.valueSchema().serializedSchema(),
-        is(SCHEMA_WITH_SINGLE_FIELD.valueSchema().fields().get(0).schema()));
+        is(SCHEMA_WITH_SINGLE_FIELD.valueConnectSchema().fields().get(0).schema()));
   }
 }

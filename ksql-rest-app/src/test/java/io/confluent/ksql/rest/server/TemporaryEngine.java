@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -39,23 +40,20 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.rules.ExternalResource;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class TemporaryEngine extends ExternalResource {
 
-  public static final LogicalSchema SCHEMA = LogicalSchema.of(SchemaBuilder.struct()
-      .field("val", Schema.OPTIONAL_STRING_SCHEMA)
-      .field("val2", DecimalUtil.builder(2, 1).build())
-      .build());
+  public static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .valueField("val", SqlTypes.STRING)
+      .valueField("val2", SqlTypes.decimal(2, 1))
+      .build();
 
   private MutableMetaStore metaStore;
 

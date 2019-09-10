@@ -128,7 +128,7 @@ public class KsqlBareOutputNodeTest {
   @Test
   public void shouldCreateCorrectSchema() {
     final LogicalSchema schema = stream.getSchema();
-    assertThat(schema.valueFields(), contains(
+    assertThat(schema.value().fields(), contains(
         Field.of("COL0", SqlTypes.BIGINT),
         Field.of("COL2", SqlTypes.STRING),
         Field.of("COL3", SqlTypes.DOUBLE)));

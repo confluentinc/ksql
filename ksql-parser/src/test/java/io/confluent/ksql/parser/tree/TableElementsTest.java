@@ -32,8 +32,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -230,16 +228,11 @@ public class TableElementsTest {
     final LogicalSchema schema = tableElements.toLogicalSchema();
 
     // Then:
-    assertThat(schema, is(LogicalSchema.of(
-        SchemaBuilder
-            .struct()
-            .field("k0", Schema.OPTIONAL_STRING_SCHEMA)
-        .build(),
-        SchemaBuilder
-            .struct()
-            .field("v0", Schema.OPTIONAL_INT32_SCHEMA)
-            .build()
-    )));
+    assertThat(schema, is(LogicalSchema.builder()
+        .keyField("k0", SqlTypes.STRING)
+        .valueField("v0", SqlTypes.INTEGER)
+        .build()
+    ));
   }
 
   private static TableElement tableElement(

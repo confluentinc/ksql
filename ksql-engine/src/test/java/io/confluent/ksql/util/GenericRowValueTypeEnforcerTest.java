@@ -20,8 +20,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
 /**
@@ -33,9 +32,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBoolean() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("boolean", SqlTypes.BOOLEAN)
+        .build();
     
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -51,9 +50,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningBooleanWhereBooleanValueIsFalse() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("boolean", SqlTypes.BOOLEAN)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -63,9 +62,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningBooleanWhereBooleanValueIsTrue() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("boolean", SqlTypes.BOOLEAN)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -75,9 +74,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningNull() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("boolean", Schema.OPTIONAL_BOOLEAN_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("boolean", SqlTypes.BOOLEAN)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -87,9 +86,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("string", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("string", SqlTypes.STRING)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -105,9 +104,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceStringReturningNull() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("string", Schema.OPTIONAL_STRING_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("string", SqlTypes.STRING)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -117,9 +116,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceInteger() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -135,9 +134,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -152,9 +151,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerThrowsNumberFormatExceptionOnInvalidString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -169,9 +168,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerOnValidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -181,9 +180,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerOnValidString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -193,9 +192,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerOne() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -205,9 +204,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerThree() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -217,9 +216,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerFour() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -229,9 +228,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerReturningNull() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("int", Schema.OPTIONAL_INT32_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("int", SqlTypes.INTEGER)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -241,9 +240,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLong() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -259,9 +258,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -276,9 +275,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongThrowsNumberFormatExceptionOnInvalidString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -293,9 +292,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongOnValidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -305,9 +304,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongOnValidString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -317,9 +316,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongAndEnforceLongOne() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -329,9 +328,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningLongWhereByteValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -341,9 +340,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningLongWhereShortValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -353,9 +352,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningNull() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("long", Schema.OPTIONAL_INT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("long", SqlTypes.BIGINT)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -365,9 +364,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDouble() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -384,9 +383,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test(expected = NumberFormatException.class)
   public void testEnforceDoubleThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -396,9 +395,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test(expected = NumberFormatException.class)
   public void testEnforceDoubleThrowsNumberFormatExceptionOnInvalidString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -408,9 +407,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleOnValidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -420,9 +419,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleOnValidString() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -432,9 +431,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleAndEnforceDoubleOne() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -444,9 +443,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereByteValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -456,9 +455,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleAndEnforceDoubleTwo() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -468,9 +467,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereShortValueIsPositive() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -480,9 +479,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereShortValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
@@ -492,9 +491,9 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningNull() {
-    final LogicalSchema schema = LogicalSchema.of(SchemaBuilder.struct()
-        .field("double", Schema.OPTIONAL_FLOAT64_SCHEMA)
-        .build());
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("double", SqlTypes.DOUBLE)
+        .build();
 
     final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);

@@ -135,7 +135,7 @@ public class KsqlParserTest {
       .valueField("ITEMID", SqlTypes.STRING)
       .valueField("ITEMINFO", SqlTypes
           .struct()
-          .fields(itemInfoSchema.valueFields())
+          .fields(itemInfoSchema.value().fields())
           .build())
       .valueField("ORDERUNITS", SqlTypes.INTEGER)
       .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))

@@ -257,7 +257,7 @@ public class SchemaKGroupedStream {
     final int nonAggColumnCount = aggValToFunctionMap.size();
     final int totalColumnCount = nonAggColumnCount + nonFuncColumnCount;
 
-    final int valueColumnCount = aggregateSchema.valueFields().size();
+    final int valueColumnCount = aggregateSchema.value().fields().size();
     if (valueColumnCount != totalColumnCount) {
       throw new IllegalArgumentException(
           "Aggregate schema value field count does not match expected."

@@ -220,7 +220,8 @@ public class InsertValuesExecutor {
       final LogicalSchema schema,
       final Map<String, Object> values
   ) {
-    final Struct key = new Struct(schema.keySchema());
+
+    final Struct key = new Struct(schema.keyConnectSchema());
 
     for (final org.apache.kafka.connect.data.Field field : key.schema().fields()) {
       final Object value = values.get(field.name());
@@ -236,7 +237,8 @@ public class InsertValuesExecutor {
   ) {
     return new GenericRow(
         schema
-            .valueFields()
+            .value()
+            .fields()
             .stream()
             .map(Field::name)
             .map(values::get)
@@ -252,8 +254,8 @@ public class InsertValuesExecutor {
     final LogicalSchema schema = dataSource.getSchema();
 
     final List<String> fieldNames = Streams.concat(
-        schema.keyFields().stream(),
-        schema.valueFields().stream())
+        schema.key().fields().stream(),
+        schema.value().fields().stream())
         .map(Field::name)
         .collect(Collectors.toList());
 

@@ -31,6 +31,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -50,8 +51,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -120,7 +119,9 @@ public class JsonFormatTest {
     topicProducer
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
-    final Schema messageSchema = SchemaBuilder.struct().field("MESSAGE", SchemaBuilder.OPTIONAL_STRING_SCHEMA).build();
+    final LogicalSchema messageSchema = LogicalSchema.builder()
+        .valueField("MESSAGE", SqlTypes.STRING)
+        .build();
 
     final GenericRow messageRow = new GenericRow(Collections.singletonList(
         "{\"log\":{\"@timestamp\":\"2017-05-30T16:44:22.175Z\",\"@version\":\"1\","
@@ -130,7 +131,7 @@ public class JsonFormatTest {
     records.put("1", messageRow);
 
     final PhysicalSchema schema = PhysicalSchema.from(
-        LogicalSchema.of(messageSchema),
+        messageSchema,
         SerdeOption.none()
     );
 

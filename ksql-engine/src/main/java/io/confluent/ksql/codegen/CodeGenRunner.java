@@ -323,7 +323,7 @@ public class CodeGenRunner {
           .orElseThrow(() -> new RuntimeException(
               "Cannot find the select field in the available fields."
                   + " field: " + fieldName
-                  + ", schema: " + schema.valueFields()));
+                  + ", schema: " + schema.value()));
     }
   }
 

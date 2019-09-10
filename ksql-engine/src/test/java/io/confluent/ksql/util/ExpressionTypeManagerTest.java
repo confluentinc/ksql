@@ -29,8 +29,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.ExpressionParseTestUtil;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,14 +50,14 @@ public class ExpressionTypeManagerTest {
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(FUNCTION_REGISTRY);
 
-    final Schema schema = SchemaBuilder.struct()
-        .field("TEST1.COL0", SchemaBuilder.OPTIONAL_INT64_SCHEMA)
-        .field("TEST1.COL1", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("TEST1.COL2", SchemaBuilder.OPTIONAL_STRING_SCHEMA)
-        .field("TEST1.COL3", SchemaBuilder.OPTIONAL_FLOAT64_SCHEMA)
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueField("TEST1.COL0", SqlTypes.BIGINT)
+        .valueField("TEST1.COL1", SqlTypes.STRING)
+        .valueField("TEST1.COL2", SqlTypes.STRING)
+        .valueField("TEST1.COL3", SqlTypes.DOUBLE)
         .build();
 
-    expressionTypeManager = new ExpressionTypeManager(LogicalSchema.of(schema), FUNCTION_REGISTRY);
+    expressionTypeManager = new ExpressionTypeManager(schema, FUNCTION_REGISTRY);
     ordersExpressionTypeManager = new ExpressionTypeManager(
         metaStore.getSource("ORDERS").getSchema(),
         FUNCTION_REGISTRY

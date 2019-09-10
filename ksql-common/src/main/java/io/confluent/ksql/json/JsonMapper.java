@@ -29,6 +29,7 @@ public enum JsonMapper {
   JsonMapper() {
     mapper.registerModule(new Jdk8Module());
     mapper.registerModule(new StructSerializationModule());
+    mapper.registerModule(new KsqlTypesSerializationModule());
     mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 }

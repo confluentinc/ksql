@@ -24,9 +24,6 @@ import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.io.IOException;
 
-/**
- * @author andy created 2019-09-10
- */
 final class LogicalSchemaDeserializer extends JsonDeserializer<LogicalSchema> {
 
   @Override

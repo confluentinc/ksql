@@ -34,7 +34,7 @@ import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -292,9 +292,9 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    final List<Field> keyFields = sourcePlanNode.getSchema().isAliased()
-        ? sourcePlanNode.getSchema().withoutAlias().key().fields()
-        : sourcePlanNode.getSchema().key().fields();
+    final List<Column> keyFields = sourcePlanNode.getSchema().isAliased()
+        ? sourcePlanNode.getSchema().withoutAlias().key()
+        : sourcePlanNode.getSchema().key();
 
     builder.keyFields(keyFields);
 

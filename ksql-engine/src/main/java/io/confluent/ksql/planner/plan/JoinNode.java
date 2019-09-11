@@ -23,7 +23,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.parser.tree.WithinExpression;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -81,7 +81,7 @@ public class JoinNode extends PlanNode {
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
 
-    final Field leftKeyField = validateFieldInSchema(leftJoinFieldName, left.getSchema());
+    final Column leftKeyField = validateFieldInSchema(leftJoinFieldName, left.getSchema());
     validateFieldInSchema(rightJoinFieldName, right.getSchema());
 
     this.keyField = KeyField
@@ -155,7 +155,7 @@ public class JoinNode extends PlanNode {
     return node.getDataSource().getName();
   }
 
-  private static Field validateFieldInSchema(final String fieldName, final LogicalSchema schema) {
+  private static Column validateFieldInSchema(final String fieldName, final LogicalSchema schema) {
     return schema.findValueField(fieldName)
         .orElseThrow(() -> new IllegalArgumentException(
             "Invalid join field, not found in schema: " + fieldName));
@@ -236,7 +236,7 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      final Optional<Field> keyField = schemaKStream
+      final Optional<Column> keyField = schemaKStream
           .getKeyField()
           .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
 
@@ -521,9 +521,9 @@ public class JoinNode extends PlanNode {
 
     final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
 
-    joinSchema.valueFields(leftSchema.value().fields());
+    joinSchema.valueFields(leftSchema.value());
 
-    joinSchema.valueFields(rightSchema.value().fields());
+    joinSchema.valueFields(rightSchema.value());
 
     // Hard-wire for now, until we support custom type/name of key fields:
     joinSchema.keyField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);

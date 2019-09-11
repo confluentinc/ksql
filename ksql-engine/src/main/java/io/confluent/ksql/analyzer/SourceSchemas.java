@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
@@ -110,12 +110,12 @@ final class SourceSchemas {
   }
 
   private static Set<String> nonValueFieldNames(final LogicalSchema schema) {
-    final Set<String> fieldNames = schema.metadata().fields().stream()
-        .map(Field::fullName)
+    final Set<String> fieldNames = schema.metadata().stream()
+        .map(Column::fullName)
         .collect(Collectors.toSet());
 
-    schema.key().fields().stream()
-        .map(Field::fullName)
+    schema.key().stream()
+        .map(Column::fullName)
         .forEach(fieldNames::add);
 
     return fieldNames;

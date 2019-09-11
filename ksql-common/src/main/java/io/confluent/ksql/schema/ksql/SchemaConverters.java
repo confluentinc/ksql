@@ -262,7 +262,7 @@ public final class SchemaConverters {
       final SchemaBuilder builder = SchemaBuilder.struct();
 
       struct.fields()
-          .forEach(field -> builder.field(field.fullName(), connectType(field.type()).build()));
+          .forEach(field -> builder.field(field.name(), connectType(field.type()).build()));
 
       return builder
           .optional();

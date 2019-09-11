@@ -21,7 +21,7 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -49,9 +49,9 @@ public class KeyFieldTest {
       LegacyField.of("won't find me anywhere", SqlTypes.STRING);
 
   private static final LegacyField LEGACY_FIELD = LegacyField
-      .of(SCHEMA.value().fields().get(0).fullName(), SCHEMA.value().fields().get(0).type());
+      .of(SCHEMA.value().get(0).fullName(), SCHEMA.value().get(0).type());
 
-  private static final Field OTHER_SCHEMA_FIELD = SCHEMA.value().fields().get(1);
+  private static final Column OTHER_SCHEMA_FIELD = SCHEMA.value().get(1);
 
   private static final String SOME_ALIAS = "fred";
 
@@ -161,10 +161,10 @@ public class KeyFieldTest {
     final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
 
     // When:
-    final Optional<Field> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(Field.of(RANDOM_LEGACY_FIELD.name(), RANDOM_LEGACY_FIELD.type()))));
+    assertThat(resolved, is(Optional.of(Column.of(RANDOM_LEGACY_FIELD.name(), RANDOM_LEGACY_FIELD.type()))));
   }
 
   @Test
@@ -173,10 +173,10 @@ public class KeyFieldTest {
     final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.name()), Optional.empty());
 
     // When:
-    final Optional<Field> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(Field.of(LEGACY_FIELD.name(), LEGACY_FIELD.type()))));
+    assertThat(resolved, is(Optional.of(Column.of(LEGACY_FIELD.name(), LEGACY_FIELD.type()))));
   }
 
   @Test
@@ -185,10 +185,10 @@ public class KeyFieldTest {
     final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
 
     // When:
-    final Optional<Field> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
 
     // Then:
-    assertThat(resolved, is(Optional.of(Field.of(LEGACY_FIELD.name(), LEGACY_FIELD.type()))));
+    assertThat(resolved, is(Optional.of(Column.of(LEGACY_FIELD.name(), LEGACY_FIELD.type()))));
   }
 
   @Test
@@ -197,7 +197,7 @@ public class KeyFieldTest {
     final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
 
     // When:
-    final Optional<Field> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
 
     // Then:
     assertThat(resolved, is(Optional.empty()));
@@ -209,7 +209,7 @@ public class KeyFieldTest {
     final KeyField keyField = KeyField.of(Optional.of("something"), Optional.empty());
 
     // When:
-    final Optional<Field> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
 
     // Then:
     assertThat(resolved, is(Optional.empty()));

@@ -49,7 +49,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeySerde;
@@ -301,10 +301,10 @@ public class AggregateNodeTest {
         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
-    assertThat(stream.getSchema().value().fields(), contains(
-        Field.of("COL0", SqlTypes.BIGINT),
-        Field.of("KSQL_COL_1", SqlTypes.DOUBLE),
-        Field.of("KSQL_COL_2", SqlTypes.BIGINT)));
+    assertThat(stream.getSchema().value(), contains(
+        Column.of("COL0", SqlTypes.BIGINT),
+        Column.of("KSQL_COL_1", SqlTypes.DOUBLE),
+        Column.of("KSQL_COL_2", SqlTypes.BIGINT)));
   }
 
   @Test

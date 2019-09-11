@@ -58,7 +58,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -268,7 +268,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Field schemaField = schema.findValueField(fieldName)
+      final Column schemaField = schema.findValueField(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
@@ -282,7 +282,7 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Field schemaField = schema.findValueField(fieldName)
+      final Column schemaField = schema.findValueField(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 

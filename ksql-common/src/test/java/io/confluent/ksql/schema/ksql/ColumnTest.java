@@ -20,56 +20,74 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
-import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
 import org.junit.Test;
 
-public class FieldTest {
+public class ColumnTest {
 
   @Test
   public void shouldThrowNPE() {
     new NullPointerTester()
         .setDefault(SqlType.class, SqlTypes.BIGINT)
         .setDefault(String.class, "field0")
-        .testAllPublicStaticMethods(Field.class);
+        .testAllPublicStaticMethods(Column.class);
   }
 
   @Test
   public void shouldImplementEqualsProperly() {
     new EqualsTester()
         .addEqualityGroup(
-            Field.of("someName", SqlTypes.INTEGER),
-            Field.of("someName", SqlTypes.INTEGER)
+            Column.of("someName", SqlTypes.INTEGER),
+            Column.of("someName", SqlTypes.INTEGER)
         )
         .addEqualityGroup(
-            Field.of("someName".toUpperCase(), SqlTypes.INTEGER)
+            Column.of("someName".toUpperCase(), SqlTypes.INTEGER)
         )
         .addEqualityGroup(
-            Field.of("different", SqlTypes.INTEGER)
+            Column.of("different", SqlTypes.INTEGER)
         )
         .addEqualityGroup(
-            Field.of("someName", SqlTypes.DOUBLE)
+            Column.of("someName", SqlTypes.DOUBLE)
+        )
+        .addEqualityGroup(
+            Column.of("someSource", "someName", SqlTypes.INTEGER),
+            Column.of("someSource", "someName", SqlTypes.INTEGER)
         )
         .testEquals();
   }
 
   @Test
   public void shouldReturnName() {
-    assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).name(),
+    assertThat(Column.of("SomeName", SqlTypes.BOOLEAN).name(),
+        is("SomeName"));
+
+    assertThat(Column.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).name(),
         is("SomeName"));
   }
 
   @Test
+  public void shouldReturnFullName() {
+    assertThat(Column.of("SomeName", SqlTypes.BOOLEAN).fullName(),
+        is("SomeName"));
+
+    assertThat(Column.of("SomeSource", "SomeName", SqlTypes.BOOLEAN).fullName(),
+        is("SomeSource.SomeName"));
+  }
+
+  @Test
   public void shouldReturnType() {
-    assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).type(), is(SqlTypes.BOOLEAN));
+    assertThat(Column.of("SomeName", SqlTypes.BOOLEAN).type(), is(SqlTypes.BOOLEAN));
   }
 
   @Test
   public void shouldToString() {
-    assertThat(Field.of("SomeName", SqlTypes.BOOLEAN).toString(),
+    assertThat(Column.of("SomeName", SqlTypes.BOOLEAN).toString(),
         is("`SomeName` BOOLEAN"));
+
+    assertThat(Column.of("SomeSource", "SomeName", SqlTypes.INTEGER).toString(),
+        is("`SomeSource`.`SomeName` INTEGER"));
   }
 
   @Test
@@ -82,10 +100,16 @@ public class FieldTest {
     );
 
     // Then:
-    assertThat(Field.of("not-reserved", SqlTypes.BIGINT).toString(options),
+    assertThat(Column.of("not-reserved", SqlTypes.BIGINT).toString(options),
         is("not-reserved BIGINT"));
 
-    assertThat(Field.of("reserved", SqlTypes.BIGINT).toString(options),
+    assertThat(Column.of("reserved", SqlTypes.BIGINT).toString(options),
         is("`reserved` BIGINT"));
+
+    assertThat(Column.of("reserved", "word", SqlTypes.DOUBLE).toString(options),
+        is("`reserved`.`word` DOUBLE"));
+
+    assertThat(Column.of("source", "word", SqlTypes.STRING).toString(options),
+        is("source.`word` STRING"));
   }
 }

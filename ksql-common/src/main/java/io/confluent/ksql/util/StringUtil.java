@@ -15,34 +15,25 @@
 
 package io.confluent.ksql.util;
 
-import java.util.List;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 
 public final class StringUtil {
 
-  private StringUtil() {
-  }
+  private StringUtil() { }
 
   public static String cleanQuotes(final String stringWithQuotes) {
-    // TODO: move check to grammar
     if (!stringWithQuotes.startsWith("'") || !stringWithQuotes.endsWith("'")) {
       return stringWithQuotes;
     }
+
     return stringWithQuotes
         .substring(1, stringWithQuotes.length() - 1)
         .replaceAll("''", "'");
   }
 
-  public static String join(final String delimiter, final List<?> objs) {
-    final StringBuilder sb = new StringBuilder();
-    int cnt = 0;
-    for (final Object obj : objs) {
-      if (cnt > 0) {
-        sb.append(delimiter);
-      }
-      sb.append(obj);
-      cnt += 1;
-    }
-    return sb.toString();
+  public static String escape(final String string, final FormatOptions formatOptions) {
+    return formatOptions.isReservedWord(string) ? "`" + string + "`" : string;
+
   }
 
 }

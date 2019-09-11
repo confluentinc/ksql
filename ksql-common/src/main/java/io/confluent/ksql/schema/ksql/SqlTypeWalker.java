@@ -16,6 +16,7 @@
 package io.confluent.ksql.schema.ksql;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;

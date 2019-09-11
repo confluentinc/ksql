@@ -18,7 +18,7 @@ package io.confluent.ksql.metastore.model;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
@@ -176,21 +176,21 @@ public final class MetaStoreMatchers {
     private FieldMatchers() {
     }
 
-    public static Matcher<Field> hasFullName(final String name) {
-      return new FeatureMatcher<Field, String>
+    public static Matcher<Column> hasFullName(final String name) {
+      return new FeatureMatcher<Column, String>
           (is(name), "field with name", "name") {
         @Override
-        protected String featureValueOf(final Field actual) {
+        protected String featureValueOf(final Column actual) {
           return actual.fullName();
         }
       };
     }
 
-    public static Matcher<Field> hasType(final SqlType type) {
-      return new FeatureMatcher<Field, SqlType>
+    public static Matcher<Column> hasType(final SqlType type) {
+      return new FeatureMatcher<Column, SqlType>
           (is(type), "field with type", "type") {
         @Override
-        protected SqlType featureValueOf(final Field actual) {
+        protected SqlType featureValueOf(final Column actual) {
           return actual.type();
         }
       };

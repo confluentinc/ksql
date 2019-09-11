@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker.Visitor;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -182,7 +183,7 @@ public class SqlTypeWalkerTest {
     when(visitor.visitDouble(any())).thenReturn("0");
     when(visitor.visitInt(any())).thenReturn("1");
     when(visitor.visitField(any(), any())).thenAnswer(inv -> {
-      final int fieldName = Integer.parseInt(inv.<Field>getArgument(0).fullName());
+      final int fieldName = Integer.parseInt(inv.<Field>getArgument(0).name());
       final int expectedArg = Integer.parseInt(inv.getArgument(1));
       assertThat(fieldName, is(expectedArg));
       return fieldName;

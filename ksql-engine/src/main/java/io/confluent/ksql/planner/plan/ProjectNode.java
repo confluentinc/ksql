@@ -56,7 +56,7 @@ public class ProjectNode extends PlanNode {
         source.getKeyField().legacy())
         .validateKeyExistsIn(schema);
 
-    if (schema.value().fields().size() != projectExpressions.size()) {
+    if (schema.value().size() != projectExpressions.size()) {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
           + "compatible.");
     }
@@ -90,7 +90,7 @@ public class ProjectNode extends PlanNode {
     final List<SelectExpression> selects = new ArrayList<>();
     for (int i = 0; i < projectExpressions.size(); i++) {
       final SelectExpression selectExp = SelectExpression
-          .of(schema.value().fields().get(i).name(), projectExpressions.get(i));
+          .of(schema.value().get(i).name(), projectExpressions.get(i));
 
       selects.add(selectExp);
     }

@@ -35,7 +35,7 @@ import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.services.ServiceContext;
@@ -384,8 +384,8 @@ public class PhysicalPlanBuilder {
   }
 
   private static void enforceKeyEquivalence(
-      final Optional<Field> sinkKeyField,
-      final Optional<Field> resultKeyField
+      final Optional<Column> sinkKeyField,
+      final Optional<Column> resultKeyField
   ) {
     if (!sinkKeyField.isPresent() && !resultKeyField.isPresent()) {
       return;
@@ -402,17 +402,17 @@ public class PhysicalPlanBuilder {
   }
 
   private static void throwIncompatibleKeysException(
-      final Optional<Field> sinkKeyField,
-      final Optional<Field> resultKeyField
+      final Optional<Column> sinkKeyField,
+      final Optional<Column> resultKeyField
   ) {
     throw new KsqlException(String.format(
         "Incompatible key fields for sink and results. Sink"
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
-        sinkKeyField.map(Field::name).orElse(null),
-        sinkKeyField.map(Field::type).orElse(null),
-        resultKeyField.map(Field::name).orElse(null),
-        resultKeyField.map(Field::type).orElse(null)));
+        sinkKeyField.map(Column::name).orElse(null),
+        sinkKeyField.map(Column::type).orElse(null),
+        resultKeyField.map(Column::name).orElse(null),
+        resultKeyField.map(Column::type).orElse(null)));
   }
 
   // Package private because of test

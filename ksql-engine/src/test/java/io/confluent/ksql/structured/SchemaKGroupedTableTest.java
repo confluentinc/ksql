@@ -54,10 +54,9 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -134,7 +133,7 @@ public class SchemaKGroupedTableTest {
   @Mock
   private FunctionCall aggCall2;
   @Mock
-  private Field field;
+  private Column field;
   @Mock
   private KsqlAggregateFunction otherFunc;
   @Mock
@@ -163,9 +162,9 @@ public class SchemaKGroupedTableTest {
     );
 
     when(aggregateSchema.findValueField("GROUPING_COLUMN"))
-        .thenReturn(Optional.of(Field.of("GROUPING_COLUMN", SqlTypes.STRING)));
+        .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
 
-    when(aggregateSchema.value()).thenReturn(mock(SqlStruct.class));
+    when(aggregateSchema.value()).thenReturn(mock(List.class));
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
@@ -291,7 +290,7 @@ public class SchemaKGroupedTableTest {
         buildSourceTableStep(schema),
         keyFormat,
         keySerde,
-        KeyField.of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
+        KeyField.of(schema.value().get(0).name(), schema.value().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,
@@ -348,8 +347,8 @@ public class SchemaKGroupedTableTest {
     final Map<Integer, KsqlAggregateFunction> functions = ImmutableMap.of(1, tableFunc);
     final SchemaKGroupedTable groupedTable =
         buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
-    when(aggregateSchema.value().fields()).thenReturn(
-        ImmutableList.of(mock(Field.class), mock(Field.class)));
+    when(aggregateSchema.value()).thenReturn(
+        ImmutableList.of(mock(Column.class), mock(Column.class)));
 
     // When:
     final SchemaKTable result = groupedTable.aggregate(
@@ -430,11 +429,11 @@ public class SchemaKGroupedTableTest {
   }
 
   private void givenAggregateSchemaFieldCount(final int count) {
-    final List<Field> valueFields = IntStream
+    final List<Column> valueFields = IntStream
         .range(0, count)
         .mapToObj(i -> field)
         .collect(Collectors.toList());
 
-    when(aggregateSchema.value().fields()).thenReturn(valueFields);
+    when(aggregateSchema.value()).thenReturn(valueFields);
   }
 }

@@ -29,8 +29,8 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
-import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
@@ -238,9 +238,8 @@ public class InsertValuesExecutor {
     return new GenericRow(
         schema
             .value()
-            .fields()
             .stream()
-            .map(Field::name)
+            .map(Column::name)
             .map(values::get)
             .collect(Collectors.toList())
     );
@@ -254,9 +253,9 @@ public class InsertValuesExecutor {
     final LogicalSchema schema = dataSource.getSchema();
 
     final List<String> fieldNames = Streams.concat(
-        schema.key().fields().stream(),
-        schema.value().fields().stream())
-        .map(Field::name)
+        schema.key().stream(),
+        schema.value().stream())
+        .map(Column::name)
         .collect(Collectors.toList());
 
     if (fieldNames.size() != values.size()) {
@@ -312,7 +311,7 @@ public class InsertValuesExecutor {
 
   private static SqlType columnType(final String column, final LogicalSchema schema) {
     return schema.findField(column)
-        .map(Field::type)
+        .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }
 

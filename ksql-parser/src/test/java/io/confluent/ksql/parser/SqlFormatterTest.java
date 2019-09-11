@@ -56,6 +56,7 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -98,7 +99,13 @@ public class SqlFormatterTest {
       .field("NAME", SqlTypes.STRING)
       .build();
 
-  private static final LogicalSchema itemInfoSchema = LogicalSchema.builder()
+  private static final SqlStruct ITEM_INFO_STRUCT = SqlStruct.builder()
+      .field("ITEMID", SqlTypes.BIGINT)
+      .field("NAME", SqlTypes.STRING)
+      .field("CATEGORY", categorySchema)
+      .build();
+
+  private static final LogicalSchema ITEM_INFO_SCHEMA = LogicalSchema.builder()
       .valueField("ITEMID", SqlTypes.BIGINT)
       .valueField("NAME", SqlTypes.STRING)
       .valueField("CATEGORY", categorySchema)
@@ -112,10 +119,7 @@ public class SqlFormatterTest {
       .valueField("ORDERTIME", SqlTypes.BIGINT)
       .valueField("ORDERID", SqlTypes.BIGINT)
       .valueField("ITEMID", SqlTypes.STRING)
-      .valueField("ITEMINFO", SqlTypes
-          .struct()
-          .fields(itemInfoSchema.value().fields())
-          .build())
+      .valueField("ITEMINFO", ITEM_INFO_STRUCT)
       .valueField("ORDERUNITS", SqlTypes.INTEGER)
       .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
       .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
@@ -181,9 +185,9 @@ public class SqlFormatterTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        itemInfoSchema,
+        ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
+        KeyField.of("ITEMID", ITEM_INFO_SCHEMA.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

@@ -81,7 +81,7 @@ public class SourceDescriptionFactoryTest {
         "stream",
         schema,
         SerdeOption.none(),
-        KeyField.of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
+        KeyField.of(schema.value().get(0).name(), schema.value().get(0)),
         new MetadataTimestampExtractionPolicy(),
         topic
     );

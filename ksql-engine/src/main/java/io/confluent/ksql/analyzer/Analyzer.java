@@ -48,7 +48,7 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -520,7 +520,7 @@ class Analyzer {
             ? source.getAlias() + "_"
             : "";
 
-        for (final Field field : source.getDataSource().getSchema().fields()) {
+        for (final Column field : source.getDataSource().getSchema().fields()) {
 
           final DereferenceExpression selectItem =
               new DereferenceExpression(location, nameRef, field.name());

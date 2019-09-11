@@ -45,8 +45,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.schema.ksql.Field;
-import io.confluent.ksql.schema.ksql.FieldName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -423,12 +422,10 @@ public class SchemaKStream<K> {
       final String fullFieldName = getKeyField().name().get();
       final Optional<String> fieldAlias = SchemaUtil.getFieldNameAlias(fullFieldName);
       final String fieldNameWithNoAlias = SchemaUtil.getFieldNameWithNoAlias(fullFieldName);
-      final FieldName fieldName = FieldName.of(fieldAlias, fieldNameWithNoAlias);
-
-      final Field keyField = Field.of(fieldName, SqlTypes.STRING);
+      final Column keyField = Column.of(fieldAlias, fieldNameWithNoAlias, SqlTypes.STRING);
 
       return doFindKeyField(selectExpressions, keyField)
-          .map(Field::fullName);
+          .map(Column::fullName);
     }
 
     private Optional<LegacyField> findLegacyKeyField(
@@ -444,15 +441,15 @@ public class SchemaKStream<K> {
         return Optional.of(keyField);
       }
 
-      return doFindKeyField(selectExpressions, Field.of(keyField.name(), keyField.type()))
+      return doFindKeyField(selectExpressions, Column.of(keyField.name(), keyField.type()))
           .map(field -> LegacyField.of(field.fullName(), field.type()));
     }
 
-    private Optional<Field> doFindKeyField(
+    private Optional<Column> doFindKeyField(
         final List<SelectExpression> selectExpressions,
-        final Field keyField
+        final Column keyField
     ) {
-      Optional<Field> found = Optional.empty();
+      Optional<Column> found = Optional.empty();
 
       for (int i = 0; i < selectExpressions.size(); i++) {
         final String toName = selectExpressions.get(i).getName();
@@ -470,7 +467,7 @@ public class SchemaKStream<K> {
               = (DereferenceExpression) toExpression;
 
           if (SchemaUtil.isFieldName(deRef.toString(), keyField.fullName())) {
-            found = Optional.of(Field.of(toName, keyField.type()));
+            found = Optional.of(Column.of(toName, keyField.type()));
             break;
           }
         } else if (toExpression instanceof QualifiedNameReference) {
@@ -478,7 +475,7 @@ public class SchemaKStream<K> {
               = (QualifiedNameReference) toExpression;
 
           if (SchemaUtil.isFieldName(nameRef.getName().getSuffix(), keyField.fullName())) {
-            found = Optional.of(Field.of(toName, keyField.type()));
+            found = Optional.of(Column.of(toName, keyField.type()));
             break;
           }
         }
@@ -494,9 +491,9 @@ public class SchemaKStream<K> {
     ) {
       final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
-      final List<Field> keyFields = SchemaKStream.this.getSchema().isAliased()
-          ? SchemaKStream.this.getSchema().withoutAlias().key().fields()
-          : SchemaKStream.this.getSchema().key().fields();
+      final List<Column> keyFields = SchemaKStream.this.getSchema().isAliased()
+          ? SchemaKStream.this.getSchema().withoutAlias().key()
+          : SchemaKStream.this.getSchema().key();
 
       schemaBuilder.keyFields(keyFields);
 
@@ -745,9 +742,9 @@ public class SchemaKStream<K> {
       throw new UnsupportedOperationException("Can not selectKey of windowed stream");
     }
 
-    final Optional<Field> existingKey = keyField.resolve(getSchema(), ksqlConfig);
+    final Optional<Column> existingKey = keyField.resolve(getSchema(), ksqlConfig);
 
-    final Field proposedKey = getSchema().findValueField(fieldName)
+    final Column proposedKey = getSchema().findValueField(fieldName)
         .orElseThrow(IllegalArgumentException::new);
 
     final LegacyField proposedLegacy = LegacyField.of(proposedKey.fullName(), proposedKey.type());
@@ -827,7 +824,7 @@ public class SchemaKStream<K> {
   }
 
   private Object extractColumn(final int keyIndexInValue, final GenericRow value) {
-    if (value.getColumns().size() != getSchema().value().fields().size()) {
+    if (value.getColumns().size() != getSchema().value().size()) {
       throw new IllegalStateException("Field count mismatch. "
           + "Schema fields: " + getSchema()
           + ", row:" + value);
@@ -855,7 +852,7 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final Optional<Field> keyField = getKeyField().resolve(getSchema(), ksqlConfig);
+    final Optional<Column> keyField = getKeyField().resolve(getSchema(), ksqlConfig);
     if (!keyField.isPresent()) {
       return true;
     }
@@ -932,7 +929,7 @@ public class SchemaKStream<K> {
         .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
 
     final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
-        .map(Field::name);
+        .map(Column::name);
     final ExecutionStep<KGroupedStream<Struct, GenericRow>> source =
         ExecutionStepFactory.streamGroupBy(
             contextStacker,
@@ -1040,13 +1037,13 @@ public class SchemaKStream<K> {
       if (left != null) {
         columns.addAll(left.getColumns());
       } else {
-        fillWithNulls(columns, leftSchema.value().fields().size());
+        fillWithNulls(columns, leftSchema.value().size());
       }
 
       if (right != null) {
         columns.addAll(right.getColumns());
       } else {
-        fillWithNulls(columns, rightSchema.value().fields().size());
+        fillWithNulls(columns, rightSchema.value().size());
       }
 
       return new GenericRow(columns);

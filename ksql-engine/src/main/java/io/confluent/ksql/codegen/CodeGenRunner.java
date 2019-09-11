@@ -36,7 +36,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
@@ -177,7 +177,7 @@ public class CodeGenRunner {
       this.expressionTypeManager = expressionTypeManager;
     }
 
-    private void addParameter(final Field schemaField) {
+    private void addParameter(final Column schemaField) {
       parameters.add(new ParameterType(
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaField.type()),
           schemaField.fullName(),
@@ -318,7 +318,7 @@ public class CodeGenRunner {
       return null;
     }
 
-    private Field getRequiredField(final String fieldName) {
+    private Column getRequiredField(final String fieldName) {
       return schema.findValueField(fieldName)
           .orElseThrow(() -> new RuntimeException(
               "Cannot find the select field in the available fields."

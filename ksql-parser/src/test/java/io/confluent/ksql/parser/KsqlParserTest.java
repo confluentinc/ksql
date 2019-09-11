@@ -123,20 +123,17 @@ public class KsqlParserTest {
       .field("NAME", SqlTypes.STRING)
       .build();
 
-  private static final LogicalSchema itemInfoSchema = LogicalSchema.builder()
-      .valueField("ITEMID", SqlTypes.BIGINT)
-      .valueField("NAME", SqlTypes.STRING)
-      .valueField("CATEGORY", categorySchema)
+  private static final SqlType itemInfoSchema = SqlStruct.builder()
+      .field("ITEMID", SqlTypes.BIGINT)
+      .field("NAME", SqlTypes.STRING)
+      .field("CATEGORY", categorySchema)
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
       .valueField("ORDERTIME", SqlTypes.BIGINT)
       .valueField("ORDERID", SqlTypes.BIGINT)
       .valueField("ITEMID", SqlTypes.STRING)
-      .valueField("ITEMINFO", SqlTypes
-          .struct()
-          .fields(itemInfoSchema.value().fields())
-          .build())
+      .valueField("ITEMINFO", itemInfoSchema)
       .valueField("ORDERUNITS", SqlTypes.INTEGER)
       .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
       .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
@@ -176,9 +173,9 @@ public class KsqlParserTest {
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
         "ITEMID",
-        itemInfoSchema,
+        ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ITEMID", itemInfoSchema.findValueField("ITEMID").get()),
+        KeyField.of("ITEMID", ORDERS_SCHEMA.findValueField("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

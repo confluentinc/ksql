@@ -40,7 +40,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -155,7 +155,7 @@ public class ProcessingLogServerUtilsTest {
     assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(Format.JSON));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(
-        stream.getSchema().value().fields().stream().map(Field::name).collect(toList()),
+        stream.getSchema().value().stream().map(Column::name).collect(toList()),
         equalTo(
             new ImmutableList.Builder<String>()
                 .addAll(

@@ -38,7 +38,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -162,17 +162,17 @@ public class AggregateNode extends PlanNode {
 
   private List<SelectExpression> getFinalSelectExpressions() {
     final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
-    if (finalSelectExpressions.size() != schema.value().fields().size()) {
+    if (finalSelectExpressions.size() != schema.value().size()) {
       throw new RuntimeException(
           "Incompatible aggregate schema, field count must match, "
               + "selected field count:"
               + finalSelectExpressions.size()
               + " schema field count:"
-              + schema.value().fields().size());
+              + schema.value().size());
     }
     for (int i = 0; i < finalSelectExpressions.size(); i++) {
       finalSelectExpressionList.add(SelectExpression.of(
-          schema.value().fields().get(i).name(),
+          schema.value().get(i).name(),
           finalSelectExpressions.get(i)
       ));
     }
@@ -335,9 +335,9 @@ public class AggregateNode extends PlanNode {
       final Map<Integer, KsqlAggregateFunction> aggregateFunctions
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Field> fields = inputSchema.value().fields();
+    final List<Column> fields = inputSchema.value();
 
-    schemaBuilder.keyFields(inputSchema.key().fields());
+    schemaBuilder.keyFields(inputSchema.key());
 
     for (int i = 0; i < requiredColumns.size(); i++) {
       schemaBuilder.valueField(fields.get(i));

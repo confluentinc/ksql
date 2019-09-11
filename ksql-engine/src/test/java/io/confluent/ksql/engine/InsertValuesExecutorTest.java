@@ -44,7 +44,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -723,10 +723,10 @@ public class InsertValuesExecutorTest {
   }
 
   private static List<String> valueFieldNames(final LogicalSchema schema) {
-    return schema.value().fields().stream().map(Field::name).collect(Collectors.toList());
+    return schema.value().stream().map(Column::name).collect(Collectors.toList());
   }
 
   private static List<String> allFieldNames(final LogicalSchema schema) {
-    return schema.fields().stream().map(Field::name).collect(Collectors.toList());
+    return schema.fields().stream().map(Column::name).collect(Collectors.toList());
   }
 }

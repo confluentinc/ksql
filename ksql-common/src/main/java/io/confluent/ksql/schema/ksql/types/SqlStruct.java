@@ -20,7 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.DataException;
-import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -135,7 +134,7 @@ public final class SqlStruct extends SqlType {
 
     private void throwOnDuplicateFieldName(final Field other) {
       fields.stream()
-          .filter(f -> f.fullName().equals(other.fullName()))
+          .filter(f -> f.name().equals(other.name()))
           .findAny()
           .ifPresent(duplicate -> {
             throw new KsqlException("Duplicate field names found in STRUCT: "

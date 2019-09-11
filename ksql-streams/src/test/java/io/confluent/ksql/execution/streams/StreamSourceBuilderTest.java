@@ -323,7 +323,7 @@ public class StreamSourceBuilderTest {
         LogicalSchema.builder()
             .keyField("f1", SqlTypes.INTEGER)
             .keyField("f2", SqlTypes.BIGINT)
-            .valueFields(SCHEMA.value().fields())
+            .valueFields(SCHEMA.value())
             .build(),
         StreamSourceBuilder::buildUnwindowed
     );

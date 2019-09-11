@@ -53,7 +53,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.VisitorUtil;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
@@ -208,7 +208,7 @@ public class ExpressionTypeManager {
         final QualifiedNameReference node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Field schemaField = schema.findValueField(node.getName().getSuffix())
+      final Column schemaField = schema.findValueField(node.getName().getSuffix())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
@@ -222,7 +222,7 @@ public class ExpressionTypeManager {
         final DereferenceExpression node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Field schemaField = schema.findValueField(node.toString())
+      final Column schemaField = schema.findValueField(node.toString())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 

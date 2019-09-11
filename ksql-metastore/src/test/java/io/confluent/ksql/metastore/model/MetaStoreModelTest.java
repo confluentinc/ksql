@@ -25,7 +25,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -61,7 +61,7 @@ public class MetaStoreModelTest {
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
       .put(LegacyField.class, LegacyField.of("something", SqlTypes.DOUBLE))
-      .put(Field.class, Field.of("someField", SqlTypes.INTEGER))
+      .put(Column.class, Column.of("someField", SqlTypes.INTEGER))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
           .valueField("f0", SqlTypes.BIGINT)

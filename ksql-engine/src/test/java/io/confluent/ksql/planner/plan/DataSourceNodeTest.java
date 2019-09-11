@@ -105,25 +105,25 @@ public class DataSourceNodeTest {
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.STRING)
-      .valueField("field2", SqlTypes.STRING)
-      .valueField("field3", SqlTypes.STRING)
-      .valueField(TIMESTAMP_FIELD, SqlTypes.BIGINT)
-      .valueField("key", SqlTypes.STRING)
+      .valueColumn("field1", SqlTypes.STRING)
+      .valueColumn("field2", SqlTypes.STRING)
+      .valueColumn("field3", SqlTypes.STRING)
+      .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
+      .valueColumn("key", SqlTypes.STRING)
       .build();
   private static final KeyField KEY_FIELD
-      = KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get());
+      = KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get());
   private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(REAL_SCHEMA.withoutMetaAndKeyFieldsInValue(), SerdeOption.none());
+      .from(REAL_SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
       "datasource",
       REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of("key", REAL_SCHEMA.findValueField("key").get()),
+      KeyField.of("key", REAL_SCHEMA.findValueColumn("key").get()),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(
           "topic",
@@ -291,7 +291,7 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()),
+        KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic(
             "topic2",
@@ -315,7 +315,7 @@ public class DataSourceNodeTest {
     final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()),
+        KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic(
             "topic2",
@@ -372,13 +372,13 @@ public class DataSourceNodeTest {
     // Then:
     assertThat(schema, is(
         LogicalSchema.builder()
-            .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-            .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-            .valueField("field1", SqlTypes.STRING)
-            .valueField("field2", SqlTypes.STRING)
-            .valueField("field3", SqlTypes.STRING)
-            .valueField(TIMESTAMP_FIELD, SqlTypes.BIGINT)
-            .valueField("key", SqlTypes.STRING)
+            .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+            .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+            .valueColumn("field1", SqlTypes.STRING)
+            .valueColumn("field2", SqlTypes.STRING)
+            .valueColumn("field3", SqlTypes.STRING)
+            .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
+            .valueColumn("key", SqlTypes.STRING)
             .build().withAlias(sourceName)));
   }
 
@@ -577,7 +577,7 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
     when(dataSource.getKeyField())
-        .thenReturn(KeyField.of("field1", REAL_SCHEMA.findValueField("field1").get()));
+        .thenReturn(KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get()));
 
     return new DataSourceNode(
         realNodeId,

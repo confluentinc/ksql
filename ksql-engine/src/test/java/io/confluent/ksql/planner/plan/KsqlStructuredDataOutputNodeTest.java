@@ -76,15 +76,15 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.STRING)
-      .valueField("field2", SqlTypes.STRING)
-      .valueField("field3", SqlTypes.STRING)
-      .valueField("timestamp", SqlTypes.BIGINT)
-      .valueField("key", SqlTypes.STRING)
+      .valueColumn("field1", SqlTypes.STRING)
+      .valueColumn("field2", SqlTypes.STRING)
+      .valueColumn("field3", SqlTypes.STRING)
+      .valueColumn("timestamp", SqlTypes.BIGINT)
+      .valueColumn("key", SqlTypes.STRING)
       .build();
 
   private static final KeyField KEY_FIELD =
-      KeyField.of("key", SCHEMA.findValueField("key").get());
+      KeyField.of("key", SCHEMA.findValueColumn("key").get());
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -382,7 +382,7 @@ public class KsqlStructuredDataOutputNodeTest {
   @Test
   public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKey() {
     // Given:
-    final LogicalSchema schema = SCHEMA.withMetaAndKeyFieldsInValue();
+    final LogicalSchema schema = SCHEMA.withMetaAndKeyColsInValue();
     givenNodeWithSchema(schema);
 
     // When:
@@ -404,13 +404,13 @@ public class KsqlStructuredDataOutputNodeTest {
   public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKeyRegardlessOfLocation() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field1", SqlTypes.STRING)
-        .valueField("field2", SqlTypes.STRING)
-        .valueField("ROWKEY", SqlTypes.STRING)
-        .valueField("field3", SqlTypes.STRING)
-        .valueField("timestamp", SqlTypes.BIGINT)
-        .valueField("ROWTIME", SqlTypes.BIGINT)
-        .valueField("key", SqlTypes.STRING)
+        .valueColumn("field1", SqlTypes.STRING)
+        .valueColumn("field2", SqlTypes.STRING)
+        .valueColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("field3", SqlTypes.STRING)
+        .valueColumn("timestamp", SqlTypes.BIGINT)
+        .valueColumn("ROWTIME", SqlTypes.BIGINT)
+        .valueColumn("key", SqlTypes.STRING)
         .build();
 
     givenNodeWithSchema(schema);

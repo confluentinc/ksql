@@ -16,7 +16,7 @@
 package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlConfig;
@@ -43,13 +43,13 @@ public final class TimestampExtractionPolicyFactory {
 
     final String fieldName = timestampColumnName.get().toUpperCase();
 
-    final Field timestampField = schema.findValueField(fieldName)
+    final Column timestampColumn = schema.findValueColumn(fieldName)
         .orElseThrow(() -> new KsqlException(
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
                 + fieldName + "'"));
 
-    final SqlBaseType timestampFieldType = timestampField.type().baseType();
-    if (timestampFieldType == SqlBaseType.STRING) {
+    final SqlBaseType tsColumnType = timestampColumn.type().baseType();
+    if (tsColumnType == SqlBaseType.STRING) {
 
       final String format = timestampFormat.orElseThrow(() -> new KsqlException(
           "A String timestamp field has been specified without"
@@ -65,7 +65,7 @@ public final class TimestampExtractionPolicyFactory {
           + "when the timestamp column in of type STRING.");
     }
 
-    if (timestampFieldType == SqlBaseType.BIGINT) {
+    if (tsColumnType == SqlBaseType.BIGINT) {
       return new LongColumnTimestampExtractionPolicy(fieldName);
     }
 

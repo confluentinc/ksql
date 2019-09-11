@@ -84,7 +84,7 @@ public class ExpressionMetadata {
         parameters[idx] = udfs.get(idx);
       } else {
         parameters[idx] = typeEnforcer
-            .enforceFieldType(paramIndex, row.getColumns().get(paramIndex));
+            .enforceColumnType(paramIndex, row.getColumns().get(paramIndex));
       }
     }
     return parameters;

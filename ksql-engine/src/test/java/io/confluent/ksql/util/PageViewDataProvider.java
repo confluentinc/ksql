@@ -32,9 +32,9 @@ public class PageViewDataProvider extends TestDataProvider {
   private static final String key = "VIEWTIME";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueField("VIEWTIME", SqlTypes.BIGINT)
-      .valueField("USERID", SqlTypes.STRING)
-      .valueField("PAGEID", SqlTypes.STRING)
+      .valueColumn("VIEWTIME", SqlTypes.BIGINT)
+      .valueColumn("USERID", SqlTypes.STRING)
+      .valueColumn("PAGEID", SqlTypes.STRING)
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

@@ -70,16 +70,16 @@ public class SqlToJavaVisitorTest {
         .build();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("TEST1.COL0", SqlTypes.BIGINT)
-        .valueField("TEST1.COL1", SqlTypes.STRING)
-        .valueField("TEST1.COL2", SqlTypes.STRING)
-        .valueField("TEST1.COL3", SqlTypes.DOUBLE)
-        .valueField("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE))
-        .valueField("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
-        .valueField("TEST1.COL6", addressSchema)
-        .valueField("TEST1.COL7", SqlTypes.INTEGER)
-        .valueField("TEST1.COL8", SqlTypes.decimal(2, 1))
-        .valueField("TEST1.COL9", SqlTypes.decimal(2, 1))
+        .valueColumn("TEST1.COL0", SqlTypes.BIGINT)
+        .valueColumn("TEST1.COL1", SqlTypes.STRING)
+        .valueColumn("TEST1.COL2", SqlTypes.STRING)
+        .valueColumn("TEST1.COL3", SqlTypes.DOUBLE)
+        .valueColumn("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE))
+        .valueColumn("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn("TEST1.COL6", addressSchema)
+        .valueColumn("TEST1.COL7", SqlTypes.INTEGER)
+        .valueColumn("TEST1.COL8", SqlTypes.decimal(2, 1))
+        .valueColumn("TEST1.COL9", SqlTypes.decimal(2, 1))
         .build();
 
     sqlToJavaVisitor = new SqlToJavaVisitor(schema, TestFunctionRegistry.INSTANCE.get());

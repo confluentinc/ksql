@@ -31,10 +31,10 @@ public class UserDataProvider extends TestDataProvider {
   private static final String key = "USERID";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueField("REGISTERTIME", SqlTypes.BIGINT)
-      .valueField("GENDER", SqlTypes.STRING)
-      .valueField("REGIONID", SqlTypes.STRING)
-      .valueField("USERID", SqlTypes.STRING)
+      .valueColumn("REGISTERTIME", SqlTypes.BIGINT)
+      .valueColumn("GENDER", SqlTypes.STRING)
+      .valueColumn("REGIONID", SqlTypes.STRING)
+      .valueColumn("USERID", SqlTypes.STRING)
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

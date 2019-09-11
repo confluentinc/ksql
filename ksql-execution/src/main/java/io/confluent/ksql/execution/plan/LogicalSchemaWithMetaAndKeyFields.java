@@ -28,7 +28,7 @@ public final class LogicalSchemaWithMetaAndKeyFields {
       final String alias,
       final LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(
-        schema.withAlias(alias).withMetaAndKeyFieldsInValue());
+        schema.withAlias(alias).withMetaAndKeyColsInValue());
   }
 
   public static LogicalSchemaWithMetaAndKeyFields fromTransformed(final LogicalSchema schema) {
@@ -40,7 +40,7 @@ public final class LogicalSchemaWithMetaAndKeyFields {
   }
 
   public LogicalSchema getOriginalSchema() {
-    return schema.withoutMetaAndKeyFieldsInValue().withoutAlias();
+    return schema.withoutMetaAndKeyColsInValue().withoutAlias();
   }
 
   @Override

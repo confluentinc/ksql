@@ -34,13 +34,13 @@ public class SourceSchemasTest {
   private static final String COMMON_FIELD_NAME = "F0";
 
   private static final LogicalSchema SCHEMA_1 = LogicalSchema.builder()
-      .valueField(COMMON_FIELD_NAME, SqlTypes.STRING)
-      .valueField("F1", SqlTypes.STRING)
+      .valueColumn(COMMON_FIELD_NAME, SqlTypes.STRING)
+      .valueColumn("F1", SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA_2 = LogicalSchema.builder()
-      .valueField(COMMON_FIELD_NAME, SqlTypes.STRING)
-      .valueField("F2", SqlTypes.STRING)
+      .valueColumn(COMMON_FIELD_NAME, SqlTypes.STRING)
+      .valueColumn("F2", SqlTypes.STRING)
       .build();
 
   private SourceSchemas sourceSchemas;

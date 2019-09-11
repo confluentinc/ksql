@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
@@ -77,7 +77,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         // This is done by DataSourceNode
         // Hence, they must be removed again here if they are still in the sink schema.
         // This leads to strange behaviour, but changing it is a breaking change.
-        schema.withoutMetaAndKeyFieldsInValue(),
+        schema.withoutMetaAndKeyColsInValue(),
         limit,
         timestampExtractionPolicy
     );
@@ -182,7 +182,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
     final String fieldName = partitionByField.get();
 
-    if (getSchema().isMetaField(fieldName) || getSchema().isKeyField(fieldName)) {
+    if (getSchema().isMetaColumn(fieldName) || getSchema().isKeyColumn(fieldName)) {
       return;
     }
 
@@ -195,13 +195,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
   private static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(final LogicalSchema schema) {
     final ConnectSchema valueSchema = schema.valueConnectSchema();
 
-    final Stream<Field> fields = Streams.concat(
-        schema.metadata().fields().stream(),
-        schema.key().fields().stream()
+    final Stream<Column> cols = Streams.concat(
+        schema.metadata().stream(),
+        schema.key().stream()
     );
 
-    return fields
-        .map(Field::name)
+    return cols
+        .map(Column::name)
         .map(valueSchema::field)
         .filter(Objects::nonNull)
         .map(org.apache.kafka.connect.data.Field::index)

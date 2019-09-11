@@ -45,9 +45,8 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -124,7 +123,7 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Mock
-  private Field field;
+  private Column field;
   @Mock
   private ExecutionStep sourceStep;
   @Mock
@@ -161,7 +160,7 @@ public class SchemaKGroupedStreamTest {
 
     when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
 
-    when(aggregateSchema.value()).thenReturn(mock(SqlStruct.class));
+    when(aggregateSchema.value()).thenReturn(mock(List.class));
   }
 
   @Test
@@ -457,8 +456,8 @@ public class SchemaKGroupedStreamTest {
   public void shouldBuildStepForAggregate() {
     // Given:
     final Map<Integer, KsqlAggregateFunction> functions = ImmutableMap.of(1,  otherFunc);
-    when(aggregateSchema.value().fields())
-        .thenReturn(ImmutableList.of(mock(Field.class), mock(Field.class)));
+    when(aggregateSchema.value())
+        .thenReturn(ImmutableList.of(mock(Column.class), mock(Column.class)));
 
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
@@ -548,11 +547,11 @@ public class SchemaKGroupedStreamTest {
   }
 
   private void givenAggregateSchemaFieldCount(final int count) {
-    final List<Field> valueFields = IntStream
+    final List<Column> valueFields = IntStream
         .range(0, count)
         .mapToObj(i -> field)
         .collect(Collectors.toList());
 
-    when(aggregateSchema.value().fields()).thenReturn(valueFields);
+    when(aggregateSchema.value()).thenReturn(valueFields);
   }
 }

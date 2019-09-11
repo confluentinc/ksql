@@ -248,7 +248,7 @@ public class CommandFactories implements DdlCommandFactory {
     if (statement.getProperties().getKeyField().isPresent()) {
       final String name = statement.getProperties().getKeyField().get().toUpperCase();
       final String cleanName = StringUtil.cleanQuotes(name);
-      schema.findValueField(cleanName).orElseThrow(
+      schema.findValueColumn(cleanName).orElseThrow(
           () -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
                   + cleanName + "'"

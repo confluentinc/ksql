@@ -58,7 +58,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.caseexpression.SearchedCaseFunction;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -268,11 +268,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Field schemaField = schema.findValueField(fieldName)
+      final Column schemaColumn = schema.findValueColumn(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -282,11 +282,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Field schemaField = schema.findValueField(fieldName)
+      final Column schemaColumn = schema.findValueColumn(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 

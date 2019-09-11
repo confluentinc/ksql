@@ -40,12 +40,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SerdeOptionsTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueField("f0", SqlTypes.BIGINT)
+      .valueColumn("f0", SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueField("f0", SqlTypes.BIGINT)
-      .valueField("f1", SqlTypes.DOUBLE)
+      .valueColumn("f0", SqlTypes.BIGINT)
+      .valueColumn("f1", SqlTypes.DOUBLE)
       .build();
 
   private static final List<String> SINGLE_COLUMN_NAME = ImmutableList.of("bob");

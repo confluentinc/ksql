@@ -534,9 +534,9 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueField("ITEMID", SqlTypes.STRING)
-            .valueField("ORDERUNITS", SqlTypes.DOUBLE)
-            .valueField("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
+            .valueColumn("ITEMID", SqlTypes.STRING)
+            .valueColumn("ORDERUNITS", SqlTypes.DOUBLE)
+            .valueColumn("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
             .build(),
         SerdeOption.none()
     );
@@ -638,11 +638,11 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueField("ITEMID", SqlTypes.STRING)
-            .valueField("COL1", SqlTypes.DOUBLE)
-            .valueField("COL2", SqlTypes.DOUBLE)
-            .valueField("COL3", SqlTypes.DOUBLE)
-            .valueField("COL4", SqlTypes.BOOLEAN)
+            .valueColumn("ITEMID", SqlTypes.STRING)
+            .valueColumn("COL1", SqlTypes.DOUBLE)
+            .valueColumn("COL2", SqlTypes.DOUBLE)
+            .valueColumn("COL3", SqlTypes.DOUBLE)
+            .valueColumn("COL4", SqlTypes.BOOLEAN)
             .build(),
         SerdeOption.none()
     );

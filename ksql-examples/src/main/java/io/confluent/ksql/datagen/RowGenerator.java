@@ -63,7 +63,7 @@ public class RowGenerator {
     this.key = Objects.requireNonNull(key, "key");
     this.ksqlSchema = buildLogicalSchema(generator, avroData);
 
-    if (!ksqlSchema.findValueField(key).isPresent()) {
+    if (!ksqlSchema.findValueColumn(key).isPresent()) {
       throw new IllegalArgumentException("key field does not exist in schema: " + key);
     }
   }
@@ -277,10 +277,10 @@ public class RowGenerator {
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
     KEY_SCHEMA.fields()
-        .forEach(f -> schemaBuilder.keyField(f.name(), converter.toSqlType(f.schema())));
+        .forEach(f -> schemaBuilder.keyColumn(f.name(), converter.toSqlType(f.schema())));
 
     connectSchema.fields()
-        .forEach(f -> schemaBuilder.valueField(f.name(), converter.toSqlType(f.schema())));
+        .forEach(f -> schemaBuilder.valueColumn(f.name(), converter.toSqlType(f.schema())));
 
     return schemaBuilder.build();
   }

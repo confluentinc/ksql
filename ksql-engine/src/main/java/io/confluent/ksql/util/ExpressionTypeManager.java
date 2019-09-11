@@ -53,7 +53,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.parser.VisitorUtil;
 import io.confluent.ksql.schema.Operator;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
@@ -208,12 +208,12 @@ public class ExpressionTypeManager {
         final QualifiedNameReference node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Field schemaField = schema.findValueField(node.getName().getSuffix())
+      final Column schemaColumn = schema.findValueColumn(node.getName().getSuffix())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
-      expressionTypeContext.setSchema(schemaField.type(), schema);
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
+      expressionTypeContext.setSchema(schemaColumn.type(), schema);
       return null;
     }
 
@@ -222,12 +222,12 @@ public class ExpressionTypeManager {
         final DereferenceExpression node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Field schemaField = schema.findValueField(node.toString())
+      final Column schemaColumn = schema.findValueColumn(node.toString())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
-      expressionTypeContext.setSchema(schemaField.type(), schema);
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
+      expressionTypeContext.setSchema(schemaColumn.type(), schema);
       return null;
     }
 

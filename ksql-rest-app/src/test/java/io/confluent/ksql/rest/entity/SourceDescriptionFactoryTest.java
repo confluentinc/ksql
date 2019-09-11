@@ -66,7 +66,7 @@ public class SourceDescriptionFactoryTest {
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field0", SqlTypes.INTEGER)
+        .valueColumn("field0", SqlTypes.INTEGER)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(
@@ -81,7 +81,7 @@ public class SourceDescriptionFactoryTest {
         "stream",
         schema,
         SerdeOption.none(),
-        KeyField.of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
+        KeyField.of(schema.value().get(0).name(), schema.value().get(0)),
         new MetadataTimestampExtractionPolicy(),
         topic
     );

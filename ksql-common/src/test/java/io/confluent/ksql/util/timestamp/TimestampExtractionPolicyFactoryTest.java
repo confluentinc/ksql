@@ -39,7 +39,7 @@ import org.junit.rules.ExpectedException;
 public class TimestampExtractionPolicyFactoryTest {
 
   private final LogicalSchema.Builder schemaBuilder2 = LogicalSchema.builder()
-      .valueField("id", SqlTypes.BIGINT);
+      .valueColumn("id", SqlTypes.BIGINT);
 
   private final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
       .field("id", Schema.OPTIONAL_INT64_SCHEMA);
@@ -136,7 +136,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String timestamp = "timestamp";
     final LogicalSchema schema = schemaBuilder2
-        .valueField(timestamp.toUpperCase(), SqlTypes.BIGINT)
+        .valueColumn(timestamp.toUpperCase(), SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -168,7 +168,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String field = "my_string_field";
     final LogicalSchema schema = schemaBuilder2
-        .valueField(field.toUpperCase(), SqlTypes.STRING)
+        .valueColumn(field.toUpperCase(), SqlTypes.STRING)
         .build();
 
     // When:
@@ -185,7 +185,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String field = "my_string_field";
     final LogicalSchema schema = schemaBuilder2
-        .valueField(field.toUpperCase(), SqlTypes.STRING)
+        .valueColumn(field.toUpperCase(), SqlTypes.STRING)
         .build();
 
     // Then:
@@ -201,7 +201,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String timestamp = "timestamp";
     final LogicalSchema schema = schemaBuilder2
-        .valueField(timestamp.toUpperCase(), SqlTypes.BIGINT)
+        .valueColumn(timestamp.toUpperCase(), SqlTypes.BIGINT)
         .build();
 
     // Then:
@@ -217,7 +217,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String field = "blah";
     final LogicalSchema schema = schemaBuilder2
-        .valueField(field.toUpperCase(), SqlTypes.DOUBLE)
+        .valueColumn(field.toUpperCase(), SqlTypes.DOUBLE)
         .build();
 
     // Then:

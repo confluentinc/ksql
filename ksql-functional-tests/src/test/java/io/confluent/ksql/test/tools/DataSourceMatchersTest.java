@@ -21,7 +21,7 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,18 +56,18 @@ public class DataSourceMatchersTest {
   @Test
   public void shouldMatchFieldName() {
     // Given:
-    final Field field = Field.of("foo", SqlTypes.STRING);
+    final Column col = Column.of("foo", SqlTypes.STRING);
 
     // Then:
-    assertThat(field, FieldMatchers.hasFullName("foo"));
+    assertThat(col, FieldMatchers.hasFullName("foo"));
   }
 
   @Test
   public void shouldNotMatchFieldName() {
     // Given:
-    final Field field = Field.of("not-foo", SqlTypes.STRING);
+    final Column col = Column.of("not-foo", SqlTypes.STRING);
 
     // Then:
-    assertThat(field, not(FieldMatchers.hasFullName("foo")));
+    assertThat(col, not(FieldMatchers.hasFullName("foo")));
   }
 }

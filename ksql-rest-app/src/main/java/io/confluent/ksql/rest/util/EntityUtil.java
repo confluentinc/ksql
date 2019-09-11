@@ -17,10 +17,11 @@ package io.confluent.ksql.rest.util;
 
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.SchemaInfo;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlTypeWalker;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -41,21 +42,21 @@ public final class EntityUtil {
 
     final List<FieldInfo> allFields = new ArrayList<>();
     if (!valueSchemaOnly) {
-      allFields.addAll(getFields(schema.metadata().fields(), "meta"));
-      allFields.addAll(getFields(schema.key().fields(), "key"));
+      allFields.addAll(getFields(schema.metadata(), "meta"));
+      allFields.addAll(getFields(schema.key(), "key"));
     }
-    allFields.addAll(getFields(schema.value().fields(), "value"));
+    allFields.addAll(getFields(schema.value(), "value"));
 
     return allFields;
   }
 
-  private static List<FieldInfo> getFields(final List<Field> fields, final String type) {
-    if (fields.isEmpty()) {
-      throw new IllegalArgumentException("Root schema should contain fields." + " type: " + type);
+  private static List<FieldInfo> getFields(final List<Column> columns, final String type) {
+    if (columns.isEmpty()) {
+      throw new IllegalArgumentException("Root schema should contain columns." + " type: " + type);
     }
 
-    return fields.stream()
-        .map(field -> SqlTypeWalker.visit(field, new Converter()))
+    return columns.stream()
+        .map(col -> SqlTypeWalker.visit(Field.of(col.fullName(), col.type()), new Converter()))
         .collect(Collectors.toList());
   }
 
@@ -82,7 +83,7 @@ public final class EntityUtil {
     }
 
     public FieldInfo visitField(final Field field, final SchemaInfo type) {
-      return new FieldInfo(field.fullName(), type);
+      return new FieldInfo(field.name(), type);
     }
   }
 }

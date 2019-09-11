@@ -190,7 +190,7 @@ public class KsqlResourceTest {
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueField("val", SqlTypes.STRING)
+      .valueColumn("val", SqlTypes.STRING)
       .build();
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
@@ -231,7 +231,7 @@ public class KsqlResourceTest {
   );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueField("f1", SqlTypes.STRING)
+      .valueColumn("f1", SqlTypes.STRING)
       .build();
 
   @Rule
@@ -428,8 +428,8 @@ public class KsqlResourceTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("FIELD1", SqlTypes.BOOLEAN)
-        .valueField("FIELD2", SqlTypes.STRING)
+        .valueColumn("FIELD1", SqlTypes.BOOLEAN)
+        .valueColumn("FIELD2", SqlTypes.STRING)
         .build();
 
     givenSource(
@@ -457,8 +457,8 @@ public class KsqlResourceTest {
   public void shouldShowTablesExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("FIELD1", SqlTypes.BOOLEAN)
-        .valueField("FIELD2", SqlTypes.STRING)
+        .valueColumn("FIELD1", SqlTypes.BOOLEAN)
+        .valueColumn("FIELD2", SqlTypes.STRING)
         .build();
 
     givenSource(
@@ -2014,7 +2014,7 @@ public class KsqlResourceTest {
 
   private void addTestTopicAndSources() {
     final LogicalSchema schema1 = LogicalSchema.builder()
-        .valueField("S1_F1", SqlTypes.BOOLEAN)
+        .valueColumn("S1_F1", SqlTypes.BOOLEAN)
         .build();
 
     givenSource(
@@ -2022,7 +2022,7 @@ public class KsqlResourceTest {
         "TEST_TABLE", "KAFKA_TOPIC_1", schema1);
 
     final LogicalSchema schema2 = LogicalSchema.builder()
-        .valueField("S2_F1", SqlTypes.STRING)
+        .valueColumn("S2_F1", SqlTypes.STRING)
         .build();
 
     givenSource(
@@ -2053,7 +2053,7 @@ public class KsqlResourceTest {
               schema,
               SerdeOption.none(),
               KeyField
-                  .of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
+                  .of(schema.value().get(0).name(), schema.value().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));
@@ -2066,7 +2066,7 @@ public class KsqlResourceTest {
               schema,
               SerdeOption.none(),
               KeyField
-                  .of(schema.value().fields().get(0).name(), schema.value().fields().get(0)),
+                  .of(schema.value().get(0).name(), schema.value().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));

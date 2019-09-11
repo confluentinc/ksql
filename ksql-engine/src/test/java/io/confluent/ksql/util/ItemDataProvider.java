@@ -35,8 +35,8 @@ public class ItemDataProvider extends TestDataProvider {
   private static final String key = "ID";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueField("ID", SqlTypes.STRING)
-      .valueField("DESCRIPTION", SqlTypes.STRING)
+      .valueColumn("ID", SqlTypes.STRING)
+      .valueColumn("DESCRIPTION", SqlTypes.STRING)
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

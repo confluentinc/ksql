@@ -27,7 +27,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Optional;
@@ -115,12 +115,12 @@ public class DdlCommandExec {
 
     private KeyField getKeyField(final Optional<String> keyFieldName, final LogicalSchema schema) {
       if (keyFieldName.isPresent()) {
-        final Field keyField = schema.findValueField(keyFieldName.get())
+        final Column keyColumn = schema.findValueColumn(keyFieldName.get())
             .orElseThrow(() -> new IllegalStateException(
                 "The KEY column set in the WITH clause does not exist in the schema: '"
                     + keyFieldName + "'"
             ));
-        return KeyField.of(keyFieldName.get(), keyField);
+        return KeyField.of(keyFieldName.get(), keyColumn);
       } else {
         return KeyField.none();
       }

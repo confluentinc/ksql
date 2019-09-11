@@ -29,7 +29,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
@@ -271,8 +271,8 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final LegacyField legacyKeyField = LegacyField
         .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
 
-    final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
-        .map(Field::fullName);
+    final Optional<String> newKeyField = getSchema().findValueColumn(groupBy.aggregateKeyName)
+        .map(Column::fullName);
 
     final ExecutionStep<KGroupedTable<Struct, GenericRow>> step =
         ExecutionStepFactory.tableGroupBy(

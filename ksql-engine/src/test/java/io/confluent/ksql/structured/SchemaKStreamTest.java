@@ -64,7 +64,7 @@ import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -156,8 +156,8 @@ public class SchemaKStreamTest {
   private ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
   private final LogicalSchema simpleSchema = LogicalSchema.builder()
-      .valueField("key", SqlTypes.STRING)
-      .valueField("val", SqlTypes.BIGINT)
+      .valueColumn("key", SqlTypes.STRING)
+      .valueColumn("val", SqlTypes.BIGINT)
       .build();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
@@ -275,10 +275,10 @@ public class SchemaKStreamTest {
         processingLogContext);
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().value().fields(), contains(
-        Field.of("COL0", SqlTypes.BIGINT),
-        Field.of("COL2", SqlTypes.STRING),
-        Field.of("COL3", SqlTypes.DOUBLE)
+    assertThat(projectedSchemaKStream.getSchema().value(), contains(
+        Column.of("COL0", SqlTypes.BIGINT),
+        Column.of("COL2", SqlTypes.STRING),
+        Column.of("COL3", SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -326,7 +326,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", Field.of("NEWKEY", SqlTypes.BIGINT))));
+        is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -343,7 +343,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", Field.of("NEWKEY", SqlTypes.BIGINT))));
+        is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -360,7 +360,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", Field.of("NEWKEY", SqlTypes.BIGINT))));
+        is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -393,7 +393,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        equalTo(KeyField.of("COL0", Field.of("COL0", SqlTypes.BIGINT))));
+        equalTo(KeyField.of("COL0", Column.of("COL0", SqlTypes.BIGINT))));
   }
 
   @Test
@@ -440,10 +440,10 @@ public class SchemaKStreamTest {
         processingLogContext);
 
     // Then:
-    assertThat(projectedSchemaKStream.getSchema().value().fields(), contains(
-        Field.of("COL0", SqlTypes.BIGINT),
-        Field.of("KSQL_COL_1", SqlTypes.INTEGER),
-        Field.of("KSQL_COL_2", SqlTypes.DOUBLE)
+    assertThat(projectedSchemaKStream.getSchema().value(), contains(
+        Column.of("COL0", SqlTypes.BIGINT),
+        Column.of("KSQL_COL_1", SqlTypes.INTEGER),
+        Column.of("KSQL_COL_2", SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -463,15 +463,15 @@ public class SchemaKStreamTest {
         processingLogContext);
 
     // Then:
-    assertThat(filteredSchemaKStream.getSchema().value().fields(), contains(
-        Field.of("TEST1.ROWTIME", SqlTypes.BIGINT),
-        Field.of("TEST1.ROWKEY", SqlTypes.STRING),
-        Field.of("TEST1.COL0", SqlTypes.BIGINT),
-        Field.of("TEST1.COL1", SqlTypes.STRING),
-        Field.of("TEST1.COL2", SqlTypes.STRING),
-        Field.of("TEST1.COL3", SqlTypes.DOUBLE),
-        Field.of("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE)),
-        Field.of("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
+    assertThat(filteredSchemaKStream.getSchema().value(), contains(
+        Column.of("TEST1", "ROWTIME", SqlTypes.BIGINT),
+        Column.of("TEST1", "ROWKEY", SqlTypes.STRING),
+        Column.of("TEST1", "COL0", SqlTypes.BIGINT),
+        Column.of("TEST1", "COL1", SqlTypes.STRING),
+        Column.of("TEST1", "COL2", SqlTypes.STRING),
+        Column.of("TEST1", "COL3", SqlTypes.DOUBLE),
+        Column.of("TEST1", "COL4", SqlTypes.array(SqlTypes.DOUBLE)),
+        Column.of("TEST1", "COL5", SqlTypes.map(SqlTypes.DOUBLE))
     ));
 
     assertThat(filteredSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
@@ -510,7 +510,7 @@ public class SchemaKStreamTest {
 
     final KeyField expected = KeyField.of(
         "TEST1.COL1",
-        initialSchemaKStream.getSchema().findValueField("TEST1.COL1").get()
+        initialSchemaKStream.getSchema().findValueColumn("TEST1.COL1").get()
     );
 
     // When:
@@ -1177,7 +1177,7 @@ public class SchemaKStreamTest {
         sourceStep,
         keyFormat,
         keySerde,
-        KeyField.of("key", simpleSchema.findValueField("key").get()),
+        KeyField.of("key", simpleSchema.findValueColumn("key").get()),
         ImmutableList.of(parentSchemaKStream),
         Type.SOURCE,
         ksqlConfig,
@@ -1202,7 +1202,7 @@ public class SchemaKStreamTest {
         sourceStep,
         keyFormat,
         keySerde,
-        KeyField.of("key", simpleSchema.findValueField("key").get()),
+        KeyField.of("key", simpleSchema.findValueColumn("key").get()),
         Collections.emptyList(),
         Type.SOURCE,
         ksqlConfig,
@@ -1232,7 +1232,7 @@ public class SchemaKStreamTest {
         sourceStep,
         keyFormat,
         keySerde,
-        KeyField.of("key", simpleSchema.findValueField("key").get()),
+        KeyField.of("key", simpleSchema.findValueColumn("key").get()),
         ImmutableList.of(parentSchemaKStream1, parentSchemaKStream2),
         Type.SOURCE,
         ksqlConfig,
@@ -1340,12 +1340,12 @@ public class SchemaKStreamTest {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final String leftAlias = "left";
     final String rightAlias = "right";
-    for (final Field field : leftSchema.value().fields()) {
-      schemaBuilder.valueField(Field.of(leftAlias, field.name(), field.type()));
+    for (final Column field : leftSchema.value()) {
+      schemaBuilder.valueColumn(Column.of(leftAlias, field.name(), field.type()));
     }
 
-    for (final Field field : rightSchema.value().fields()) {
-      schemaBuilder.valueField(Field.of(rightAlias, field.name(), field.type()));
+    for (final Column field : rightSchema.value()) {
+      schemaBuilder.valueColumn(Column.of(rightAlias, field.name(), field.type()));
     }
     return schemaBuilder.build();
   }

@@ -102,7 +102,7 @@ public final class TopicNode {
 
     final Builder schemaBuilder = LogicalSchema.builder();
 
-    valueType.fields().forEach(schemaBuilder::valueField);
+    valueType.fields().forEach(field -> schemaBuilder.valueColumn(field.name(), field.type()));
 
     return schemaBuilder.build();
   }

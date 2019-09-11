@@ -71,7 +71,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TopicCreateInjectorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("F1", SqlTypes.STRING)
+      .valueColumn("F1", SqlTypes.STRING)
       .build();
 
   @Rule

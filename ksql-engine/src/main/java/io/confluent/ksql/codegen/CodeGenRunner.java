@@ -36,7 +36,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
@@ -118,7 +118,7 @@ public class CodeGenRunner {
       for (final ParameterType param : parameters) {
         parameterNames[index] = param.paramName;
         parameterTypes[index] = param.type;
-        columnIndexes.add(schema.valueFieldIndex(param.fieldName).orElse(-1));
+        columnIndexes.add(schema.valueColumnIndex(param.fieldName).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
@@ -177,11 +177,11 @@ public class CodeGenRunner {
       this.expressionTypeManager = expressionTypeManager;
     }
 
-    private void addParameter(final Field schemaField) {
+    private void addParameter(final Column schemaColumn) {
       parameters.add(new ParameterType(
-          SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaField.type()),
-          schemaField.fullName(),
-          schemaField.fullName().replace(".", "_"),
+          SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaColumn.type()),
+          schemaColumn.fullName(),
+          schemaColumn.fullName().replace(".", "_"),
           ksqlConfig));
     }
 
@@ -269,7 +269,7 @@ public class CodeGenRunner {
         final DereferenceExpression node,
         final Object context
     ) {
-      addParameter(getRequiredField(node.toString()));
+      addParameter(getRequiredColumn(node.toString()));
       return null;
     }
 
@@ -301,7 +301,7 @@ public class CodeGenRunner {
       if (node.getBase() instanceof DereferenceExpression
           || node.getBase() instanceof QualifiedNameReference) {
         final String arrayBaseName = node.getBase().toString();
-        addParameter(getRequiredField(arrayBaseName));
+        addParameter(getRequiredColumn(arrayBaseName));
       } else {
         process(node.getBase(), context);
       }
@@ -314,15 +314,15 @@ public class CodeGenRunner {
         final QualifiedNameReference node,
         final Object context
     ) {
-      addParameter(getRequiredField(node.getName().getSuffix()));
+      addParameter(getRequiredColumn(node.getName().getSuffix()));
       return null;
     }
 
-    private Field getRequiredField(final String fieldName) {
-      return schema.findValueField(fieldName)
+    private Column getRequiredColumn(final String columnName) {
+      return schema.findValueColumn(columnName)
           .orElseThrow(() -> new RuntimeException(
               "Cannot find the select field in the available fields."
-                  + " field: " + fieldName
+                  + " field: " + columnName
                   + ", schema: " + schema.value()));
     }
   }

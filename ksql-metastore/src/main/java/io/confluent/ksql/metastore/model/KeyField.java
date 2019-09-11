@@ -16,7 +16,7 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,7 +42,7 @@ import java.util.Optional;
  * allows these later queries to benefit from the improved logical.
  *
  * <p>This Pojo holds both the legacy and latest key field details. The legacy field is a complete
- * {@link Field}, where as the latest is just the key field name, which can be looked up in the
+ * {@link Column}, where as the latest is just the key field name, which can be looked up in the
  * associated schema.
  *
  * @see <a href="https://github.com/confluentinc/ksql/issues/2636">Github issue 2636</a>
@@ -61,17 +61,17 @@ public final class KeyField {
 
   public static KeyField of(
       final String keyField,
-      final Field legacyKeyField
+      final Column legacyKeyCol
   ) {
-    final LegacyField legacy = LegacyField.of(legacyKeyField.fullName(), legacyKeyField.type());
+    final LegacyField legacy = LegacyField.of(legacyKeyCol.fullName(), legacyKeyCol.type());
     return new KeyField(Optional.of(keyField), Optional.of(legacy));
   }
 
   public static KeyField of(
       final String keyField,
-      final LegacyField legacyKeyField
+      final LegacyField legacyKeyCol
   ) {
-    return new KeyField(Optional.of(keyField), Optional.of(legacyKeyField));
+    return new KeyField(Optional.of(keyField), Optional.of(legacyKeyCol));
   }
 
   public static KeyField of(
@@ -107,25 +107,25 @@ public final class KeyField {
   }
 
   /**
-   * Resolve this {@code KeyField} to the specific key {@code Field} to use.
+   * Resolve this {@code KeyField} to the specific key {@code Column} to use.
    *
    * <p>The method inspects the supplied {@code ksqlConfig} to determine if the new or legacy
    * key field should be returned.
    *
    * <p>The new key field is obtained from the supplied {@code schema} using the instance's
-   * {@code keyField} field as the field name.
+   * {@code keyField} field as the column name.
    *
    * <p>The legacy key field is obtained from the instance's {@code legacyKeyField}.
    *
    * @param schema the schema to use when resolving new key fields.
    * @param ksqlConfig the config to use to determine if new or legacy key fields are required.
-   * @return the resolved key field, or {@link Optional#empty()} if no key field is set.
+   * @return the resolved key column, or {@link Optional#empty()} if no key field is set.
    * @throws IllegalArgumentException if new key field is required but not available in the schema.
    */
-  public Optional<Field> resolve(final LogicalSchema schema, final KsqlConfig ksqlConfig) {
+  public Optional<Column> resolve(final LogicalSchema schema, final KsqlConfig ksqlConfig) {
     if (shouldUseLegacy(ksqlConfig)) {
       return legacyKeyField
-          .map(f -> Field.of(f.name, f.type));
+          .map(f -> Column.of(f.name, f.type));
     }
 
     return resolveLatest(schema);
@@ -159,12 +159,12 @@ public final class KeyField {
    * <p>Note: this method ignores the legacy key field.
    *
    * @param schema the schema to find the key field in.
-   * @return the key field, if one is present, or else {@code empty}.
+   * @return the key column, if one is present, or else {@code empty}.
    * @throws IllegalArgumentException is the key field is not in the supplied schema.
    */
-  public Optional<Field> resolveLatest(final LogicalSchema schema) {
+  public Optional<Column> resolveLatest(final LogicalSchema schema) {
     return keyField
-        .map(fieldName -> schema.findValueField(fieldName)
+        .map(fieldName -> schema.findValueColumn(fieldName)
             .orElseThrow(() -> new IllegalArgumentException(
                 "Invalid key field, not found in schema: " + fieldName)));
   }

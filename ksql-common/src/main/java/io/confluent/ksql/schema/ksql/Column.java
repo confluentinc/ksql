@@ -15,8 +15,12 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.util.Identifiers.ensureTrimmed;
+
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.Identifiers;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -24,9 +28,10 @@ import java.util.Optional;
  * A named field within KSQL schema types.
  */
 @Immutable
-public final class Field {
+public final class Column {
 
-  private final FieldName name;
+  private final Optional<String> source;
+  private final String name;
   private final SqlType type;
 
   /**
@@ -34,8 +39,8 @@ public final class Field {
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Field of(final String name, final SqlType type) {
-    return new Field(FieldName.of(Optional.empty(), name), type);
+  public static Column of(final String name, final SqlType type) {
+    return new Column(Optional.empty(), name, type);
   }
 
   /**
@@ -44,40 +49,45 @@ public final class Field {
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Field of(final String source, final String name, final SqlType type) {
-    return new Field(FieldName.of(Optional.of(source), name), type);
+  public static Column of(final String source, final String name, final SqlType type) {
+    return new Column(Optional.of(source), name, type);
   }
 
   /**
+   * @param source the name of the source of the field.
    * @param name the name of the field.
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Field of(final FieldName name, final SqlType type) {
-    return new Field(name, type);
+  public static Column of(final Optional<String> source, final String name, final SqlType type) {
+    return new Column(source, name, type);
   }
 
-  private Field(final FieldName name, final SqlType type) {
-    this.name = Objects.requireNonNull(name, "name");
+  private Column(final Optional<String> source, final String name, final SqlType type) {
+    this.source = Objects.requireNonNull(source, "source").map(src -> ensureTrimmed(src, "source"));
+    this.name = ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
     this.type = Objects.requireNonNull(type, "type");
-  }
-
-  public FieldName fieldName() {
-    return name;
   }
 
   /**
    * @return the fully qualified field name.
    */
   public String fullName() {
-    return name.fullName();
+    return source.map(alias -> SchemaUtil.buildAliasedFieldName(alias, name)).orElse(name);
+  }
+
+  /**
+   * @return the source of the Column
+   */
+  public Optional<String> source() {
+    return source;
   }
 
   /**
    * @return the name of the field, without any source / alias.
    */
   public String name() {
-    return name.name();
+    return name;
   }
 
   /**
@@ -93,8 +103,8 @@ public final class Field {
    * @param source the source to set of the new field.
    * @return the new field.
    */
-  public Field withSource(final String source) {
-    return new Field(name.withSource(source), type);
+  public Column withSource(final String source) {
+    return new Column(Optional.of(source), name, type);
   }
 
   @Override
@@ -105,14 +115,15 @@ public final class Field {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final Field field = (Field) o;
-    return Objects.equals(name, field.name)
-        && Objects.equals(type, field.type);
+    final Column that = (Column) o;
+    return Objects.equals(source, that.source)
+        && Objects.equals(name, that.name)
+        && Objects.equals(type, that.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, type);
+    return Objects.hash(source, name, type);
   }
 
   @Override
@@ -121,6 +132,10 @@ public final class Field {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return name.toString(formatOptions) + " " + type.toString(formatOptions);
+    final String fmtName = Identifiers.escape(name, formatOptions);
+    final String fmtType = type.toString(formatOptions);
+    final String fmtSource = source.map(s -> Identifiers.escape(s, formatOptions) + ".").orElse("");
+
+    return fmtSource + fmtName + " " + fmtType;
   }
 }

@@ -25,8 +25,8 @@ import org.junit.Test;
 public class LogicalSchemaWithMetaAndKeyFieldsTest {
   private static final String ALIAS = "alias";
   private static final LogicalSchema ORIGINAL = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.STRING)
-      .valueField("field2", SqlTypes.BIGINT)
+      .valueColumn("field1", SqlTypes.STRING)
+      .valueColumn("field2", SqlTypes.BIGINT)
       .build();
 
   private final LogicalSchemaWithMetaAndKeyFields schema
@@ -36,7 +36,7 @@ public class LogicalSchemaWithMetaAndKeyFieldsTest {
   public void shouldTransformSchemaCorrectly() {
     assertThat(
         schema.getSchema(),
-        equalTo(ORIGINAL.withAlias(ALIAS).withMetaAndKeyFieldsInValue()));
+        equalTo(ORIGINAL.withAlias(ALIAS).withMetaAndKeyColsInValue()));
   }
 
   @Test

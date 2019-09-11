@@ -118,8 +118,8 @@ public class WebSocketSubscriberTest {
     EasyMock.replay(subscription, session, basic);
 
     subscriber.onSchema(LogicalSchema.builder()
-        .valueField("currency", SqlTypes.STRING)
-        .valueField("amount", SqlTypes.DOUBLE)
+        .valueColumn("currency", SqlTypes.STRING)
+        .valueColumn("amount", SqlTypes.DOUBLE)
         .build());
 
     subscriber.close();

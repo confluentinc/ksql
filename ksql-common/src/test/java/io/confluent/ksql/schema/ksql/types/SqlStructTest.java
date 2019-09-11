@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.DataException;
-import io.confluent.ksql.schema.ksql.Field;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.types.KsqlStruct;

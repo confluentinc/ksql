@@ -120,7 +120,7 @@ public class JsonFormatTest {
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
-        .valueField("MESSAGE", SqlTypes.STRING)
+        .valueColumn("MESSAGE", SqlTypes.STRING)
         .build();
 
     final GenericRow messageRow = new GenericRow(Collections.singletonList(

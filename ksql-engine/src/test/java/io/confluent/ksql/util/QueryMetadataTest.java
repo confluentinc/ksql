@@ -44,7 +44,7 @@ public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueField("f0", SqlTypes.STRING)
+      .valueColumn("f0", SqlTypes.STRING)
       .build();
   private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");
 

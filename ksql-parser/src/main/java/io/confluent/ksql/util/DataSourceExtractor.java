@@ -196,6 +196,6 @@ public class DataSourceExtractor {
   }
 
   private static void addFieldNames(final LogicalSchema schema, final Set<String> collection) {
-    schema.fields().forEach(field -> collection.add(field.name()));
+    schema.columns().forEach(field -> collection.add(field.name()));
   }
 }

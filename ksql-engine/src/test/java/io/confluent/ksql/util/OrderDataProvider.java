@@ -35,13 +35,13 @@ public class OrderDataProvider extends TestDataProvider {
   private static final String key = "ORDERTIME";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueField("ORDERTIME", SqlTypes.BIGINT)
-      .valueField("ORDERID", SqlTypes.STRING)
-      .valueField("ITEMID", SqlTypes.STRING)
-      .valueField("ORDERUNITS", SqlTypes.DOUBLE)
-      .valueField("TIMESTAMP", SqlTypes.STRING)
-      .valueField("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
-      .valueField("KEYVALUEMAP", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+      .valueColumn("ORDERID", SqlTypes.STRING)
+      .valueColumn("ITEMID", SqlTypes.STRING)
+      .valueColumn("ORDERUNITS", SqlTypes.DOUBLE)
+      .valueColumn("TIMESTAMP", SqlTypes.STRING)
+      .valueColumn("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn("KEYVALUEMAP", SqlTypes.map(SqlTypes.DOUBLE))
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

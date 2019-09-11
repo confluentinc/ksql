@@ -20,9 +20,9 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
-import io.confluent.ksql.util.StringUtil;
 import java.util.List;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 
 public class KafkaTopicsListTableBuilder {
 
@@ -84,7 +84,7 @@ public class KafkaTopicsListTableBuilder {
     } else if (replicaSizes.stream().distinct().limit(2).count() <= 1) {
       return String.valueOf(replicaSizes.get(0));
     } else {
-      return StringUtil.join(", ", replicaSizes);
+      return StringUtils.join(replicaSizes, ", ");
     }
   }
 }

@@ -38,8 +38,8 @@ public class LogicalSchemaSerializerTest {
   public void shouldSchemaAsString() throws Exception {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyField("key0", SqlTypes.STRING)
-        .valueField("v0", SqlTypes.INTEGER)
+        .keyColumn("key0", SqlTypes.STRING)
+        .valueColumn("v0", SqlTypes.INTEGER)
         .build();
 
     // When:

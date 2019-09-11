@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -54,11 +54,11 @@ public class ProjectNodeTest {
   private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
   private static final String KEY_FIELD_NAME = "field1";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.STRING)
-      .valueField("field2", SqlTypes.STRING)
+      .valueColumn("field1", SqlTypes.STRING)
+      .valueColumn("field2", SqlTypes.STRING)
       .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
-      .of("source-key", Field.of("legacy-source-key", SqlTypes.STRING));
+      .of("source-key", Column.of("legacy-source-key", SqlTypes.STRING));
 
   @Mock
   private PlanNode source;

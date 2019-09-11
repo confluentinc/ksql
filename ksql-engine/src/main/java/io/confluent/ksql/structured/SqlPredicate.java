@@ -73,7 +73,7 @@ class SqlPredicate {
     for (final CodeGenRunner.ParameterType param : parameters) {
       parameterNames[index] = param.getParamName();
       parameterTypes[index] = param.getType();
-      columnIndexes[index] = schema.valueFieldIndex(param.getFieldName()).orElse(-1);
+      columnIndexes[index] = schema.valueColumnIndex(param.getFieldName()).orElse(-1);
       index++;
     }
 
@@ -122,7 +122,7 @@ class SqlPredicate {
           if (columnIndexes[i] < 0) {
             values[i] = kudfs.get(i);
           } else {
-            values[i] = genericRowValueTypeEnforcer.enforceFieldType(
+            values[i] = genericRowValueTypeEnforcer.enforceColumnType(
                 columnIndexes[i],
                 row.getColumns().get(columnIndexes[i])
             );

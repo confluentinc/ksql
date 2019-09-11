@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.schema.ksql.Field;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Map;
@@ -64,20 +64,20 @@ final class SourceSchemas {
     final Optional<String> maybeSourceName = SchemaUtil.getFieldNameAlias(fieldName);
     if (!maybeSourceName.isPresent()) {
       return sourceSchemas.entrySet().stream()
-          .filter(e -> e.getValue().findField(fieldName).isPresent())
+          .filter(e -> e.getValue().findColumn(fieldName).isPresent())
           .map(Entry::getKey)
           .collect(Collectors.toSet());
     }
 
     final String sourceName = maybeSourceName.get();
-    final String baseFieldName = SchemaUtil.getFieldNameWithNoAlias(fieldName);
+    final String baseColumnName = SchemaUtil.getFieldNameWithNoAlias(fieldName);
 
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {
       return ImmutableSet.of();
     }
 
-    return sourceSchema.findField(baseFieldName).isPresent()
+    return sourceSchema.findColumn(baseColumnName).isPresent()
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
   }
@@ -110,14 +110,14 @@ final class SourceSchemas {
   }
 
   private static Set<String> nonValueFieldNames(final LogicalSchema schema) {
-    final Set<String> fieldNames = schema.metadata().fields().stream()
-        .map(Field::fullName)
+    final Set<String> columnNames = schema.metadata().stream()
+        .map(Column::fullName)
         .collect(Collectors.toSet());
 
-    schema.key().fields().stream()
-        .map(Field::fullName)
-        .forEach(fieldNames::add);
+    schema.key().stream()
+        .map(Column::fullName)
+        .forEach(columnNames::add);
 
-    return fieldNames;
+    return columnNames;
   }
 }

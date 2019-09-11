@@ -158,7 +158,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueField("ORDERTIME", SqlTypes.BIGINT)
+            .valueColumn("ORDERTIME", SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
     );
@@ -199,7 +199,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueField("ORDERTIME", SqlTypes.BIGINT)
+            .valueColumn("ORDERTIME", SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
     );
@@ -298,10 +298,10 @@ public class StandaloneExecutorFunctionalTest {
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .valueField("ORDERID", SqlTypes.struct()
+        .valueColumn("ORDERID", SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)
             .build())
-        .valueField("Other", SqlTypes.BIGINT)
+        .valueColumn("Other", SqlTypes.BIGINT)
         .build();
 
     final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(

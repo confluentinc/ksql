@@ -53,7 +53,7 @@ public class ExpressionMetadataTest {
 
   @Before
   public void setup() throws InvocationTargetException {
-    when(typeEnforcer.enforceFieldType(anyInt(), any()))
+    when(typeEnforcer.enforceColumnType(anyInt(), any()))
         .thenReturn(parameter1)
         .thenReturn(parameter2);
     when(expressionEvaluator.evaluate(any())).thenReturn(RETURN_VALUE);
@@ -77,8 +77,8 @@ public class ExpressionMetadataTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(typeEnforcer, times(1)).enforceFieldType(1, 456);
-    verify(typeEnforcer, times(1)).enforceFieldType(0, 123);
+    verify(typeEnforcer, times(1)).enforceColumnType(1, 456);
+    verify(typeEnforcer, times(1)).enforceColumnType(0, 123);
     verify(expressionEvaluator).evaluate(new Object[]{parameter1, parameter2});
   }
 
@@ -99,7 +99,7 @@ public class ExpressionMetadataTest {
 
     // Then:
     assertThat(result, equalTo(RETURN_VALUE));
-    verify(typeEnforcer, times(1)).enforceFieldType(0, 123);
+    verify(typeEnforcer, times(1)).enforceColumnType(0, 123);
     verify(expressionEvaluator).evaluate(new Object[]{udf, parameter1});
   }
 
@@ -114,18 +114,18 @@ public class ExpressionMetadataTest {
     final Object thread2Param1 = 3;
     final Object thread2Param2 = 4;
     reset(typeEnforcer);
-    when(typeEnforcer.enforceFieldType(0, 123))
+    when(typeEnforcer.enforceColumnType(0, 123))
         .thenReturn(thread1Param1);
-    when(typeEnforcer.enforceFieldType(1, 456))
+    when(typeEnforcer.enforceColumnType(1, 456))
         .thenAnswer(
             invocation -> {
               threadLatch.countDown();
               assertThat(mainLatch.await(10, TimeUnit.SECONDS), is(true));
               return thread1Param2;
             });
-    when(typeEnforcer.enforceFieldType(0, 100))
+    when(typeEnforcer.enforceColumnType(0, 100))
         .thenReturn(thread2Param1);
-    when(typeEnforcer.enforceFieldType(1, 200))
+    when(typeEnforcer.enforceColumnType(1, 200))
         .thenReturn(thread2Param2);
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,

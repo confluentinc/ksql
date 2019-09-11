@@ -92,7 +92,7 @@ public class QueryStreamWriterTest {
     limitHandlerCapture = newCapture();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("col1", SqlTypes.STRING)
+        .valueColumn("col1", SqlTypes.STRING)
         .build();
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);

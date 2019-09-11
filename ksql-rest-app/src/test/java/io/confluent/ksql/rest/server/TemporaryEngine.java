@@ -51,8 +51,8 @@ import org.junit.rules.ExternalResource;
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("val", SqlTypes.STRING)
-      .valueField("val2", SqlTypes.decimal(2, 1))
+      .valueColumn("val", SqlTypes.STRING)
+      .valueColumn("val2", SqlTypes.decimal(2, 1))
       .build();
 
   private MutableMetaStore metaStore;
@@ -105,7 +105,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.findValueField("val").get()),
+                KeyField.of("val", SCHEMA.findValueColumn("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -117,7 +117,7 @@ public class TemporaryEngine extends ExternalResource {
                 name,
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.findValueField("val").get()),
+                KeyField.of("val", SCHEMA.findValueColumn("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );

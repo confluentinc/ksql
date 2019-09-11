@@ -17,8 +17,7 @@ package io.confluent.ksql.types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.Field;
-import io.confluent.ksql.schema.ksql.FieldName;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -90,12 +89,12 @@ public final class KsqlStruct {
         + '}';
   }
 
-  private static FieldInfo getField(final FieldName name, final SqlStruct schema) {
+  private static FieldInfo getField(final String name, final SqlStruct schema) {
     final List<Field> fields = schema.fields();
 
     for (int idx = 0; idx < fields.size(); idx++) {
       final Field field = fields.get(idx);
-      if (field.fieldName().equals(name)) {
+      if (field.name().equals(name)) {
         return new FieldInfo(idx, field);
       }
     }
@@ -114,15 +113,11 @@ public final class KsqlStruct {
       schema.fields().forEach(f -> values.add(Optional.empty()));
     }
 
-    public Builder set(final FieldName field, final Optional<?> value) {
+    public Builder set(final String field, final Optional<?> value) {
       final FieldInfo info = getField(field, schema);
       info.field.type().validateValue(value.orElse(null));
       values.set(info.index, value);
       return this;
-    }
-
-    public Builder set(final String field, final Optional<?> value) {
-      return set(FieldName.of(field), value);
     }
 
     public KsqlStruct build() {

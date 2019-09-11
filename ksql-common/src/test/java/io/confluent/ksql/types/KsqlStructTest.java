@@ -20,8 +20,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.inOrder;
 
 import io.confluent.ksql.schema.ksql.DataException;
-import io.confluent.ksql.schema.ksql.Field;
-import io.confluent.ksql.schema.ksql.FieldName;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -40,7 +39,7 @@ public class KsqlStructTest {
 
   private static final SqlStruct SCHEMA = SqlTypes.struct()
       .field("f0", SqlTypes.BIGINT)
-      .field(Field.of(FieldName.of("s1", "v1"), SqlTypes.BOOLEAN))
+      .field(Field.of("v1", SqlTypes.BOOLEAN))
       .build();
 
   @Rule
@@ -53,8 +52,7 @@ public class KsqlStructTest {
   public void shouldHandleExplicitNulls() {
     // When:
     final KsqlStruct struct = KsqlStruct.builder(SCHEMA)
-        .set(FieldName.of("f0"), Optional.empty())
-        .set(FieldName.of("s1", "v1"), Optional.empty())
+        .set("f0", Optional.empty())
         .build();
 
     // Then:
@@ -75,7 +73,7 @@ public class KsqlStructTest {
   public void shouldThrowFieldNotKnown() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Unknown field: `??`");
+    expectedException.expectMessage("Unknown field: ??");
 
     // When:
     KsqlStruct.builder(SCHEMA)
@@ -97,8 +95,8 @@ public class KsqlStructTest {
   public void shouldBuildStruct() {
     // When:
     final KsqlStruct struct = KsqlStruct.builder(SCHEMA)
-        .set(FieldName.of("f0"), Optional.of(10L))
-        .set(FieldName.of("s1", "v1"), Optional.of(true))
+        .set("f0", Optional.of(10L))
+        .set("v1", Optional.of(true))
         .build();
 
     // Then:
@@ -109,8 +107,8 @@ public class KsqlStructTest {
   public void shouldVisitFieldsInOrder() {
     // Given:
     final KsqlStruct struct = KsqlStruct.builder(SCHEMA)
-        .set(FieldName.of("f0"), Optional.of(10L))
-        .set(FieldName.of("s1", "v1"), Optional.of(true))
+        .set("f0", Optional.of(10L))
+        .set("v1", Optional.of(true))
         .build();
 
     // When:

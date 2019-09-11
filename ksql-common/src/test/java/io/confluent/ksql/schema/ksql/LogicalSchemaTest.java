@@ -42,9 +42,9 @@ import org.junit.rules.ExpectedException;
 public class LogicalSchemaTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .keyField("k0", SqlTypes.BIGINT)
-      .valueField("f0", SqlTypes.STRING)
-      .valueField("f1", SqlTypes.BIGINT)
+      .keyColumn("k0", SqlTypes.BIGINT)
+      .valueColumn("f0", SqlTypes.STRING)
+      .valueColumn("f1", SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema ALIASED_SCHEMA = SOME_SCHEMA.withAlias("bob");
@@ -56,40 +56,40 @@ public class LogicalSchemaTest {
   public void shouldImplementEqualsProperly() {
 
     final LogicalSchema aSchema = LogicalSchema.builder()
-        .keyField("key", SqlTypes.BIGINT)
-        .valueField("value", SqlTypes.STRING)
+        .keyColumn("key", SqlTypes.BIGINT)
+        .valueColumn("value", SqlTypes.STRING)
         .build();
 
     new EqualsTester()
         .addEqualityGroup(
             LogicalSchema.builder()
-                .keyField("k0", SqlTypes.BIGINT)
-                .valueField("v0", SqlTypes.STRING)
+                .keyColumn("k0", SqlTypes.BIGINT)
+                .valueColumn("v0", SqlTypes.STRING)
                 .build(),
 
             LogicalSchema.builder()
-                .keyField("k0", SqlTypes.BIGINT)
-                .valueField("v0", SqlTypes.STRING)
+                .keyColumn("k0", SqlTypes.BIGINT)
+                .valueColumn("v0", SqlTypes.STRING)
                 .build()
         )
         .addEqualityGroup(
             LogicalSchema.builder()
-                .valueField("f0", SqlTypes.STRING)
-                .valueField("f1", SqlTypes.BIGINT)
+                .valueColumn("f0", SqlTypes.STRING)
+                .valueColumn("f1", SqlTypes.BIGINT)
                 .build(),
 
             LogicalSchema.builder()
-                .keyField(ROWKEY_NAME, SqlTypes.STRING)
-                .valueField("f0", SqlTypes.STRING)
-                .valueField("f1", SqlTypes.BIGINT)
+                .keyColumn(ROWKEY_NAME, SqlTypes.STRING)
+                .valueColumn("f0", SqlTypes.STRING)
+                .valueColumn("f1", SqlTypes.BIGINT)
                 .build()
         )
         .addEqualityGroup(
             aSchema,
 
             aSchema
-                .withMetaAndKeyFieldsInValue()
-                .withoutMetaAndKeyFieldsInValue(),
+                .withMetaAndKeyColsInValue()
+                .withoutMetaAndKeyColsInValue(),
 
             aSchema
                 .withAlias("bob")
@@ -99,7 +99,7 @@ public class LogicalSchemaTest {
             aSchema.withAlias("bob")
         )
         .addEqualityGroup(
-            aSchema.withMetaAndKeyFieldsInValue()
+            aSchema.withMetaAndKeyColsInValue()
         )
         .testEquals();
   }
@@ -127,9 +127,9 @@ public class LogicalSchemaTest {
   public void shouldOnlyAddAliasToTopLevelFields() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyField("k0", SqlTypes.BIGINT)
-        .valueField("f0", SqlTypes.STRING)
-        .valueField("f1", SqlTypes.struct()
+        .keyColumn("k0", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.struct()
             .field("nested", SqlTypes.BIGINT)
             .build())
         .build();
@@ -139,9 +139,9 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyField(Field.of(FieldName.of("bob", "k0"), SqlTypes.BIGINT))
-        .valueField(Field.of(FieldName.of("bob", "f0"), SqlTypes.STRING))
-        .valueField(Field.of(FieldName.of("bob", "f1"), SqlTypes.struct()
+        .keyColumn(Column.of("bob", "k0", SqlTypes.BIGINT))
+        .valueColumn(Column.of("bob", "f0", SqlTypes.STRING))
+        .valueColumn(Column.of("bob", "f1", SqlTypes.struct()
             .field("nested", SqlTypes.BIGINT)
             .build()))
         .build()));
@@ -167,9 +167,9 @@ public class LogicalSchemaTest {
   public void shouldOnlyRemoveAliasFromTopLevelFields() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyField("k0", SqlTypes.INTEGER)
-        .valueField("f0", SqlTypes.STRING)
-        .valueField("f1", SqlTypes.struct()
+        .keyColumn("k0", SqlTypes.INTEGER)
+        .valueColumn("f0", SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.struct()
             .field("bob.nested", SqlTypes.BIGINT)
             .build())
         .build().withAlias("bob");
@@ -179,9 +179,9 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyField("k0", SqlTypes.INTEGER)
-        .valueField("f0", SqlTypes.STRING)
-        .valueField("f1", SqlTypes.struct()
+        .keyColumn("k0", SqlTypes.INTEGER)
+        .valueColumn("f0", SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.struct()
             .field("bob.nested", SqlTypes.BIGINT)
             .build())
         .build()));
@@ -190,25 +190,25 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetFieldByName() {
     // When:
-    final Optional<Field> result = SOME_SCHEMA.findValueField("f0");
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn("f0");
 
     // Then:
-    assertThat(result, is(Optional.of(Field.of("f0", SqlTypes.STRING))));
+    assertThat(result, is(Optional.of(Column.of("f0", SqlTypes.STRING))));
   }
 
   @Test
   public void shouldGetFieldByAliasedName() {
     // When:
-    final Optional<Field> result = SOME_SCHEMA.findValueField("SomeAlias.f0");
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn("SomeAlias.f0");
 
     // Then:
-    assertThat(result, is(Optional.of(Field.of("f0", SqlTypes.STRING))));
+    assertThat(result, is(Optional.of(Column.of("f0", SqlTypes.STRING))));
   }
 
   @Test
   public void shouldNotGetFieldByNameIfWrongCase() {
     // When:
-    final Optional<Field> result = SOME_SCHEMA.findValueField("F0");
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn("F0");
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -217,7 +217,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldNotGetFieldByNameIfFieldIsAliasedAndNameIsNot() {
     // When:
-    final Optional<Field> result = ALIASED_SCHEMA.findValueField("f0");
+    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn("f0");
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -226,90 +226,90 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetFieldByNameIfBothFieldAndNameAreAliased() {
     // When:
-    final Optional<Field> result = ALIASED_SCHEMA.findValueField("bob.f0");
+    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn("bob.f0");
 
     // Then:
-    assertThat(result, is(Optional.of(Field.of("bob", "f0", SqlTypes.STRING))));
+    assertThat(result, is(Optional.of(Column.of("bob", "f0", SqlTypes.STRING))));
   }
 
   @Test
   public void shouldNotGetMetaFieldFromValue() {
-    assertThat(SOME_SCHEMA.findValueField("ROWTIME"), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn("ROWTIME"), is(Optional.empty()));
   }
 
   @Test
   public void shouldNotGetKeyFieldFromValue() {
-    assertThat(SOME_SCHEMA.findValueField("k0"), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn("k0"), is(Optional.empty()));
   }
 
   @Test
   public void shouldGetMetaFieldFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyFieldsInValue().findValueField("ROWTIME"),
+    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn("ROWTIME"),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetKeyFieldFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyFieldsInValue().findValueField("k0"),
+    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn("k0"),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetMetaFields() {
-    assertThat(SOME_SCHEMA.findField("ROWTIME"), is(Optional.of(
-        Field.of("ROWTIME", SqlTypes.BIGINT)
+    assertThat(SOME_SCHEMA.findColumn("ROWTIME"), is(Optional.of(
+        Column.of("ROWTIME", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldGetKeyFields() {
-    assertThat(SOME_SCHEMA.findField("k0"), is(Optional.of(
-        Field.of("k0", SqlTypes.BIGINT)
+    assertThat(SOME_SCHEMA.findColumn("k0"), is(Optional.of(
+        Column.of("k0", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldGetValueFields() {
-    assertThat(SOME_SCHEMA.findField("f0"), is(Optional.of(
-        Field.of("f0", SqlTypes.STRING)
+    assertThat(SOME_SCHEMA.findColumn("f0"), is(Optional.of(
+        Column.of("f0", SqlTypes.STRING)
     )));
   }
 
   @Test
   public void shouldGetFieldIndex() {
-    assertThat(SOME_SCHEMA.valueFieldIndex("f0"), is(OptionalInt.of(0)));
-    assertThat(SOME_SCHEMA.valueFieldIndex("f1"), is(OptionalInt.of(1)));
+    assertThat(SOME_SCHEMA.valueColumnIndex("f0"), is(OptionalInt.of(0)));
+    assertThat(SOME_SCHEMA.valueColumnIndex("f1"), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldReturnMinusOneForIndexIfFieldNotFound() {
-    assertThat(SOME_SCHEMA.valueFieldIndex("wontfindme"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueColumnIndex("wontfindme"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindFieldIfDifferentCase() {
-    assertThat(SOME_SCHEMA.valueFieldIndex("F0"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueColumnIndex("F0"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldGetAliasedFieldIndex() {
-    assertThat(ALIASED_SCHEMA.valueFieldIndex("bob.f1"), is(OptionalInt.of(1)));
+    assertThat(ALIASED_SCHEMA.valueColumnIndex("bob.f1"), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldNotFindUnaliasedFieldIndexInAliasedSchema() {
-    assertThat(ALIASED_SCHEMA.valueFieldIndex("f1"), is(OptionalInt.empty()));
+    assertThat(ALIASED_SCHEMA.valueColumnIndex("f1"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindAliasedFieldIndexInUnaliasedSchema() {
-    assertThat(SOME_SCHEMA.valueFieldIndex("bob.f1"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueColumnIndex("bob.f1"), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldExposeMetaFields() {
-    assertThat(SOME_SCHEMA.metadata().fields(), is(ImmutableList.of(
-        Field.of(ROWTIME_NAME, SqlTypes.BIGINT)
+    assertThat(SOME_SCHEMA.metadata(), is(ImmutableList.of(
+        Column.of(ROWTIME_NAME, SqlTypes.BIGINT)
     )));
   }
 
@@ -319,18 +319,18 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withAlias("fred");
 
     // When:
-    final List<Field> fields = schema.metadata().fields();
+    final List<Column> fields = schema.metadata();
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
-        Field.of("fred", ROWTIME_NAME, SqlTypes.BIGINT)
+        Column.of("fred", ROWTIME_NAME, SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldExposeKeyFields() {
-    assertThat(SOME_SCHEMA.key().fields(), is(ImmutableList.of(
-        Field.of("k0", SqlTypes.BIGINT)
+    assertThat(SOME_SCHEMA.key(), is(ImmutableList.of(
+        Column.of("k0", SqlTypes.BIGINT)
     )));
   }
 
@@ -340,19 +340,19 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withAlias("fred");
 
     // When:
-    final List<Field> fields = schema.key().fields();
+    final List<Column> fields = schema.key();
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
-        Field.of("fred", "k0", SqlTypes.BIGINT)
+        Column.of("fred", "k0", SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldExposeValueFields() {
-    assertThat(SOME_SCHEMA.value().fields(), contains(
-        Field.of("f0", SqlTypes.STRING),
-        Field.of("f1", SqlTypes.BIGINT)
+    assertThat(SOME_SCHEMA.value(), contains(
+        Column.of("f0", SqlTypes.STRING),
+        Column.of("f1", SqlTypes.BIGINT)
     ));
   }
 
@@ -362,22 +362,22 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withAlias("bob");
 
     // When:
-    final List<Field> fields = schema.value().fields();
+    final List<Column> fields = schema.value();
 
     // Then:
     assertThat(fields, contains(
-        Field.of("bob", "f0", SqlTypes.STRING),
-        Field.of("bob", "f1", SqlTypes.BIGINT)
+        Column.of("bob", "f0", SqlTypes.STRING),
+        Column.of("bob", "f1", SqlTypes.BIGINT)
     ));
   }
 
   @Test
   public void shouldExposeAllFields() {
-    assertThat(SOME_SCHEMA.fields(), is(ImmutableList.of(
-        Field.of(ROWTIME_NAME, SqlTypes.BIGINT),
-        Field.of("k0", SqlTypes.BIGINT),
-        Field.of("f0", SqlTypes.STRING),
-        Field.of("f1", SqlTypes.BIGINT)
+    assertThat(SOME_SCHEMA.columns(), is(ImmutableList.of(
+        Column.of(ROWTIME_NAME, SqlTypes.BIGINT),
+        Column.of("k0", SqlTypes.BIGINT),
+        Column.of("f0", SqlTypes.STRING),
+        Column.of("f1", SqlTypes.BIGINT)
     )));
   }
 
@@ -387,14 +387,14 @@ public class LogicalSchemaTest {
     final LogicalSchema schema = SOME_SCHEMA.withAlias("bob");
 
     // When:
-    final List<Field> fields = schema.fields();
+    final List<Column> fields = schema.columns();
 
     // Then:
     assertThat(fields, is(ImmutableList.of(
-        Field.of("bob", ROWTIME_NAME, SqlTypes.BIGINT),
-        Field.of("bob", "k0", SqlTypes.BIGINT),
-        Field.of("bob", "f0", SqlTypes.STRING),
-        Field.of("bob", "f1", SqlTypes.BIGINT)
+        Column.of("bob", ROWTIME_NAME, SqlTypes.BIGINT),
+        Column.of("bob", "k0", SqlTypes.BIGINT),
+        Column.of("bob", "f0", SqlTypes.STRING),
+        Column.of("bob", "f1", SqlTypes.BIGINT)
     )));
   }
 
@@ -402,18 +402,18 @@ public class LogicalSchemaTest {
   public void shouldConvertSchemaToString() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BOOLEAN)
-        .valueField("f1", SqlTypes.INTEGER)
-        .valueField("f2", SqlTypes.BIGINT)
-        .valueField("f4", SqlTypes.DOUBLE)
-        .valueField("f5", SqlTypes.STRING)
-        .valueField("f6", SqlTypes.struct()
+        .valueColumn("f0", SqlTypes.BOOLEAN)
+        .valueColumn("f1", SqlTypes.INTEGER)
+        .valueColumn("f2", SqlTypes.BIGINT)
+        .valueColumn("f4", SqlTypes.DOUBLE)
+        .valueColumn("f5", SqlTypes.STRING)
+        .valueColumn("f6", SqlTypes.struct()
             .field("a", SqlTypes.BIGINT)
             .build())
-        .valueField("f7", SqlTypes.array(SqlTypes.STRING))
-        .valueField("f8", SqlTypes.map(SqlTypes.STRING))
-        .keyField("k0", SqlTypes.BIGINT)
-        .keyField("k1", SqlTypes.DOUBLE)
+        .valueColumn("f7", SqlTypes.array(SqlTypes.STRING))
+        .valueColumn("f8", SqlTypes.map(SqlTypes.STRING))
+        .keyColumn("k0", SqlTypes.BIGINT)
+        .keyColumn("k1", SqlTypes.DOUBLE)
         .build();
 
     // When:
@@ -439,8 +439,8 @@ public class LogicalSchemaTest {
   public void shouldConvertSchemaToStringWithReservedWords() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BOOLEAN)
-        .valueField("f1", SqlTypes.struct()
+        .valueColumn("f0", SqlTypes.BOOLEAN)
+        .valueColumn("f1", SqlTypes.struct()
             .field("f0", SqlTypes.BIGINT)
             .field("f1", SqlTypes.BIGINT)
             .build())
@@ -465,7 +465,7 @@ public class LogicalSchemaTest {
   public void shouldConvertAliasedSchemaToString() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BOOLEAN)
+        .valueColumn("f0", SqlTypes.BOOLEAN)
         .build()
         .withAlias("t");
 
@@ -484,54 +484,54 @@ public class LogicalSchemaTest {
   public void shouldAddMetaAndKeyColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.STRING)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build();
 
     // When:
     final LogicalSchema result = schema
-        .withMetaAndKeyFieldsInValue();
+        .withMetaAndKeyColsInValue();
 
     // Then:
-    assertThat(result.value().fields(), hasSize(schema.value().fields().size() + 2));
-    assertThat(result.value().fields().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
-    assertThat(result.value().fields().get(0).type(), is(SqlTypes.BIGINT));
-    assertThat(result.value().fields().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
-    assertThat(result.value().fields().get(1).type(), is(SqlTypes.STRING));
+    assertThat(result.value(), hasSize(schema.value().size() + 2));
+    assertThat(result.value().get(0).name(), is(SchemaUtil.ROWTIME_NAME));
+    assertThat(result.value().get(0).type(), is(SqlTypes.BIGINT));
+    assertThat(result.value().get(1).name(), is(SchemaUtil.ROWKEY_NAME));
+    assertThat(result.value().get(1).type(), is(SqlTypes.STRING));
   }
 
   @Test
   public void shouldAddMetaAndKeyColumnsWhenAliased() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.STRING)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
         .withAlias("bob");
 
     // When:
     final LogicalSchema result = schema
-        .withMetaAndKeyFieldsInValue();
+        .withMetaAndKeyColsInValue();
 
     // Then:
-    assertThat(result.value().fields(), hasSize(schema.value().fields().size() + 2));
-    assertThat(result.value().fields().get(0).fullName(), is("bob." + SchemaUtil.ROWTIME_NAME));
-    assertThat(result.value().fields().get(0).type(), is(SqlTypes.BIGINT));
-    assertThat(result.value().fields().get(1).fullName(), is("bob." + SchemaUtil.ROWKEY_NAME));
-    assertThat(result.value().fields().get(1).type(), is(SqlTypes.STRING));
+    assertThat(result.value(), hasSize(schema.value().size() + 2));
+    assertThat(result.value().get(0).fullName(), is("bob." + SchemaUtil.ROWTIME_NAME));
+    assertThat(result.value().get(0).type(), is(SqlTypes.BIGINT));
+    assertThat(result.value().get(1).fullName(), is("bob." + SchemaUtil.ROWKEY_NAME));
+    assertThat(result.value().get(1).type(), is(SqlTypes.STRING));
   }
 
   @Test
   public void shouldAddMetaAndKeyColumnsOnlyOnce() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.STRING)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
-        .withMetaAndKeyFieldsInValue();
+        .withMetaAndKeyColsInValue();
 
     // When:
-    final LogicalSchema result = schema.withMetaAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withMetaAndKeyColsInValue();
 
     // Then:
     assertThat(result, is(schema));
@@ -541,21 +541,21 @@ public class LogicalSchemaTest {
   public void shouldRemoveOthersWhenAddingMetasAndKeyFields() {
     // Given:
     final LogicalSchema ksqlSchema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.DOUBLE)
-        .valueField("f1", SqlTypes.BIGINT)
-        .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.DOUBLE)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.DOUBLE)
+        .valueColumn("f1", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.DOUBLE)
         .build();
 
     // When:
-    final LogicalSchema result = ksqlSchema.withMetaAndKeyFieldsInValue();
+    final LogicalSchema result = ksqlSchema.withMetaAndKeyColsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -564,18 +564,18 @@ public class LogicalSchemaTest {
   public void shouldRemoveMetaFields() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
-        .withMetaAndKeyFieldsInValue();
+        .withMetaAndKeyColsInValue();
 
     // When
-    final LogicalSchema result = schema.withoutMetaAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -584,19 +584,19 @@ public class LogicalSchemaTest {
   public void shouldRemoveMetaFieldsWhereEverTheyAre() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueField("f1", SqlTypes.BIGINT)
-        .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn("f1", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
         .build();
 
     // When
-    final LogicalSchema result = schema.withoutMetaAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
     ));
   }
@@ -605,79 +605,77 @@ public class LogicalSchemaTest {
   public void shouldRemoveMetaFieldsEvenIfAliased() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("f0", SqlTypes.BIGINT)
-        .valueField("f1", SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn("f1", SqlTypes.BIGINT)
         .build()
-        .withMetaAndKeyFieldsInValue()
+        .withMetaAndKeyColsInValue()
         .withAlias("bob");
 
     // When
-    final LogicalSchema result = schema.withoutMetaAndKeyFieldsInValue();
+    final LogicalSchema result = schema.withoutMetaAndKeyColsInValue();
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyField("bob.ROWKEY", SqlTypes.STRING)
-        .valueField("bob.f0", SqlTypes.BIGINT)
-        .valueField("bob.f1", SqlTypes.BIGINT)
+        .keyColumn(Column.of("bob", "ROWKEY", SqlTypes.STRING))
+        .valueColumn(Column.of("bob", "f0", SqlTypes.BIGINT))
+        .valueColumn(Column.of("bob", "f1", SqlTypes.BIGINT))
         .build()
     ));
   }
 
   @Test
   public void shouldMatchMetaFieldName() {
-    assertThat(SOME_SCHEMA.isMetaField(ROWTIME_NAME), is(true));
-    assertThat(SOME_SCHEMA.isKeyField(ROWTIME_NAME), is(false));
+    assertThat(SOME_SCHEMA.isMetaColumn(ROWTIME_NAME), is(true));
+    assertThat(SOME_SCHEMA.isKeyColumn(ROWTIME_NAME), is(false));
   }
 
   @Test
   public void shouldMatchKeyFieldName() {
-    assertThat(SOME_SCHEMA.isMetaField("k0"), is(false));
-    assertThat(SOME_SCHEMA.isKeyField("k0"), is(true));
+    assertThat(SOME_SCHEMA.isMetaColumn("k0"), is(false));
+    assertThat(SOME_SCHEMA.isKeyColumn("k0"), is(true));
   }
 
   @Test
   public void shouldNotMatchValueFieldsAsBeingMetaOrKeyFields() {
-    SOME_SCHEMA.value().fields().forEach(field ->
+    SOME_SCHEMA.value().forEach(field ->
     {
-      assertThat(SOME_SCHEMA.isMetaField(field.name()), is(false));
-      assertThat(SOME_SCHEMA.isKeyField(field.name()), is(false));
+      assertThat(SOME_SCHEMA.isMetaColumn(field.name()), is(false));
+      assertThat(SOME_SCHEMA.isKeyColumn(field.name()), is(false));
     });
   }
 
   @Test
   public void shouldNotMatchRandomFieldNameAsBeingMetaOrKeyFields() {
-    assertThat(SOME_SCHEMA.isMetaField("well_this_ain't_in_the_schema"), is(false));
-    assertThat(SOME_SCHEMA.isKeyField("well_this_ain't_in_the_schema"), is(false));
+    assertThat(SOME_SCHEMA.isMetaColumn("well_this_ain't_in_the_schema"), is(false));
+    assertThat(SOME_SCHEMA.isKeyColumn("well_this_ain't_in_the_schema"), is(false));
   }
 
   @Test
   public void shouldThrowOnDuplicateKeyFieldName() {
     // Given:
     final Builder builder = LogicalSchema.builder()
-        .keyField("fieldName", SqlTypes.BIGINT);
+        .keyColumn("fieldName", SqlTypes.BIGINT);
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Duplicate field names found in STRUCT: '`fieldName` BIGINT' and '`fieldName` BIGINT'");
+    expectedException.expectMessage("Duplicate keys found in schema: `fieldName` BIGINT");
 
     // When:
-    builder.keyField("fieldName", SqlTypes.BIGINT);
+    builder.keyColumn("fieldName", SqlTypes.BIGINT);
   }
 
   @Test
   public void shouldThrowOnDuplicateValueFieldName() {
     // Given:
     final Builder builder = LogicalSchema.builder()
-        .valueField("fieldName", SqlTypes.BIGINT);
+        .valueColumn("fieldName", SqlTypes.BIGINT);
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Duplicate field names found in STRUCT: '`fieldName` BIGINT' and '`fieldName` BIGINT'");
+    expectedException.expectMessage("Duplicate values found in schema: `fieldName` BIGINT");
 
     // When:
-    builder.valueField("fieldName", SqlTypes.BIGINT);
+    builder.valueColumn("fieldName", SqlTypes.BIGINT);
   }
 
   @Test
@@ -687,15 +685,15 @@ public class LogicalSchemaTest {
 
     // When:
     builder
-        .keyField("fieldName", SqlTypes.BIGINT)
-        .keyField(Field.of("source", "fieldName", SqlTypes.BIGINT))
-        .keyField(Field.of("diff", "fieldName", SqlTypes.BIGINT));
+        .keyColumn("fieldName", SqlTypes.BIGINT)
+        .keyColumn(Column.of("source", "fieldName", SqlTypes.BIGINT))
+        .keyColumn(Column.of("diff", "fieldName", SqlTypes.BIGINT));
 
     // Then:
-    assertThat(builder.build().key().fields(), contains(
-        Field.of("fieldName", SqlTypes.BIGINT),
-        Field.of("source", "fieldName", SqlTypes.BIGINT),
-        Field.of("diff", "fieldName", SqlTypes.BIGINT)
+    assertThat(builder.build().key(), contains(
+        Column.of("fieldName", SqlTypes.BIGINT),
+        Column.of("source", "fieldName", SqlTypes.BIGINT),
+        Column.of("diff", "fieldName", SqlTypes.BIGINT)
     ));
   }
 
@@ -706,15 +704,15 @@ public class LogicalSchemaTest {
 
     // When:
     builder
-        .valueField("fieldName", SqlTypes.BIGINT)
-        .valueField(Field.of("source", "fieldName", SqlTypes.BIGINT))
-        .valueField(Field.of("diff", "fieldName", SqlTypes.BIGINT));
+        .valueColumn("fieldName", SqlTypes.BIGINT)
+        .valueColumn(Column.of("source", "fieldName", SqlTypes.BIGINT))
+        .valueColumn(Column.of("diff", "fieldName", SqlTypes.BIGINT));
 
     // Then:
-    assertThat(builder.build().value().fields(), contains(
-        Field.of("fieldName", SqlTypes.BIGINT),
-        Field.of("source", "fieldName", SqlTypes.BIGINT),
-        Field.of("diff", "fieldName", SqlTypes.BIGINT)
+    assertThat(builder.build().value(), contains(
+        Column.of("fieldName", SqlTypes.BIGINT),
+        Column.of("source", "fieldName", SqlTypes.BIGINT),
+        Column.of("diff", "fieldName", SqlTypes.BIGINT)
     ));
   }
 
@@ -722,10 +720,10 @@ public class LogicalSchemaTest {
   public void shouldGetKeyConnectSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyField("fieldName", SqlTypes.DOUBLE)
-        .keyField(Field.of("source", "fieldName", SqlTypes.BOOLEAN))
-        .keyField(Field.of("diff", "fieldName", SqlTypes.STRING))
-        .valueField("fieldName", SqlTypes.BIGINT)
+        .keyColumn("fieldName", SqlTypes.DOUBLE)
+        .keyColumn(Column.of("source", "fieldName", SqlTypes.BOOLEAN))
+        .keyColumn(Column.of("diff", "fieldName", SqlTypes.STRING))
+        .valueColumn("fieldName", SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -744,10 +742,10 @@ public class LogicalSchemaTest {
   public void shouldGetValueConnectSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyField("fieldName", SqlTypes.STRING)
-        .valueField("fieldName", SqlTypes.BIGINT)
-        .valueField(Field.of("source", "fieldName", SqlTypes.INTEGER))
-        .valueField(Field.of("diff", "fieldName", SqlTypes.STRING))
+        .keyColumn("fieldName", SqlTypes.STRING)
+        .valueColumn("fieldName", SqlTypes.BIGINT)
+        .valueColumn(Column.of("source", "fieldName", SqlTypes.INTEGER))
+        .valueColumn(Column.of("diff", "fieldName", SqlTypes.STRING))
         .build();
 
     // When:

@@ -167,9 +167,9 @@ public class DataSourceNode extends PlanNode {
   private int timestampIndex() {
     final LogicalSchema originalSchema = dataSource.getSchema();
     final String timestampField = dataSource.getTimestampExtractionPolicy().timestampField();
-    return originalSchema.valueFieldIndex(timestampField)
+    return originalSchema.valueColumnIndex(timestampField)
         .orElse(
-            originalSchema.withAlias(alias).valueFieldIndex(timestampField)
+            originalSchema.withAlias(alias).valueColumnIndex(timestampField)
                 .orElse(-1)
         );
   }

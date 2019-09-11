@@ -92,9 +92,9 @@ public final class TableElements implements Iterable<TableElement> {
       final SqlType fieldType = tableElement.getType().getSqlType();
 
       if (tableElement.getNamespace() == Namespace.KEY) {
-        builder.keyField(fieldName, fieldType);
+        builder.keyColumn(fieldName, fieldType);
       } else {
-        builder.valueField(fieldName, fieldType);
+        builder.valueColumn(fieldName, fieldType);
       }
     }
 

@@ -80,12 +80,6 @@ public class RestQueryTranslationTest {
       .around(TEST_HARNESS)
       .around(REST_APP);
 
-  // there's a race condition with Kafka and deleting topics since topic deletion is asynchronous.
-  // if we fail due to TopicExistsException, just retry since it is likely that the topic was just
-  // slow to be removed
-  @Rule
-  public final Retry RETRY = Retry.of(5, TopicExistsException.class, 5, TimeUnit.SECONDS);
-
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return JsonTestLoader.of(TEST_DIR, RqttTestFile.class)

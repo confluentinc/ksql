@@ -16,9 +16,12 @@
 package io.confluent.ksql.integration;
 
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The {@code Retry} rule allows you to retry a test that
@@ -74,6 +77,8 @@ import org.junit.runners.model.Statement;
  */
 public class Retry implements TestRule {
 
+  private static final Logger LOG = LoggerFactory.getLogger(Retry.class);
+
   public static Retry none() {
     return new Retry();
   }
@@ -123,9 +128,11 @@ public class Retry implements TestRule {
             return;
           } catch (final Throwable e) {
             retries++;
-            if (!(exception.isInstance(e)) || retries > maxRetries) {
+            if (!(exception.isInstance(e) || exception.isInstance(ExceptionUtils.getRootCause(e)))
+                || retries > maxRetries) {
               throw e;
             }
+            LOG.warn("Retrying test after {} {} due to: {}", delay, unit, e.getMessage());
             unit.sleep(delay);
           }
         }

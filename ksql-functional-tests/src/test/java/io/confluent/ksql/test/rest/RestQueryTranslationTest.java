@@ -36,9 +36,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
@@ -77,6 +79,12 @@ public class RestQueryTranslationTest {
       .outerRule(Retry.of(3, ZooKeeperClientException.class, 3, TimeUnit.SECONDS))
       .around(TEST_HARNESS)
       .around(REST_APP);
+
+  // there's a race condition with Kafka and deleting topics since topic deletion is asynchronous.
+  // if we fail due to TopicExistsException, just retry since it is likely that the topic was just
+  // slow to be removed
+  @Rule
+  public final Retry RETRY = Retry.of(5, TopicExistsException.class, 5, TimeUnit.SECONDS);
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {

@@ -25,15 +25,21 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class Command {
   private final String statement;
+  private final int commandTopicOffset;
   private final Map<String, Object> overwriteProperties;
   private final Map<String, String> originalProperties;
   private final boolean preVersion5;
 
+  public static final Integer DEFAULT_COMMAND_TOPIC_OFFSET = -1;
+
   @JsonCreator
   public Command(@JsonProperty("statement") final String statement,
+                 @JsonProperty("commandTopicOffset") final Integer commandTopicOffset,
                  @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
                  @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
     this.statement = statement;
+    this.commandTopicOffset =
+        commandTopicOffset == null ? DEFAULT_COMMAND_TOPIC_OFFSET : commandTopicOffset;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
     this.preVersion5 = originalProperties == null;
     this.originalProperties =
@@ -43,6 +49,11 @@ public class Command {
   @JsonProperty("statement")
   public String getStatement() {
     return statement;
+  }
+
+  @JsonProperty("commandTopicOffset")
+  public int getCommandTopicOffset() {
+    return commandTopicOffset;
   }
 
   @JsonProperty("streamsProperties")
@@ -64,19 +75,21 @@ public class Command {
     return
         o instanceof Command
         && Objects.equals(statement, ((Command)o).statement)
+        && Objects.equals(commandTopicOffset, ((Command)o).commandTopicOffset)
         && Objects.equals(overwriteProperties, ((Command)o).overwriteProperties)
         && Objects.equals(originalProperties, ((Command)o).originalProperties);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, overwriteProperties, originalProperties);
+    return Objects.hash(statement, commandTopicOffset, overwriteProperties, originalProperties);
   }
 
   @Override
   public String toString() {
     return "Command{"
         + "statement='" + statement + '\''
+        + ",commandTopicOffset=" + commandTopicOffset
         + ", overwriteProperties=" + overwriteProperties
         + '}';
   }

@@ -117,6 +117,7 @@ import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
+import io.confluent.ksql.rest.server.computation.SnapshotWithOffset;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -306,6 +307,10 @@ public class KsqlResourceTest {
         .thenReturn(commandStatus)
         .thenReturn(commandStatus1)
         .thenReturn(commandStatus2);
+
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine));
+
 
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
 
@@ -509,6 +514,9 @@ public class KsqlResourceTest {
         "CREATE STREAM described_stream AS SELECT * FROM test_stream;"
             + "CREATE STREAM down_stream AS SELECT * FROM described_stream;",
         emptyMap());
+
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     // When:
     final SourceDescriptionEntity description = makeSingleRequest(
@@ -847,6 +855,9 @@ public class KsqlResourceTest {
     when(sandboxTopicInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "sql"));
 
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
+
     // When:
     final KsqlErrorMessage result = makeFailingRequest(
         "CREATE STREAM orders2 AS SELECT * FROM orders1;",
@@ -861,9 +872,11 @@ public class KsqlResourceTest {
   public void shouldFailWhenTopicInferenceFailsDuringExecute() {
     // Given:
     givenSource(DataSourceType.KSTREAM, "ORDERS1", "ORDERS1", SOME_SCHEMA);
-
     when(topicInjector.inject(any()))
         .thenThrow(new KsqlStatementException("boom", "some-sql"));
+
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     // Then:
     expectedException.expect(KsqlRestException.class);
@@ -1109,6 +1122,8 @@ public class KsqlResourceTest {
     final PersistentQueryMetadata queryMetadata = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         emptyMap());
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     final String terminateSql = "TERMINATE " + queryMetadata.getQueryId() + ";";
 
@@ -1145,6 +1160,9 @@ public class KsqlResourceTest {
         emptyMap())
         .getQueryId()
         .getId();
+
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     // Then:
     expectedException.expect(KsqlRestException.class);
@@ -1201,6 +1219,9 @@ public class KsqlResourceTest {
     final PersistentQueryMetadata queryMetadata = createQuery(
         "CREATE STREAM test_explain AS SELECT * FROM test_stream;",
         overriddenProperties);
+
+    when(commandStore.getSnapshotWithOffset())
+            .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     // When:
     final QueryDescriptionEntity query = makeSingleRequest(
@@ -1692,6 +1713,9 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
 
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
+
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
@@ -1709,6 +1733,9 @@ public class KsqlResourceTest {
     // Given:
     givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenKafkaTopicExists("topic2");
+
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     // Then:
     expectedException.expect(KsqlRestException.class);
@@ -1729,6 +1756,9 @@ public class KsqlResourceTest {
     givenSource(DataSourceType.KSTREAM, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenSource(DataSourceType.KTABLE, "SINK", "topic2", SINGLE_FIELD_SCHEMA);
 
+    when(commandStore.getSnapshotWithOffset())
+            .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
+
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
@@ -1747,6 +1777,9 @@ public class KsqlResourceTest {
     // Given:
     givenSource(DataSourceType.KTABLE, "SOURCE", "topic1", SINGLE_FIELD_SCHEMA);
     givenSource(DataSourceType.KSTREAM, "SINK", "topic2", SINGLE_FIELD_SCHEMA);
+
+    when(commandStore.getSnapshotWithOffset())
+            .thenReturn(new SnapshotWithOffset(ksqlEngine.createSandbox(serviceContext)));
 
     // Then:
     expectedException.expect(KsqlRestException.class);
@@ -1841,9 +1874,12 @@ public class KsqlResourceTest {
         .thenAnswer(invocation -> realEngine.prepare(invocation.getArgument(0)));
     when(sandbox.prepare(any()))
         .thenAnswer(invocation -> realEngine.createSandbox(serviceContext).prepare(invocation.getArgument(0)));
-    when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
+    when(sandbox.getServiceContext()).thenReturn(SandboxedServiceContext.create(serviceContext));
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
     when(topicInjectorFactory.apply(ksqlEngine)).thenReturn(topicInjector);
+    when(sandbox.createSandbox(any())).thenReturn(sandbox);
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(sandbox));
     setUpKsqlResource();
   }
 

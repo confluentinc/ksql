@@ -94,8 +94,8 @@ public class RequestValidatorTest {
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
     executionContext = ksqlEngine;
     serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
-    when(ksqlConfig.getInt(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG))
-        .thenReturn(Integer.MAX_VALUE);
+    when(executionContext.getServiceContext()).thenReturn(serviceContext);
+
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -122,7 +122,7 @@ public class RequestValidatorTest {
         givenParsed(SOME_STREAM_SQL);
 
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
     verify(statementValidator, times(1)).validate(
@@ -139,7 +139,7 @@ public class RequestValidatorTest {
         givenParsed("CREATE STREAM foo WITH (kafka_topic='foo', value_format='json');");
 
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
     verify(ksqlEngine, times(1)).execute(
@@ -165,7 +165,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Fail");
 
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -179,7 +179,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Do not know how to validate statement");
 
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -198,7 +198,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("persistent queries to exceed the configured limit");
 
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -219,7 +219,7 @@ public class RequestValidatorTest {
 
     // Expect Nothing:
     // When:
-    validator.validate(serviceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -236,7 +236,7 @@ public class RequestValidatorTest {
     final List<ParsedStatement> statements = givenParsed("RUN SCRIPT '/some/script.sql';");
 
     // When:
-    validator.validate(serviceContext, statements, props, "sql");
+    validator.validate(executionContext, statements, props, "sql");
 
     // Then:
     verify(statementValidator, times(1)).validate(
@@ -252,6 +252,7 @@ public class RequestValidatorTest {
   public void shouldThrowIfServiceContextIsNotSandbox() {
     // Given:
     serviceContext = mock(ServiceContext.class);
+    when(executionContext.getServiceContext()).thenReturn(serviceContext);
     givenRequestValidator(ImmutableMap.of());
 
     // Expect:
@@ -259,7 +260,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Expected sandbox");
 
     // When:
-    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
+    validator.validate(executionContext, ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -273,7 +274,7 @@ public class RequestValidatorTest {
     expectedException.expectMessage("Expected sandbox");
 
     // When:
-    validator.validate(serviceContext, ImmutableList.of(), ImmutableMap.of(), "sql");
+    validator.validate(executionContext, ImmutableList.of(), ImmutableMap.of(), "sql");
   }
 
   @Test
@@ -282,9 +283,10 @@ public class RequestValidatorTest {
     final List<ParsedStatement> statements = givenParsed(SOME_STREAM_SQL);
     final ServiceContext otherServiceContext =
         SandboxedServiceContext.create(TestServiceContext.create());
+    when(ksqlEngine.getServiceContext()).thenReturn(otherServiceContext);
 
     // When:
-    validator.validate(otherServiceContext, statements, ImmutableMap.of(), "sql");
+    validator.validate(executionContext, statements, ImmutableMap.of(), "sql");
 
     // Then:
     verify(executionContext, times(1)).execute(

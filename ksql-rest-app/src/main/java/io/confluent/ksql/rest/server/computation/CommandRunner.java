@@ -127,38 +127,55 @@ public class CommandRunner implements Closeable {
       terminateCluster(terminateCmd.get().getCommand());
       return;
     }
+
     restoreCommands.forEach(
-        command -> RetryUtil.retryWithBackoff(
-            maxRetries,
-            STATEMENT_RETRY_MS,
-            MAX_STATEMENT_RETRY_MS,
-            () -> statementExecutor.handleRestore(command),
-            WakeupException.class
-        )
+        queuedCommand -> {
+          final int topicOffset = queuedCommand.getCommand().getCommandTopicOffset();
+          if (topicOffset == -1
+              || topicOffset == commandStore.getSnapshotWithOffset().getSnapshotOffset()) {
+            commandStore.setOffsetValue(queuedCommand.getOffset() + 1);
+            RetryUtil.retryWithBackoff(
+                maxRetries,
+                STATEMENT_RETRY_MS,
+                MAX_STATEMENT_RETRY_MS,
+                () -> statementExecutor.handleRestore(queuedCommand),
+                WakeupException.class
+            );
+            commandStore.setSnapshot();
+          }
+        }
     );
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
   void fetchAndRunCommands() {
-    final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
-    if (commands.isEmpty()) {
+    final List<QueuedCommand> queuedCommands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
+
+    if (queuedCommands.isEmpty()) {
       return;
     }
 
-    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
+    final Optional<QueuedCommand> terminateCmd = findTerminateCommand(queuedCommands);
     if (terminateCmd.isPresent()) {
       terminateCluster(terminateCmd.get().getCommand());
       return;
     }
 
-    log.trace("Found {} new writes to command topic", commands.size());
-    for (final QueuedCommand command : commands) {
+    log.trace("Found {} new writes to command topic", queuedCommands.size());
+
+    for (final QueuedCommand queuedCommand : queuedCommands) {
       if (closed) {
         return;
       }
 
-      executeStatement(command);
+      final int commandTopicOffset = queuedCommand.getCommand().getCommandTopicOffset();
+      if (commandTopicOffset == -1
+          || commandTopicOffset == commandStore.getSnapshotWithOffset().getSnapshotOffset()) {
+        commandStore.setOffsetValue(queuedCommand.getOffset() + 1);
+        executeStatement(queuedCommand);
+        commandStore.setSnapshot();
+      }
     }
   }
 

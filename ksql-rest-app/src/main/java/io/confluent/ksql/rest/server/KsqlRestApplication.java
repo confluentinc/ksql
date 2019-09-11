@@ -465,7 +465,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopic,
         restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties());
+        restConfig.getCommandProducerProperties(),
+        ksqlEngine);
 
     final StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine);
 

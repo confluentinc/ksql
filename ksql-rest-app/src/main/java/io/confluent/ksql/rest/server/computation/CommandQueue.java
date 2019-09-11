@@ -91,4 +91,10 @@ public interface CommandQueue extends Closeable {
    */
   @Override
   void close();
+
+  void setOffsetValue(int offsetValue);
+
+  void setSnapshot();
+
+  SnapshotWithOffset getSnapshotWithOffset();
 }

@@ -90,29 +90,38 @@ public class RequestValidator {
    *                       to support
    */
   public int validate(
-      final ServiceContext serviceContext,
+      final KsqlExecutionContext ksqlExecutionContext,
       final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides,
       final String sql
   ) {
+    requireSandbox(ksqlExecutionContext);
+
+    final ServiceContext serviceContext = ksqlExecutionContext.getServiceContext();
     requireSandbox(serviceContext);
 
-    final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.apply(serviceContext));
-    final Injector injector = injectorFactory.apply(ctx, serviceContext);
+    final Injector injector = injectorFactory.apply(ksqlExecutionContext, serviceContext);
 
     int numPersistentQueries = 0;
     for (ParsedStatement parsed : statements) {
-      final PreparedStatement<?> prepared = ctx.prepare(parsed);
+      final PreparedStatement<?> prepared = ksqlExecutionContext.prepare(parsed);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
           prepared, propertyOverrides, ksqlConfig);
 
       numPersistentQueries += (prepared.getStatement() instanceof RunScript)
-          ? validateRunScript(serviceContext, configured, ctx)
-          : validate(serviceContext, configured, ctx, injector);
+          ? validateRunScript(serviceContext, configured, ksqlExecutionContext)
+          : validate(serviceContext, configured, ksqlExecutionContext, injector);
     }
 
-    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
-      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(ctx, ksqlConfig, sql);
+    if (QueryCapacityUtil.exceedsPersistentQueryCapacity(
+        ksqlExecutionContext,
+        ksqlConfig,
+        numPersistentQueries)
+    ) {
+      QueryCapacityUtil.throwTooManyActivePersistentQueriesException(
+          ksqlExecutionContext,
+          ksqlConfig,
+          sql);
     }
 
     return numPersistentQueries;
@@ -166,7 +175,7 @@ public class RequestValidator {
         + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
         + "statement: " + statement.getStatementText());
 
-    return validate(serviceContext, executionContext.parse(sql), statement.getOverrides(), sql);
+    return validate(executionContext, executionContext.parse(sql), statement.getOverrides(), sql);
   }
 
 }

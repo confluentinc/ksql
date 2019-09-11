@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.computation;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -35,6 +36,8 @@ import io.confluent.ksql.rest.util.TerminateCluster;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
+
+import io.confluent.ksql.services.ServiceContext;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,6 +86,9 @@ public class CommandRunnerTest {
     when(queuedCommand3.getCommand()).thenReturn(command);
 
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
+
+    when(commandStore.getSnapshotWithOffset())
+        .thenReturn(new SnapshotWithOffset(ksqlEngine));
 
     commandRunner = new CommandRunner(
         statementExecutor,

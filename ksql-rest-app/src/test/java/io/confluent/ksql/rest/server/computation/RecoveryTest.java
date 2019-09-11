@@ -44,6 +44,7 @@ import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.FakeKafkaTopicClient;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -101,12 +102,20 @@ public class RecoveryTest {
   private static class FakeCommandQueue implements CommandQueue {
     private final List<QueuedCommand> commandLog;
     private final CommandIdAssigner commandIdAssigner;
+    private final KsqlEngine ksqlEngine;
+    private final SnapshotWithOffset snapshotWithOffset;
+
     private int offset;
 
     FakeCommandQueue(
-        final List<QueuedCommand> commandLog) {
+        final List<QueuedCommand> commandLog,
+        final KsqlEngine ksqlEngine
+      ) {
       this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
+      this.snapshotWithOffset = new SnapshotWithOffset(ksqlEngine.createSandbox(
+          SandboxedServiceContext.create(ksqlEngine.getServiceContext())));
+      this.ksqlEngine = ksqlEngine;
     }
 
     @Override
@@ -117,9 +126,8 @@ public class RecoveryTest {
           new QueuedCommand(
               commandId,
               new Command(
-                  statement.getStatementText(),
-                  Collections.emptyMap(),
-                  statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
+                  statement.getStatementText(), snapshotWithOffset.getSnapshotOffset(),
+                  Collections.emptyMap(), statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
@@ -154,6 +162,22 @@ public class RecoveryTest {
     @Override
     public void close() {
     }
+
+    @Override
+    public void setOffsetValue(final int offsetValue) {
+      snapshotWithOffset.updateOffsetValue(offsetValue);
+    }
+
+    @Override
+    public void setSnapshot() {
+      snapshotWithOffset.updateSnapshot(ksqlEngine.createSandbox(
+          SandboxedServiceContext.create(ksqlEngine.getServiceContext())));
+    }
+
+    @Override
+    public SnapshotWithOffset getSnapshotWithOffset() {
+      return snapshotWithOffset;
+    }
   }
 
   private class KsqlServer {
@@ -166,7 +190,7 @@ public class RecoveryTest {
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
-      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog, ksqlEngine);
       serverState = new ServerState();
       serverState.setReady();
       this.ksqlResource = new KsqlResource(
@@ -578,7 +602,10 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()))
+            new Command("DROP STREAM B DELETE TOPIC;", 0, ImmutableMap.of(), ImmutableMap.of())
+            ,Optional.empty(),
+            0
+        )
     ));
 
     assertThat(topicClient.listTopicNames(), hasItem("B"));
@@ -637,20 +664,25 @@ public class RecoveryTest {
                 new Command(
                     "CREATE STREAM A (COLUMN STRING) "
                         + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-                    Collections.emptyMap(),
-                    null
-                )
+                        0,
+                        Collections.emptyMap(),
+                        null),
+                        Optional.empty(),
+                        0
             ),
             new QueuedCommand(
                 new CommandId(Type.STREAM, "A", Action.CREATE),
                 new Command(
                     "CREATE STREAM B AS SELECT * FROM A;",
-                    Collections.emptyMap(),
-                    null
-                )
+                        1,
+                        Collections.emptyMap(),
+                        null),
+                        Optional.empty(),
+                        1
             )
         )
     );
+
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
     assertThat(
@@ -659,7 +691,9 @@ public class RecoveryTest {
     commands.add(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B;", Collections.emptyMap(), null)
+            new Command("DROP STREAM B;", 2, Collections.emptyMap(), null),
+            Optional.empty(),
+            2
         )
     );
     final KsqlServer recovered = new KsqlServer(commands);

@@ -45,7 +45,6 @@ import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.rest.util.ErrorResponseUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
-import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.Injectors;
@@ -192,7 +191,6 @@ public class KsqlResource implements KsqlConfigurable {
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();
-
     try {
       CommandStoreUtil.httpWaitForCommandSequenceNumber(
           commandQueue,
@@ -200,8 +198,9 @@ public class KsqlResource implements KsqlConfigurable {
           distributedCmdResponseTimeout);
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+
       validator.validate(
-          SandboxedServiceContext.create(serviceContext),
+          commandQueue.getSnapshotWithOffset().getKsqlExecutionContext(),
           statements,
           request.getStreamsProperties(),
           request.getKsql()

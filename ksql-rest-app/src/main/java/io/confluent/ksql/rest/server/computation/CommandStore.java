@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -45,6 +46,8 @@ public class CommandStore implements CommandQueue, Closeable {
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
   private final SequenceNumberFutureStore sequenceNumberFutureStore;
+  private SnapshotWithOffset snapshotWithOffset;
+  private KsqlEngine ksqlEngine;
 
   public static final class Factory {
 
@@ -54,12 +57,14 @@ public class CommandStore implements CommandQueue, Closeable {
     public static CommandStore create(
         final String commandTopicName,
         final Map<String, Object> kafkaConsumerProperties,
-        final Map<String, Object> kafkaProducerProperties
+        final Map<String, Object> kafkaProducerProperties,
+        final KsqlEngine ksqlEngine
     ) {
       return new CommandStore(
           new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
           new CommandIdAssigner(),
-          new SequenceNumberFutureStore()
+          new SequenceNumberFutureStore(),
+          ksqlEngine
       );
     }
   }
@@ -67,13 +72,17 @@ public class CommandStore implements CommandQueue, Closeable {
   CommandStore(
       final CommandTopic commandTopic,
       final CommandIdAssigner commandIdAssigner,
-      final SequenceNumberFutureStore sequenceNumberFutureStore
+      final SequenceNumberFutureStore sequenceNumberFutureStore,
+      final KsqlEngine ksqlEngine
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
     this.sequenceNumberFutureStore =
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
+    this.snapshotWithOffset = new SnapshotWithOffset(
+        ksqlEngine.createSandbox(ksqlEngine.getServiceContext()));
+    this.ksqlEngine = ksqlEngine;
   }
 
   @Override
@@ -83,6 +92,22 @@ public class CommandStore implements CommandQueue, Closeable {
 
   public String getCommandTopicName() {
     return commandTopic.getCommandTopicName();
+  }
+
+  @Override
+  public void setOffsetValue(final int offsetValue) {
+    snapshotWithOffset.updateOffsetValue(offsetValue);
+  }
+
+  @Override
+  public void setSnapshot() {
+    snapshotWithOffset.updateSnapshot(
+        ksqlEngine.createSandbox(ksqlEngine.getServiceContext()));
+  }
+
+  @Override
+  public SnapshotWithOffset getSnapshotWithOffset() {
+    return snapshotWithOffset;
   }
 
   public void start() {
@@ -102,8 +127,11 @@ public class CommandStore implements CommandQueue, Closeable {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
     final Command command = new Command(
         statement.getStatementText(),
+        snapshotWithOffset.getSnapshotOffset(),
         statement.getOverrides(),
-        statement.getConfig().getAllConfigPropsWithSecretsObfuscated());
+        statement.getConfig().getAllConfigPropsWithSecretsObfuscated()
+    );
+
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {
@@ -147,7 +175,8 @@ public class CommandStore implements CommandQueue, Closeable {
                 new QueuedCommand(
                     c.key(),
                     c.value(),
-                    Optional.ofNullable(commandStatusMap.remove(c.key()))
+                    Optional.ofNullable(commandStatusMap.remove(c.key())),
+                    (int) c.offset()
                 )
             );
           }

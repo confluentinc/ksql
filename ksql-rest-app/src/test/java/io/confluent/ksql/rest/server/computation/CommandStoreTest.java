@@ -30,6 +30,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -89,6 +90,8 @@ public class CommandStoreTest {
   @Mock
   private CommandTopic commandTopic;
   @Mock
+  private KsqlEngine ksqlEngine;
+  @Mock
   private Statement statement;
   @Mock
   private CommandIdAssigner commandIdAssigner;
@@ -97,7 +100,7 @@ public class CommandStoreTest {
   private final CommandId commandId =
       new CommandId(CommandId.Type.STREAM, "foo", CommandId.Action.CREATE);
   private final Command command =
-      new Command(statementText, Collections.emptyMap(), Collections.emptyMap());
+      new Command(statementText, 0, Collections.emptyMap(), Collections.emptyMap());
   private final RecordMetadata recordMetadata = new RecordMetadata(
       COMMAND_TOPIC_PARTITION, 0, 0, RecordBatch.NO_TIMESTAMP, 0L, 0, 0);
 
@@ -123,7 +126,8 @@ public class CommandStoreTest {
     commandStore = new CommandStore(
         commandTopic,
         commandIdAssigner,
-        sequenceNumberFutureStore
+        sequenceNumberFutureStore,
+        ksqlEngine
     );
   }
 
@@ -176,6 +180,7 @@ public class CommandStoreTest {
           assertThat(
               queuedCommand.getStatus().get().getStatus().getStatus(),
               equalTo(CommandStatus.Status.QUEUED));
+          assertThat(queuedCommand.getOffset(), equalTo(0));
           return recordMetadata;
         }
     );

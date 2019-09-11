@@ -156,8 +156,8 @@ public class SchemaKStreamTest {
   private ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
   private final LogicalSchema simpleSchema = LogicalSchema.builder()
-      .valueField("key", SqlTypes.STRING)
-      .valueField("val", SqlTypes.BIGINT)
+      .valueColumn("key", SqlTypes.STRING)
+      .valueColumn("val", SqlTypes.BIGINT)
       .build();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
@@ -510,7 +510,7 @@ public class SchemaKStreamTest {
 
     final KeyField expected = KeyField.of(
         "TEST1.COL1",
-        initialSchemaKStream.getSchema().findValueField("TEST1.COL1").get()
+        initialSchemaKStream.getSchema().findValueColumn("TEST1.COL1").get()
     );
 
     // When:
@@ -1177,7 +1177,7 @@ public class SchemaKStreamTest {
         sourceStep,
         keyFormat,
         keySerde,
-        KeyField.of("key", simpleSchema.findValueField("key").get()),
+        KeyField.of("key", simpleSchema.findValueColumn("key").get()),
         ImmutableList.of(parentSchemaKStream),
         Type.SOURCE,
         ksqlConfig,
@@ -1202,7 +1202,7 @@ public class SchemaKStreamTest {
         sourceStep,
         keyFormat,
         keySerde,
-        KeyField.of("key", simpleSchema.findValueField("key").get()),
+        KeyField.of("key", simpleSchema.findValueColumn("key").get()),
         Collections.emptyList(),
         Type.SOURCE,
         ksqlConfig,
@@ -1232,7 +1232,7 @@ public class SchemaKStreamTest {
         sourceStep,
         keyFormat,
         keySerde,
-        KeyField.of("key", simpleSchema.findValueField("key").get()),
+        KeyField.of("key", simpleSchema.findValueColumn("key").get()),
         ImmutableList.of(parentSchemaKStream1, parentSchemaKStream2),
         Type.SOURCE,
         ksqlConfig,
@@ -1341,11 +1341,11 @@ public class SchemaKStreamTest {
     final String leftAlias = "left";
     final String rightAlias = "right";
     for (final Column field : leftSchema.value()) {
-      schemaBuilder.valueField(Column.of(leftAlias, field.name(), field.type()));
+      schemaBuilder.valueColumn(Column.of(leftAlias, field.name(), field.type()));
     }
 
     for (final Column field : rightSchema.value()) {
-      schemaBuilder.valueField(Column.of(rightAlias, field.name(), field.type()));
+      schemaBuilder.valueColumn(Column.of(rightAlias, field.name(), field.type()));
     }
     return schemaBuilder.build();
   }

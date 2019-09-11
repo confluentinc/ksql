@@ -50,14 +50,13 @@ public final class EntityUtil {
     return allFields;
   }
 
-  private static List<FieldInfo> getFields(final List<Column> fields, final String type) {
-    if (fields.isEmpty()) {
-      throw new IllegalArgumentException("Root schema should contain fields." + " type: " + type);
+  private static List<FieldInfo> getFields(final List<Column> columns, final String type) {
+    if (columns.isEmpty()) {
+      throw new IllegalArgumentException("Root schema should contain columns." + " type: " + type);
     }
 
-    return fields.stream()
-        .map(field -> SqlTypeWalker.visit(
-            Field.of(field.fullName(), field.type()), new Converter()))
+    return columns.stream()
+        .map(col -> SqlTypeWalker.visit(Field.of(col.fullName(), col.type()), new Converter()))
         .collect(Collectors.toList());
   }
 

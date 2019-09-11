@@ -53,8 +53,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryDescriptionFactoryTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.INTEGER)
-      .valueField("field2", SqlTypes.STRING)
+      .valueColumn("field1", SqlTypes.INTEGER)
+      .valueColumn("field2", SqlTypes.STRING)
       .build();
 
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
@@ -181,9 +181,9 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowTimeInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field1", SqlTypes.INTEGER)
-        .valueField("ROWTIME", SqlTypes.BIGINT)
-        .valueField("field2", SqlTypes.STRING)
+        .valueColumn("field1", SqlTypes.INTEGER)
+        .valueColumn("ROWTIME", SqlTypes.BIGINT)
+        .valueColumn("field2", SqlTypes.STRING)
         .build();
 
     transientQuery = new TransientQueryMetadata(
@@ -215,9 +215,9 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowKeyInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field1", SqlTypes.INTEGER)
-        .valueField("ROWKEY", SqlTypes.STRING)
-        .valueField("field2", SqlTypes.STRING)
+        .valueColumn("field1", SqlTypes.INTEGER)
+        .valueColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("field2", SqlTypes.STRING)
         .build();
 
     transientQuery = new TransientQueryMetadata(

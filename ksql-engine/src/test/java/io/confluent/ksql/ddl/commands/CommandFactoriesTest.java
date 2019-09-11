@@ -573,7 +573,7 @@ public class CommandFactoriesTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("bob", SqlTypes.STRING)
+        .valueColumn("bob", SqlTypes.STRING)
         .build();
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
@@ -610,9 +610,9 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyField("ROWKEY", SqlTypes.STRING)
-        .valueField("bob", SqlTypes.STRING)
-        .valueField("hojjat", SqlTypes.STRING)
+        .keyColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("bob", SqlTypes.STRING)
+        .valueColumn("hojjat", SqlTypes.STRING)
         .build()
     ));
   }
@@ -641,9 +641,9 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyField("ROWKEY", SqlTypes.STRING)
-        .valueField("bob", SqlTypes.STRING)
-        .valueField("hojjat", SqlTypes.STRING)
+        .keyColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("bob", SqlTypes.STRING)
+        .valueColumn("hojjat", SqlTypes.STRING)
         .build()
     ));
   }
@@ -654,8 +654,8 @@ public class CommandFactoriesTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("bob", SqlTypes.STRING)
-        .valueField("hojjat", SqlTypes.STRING)
+        .valueColumn("bob", SqlTypes.STRING)
+        .valueColumn("hojjat", SqlTypes.STRING)
         .build();
 
     // When:

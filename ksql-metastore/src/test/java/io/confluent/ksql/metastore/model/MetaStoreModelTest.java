@@ -64,7 +64,7 @@ public class MetaStoreModelTest {
       .put(Column.class, Column.of("someField", SqlTypes.INTEGER))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
-          .valueField("f0", SqlTypes.BIGINT)
+          .valueColumn("f0", SqlTypes.BIGINT)
           .build())
       .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)))
       .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON)))

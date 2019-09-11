@@ -310,7 +310,7 @@ public class InsertValuesExecutor {
   }
 
   private static SqlType columnType(final String column, final LogicalSchema schema) {
-    return schema.findField(column)
+    return schema.findColumn(column)
         .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }

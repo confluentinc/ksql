@@ -95,24 +95,24 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class JoinNodeTest {
 
   private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
-      .valueField("C0", SqlTypes.BIGINT)
-      .valueField("L1", SqlTypes.STRING)
+      .valueColumn("C0", SqlTypes.BIGINT)
+      .valueColumn("L1", SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.builder()
-      .valueField("C0", SqlTypes.BIGINT)
-      .valueField("R1", SqlTypes.STRING)
+      .valueColumn("C0", SqlTypes.BIGINT)
+      .valueColumn("R1", SqlTypes.STRING)
       .build();
 
   private static final String LEFT_ALIAS = "left";
   private static final String RIGHT_ALIAS = "right";
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
-      .withMetaAndKeyFieldsInValue()
+      .withMetaAndKeyColsInValue()
       .withAlias(LEFT_ALIAS);
 
   private static final LogicalSchema RIGHT_NODE_SCHEMA = RIGHT_SOURCE_SCHEMA
-      .withMetaAndKeyFieldsInValue()
+      .withMetaAndKeyColsInValue()
       .withAlias(RIGHT_ALIAS);
 
   private static final LogicalSchema JOIN_SCHEMA = joinSchema();
@@ -871,14 +871,14 @@ public class JoinNodeTest {
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
-        .valueField(LEFT_ALIAS, "ROWTIME", SqlTypes.BIGINT)
-        .valueField(LEFT_ALIAS, "ROWKEY", SqlTypes.STRING)
-        .valueField(LEFT_ALIAS, "C0", SqlTypes.BIGINT)
-        .valueField(LEFT_ALIAS, "L1", SqlTypes.STRING)
-        .valueField(RIGHT_ALIAS, "ROWTIME", SqlTypes.BIGINT)
-        .valueField(RIGHT_ALIAS, "ROWKEY", SqlTypes.STRING)
-        .valueField(RIGHT_ALIAS, "C0", SqlTypes.BIGINT)
-        .valueField(RIGHT_ALIAS, "R1", SqlTypes.STRING)
+        .valueColumn(LEFT_ALIAS, "ROWTIME", SqlTypes.BIGINT)
+        .valueColumn(LEFT_ALIAS, "ROWKEY", SqlTypes.STRING)
+        .valueColumn(LEFT_ALIAS, "C0", SqlTypes.BIGINT)
+        .valueColumn(LEFT_ALIAS, "L1", SqlTypes.STRING)
+        .valueColumn(RIGHT_ALIAS, "ROWTIME", SqlTypes.BIGINT)
+        .valueColumn(RIGHT_ALIAS, "ROWKEY", SqlTypes.STRING)
+        .valueColumn(RIGHT_ALIAS, "C0", SqlTypes.BIGINT)
+        .valueColumn(RIGHT_ALIAS, "R1", SqlTypes.STRING)
         .build()
     ));
   }
@@ -1013,7 +1013,7 @@ public class JoinNodeTest {
     final LogicalSchema schema = node.getSchema();
 
     final Optional<LegacyField> keyField = keyFieldName
-        .map(key -> schema.findValueField(key).orElseThrow(AssertionError::new))
+        .map(key -> schema.findValueColumn(key).orElseThrow(AssertionError::new))
         .map(field -> LegacyField.of(field.fullName(), field.type()));
 
     when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
@@ -1034,8 +1034,8 @@ public class JoinNodeTest {
   @SuppressWarnings("Duplicates")
   private static LogicalSchema joinSchema() {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    schemaBuilder.valueFields(LEFT_NODE_SCHEMA.value());
-    schemaBuilder.valueFields(RIGHT_NODE_SCHEMA.value());
+    schemaBuilder.valueColumns(LEFT_NODE_SCHEMA.value());
+    schemaBuilder.valueColumns(RIGHT_NODE_SCHEMA.value());
     return schemaBuilder.build();
   }
 
@@ -1107,7 +1107,7 @@ public class JoinNodeTest {
         getColumn(schema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
-    final Column field = schema.findValueField(column).get();
+    final Column field = schema.findValueColumn(column).get();
     return SchemaUtil.buildAliasedFieldName(alias, field.name());
   }
 

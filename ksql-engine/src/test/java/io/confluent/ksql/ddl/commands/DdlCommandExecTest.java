@@ -43,8 +43,8 @@ public class DdlCommandExecTest {
   private static final String TABLE_NAME = "t1";
   private static final String TOPIC_NAME = "topic";
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueField("F1", SqlPrimitiveType.of("INTEGER"))
-      .valueField("F2", SqlPrimitiveType.of("VARCHAR"))
+      .valueColumn("F1", SqlPrimitiveType.of("INTEGER"))
+      .valueColumn("F2", SqlPrimitiveType.of("VARCHAR"))
       .build();
   private Set<SerdeOption> serdeOptions = SerdeOption.none();
 

@@ -130,14 +130,14 @@ public class KsqlParserTest {
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
-      .valueField("ORDERTIME", SqlTypes.BIGINT)
-      .valueField("ORDERID", SqlTypes.BIGINT)
-      .valueField("ITEMID", SqlTypes.STRING)
-      .valueField("ITEMINFO", itemInfoSchema)
-      .valueField("ORDERUNITS", SqlTypes.INTEGER)
-      .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-      .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
-      .valueField("ADDRESS", addressSchema)
+      .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+      .valueColumn("ORDERID", SqlTypes.BIGINT)
+      .valueColumn("ITEMID", SqlTypes.STRING)
+      .valueColumn("ITEMINFO", itemInfoSchema)
+      .valueColumn("ORDERUNITS", SqlTypes.INTEGER)
+      .valueColumn("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn("ADDRESS", addressSchema)
       .build();
 
   @Before
@@ -156,7 +156,7 @@ public class KsqlParserTest {
         "ADDRESS",
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
+        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueColumn("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders
     );
@@ -175,7 +175,7 @@ public class KsqlParserTest {
         "ITEMID",
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ITEMID", ORDERS_SCHEMA.findValueField("ITEMID").get()),
+        KeyField.of("ITEMID", ORDERS_SCHEMA.findValueColumn("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

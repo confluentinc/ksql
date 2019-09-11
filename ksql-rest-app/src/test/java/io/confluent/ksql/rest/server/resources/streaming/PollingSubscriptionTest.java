@@ -68,7 +68,7 @@ public class PollingSubscriptionTest {
           MoreExecutors.listeningDecorator(exec),
           subscriber,
           LogicalSchema.builder()
-              .valueField("f0", SqlTypes.STRING)
+              .valueColumn("f0", SqlTypes.STRING)
               .build()
       );
     }

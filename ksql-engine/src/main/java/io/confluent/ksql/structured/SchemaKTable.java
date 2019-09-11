@@ -271,7 +271,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final LegacyField legacyKeyField = LegacyField
         .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
 
-    final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
+    final Optional<String> newKeyField = getSchema().findValueColumn(groupBy.aggregateKeyName)
         .map(Column::fullName);
 
     final ExecutionStep<KGroupedTable<Struct, GenericRow>> step =

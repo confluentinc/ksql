@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.schema.ksql.types;
 
+import static io.confluent.ksql.util.Identifiers.ensureTrimmed;
+
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.util.StringUtil;
+import io.confluent.ksql.util.Identifiers;
 import java.util.Objects;
 
 @Immutable
@@ -31,7 +33,7 @@ public final class Field {
   }
 
   private Field(final String name, final SqlType type) {
-    this.name = Objects.requireNonNull(name, "name");
+    this.name = ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
     this.type = Objects.requireNonNull(type, "type");
   }
 
@@ -67,7 +69,7 @@ public final class Field {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    return StringUtil.escape(name, formatOptions) + " " + type.toString(formatOptions);
+    return Identifiers.escape(name, formatOptions) + " " + type.toString(formatOptions);
   }
 
 }

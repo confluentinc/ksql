@@ -83,8 +83,8 @@ public class KsqlDelimitedSerdeFactoryTest {
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyField("k0", fieldSchema)
-        .valueField("v0", fieldSchema)
+        .keyColumn("k0", fieldSchema)
+        .valueColumn("v0", fieldSchema)
         .build();
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, SerdeOption.none());

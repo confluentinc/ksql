@@ -59,7 +59,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectMapField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field", SqlTypes.map(SqlTypes.INTEGER))
+        .valueColumn("field", SqlTypes.map(SqlTypes.INTEGER))
         .build();
 
     // When:
@@ -78,7 +78,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectArrayField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field", SqlTypes.array(SqlTypes.BIGINT))
+        .valueColumn("field", SqlTypes.array(SqlTypes.BIGINT))
         .build();
 
     // When:
@@ -97,7 +97,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectStructField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field", SqlTypes.struct()
+        .valueColumn("field", SqlTypes.struct()
             .field("innerField", SqlTypes.STRING)
             .build())
         .build();
@@ -119,8 +119,8 @@ public class EntityUtilTest {
   public void shouldBuildMiltipleFieldsCorrectly() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field1", SqlTypes.INTEGER)
-        .valueField("field2", SqlTypes.BIGINT)
+        .valueColumn("field1", SqlTypes.INTEGER)
+        .valueColumn("field2", SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -138,9 +138,9 @@ public class EntityUtilTest {
   public void shouldSupportRowTimeAndKeyInValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("ROWKEY", SqlTypes.STRING)
-        .valueField("ROWTIME", SqlTypes.INTEGER)
-        .valueField("field1", SqlTypes.INTEGER)
+        .valueColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("ROWTIME", SqlTypes.INTEGER)
+        .valueColumn("field1", SqlTypes.INTEGER)
         .build();
 
     // When:
@@ -156,7 +156,7 @@ public class EntityUtilTest {
   public void shouldSupportGettingFullSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field1", SqlTypes.INTEGER)
+        .valueColumn("field1", SqlTypes.INTEGER)
         .build();
 
     // When:
@@ -177,7 +177,7 @@ public class EntityUtilTest {
   ) {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field", primitiveSchema)
+        .valueColumn("field", primitiveSchema)
         .build();
 
     // When:

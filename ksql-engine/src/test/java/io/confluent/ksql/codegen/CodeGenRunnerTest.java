@@ -74,22 +74,22 @@ import org.junit.rules.ExpectedException;
 public class CodeGenRunnerTest {
 
     private static final LogicalSchema META_STORE_SCHEMA = LogicalSchema.builder()
-        .valueField("COL0", SqlTypes.BIGINT)
-        .valueField("COL1", SqlTypes.STRING)
-        .valueField("COL2", SqlTypes.STRING)
-        .valueField("COL3", SqlTypes.DOUBLE)
-        .valueField("COL4", SqlTypes.DOUBLE)
-        .valueField("COL5", SqlTypes.INTEGER)
-        .valueField("COL6", SqlTypes.BOOLEAN)
-        .valueField("COL7", SqlTypes.BOOLEAN)
-        .valueField("COL8", SqlTypes.BIGINT)
-        .valueField("COL9", SqlTypes.array(SqlTypes.INTEGER))
-        .valueField("COL10", SqlTypes.array(SqlTypes.INTEGER))
-        .valueField("COL11", SqlTypes.map(SqlTypes.STRING))
-        .valueField("COL12", SqlTypes.map(SqlTypes.INTEGER))
-        .valueField("COL13", SqlTypes.array(SqlTypes.STRING))
-        .valueField("COL14", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
-        .valueField("COL15", SqlTypes
+        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL1", SqlTypes.STRING)
+        .valueColumn("COL2", SqlTypes.STRING)
+        .valueColumn("COL3", SqlTypes.DOUBLE)
+        .valueColumn("COL4", SqlTypes.DOUBLE)
+        .valueColumn("COL5", SqlTypes.INTEGER)
+        .valueColumn("COL6", SqlTypes.BOOLEAN)
+        .valueColumn("COL7", SqlTypes.BOOLEAN)
+        .valueColumn("COL8", SqlTypes.BIGINT)
+        .valueColumn("COL9", SqlTypes.array(SqlTypes.INTEGER))
+        .valueColumn("COL10", SqlTypes.array(SqlTypes.INTEGER))
+        .valueColumn("COL11", SqlTypes.map(SqlTypes.STRING))
+        .valueColumn("COL12", SqlTypes.map(SqlTypes.INTEGER))
+        .valueColumn("COL13", SqlTypes.array(SqlTypes.STRING))
+        .valueColumn("COL14", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
+        .valueColumn("COL15", SqlTypes
             .struct()
             .field("A", SqlTypes.STRING)
             .build())
@@ -111,7 +111,7 @@ public class CodeGenRunnerTest {
     private static final int STRUCT_INDEX = 15;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
-        .toConnectSchema(META_STORE_SCHEMA.findValueField("COL15").get().type());
+        .toConnectSchema(META_STORE_SCHEMA.findValueColumn("COL15").get().type());
 
     private static final List<Object> ONE_ROW = ImmutableList.of(
         0L, "S1", "S2", 3.1, 4.2, 5, true, false, 8L,
@@ -166,7 +166,7 @@ public class CodeGenRunnerTest {
             "CODEGEN_TEST",
             META_STORE_SCHEMA,
             SerdeOption.none(),
-            KeyField.of("COL0", META_STORE_SCHEMA.findValueField("COL0").get()),
+            KeyField.of("COL0", META_STORE_SCHEMA.findValueColumn("COL0").get()),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic
         );

@@ -63,7 +63,7 @@ public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .valueField("f0", SqlTypes.BOOLEAN)
+          .valueColumn("f0", SqlTypes.BOOLEAN)
           .build(),
       SerdeOption.none()
   );

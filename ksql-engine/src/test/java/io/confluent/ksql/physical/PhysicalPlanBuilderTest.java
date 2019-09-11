@@ -255,9 +255,9 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
-        .valueField("COL0", SqlTypes.BIGINT)
-        .valueField("COL2", SqlTypes.STRING)
-        .valueField("COL3", SqlTypes.DOUBLE)
+        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL2", SqlTypes.STRING)
+        .valueColumn("COL3", SqlTypes.DOUBLE)
         .build()
     ));
   }
@@ -271,9 +271,9 @@ public class PhysicalPlanBuilderTest {
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
 
-        .valueField("COL0", SqlTypes.BIGINT)
-        .valueField("COL2", SqlTypes.STRING)
-        .valueField("COL3", SqlTypes.DOUBLE)
+        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL2", SqlTypes.STRING)
+        .valueColumn("COL3", SqlTypes.DOUBLE)
         .build()
     ));
   }

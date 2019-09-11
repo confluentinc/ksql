@@ -22,10 +22,16 @@ import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class ColumnTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowNPE() {
@@ -44,9 +50,6 @@ public class ColumnTest {
         )
         .addEqualityGroup(
             Column.of("someName".toUpperCase(), SqlTypes.INTEGER)
-        )
-        .addEqualityGroup(
-            Column.of("different", SqlTypes.INTEGER)
         )
         .addEqualityGroup(
             Column.of("someName", SqlTypes.DOUBLE)
@@ -96,7 +99,6 @@ public class ColumnTest {
     final FormatOptions options = FormatOptions.of(
         identifier -> identifier.equals("reserved")
             || identifier.equals("word")
-            || identifier.equals("reserved.name")
     );
 
     // Then:
@@ -111,5 +113,45 @@ public class ColumnTest {
 
     assertThat(Column.of("source", "word", SqlTypes.STRING).toString(options),
         is("source.`word` STRING"));
+  }
+
+  @Test
+  public void shouldThrowIfNameIsEmpty() {
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("name is empty");
+
+    // When:
+    Column.of("", SqlTypes.STRING);
+  }
+
+  @Test
+  public void shouldThrowIfNameIsNotTrimmed() {
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("name is not trimmed");
+
+    // When:
+    Column.of(" bar ", SqlTypes.STRING);
+  }
+
+  @Test
+  public void shouldThrowIfSourceIsEmpty() {
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("source is empty");
+
+    // When:
+    Column.of("", "foo", SqlTypes.STRING);
+  }
+
+  @Test
+  public void shouldThrowIfSourceIsNotTrimmed() {
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("source is not trimmed");
+
+    // When:
+    Column.of(" bar ", "foo", SqlTypes.STRING);
   }
 }

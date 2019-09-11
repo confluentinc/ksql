@@ -33,8 +33,8 @@ import org.junit.rules.ExpectedException;
 public class KeyFieldTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("field0", SqlTypes.STRING)
-      .valueField("field1", SqlTypes.BIGINT)
+      .valueColumn("field0", SqlTypes.STRING)
+      .valueColumn("field1", SqlTypes.BIGINT)
       .build();
 
   private static final KsqlConfig LEGACY_CONFIG = new KsqlConfig(
@@ -51,17 +51,17 @@ public class KeyFieldTest {
   private static final LegacyField LEGACY_FIELD = LegacyField
       .of(SCHEMA.value().get(0).fullName(), SCHEMA.value().get(0).type());
 
-  private static final Column OTHER_SCHEMA_FIELD = SCHEMA.value().get(1);
+  private static final Column OTHER_SCHEMA_COL = SCHEMA.value().get(1);
 
   private static final String SOME_ALIAS = "fred";
 
   private static final KeyField ALIASED_KEY_FIELD = KeyField.of(
-      SOME_ALIAS + "." + OTHER_SCHEMA_FIELD.name(),
+      SOME_ALIAS + "." + OTHER_SCHEMA_COL.name(),
       LegacyField.of(SOME_ALIAS + "." + LEGACY_FIELD.name(), LEGACY_FIELD.type())
   );
 
   private static final KeyField UNALIASED_KEY_FIELD = KeyField
-      .of(OTHER_SCHEMA_FIELD.name(), LEGACY_FIELD);
+      .of(OTHER_SCHEMA_COL.name(), LEGACY_FIELD);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

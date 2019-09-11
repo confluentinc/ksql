@@ -66,7 +66,7 @@ public class SourceDescriptionFactoryTest {
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("field0", SqlTypes.INTEGER)
+        .valueColumn("field0", SqlTypes.INTEGER)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(

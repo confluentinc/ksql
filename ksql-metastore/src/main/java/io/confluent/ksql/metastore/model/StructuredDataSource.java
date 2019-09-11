@@ -58,8 +58,8 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
 
-    if (schema.findValueField(SchemaUtil.ROWKEY_NAME).isPresent()
-        || schema.findValueField(SchemaUtil.ROWTIME_NAME).isPresent()) {
+    if (schema.findValueColumn(SchemaUtil.ROWKEY_NAME).isPresent()
+        || schema.findValueColumn(SchemaUtil.ROWTIME_NAME).isPresent()) {
       throw new IllegalArgumentException("Schema contains implicit columns in value schema");
     }
   }

@@ -33,7 +33,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueField("f0", SqlTypes.BIGINT)
+      .valueColumn("f0", SqlTypes.BIGINT)
       .build();
 
   @Mock
@@ -55,8 +55,8 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsRowTime() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueField("f0", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
+        .valueColumn("f0", SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -70,8 +70,8 @@ public class StructuredDataSourceTest {
   public void shouldThrowIfSchemaContainsRowKey() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueField("f0", SqlTypes.BIGINT)
+        .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn("f0", SqlTypes.BIGINT)
         .build();
 
     // When:

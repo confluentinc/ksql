@@ -118,7 +118,7 @@ public class DescribeConnectorExecutorTest {
     );
     when(source.getSchema()).thenReturn(
         LogicalSchema.builder()
-            .valueField("foo", SqlPrimitiveType.of( SqlBaseType.STRING))
+            .valueColumn("foo", SqlPrimitiveType.of( SqlBaseType.STRING))
             .build());
     when(source.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(source.getKeyField()).thenReturn(KeyField.none());

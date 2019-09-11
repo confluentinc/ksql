@@ -81,11 +81,11 @@ public class JoinNode extends PlanNode {
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
 
-    final Column leftKeyField = validateFieldInSchema(leftJoinFieldName, left.getSchema());
-    validateFieldInSchema(rightJoinFieldName, right.getSchema());
+    final Column leftKeyCol = validateSchemaColumn(leftJoinFieldName, left.getSchema());
+    validateSchemaColumn(rightJoinFieldName, right.getSchema());
 
     this.keyField = KeyField
-        .of(leftJoinFieldName, LegacyField.of(leftKeyField.fullName(), leftKeyField.type()));
+        .of(leftJoinFieldName, LegacyField.of(leftKeyCol.fullName(), leftKeyCol.type()));
 
     this.schema = buildSchema(left, right);
   }
@@ -155,10 +155,10 @@ public class JoinNode extends PlanNode {
     return node.getDataSource().getName();
   }
 
-  private static Column validateFieldInSchema(final String fieldName, final LogicalSchema schema) {
-    return schema.findValueField(fieldName)
+  private static Column validateSchemaColumn(final String column, final LogicalSchema schema) {
+    return schema.findValueColumn(column)
         .orElseThrow(() -> new IllegalArgumentException(
-            "Invalid join field, not found in schema: " + fieldName));
+            "Invalid join field, not found in schema: " + column));
   }
 
   private static class JoinerFactory {
@@ -236,13 +236,13 @@ public class JoinNode extends PlanNode {
         throw new RuntimeException("Expected to find a Table, found a stream instead.");
       }
 
-      final Optional<Column> keyField = schemaKStream
+      final Optional<Column> keyColumn = schemaKStream
           .getKeyField()
           .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
 
       final String rowKey = SchemaUtil.buildAliasedFieldName(tableName, SchemaUtil.ROWKEY_NAME);
 
-      final boolean namesMatch = keyField
+      final boolean namesMatch = keyColumn
           .map(field -> SchemaUtil.isFieldName(joinFieldName, field.fullName()))
           .orElse(false);
 
@@ -250,7 +250,7 @@ public class JoinNode extends PlanNode {
         return (SchemaKTable) schemaKStream;
       }
 
-      if (!keyField.isPresent()) {
+      if (!keyColumn.isPresent()) {
         throw new KsqlException(
             "Source table (" + tableName + ") has no key column defined. "
                 + "Only 'ROWKEY' is supported in the join criteria."
@@ -258,7 +258,7 @@ public class JoinNode extends PlanNode {
       }
 
       throw new KsqlException(
-          "Source table (" + tableName + ") key column (" + keyField.get().fullName() + ") "
+          "Source table (" + tableName + ") key column (" + keyColumn.get().fullName() + ") "
               + "is not the column used in the join criteria (" + joinFieldName + "). "
               + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
       );
@@ -272,7 +272,7 @@ public class JoinNode extends PlanNode {
     ) {
       final LogicalSchema schema = stream.getSchema();
 
-      schema.findValueField(joinFieldName)
+      schema.findValueColumn(joinFieldName)
           .orElseThrow(() ->
               new KsqlException("couldn't find key field: " + joinFieldName + " in schema"));
 
@@ -521,12 +521,12 @@ public class JoinNode extends PlanNode {
 
     final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
 
-    joinSchema.valueFields(leftSchema.value());
+    joinSchema.valueColumns(leftSchema.value());
 
-    joinSchema.valueFields(rightSchema.value());
+    joinSchema.valueColumns(rightSchema.value());
 
     // Hard-wire for now, until we support custom type/name of key fields:
-    joinSchema.keyField(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+    joinSchema.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
     return joinSchema.build();
   }

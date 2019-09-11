@@ -23,10 +23,14 @@ import com.google.common.testing.NullPointerTester;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.Optional;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class FieldTest {
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowNPE() {
@@ -87,5 +91,25 @@ public class FieldTest {
 
     assertThat(Field.of("reserved", SqlTypes.BIGINT).toString(options),
         is("`reserved` BIGINT"));
+  }
+
+  @Test
+  public void shouldThrowIfNameIsEmpty() {
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("name is empty");
+
+    // When:
+    Field.of("", SqlTypes.STRING);
+  }
+
+  @Test
+  public void shouldThrowIfNameIsNotTrimmed() {
+    // Expect:
+    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expectMessage("name is not trimmed");
+
+    // When:
+    Field.of(" bar ", SqlTypes.STRING);
   }
 }

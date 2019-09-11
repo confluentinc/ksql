@@ -225,17 +225,17 @@ class Analyzer {
     }
 
     /**
-     * Get the list of select expressions that are <i>not</i> for meta and key fields in the source
+     * Get the list of select expressions that are <i>not</i> for meta and key columns in the source
      * schema.
      *
-     * <p>Currently, the select expressions can include metadata and key fields, which are later
+     * <p>Currently, the select expressions can include metadata and key columns, which are later
      * removed by {@link io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode}. When building
      * the {@link SerdeOptions} its important the final schema is used, i.e. the one with these
-     * meta and key fields removed.
+     * meta and key columns removed.
      *
      * <p>This is weird functionality, but maintained for backwards compatibility for now.
      *
-     * @return the list of field names in the sink that are not meta or key fields.
+     * @return the list of column names in the sink that are not meta or key columns.
      */
     private List<String> getNoneMetaOrKeySelectAliases() {
       final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
@@ -439,7 +439,7 @@ class Analyzer {
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      return sourceSchema.findField(fieldName)
+      return sourceSchema.findColumn(fieldName)
           .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias, field.name()));
     }
 
@@ -520,12 +520,12 @@ class Analyzer {
             ? source.getAlias() + "_"
             : "";
 
-        for (final Column field : source.getDataSource().getSchema().fields()) {
+        for (final Column column : source.getDataSource().getSchema().columns()) {
 
           final DereferenceExpression selectItem =
-              new DereferenceExpression(location, nameRef, field.name());
+              new DereferenceExpression(location, nameRef, column.name());
 
-          final String alias = aliasPrefix + field.name();
+          final String alias = aliasPrefix + column.name();
 
           analysis.addSelectItem(selectItem, alias);
         }

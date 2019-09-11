@@ -35,8 +35,8 @@ public class KsqlValueJoinerTest {
   @Before
   public void setUp() {
     leftSchema = LogicalSchema.builder()
-        .valueField("col0", SqlTypes.BIGINT)
-        .valueField("col1", SqlTypes.STRING)
+        .valueColumn("col0", SqlTypes.BIGINT)
+        .valueColumn("col1", SqlTypes.STRING)
         .build();
 
     rightSchema = leftSchema;

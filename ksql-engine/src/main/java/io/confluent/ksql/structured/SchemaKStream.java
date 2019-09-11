@@ -422,9 +422,9 @@ public class SchemaKStream<K> {
       final String fullFieldName = getKeyField().name().get();
       final Optional<String> fieldAlias = SchemaUtil.getFieldNameAlias(fullFieldName);
       final String fieldNameWithNoAlias = SchemaUtil.getFieldNameWithNoAlias(fullFieldName);
-      final Column keyField = Column.of(fieldAlias, fieldNameWithNoAlias, SqlTypes.STRING);
+      final Column keyColumn = Column.of(fieldAlias, fieldNameWithNoAlias, SqlTypes.STRING);
 
-      return doFindKeyField(selectExpressions, keyField)
+      return doFindKeyColumn(selectExpressions, keyColumn)
           .map(Column::fullName);
     }
 
@@ -441,11 +441,11 @@ public class SchemaKStream<K> {
         return Optional.of(keyField);
       }
 
-      return doFindKeyField(selectExpressions, Column.of(keyField.name(), keyField.type()))
+      return doFindKeyColumn(selectExpressions, Column.of(keyField.name(), keyField.type()))
           .map(field -> LegacyField.of(field.fullName(), field.type()));
     }
 
-    private Optional<Column> doFindKeyField(
+    private Optional<Column> doFindKeyColumn(
         final List<SelectExpression> selectExpressions,
         final Column keyField
     ) {
@@ -491,14 +491,14 @@ public class SchemaKStream<K> {
     ) {
       final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
-      final List<Column> keyFields = SchemaKStream.this.getSchema().isAliased()
+      final List<Column> keyCols = SchemaKStream.this.getSchema().isAliased()
           ? SchemaKStream.this.getSchema().withoutAlias().key()
           : SchemaKStream.this.getSchema().key();
 
-      schemaBuilder.keyFields(keyFields);
+      schemaBuilder.keyColumns(keyCols);
 
       for (final SelectInfo select : mapper.getSelects()) {
-        schemaBuilder.valueField(select.getFieldName(), select.getExpressionType());
+        schemaBuilder.valueColumn(select.getFieldName(), select.getExpressionType());
       }
 
       return schemaBuilder.build();
@@ -744,7 +744,7 @@ public class SchemaKStream<K> {
 
     final Optional<Column> existingKey = keyField.resolve(getSchema(), ksqlConfig);
 
-    final Column proposedKey = getSchema().findValueField(fieldName)
+    final Column proposedKey = getSchema().findValueColumn(fieldName)
         .orElseThrow(IllegalArgumentException::new);
 
     final LegacyField proposedLegacy = LegacyField.of(proposedKey.fullName(), proposedKey.type());
@@ -776,7 +776,7 @@ public class SchemaKStream<K> {
       );
     }
 
-    final int keyIndexInValue = getSchema().valueFieldIndex(proposedKey.fullName())
+    final int keyIndexInValue = getSchema().valueColumnIndex(proposedKey.fullName())
         .orElseThrow(IllegalStateException::new);
 
     final KStream keyedKStream = kstream
@@ -791,7 +791,7 @@ public class SchemaKStream<K> {
           return row;
         });
 
-    final KeyField newKeyField = getSchema().isMetaField(fieldName)
+    final KeyField newKeyField = getSchema().isMetaColumn(fieldName)
         ? resultantKeyField.withName(Optional.empty())
         : resultantKeyField;
 
@@ -852,8 +852,8 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final Optional<Column> keyField = getKeyField().resolve(getSchema(), ksqlConfig);
-    if (!keyField.isPresent()) {
+    final Optional<Column> keyColumn = getKeyField().resolve(getSchema(), ksqlConfig);
+    if (!keyColumn.isPresent()) {
       return true;
     }
 
@@ -862,7 +862,7 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final String keyFieldName = keyField.get().name();
+    final String keyFieldName = keyColumn.get().name();
     return !groupByField.equals(keyFieldName);
   }
 
@@ -928,7 +928,7 @@ public class SchemaKStream<K> {
     final LegacyField legacyKeyField = LegacyField
         .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
 
-    final Optional<String> newKeyField = getSchema().findValueField(groupBy.aggregateKeyName)
+    final Optional<String> newKeyCol = getSchema().findValueColumn(groupBy.aggregateKeyName)
         .map(Column::name);
     final ExecutionStep<KGroupedStream<Struct, GenericRow>> source =
         ExecutionStepFactory.streamGroupBy(
@@ -942,7 +942,7 @@ public class SchemaKStream<K> {
         source,
         rekeyedKeyFormat,
         groupedKeySerde,
-        KeyField.of(newKeyField, Optional.of(legacyKeyField)),
+        KeyField.of(newKeyCol, Optional.of(legacyKeyField)),
         Collections.singletonList(this),
         ksqlConfig,
         functionRegistry

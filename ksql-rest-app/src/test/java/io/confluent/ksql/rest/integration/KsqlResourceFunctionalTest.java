@@ -150,8 +150,8 @@ public class KsqlResourceFunctionalTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueField("AUTHOR", SqlTypes.STRING)
-            .valueField("TITLE", SqlTypes.STRING)
+            .valueColumn("AUTHOR", SqlTypes.STRING)
+            .valueColumn("TITLE", SqlTypes.STRING)
             .build(),
         SerdeOption.none()
     );

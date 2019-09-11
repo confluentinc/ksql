@@ -335,12 +335,12 @@ public class AggregateNode extends PlanNode {
       final Map<Integer, KsqlAggregateFunction> aggregateFunctions
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Column> fields = inputSchema.value();
+    final List<Column> cols = inputSchema.value();
 
-    schemaBuilder.keyFields(inputSchema.key());
+    schemaBuilder.keyColumns(inputSchema.key());
 
     for (int i = 0; i < requiredColumns.size(); i++) {
-      schemaBuilder.valueField(fields.get(i));
+      schemaBuilder.valueColumn(cols.get(i));
     }
 
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
@@ -350,9 +350,9 @@ public class AggregateNode extends PlanNode {
       final KsqlAggregateFunction aggregateFunction = aggregateFunctions
           .get(requiredColumns.size() + idx);
 
-      final String fieldName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
+      final String colName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
       final SqlType fieldType = converter.toSqlType(aggregateFunction.getReturnType());
-      schemaBuilder.valueField(fieldName, fieldType);
+      schemaBuilder.valueColumn(colName, fieldType);
     }
 
     return schemaBuilder.build();

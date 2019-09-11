@@ -54,8 +54,8 @@ public class ProjectNodeTest {
   private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
   private static final String KEY_FIELD_NAME = "field1";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.STRING)
-      .valueField("field2", SqlTypes.STRING)
+      .valueColumn("field1", SqlTypes.STRING)
+      .valueColumn("field2", SqlTypes.STRING)
       .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
       .of("source-key", Column.of("legacy-source-key", SqlTypes.STRING));

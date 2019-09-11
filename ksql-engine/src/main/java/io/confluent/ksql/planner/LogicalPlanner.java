@@ -105,7 +105,7 @@ public class LogicalPlanner {
     final Optional<String> partitionByField = analysis.getPartitionBy();
 
     partitionByField.ifPresent(keyName ->
-        inputSchema.findValueField(keyName)
+        inputSchema.findValueColumn(keyName)
             .orElseThrow(() -> new KsqlException(
                 "Column " + keyName + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
@@ -140,11 +140,11 @@ public class LogicalPlanner {
     final String partitionBy = partitionByField.get();
     final LogicalSchema schema = sourcePlanNode.getSchema();
 
-    if (schema.isMetaField(partitionBy)) {
+    if (schema.isMetaColumn(partitionBy)) {
       return sourceKeyField.withName(Optional.empty());
     }
 
-    if (schema.isKeyField(partitionBy)) {
+    if (schema.isKeyColumn(partitionBy)) {
       return sourceKeyField;
     }
 
@@ -292,11 +292,11 @@ public class LogicalPlanner {
 
     final Builder builder = LogicalSchema.builder();
 
-    final List<Column> keyFields = sourcePlanNode.getSchema().isAliased()
+    final List<Column> keyColumns = sourcePlanNode.getSchema().isAliased()
         ? sourcePlanNode.getSchema().withoutAlias().key()
         : sourcePlanNode.getSchema().key();
 
-    builder.keyFields(keyFields);
+    builder.keyColumns(keyColumns);
 
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final Expression expression = analysis.getSelectExpressions().get(i);
@@ -304,7 +304,7 @@ public class LogicalPlanner {
 
       final SqlType expressionType = expressionTypeManager.getExpressionSqlType(expression);
 
-      builder.valueField(alias, expressionType);
+      builder.valueColumn(alias, expressionType);
     }
 
     return builder.build();

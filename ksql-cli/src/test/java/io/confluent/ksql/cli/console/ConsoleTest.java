@@ -1384,7 +1384,7 @@ public class ConsoleTest {
     final Builder schemaBuilder = LogicalSchema.builder();
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
-      schemaBuilder.valueField("f_" + idx, fieldTypes[idx]);
+      schemaBuilder.valueColumn("f_" + idx, fieldTypes[idx]);
     }
 
     final LogicalSchema schema = schemaBuilder.build();

@@ -31,12 +31,12 @@ import org.junit.rules.ExpectedException;
 public class PhysicalSchemaTest {
 
   private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.builder()
-      .valueField("f0", SqlTypes.BOOLEAN)
-      .valueField("f1", SqlTypes.BOOLEAN)
+      .valueColumn("f0", SqlTypes.BOOLEAN)
+      .valueColumn("f1", SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
-      .valueField("f0", SqlTypes.BOOLEAN)
+      .valueColumn("f0", SqlTypes.BOOLEAN)
       .build();
 
   @Rule

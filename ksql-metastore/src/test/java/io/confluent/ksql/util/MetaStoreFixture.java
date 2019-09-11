@@ -54,12 +54,12 @@ public final class MetaStoreFixture {
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
-        .valueField("COL0", SqlTypes.BIGINT)
-        .valueField("COL1", SqlTypes.STRING)
-        .valueField("COL2", SqlTypes.STRING)
-        .valueField("COL3", SqlTypes.DOUBLE)
-        .valueField("COL4", SqlTypes.array(SqlTypes.DOUBLE))
-        .valueField("COL5", SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL1", SqlTypes.STRING)
+        .valueColumn("COL2", SqlTypes.STRING)
+        .valueColumn("COL3", SqlTypes.DOUBLE)
+        .valueColumn("COL4", SqlTypes.array(SqlTypes.DOUBLE))
+        .valueColumn("COL5", SqlTypes.map(SqlTypes.DOUBLE))
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
@@ -74,7 +74,7 @@ public final class MetaStoreFixture {
         "TEST0",
         test1Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test1Schema.findValueField("COL0").get()),
+        KeyField.of("COL0", test1Schema.findValueColumn("COL0").get()),
         timestampExtractionPolicy,
         ksqlTopic0
     );
@@ -92,7 +92,7 @@ public final class MetaStoreFixture {
         "TEST1",
         test1Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test1Schema.findValueField("COL0").get()),
+        KeyField.of("COL0", test1Schema.findValueColumn("COL0").get()),
         timestampExtractionPolicy,
         ksqlTopic1
     );
@@ -100,11 +100,11 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream1);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
-        .valueField("COL0", SqlTypes.BIGINT)
-        .valueField("COL1", SqlTypes.STRING)
-        .valueField("COL2", SqlTypes.STRING)
-        .valueField("COL3", SqlTypes.DOUBLE)
-        .valueField("COL4", SqlTypes.BOOLEAN)
+        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL1", SqlTypes.STRING)
+        .valueColumn("COL2", SqlTypes.STRING)
+        .valueColumn("COL3", SqlTypes.DOUBLE)
+        .valueColumn("COL4", SqlTypes.BOOLEAN)
         .build();
 
     final KsqlTopic ksqlTopic2 = new KsqlTopic(
@@ -118,7 +118,7 @@ public final class MetaStoreFixture {
         "TEST2",
         test2Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test2Schema.findValueField("COL0").get()),
+        KeyField.of("COL0", test2Schema.findValueColumn("COL0").get()),
         timestampExtractionPolicy,
         ksqlTopic2
     );
@@ -145,14 +145,14 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema ordersSchema = LogicalSchema.builder()
-        .valueField("ORDERTIME", SqlTypes.BIGINT)
-        .valueField("ORDERID", SqlTypes.BIGINT)
-        .valueField("ITEMID", SqlTypes.STRING)
-        .valueField("ITEMINFO", itemInfoSchema)
-        .valueField("ORDERUNITS", SqlTypes.INTEGER)
-        .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-        .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
-        .valueField("ADDRESS", addressSchema)
+        .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+        .valueColumn("ORDERID", SqlTypes.BIGINT)
+        .valueColumn("ITEMID", SqlTypes.STRING)
+        .valueColumn("ITEMINFO", itemInfoSchema)
+        .valueColumn("ORDERUNITS", SqlTypes.INTEGER)
+        .valueColumn("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+        .valueColumn("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn("ADDRESS", addressSchema)
         .build();
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
@@ -167,7 +167,7 @@ public final class MetaStoreFixture {
         "ORDERS",
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", ordersSchema.findValueField("ORDERTIME").get()),
+        KeyField.of("ORDERTIME", ordersSchema.findValueColumn("ORDERTIME").get()),
         timestampExtractionPolicy,
         ksqlTopicOrders
     );
@@ -175,11 +175,11 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStreamOrders);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
-        .valueField("COL0", SqlTypes.BIGINT)
-        .valueField("COL1", SqlTypes.STRING)
-        .valueField("COL2", SqlTypes.STRING)
-        .valueField("COL3", SqlTypes.DOUBLE)
-        .valueField("COL4", SqlTypes.BOOLEAN)
+        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL1", SqlTypes.STRING)
+        .valueColumn("COL2", SqlTypes.STRING)
+        .valueColumn("COL3", SqlTypes.DOUBLE)
+        .valueColumn("COL4", SqlTypes.BOOLEAN)
         .build();
 
     final KsqlTopic ksqlTopic3 = new KsqlTopic(
@@ -193,7 +193,7 @@ public final class MetaStoreFixture {
         "TEST3",
         testTable3,
         SerdeOption.none(),
-        KeyField.of("COL0", testTable3.findValueField("COL0").get()),
+        KeyField.of("COL0", testTable3.findValueColumn("COL0").get()),
         timestampExtractionPolicy,
         ksqlTopic3
     );
@@ -212,10 +212,10 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
-        .valueField("ARRAYCOL", SqlTypes.array(itemInfoSchema))
-        .valueField("MAPCOL", SqlTypes.map(itemInfoSchema))
-        .valueField("NESTED_ORDER_COL", nestedOrdersSchema)
-        .valueField("ITEM", itemInfoSchema)
+        .valueColumn("ARRAYCOL", SqlTypes.array(itemInfoSchema))
+        .valueColumn("MAPCOL", SqlTypes.map(itemInfoSchema))
+        .valueColumn("NESTED_ORDER_COL", nestedOrdersSchema)
+        .valueColumn("ITEM", itemInfoSchema)
         .build();
 
     final KsqlTopic nestedArrayStructMapTopic = new KsqlTopic(

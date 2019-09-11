@@ -100,9 +100,9 @@ public final class LogicalSchema {
   }
 
   /**
-   * @return all fields in the schema.
+   * @return all columns in the schema.
    */
-  public List<Column> fields() {
+  public List<Column> columns() {
     return ImmutableList.<Column>builder()
         .addAll(metadata)
         .addAll(key)
@@ -111,54 +111,54 @@ public final class LogicalSchema {
   }
 
   /**
-   * Search for a field with the supplied {@code fieldName}.
+   * Search for a column with the supplied {@code columnName}.
    *
-   * <p>If the fieldName and the name of a field are an exact match, it will return that field.
+   * <p>If the columnName and the name of a column are an exact match, it will return that column.
    *
-   * <p>If not exact match is found, any alias is stripped from the supplied  {@code fieldName}
+   * <p>If not exact match is found, any alias is stripped from the supplied  {@code columnName}
    * before attempting to find a match again.
    *
-   * <p>Search order if meta, then key and then value fields.
+   * <p>Search order if meta, then key and then value columns.
    *
-   * @param fieldName the field name, where any alias is ignored.
-   * @return the field if found, else {@code Optiona.empty()}.
+   * @param columnName the column name, where any alias is ignored.
+   * @return the column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findField(final String fieldName) {
-    Optional<Column> found = doFindColumn(fieldName, metadata);
+  public Optional<Column> findColumn(final String columnName) {
+    Optional<Column> found = doFindColumn(columnName, metadata);
     if (found.isPresent()) {
       return found;
     }
 
-    found = doFindColumn(fieldName, key);
+    found = doFindColumn(columnName, key);
     if (found.isPresent()) {
       return found;
     }
 
-    return doFindColumn(fieldName, value);
+    return doFindColumn(columnName, value);
   }
 
   /**
-   * Search for a value field with the supplied {@code fieldName}.
+   * Search for a value column with the supplied {@code columnName}.
    *
-   * <p>If the fieldName and the name of a field are an exact match, it will return that field.
+   * <p>If the columnName and the name of a column are an exact match, it will return that column.
    *
-   * <p>If not exact match is found, any alias is stripped from the supplied  {@code fieldName}
+   * <p>If not exact match is found, any alias is stripped from the supplied  {@code columnName}
    * before attempting to find a match again.
    *
-   * @param fieldName the field name, where any alias is ignored.
-   * @return the value field if found, else {@code Optiona.empty()}.
+   * @param columnName the column name, where any alias is ignored.
+   * @return the value column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findValueField(final String fieldName) {
-    return doFindColumn(fieldName, value);
+  public Optional<Column> findValueColumn(final String columnName) {
+    return doFindColumn(columnName, value);
   }
 
   /**
-   * Find the index of the field with the supplied exact {@code fullColumnName}.
+   * Find the index of the column with the supplied exact {@code fullColumnName}.
    *
-   * @param fullColumnName the exact name of the field to get the index of.
+   * @param fullColumnName the exact name of the column to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
-  public OptionalInt valueFieldIndex(final String fullColumnName) {
+  public OptionalInt valueColumnIndex(final String fullColumnName) {
     int idx = 0;
     for (final Column column : value) {
       if (column.fullName().equals(fullColumnName)) {
@@ -171,11 +171,11 @@ public final class LogicalSchema {
   }
 
   /**
-   * Add the supplied {@code alias} to each field.
+   * Add the supplied {@code alias} to each column.
    *
-   * <p>If the fields are already aliased with this alias this is a no-op.
+   * <p>If the columns are already aliased with this alias this is a no-op.
    *
-   * <p>If the fields are already aliased with a different alias the field prefixed again.
+   * <p>If the columns are already aliased with a different alias the column prefixed again.
    *
    * @param alias the alias to add.
    * @return the schema with the alias applied.
@@ -193,9 +193,9 @@ public final class LogicalSchema {
   }
 
   /**
-   * Strip any alias from the field name.
+   * Strip any alias from the column name.
    *
-   * @return the schema without any aliases in the field name.
+   * @return the schema without any aliases in the column name.
    */
   public LogicalSchema withoutAlias() {
     if (!isAliased()) {
@@ -213,18 +213,18 @@ public final class LogicalSchema {
    * @return {@code true} is aliased, {@code false} otherwise.
    */
   public boolean isAliased() {
-    // Either all fields are aliased, or none:
+    // Either all columns are aliased, or none:
     return metadata.get(0).source().isPresent();
   }
 
   /**
-   * Copies metadata and key fields to the value schema.
+   * Copies metadata and key columns to the value schema.
    *
-   * <p>If the fields already exist in the value schema the function returns the same schema.
+   * <p>If the columns already exist in the value schema the function returns the same schema.
    *
    * @return the new schema.
    */
-  public LogicalSchema withMetaAndKeyFieldsInValue() {
+  public LogicalSchema withMetaAndKeyColsInValue() {
     final List<Column> newValueColumns = new ArrayList<>(
         metadata.size()
             + key.size()
@@ -250,11 +250,11 @@ public final class LogicalSchema {
   }
 
   /**
-   * Remove metadata and key fields from the value schema.
+   * Remove metadata and key columns from the value schema.
    *
-   * @return the new schema with the fields removed.
+   * @return the new schema with the columns removed.
    */
-  public LogicalSchema withoutMetaAndKeyFieldsInValue() {
+  public LogicalSchema withoutMetaAndKeyColsInValue() {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     final Set<String> excluded = metaAndKeyColumnNames();
@@ -271,19 +271,19 @@ public final class LogicalSchema {
   }
 
   /**
-   * @param fieldName the field name to check
-   * @return {@code true} if the field matches the name of any metadata field.
+   * @param columnName the column name to check
+   * @return {@code true} if the column matches the name of any metadata column.
    */
-  public boolean isMetaField(final String fieldName) {
-    return metaColumnNames().contains(fieldName);
+  public boolean isMetaColumn(final String columnName) {
+    return metaColumnNames().contains(columnName);
   }
 
   /**
-   * @param fieldName the field name to check
-   * @return {@code true} if the field matches the name of any key field.
+   * @param columnName the column name to check
+   * @return {@code true} if the column matches the name of any key column.
    */
-  public boolean isKeyField(final String fieldName) {
-    return keyColumnNames().contains(fieldName);
+  public boolean isKeyColumn(final String columnName) {
+    return keyColumnNames().contains(columnName);
   }
 
   @Override
@@ -295,7 +295,7 @@ public final class LogicalSchema {
       return false;
     }
     final LogicalSchema that = (LogicalSchema) o;
-    // Meta fields deliberately excluded.
+    // Meta Columns deliberately excluded.
     return Objects.equals(key, that.key)
         && Objects.equals(value, that.value);
   }
@@ -311,7 +311,7 @@ public final class LogicalSchema {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    // Meta fields deliberately excluded.
+    // Meta columns deliberately excluded.
 
     final String keys = key.stream()
         .map(f -> f.toString(formatOptions) + " " + KEY_KEYWORD)
@@ -329,11 +329,11 @@ public final class LogicalSchema {
   }
 
   private Set<String> metaColumnNames() {
-    return fieldNames(metadata);
+    return columnNames(metadata);
   }
 
   private Set<String> keyColumnNames() {
-    return fieldNames(key);
+    return columnNames(key);
   }
 
   private Set<String> metaAndKeyColumnNames() {
@@ -342,26 +342,26 @@ public final class LogicalSchema {
     return names;
   }
 
-  private static Set<String> fieldNames(final List<Column> struct) {
+  private static Set<String> columnNames(final List<Column> struct) {
     return struct.stream()
         .map(Column::name)
         .collect(Collectors.toSet());
   }
 
-  private static List<Column> addAlias(final String alias, final List<Column> struct) {
+  private static List<Column> addAlias(final String alias, final List<Column> columns) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    for (final Column field : struct) {
-      builder.add(field.withSource(alias));
+    for (final Column col : columns) {
+      builder.add(col.withSource(alias));
     }
     return builder.build();
   }
 
-  private static List<Column> removeAlias(final List<Column> struct) {
+  private static List<Column> removeAlias(final List<Column> columns) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    for (final Column field : struct) {
-      builder.add(Column.of(field.name(), field.type()));
+    for (final Column col : columns) {
+      builder.add(Column.of(col.name(), col.type()));
     }
     return builder.build();
   }
@@ -380,8 +380,8 @@ public final class LogicalSchema {
 
     final SchemaBuilder builder = SchemaBuilder.struct();
     for (final Column column : columns) {
-      final Schema fieldSchema = converter.toConnectSchema(column.type());
-      builder.field(column.fullName(), fieldSchema);
+      final Schema colSchema = converter.toConnectSchema(column.type());
+      builder.field(column.fullName(), colSchema);
     }
 
     return (ConnectSchema) builder.build();
@@ -395,44 +395,44 @@ public final class LogicalSchema {
     private final Set<String> seenKeys = new HashSet<>();
     private final Set<String> seenValues = new HashSet<>();
 
-    public Builder keyField(final String fieldName, final SqlType fieldType) {
-      keyField(Column.of(fieldName, fieldType));
+    public Builder keyColumn(final String columnName, final SqlType type) {
+      keyColumn(Column.of(columnName, type));
       return this;
     }
 
-    public Builder keyField(final Column field) {
-      if (!seenKeys.add(field.fullName())) {
-        throw new KsqlException("Duplicate keys found in schema: " + field);
+    public Builder keyColumn(final Column column) {
+      if (!seenKeys.add(column.fullName())) {
+        throw new KsqlException("Duplicate keys found in schema: " + column);
       }
-      keyBuilder.add(field);
+      keyBuilder.add(column);
       return this;
     }
 
-    public Builder keyFields(final Iterable<? extends Column> fields) {
-      fields.forEach(this::keyField);
+    public Builder keyColumns(final Iterable<? extends Column> columns) {
+      columns.forEach(this::keyColumn);
       return this;
     }
 
-    public Builder valueField(final String fieldName, final SqlType fieldType) {
-      valueField(Column.of(fieldName, fieldType));
+    public Builder valueColumn(final String columnName, final SqlType type) {
+      valueColumn(Column.of(columnName, type));
       return this;
     }
 
-    public Builder valueField(final String source, final String name, final SqlType type) {
-      valueField(Column.of(source, name, type));
+    public Builder valueColumn(final String source, final String name, final SqlType type) {
+      valueColumn(Column.of(source, name, type));
       return this;
     }
 
-    public Builder valueField(final Column field) {
-      if (!seenValues.add(field.fullName())) {
-        throw new KsqlException("Duplicate values found in schema: " + field);
+    public Builder valueColumn(final Column column) {
+      if (!seenValues.add(column.fullName())) {
+        throw new KsqlException("Duplicate values found in schema: " + column);
       }
-      valueBuilder.add(field);
+      valueBuilder.add(column);
       return this;
     }
 
-    public Builder valueFields(final Iterable<? extends Column> fields) {
-      fields.forEach(this::valueField);
+    public Builder valueColumns(final Iterable<? extends Column> column) {
+      column.forEach(this::valueColumn);
       return this;
     }
 

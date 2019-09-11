@@ -54,7 +54,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SourceTopicsExtractorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("F1", SqlTypes.STRING)
+      .valueColumn("F1", SqlTypes.STRING)
       .build();
 
   private static final String STREAM_TOPIC_1 = "s1";

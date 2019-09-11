@@ -265,7 +265,7 @@ public class AvroUtilTest {
 
     final Builder builder = LogicalSchema.builder();
     connectSchema.fields()
-        .forEach(f -> builder.valueField(f.name(), converter.toSqlType(f.schema())));
+        .forEach(f -> builder.valueColumn(f.name(), converter.toSqlType(f.schema())));
 
     return builder.build();
   }

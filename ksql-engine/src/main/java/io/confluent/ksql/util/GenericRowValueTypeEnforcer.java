@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 public class GenericRowValueTypeEnforcer {
 
-  private final List<Column> fields;
+  private final List<Column> columns;
 
   private static final Map<SqlBaseType, Function<Object, Object>> SCHEMA_TYPE_TO_ENFORCE =
       ImmutableMap.<SqlBaseType, Function<Object, Object>>builder()
@@ -43,15 +43,15 @@ public class GenericRowValueTypeEnforcer {
           .build();
 
   public GenericRowValueTypeEnforcer(final LogicalSchema schema) {
-    this.fields = schema.value();
+    this.columns = schema.value();
   }
 
-  public Object enforceFieldType(final int index, final Object value) {
-    final Column field = fields.get(index);
-    return enforceFieldType(field.type(), value);
+  public Object enforceColumnType(final int index, final Object value) {
+    final Column column = columns.get(index);
+    return enforceColumnType(column.type(), value);
   }
 
-  private static Object enforceFieldType(final SqlType sqlType, final Object value) {
+  private static Object enforceColumnType(final SqlType sqlType, final Object value) {
     final Function<Object, Object> handler = SCHEMA_TYPE_TO_ENFORCE.get(sqlType.baseType());
     if (handler == null) {
       throw new KsqlException("Type is not supported: " + sqlType);

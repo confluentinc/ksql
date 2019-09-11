@@ -94,22 +94,22 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class InsertValuesExecutorTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueField("COL0", SqlTypes.STRING)
+      .valueColumn("COL0", SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("COL0", SqlTypes.STRING)
-      .valueField("COL1", SqlTypes.BIGINT)
+      .valueColumn("COL0", SqlTypes.STRING)
+      .valueColumn("COL1", SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
-      .valueField("COL0", SqlTypes.STRING) // named COL0 for auto-ROWKEY
-      .valueField("INT", SqlTypes.INTEGER)
-      .valueField("BIGINT", SqlTypes.BIGINT)
-      .valueField("DOUBLE", SqlTypes.DOUBLE)
-      .valueField("BOOLEAN", SqlTypes.BOOLEAN)
-      .valueField("VARCHAR", SqlTypes.STRING)
-      .valueField("DECIMAL", SqlTypes.decimal(2, 1))
+      .valueColumn("COL0", SqlTypes.STRING) // named COL0 for auto-ROWKEY
+      .valueColumn("INT", SqlTypes.INTEGER)
+      .valueColumn("BIGINT", SqlTypes.BIGINT)
+      .valueColumn("DOUBLE", SqlTypes.DOUBLE)
+      .valueColumn("BOOLEAN", SqlTypes.BOOLEAN)
+      .valueColumn("VARCHAR", SqlTypes.STRING)
+      .valueColumn("DECIMAL", SqlTypes.decimal(2, 1))
       .build();
 
   private static final byte[] KEY = new byte[]{1};
@@ -698,7 +698,7 @@ public class InsertValuesExecutorTest {
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(kf, schema.findValueField(kf).get()))
+        .map(kf -> KeyField.of(kf, schema.findValueColumn(kf).get()))
         .orElse(KeyField.none());
     final DataSource<?> dataSource = new KsqlStream<>(
         "",
@@ -727,6 +727,6 @@ public class InsertValuesExecutorTest {
   }
 
   private static List<String> allFieldNames(final LogicalSchema schema) {
-    return schema.fields().stream().map(Column::name).collect(Collectors.toList());
+    return schema.columns().stream().map(Column::name).collect(Collectors.toList());
   }
 }

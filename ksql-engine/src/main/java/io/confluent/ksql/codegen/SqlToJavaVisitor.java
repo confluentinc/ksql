@@ -268,11 +268,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = formatQualifiedName(node.getName());
-      final Column schemaField = schema.findValueField(fieldName)
+      final Column schemaColumn = schema.findValueColumn(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 
@@ -282,11 +282,11 @@ public class SqlToJavaVisitor {
         final Void context
     ) {
       final String fieldName = node.toString();
-      final Column schemaField = schema.findValueField(fieldName)
+      final Column schemaColumn = schema.findValueColumn(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
       return new Pair<>(fieldName.replace(".", "_"), schema);
     }
 

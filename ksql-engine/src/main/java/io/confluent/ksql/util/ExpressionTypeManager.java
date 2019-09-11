@@ -208,12 +208,12 @@ public class ExpressionTypeManager {
         final QualifiedNameReference node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaField = schema.findValueField(node.getName().getSuffix())
+      final Column schemaColumn = schema.findValueColumn(node.getName().getSuffix())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
-      expressionTypeContext.setSchema(schemaField.type(), schema);
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
+      expressionTypeContext.setSchema(schemaColumn.type(), schema);
       return null;
     }
 
@@ -222,12 +222,12 @@ public class ExpressionTypeManager {
         final DereferenceExpression node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaField = schema.findValueField(node.toString())
+      final Column schemaColumn = schema.findValueColumn(node.toString())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaField.type());
-      expressionTypeContext.setSchema(schemaField.type(), schema);
+      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
+      expressionTypeContext.setSchema(schemaColumn.type(), schema);
       return null;
     }
 

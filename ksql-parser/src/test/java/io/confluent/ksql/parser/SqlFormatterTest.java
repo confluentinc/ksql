@@ -106,25 +106,25 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema ITEM_INFO_SCHEMA = LogicalSchema.builder()
-      .valueField("ITEMID", SqlTypes.BIGINT)
-      .valueField("NAME", SqlTypes.STRING)
-      .valueField("CATEGORY", categorySchema)
+      .valueColumn("ITEMID", SqlTypes.BIGINT)
+      .valueColumn("NAME", SqlTypes.STRING)
+      .valueColumn("CATEGORY", categorySchema)
       .build();
 
   private static final LogicalSchema tableSchema = LogicalSchema.builder()
-      .valueField("TABLE", SqlTypes.STRING)
+      .valueColumn("TABLE", SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
-      .valueField("ORDERTIME", SqlTypes.BIGINT)
-      .valueField("ORDERID", SqlTypes.BIGINT)
-      .valueField("ITEMID", SqlTypes.STRING)
-      .valueField("ITEMINFO", ITEM_INFO_STRUCT)
-      .valueField("ORDERUNITS", SqlTypes.INTEGER)
-      .valueField("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-      .valueField("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
-      .valueField("ADDRESS", addressSchema)
-      .valueField("SIZE", SqlTypes.INTEGER) // Reserved word
+      .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+      .valueColumn("ORDERID", SqlTypes.BIGINT)
+      .valueColumn("ITEMID", SqlTypes.STRING)
+      .valueColumn("ITEMINFO", ITEM_INFO_STRUCT)
+      .valueColumn("ORDERUNITS", SqlTypes.INTEGER)
+      .valueColumn("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn("ADDRESS", addressSchema)
+      .valueColumn("SIZE", SqlTypes.INTEGER) // Reserved word
       .build();
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
@@ -169,7 +169,7 @@ public class SqlFormatterTest {
         "ADDRESS",
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueField("ORDERTIME").get()),
+        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueColumn("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders
     );
@@ -187,7 +187,7 @@ public class SqlFormatterTest {
         "ITEMID",
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ITEMID", ITEM_INFO_SCHEMA.findValueField("ITEMID").get()),
+        KeyField.of("ITEMID", ITEM_INFO_SCHEMA.findValueColumn("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );
@@ -199,7 +199,7 @@ public class SqlFormatterTest {
         "TABLE",
         tableSchema,
         SerdeOption.none(),
-        KeyField.of("TABLE", tableSchema.findValueField("TABLE").get()),
+        KeyField.of("TABLE", tableSchema.findValueColumn("TABLE").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

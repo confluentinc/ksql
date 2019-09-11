@@ -15,10 +15,12 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import static io.confluent.ksql.util.Identifiers.ensureTrimmed;
+
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.util.Identifiers;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -62,27 +64,9 @@ public final class Column {
   }
 
   private Column(final Optional<String> source, final String name, final SqlType type) {
-    this.source = Objects.requireNonNull(source, "source");
-    this.name = Objects.requireNonNull(name, "name");
+    this.source = Objects.requireNonNull(source, "source").map(src -> ensureTrimmed(src, "source"));
+    this.name = ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
     this.type = Objects.requireNonNull(type, "type");
-
-    this.source.ifPresent(src -> {
-      if (!src.trim().equals(src)) {
-        throw new IllegalArgumentException("source is not trimmed: '" + src + "'");
-      }
-
-      if (src.isEmpty()) {
-        throw new IllegalArgumentException("source is empty");
-      }
-    });
-
-    if (!name.trim().equals(name)) {
-      throw new IllegalArgumentException("name is not trimmed: '" + name + "'");
-    }
-
-    if (name.isEmpty()) {
-      throw new IllegalArgumentException("name is empty");
-    }
   }
 
   /**
@@ -148,11 +132,10 @@ public final class Column {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final String name = StringUtil.escape(this.name, formatOptions);
-    final String type = this.type.toString(formatOptions);
-    final String source =
-        this.source.map(alias -> StringUtil.escape(alias, formatOptions) + ".").orElse("");
+    final String fmtName = Identifiers.escape(name, formatOptions);
+    final String fmtType = type.toString(formatOptions);
+    final String fmtSource = source.map(s -> Identifiers.escape(s, formatOptions) + ".").orElse("");
 
-    return source + name + " " + type;
+    return fmtSource + fmtName + " " + fmtType;
   }
 }

@@ -229,8 +229,8 @@ public class TableElementsTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .keyField("k0", SqlTypes.STRING)
-        .valueField("v0", SqlTypes.INTEGER)
+        .keyColumn("k0", SqlTypes.STRING)
+        .valueColumn("v0", SqlTypes.INTEGER)
         .build()
     ));
   }

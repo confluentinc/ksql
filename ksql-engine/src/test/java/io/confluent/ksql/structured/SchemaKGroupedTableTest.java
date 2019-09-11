@@ -107,8 +107,8 @@ public class SchemaKGroupedTableTest {
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
   private final LogicalSchema schema = LogicalSchema.builder()
-      .valueField("GROUPING_COLUMN", SqlTypes.STRING)
-      .valueField("AGG_VALUE", SqlTypes.INTEGER)
+      .valueColumn("GROUPING_COLUMN", SqlTypes.STRING)
+      .valueColumn("AGG_VALUE", SqlTypes.INTEGER)
       .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -161,7 +161,7 @@ public class SchemaKGroupedTableTest {
         Consumed.with(Serdes.String(), rowSerde)
     );
 
-    when(aggregateSchema.findValueField("GROUPING_COLUMN"))
+    when(aggregateSchema.findValueColumn("GROUPING_COLUMN"))
         .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
 
     when(aggregateSchema.value()).thenReturn(mock(List.class));

@@ -51,10 +51,10 @@ public class ExpressionTypeManagerTest {
     metaStore = MetaStoreFixture.getNewMetaStore(FUNCTION_REGISTRY);
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("TEST1.COL0", SqlTypes.BIGINT)
-        .valueField("TEST1.COL1", SqlTypes.STRING)
-        .valueField("TEST1.COL2", SqlTypes.STRING)
-        .valueField("TEST1.COL3", SqlTypes.DOUBLE)
+        .valueColumn("TEST1.COL0", SqlTypes.BIGINT)
+        .valueColumn("TEST1.COL1", SqlTypes.STRING)
+        .valueColumn("TEST1.COL2", SqlTypes.STRING)
+        .valueColumn("TEST1.COL3", SqlTypes.DOUBLE)
         .build();
 
     expressionTypeManager = new ExpressionTypeManager(schema, FUNCTION_REGISTRY);
@@ -278,7 +278,7 @@ public class ExpressionTypeManagerTest {
     final SqlType sqlType = metaStore
         .getSource("ORDERS")
         .getSchema()
-        .findValueField("ADDRESS")
+        .findValueColumn("ADDRESS")
         .get()
         .type();
 

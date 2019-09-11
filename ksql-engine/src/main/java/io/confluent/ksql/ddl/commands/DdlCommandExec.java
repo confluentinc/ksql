@@ -115,12 +115,12 @@ public class DdlCommandExec {
 
     private KeyField getKeyField(final Optional<String> keyFieldName, final LogicalSchema schema) {
       if (keyFieldName.isPresent()) {
-        final Column keyField = schema.findValueField(keyFieldName.get())
+        final Column keyColumn = schema.findValueColumn(keyFieldName.get())
             .orElseThrow(() -> new IllegalStateException(
                 "The KEY column set in the WITH clause does not exist in the schema: '"
                     + keyFieldName + "'"
             ));
-        return KeyField.of(keyFieldName.get(), keyField);
+        return KeyField.of(keyFieldName.get(), keyColumn);
       } else {
         return KeyField.none();
       }

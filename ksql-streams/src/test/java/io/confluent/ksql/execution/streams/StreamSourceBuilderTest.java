@@ -81,8 +81,8 @@ import org.mockito.junit.MockitoRule;
 public class StreamSourceBuilderTest {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .valueField("field1", SqlTypes.STRING)
-      .valueField("field2", SqlTypes.BIGINT)
+      .valueColumn("field1", SqlTypes.STRING)
+      .valueColumn("field2", SqlTypes.BIGINT)
       .build();
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
       .field("k1", Schema.OPTIONAL_STRING_SCHEMA)
@@ -321,9 +321,9 @@ public class StreamSourceBuilderTest {
         TIMESTAMP_IDX,
         offsetReset,
         LogicalSchema.builder()
-            .keyField("f1", SqlTypes.INTEGER)
-            .keyField("f2", SqlTypes.BIGINT)
-            .valueFields(SCHEMA.value())
+            .keyColumn("f1", SqlTypes.INTEGER)
+            .keyColumn("f2", SqlTypes.BIGINT)
+            .valueColumns(SCHEMA.value())
             .build(),
         StreamSourceBuilder::buildUnwindowed
     );

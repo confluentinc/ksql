@@ -339,7 +339,7 @@ public class AnalyzerTest {
         false);
 
     final LogicalSchema schema = LogicalSchema.builder()
-            .valueField("FIELD1", SqlTypes.BIGINT)
+            .valueColumn("FIELD1", SqlTypes.BIGINT)
             .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
@@ -347,7 +347,7 @@ public class AnalyzerTest {
         "S0",
         schema,
         SerdeOption.none(),
-        KeyField.of("FIELD1", schema.findValueField("FIELD1").get()),
+        KeyField.of("FIELD1", schema.findValueColumn("FIELD1").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopic
     );
@@ -517,7 +517,7 @@ public class AnalyzerTest {
 
   private void registerKafkaSource() {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("COL0", SqlTypes.BIGINT)
+        .valueColumn("COL0", SqlTypes.BIGINT)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(

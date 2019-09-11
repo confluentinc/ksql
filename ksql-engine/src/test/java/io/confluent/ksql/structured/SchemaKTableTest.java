@@ -769,11 +769,11 @@ public class SchemaKTableTest {
     final String leftAlias = "left";
     final String rightAlias = "right";
     for (final Column field : leftSchema.value()) {
-      schemaBuilder.valueField(Column.of(leftAlias, field.name(), field.type()));
+      schemaBuilder.valueColumn(Column.of(leftAlias, field.name(), field.type()));
     }
 
     for (final Column field : rightSchema.value()) {
-      schemaBuilder.valueField(Column.of(rightAlias, field.name(), field.type()));
+      schemaBuilder.valueColumn(Column.of(rightAlias, field.name(), field.type()));
     }
     return schemaBuilder.build();
   }

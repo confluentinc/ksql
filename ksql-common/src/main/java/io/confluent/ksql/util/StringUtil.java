@@ -15,11 +15,10 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.schema.ksql.FormatOptions;
-
 public final class StringUtil {
 
-  private StringUtil() { }
+  private StringUtil() {
+  }
 
   public static String cleanQuotes(final String stringWithQuotes) {
     if (!stringWithQuotes.startsWith("'") || !stringWithQuotes.endsWith("'")) {
@@ -30,10 +29,4 @@ public final class StringUtil {
         .substring(1, stringWithQuotes.length() - 1)
         .replaceAll("''", "'");
   }
-
-  public static String escape(final String string, final FormatOptions formatOptions) {
-    return formatOptions.isReservedWord(string) ? "`" + string + "`" : string;
-
-  }
-
 }

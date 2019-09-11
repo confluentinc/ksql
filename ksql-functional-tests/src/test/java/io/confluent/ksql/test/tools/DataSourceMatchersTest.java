@@ -56,18 +56,18 @@ public class DataSourceMatchersTest {
   @Test
   public void shouldMatchFieldName() {
     // Given:
-    final Column field = Column.of("foo", SqlTypes.STRING);
+    final Column col = Column.of("foo", SqlTypes.STRING);
 
     // Then:
-    assertThat(field, FieldMatchers.hasFullName("foo"));
+    assertThat(col, FieldMatchers.hasFullName("foo"));
   }
 
   @Test
   public void shouldNotMatchFieldName() {
     // Given:
-    final Column field = Column.of("not-foo", SqlTypes.STRING);
+    final Column col = Column.of("not-foo", SqlTypes.STRING);
 
     // Then:
-    assertThat(field, not(FieldMatchers.hasFullName("foo")));
+    assertThat(col, not(FieldMatchers.hasFullName("foo")));
   }
 }

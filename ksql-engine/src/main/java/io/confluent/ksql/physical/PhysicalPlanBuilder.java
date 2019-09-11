@@ -384,35 +384,35 @@ public class PhysicalPlanBuilder {
   }
 
   private static void enforceKeyEquivalence(
-      final Optional<Column> sinkKeyField,
-      final Optional<Column> resultKeyField
+      final Optional<Column> sinkKeyCol,
+      final Optional<Column> resultKeyCol
   ) {
-    if (!sinkKeyField.isPresent() && !resultKeyField.isPresent()) {
+    if (!sinkKeyCol.isPresent() && !resultKeyCol.isPresent()) {
       return;
     }
 
-    if (sinkKeyField.isPresent()
-        && resultKeyField.isPresent()
-        && sinkKeyField.get().name().equalsIgnoreCase(resultKeyField.get().name())
-        && Objects.equals(sinkKeyField.get().type(), resultKeyField.get().type())) {
+    if (sinkKeyCol.isPresent()
+        && resultKeyCol.isPresent()
+        && sinkKeyCol.get().name().equalsIgnoreCase(resultKeyCol.get().name())
+        && Objects.equals(sinkKeyCol.get().type(), resultKeyCol.get().type())) {
       return;
     }
 
-    throwIncompatibleKeysException(sinkKeyField, resultKeyField);
+    throwIncompatibleKeysException(sinkKeyCol, resultKeyCol);
   }
 
   private static void throwIncompatibleKeysException(
-      final Optional<Column> sinkKeyField,
-      final Optional<Column> resultKeyField
+      final Optional<Column> sinkKeyCol,
+      final Optional<Column> resultKeyCol
   ) {
     throw new KsqlException(String.format(
         "Incompatible key fields for sink and results. Sink"
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
-        sinkKeyField.map(Column::name).orElse(null),
-        sinkKeyField.map(Column::type).orElse(null),
-        resultKeyField.map(Column::name).orElse(null),
-        resultKeyField.map(Column::type).orElse(null)));
+        sinkKeyCol.map(Column::name).orElse(null),
+        sinkKeyCol.map(Column::type).orElse(null),
+        resultKeyCol.map(Column::name).orElse(null),
+        resultKeyCol.map(Column::type).orElse(null)));
   }
 
   // Package private because of test

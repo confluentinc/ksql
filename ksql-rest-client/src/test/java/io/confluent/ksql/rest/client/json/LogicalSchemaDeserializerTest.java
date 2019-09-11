@@ -44,8 +44,8 @@ public class LogicalSchemaDeserializerTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .keyField("ROWKEY", SqlTypes.STRING)
-        .valueField("v0", SqlTypes.INTEGER)
+        .keyColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("v0", SqlTypes.INTEGER)
         .build()));
   }
 

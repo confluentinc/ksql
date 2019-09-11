@@ -107,8 +107,8 @@ public class KsqlStructTest {
   public void shouldVisitFieldsInOrder() {
     // Given:
     final KsqlStruct struct = KsqlStruct.builder(SCHEMA)
-        .set(FieldName.of("f0"), Optional.of(10L))
-        .set(FieldName.of("s1", "v1"), Optional.of(true))
+        .set("f0", Optional.of(10L))
+        .set("v1", Optional.of(true))
         .build();
 
     // When:

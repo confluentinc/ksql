@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
@@ -34,7 +35,6 @@ import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
-import io.confluent.ksql.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;

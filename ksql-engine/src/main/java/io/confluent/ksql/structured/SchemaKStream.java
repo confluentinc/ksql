@@ -22,8 +22,9 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -36,12 +37,13 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
@@ -55,8 +57,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.streams.StreamsUtil;
-import io.confluent.ksql.structured.SelectValueMapper.SelectInfo;
-import io.confluent.ksql.util.ExpressionMetadata;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
@@ -363,21 +363,16 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
       final QueryContext.Stacker contextStacker,
-      final ProcessingLogContext processingLogContext) {
-    final Selection selection = new Selection(
-        selectExpressions,
-        processingLogContext.getLoggerFactory().getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext()))
-    );
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamMapValues(
+      final KsqlQueryBuilder ksqlQueryBuilder) {
+    final KeySelection selection = new KeySelection(selectExpressions);
+    final StreamMapValues<KStream<K, GenericRow>> step = ExecutionStepFactory.streamMapValues(
         contextStacker,
         sourceStep,
         selectExpressions,
-        selection.getProjectedSchema()
+        ksqlQueryBuilder
     );
     return new SchemaKStream<>(
-        kstream.mapValues(selection.getSelectValueMapper()),
+        StreamMapValuesBuilder.build(kstream, step, ksqlQueryBuilder),
         step,
         keyFormat,
         keySerde,
@@ -389,25 +384,12 @@ public class SchemaKStream<K> {
     );
   }
 
-  class Selection {
+  class KeySelection {
 
-    private final LogicalSchema schema;
     private final KeyField key;
-    private final SelectValueMapper selectValueMapper;
 
-    Selection(
-        final List<SelectExpression> selectExpressions,
-        final ProcessingLogger processingLogger
-    ) {
+    KeySelection(final List<SelectExpression> selectExpressions) {
       this.key = findKeyField(selectExpressions);
-      this.selectValueMapper = SelectValueMapperFactory.create(
-          selectExpressions,
-          SchemaKStream.this.getSchema(),
-          ksqlConfig,
-          functionRegistry,
-          processingLogger
-      );
-      this.schema = buildSchema(selectValueMapper);
     }
 
     private KeyField findKeyField(final List<SelectExpression> selectExpressions) {
@@ -486,34 +468,8 @@ public class SchemaKStream<K> {
           .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWKEY_NAME));
     }
 
-    private LogicalSchema buildSchema(
-        final SelectValueMapper mapper
-    ) {
-      final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-
-      final List<Column> keyCols = SchemaKStream.this.getSchema().isAliased()
-          ? SchemaKStream.this.getSchema().withoutAlias().key()
-          : SchemaKStream.this.getSchema().key();
-
-      schemaBuilder.keyColumns(keyCols);
-
-      for (final SelectInfo select : mapper.getSelects()) {
-        schemaBuilder.valueColumn(select.getFieldName(), select.getExpressionType());
-      }
-
-      return schemaBuilder.build();
-    }
-
-    LogicalSchema getProjectedSchema() {
-      return schema;
-    }
-
     public KeyField getKey() {
       return key;
-    }
-
-    SelectValueMapper getSelectValueMapper() {
-      return selectValueMapper;
     }
   }
 

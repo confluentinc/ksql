@@ -121,7 +121,7 @@ public class ProjectNodeTest {
             SelectExpression.of("field1", TRUE_EXPRESSION),
             SelectExpression.of("field2", FALSE_EXPRESSION))),
         eq(stacker),
-        same(processingLogContext)
+        same(ksqlStreamBuilder)
     );
   }
 

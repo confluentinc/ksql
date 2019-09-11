@@ -15,6 +15,7 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -154,11 +155,19 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStream<K, GenericRow>> source,
       final List<SelectExpression> selectExpressions,
-      final LogicalSchema resultSchema
+      final KsqlQueryBuilder queryBuilder
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+    final Selection selection = Selection.of(
+        queryContext,
+        source.getProperties().getSchema(),
+        selectExpressions,
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry(),
+        queryBuilder.getProcessingLogContext()
+    );
     return new StreamMapValues<>(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new DefaultExecutionStepProperties(selection.getSchema(), queryContext),
         source,
         selectExpressions
     );
@@ -256,12 +265,20 @@ public final class ExecutionStepFactory {
   public static <K> TableMapValues<KTable<K, GenericRow>> tableMapValues(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTable<K, GenericRow>> source,
-      final LogicalSchema resultSchema,
-      final List<SelectExpression> selectExpressions
+      final List<SelectExpression> selectExpressions,
+      final KsqlQueryBuilder queryBuilder
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+    final Selection selection = Selection.of(
+        queryContext,
+        source.getProperties().getSchema(),
+        selectExpressions,
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry(),
+        queryBuilder.getProcessingLogContext()
+    );
     return new TableMapValues<>(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new DefaultExecutionStepProperties(selection.getSchema(), queryContext),
         source,
         selectExpressions
     );

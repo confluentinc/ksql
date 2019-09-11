@@ -37,6 +37,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -149,6 +150,8 @@ public class SchemaKTableTest {
   private KeySerde<Struct> keySerde;
   @Mock
   private KeySerde<Struct> reboundKeySerde;
+  @Mock
+  private KsqlQueryBuilder queryBuilder;
 
   @Before
   public void init() {
@@ -176,6 +179,9 @@ public class SchemaKTableTest {
     joinSchema = getJoinSchema(ksqlTable.getSchema(), secondKsqlTable.getSchema());
 
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
+    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
   }
 
   private ExecutionStep buildSourceStep(final LogicalSchema schema) {
@@ -267,7 +273,7 @@ public class SchemaKTableTest {
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
         childContextStacker,
-        processingLogContext
+        queryBuilder
     );
 
     // Then:
@@ -292,7 +298,7 @@ public class SchemaKTableTest {
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
         childContextStacker,
-        processingLogContext
+        queryBuilder
     );
 
     // Then:
@@ -302,8 +308,8 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableMapValues(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                projectedSchemaKStream.getSchema(),
-                projectNode.getProjectSelectExpressions()
+                projectNode.getProjectSelectExpressions(),
+                queryBuilder
             )
         )
     );
@@ -321,7 +327,7 @@ public class SchemaKTableTest {
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getProjectSelectExpressions(),
         childContextStacker,
-        processingLogContext
+        queryBuilder
     );
 
     // Then:
@@ -651,7 +657,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
         is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
@@ -665,7 +671,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -680,7 +686,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -695,7 +701,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
@@ -711,7 +717,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -726,7 +732,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -740,7 +746,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKStream result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));

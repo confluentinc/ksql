@@ -17,6 +17,7 @@ package io.confluent.ksql.structured;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -24,7 +25,9 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.TableMapValuesBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -200,21 +203,18 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable<K> select(
       final List<SelectExpression> selectExpressions,
       final QueryContext.Stacker contextStacker,
-      final ProcessingLogContext processingLogContext) {
-    final Selection selection = new Selection(
-        selectExpressions,
-        processingLogContext.getLoggerFactory().getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.PROJECT.name()).getQueryContext()))
-    );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableMapValues(
-        contextStacker,
-        sourceTableStep,
-        selection.getProjectedSchema(),
+      final KsqlQueryBuilder ksqlQueryBuilder) {
+    final KeySelection selection = new KeySelection(
         selectExpressions
     );
+    final TableMapValues<KTable<K, GenericRow>> step = ExecutionStepFactory.tableMapValues(
+        contextStacker,
+        sourceTableStep,
+        selectExpressions,
+        ksqlQueryBuilder
+    );
     return new SchemaKTable<>(
-        ktable.mapValues(selection.getSelectValueMapper()),
+        TableMapValuesBuilder.build(ktable, step, ksqlQueryBuilder),
         step,
         keyFormat,
         keySerde,

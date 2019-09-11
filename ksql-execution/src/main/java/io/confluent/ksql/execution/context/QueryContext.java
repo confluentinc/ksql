@@ -60,6 +60,10 @@ public final class QueryContext {
       this.queryContext = Objects.requireNonNull(new QueryContext(queryId));
     }
 
+    public static Stacker of(final QueryContext queryContext) {
+      return new Stacker(queryContext);
+    }
+
     private Stacker(final QueryContext queryContext) {
       this.queryContext = Objects.requireNonNull(queryContext);
     }

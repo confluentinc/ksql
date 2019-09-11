@@ -37,6 +37,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -189,6 +190,8 @@ public class SchemaKStreamTest {
   private ExecutionStepProperties sourceProperties;
   @Mock
   private ExecutionStep sourceStep;
+  @Mock
+  private KsqlQueryBuilder queryBuilder;
 
   @Before
   public void init() {
@@ -245,6 +248,10 @@ public class SchemaKStreamTest {
 
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
 
+    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+    when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
+
     whenCreateJoined();
   }
 
@@ -272,7 +279,7 @@ public class SchemaKStreamTest {
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
         childContextStacker,
-        processingLogContext);
+        queryBuilder);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(
@@ -296,7 +303,7 @@ public class SchemaKStreamTest {
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
         childContextStacker,
-        processingLogContext);
+        queryBuilder);
 
     // Then:
     assertThat(
@@ -306,7 +313,7 @@ public class SchemaKStreamTest {
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
                 selectExpressions,
-                projectedSchemaKStream.getSchema()
+                queryBuilder
             )
         )
     );
@@ -322,7 +329,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select( selectExpressions, childContextStacker, processingLogContext);
+        .select( selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -339,7 +346,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -356,7 +363,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -372,7 +379,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
@@ -389,7 +396,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -405,7 +412,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -420,7 +427,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, processingLogContext);
+        .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -437,7 +444,7 @@ public class SchemaKStreamTest {
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getProjectSelectExpressions(),
         childContextStacker,
-        processingLogContext);
+        queryBuilder);
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(

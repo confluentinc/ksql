@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -51,7 +52,6 @@ import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
-import io.confluent.ksql.util.ExpressionTypeManager;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -198,7 +198,7 @@ public class AggregateNode extends PlanNode {
         sourceSchemaKStream.select(
             internalSchema.getAggArgExpansionList(),
             contextStacker.push(PREPARE_OP_NAME),
-            builder.getProcessingLogContext());
+            builder);
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
@@ -273,7 +273,7 @@ public class AggregateNode extends PlanNode {
     return aggregated.select(
         internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
         contextStacker.push(PROJECT_OP_NAME),
-        builder.getProcessingLogContext());
+        builder);
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {

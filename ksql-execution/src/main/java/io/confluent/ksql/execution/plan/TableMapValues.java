@@ -46,6 +46,14 @@ public class TableMapValues<T> implements ExecutionStep<T> {
     return Collections.singletonList(source);
   }
 
+  public List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
+  }
+
+  public ExecutionStep<T> getSource() {
+    return source;
+  }
+
   @Override
   public T build(final KsqlQueryBuilder builder) {
     throw new UnsupportedOperationException();

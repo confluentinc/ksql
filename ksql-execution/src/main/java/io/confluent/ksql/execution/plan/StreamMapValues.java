@@ -51,6 +51,14 @@ public class StreamMapValues<S> implements ExecutionStep<S> {
     throw new UnsupportedOperationException();
   }
 
+  public List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
+  }
+
+  public ExecutionStep<S> getSource() {
+    return source;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

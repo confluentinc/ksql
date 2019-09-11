@@ -98,7 +98,7 @@ public class RestTestExecutor implements Closeable {
       // Test case could be trying to create a topic deleted by previous test.
       // Need to wait for previous topic to be deleted async, until then requests will fail
       RetryUtil.retryWithBackoff(
-          5,
+          10,
           10,
           (int) TimeUnit.SECONDS.toMillis(10),
           createJob

@@ -17,6 +17,7 @@ package io.confluent.ksql.types;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.mockito.Mockito.inOrder;
 
 import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.Field;
@@ -25,10 +26,16 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class KsqlStructTest {
 
   private static final SqlStruct SCHEMA = SqlTypes.struct()
@@ -38,6 +45,9 @@ public class KsqlStructTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private BiConsumer<? super Field, ? super Optional<?>> consumer;
 
   @Test
   public void shouldHandleExplicitNulls() {
@@ -93,5 +103,28 @@ public class KsqlStructTest {
 
     // Then:
     assertThat(struct.values(), contains(Optional.of(10L), Optional.of(true)));
+  }
+
+  @Test
+  public void shouldVisitFieldsInOrder() {
+    // Given:
+    final KsqlStruct struct = KsqlStruct.builder(SCHEMA)
+        .set(FieldName.of("f0"), Optional.of(10L))
+        .set(FieldName.of("s1", "v1"), Optional.of(true))
+        .build();
+
+    // When:
+    struct.forEach(consumer);
+
+    // Then:
+    final InOrder inOrder = inOrder(consumer);
+    inOrder.verify(consumer).accept(
+        struct.schema().fields().get(0),
+        struct.values().get(0)
+    );
+    inOrder.verify(consumer).accept(
+        struct.schema().fields().get(1),
+        struct.values().get(1)
+    );
   }
 }

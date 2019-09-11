@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
 /**
  * Instance of {@link io.confluent.ksql.schema.ksql.types.SqlStruct}.
@@ -53,6 +54,14 @@ public final class KsqlStruct {
 
   public List<Optional<?>> values() {
     return values;
+  }
+
+  public void forEach(final BiConsumer<? super Field, ? super Optional<?>> consumer) {
+    for (int idx = 0; idx < values.size(); idx++) {
+      final Field field = schema.fields().get(idx);
+      final Optional<?> value = values.get(idx);
+      consumer.accept(field, value);
+    }
   }
 
   @Override

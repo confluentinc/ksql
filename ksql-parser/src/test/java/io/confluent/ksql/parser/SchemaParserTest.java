@@ -21,20 +21,35 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class SchemaParserTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private TypeRegistry typeRegistry;
+  private SchemaParser parser;
+
+  @Before
+  public void setUp() {
+    parser = new SchemaParser(typeRegistry);
+  }
 
   @Test
   public void shouldParseValidSchema() {
@@ -42,7 +57,7 @@ public class SchemaParserTest {
     final String schema = "foo INTEGER, bar MAP<VARCHAR, VARCHAR>";
 
     // When:
-    final TableElements elements = SchemaParser.parse(schema);
+    final TableElements elements = parser.parse(schema);
 
     // Then:
     assertThat(elements, contains(
@@ -57,7 +72,7 @@ public class SchemaParserTest {
     final String schema = "ROWKEY STRING KEY, bar INT";
 
     // When:
-    final TableElements elements = SchemaParser.parse(schema);
+    final TableElements elements = parser.parse(schema);
 
     // Then:
     assertThat(elements, contains(
@@ -72,7 +87,7 @@ public class SchemaParserTest {
     final String schema = "`END` VARCHAR";
 
     // When:
-    final TableElements elements = SchemaParser.parse(schema);
+    final TableElements elements = parser.parse(schema);
 
     // Then:
     assertThat(elements, hasItem(
@@ -86,7 +101,7 @@ public class SchemaParserTest {
     final String schema = "`End` VARCHAR";
 
     // When:
-    final TableElements elements = SchemaParser.parse(schema);
+    final TableElements elements = parser.parse(schema);
 
     // Then:
     assertThat(elements, hasItem(
@@ -100,7 +115,7 @@ public class SchemaParserTest {
     final String schema = " \t\n\r";
 
     // When:
-    final TableElements elements = SchemaParser.parse(schema);
+    final TableElements elements = parser.parse(schema);
 
     // Then:
     assertThat(Iterables.isEmpty(elements), is(true));
@@ -116,7 +131,7 @@ public class SchemaParserTest {
     expectedException.expectMessage("Error parsing schema \"foo-bar INTEGER\" at 1:4: extraneous input '-' ");
 
     // When:
-    SchemaParser.parse(schema);
+    parser.parse(schema);
   }
 
   @Test
@@ -129,6 +144,6 @@ public class SchemaParserTest {
     expectedException.expectMessage("Error parsing schema \"CREATE INTEGER\" at 1:1: extraneous input 'CREATE' ");
 
     // When:
-    SchemaParser.parse(schema);
+    parser.parse(schema);
   }
 }

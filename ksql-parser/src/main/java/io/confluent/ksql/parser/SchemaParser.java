@@ -17,8 +17,8 @@ package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.schema.ksql.TypeContextUtil.getType;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
+import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
@@ -35,14 +35,17 @@ import org.antlr.v4.runtime.Recognizer;
 
 public final class SchemaParser {
 
-  private SchemaParser() { }
+  private final TypeRegistry typeRegistry;
 
-  @VisibleForTesting
-  static TableElements parse(final String schema) {
-    return parse(schema, TypeRegistry.EMPTY);
+  public SchemaParser(final TypeRegistry typeRegistry) {
+    this.typeRegistry = requireNonNull(typeRegistry, "typeRegistry");
   }
 
   public static TableElements parse(final String schema, final TypeRegistry typeRegistry) {
+    return new SchemaParser(typeRegistry).parse(schema);
+  }
+
+  public TableElements parse(final String schema) {
     if (schema.trim().isEmpty()) {
       return TableElements.of();
     }

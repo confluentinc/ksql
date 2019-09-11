@@ -163,6 +163,7 @@ public class CliTest {
   private Supplier<String> lineSupplier;
   private Cli localCli;
   private String streamName;
+  private String tableName;
 
   @BeforeClass
   public static void classSetUp() throws Exception {
@@ -184,6 +185,7 @@ public class CliTest {
   @Before
   public void setUp() {
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
+    tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     terminal = new TestTerminal(lineSupplier);
     rowCaptor = new TestRowCaptor();
     console = new Console(CLI_OUTPUT_FORMAT, terminal, rowCaptor);
@@ -267,7 +269,7 @@ public class CliTest {
     assertRunCommand(
         queryString,
         anyOf(
-            isRow(containsString("Stream created and running")),
+            isRow(containsString("Stream " + streamName.toUpperCase() + " created and running")),
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
 
@@ -315,7 +317,19 @@ public class CliTest {
   }
 
   private static void dropStream(final String name) {
-    final String dropStatement = String.format("drop stream %s;", name);
+    dropStreamOrTable(true, name);
+  }
+
+  private static void dropTable(final String name) {
+    dropStreamOrTable(false, name);
+  }
+
+  private static void dropStreamOrTable(final boolean stream, final String name) {
+
+    final String streamOrTable = stream ? "stream" : "table";
+
+    final String dropStatement =
+        String.format("drop " + streamOrTable + " %s;", name);
 
     final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
     if (response.isSuccessful()) {
@@ -326,7 +340,7 @@ public class CliTest {
         .matcher(response.getErrorMessage().getMessage());
 
     if (!matcher.matches()) {
-      throw new RuntimeException("Failed to drop stream: " + response.getErrorMessage());
+      throw new RuntimeException("Failed to drop " + streamOrTable + ": " + response.getErrorMessage());
     }
 
     Arrays.stream(matcher.group(1).split("/w*,/w*"))
@@ -653,6 +667,22 @@ public class CliTest {
     testCreateStreamAsSelect(queryString, resultSchema, expectedResults);
   }
 
+  @Test
+  public void testCreateTable() {
+    final String queryString = "CREATE TABLE " + tableName + " AS " +
+        " SELECT ITEMID, COUNT(*) FROM " + orderDataProvider.kstreamName() +
+        " GROUP BY ITEMID";
+
+    assertRunCommand(
+        queryString,
+        anyOf(
+            isRow(containsString("Table " + tableName.toUpperCase() + " created and running")),
+            isRow(is("Parsing statement")),
+            isRow(is("Executing statement"))));
+
+    dropTable(tableName);
+  }
+
   // ===================================================================
   // Below Tests are only used for coverage, not for results validation.
   // ===================================================================
@@ -857,7 +887,8 @@ public class CliTest {
     localCli.runInteractively();
 
     // Then:
-    assertThat(terminal.getOutputString(), containsString("Stream created and running"));
+    assertThat(terminal.getOutputString(),
+        containsString("Stream SHOULDRUNSCRIPT created and running"));
   }
 
   @Test

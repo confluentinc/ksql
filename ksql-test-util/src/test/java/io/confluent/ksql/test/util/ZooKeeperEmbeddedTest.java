@@ -70,7 +70,7 @@ public class ZooKeeperEmbeddedTest {
 
     try {
       final String connectString = server.connectString();
-      zooKeeper = new ZooKeeper(connectString, 2000, watcher);
+      zooKeeper = new ZooKeeper(connectString, 30_000, watcher);
       final boolean success = connectionLatch.await(5, TimeUnit.SECONDS);
       assertThat("Can not connect to " + name + " on " + connectString, success);
 

@@ -27,8 +27,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
@@ -145,12 +143,8 @@ public class DataSourceNode extends PlanNode {
     return schemaKStream.toTable(
         dataSource.getKsqlTopic().getKeyFormat(),
         dataSource.getKsqlTopic().getValueFormat(),
-        builder.buildValueSerde(
-            dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
-            PhysicalSchema.from(getSchema(), SerdeOption.none()),
-            reduceContextStacker.getQueryContext()
-        ),
-        reduceContextStacker);
+        reduceContextStacker,
+        builder);
   }
 
   interface SchemaKStreamFactory {

@@ -279,7 +279,7 @@ type
     : type ARRAY
     | ARRAY '<' type '>'
     | MAP '<' type ',' type '>'
-    | STRUCT '<' identifier type (',' identifier type)* '>'
+    | STRUCT '<' (identifier type (',' identifier type)*)? '>'
     | DECIMAL '(' number ',' number ')'
     | baseType ('(' typeParameter (',' typeParameter)* ')')?
     ;

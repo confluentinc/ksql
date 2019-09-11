@@ -27,7 +27,7 @@ import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.TypeContextUtil;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import io.confluent.ksql.util.DecimalUtil;
@@ -82,6 +82,7 @@ public class UdfLoader {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private final Optional<Metrics> metrics;
   private final boolean loadCustomerUdfs;
+  private final SqlTypeParser typeParser;
 
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -103,6 +104,7 @@ public class UdfLoader {
     this.compiler = Objects.requireNonNull(compiler, "compiler can't be null");
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
+    this.typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
   }
 
   public void load() {
@@ -125,7 +127,7 @@ public class UdfLoader {
   }
 
   // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
-  public void loadUdfFromClass(final Class<?> ... udfClass) {
+  void loadUdfFromClass(final Class<?> ... udfClass) {
     for (final Class<?> theClass: udfClass) {
       //classes must be annotated with @UdfDescription
       final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
@@ -318,7 +320,7 @@ public class UdfLoader {
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
         return SchemaConverters.sqlToConnectConverter()
             .toConnectSchema(
-                TypeContextUtil.getType(annotation.get().schema(), TypeRegistry.EMPTY).getSqlType(),
+                typeParser.parse(annotation.get().schema()).getSqlType(),
                 name,
                 doc);
       }
@@ -330,7 +332,6 @@ public class UdfLoader {
 
     functionRegistry.addFunction(KsqlFunction.create(
         handleUdfReturnSchema(theClass,
-                              method,
                               javaReturnSchema,
                               udfAnnotation,
                               classLevelAnnotation),
@@ -376,17 +377,16 @@ public class UdfLoader {
     }
   }
 
-  private Function<List<Schema>,Schema> handleUdfReturnSchema(final Class theClass,
-                                                              final Method method,
-                                                              final Schema javaReturnSchema,
-                                                              final Udf udfAnnotation,
-                                                              final UdfDescription descAnnotation) {
-
+  private static Function<List<Schema>, Schema> handleUdfReturnSchema(
+      final Class theClass,
+      final Schema javaReturnSchema,
+      final Udf udfAnnotation,
+      final UdfDescription descAnnotation
+  ) {
     final String schemaProviderName = udfAnnotation.schemaProvider();
 
     if (!schemaProviderName.equals("")) {
-      return handleUdfSchemaProviderAnnotation(schemaProviderName, theClass, method,
-          descAnnotation);
+      return handleUdfSchemaProviderAnnotation(schemaProviderName, theClass, descAnnotation);
     } else if (DecimalUtil.isDecimal(javaReturnSchema)) {
       throw new KsqlException(String.format("Cannot load UDF %s. BigDecimal return type "
           + "is not supported without a schema provider method.", descAnnotation.name()));
@@ -395,12 +395,11 @@ public class UdfLoader {
     return ignored -> javaReturnSchema;
   }
 
-  private Function<List<Schema>,Schema> handleUdfSchemaProviderAnnotation(
+  private static Function<List<Schema>, Schema> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,
       final Class theClass,
-      final Method method,
-      final UdfDescription annotation) {
-
+      final UdfDescription annotation
+  ) {
     // throws exception if cannot find method
     final Method m = findSchemaProvider(theClass, schemaProviderName);
     final Object instance = instantiateUdfClass(theClass, annotation);
@@ -414,8 +413,10 @@ public class UdfLoader {
     };
   }
 
-  private Method findSchemaProvider(final Class<?> theClass,
-                                    final String schemaProviderName) {
+  private static Method findSchemaProvider(
+      final Class<?> theClass,
+      final String schemaProviderName
+  ) {
     try {
       final Method m = theClass.getDeclaredMethod(schemaProviderName, List.class);
       if (!m.isAnnotationPresent(UdfSchemaProvider.class)) {
@@ -431,10 +432,12 @@ public class UdfLoader {
     }
   }
 
-  private SqlType invokeSchemaProviderMethod(final Object instance,
-                                            final Method m,
-                                            final List<SqlType> args,
-                                            final UdfDescription annotation) {
+  private static SqlType invokeSchemaProviderMethod(
+      final Object instance,
+      final Method m,
+      final List<SqlType> args,
+      final UdfDescription annotation
+  ) {
     try {
       return (SqlType) m.invoke(instance, args);
     } catch (IllegalAccessException
@@ -493,14 +496,14 @@ public class UdfLoader {
     );
   }
 
-  private static Schema getReturnType(final Method method, final Udf udfAnnotation) {
+  private Schema getReturnType(final Method method, final Udf udfAnnotation) {
     try {
       final Schema returnType = udfAnnotation.schema().isEmpty()
           ? UdfUtil.getSchemaFromType(method.getGenericReturnType())
           : SchemaConverters
               .sqlToConnectConverter()
               .toConnectSchema(
-                  TypeContextUtil.getType(udfAnnotation.schema(), TypeRegistry.EMPTY).getSqlType());
+                  typeParser.parse(udfAnnotation.schema()).getSqlType());
 
       return SchemaUtil.ensureOptional(returnType);
     } catch (final KsqlException e) {

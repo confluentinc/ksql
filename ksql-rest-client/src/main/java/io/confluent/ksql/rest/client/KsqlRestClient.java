@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.rest.client.ssl.DefaultSslClientConfigurer;
 import io.confluent.ksql.rest.client.ssl.SslClientConfigurer;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -82,6 +83,10 @@ public class KsqlRestClient implements Closeable {
       Errors.ERROR_CODE_FORBIDDEN,
       new AuthenticationException("You are forbidden from using this cluster.")
   );
+
+  static {
+    JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule());
+  }
 
   private final Client client;
 

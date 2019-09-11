@@ -301,7 +301,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("TEST1.COL0", SqlTypes.array(inner))
+        .valueColumn("TEST1.COL0", SqlTypes.array(inner))
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     final Expression arrayRef = new SubscriptExpression(COL0, new IntegerLiteral(1));
@@ -322,7 +322,7 @@ public class ExpressionTypeManagerTest {
         .field("IN0", SqlTypes.array(SqlTypes.INTEGER))
         .build();
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueField("TEST1.COL0", inner)
+        .valueColumn("TEST1.COL0", inner)
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     final Expression structRef = new FunctionCall(
@@ -376,7 +376,7 @@ public class ExpressionTypeManagerTest {
     final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
 
     // Then:
-    final SqlType sqlType = SCHEMA.findField(ADDRESS.toString()).get().type();
+    final SqlType sqlType = SCHEMA.findColumn(ADDRESS.toString()).get().type();
     assertThat(result, is(sqlType));
   }
 

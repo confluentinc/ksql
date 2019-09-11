@@ -25,16 +25,16 @@ public final class TestExpressions {
       .build();
 
   public final static LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("TEST1.COL0", SqlTypes.BIGINT)
-      .valueField("TEST1.COL1", SqlTypes.STRING)
-      .valueField("TEST1.COL2", SqlTypes.STRING)
-      .valueField("TEST1.COL3", SqlTypes.DOUBLE)
-      .valueField("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE))
-      .valueField("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
-      .valueField("TEST1.COL6", ADDRESS_SCHEMA)
-      .valueField("TEST1.COL7", SqlTypes.INTEGER)
-      .valueField("TEST1.COL8", SqlTypes.decimal(2, 1))
-      .valueField("TEST1.COL9", SqlTypes.decimal(2, 1))
+      .valueColumn("TEST1.COL0", SqlTypes.BIGINT)
+      .valueColumn("TEST1.COL1", SqlTypes.STRING)
+      .valueColumn("TEST1.COL2", SqlTypes.STRING)
+      .valueColumn("TEST1.COL3", SqlTypes.DOUBLE)
+      .valueColumn("TEST1.COL4", SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn("TEST1.COL5", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn("TEST1.COL6", ADDRESS_SCHEMA)
+      .valueColumn("TEST1.COL7", SqlTypes.INTEGER)
+      .valueColumn("TEST1.COL8", SqlTypes.decimal(2, 1))
+      .valueColumn("TEST1.COL9", SqlTypes.decimal(2, 1))
       .build();
 
   private static final String TEST1 = "TEST1";

@@ -59,10 +59,10 @@ import org.mockito.junit.MockitoRule;
 
 public class StreamMapValuesBuilderTest {
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueField("foo", SqlTypes.STRING)
-      .valueField("bar", SqlTypes.BIGINT)
+      .valueColumn("foo", SqlTypes.STRING)
+      .valueColumn("bar", SqlTypes.BIGINT)
       .build()
-      .withMetaAndKeyFieldsInValue()
+      .withMetaAndKeyColsInValue()
       .withAlias("alias");
 
   private static final Expression EXPRESSION1 = new StringLiteral("baz");

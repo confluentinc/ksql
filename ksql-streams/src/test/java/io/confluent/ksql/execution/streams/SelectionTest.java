@@ -34,10 +34,10 @@ import org.mockito.junit.MockitoRule;
 
 public class SelectionTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueField("GIRAFFE", SqlTypes.STRING)
-      .valueField("MANATEE", SqlTypes.INTEGER)
-      .valueField("RACCOON", SqlTypes.BIGINT)
-      .build().withAlias("TEST").withMetaAndKeyFieldsInValue();
+      .valueColumn("GIRAFFE", SqlTypes.STRING)
+      .valueColumn("MANATEE", SqlTypes.INTEGER)
+      .valueColumn("RACCOON", SqlTypes.BIGINT)
+      .build().withAlias("TEST").withMetaAndKeyColsInValue();
 
   private static final Expression EXPRESSION1 = new DereferenceExpression(
       new QualifiedNameReference(QualifiedName.of("TEST")),
@@ -107,9 +107,9 @@ public class SelectionTest {
 
     // Then:
     final LogicalSchema expected = new LogicalSchema.Builder()
-        .keyField("ROWKEY", SqlTypes.STRING)
-        .valueField("FOO", SqlTypes.STRING)
-        .valueField("BAR", SqlTypes.BIGINT)
+        .keyColumn("ROWKEY", SqlTypes.STRING)
+        .valueColumn("FOO", SqlTypes.STRING)
+        .valueColumn("BAR", SqlTypes.BIGINT)
         .build();
     assertThat(resultSchema, equalTo(expected));
   }

@@ -125,8 +125,13 @@ public class RestTestExecutor implements Closeable {
           topic.getValueSerializer(serviceContext.getSchemaRegistryClient())
       )) {
 
-        records.forEach(record ->
-            producer.send(new ProducerRecord<>(topic.getName(), record.key(), record.value()))
+        records.forEach(record -> producer.send(new ProducerRecord<>(
+                topic.getName(),
+                null,
+                record.timestamp().orElse(0L),
+                record.key(),
+                record.value()
+            ))
         );
       } catch (final Exception e) {
         throw new RuntimeException("Failed to send record to " + topic.getName(), e);

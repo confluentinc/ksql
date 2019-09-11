@@ -180,6 +180,7 @@ public class TestExecutor implements Closeable {
 
     expectedByTopic.forEach((kafkaTopic, expectedRecords) ->
         validateTopicData(
+            kafkaTopic,
             expectedRecords,
             actualByTopic.getOrDefault(kafkaTopic, ImmutableList.of()),
             ranWithInsertStatements
@@ -187,6 +188,7 @@ public class TestExecutor implements Closeable {
   }
 
   private static void validateTopicData(
+      final String topicName,
       final List<Record> expected,
       final List<FakeKafkaRecord> actual,
       final boolean ranWithInsertStatements
@@ -200,7 +202,13 @@ public class TestExecutor implements Closeable {
       final Record expectedRecord = expected.get(i);
       final ProducerRecord<?, ?> actualProducerRecord = actual.get(i).getProducerRecord();
 
-      validateCreatedMessage(expectedRecord, actualProducerRecord, ranWithInsertStatements);
+      validateCreatedMessage(
+          topicName,
+          expectedRecord,
+          actualProducerRecord,
+          ranWithInsertStatements,
+          i
+      );
     }
   }
 
@@ -416,9 +424,11 @@ public class TestExecutor implements Closeable {
   }
 
   private static void validateCreatedMessage(
+      final String topicName,
       final Record expectedRecord,
       final ProducerRecord<?, ?> actualProducerRecord,
-      final boolean ranWithInsertStatements
+      final boolean ranWithInsertStatements,
+      final int messageIndex
   ) {
     final Object actualKey = actualProducerRecord.key();
     final Object actualValue = actualProducerRecord.value();
@@ -429,7 +439,8 @@ public class TestExecutor implements Closeable {
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
 
     final AssertionError error = new AssertionError(
-        "Expected <" + expectedKey + ", " + expectedValue + "> "
+        "Topic '" + topicName + "', message " + messageIndex
+            + ": Expected <" + expectedKey + ", " + expectedValue + "> "
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 

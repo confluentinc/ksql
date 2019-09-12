@@ -25,15 +25,18 @@ import java.util.Objects;
 @JsonSubTypes({})
 public class Command {
   private final String statement;
+  private final boolean useOffsetAsQueryID;
   private final Map<String, Object> overwriteProperties;
   private final Map<String, String> originalProperties;
   private final boolean preVersion5;
 
   @JsonCreator
   public Command(@JsonProperty("statement") final String statement,
+                 @JsonProperty("useOffsetAsQueryID") final Boolean useOffsetAsQueryID,
                  @JsonProperty("streamsProperties") final Map<String, Object> overwriteProperties,
                  @JsonProperty("originalProperties") final Map<String, String> originalProperties) {
     this.statement = statement;
+    this.useOffsetAsQueryID = useOffsetAsQueryID == null ? false : useOffsetAsQueryID;
     this.overwriteProperties = Collections.unmodifiableMap(overwriteProperties);
     this.preVersion5 = originalProperties == null;
     this.originalProperties =
@@ -43,6 +46,11 @@ public class Command {
   @JsonProperty("statement")
   public String getStatement() {
     return statement;
+  }
+
+  @JsonProperty("useOffsetAsQueryID")
+  public boolean getUseOffsetAsQueryID() {
+    return useOffsetAsQueryID;
   }
 
   @JsonProperty("streamsProperties")
@@ -64,19 +72,21 @@ public class Command {
     return
         o instanceof Command
         && Objects.equals(statement, ((Command)o).statement)
+        && Objects.equals(useOffsetAsQueryID, ((Command)o).useOffsetAsQueryID)
         && Objects.equals(overwriteProperties, ((Command)o).overwriteProperties)
         && Objects.equals(originalProperties, ((Command)o).originalProperties);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(statement, overwriteProperties, originalProperties);
+    return Objects.hash(statement, useOffsetAsQueryID, overwriteProperties, originalProperties);
   }
 
   @Override
   public String toString() {
     return "Command{"
         + "statement='" + statement + '\''
+        + ",useOffsetAsQueryID=" + useOffsetAsQueryID
         + ", overwriteProperties=" + overwriteProperties
         + '}';
   }

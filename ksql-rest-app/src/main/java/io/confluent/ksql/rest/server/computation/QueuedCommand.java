@@ -23,17 +23,28 @@ public class QueuedCommand {
   private final CommandId commandId;
   private final Command command;
   private final Optional<CommandStatusFuture> status;
+  private final Long offset;
 
   public QueuedCommand(final CommandId commandId,
                        final Command command,
-                       final Optional<CommandStatusFuture> status) {
+                       final Optional<CommandStatusFuture> status,
+                       final Long offset) {
     this.commandId = Objects.requireNonNull(commandId);
     this.command = Objects.requireNonNull(command);
     this.status = Objects.requireNonNull(status);
+    this.offset = Objects.requireNonNull(offset);
   }
 
   QueuedCommand(final CommandId commandId, final Command command) {
-    this(commandId, command, Optional.empty());
+    this(commandId, command, Optional.empty(), -1L);
+  }
+
+  public QueuedCommand(
+      final CommandId commandId,
+      final Command command,
+      final Optional<CommandStatusFuture> status
+  ) {
+    this(commandId, command, status, -1L);
   }
 
   public CommandId getCommandId() {
@@ -48,6 +59,10 @@ public class QueuedCommand {
     return command;
   }
 
+  public Long getOffset() {
+    return offset;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -59,11 +74,12 @@ public class QueuedCommand {
     final QueuedCommand that = (QueuedCommand) o;
     return Objects.equals(commandId, that.commandId)
         && Objects.equals(command, that.command)
-        && Objects.equals(status, that.status);
+        && Objects.equals(status, that.status)
+        && Objects.equals(offset, that.offset);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(commandId, command, status);
+    return Objects.hash(commandId, command, status, offset);
   }
 }

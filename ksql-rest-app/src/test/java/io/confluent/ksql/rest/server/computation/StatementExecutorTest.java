@@ -188,6 +188,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         exception);
     final Command command = new Command(
         statementText,
+        true,
         emptyMap(),
         emptyMap());
     final CommandId commandId =  new CommandId(
@@ -232,6 +233,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command csasCommand = new Command(
         statementText,
+        true,
         emptyMap(),
         originalConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId csasCommandId =  new CommandId(
@@ -284,10 +286,11 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldCompleteFutureOnSuccess() {
     final Command command = new Command(
         "CREATE STREAM foo ("
-            + "biz bigint,"
-            + " baz varchar) "
-            + "WITH (kafka_topic = 'foo', "
-            + "value_format = 'json');",
+        + "biz bigint,"
+        + " baz varchar) "
+        + "WITH (kafka_topic = 'foo', "
+        + "value_format = 'json');",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
@@ -313,10 +316,11 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command command = new Command(
         "CREATE STREAM foo ("
-            + "biz bigint,"
-            + " baz varchar) "
-            + "WITH (kafka_topic = 'foo', "
-            + "value_format = 'json');",
+        + "biz bigint,"
+        + " baz varchar) "
+        + "WITH (kafka_topic = 'foo', "
+        + "value_format = 'json');",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId commandId =  new CommandId(CommandId.Type.STREAM,
@@ -380,6 +384,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     // Now drop should be successful
     final Command dropTableCommand2 = new Command(
         "drop table table1;",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropTableCommandId2 =
@@ -397,7 +402,9 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     // DROP should succeed since no query is using the stream.
     final Command dropStreamCommand3 = new Command(
-        "drop stream pageview;", emptyMap(),
+        "drop stream pageview;",
+        true,
+        emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropStreamCommandId3 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
@@ -486,7 +493,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, name, Action.CREATE),
-            new Command("CSAS", emptyMap(), emptyMap())
+            new Command("CSAS", true, emptyMap(), emptyMap())
         )
     );
 
@@ -516,7 +523,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command("DROP", emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS)
+            new Command("DROP", true, emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS)
         )
     );
 
@@ -549,7 +556,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command(drop, emptyMap(), emptyMap())
+            new Command(drop, true, emptyMap(), emptyMap())
         )
     );
 
@@ -622,6 +629,7 @@ public class StatementExecutorTest extends EasyMockSupport {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement,
+                true,
                 Collections.singletonMap("ksql.run.script.statements", queryStatement),
                 emptyMap())
         )
@@ -644,9 +652,8 @@ public class StatementExecutorTest extends EasyMockSupport {
         new QueuedCommand(
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
-                runScriptStatement,
-                Collections.singletonMap("ksql.run.script.statements", queryStatement),
-                emptyMap())
+                runScriptStatement, true,
+                    Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap())
         )
     );
 
@@ -661,9 +668,8 @@ public class StatementExecutorTest extends EasyMockSupport {
             + " pageid varchar, "
             + "userid varchar) "
             + "WITH (kafka_topic = 'pageview_topic_json', "
-            + "value_format = 'json');",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+            + "value_format = 'json');", true,
+            emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);
@@ -672,9 +678,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     final Command csasCommand = new Command(
         "CREATE STREAM user1pv AS "
             + "select * from pageview"
-            + " WHERE userid = 'user1';",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+            + " WHERE userid = 'user1';", true,
+            emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
     final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASGen",
@@ -687,6 +692,7 @@ public class StatementExecutorTest extends EasyMockSupport {
             + "FROM pageview "
             + "WINDOW TUMBLING ( SIZE 10 SECONDS) "
             + "GROUP BY pageid;",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
 
@@ -703,6 +709,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   private void tryDropThatViolatesReferentialIntegrity() {
     final Command dropStreamCommand1 = new Command(
         "drop stream pageview;",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropStreamCommandId1 =  new CommandId(CommandId.Type.STREAM,
@@ -742,6 +749,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command dropStreamCommand2 = new Command(
         "drop stream user1pv;",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropStreamCommandId2 =
@@ -778,6 +786,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command dropTableCommand1 = new Command(
         "drop table table1;",
+        true,
         emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId dropTableCommandId1 =
@@ -829,9 +838,8 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private void terminateQueries() {
     final Command terminateCommand1 = new Command(
-        "TERMINATE CSAS_USER1PV_0;",
-        emptyMap(),
-        ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+        "TERMINATE CSAS_USER1PV_0;", true,
+            emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId terminateCommandId1 =
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     handleStatement(
@@ -841,7 +849,8 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final Command terminateCommand2 = new Command(
         "TERMINATE CTAS_TABLE1_1;",
-        emptyMap(),
+        true,
+      emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId terminateCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
@@ -865,6 +874,6 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private static Command givenCommand(final String statementStr, final KsqlConfig ksqlConfig) {
     return new Command(
-        statementStr, emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+        statementStr, true, emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
   }
 }

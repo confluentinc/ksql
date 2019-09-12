@@ -100,10 +100,15 @@ public class CommandStore implements CommandQueue, Closeable {
   @Override
   public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
+
+    // new commands that generate queries will use the new query id generation method from now on
     final Command command = new Command(
         statement.getStatementText(),
+        true,
         statement.getOverrides(),
-        statement.getConfig().getAllConfigPropsWithSecretsObfuscated());
+        statement.getConfig().getAllConfigPropsWithSecretsObfuscated()
+    );
+
     final CommandStatusFuture statusFuture = commandStatusMap.compute(
         commandId,
         (k, v) -> {
@@ -147,7 +152,8 @@ public class CommandStore implements CommandQueue, Closeable {
                 new QueuedCommand(
                     c.key(),
                     c.value(),
-                    Optional.ofNullable(commandStatusMap.remove(c.key()))
+                    Optional.ofNullable(commandStatusMap.remove(c.key())),
+                    c.offset()
                 )
             );
           }

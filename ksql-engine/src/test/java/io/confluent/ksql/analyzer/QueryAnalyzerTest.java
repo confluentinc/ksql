@@ -329,14 +329,31 @@ public class QueryAnalyzerTest {
   }
 
   @Test
-  public void shouldFailWithIncorrectJoinCriteria() {
+  public void shouldFailWithIncorrectJoinCriteriaRight() {
     // Given:
-    final Query query = givenQuery("select * from test1 join test2 on test1.col1 = test2.coll EMIT CHANGES;");
+    final Query query = givenQuery(
+        "select * from test1 join test2 on test1.col1 = test2.coll EMIT CHANGES;");
 
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Line: 1, Col: 46 : Invalid join criteria (TEST1.COL1 = TEST2.COLL). "
-            + "Could not find a join criteria operand for TEST2."
+            + "Column TEST2.COLL does not exist."
+    );
+
+    // When:
+    queryAnalyzer.analyze(query, Optional.empty());
+  }
+
+  @Test
+  public void shouldFailWithIncorrectJoinCriteriaLeft() {
+    // Given:
+    final Query query = givenQuery(
+        "select * from test1 join test2 on test1.coll = test2.col1 EMIT CHANGES;");
+
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Line: 1, Col: 46 : Invalid join criteria (TEST1.COLL = TEST2.COL1). "
+            + "Column TEST1.COLL does not exist."
     );
 
     // When:

@@ -384,31 +384,43 @@ class Analyzer {
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      Optional<String> joinField = getJoinFieldFromExpr(
+      Optional<String> joinFieldName = getJoinFieldNameFromExpr(
           comparisonExpression.getLeft(),
           sourceAlias,
           sourceSchema
       );
 
-      if (!joinField.isPresent()) {
-        joinField = getJoinFieldFromExpr(
+      if (!joinFieldName.isPresent()) {
+        joinFieldName = getJoinFieldNameFromExpr(
             comparisonExpression.getRight(),
             sourceAlias,
             sourceSchema
         );
       }
 
-      return joinField
-          .orElseThrow(() -> new KsqlException(
-              String.format(
-                  "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
-                  comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                  comparisonExpression, sourceAlias
-              )
-          ));
+      if (!joinFieldName.isPresent()) {
+        // Should never happen
+        throw new IllegalStateException("Cannot find join field name");
+      } else {
+        final Optional<String> joinField =
+            getJoinFieldFromSource(joinFieldName.get(), sourceAlias, sourceSchema);
+
+        final String fieldName = joinFieldName.get();
+
+        return joinField
+            .orElseThrow(() -> new KsqlException(
+                String.format(
+                    "%s : Invalid join criteria %s. Column %s.%s does not exist.",
+                    comparisonExpression.getLocation().map(Objects::toString).orElse(""),
+                    comparisonExpression,
+                    sourceAlias,
+                    fieldName
+                    )
+            ));
+      }
     }
 
-    private Optional<String> getJoinFieldFromExpr(
+    private Optional<String> getJoinFieldNameFromExpr(
         final Expression expression,
         final String sourceAlias,
         final LogicalSchema sourceSchema
@@ -422,14 +434,14 @@ class Analyzer {
         }
 
         final String fieldName = dereferenceExpr.getFieldName();
-        return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
+        return Optional.of(fieldName);
       }
 
       if (expression instanceof QualifiedNameReference) {
         final QualifiedNameReference qualifiedNameRef = (QualifiedNameReference) expression;
 
         final String fieldName = qualifiedNameRef.getName().getSuffix();
-        return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
+        return Optional.of(fieldName);
       }
       return Optional.empty();
     }

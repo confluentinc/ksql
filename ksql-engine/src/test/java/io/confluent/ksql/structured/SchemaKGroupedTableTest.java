@@ -90,6 +90,7 @@ import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -140,7 +141,7 @@ public class SchemaKGroupedTableTest {
   private TableAggregationFunction tableFunc;
   @Mock
   private KsqlQueryBuilder queryBuilder;
-
+  private KTable table;
   private KTable kTable;
   private KsqlTable<?> ksqlTable;
 
@@ -170,6 +171,9 @@ public class SchemaKGroupedTableTest {
         .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
 
     when(aggregateSchema.value()).thenReturn(mock(List.class));
+
+    when(mockKGroupedTable.aggregate(any(), any(), any(), any())).thenReturn(table);
+    when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {

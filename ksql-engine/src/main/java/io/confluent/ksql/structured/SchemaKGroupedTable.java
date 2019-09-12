@@ -108,7 +108,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> aggregate(
-      final LogicalSchema aggregateSchema,
+      final LogicalSchema outputSchema,
       final Initializer initializer,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
@@ -122,7 +122,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
-    throwOnValueFieldCountMismatch(aggregateSchema, nonFuncColumnCount, aggValToFunctionMap);
+    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggValToFunctionMap);
 
     final List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
         .stream()
@@ -165,13 +165,17 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final ExecutionStep step = ExecutionStepFactory.tableAggregate(
         contextStacker,
         sourceTableStep,
-        aggregateSchema,
+        outputSchema,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         nonFuncColumnCount,
         aggregations
     );
+
+    final KTable<Struct, GenericRow> outputTable = aggKtable.mapValues(
+        aggregator.getResultMapper());
+
     return new SchemaKTable<>(
-        aggKtable,
+        outputTable,
         step,
         keyFormat,
         keySerde,

@@ -21,16 +21,18 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class TopkKudaf<T extends Comparable<? super T>>
-    extends BaseAggregateFunction<T, List<T>> {
+    extends BaseAggregateFunction<T, List<T>, List<T>> {
 
   private final int topKSize;
   private final Class<T> clazz;
-  private final Schema returnType;
+  private final Schema outputSchema;
   private final List<Schema> argumentTypes;
 
   @SuppressWarnings("unchecked")
@@ -38,7 +40,7 @@ public class TopkKudaf<T extends Comparable<? super T>>
       final String functionName,
       final int argIndexInValue,
       final int topKSize,
-      final Schema returnType,
+      final Schema outputSchema,
       final List<Schema> argumentTypes,
       final Class<T> clazz
   ) {
@@ -46,12 +48,13 @@ public class TopkKudaf<T extends Comparable<? super T>>
         functionName,
         argIndexInValue,
         ArrayList::new,
-        returnType,
+        outputSchema,
+        outputSchema,
         argumentTypes,
         "Calculates the TopK value for a column, per key."
     );
     this.topKSize = topKSize;
-    this.returnType = returnType;
+    this.outputSchema = Objects.requireNonNull(outputSchema);
     this.argumentTypes = argumentTypes;
     this.clazz = clazz;
   }
@@ -110,11 +113,17 @@ public class TopkKudaf<T extends Comparable<? super T>>
   }
 
   @Override
-  public KsqlAggregateFunction<T, List<T>> getInstance(
+  public Function<List<T>, List<T>> getResultMapper() {
+    return Function.identity();
+  }
+
+  @Override
+  public KsqlAggregateFunction<T, List<T>, List<T>> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     aggregateFunctionArguments.ensureArgCount(2, "TopK");
     final int udafIndex = aggregateFunctionArguments.udafIndex();
     final int topKSize = Integer.parseInt(aggregateFunctionArguments.arg(1));
-    return new TopkKudaf<>(functionName, udafIndex, topKSize, returnType, argumentTypes, clazz);
+    return new TopkKudaf<>(functionName, udafIndex, topKSize, outputSchema,
+                           argumentTypes, clazz);
   }
 }

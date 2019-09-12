@@ -42,7 +42,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List<String> currentVal = new ArrayList<>();
     for (final String value : valueArray) {
@@ -54,7 +54,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List<String> currentVal = new ArrayList<>();
     currentVal = topkKudaf.aggregate("why", currentVal);
@@ -64,7 +64,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<String> array1 = ImmutableList.of("paper", "Hello", "123");
     final List<String> array2 = ImmutableList.of("Zzz", "Hi", "456");
@@ -75,7 +75,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<String> array1 = ImmutableList.of("50", "45");
     final List<String> array2 = ImmutableList.of("60");
@@ -86,7 +86,7 @@ public class StringTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    final KsqlAggregateFunction<String, List<String>> topkKudaf =
+    final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<String> array1 = ImmutableList.of("50");
     final List<String> array2 = ImmutableList.of("60");

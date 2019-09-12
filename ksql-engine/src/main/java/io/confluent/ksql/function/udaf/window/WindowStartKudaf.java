@@ -41,7 +41,7 @@ public final class WindowStartKudaf {
   }
 
   @UdafFactory(description = "Extracts the window start time")
-  public static TableUdaf<Long, Long> createWindowStart() {
+  public static TableUdaf<Long, Long, Long> createWindowStart() {
     return PlaceholderTableUdaf.INSTANCE;
   }
 }

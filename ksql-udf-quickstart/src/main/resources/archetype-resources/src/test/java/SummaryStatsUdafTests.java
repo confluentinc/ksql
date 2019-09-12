@@ -35,7 +35,7 @@ public class SummaryStatsUdafTests {
 
   @Test
   void mergeAggregates() {
-    final Udaf<Double, Map<String, Double>> udaf = SummaryStatsUdaf.createUdaf();
+    final Udaf<Double, Map<String, Double>, Map<String, Double>> udaf = SummaryStatsUdaf.createUdaf();
     final Map<String, Double> mergedAggregate = udaf.merge(
         // (sample_size, sum, mean)
         aggregate(3.0, 3300.0, 1100.0),
@@ -53,7 +53,7 @@ public class SummaryStatsUdafTests {
       final Map<String, Double> currentAggregate,
       final Map<String, Double> expectedResult
   ) {
-    final Udaf<Double, Map<String, Double>> udaf = SummaryStatsUdaf.createUdaf();
+    final Udaf<Double, Map<String, Double>, Map<String, Double>> udaf = SummaryStatsUdaf.createUdaf();
     assertEquals(expectedResult, udaf.aggregate(newValue, currentAggregate));
   }
 

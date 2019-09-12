@@ -436,6 +436,7 @@ public class AggregateNodeTest {
               stream.mapValues.keySet().stream(),
               stream.groupStreams()
                   .flatMap(FakeKGroupedStream::tables)
+                  .flatMap(t -> t.tables())
                   .flatMap(t -> t.mapValues.keySet().stream())
           )).collect(Collectors.toList());
     }
@@ -569,6 +570,14 @@ public class AggregateNodeTest {
         final FakeKTable table = new FakeKTable();
         mapValues.put(mapper, table);
         return table.createProxy();
+      }
+
+      Stream<FakeKTable> tables() {
+        final Stream<FakeKTable> children = mapValues.values().stream();
+        final Stream<FakeKTable> grandChildren =
+            mapValues.values().stream().flatMap(FakeKTable::tables);
+
+        return Streams.concat(children, grandChildren);
       }
     }
   }

@@ -27,6 +27,7 @@ import org.apache.kafka.connect.data.Schema;
  */
 public interface UdfArgSupplier {
   KsqlAggregateFunction apply(List<Schema> args,
-                              Schema returnType,
+                              Schema aggregateType,
+                              Schema outputType,
                               Optional<Metrics> metrics);
 }

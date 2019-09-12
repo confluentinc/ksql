@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.tree.GroupingElement;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Set;
@@ -38,7 +39,7 @@ public final class ExpressionFormatterUtil {
     return ExpressionFormatter.formatExpression(
         expression,
         unmangleNames,
-        IdentifierUtil::needsQuotes
+        FormatOptions.of(IdentifierUtil::needsQuotes)
     );
   }
 

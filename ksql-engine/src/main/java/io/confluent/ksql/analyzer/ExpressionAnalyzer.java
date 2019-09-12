@@ -143,7 +143,7 @@ class ExpressionAnalyzer {
         final QualifiedNameReference node,
         final Object context
     ) {
-      final String columnName = node.getName().getSuffix();
+      final String columnName = node.getName().name();
       throwOnUnknownField(columnName);
       return null;
     }

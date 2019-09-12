@@ -428,7 +428,7 @@ class Analyzer {
       if (expression instanceof QualifiedNameReference) {
         final QualifiedNameReference qualifiedNameRef = (QualifiedNameReference) expression;
 
-        final String fieldName = qualifiedNameRef.getName().getSuffix();
+        final String fieldName = qualifiedNameRef.getName().name();
         return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
       }
       return Optional.empty();
@@ -445,7 +445,7 @@ class Analyzer {
 
     @Override
     protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
-      final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
+      final String structuredDataSourceName = ((Table) node.getRelation()).getName().name();
 
       final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
       if (source == null) {

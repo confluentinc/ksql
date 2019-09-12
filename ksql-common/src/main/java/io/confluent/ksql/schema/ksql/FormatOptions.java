@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.function.Predicate;
 
 public final class FormatOptions {
@@ -55,5 +56,16 @@ public final class FormatOptions {
 
   public boolean isReservedWord(final String word) {
     return reservedWordPredicate.test(word);
+  }
+
+  /**
+   * Escapes {@code word} if it is a reserved word, determined by {@link #isReservedWord(String)}.
+   *
+   * @param word the word to escape
+   * @return {@code word}, if it is not a reserved word, otherwise {@code word} wrapped in
+   *         back quotes
+   */
+  public String escape(final String word) {
+    return isReservedWord(word) ? KsqlConstants.ESCAPE + word + KsqlConstants.ESCAPE : word;
   }
 }

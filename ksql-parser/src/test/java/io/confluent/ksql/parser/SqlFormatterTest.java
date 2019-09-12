@@ -146,8 +146,8 @@ public class SqlFormatterTest {
 
   @Before
   public void setUp() {
-    final Table left = new Table(QualifiedName.of(Collections.singletonList("left")));
-    final Table right = new Table(QualifiedName.of(Collections.singletonList("right")));
+    final Table left = new Table(QualifiedName.of("left"));
+    final Table right = new Table(QualifiedName.of("right"));
     leftAlias = new AliasedRelation(left, "l");
     rightAlias = new AliasedRelation(right, "r");
 

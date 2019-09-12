@@ -49,6 +49,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
@@ -293,7 +294,7 @@ public class ExpressionFormatterTest {
         .build();
 
     assertThat(
-        ExpressionFormatter.formatExpression(new Type(struct), true, s -> true),
+        ExpressionFormatter.formatExpression(new Type(struct), true, FormatOptions.none()),
         equalTo("STRUCT<`RESERVED` INTEGER>"));
   }
 

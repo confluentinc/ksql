@@ -120,7 +120,7 @@ public class CommandIdAssigner {
   private static CommandId getDropStreamCommandId(final DropStream dropStreamQuery) {
     return new CommandId(
         CommandId.Type.STREAM,
-        dropStreamQuery.getName().getSuffix(),
+        dropStreamQuery.getName().name(),
         CommandId.Action.DROP
     );
   }
@@ -128,7 +128,7 @@ public class CommandIdAssigner {
   private static CommandId getDropTableCommandId(final DropTable dropTableQuery) {
     return new CommandId(
         CommandId.Type.TABLE,
-        dropTableQuery.getName().getSuffix(),
+        dropTableQuery.getName().name(),
         CommandId.Action.DROP
     );
   }

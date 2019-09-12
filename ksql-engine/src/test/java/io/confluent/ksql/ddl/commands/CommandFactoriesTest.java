@@ -151,8 +151,8 @@ public class CommandFactoriesTest {
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
-    when(metaStore.getSource(SOME_NAME.getSuffix())).thenReturn(ksqlStream);
-    when(metaStore.getSource(TABLE_NAME.getSuffix())).thenReturn(ksqlTable);
+    when(metaStore.getSource(SOME_NAME.name())).thenReturn(ksqlStream);
+    when(metaStore.getSource(TABLE_NAME.name())).thenReturn(ksqlTable);
     when(ksqlStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTable.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(serdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(serde);
@@ -782,7 +782,7 @@ public class CommandFactoriesTest {
   public void shouldCreateDropSourceOnMissingSourceWithIfExistsForStream() {
     // Given:
     final DropStream dropStream = new DropStream(SOME_NAME, false, true);
-    when(metaStore.getSource(SOME_NAME.getSuffix())).thenReturn(null);
+    when(metaStore.getSource(SOME_NAME.name())).thenReturn(null);
 
     // When:
     final DropSourceCommand cmd = (DropSourceCommand) commandFactories.create(
@@ -815,7 +815,7 @@ public class CommandFactoriesTest {
   public void shouldFailDropSourceOnDropIncompatibleSourceForStream() {
     // Given:
     final DropStream dropStream = new DropStream(SOME_NAME, false, true);
-    when(metaStore.getSource(SOME_NAME.getSuffix())).thenReturn(ksqlTable);
+    when(metaStore.getSource(SOME_NAME.name())).thenReturn(ksqlTable);
 
     // Expect:
     expectedException.expect(KsqlException.class);

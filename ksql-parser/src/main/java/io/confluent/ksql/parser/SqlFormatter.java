@@ -56,6 +56,7 @@ import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.UnsetProperty;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +68,7 @@ public final class SqlFormatter {
 
   private static final String INDENT = "   ";
   private static final Pattern NAME_PATTERN = Pattern.compile("[a-z_][a-z0-9_]*");
+  private static final FormatOptions FORMAT_OPTIONS = FormatOptions.of(IdentifierUtil::needsQuotes);
 
   private SqlFormatter() {
   }
@@ -219,7 +221,7 @@ public final class SqlFormatter {
       process(node.getRelation(), indent);
 
       builder.append(' ')
-              .append(IdentifierUtil.escape(node.getAlias()));
+              .append(FORMAT_OPTIONS.escape(node.getAlias()));
 
       return null;
     }
@@ -388,7 +390,7 @@ public final class SqlFormatter {
     @Override
     public Void visitRegisterType(final RegisterType node, final Integer context) {
       builder.append("CREATE TYPE ");
-      builder.append(IdentifierUtil.escape(node.getName()));
+      builder.append(FORMAT_OPTIONS.escape(node.getName()));
       builder.append(" AS ");
       builder.append(ExpressionFormatterUtil.formatExpression(node.getType()));
       builder.append(";");
@@ -487,17 +489,15 @@ public final class SqlFormatter {
     }
 
     private static String formatTableElement(final TableElement e) {
-      return IdentifierUtil.escape(e.getName())
+      return FORMAT_OPTIONS.escape(e.getName())
           + " "
-          + ExpressionFormatter.formatExpression(e.getType(), true, IdentifierUtil::needsQuotes)
+          + ExpressionFormatter.formatExpression(
+              e.getType(), true, FormatOptions.of(IdentifierUtil::needsQuotes))
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
   }
 
   private static String escapedName(final QualifiedName name) {
-    return name.getParts()
-        .stream()
-        .map(IdentifierUtil::escape)
-        .collect(Collectors.joining("."));
+    return name.toString(FORMAT_OPTIONS);
   }
 }

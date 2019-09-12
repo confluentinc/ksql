@@ -103,7 +103,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
 
     validateQuery(serviceContext, metaStore, insertInto.getQuery());
 
-    final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().getSuffix());
+    final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().name());
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
   }
 
@@ -157,6 +157,6 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       final CreateAsSelect createAsSelect
   ) {
     return createAsSelect.getProperties().getKafkaTopic()
-        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName().getSuffix()));
+        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName().name()));
   }
 }

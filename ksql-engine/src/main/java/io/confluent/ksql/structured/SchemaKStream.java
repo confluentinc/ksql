@@ -456,7 +456,7 @@ public class SchemaKStream<K> {
           final QualifiedNameReference nameRef
               = (QualifiedNameReference) toExpression;
 
-          if (SchemaUtil.isFieldName(nameRef.getName().getSuffix(), keyField.fullName())) {
+          if (SchemaUtil.isFieldName(nameRef.getName().name(), keyField.fullName())) {
             found = Optional.of(Column.of(toName, keyField.type()));
             break;
           }

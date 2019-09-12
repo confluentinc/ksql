@@ -92,7 +92,7 @@ public class TopicDeleteInjector implements Injector {
       return statement;
     }
 
-    final String sourceName = dropStatement.getName().getSuffix();
+    final String sourceName = dropStatement.getName().name();
     final DataSource<?> source = metastore.getSource(sourceName);
 
     if (source != null) {

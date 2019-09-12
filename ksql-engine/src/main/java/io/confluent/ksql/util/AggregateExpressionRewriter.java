@@ -43,7 +43,7 @@ public class AggregateExpressionRewriter
   public Optional<Expression> visitFunctionCall(
       final FunctionCall node,
       final ExpressionTreeRewriter.Context<Void> context) {
-    final String functionName = node.getName().getSuffix();
+    final String functionName = node.getName().name();
     if (functionRegistry.isAggregate(functionName)) {
       final String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
       aggVariableIndex++;

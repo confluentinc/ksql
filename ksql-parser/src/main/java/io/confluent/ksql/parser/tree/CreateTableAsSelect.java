@@ -62,7 +62,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
 
   @Override
   public Sink getSink() {
-    return Sink.of(getName().getSuffix(), true, getProperties(), Optional.empty());
+    return Sink.of(getName().name(), true, getProperties(), Optional.empty());
   }
 
   @Override

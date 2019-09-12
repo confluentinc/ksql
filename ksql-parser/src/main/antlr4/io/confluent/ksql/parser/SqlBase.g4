@@ -297,7 +297,7 @@ whenClause
     ;
 
 qualifiedName
-    : identifier ('.' identifier)*
+    : identifier ('.' identifier)?
     ;
 
 identifier

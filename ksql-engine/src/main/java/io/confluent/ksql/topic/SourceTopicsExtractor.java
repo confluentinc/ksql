@@ -56,7 +56,7 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void
 
   @Override
   protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
-    final String structuredDataSourceName = ((Table) node.getRelation()).getName().getSuffix();
+    final String structuredDataSourceName = ((Table) node.getRelation()).getName().name();
     final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
     if (source == null) {
       throw new KsqlException(structuredDataSourceName + " does not exist.");

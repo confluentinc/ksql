@@ -47,12 +47,4 @@ public final class IdentifierUtil {
         || sqlBaseParser.getCurrentToken().getCharPositionInLine() != identifier.length();
   }
 
-  /**
-   * @param identifier the identifier to escape
-   * @return wraps the {@code identifier} in back quotes (`) if {@link #needsQuotes(String)}
-   */
-  public static String escape(final String identifier) {
-    return needsQuotes(identifier) ? '`' + identifier + '`' : identifier;
-  }
-
 }

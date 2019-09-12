@@ -24,45 +24,58 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PrintTopicValidatorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
+  private static final KsqlConfig CONFIG = new KsqlConfig(ImmutableMap.of());
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
+
+  @Mock
+  private KsqlExecutionContext ksqlEngine;
+  @Mock
+  private ServiceContext serviceContext;
+
 
   @Test
   public void shouldThrowExceptionOnPrintTopic() {
-    // Expect:
+    // Given:
+    final ConfiguredStatement<PrintTopic> query = ConfiguredStatement.of(
+        PreparedStatement.of("PRINT 'topic';", mock(PrintTopic.class)),
+        ImmutableMap.of(),
+        CONFIG
+    );
+
+    // When::
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-            "RUN SCRIPT cannot be used with the following statements: \n"
-                    + "* PRINT\n"
-                    + "* SELECT"))));
+        "The following statement types should be issued to the websocket endpoint '/query'"
+    ))));
     expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
         "PRINT 'topic';"))));
 
     // When:
     CustomValidators.PRINT_TOPIC.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of("PRINT 'topic';", mock(PrintTopic.class)),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()),
-        engine.getEngine(),
-        engine.getServiceContext()
+        query,
+        ksqlEngine,
+        serviceContext
     );
   }
-
 }

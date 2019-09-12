@@ -52,37 +52,36 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
-import java.util.function.Predicate;
 
 public final class ExpressionFormatter {
   private ExpressionFormatter() {
   }
 
   public static String formatExpression(final Expression expression) {
-    return formatExpression(expression, true, s -> false);
+    return formatExpression(expression, true, FormatOptions.of(s -> false));
   }
 
   public static String formatExpression(
       final Expression expression,
       final boolean unmangleNames,
-      final Predicate<String> isReserved) {
-    return new Formatter().process(expression, new Context(unmangleNames, isReserved));
+      final FormatOptions formatOptions) {
+    return new Formatter().process(expression, new Context(unmangleNames, formatOptions));
   }
 
   private static final class Context {
     final boolean unmangleNames;
-    final Predicate<String> isReserved;
+    final FormatOptions formatOptions;
 
-    private Context(final boolean unmangleNames, final Predicate<String> isReserved) {
+    private Context(final boolean unmangleNames, final FormatOptions formatOptions) {
       this.unmangleNames = unmangleNames;
-      this.isReserved = isReserved;
+      this.formatOptions = formatOptions;
     }
   }
 
   private static class Formatter implements ExpressionVisitor<String, Context> {
     @Override
     public String visitType(final Type node, final Context context) {
-      return node.getSqlType().toString(FormatOptions.of(context.isReserved));
+      return node.getSqlType().toString(context.formatOptions);
     }
 
     @Override
@@ -152,14 +151,14 @@ public final class ExpressionFormatter {
         final Context context) {
       final String baseString = process(node.getBase(), context);
       if (node.getBase() instanceof QualifiedNameReference) {
-        return baseString + KsqlConstants.DOT + formatIdentifier(node.getFieldName(), context);
+        return baseString + KsqlConstants.DOT + context.formatOptions.escape(node.getFieldName());
       }
       return baseString + KsqlConstants.STRUCT_FIELD_REF
-          + formatIdentifier(node.getFieldName(), context);
+          + context.formatOptions.escape(node.getFieldName());
     }
 
     private static String formatQualifiedName(final QualifiedName name, final Context context) {
-      return name.toString(s -> formatIdentifier(s, context));
+      return name.toString(context.formatOptions);
     }
 
     @Override
@@ -331,10 +330,6 @@ public final class ExpressionFormatter {
       return Joiner.on(", ").join(expressions.stream()
           .map((e) -> process(e, context))
           .iterator());
-    }
-
-    private static String formatIdentifier(final String s, final Context context) {
-      return context.isReserved.test(s) ? "`" + s + "`" : s;
     }
 
     private static String formatStringLiteral(final String s) {

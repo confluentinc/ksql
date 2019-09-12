@@ -59,6 +59,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -289,7 +290,8 @@ public class SqlToJavaVisitor {
     }
 
     private String formatQualifiedName(final QualifiedName name) {
-      return name.toString(this::formatIdentifier);
+      // for now, we don't escape anything in SqlToJavaVisitor
+      return name.toString(FormatOptions.of(word -> false));
     }
 
     public Pair<String, Schema> visitLongLiteral(
@@ -787,11 +789,6 @@ public class SqlToJavaVisitor {
     ) {
       return "(" + process(left, context).getLeft() + " " + operator + " "
           + process(right, context).getLeft() + ")";
-    }
-
-    private String formatIdentifier(final String s) {
-      // TODO: handle escaping properly
-      return s;
     }
 
     private String trimQuotes(final String s) {

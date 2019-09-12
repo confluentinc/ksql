@@ -52,14 +52,4 @@ public class IdentifierUtilTest {
     }
   }
 
-  @Test
-  public void shouldWrapInBackQuotes() {
-    assertThat(IdentifierUtil.escape("SELECT"), is("`SELECT`"));
-  }
-
-  @Test
-  public void shouldNotWrapInBackQuotes() {
-    assertThat(IdentifierUtil.escape("FOO"), is("FOO"));
-  }
-
 }

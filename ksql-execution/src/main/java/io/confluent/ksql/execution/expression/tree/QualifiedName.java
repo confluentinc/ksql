@@ -18,25 +18,46 @@ package io.confluent.ksql.execution.expression.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 
+/**
+ * A name, optionally disambiguated by a qualifier.
+ */
 @Immutable
 public final class QualifiedName {
 
   private final Optional<String> qualifier;
   private final String name;
 
-  public static QualifiedName of(final String qualifier, final String name) {
-    return new QualifiedName(Optional.of(qualifier), name);
-  }
-
+  /**
+   * Creates a {@code QualifiedName} with the following qualifier and name. A qualified name
+   * can represent a disambiguation of a specific name using an additional qualifier.
+   *
+   * <p>For example, if two sources {@code A} and {@code B} have the same field {@code foo},
+   * they can be disambiguated by referring to the field with its fully qualified name -
+   * {@code A.foo} and {@code B.foo}</p>
+   *
+   * @param qualifier the qualifier, optionally empty
+   * @param name      the name
+   * @return a {@code QualifiedName} wrapping the {@code qualifier} and the {@code name}.
+   */
   public static QualifiedName of(final Optional<String> qualifier, final String name) {
     return new QualifiedName(qualifier, name);
   }
 
+  /**
+   * @see #of(Optional, String)
+   */
+  public static QualifiedName of(final String qualifier, final String name) {
+    return new QualifiedName(Optional.of(qualifier), name);
+  }
+
+  /**
+   * @see #of(Optional, String)
+   */
   public static QualifiedName of(final String name) {
     return new QualifiedName(Optional.empty(), name);
   }
@@ -56,13 +77,14 @@ public final class QualifiedName {
 
   @Override
   public String toString() {
-    return toString(Function.identity());
+    // don't escape anything in the generic toString case
+    return toString(FormatOptions.of(word -> false));
   }
 
-  public String toString(final Function<String, String> escapeFun) {
-    final String escaped = escapeFun.apply(name);
+  public String toString(final FormatOptions formatOptions) {
+    final String escaped = formatOptions.escape(name);
     return qualifier
-        .map(q -> escapeFun.apply(q) + KsqlConstants.DOT + escaped)
+        .map(q -> formatOptions.escape(q) + KsqlConstants.DOT + escaped)
         .orElse(escaped);
   }
 

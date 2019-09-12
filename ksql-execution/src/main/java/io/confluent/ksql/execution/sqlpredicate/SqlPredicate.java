@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.structured;
+package io.confluent.ksql.execution.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
@@ -27,7 +27,6 @@ import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.parser.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -37,8 +36,7 @@ import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
-public class SqlPredicate {
-
+public final class SqlPredicate {
   private final Expression filterExpression;
   private final LogicalSchema schema;
   private final IExpressionEvaluator ee;
@@ -55,7 +53,7 @@ public class SqlPredicate {
       final FunctionRegistry functionRegistry,
       final ProcessingLogger processingLogger
   ) {
-    this.filterExpression = rewriteFilter(requireNonNull(filterExpression, "filterExpression"));
+    this.filterExpression = requireNonNull(filterExpression, "filterExpression");
     this.schema = requireNonNull(schema, "schema");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
@@ -99,14 +97,6 @@ public class SqlPredicate {
       );
     }
   }
-
-  private Expression rewriteFilter(final Expression expression) {
-    if (StatementRewriteForRowtime.requiresRewrite(expression)) {
-      return new StatementRewriteForRowtime(expression).rewriteForRowtime();
-    }
-    return expression;
-  }
-
 
   public <K> Predicate<K, GenericRow> getPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();

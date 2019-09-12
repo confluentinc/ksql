@@ -37,19 +37,21 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.StreamFilterBuilder;
 import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.execution.streams.StreamToTableBuilder;
 import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.parser.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -312,27 +314,15 @@ public class SchemaKStream<K> {
   public SchemaKStream<K> filter(
       final Expression filterExpression,
       final QueryContext.Stacker contextStacker,
-      final ProcessingLogContext processingLogContext
+      final KsqlQueryBuilder queryBuilder
   ) {
-    final SqlPredicate predicate = new SqlPredicate(
-        filterExpression,
-        getSchema(),
-        ksqlConfig,
-        functionRegistry,
-        processingLogContext.getLoggerFactory().getLogger(
-            QueryLoggerUtil.queryLoggerName(
-                contextStacker.push(Type.FILTER.name()).getQueryContext())
-        )
-    );
-
-    final KStream<K, GenericRow> filteredKStream = kstream.filter(predicate.getPredicate());
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamFilter(
+    final StreamFilter<KStream<K, GenericRow>> step = ExecutionStepFactory.streamFilter(
         contextStacker,
         sourceStep,
-        filterExpression
+        rewriteTimeComparisonForFilter(filterExpression)
     );
     return new SchemaKStream<>(
-        filteredKStream,
+        StreamFilterBuilder.build(kstream, step, queryBuilder),
         step,
         keyFormat,
         keySerde,
@@ -342,6 +332,13 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  Expression rewriteTimeComparisonForFilter(final Expression expression) {
+    if (StatementRewriteForRowtime.requiresRewrite(expression)) {
+      return new StatementRewriteForRowtime(expression).rewriteForRowtime();
+    }
+    return expression;
   }
 
   public SchemaKStream<K> select(

@@ -42,8 +42,6 @@ public class FilterNodeTest {
   @Mock
   private SchemaKStream schemaKStream;
   @Mock
-  private ProcessingLogContext processingLogContext;
-  @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private Stacker stacker;
@@ -62,9 +60,7 @@ public class FilterNodeTest {
     when(schemaKStream.filter(any(), any(), any()))
         .thenReturn(schemaKStream);
 
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
-
 
     node = new FilterNode(nodeId, sourceNode, predicate);
   }
@@ -76,6 +72,6 @@ public class FilterNodeTest {
 
     // Then:
     verify(sourceNode).buildStream(ksqlStreamBuilder);
-    verify(schemaKStream).filter(predicate, stacker, processingLogContext);
+    verify(schemaKStream).filter(predicate, stacker, ksqlStreamBuilder);
   }
 }

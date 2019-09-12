@@ -68,8 +68,6 @@ public class ProjectNodeTest {
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private Stacker stacker;
-  @Mock
-  private ProcessingLogContext processingLogContext;
 
   private ProjectNode projectNode;
 
@@ -79,7 +77,6 @@ public class ProjectNodeTest {
     when(source.getKeyField()).thenReturn(SOURCE_KEY_FIELD);
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(stream.select(anyList(), any(), any())).thenReturn((SchemaKStream) stream);
 

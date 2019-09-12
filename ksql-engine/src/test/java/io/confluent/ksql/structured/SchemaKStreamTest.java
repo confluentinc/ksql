@@ -40,9 +40,11 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
@@ -51,6 +53,7 @@ import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -457,7 +460,7 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void testFilter() {
+  public void shouldReturnSchemaKStreamWithCorrectSchemaForFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
@@ -467,7 +470,7 @@ public class SchemaKStreamTest {
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
         childContextStacker,
-        processingLogContext);
+        queryBuilder);
 
     // Then:
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
@@ -485,6 +488,34 @@ public class SchemaKStreamTest {
   }
 
   @Test
+  public void shouldRewriteTimeComparisonInFilter() {
+    // Given:
+    final PlanNode logicalPlan = givenInitialKStreamOf(
+        "SELECT col0, col2, col3 FROM test1 WHERE ROWTIME = '1984' EMIT CHANGES;");
+    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+
+    // When:
+    final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
+        filterNode.getPredicate(),
+        childContextStacker,
+        queryBuilder);
+
+    // Then:
+    final StreamFilter step = (StreamFilter) filteredSchemaKStream.getSourceStep();
+    assertThat(
+        step.getFilterExpression(),
+        equalTo(
+            new ComparisonExpression(
+                ComparisonExpression.Type.EQUAL,
+                new DereferenceExpression(
+                    new QualifiedNameReference(QualifiedName.of("TEST1")), "ROWTIME"),
+                new LongLiteral(441792000000L)
+            )
+        )
+    );
+  }
+
+  @Test
   public void shouldBuildStepForFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
@@ -495,7 +526,7 @@ public class SchemaKStreamTest {
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
         childContextStacker,
-        processingLogContext);
+        queryBuilder);
 
     // Then:
     assertThat(

@@ -235,11 +235,17 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final String topicName = printTopic.getTopic().toString();
 
     if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
+      String reverseSuggestion = "";
+      final String nameReversedCase = reverseCase(topicName);
+      if (serviceContext.getTopicClient().isTopicExists(nameReversedCase)) {
+        reverseSuggestion = "Did you mean '" + nameReversedCase + "'?" + System.lineSeparator();
+      }
       throw new KsqlRestException(
           Errors.badRequest(String.format(
               "Could not find topic '%s', "
                   + "or the KSQL user does not have permissions to list the topic."
                   + System.lineSeparator()
+                  + reverseSuggestion
                   + "KSQL will treat unquoted topic names as uppercase."
                   + System.lineSeparator()
                   + "To print a case-sensitive topic use quotes, for example: print \'Topic\';",
@@ -260,4 +266,19 @@ public class StreamedQueryResource implements KsqlConfigurable {
     log.info("Printing topic '{}'", topicName);
     return Response.ok().entity(topicStreamWriter).build();
   }
+
+  private String reverseCase(final String str) {
+    final char[] chars = str.toCharArray();
+    for (int i = 0; i < chars.length; i++) {
+      final char c = chars[i];
+      if (Character.isUpperCase(c)) {
+        chars[i] = Character.toLowerCase(c);
+      } else {
+        chars[i] = Character.toUpperCase(c);
+      }
+    }
+    return new String(chars);
+  }
 }
+
+

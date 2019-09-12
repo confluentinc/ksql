@@ -119,7 +119,7 @@ public class KsqlTestingToolTest {
 
     // Then:
     assertThat(errContent.toString(UTF_8),
-        containsString("Test failed: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
+        containsString("Test failed: Topic 'S1', message 0: Expected <1001, 101> with timestamp=0 but was <101, 101> with timestamp=0\n"));
   }
 
   @Test

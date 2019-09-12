@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -54,7 +55,6 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.ksql.rest.server.KsqlRestApplication;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -143,7 +143,6 @@ public class CliTest {
       .withLookingForStuckThread(true)
       .build();
 
-  private static final String COMMANDS_KSQL_TOPIC_NAME = KsqlRestApplication.COMMANDS_STREAM_NAME;
   private static final OutputFormat CLI_OUTPUT_FORMAT = OutputFormat.TABULAR;
 
   private static final long STREAMED_QUERY_ROW_LIMIT = 10000;
@@ -184,6 +183,9 @@ public class CliTest {
 
   @Before
   public void setUp() {
+    REST_APP.closePersistentQueries();
+    REST_APP.dropSourcesExcept(orderDataProvider.kstreamName());
+
     streamName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     tableName = KsqlIdentifierTestUtil.uniqueIdentifierName();
     terminal = new TestTerminal(lineSupplier);
@@ -196,8 +198,6 @@ public class CliTest {
         restClient,
         console
     );
-
-    maybeDropStream("SHOULDRUNSCRIPT");
   }
 
   private void assertRunListCommand(
@@ -347,18 +347,6 @@ public class CliTest {
         .forEach(CliTest::terminateQuery);
 
     runStatement(dropStatement, restClient);
-  }
-
-  private static void maybeDropStream(final String name) {
-    final String dropStatement = String.format("drop stream %s;", name);
-
-    final RestResponse<?> response = restClient.makeKsqlRequest(dropStatement, null);
-    if (response.isSuccessful()
-        || response.getErrorMessage().toString().contains("does not exist")) {
-      return;
-    }
-
-    dropStream(name);
   }
 
   private void selectWithLimit(
@@ -604,7 +592,38 @@ public class CliTest {
   }
 
   @Test
-  public void testTransientSelectStar() {
+  public void testTransientStaticSelectStar() {
+    // Given:
+    run("CREATE TABLE X AS SELECT COUNT(1) AS COUNT "
+            + "FROM " + orderDataProvider.kstreamName()
+            + " GROUP BY ITEMID;",
+        localCli
+    );
+
+    assertRunCommand(
+        "SELECT * FROM X WHERE ROWKEY='unknown';",
+        hasRow(is("unknown"), either(is("1")).or(is("null")))
+    );
+  }
+
+  @Test
+  public void testTransientStaticHeader() {
+    // Given:
+    run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
+            + "FROM " + orderDataProvider.kstreamName()
+            + " GROUP BY ITEMID;",
+        localCli
+    );
+
+    // When:
+    run("SELECT * FROM Y WHERE ROWKEY='ITEM_1';", localCli);
+
+    assertThat(terminal.getOutputString(), containsString("ROWKEY (STRING KEY)"));
+    assertThat(terminal.getOutputString(), containsString("COUNT (BIGINT)"));
+  }
+
+  @Test
+  public void testTransientContinuousSelectStar() {
     final Map<String, GenericRow> streamData = orderDataProvider.data();
     final List<Object> row1 = streamData.get("1").getColumns();
     final List<Object> row2 = streamData.get("2").getColumns();
@@ -621,9 +640,8 @@ public class CliTest {
   }
 
   @Test
-  public void testTransientHeader() {
+  public void testTransientContinuousHeader() {
     // When:
-    rowCaptor.resetTestResult();
     run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
@@ -682,10 +700,6 @@ public class CliTest {
 
     dropTable(tableName);
   }
-
-  // ===================================================================
-  // Below Tests are only used for coverage, not for results validation.
-  // ===================================================================
 
   @Test
   public void testRunInteractively() {

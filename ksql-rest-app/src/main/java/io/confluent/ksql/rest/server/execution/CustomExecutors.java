@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
 import io.confluent.ksql.parser.tree.ListTypes;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
@@ -53,6 +54,8 @@ import java.util.stream.Collectors;
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomExecutors {
+
+  POINT_QUERY(Query.class, StaticQueryExecutor::execute),
 
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
   LIST_STREAMS(ListStreams.class, ListSourceExecutor::streams),

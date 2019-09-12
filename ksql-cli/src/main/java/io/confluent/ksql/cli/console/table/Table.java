@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.cli.console.table;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.cli.console.Console;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -30,12 +33,26 @@ public final class Table {
   private final List<String> header;
   private final List<String> footer;
 
-  private Table(final List<String> columnHeaders, final List<List<String>> rowValues,
-      final List<String> header, final List<String> footer) {
-    this.columnHeaders = columnHeaders;
-    this.rowValues = rowValues;
-    this.header = header;
-    this.footer = footer;
+  private Table(
+      final List<String> columnHeaders,
+      final List<List<String>> rowValues,
+      final List<String> header,
+      final List<String> footer
+  ) {
+    this.columnHeaders = requireNonNull(columnHeaders, "columnHeaders");
+    this.rowValues = requireNonNull(rowValues, "rowValues");
+    this.header = requireNonNull(header, "header");
+    this.footer = requireNonNull(footer, "footer");
+  }
+
+  @VisibleForTesting
+  public List<String> headers() {
+    return columnHeaders;
+  }
+
+  @VisibleForTesting
+  public List<List<String>> rows() {
+    return rowValues;
   }
 
   public static final class Builder {

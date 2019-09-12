@@ -44,8 +44,9 @@ public final class ParserUtil {
     return getIdentifierText(false, context);
   }
 
-  private static String getIdentifierText(final boolean caseSensitive,
-                                          final SqlBaseParser.IdentifierContext context) {
+  private static String getIdentifierText(
+      final boolean caseSensitive,
+      final SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
       return unquote(context.getText(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
@@ -69,12 +70,13 @@ public final class ParserUtil {
     return getQualifiedName(false, context);
   }
 
-  private static QualifiedName getQualifiedName(final boolean caseSensitive,
+  private static QualifiedName getQualifiedName(
+      final boolean caseSensitive,
       final SqlBaseParser.QualifiedNameContext context) {
+
     final List<String> parts = context
         .identifier().stream()
-        .map(caseSensitive
-            ? ParserUtil::getIdentifierTextCaseSensitive : ParserUtil::getIdentifierText)
+        .map((id) -> getIdentifierText(caseSensitive, id))
         .collect(toList());
 
     return QualifiedName.of(parts);

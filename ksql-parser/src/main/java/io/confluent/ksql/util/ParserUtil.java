@@ -17,7 +17,6 @@ package io.confluent.ksql.util;
 
 import static io.confluent.ksql.parser.SqlBaseParser.DecimalLiteralContext;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -29,7 +28,6 @@ import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
-import java.util.List;
 import java.util.Optional;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
@@ -56,12 +54,18 @@ public final class ParserUtil {
   }
 
   public static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-    final List<String> parts = context
-        .identifier().stream()
-        .map(ParserUtil::getIdentifierText)
-        .collect(toList());
+    final Optional<String> qualifier;
+    final String name;
 
-    return QualifiedName.of(parts);
+    if (context.identifier(1) == null) {
+      qualifier = Optional.empty();
+      name = ParserUtil.getIdentifierText(context.identifier(0));
+    } else {
+      qualifier = Optional.of(ParserUtil.getIdentifierText(context.identifier(0)));
+      name = ParserUtil.getIdentifierText(context.identifier(1));
+    }
+
+    return QualifiedName.of(qualifier, name);
   }
 
   public static int processIntegerNumber(final NumberContext number, final String context) {

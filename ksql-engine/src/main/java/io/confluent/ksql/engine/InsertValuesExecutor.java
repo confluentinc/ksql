@@ -138,11 +138,11 @@ public class InsertValuesExecutor {
     final InsertValues insertValues = statement.getStatement();
     final DataSource<?> dataSource = executionContext
         .getMetaStore()
-        .getSource(insertValues.getTarget().getSuffix());
+        .getSource(insertValues.getTarget().name());
 
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
-          + insertValues.getTarget().getSuffix());
+          + insertValues.getTarget().name());
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
@@ -178,10 +178,10 @@ public class InsertValuesExecutor {
       );
 
       throw new KsqlException("Failed to insert values into stream/table: "
-          + insertValues.getTarget().getSuffix(), rootCause);
+          + insertValues.getTarget().name(), rootCause);
     } catch (final Exception e) {
       throw new KsqlException("Failed to insert values into stream/table: "
-          + insertValues.getTarget().getSuffix(), e);
+          + insertValues.getTarget().name(), e);
     }
   }
 

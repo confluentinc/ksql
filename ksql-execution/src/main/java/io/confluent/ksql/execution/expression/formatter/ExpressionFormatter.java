@@ -51,7 +51,6 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -160,11 +159,7 @@ public final class ExpressionFormatter {
     }
 
     private static String formatQualifiedName(final QualifiedName name, final Context context) {
-      final List<String> parts = new ArrayList<>();
-      for (final String part : name.getParts()) {
-        parts.add(formatIdentifier(part, context));
-      }
-      return Joiner.on(KsqlConstants.DOT).join(parts);
+      return name.toString(s -> formatIdentifier(s, context));
     }
 
     @Override
@@ -172,7 +167,7 @@ public final class ExpressionFormatter {
       final StringBuilder builder = new StringBuilder();
 
       String arguments = joinExpressions(node.getArguments(), context);
-      if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().getSuffix())) {
+      if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().name())) {
         arguments = "*";
       }
 

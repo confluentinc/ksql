@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.codegen;
 
 import static java.lang.String.format;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
@@ -74,7 +73,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -291,11 +289,7 @@ public class SqlToJavaVisitor {
     }
 
     private String formatQualifiedName(final QualifiedName name) {
-      final List<String> parts = new ArrayList<>();
-      for (final String part : name.getParts()) {
-        parts.add(formatIdentifier(part));
-      }
-      return Joiner.on('.').join(parts);
+      return name.toString(this::formatIdentifier);
     }
 
     public Pair<String, Schema> visitLongLiteral(
@@ -317,7 +311,7 @@ public class SqlToJavaVisitor {
     public Pair<String, Schema> visitFunctionCall(
         final FunctionCall node,
         final Void context) {
-      final String functionName = node.getName().getSuffix();
+      final String functionName = node.getName().name();
 
       final String instanceName = functionName + "_" + functionCounter++;
       final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);

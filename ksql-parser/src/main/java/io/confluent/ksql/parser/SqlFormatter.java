@@ -495,9 +495,6 @@ public final class SqlFormatter {
   }
 
   private static String escapedName(final QualifiedName name) {
-    return name.getParts()
-        .stream()
-        .map(IdentifierUtil::escape)
-        .collect(Collectors.joining("."));
+    return name.toString(IdentifierUtil::escape);
   }
 }

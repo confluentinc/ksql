@@ -123,7 +123,7 @@ public class CommandFactories implements DdlCommandFactory {
       final CallInfo callInfo,
       final CreateStream statement
   ) {
-    final String sourceName = statement.getName().getSuffix();
+    final String sourceName = statement.getName().name();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<String> keyFieldName = buildKeyFieldName(statement, schema);
@@ -160,7 +160,7 @@ public class CommandFactories implements DdlCommandFactory {
       final CallInfo callInfo,
       final CreateTable statement
   ) {
-    final String sourceName = statement.getName().getSuffix();
+    final String sourceName = statement.getName().name();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
     final Optional<String> keyFieldName = buildKeyFieldName(statement, schema);
@@ -196,7 +196,7 @@ public class CommandFactories implements DdlCommandFactory {
   @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropStream(final DropStream statement) {
     return handleDropSource(
-        statement.getName().getSuffix(),
+        statement.getName().name(),
         statement.getIfExists(),
         DataSourceType.KSTREAM
     );
@@ -205,7 +205,7 @@ public class CommandFactories implements DdlCommandFactory {
   @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropTable(final DropTable statement) {
     return handleDropSource(
-        statement.getName().getSuffix(),
+        statement.getName().name(),
         statement.getIfExists(),
         DataSourceType.KTABLE
     );

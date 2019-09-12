@@ -193,7 +193,7 @@ public class CodeGenRunner {
     public Object visitFunctionCall(final FunctionCall node, final Object context) {
       final int functionNumber = functionCounter++;
       final List<Schema> argumentTypes = new ArrayList<>();
-      final String functionName = node.getName().getSuffix();
+      final String functionName = node.getName().name();
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
         argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
@@ -201,7 +201,7 @@ public class CodeGenRunner {
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(argumentTypes);
-      final String parameterName = node.getName().getSuffix() + "_" + functionNumber;
+      final String parameterName = node.getName().name() + "_" + functionNumber;
       parameters.add(new ParameterType(
           function,
           parameterName,
@@ -313,7 +313,7 @@ public class CodeGenRunner {
         final QualifiedNameReference node,
         final Object context
     ) {
-      addParameter(getRequiredColumn(node.getName().getSuffix()));
+      addParameter(getRequiredColumn(node.getName().name()));
       return null;
     }
 

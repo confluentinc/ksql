@@ -19,8 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -58,32 +56,6 @@ public class DereferenceExpression extends Expression {
 
   public String getFieldName() {
     return fieldName;
-  }
-
-  /**
-   * If this DereferenceExpression looks like a QualifiedName, return QualifiedName.
-   * Otherwise return null
-   */
-  public static QualifiedName getQualifiedName(final DereferenceExpression expression) {
-    final List<String> parts = tryParseParts(expression.base, expression.fieldName);
-    return parts == null ? null : QualifiedName.of(parts);
-  }
-
-  private static List<String> tryParseParts(final Expression base, final String fieldName) {
-    if (base instanceof QualifiedNameReference) {
-      final List<String> newList =
-          new ArrayList<>(((QualifiedNameReference) base).getName().getParts());
-      newList.add(fieldName);
-      return newList;
-    } else if (base instanceof DereferenceExpression) {
-      final QualifiedName baseQualifiedName = getQualifiedName((DereferenceExpression) base);
-      if (baseQualifiedName != null) {
-        final List<String> newList = new ArrayList<>(baseQualifiedName.getParts());
-        newList.add(fieldName);
-        return newList;
-      }
-    }
-    return null;
   }
 
   @Override

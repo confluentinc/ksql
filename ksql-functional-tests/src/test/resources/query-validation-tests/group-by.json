@@ -713,7 +713,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.SUBREGION, TEST.REGION]"
+        "message": "Non-aggregate SELECT expression(s) not part of GROUP BY: [TEST.REGION, TEST.SUBREGION]"
       }
     },
     {

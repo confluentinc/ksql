@@ -32,6 +32,7 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -111,7 +112,7 @@ public class QueryAnalyzer {
         && analysis.getGroupByExpressions().isEmpty()) {
       final String aggFuncs = aggregateAnalysis.getAggregateFunctions().stream()
           .map(FunctionCall::getName)
-          .map(QualifiedName::getSuffix)
+          .map(QualifiedName::name)
           .collect(Collectors.joining(", "));
       throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
           + "Aggregate function(s): " + aggFuncs);
@@ -188,7 +189,7 @@ public class QueryAnalyzer {
 
     final Set<Expression> groupByExprs = ImmutableSet.copyOf(analysis.getGroupByExpressions());
 
-    final Set<Expression> unmatchedSelects = aggregateAnalysis.getNonAggregateSelectExpressions()
+    final List<String> unmatchedSelects = aggregateAnalysis.getNonAggregateSelectExpressions()
         .entrySet()
         .stream()
         // Remove any that exactly match a group by expression:
@@ -197,7 +198,9 @@ public class QueryAnalyzer {
         // or expressions where all params exactly match a group by expression:
         .filter(e -> !Sets.difference(e.getValue(), groupByExprs).isEmpty())
         .map(Map.Entry::getKey)
-        .collect(Collectors.toSet());
+        .map(Expression::toString)
+        .sorted()
+        .collect(Collectors.toList());
 
     if (!unmatchedSelects.isEmpty()) {
       throw new KsqlException(

@@ -135,6 +135,8 @@ public class ConsoleTest {
     this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
 
     when(cliCommand.getName()).thenReturn(CLI_CMD_NAME);
+    when(cliCommand.matches(any()))
+        .thenAnswer(i -> ((String) i.getArgument(0)).toLowerCase().startsWith(CLI_CMD_NAME.toLowerCase()));
     console.registerCliSpecificCommand(cliCommand);
   }
 
@@ -1262,7 +1264,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of()), any());
@@ -1276,7 +1278,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
@@ -1290,7 +1292,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1304,7 +1306,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1318,7 +1320,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1332,7 +1334,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1346,7 +1348,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
 
     // Then:
     verify(cliCommand, never()).execute(any(), any());
@@ -1354,30 +1356,20 @@ public class ConsoleTest {
 
   @Test
   public void shouldSwallowCliCommandLines() {
-    // Given:
-    when(lineSupplier.get())
-        .thenReturn(CLI_CMD_NAME)
-        .thenReturn("not a CLI command;");
-
     // When:
-    final String result = console.readLine();
+    final boolean executed = console.maybeHandleCliSpecificCommands(CLI_CMD_NAME);
 
     // Then:
-    assertThat(result, is("not a CLI command;"));
+    assertThat("expected CLI command to be executed", executed);
   }
 
   @Test
   public void shouldSwallowCliCommandLinesEvenWithWhiteSpace() {
-    // Given:
-    when(lineSupplier.get())
-        .thenReturn("   \t   " + CLI_CMD_NAME + "   \t   ")
-        .thenReturn("not a CLI command;");
-
     // When:
-    final String result = console.readLine();
+    final boolean executed = console.maybeHandleCliSpecificCommands("NOT CLI COMMAND");
 
     // Then:
-    assertThat(result, is("not a CLI command;"));
+    assertThat("not a cli command", !executed);
   }
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {

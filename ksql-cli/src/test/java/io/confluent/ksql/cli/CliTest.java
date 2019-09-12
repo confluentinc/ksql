@@ -1041,7 +1041,7 @@ public class CliTest {
 
   private void runCliSpecificCommand(final String command) {
     when(lineSupplier.get()).thenReturn(command).thenReturn("");
-    console.readLine();
+    console.maybeHandleCliSpecificCommands(console.readLine());
   }
 
   private void givenRunInteractivelyWillExit() {

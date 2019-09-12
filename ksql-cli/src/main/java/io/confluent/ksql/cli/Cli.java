@@ -231,7 +231,9 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       return;
     }
 
-    handleStatements(line);
+    if (!terminal.maybeHandleCliSpecificCommands(trimmedLine)) {
+      handleStatements(trimmedLine);
+    }
   }
 
   /**

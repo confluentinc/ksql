@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
@@ -190,7 +191,7 @@ public class Console implements Closeable {
   private final RowCaptor rowCaptor;
   private OutputFormat outputFormat;
   private Optional<File> spoolFile = Optional.empty();
-
+  private CliConfig config;
 
   public interface RowCaptor {
     void addRow(GenericRow row);
@@ -230,6 +231,7 @@ public class Console implements Closeable {
     this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
     this.cliSpecificCommands = Maps.newLinkedHashMap();
     this.objectMapper = JsonMapper.INSTANCE.mapper;
+    this.config = new CliConfig(ImmutableMap.of());
   }
 
   public PrintWriter writer() {
@@ -273,6 +275,10 @@ public class Console implements Closeable {
     terminal.handle(signal, signalHandler);
   }
 
+  public void setCliProperty(final String name, final Object value) {
+    config = config.with(name, value);
+  }
+
   @Override
   public void close() {
     terminal.close();
@@ -287,14 +293,7 @@ public class Console implements Closeable {
   }
 
   public String readLine() {
-    String line;
-
-    do {
-      line = terminal.readLine();
-
-    } while (maybeHandleCliSpecificCommands(line));
-
-    return line;
+    return terminal.readLine();
   }
 
   public List<HistoryEntry> getHistory() {
@@ -407,14 +406,11 @@ public class Console implements Closeable {
       return Optional.empty();
     }
 
-    final String reconstructed = parts.stream()
-        .collect(Collectors.joining(" "));
+    final String command = String.join(" ", parts);
 
-    final String asLowerCase = reconstructed.toLowerCase();
-
-    return cliSpecificCommands.entrySet().stream()
-        .filter(e -> asLowerCase.startsWith(e.getKey()))
-        .map(e -> CliCmdExecutor.of(e.getValue(), parts))
+    return cliSpecificCommands.values().stream()
+        .filter(cliSpecificCommand -> cliSpecificCommand.matches(command))
+        .map(cliSpecificCommand -> CliCmdExecutor.of(cliSpecificCommand, parts))
         .findFirst();
   }
 
@@ -423,7 +419,7 @@ public class Console implements Closeable {
       final List<FieldInfo> fields
   ) {
     rowCaptor.addRow(row);
-    writer().println(TabularRow.createRow(getWidth(), fields, row));
+    writer().println(TabularRow.createRow(getWidth(), fields, row, config));
     flush();
   }
 
@@ -797,7 +793,7 @@ public class Console implements Closeable {
     }
   }
 
-  private boolean maybeHandleCliSpecificCommands(final String line) {
+  public boolean maybeHandleCliSpecificCommands(final String line) {
     if (line == null) {
       return false;
     }

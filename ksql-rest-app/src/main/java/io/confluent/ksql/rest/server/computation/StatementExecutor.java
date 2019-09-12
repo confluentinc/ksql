@@ -19,6 +19,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.ExceptionUtil;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -219,8 +220,9 @@ public class StatementExecutor implements KsqlConfigurable {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode);
+      final QualifiedName name = ((CreateAsSelect)statement.getStatement()).getName();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
-          ? "Table created and running" : "Stream created and running";
+          ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
     } else if (statement.getStatement() instanceof InsertInto) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode);

@@ -696,7 +696,7 @@ public class AstBuilder {
       if (context.STRING() != null) {
         topicName = QualifiedName.of(ParserUtil.unquote(context.STRING().getText(), "'"));
       } else {
-        topicName = ParserUtil.getQualifiedName(context.qualifiedName());
+        topicName = ParserUtil.getQualifiedNameCaseSensitive(context.qualifiedName());
       }
 
       final IntervalClauseContext intervalContext = context.printClause().intervalClause();

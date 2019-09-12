@@ -129,7 +129,7 @@ public class QueryResultTableBuilderTest {
         "k0 BIGINT KEY",
         "k1 DOUBLE KEY",
         "WINDOWSTART BIGINT",
-        "WINDOW_END BIGINT",
+        "WINDOWEND BIGINT",
         "v0 STRING",
         "v1 INTEGER"
     ));

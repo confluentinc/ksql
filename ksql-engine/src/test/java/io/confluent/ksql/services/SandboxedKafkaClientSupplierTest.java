@@ -16,7 +16,6 @@
 package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
@@ -26,6 +25,7 @@ import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
@@ -82,9 +82,10 @@ public final class SandboxedKafkaClientSupplierTest {
     }
 
     @Test
-    public void shouldReturnTryAdminClient() {
-      assertThat(sandboxedKafkaClientSupplier.getAdmin(config),
-          is(instanceOf(SandboxedAdminClient.class)));
+    public void shouldReturnSandboxAdminClient() {
+      final Admin admin = sandboxedKafkaClientSupplier.getAdmin(config);
+
+      assertThat(Proxy.isProxyClass(admin.getClass()), is(true));
     }
 
     @Test

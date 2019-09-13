@@ -30,6 +30,7 @@ public final class ConfiguredStatement<T extends Statement> {
   private final PreparedStatement<T> statement;
   private final Map<String, Object> overrides;
   private final KsqlConfig config;
+  private final long offset;
 
   public static <S extends Statement> ConfiguredStatement<S> of(
       final PreparedStatement<S> statement,
@@ -47,6 +48,28 @@ public final class ConfiguredStatement<T extends Statement> {
     this.statement = Objects.requireNonNull(statement, "statement");
     this.overrides = Objects.requireNonNull(overrides, "overrides");
     this.config = Objects.requireNonNull(config, "config");
+    this.offset = -1L;
+  }
+
+  public static <S extends Statement> ConfiguredStatement<S> of(
+          final PreparedStatement<S> statement,
+          final Map<String, Object> overrides,
+          final KsqlConfig config,
+          final long offset
+  ) {
+    return new ConfiguredStatement<>(statement, overrides, config, offset);
+  }
+
+  private ConfiguredStatement(
+          final PreparedStatement<T> statement,
+          final Map<String, Object> overrides,
+          final KsqlConfig config,
+          final long offset
+  ) {
+    this.statement = Objects.requireNonNull(statement, "statement");
+    this.overrides = Objects.requireNonNull(overrides, "overrides");
+    this.config = Objects.requireNonNull(config, "config");
+    this.offset = offset;
   }
 
   public T getStatement() {
@@ -59,6 +82,10 @@ public final class ConfiguredStatement<T extends Statement> {
 
   public Map<String, Object> getOverrides() {
     return overrides;
+  }
+
+  public long getOffset() {
+    return offset;
   }
 
   public KsqlConfig getConfig() {

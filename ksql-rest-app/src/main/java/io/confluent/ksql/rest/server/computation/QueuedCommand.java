@@ -39,6 +39,10 @@ public class QueuedCommand {
     this(commandId, command, Optional.empty(), -1L);
   }
 
+  QueuedCommand(final CommandId commandId, final Command command, final long offset) {
+    this(commandId, command, Optional.empty(), offset);
+  }
+
   public QueuedCommand(
       final CommandId commandId,
       final Command command,

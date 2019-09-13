@@ -85,5 +85,5 @@ public abstract class OutputNode
     return timestampExtractionPolicy;
   }
 
-  public abstract QueryId getQueryId(QueryIdGenerator queryIdGenerator);
+  public abstract QueryId getQueryId(QueryIdGenerator queryIdGenerator, long offset);
 }

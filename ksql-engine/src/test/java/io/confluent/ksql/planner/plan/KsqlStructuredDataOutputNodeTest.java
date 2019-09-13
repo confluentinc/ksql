@@ -265,9 +265,9 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldComputeQueryIdCorrectlyForStream() {
+  public void shouldComputeQueryIdCorrectlyForStreamWhenOffsetNegative() {
     // When:
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, -1);
 
     // Then:
     verify(queryIdGenerator, times(1)).getNextId();
@@ -275,13 +275,13 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldComputeQueryIdCorrectlyForTable() {
+  public void shouldComputeQueryIdCorrectlyForTableWhenOffsetNegative() {
     // Given:
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
     givenNodeWithSchema(SCHEMA);
 
     // When:
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, -1);
 
     // Then:
     verify(queryIdGenerator, times(1)).getNextId();
@@ -289,16 +289,53 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldComputeQueryIdCorrectlyForInsertInto() {
+  public void shouldComputeQueryIdCorrectlyForInsertIntoWhenOffsetNegative() {
     // Given:
     givenInsertIntoNode();
 
     // When:
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, -1);
 
     // Then:
     verify(queryIdGenerator, times(1)).getNextId();
     assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_STRING)));
+  }
+
+  @Test
+  public void shouldComputeQueryIdCorrectlyForStreamWhenOffsePositive() {
+    // When:
+    final long offset = 3L;
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, offset);
+
+    // Then:
+    assertThat(queryId, equalTo(new QueryId("CSAS_0_" + offset)));
+  }
+
+  @Test
+  public void shouldComputeQueryIdCorrectlyForTableWhenOffsetPositive() {
+    // Given:
+    when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KTABLE);
+    givenNodeWithSchema(SCHEMA);
+    final long offset = 2L;
+
+    // When:
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, offset);
+
+    // Then:
+    assertThat(queryId, equalTo(new QueryId("CTAS_0_" + offset)));
+  }
+
+  @Test
+  public void shouldComputeQueryIdCorrectlyForInsertIntoWhenOffsetPositive() {
+    // Given:
+    givenInsertIntoNode();
+    final long offset = 2L;
+
+    // When:
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, offset);
+
+    // Then:
+    assertThat(queryId, equalTo(new QueryId("InsertQuery_" + offset)));
   }
 
   @Test

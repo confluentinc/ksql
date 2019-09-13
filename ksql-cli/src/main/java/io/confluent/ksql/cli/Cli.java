@@ -26,7 +26,11 @@ import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.SqlBaseParser.PrintTopicContext;
+import io.confluent.ksql.parser.SqlBaseParser.QueryStatementContext;
+import io.confluent.ksql.parser.SqlBaseParser.SetPropertyContext;
+import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
+import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
@@ -39,12 +43,13 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.HandlerMaps;
+import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
+import io.confluent.ksql.util.HandlerMaps.Handler2;
 import io.confluent.ksql.util.ParserUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import java.io.Closeable;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.List;
@@ -60,6 +65,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
+import org.apache.commons.compress.utils.IOUtils;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
@@ -69,6 +75,16 @@ import org.slf4j.LoggerFactory;
 public class Cli implements KsqlRequestExecutor, Closeable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Cli.class);
+
+  private static final ClassHandlerMap2<StatementContext, Cli, String> STATEMENT_HANDLERS =
+      HandlerMaps
+          .forClass(StatementContext.class)
+          .withArgTypes(Cli.class, String.class)
+          .put(QueryStatementContext.class, Cli::handleStreamedQuery)
+          .put(PrintTopicContext.class, Cli::handlePrintedTopic)
+          .put(SetPropertyContext.class, Cli::setPropertyFromCtxt)
+          .put(UnsetPropertyContext.class, Cli::unsetPropertyFromCtxt)
+          .build();
 
   private final ExecutorService queryStreamExecutorService;
 
@@ -120,11 +136,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   @Override
   public void makeKsqlRequest(final String statements) {
-    try {
-      printKsqlResponse(makeKsqlRequest(statements, restClient::makeKsqlRequest));
-    } catch (IOException e) {
-      throw new KsqlException(e);
+    if (statements.isEmpty()) {
+      return;
     }
+
+    printKsqlResponse(makeKsqlRequest(statements, restClient::makeKsqlRequest));
   }
 
   private <R> RestResponse<R> makeKsqlRequest(
@@ -209,7 +225,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.close();
   }
 
-  void handleLine(final String line) throws Exception {
+  void handleLine(final String line) {
     final String trimmedLine = Optional.ofNullable(line).orElse("").trim();
     if (trimmedLine.isEmpty()) {
       return;
@@ -246,36 +262,25 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  private void handleStatements(final String line)
-      throws InterruptedException, IOException, ExecutionException {
-
+  private void handleStatements(final String line) {
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(line);
 
-    StringBuilder consecutiveStatements = new StringBuilder();
-    for (final ParsedStatement statement : statements) {
-      final SingleStatementContext statementContext = statement.getStatement();
-      final String statementText = statement.getStatementText();
+    final StringBuilder consecutiveStatements = new StringBuilder();
+    for (final ParsedStatement parsed : statements) {
+      final StatementContext statementContext = parsed.getStatement().statement();
+      final String statementText = parsed.getStatementText();
 
-      if (statementContext.statement() instanceof SqlBaseParser.QueryStatementContext
-          || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
-        consecutiveStatements = printOrDisplayQueryResults(
-            consecutiveStatements,
-            statementContext,
-            statementText
-        );
+      final Handler2<StatementContext, Cli, String> handler = STATEMENT_HANDLERS
+          .get(statementContext.getClass());
 
-      } else if (statementContext.statement() instanceof SqlBaseParser.ListPropertiesContext) {
-        makeKsqlRequest(statementText);
-
-      } else if (statementContext.statement() instanceof SqlBaseParser.SetPropertyContext) {
-        setProperty(statementContext);
-
-      } else if (statementContext.statement() instanceof SqlBaseParser.UnsetPropertyContext) {
-        consecutiveStatements = unsetProperty(consecutiveStatements, statementContext);
-
-      } else {
+      if (handler == null) {
         consecutiveStatements.append(statementText);
+      } else {
+        makeKsqlRequest(consecutiveStatements.toString());
+        consecutiveStatements.setLength(0);
+
+        handler.handle(this, statementText, statementContext);
       }
     }
     if (consecutiveStatements.length() != 0) {
@@ -283,24 +288,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  private StringBuilder printOrDisplayQueryResults(
-      final StringBuilder consecutiveStatements,
-      final SqlBaseParser.SingleStatementContext statementContext,
-      final String statementText
-  ) throws InterruptedException, IOException, ExecutionException {
-    if (consecutiveStatements.length() != 0) {
-      makeKsqlRequest(consecutiveStatements.toString());
-      consecutiveStatements.setLength(0);
-    }
-    if (statementContext.statement() instanceof SqlBaseParser.QueryStatementContext) {
-      handleStreamedQuery(statementText);
-    } else {
-      handlePrintedTopic(statementText);
-    }
-    return consecutiveStatements;
-  }
-
-  private void printKsqlResponse(final RestResponse<KsqlEntityList> response) throws IOException {
+  private void printKsqlResponse(final RestResponse<KsqlEntityList> response) {
     if (response.isSuccessful()) {
       final KsqlEntityList ksqlEntities = response.getResponse();
       boolean noErrorFromServer = true;
@@ -323,8 +311,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  @SuppressWarnings("try")
-  private void handleStreamedQuery(final String query) throws IOException {
+  @SuppressWarnings({"try", "unused"})
+  private void handleStreamedQuery(
+      final String query,
+      final SqlBaseParser.QueryStatementContext ignored
+  ) {
     final RestResponse<KsqlEntityList> explainResponse = restClient
         .makeKsqlRequest("EXPLAIN " + query);
     if (!explainResponse.isSuccessful()) {
@@ -346,7 +337,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       terminal.printErrorMessage(queryResponse.getErrorMessage());
     } else {
       try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
-          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
+          StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
         streamResults(queryStream, fields);
       }
     }
@@ -358,14 +349,10 @@ public class Cli implements KsqlRequestExecutor, Closeable {
   ) {
     final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
       for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); rowsRead++) {
-        try {
-          final StreamedRow row = queryStream.next();
-          terminal.printStreamedRow(row, fields);
-          if (row.isTerminal()) {
-            break;
-          }
-        } catch (final IOException exception) {
-          throw new RuntimeException(exception);
+        final StreamedRow row = queryStream.next();
+        terminal.printStreamedRow(row, fields);
+        if (row.isTerminal()) {
+          break;
         }
       }
     });
@@ -402,15 +389,17 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
-  @SuppressWarnings("try")
-  private void handlePrintedTopic(final String printTopic)
-      throws InterruptedException, ExecutionException, IOException {
+  @SuppressWarnings({"try", "unused"})
+  private void handlePrintedTopic(
+      final String printTopic,
+      final SqlBaseParser.PrintTopicContext ignored
+  ) {
     final RestResponse<InputStream> topicResponse =
         makeKsqlRequest(printTopic, restClient::makePrintTopicRequest);
 
     if (topicResponse.isSuccessful()) {
       try (Scanner topicStreamScanner = new Scanner(topicResponse.getResponse(), UTF_8.name());
-          StatusClosable ignored = terminal.setStatusMessage("Press CTRL-C to interrupt")
+          StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")
       ) {
         final Future<?> topicPrintFuture = queryStreamExecutorService.submit(() -> {
           while (!Thread.currentThread().isInterrupted() && topicStreamScanner.hasNextLine()) {
@@ -430,9 +419,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
         try {
           topicPrintFuture.get();
         } catch (final CancellationException exception) {
-          topicResponse.getResponse().close();
+          IOUtils.closeQuietly(topicResponse.getResponse());
           terminal.writer().println("Topic printing ceased");
           terminal.flush();
+        } catch (final Exception e) {
+          throw new RuntimeException(e);
         }
       }
     } else {
@@ -441,9 +432,11 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  private void setProperty(final SqlBaseParser.SingleStatementContext statementContext) {
-    final SqlBaseParser.SetPropertyContext setPropertyContext =
-        (SqlBaseParser.SetPropertyContext) statementContext.statement();
+  @SuppressWarnings("unused")
+  private void setPropertyFromCtxt(
+      final String ignored,
+      final SqlBaseParser.SetPropertyContext setPropertyContext
+  ) {
     final String property = ParserUtil.unquote(setPropertyContext.STRING(0).getText(), "'");
     final String value = ParserUtil.unquote(setPropertyContext.STRING(1).getText(), "'");
     setProperty(property, value);
@@ -462,19 +455,13 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     terminal.flush();
   }
 
-  private StringBuilder unsetProperty(
-      final StringBuilder consecutiveStatements,
-      final SqlBaseParser.SingleStatementContext statementContext
+  @SuppressWarnings("unused")
+  private void unsetPropertyFromCtxt(
+      final String ignored,
+      final SqlBaseParser.UnsetPropertyContext unsetPropertyContext
   ) {
-    if (consecutiveStatements.length() != 0) {
-      makeKsqlRequest(consecutiveStatements.toString());
-      consecutiveStatements.setLength(0);
-    }
-    final SqlBaseParser.UnsetPropertyContext unsetPropertyContext =
-        (SqlBaseParser.UnsetPropertyContext) statementContext.statement();
     final String property = ParserUtil.unquote(unsetPropertyContext.STRING().getText(), "'");
     unsetProperty(property);
-    return consecutiveStatements;
   }
 
   private void unsetProperty(final String property) {

@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -117,7 +118,7 @@ public class DataSourceNode extends PlanNode {
 
   @Override
   public List<PlanNode> getSources() {
-    return null;
+    return ImmutableList.of();
   }
 
   @Override

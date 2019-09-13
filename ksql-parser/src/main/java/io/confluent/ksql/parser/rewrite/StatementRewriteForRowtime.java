@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.parser.rewrite;
 
+import static io.confluent.ksql.util.KsqlConstants.DATE_TIME_PATTERN;
+import static io.confluent.ksql.util.KsqlConstants.TIME_PATTERN;
+
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -25,7 +28,6 @@ import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
-
 import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
@@ -102,9 +104,7 @@ public class StatementRewriteForRowtime {
   }
 
   private static LongLiteral rewriteTimestamp(final String timestamp) {
-    final String timePattern = "HH:mm:ss.SSS";
-    final StringToTimestampParser parser = new StringToTimestampParser(
-        "yyyy-MM-dd'T'" + timePattern);
+    final StringToTimestampParser parser = new StringToTimestampParser(DATE_TIME_PATTERN);
 
     final String date;
     final String time;
@@ -113,13 +113,13 @@ public class StatementRewriteForRowtime {
     if (timestamp.contains("T")) {
       date = timestamp.substring(0, timestamp.indexOf('T'));
       final String withTimezone = completeTime(
-          timestamp.substring(timestamp.indexOf('T') + 1),
-          timePattern);
+          timestamp.substring(timestamp.indexOf('T') + 1)
+      );
       timezone = getTimezone(withTimezone);
-      time = completeTime(withTimezone.substring(0, timezone.length()), timePattern);
+      time = completeTime(withTimezone.substring(0, timezone.length()));
     } else {
       date = completeDate(timestamp);
-      time = completeTime("", timePattern);
+      time = completeTime("");
       timezone = "";
     }
 
@@ -159,10 +159,12 @@ public class StatementRewriteForRowtime {
     }
   }
 
-  private static String completeTime(final String time, final String timePattern) {
-    if (time.length() >= timePattern.length()) {
+  private static String completeTime(final String time) {
+    if (time.length() >= TIME_PATTERN.length()) {
       return time;
     }
-    return time + timePattern.substring(time.length()).replaceAll("[a-zA-Z]", "0");
+
+    return time
+        + TIME_PATTERN.substring(time.length()).replaceAll("[a-zA-Z]", "0");
   }
 }

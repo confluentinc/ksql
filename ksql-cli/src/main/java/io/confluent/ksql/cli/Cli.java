@@ -26,6 +26,7 @@ import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.QueryStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -257,8 +258,21 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final SingleStatementContext statementContext = statement.getStatement();
       final String statementText = statement.getStatementText();
 
-      if (statementContext.statement() instanceof SqlBaseParser.QueryStatementContext
-          || statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
+      if (statementContext.statement() instanceof SqlBaseParser.QueryStatementContext) {
+
+        final QueryStatementContext queryContext =
+            (QueryStatementContext) statementContext.statement();
+
+        if (queryContext.query().EMIT() != null) {
+          consecutiveStatements = printOrDisplayQueryResults(
+              consecutiveStatements,
+              statementContext,
+              statementText
+          );
+        } else {
+          makeKsqlRequest(statementText);
+        }
+      } else if (statementContext.statement() instanceof SqlBaseParser.PrintTopicContext) {
         consecutiveStatements = printOrDisplayQueryResults(
             consecutiveStatements,
             statementContext,

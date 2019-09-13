@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.FieldMatchers.hasFullName;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.rawMessage;
 import static io.confluent.ksql.util.KsqlExceptionMatcher.statementText;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -61,6 +62,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -140,6 +142,24 @@ public class KsqlEngineTest {
     assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
     assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is("BAR"));
     assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is("FOO"));
+  }
+
+  @Test
+  public void shouldNotHaveRowTimeAndRowKeyColumnsInPersistentQueryValueSchema() {
+    // When:
+    final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        "create table bar as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    ).get(0);
+
+    // Then:
+    assertThat(query.getLogicalSchema().value(),
+        not(hasItem(hasFullName(SchemaUtil.ROWTIME_NAME))));
+
+    assertThat(query.getLogicalSchema().value(),
+        not(hasItem(hasFullName(SchemaUtil.ROWKEY_NAME))));
   }
 
   @Test

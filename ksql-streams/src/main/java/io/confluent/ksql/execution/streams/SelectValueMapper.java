@@ -33,7 +33,7 @@ public class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   private final ImmutableList<SelectInfo> selects;
   private final ProcessingLogger processingLogger;
 
-  SelectValueMapper(
+  public SelectValueMapper(
       final List<SelectInfo> selects,
       final ProcessingLogger processingLogger
   ) {

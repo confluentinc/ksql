@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -37,6 +38,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.net.URL;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,16 +46,22 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RestTestExecutor implements Closeable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(RestTestExecutor.class);
+
   private static final String STATEMENT_MACRO = "\\{STATEMENT}";
+  private static final Duration MAX_STATIC_WARMUP = Duration.ofSeconds(10);
 
   private final KsqlRestClient restClient;
   private final EmbeddedSingleNodeKafkaCluster kafkaCluster;
@@ -80,7 +88,7 @@ public class RestTestExecutor implements Closeable {
     }
 
     verifyOutput(testCase);
-    verifyResponses(testCase, responses.get());
+    verifyResponses(responses.get(), testCase.getExpectedResponses(), testCase.getStatements());
   }
 
   public void close() {
@@ -98,7 +106,7 @@ public class RestTestExecutor implements Closeable {
       // Test case could be trying to create a topic deleted by previous test.
       // Need to wait for previous topic to be deleted async, until then requests will fail
       RetryUtil.retryWithBackoff(
-          10,
+          12,
           10,
           (int) TimeUnit.SECONDS.toMillis(10),
           createJob
@@ -141,10 +149,65 @@ public class RestTestExecutor implements Closeable {
 
   private Optional<List<KsqlEntity>> sendStatements(final RestTestCase testCase) {
 
-    final String statements = testCase.getStatements().stream()
+    final List<String> allStatements = testCase.getStatements();
+
+    int firstStatic = 0;
+    for (; firstStatic < allStatements.size(); firstStatic++) {
+      final boolean isStatic = allStatements.get(firstStatic).startsWith("SELECT ");
+      if (isStatic) {
+        break;
+      }
+    }
+
+    final List<String> nonStatics = IntStream.range(0, firstStatic)
+        .mapToObj(allStatements::get)
+        .collect(Collectors.toList());
+
+    final Optional<List<KsqlEntity>> results = sendStatements(testCase, nonStatics);
+    if (!results.isPresent()) {
+      return Optional.empty();
+    }
+
+    final List<String> statics = IntStream.range(firstStatic, allStatements.size())
+        .mapToObj(allStatements::get)
+        .collect(Collectors.toList());
+
+    if (statics.isEmpty()) {
+      failIfExpectingError(testCase);
+      return results;
+    }
+
+    if (!testCase.expectedError().isPresent()
+        && testCase.getExpectedResponses().size() > firstStatic
+    ) {
+      final String firstStaticStatement = statics.get(0);
+      final Response firstStaticResponse = testCase.getExpectedResponses().get(firstStatic);
+
+      waitForWarmStateStores(firstStaticStatement, firstStaticResponse);
+    }
+
+    final Optional<List<KsqlEntity>> moreResults = sendStatements(testCase, statics);
+    if (!moreResults.isPresent()) {
+      return Optional.empty();
+    }
+
+    failIfExpectingError(testCase);
+
+    return moreResults
+        .map(ksqlEntities -> ImmutableList.<KsqlEntity>builder()
+            .addAll(results.get())
+            .addAll(ksqlEntities)
+            .build());
+  }
+
+  private Optional<List<KsqlEntity>> sendStatements(
+      final RestTestCase testCase,
+      final List<String> statements
+  ) {
+    final String sql = statements.stream()
         .collect(Collectors.joining(System.lineSeparator()));
 
-    final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(statements);
+    final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(sql);
 
     if (resp.isErroneous()) {
       final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
@@ -163,11 +226,6 @@ public class RestTestExecutor implements Closeable {
       assertThat(reason, resp, expectedError.get());
       return Optional.empty();
     }
-
-    testCase.expectedError().map(ee -> {
-      throw new AssertionError("Expected last statement to return an error: "
-          + StringDescription.toString(ee));
-    });
 
     return Optional.of(resp.getResponse());
   }
@@ -198,11 +256,10 @@ public class RestTestExecutor implements Closeable {
   }
 
   private static void verifyResponses(
-      final RestTestCase testCase,
-      final List<KsqlEntity> actualResponses
+      final List<KsqlEntity> actualResponses,
+      final List<Response> expectedResponses,
+      final List<String> statements
   ) {
-    final List<Response> expectedResponses = testCase.getExpectedResponses();
-
     assertThat(
         "Not enough responses",
         actualResponses,
@@ -216,12 +273,19 @@ public class RestTestExecutor implements Closeable {
       // Expected does not need to include everything, only needs to be tested:
       for (final Entry<String, Object> e : expected.entrySet()) {
         final String key = e.getKey();
-        final Object value = replaceMacros(e.getValue(), testCase.getStatements(), idx);
+        final Object value = replaceMacros(e.getValue(), statements, idx);
         final String baseReason = "Response mismatch at index " + idx;
         assertThat(baseReason, actual, hasKey(key));
         assertThat(baseReason + " on key: " + key, actual.get(key), is(value));
       }
     }
+  }
+
+  private static void failIfExpectingError(final RestTestCase testCase) {
+    testCase.expectedError().map(ee -> {
+      throw new AssertionError("Expected last statement to return an error: "
+          + StringDescription.toString(ee));
+    });
   }
 
   private static Object replaceMacros(
@@ -260,11 +324,11 @@ public class RestTestExecutor implements Closeable {
             + "with timestamp=" + actualTimestamp);
 
     if (!Objects.equals(actualKey, expectedKey)) {
-        throw error;
+      throw error;
     }
 
     if (!Objects.equals(actualValue, expectedValue)) {
-        throw error;
+      throw error;
     }
 
     if (actualTimestamp != expectedTimestamp) {
@@ -280,6 +344,40 @@ public class RestTestExecutor implements Closeable {
       });
     } catch (final Exception e) {
       throw new AssertionError("Failed to serialize response to JSON: " + response);
+    }
+  }
+
+  private void waitForWarmStateStores(
+      final String firstStaticStatement,
+      final Response firstStaticResponse
+  ) {
+    // Special handling for static queries is required, as they depend on materialized state stores
+    // being warmed up.  Initial requests may return null values.
+
+    final ImmutableList<Response> expectedResponse = ImmutableList.of(firstStaticResponse);
+    final ImmutableList<String> statements = ImmutableList.of(firstStaticStatement);
+
+    final long threshold = System.currentTimeMillis() + MAX_STATIC_WARMUP.toMillis();
+    while (System.currentTimeMillis() < threshold) {
+      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(firstStaticStatement);
+      if (resp.isErroneous()) {
+        Thread.yield();
+        LOG.info("Server responded with an error code to a static query. "
+            + "This could be because the materialized store is not yet warm.");
+        continue;
+      }
+
+      final KsqlEntityList actualResponses = resp.getResponse();
+
+      try {
+        verifyResponses(actualResponses, expectedResponse, statements);
+        return;
+      } catch (final AssertionError e) {
+        // Potentially, state stores not warm yet
+        LOG.info("Server responded with incorrect result to a static query. "
+            + "This could be because the materialized store is not yet warm.", e);
+        Thread.yield();
+      }
     }
   }
 }

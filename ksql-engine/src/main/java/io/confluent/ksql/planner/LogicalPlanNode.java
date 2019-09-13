@@ -23,10 +23,12 @@ public final class LogicalPlanNode {
 
   private final String statementText;
   private final Optional<OutputNode> node;
+  private long offset;
 
   public LogicalPlanNode(final String statementText, final Optional<OutputNode> node) {
     this.statementText = Objects.requireNonNull(statementText, "statementText");
     this.node = Objects.requireNonNull(node, "node");
+    this.offset = -1L;
   }
 
   public String getStatementText() {
@@ -35,5 +37,13 @@ public final class LogicalPlanNode {
 
   public Optional<OutputNode> getNode() {
     return node;
+  }
+
+  public void setOffset(final long offset) {
+    this.offset = offset;
+  }
+
+  public long getOffset() {
+    return offset;
   }
 }

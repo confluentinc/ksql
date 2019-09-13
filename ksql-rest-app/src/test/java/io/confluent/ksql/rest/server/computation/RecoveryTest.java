@@ -121,7 +121,8 @@ public class RecoveryTest {
                   true,
                   Collections.emptyMap(),
                   statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
-              Optional.empty()));
+              Optional.empty(),
+              commandSequenceNumber));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
 
@@ -526,7 +527,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT C1 FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT C2 FROM A;"
     );
@@ -538,7 +539,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "TERMINATE CSAS_B_1;"
     );
     shouldRecover(commands);
   }
@@ -548,7 +549,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);
@@ -560,7 +561,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B DELETE TOPIC;"
     );
 
@@ -593,11 +594,11 @@ public class RecoveryTest {
     );
     server2.executeCommands();
     server1.submitCommands(
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE InsertQuery_1;"
+        "TERMINATE InsertQuery_3;"
     );
-    server2.submitCommands("TERMINATE CSAS_B_0;");
+    server2.submitCommands("TERMINATE CSAS_B_1;");
     shouldRecover(commands);
   }
 
@@ -606,7 +607,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "TERMINATE CSAS_B_1;"
     );
     server2.executeCommands();
     server1.submitCommands("INSERT INTO B SELECT * FROM A;");
@@ -625,7 +626,7 @@ public class RecoveryTest {
     server2.executeCommands();
     server1.submitCommands("INSERT INTO B SELECT * FROM A;");
     server2.submitCommands("DROP STREAM B;");
-    server1.submitCommands("TERMINATE InsertQuery_0;");
+    server1.submitCommands("TERMINATE InsertQuery_2;");
     shouldRecover(commands);
   }
 
@@ -670,5 +671,51 @@ public class RecoveryTest {
     assertThat(
         recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
         contains("A"));
+  }
+
+  @Test
+  public void shouldUseOldQueryIdGenerationAndNewGeneration() {
+    commands.addAll(
+            ImmutableList.of(
+                new QueuedCommand(
+                    new CommandId(Type.STREAM, "A", Action.CREATE),
+                    new Command(
+                        "CREATE STREAM A (COLUMN STRING) "
+                                + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                        false,
+                        Collections.emptyMap(),
+                        null
+                    ),
+                    0
+                ),
+                new QueuedCommand(
+                    new CommandId(Type.STREAM, "A", Action.CREATE),
+                    new Command(
+                        "CREATE STREAM B AS SELECT * FROM A;",
+                        false,
+                        Collections.emptyMap(),
+                        null
+                    ),
+                    1
+                ),
+                new QueuedCommand(
+                    new CommandId(Type.STREAM, "A", Action.CREATE),
+                    new Command(
+                        "CREATE STREAM C AS SELECT * FROM A;",
+                        true,
+                        Collections.emptyMap(),
+                        null
+                    ),
+                    2
+                )
+            )
+    );
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries()).keySet();
+
+    assertThat(
+        queryIdNames,
+        contains(new QueryId("CSAS_C_2"), new QueryId("CSAS_B_0")));
   }
 }

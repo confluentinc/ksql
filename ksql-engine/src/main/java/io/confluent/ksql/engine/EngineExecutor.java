@@ -97,6 +97,7 @@ final class EngineExecutor {
         return ExecuteResult.of(msg);
       }
 
+      logicalPlan.setOffset(statement.getOffset());
       final QueryMetadata query = queryEngine.buildPhysicalPlan(
           logicalPlan,
           ksqlConfig,

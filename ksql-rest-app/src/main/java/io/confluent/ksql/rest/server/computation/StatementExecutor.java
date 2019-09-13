@@ -117,7 +117,9 @@ public class StatementExecutor implements KsqlConfigurable {
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
         queuedCommand.getStatus(),
-        Mode.EXECUTE);
+        Mode.EXECUTE,
+        queuedCommand.getOffset()
+    );
   }
 
   void handleRestore(final QueuedCommand queuedCommand) {
@@ -127,7 +129,8 @@ public class StatementExecutor implements KsqlConfigurable {
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
         queuedCommand.getStatus(),
-        Mode.RESTORE
+        Mode.RESTORE,
+        queuedCommand.getOffset()
     );
   }
 
@@ -180,7 +183,8 @@ public class StatementExecutor implements KsqlConfigurable {
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     try {
       final String statementString = command.getStatement();
@@ -196,7 +200,7 @@ public class StatementExecutor implements KsqlConfigurable {
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
       executeStatement(
-          statement, command, commandId, commandStatusFuture, mode);
+          statement, command, commandId, commandStatusFuture, mode, offset);
     } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
@@ -213,19 +217,20 @@ public class StatementExecutor implements KsqlConfigurable {
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     String successMessage = "";
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode);
+      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
       final QualifiedName name = ((CreateAsSelect)statement.getStatement()).getName();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
     } else if (statement.getStatement() instanceof InsertInto) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode);
+      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
       successMessage = "Insert Into query is running with query ID: " + query.getQueryId();
     } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
@@ -305,7 +310,8 @@ public class StatementExecutor implements KsqlConfigurable {
   private PersistentQueryMetadata startQuery(
       final PreparedStatement<?> statement,
       final Command command,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
 
@@ -314,8 +320,10 @@ public class StatementExecutor implements KsqlConfigurable {
           ksqlEngine, mergedConfig, statement.getStatementText());
     }
 
-    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-        statement, command.getOverwriteProperties(), mergedConfig);
+    final ConfiguredStatement<?> configured = command.getUseOffsetAsQueryID()
+        ? ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig, offset)
+            : ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
+
     final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
         .getQuery()
         .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));

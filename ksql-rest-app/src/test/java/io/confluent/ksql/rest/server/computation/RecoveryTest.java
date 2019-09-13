@@ -118,6 +118,7 @@ public class RecoveryTest {
               commandId,
               new Command(
                   statement.getStatementText(),
+                  true,
                   Collections.emptyMap(),
                   statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
               Optional.empty()));
@@ -578,7 +579,7 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", ImmutableMap.of(), ImmutableMap.of()))
+            new Command("DROP STREAM B DELETE TOPIC;", true, ImmutableMap.of(), ImmutableMap.of()))
     ));
 
     assertThat(topicClient.listTopicNames(), hasItem("B"));
@@ -637,6 +638,7 @@ public class RecoveryTest {
                 new Command(
                     "CREATE STREAM A (COLUMN STRING) "
                         + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                    true,
                     Collections.emptyMap(),
                     null
                 )
@@ -645,6 +647,7 @@ public class RecoveryTest {
                 new CommandId(Type.STREAM, "A", Action.CREATE),
                 new Command(
                     "CREATE STREAM B AS SELECT * FROM A;",
+                    true,
                     Collections.emptyMap(),
                     null
                 )
@@ -659,7 +662,7 @@ public class RecoveryTest {
     commands.add(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B;", Collections.emptyMap(), null)
+            new Command("DROP STREAM B;", true, Collections.emptyMap(), null)
         )
     );
     final KsqlServer recovered = new KsqlServer(commands);

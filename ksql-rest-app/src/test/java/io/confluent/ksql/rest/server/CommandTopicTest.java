@@ -173,9 +173,9 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
-            new ConsumerRecord<>("topic", 0, 0, commandId2, command2)))
+            new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
         .thenReturn(someConsumerRecords(
-            new ConsumerRecord<>("topic", 0, 0, commandId3, command3)))
+            new ConsumerRecord<>("topic", 0, 2, commandId3, command3)))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
@@ -187,11 +187,35 @@ public class CommandTopicTest {
     assertThat(topicPartitionsCaptor.getValue(),
         equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
-        new QueuedCommand(commandId1, command1, Optional.empty()),
-        new QueuedCommand(commandId2, command2, Optional.empty()),
-        new QueuedCommand(commandId3, command3, Optional.empty()))));
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 2L))));
   }
 
+  @Test
+  public void shouldHaveOffsetsInQueuedCommands() {
+    // Given:
+    when(commandConsumer.poll(any(Duration.class)))
+            .thenReturn(someConsumerRecords(
+                    new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
+                    new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
+            .thenReturn(someConsumerRecords(
+                    new ConsumerRecord<>("topic", 0, 2, commandId3, command3)))
+            .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
+
+    // When:
+    final List<QueuedCommand> queuedCommandList = commandTopic
+            .getRestoreCommands(Duration.ofMillis(1));
+
+    // Then:
+    verify(commandConsumer).seekToBeginning(topicPartitionsCaptor.capture());
+    assertThat(topicPartitionsCaptor.getValue(),
+            equalTo(Collections.singletonList(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+    assertThat(queuedCommandList, equalTo(ImmutableList.of(
+            new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+            new QueuedCommand(commandId2, command2, Optional.empty(),1L),
+            new QueuedCommand(commandId3, command3, Optional.empty(), 2L))));
+  }
 
   @Test
   public void shouldGetRestoreCommandsCorrectlyWithDuplicateKeys() {
@@ -199,10 +223,10 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
-            new ConsumerRecord<>("topic", 0, 0, commandId2, command2)))
+            new ConsumerRecord<>("topic", 0, 1, commandId2, command2)))
         .thenReturn(someConsumerRecords(
-            new ConsumerRecord<>("topic", 0, 0, commandId2, command3),
-            new ConsumerRecord<>("topic", 0, 0, commandId3, command3)))
+            new ConsumerRecord<>("topic", 0, 2, commandId2, command3),
+            new ConsumerRecord<>("topic", 0, 3, commandId3, command3)))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
     // When:
@@ -211,10 +235,10 @@ public class CommandTopicTest {
 
     // Then:
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
-        new QueuedCommand(commandId1, command1, Optional.empty()),
-        new QueuedCommand(commandId2, command2, Optional.empty()),
-        new QueuedCommand(commandId2, command3, Optional.empty()),
-        new QueuedCommand(commandId3, command3, Optional.empty()))));
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
+        new QueuedCommand(commandId2, command3, Optional.empty(), 2L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 3L))));
   }
 
 
@@ -224,8 +248,8 @@ public class CommandTopicTest {
     when(commandConsumer.poll(any(Duration.class)))
         .thenReturn(someConsumerRecords(
             new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
-            new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
-            new ConsumerRecord<>("topic", 0, 0, commandId2, null)
+            new ConsumerRecord<>("topic", 0, 1, commandId2, command2),
+            new ConsumerRecord<>("topic", 0, 2, commandId2, null)
         ))
         .thenReturn(new ConsumerRecords<>(Collections.emptyMap()));
 
@@ -235,8 +259,8 @@ public class CommandTopicTest {
 
     // Then:
     assertThat(queuedCommandList, equalTo(ImmutableList.of(
-        new QueuedCommand(commandId1, command1, Optional.empty()),
-        new QueuedCommand(commandId2, command2, Optional.empty()))));
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L))));
   }
 
   @Test
@@ -263,8 +287,8 @@ public class CommandTopicTest {
     // Given:
     final ConsumerRecords<CommandId, Command> records = someConsumerRecords(
         new ConsumerRecord<>("topic", 0, 0, commandId1, command1),
-        new ConsumerRecord<>("topic", 0, 0, commandId2, command2),
-        new ConsumerRecord<>("topic", 0, 0, commandId3, command3));
+        new ConsumerRecord<>("topic", 0, 1, commandId2, command2),
+        new ConsumerRecord<>("topic", 0, 2, commandId3, command3));
 
     when(commandTopic.getNewCommands(any()))
         .thenReturn(records)
@@ -275,9 +299,9 @@ public class CommandTopicTest {
 
     // Then:
     assertThat(commands, equalTo(Arrays.asList(
-        new QueuedCommand(commandId1, command1, Optional.empty()),
-        new QueuedCommand(commandId2, command2, Optional.empty()),
-        new QueuedCommand(commandId3, command3, Optional.empty())
+        new QueuedCommand(commandId1, command1, Optional.empty(), 0L),
+        new QueuedCommand(commandId2, command2, Optional.empty(), 1L),
+        new QueuedCommand(commandId3, command3, Optional.empty(), 2L)
     )));
   }
 

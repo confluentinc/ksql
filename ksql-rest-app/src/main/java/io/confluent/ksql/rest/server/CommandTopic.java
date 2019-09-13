@@ -127,7 +127,8 @@ public class CommandTopic {
             new QueuedCommand(
                 record.key(),
                 record.value(),
-                Optional.empty()));
+                Optional.empty(),
+                record.offset()));
       }
       records = commandConsumer.poll(duration);
     }

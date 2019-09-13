@@ -116,7 +116,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void setUp() {
     ksqlConfig = KsqlConfigTestUtil.create(
         CLUSTER,
-        ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "host:1234")
+        ImmutableMap.of(StreamsConfig.APPLICATION_SERVER_CONFIG, "http://host:1234")
     );
 
     final FakeKafkaTopicClient fakeKafkaTopicClient = new FakeKafkaTopicClient();

@@ -21,7 +21,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import java.util.List;
 import java.util.Map;
 import org.junit.Rule;

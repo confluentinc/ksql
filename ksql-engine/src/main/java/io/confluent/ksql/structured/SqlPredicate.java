@@ -37,7 +37,7 @@ import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
-class SqlPredicate {
+public class SqlPredicate {
 
   private final Expression filterExpression;
   private final LogicalSchema schema;
@@ -48,7 +48,7 @@ class SqlPredicate {
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private final ProcessingLogger processingLogger;
 
-  SqlPredicate(
+  public SqlPredicate(
       final Expression filterExpression,
       final LogicalSchema schema,
       final KsqlConfig ksqlConfig,
@@ -108,7 +108,7 @@ class SqlPredicate {
   }
 
 
-  <K> Predicate<K, GenericRow> getPredicate() {
+  public <K> Predicate<K, GenericRow> getPredicate() {
     final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
 
     return (key, row) -> {

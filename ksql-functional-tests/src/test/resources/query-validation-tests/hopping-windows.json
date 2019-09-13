@@ -109,6 +109,29 @@
       ]
     },
     {
+      "name": "count",
+      "statements": [
+        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
+        "CREATE TABLE S2 as SELECT count(1) as count FROM test WINDOW HOPPING (SIZE 5 SECOND, ADVANCE BY 1 SECONDS) group by id;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"id": 0}, "timestamp": 10345},
+        {"topic": "test_topic", "key": 0, "value": {"id": 0}, "timestamp": 13251}
+      ],
+      "outputs": [
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 6000, "end": 11000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 7000, "end": 12000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 8000, "end": 13000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 9000, "end": 14000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 10345, "window": {"start": 10000, "end": 15000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":2}, "timestamp": 13251, "window": {"start": 9000, "end": 14000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":2}, "timestamp": 13251, "window": {"start": 10000, "end": 15000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 13251, "window": {"start": 11000, "end": 16000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 13251, "window": {"start": 12000, "end": 17000, "type": "time"}},
+        {"topic": "S2", "key": 0, "value": {"COUNT":1}, "timestamp": 13251, "window": {"start": 13000, "end": 18000, "type": "time"}}
+      ]
+    },
+    {
       "name": "import hopping table",
       "statements": [
         "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='HoPping', WINDOW_SIZE='30 seconds');",

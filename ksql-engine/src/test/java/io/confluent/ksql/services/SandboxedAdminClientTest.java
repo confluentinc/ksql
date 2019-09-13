@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.ElectLeadersOptions;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,16 +50,16 @@ public final class SandboxedAdminClientTest {
           .build();
     }
 
-    private final TestCase<AdminClient> testCase;
-    private AdminClient sandboxedAdminClient;
+    private final TestCase<Admin> testCase;
+    private Admin sandboxedAdminClient;
 
-    public UnsupportedMethods(final TestCase<AdminClient> testCase) {
+    public UnsupportedMethods(final TestCase<Admin> testCase) {
       this.testCase = Objects.requireNonNull(testCase, "testCase");
     }
 
     @Before
     public void setUp() {
-      sandboxedAdminClient = new SandboxedAdminClient();
+      sandboxedAdminClient = SandboxedAdminClient.createProxy();
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -71,11 +70,11 @@ public final class SandboxedAdminClientTest {
 
   public static class SupportedMethods {
 
-    private AdminClient sandboxedAdminClient;
+    private Admin sandboxedAdminClient;
 
     @Before
     public void setUp() {
-      sandboxedAdminClient = new SandboxedAdminClient();
+      sandboxedAdminClient = SandboxedAdminClient.createProxy();
     }
 
     @SuppressWarnings("deprecation")

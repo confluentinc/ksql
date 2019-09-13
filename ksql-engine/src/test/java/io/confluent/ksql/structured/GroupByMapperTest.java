@@ -20,11 +20,11 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
 import org.easymock.EasyMock;

@@ -17,13 +17,17 @@ package io.confluent.ksql.util;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.materialization.Materialization;
+import io.confluent.ksql.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
@@ -39,6 +43,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final String sinkName;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
+  private final Optional<MaterializationProvider> materializationProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public PersistentQueryMetadata(
@@ -50,6 +55,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final String executionPlan,
       final QueryId id,
       final DataSourceType dataSourceType,
+      final Optional<MaterializationProvider> materializationProvider,
       final String queryApplicationId,
       final KsqlTopic resultTopic,
       final Topology topology,
@@ -77,6 +83,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.sinkName = Objects.requireNonNull(sinkName, "sinkName");
     this.schemas = requireNonNull(schemas, "schemas");
     this.resultSchema = requireNonNull(schema, "schema");
+    this.materializationProvider =
+        requireNonNull(materializationProvider, "materializationProvider");
   }
 
   private PersistentQueryMetadata(
@@ -89,6 +97,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.sinkName = other.sinkName;
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
+    this.materializationProvider = other.materializationProvider;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
@@ -117,5 +126,11 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public PhysicalSchema getPhysicalSchema() {
     return resultSchema;
+  }
+
+  public Optional<Materialization> getMaterialization(
+      final QueryContext.Stacker contextStacker
+  ) {
+    return materializationProvider.map(builder -> builder.build(contextStacker));
   }
 }

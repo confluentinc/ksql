@@ -36,7 +36,7 @@ class SandboxedKafkaClientSupplier implements KafkaClientSupplier {
 
   @Override
   public Admin getAdmin(final Map<String, Object> config) {
-    return new SandboxedAdminClient();
+    return SandboxedAdminClient.createProxy();
   }
 
   @Override

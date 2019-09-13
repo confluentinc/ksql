@@ -535,7 +535,7 @@ public final class StaticQueryExecutor {
 
     final long threshold = System.currentTimeMillis() + OWNERSHIP_TIMEOUT.toMillis();
     while (System.currentTimeMillis() < threshold) {
-      final Optional<KsqlNode> owner = locator.owner(rowKey);
+      final Optional<KsqlNode> owner = locator.locate(rowKey);
       if (owner.isPresent()) {
         return owner.get();
       }
@@ -582,7 +582,8 @@ public final class StaticQueryExecutor {
   ) {
     final String additional = !windowed
         ? ""
-        : " - limits the time bounds of the windowed table. This can be: "
+        : System.lineSeparator()
+            + " - limits the time bounds of the windowed table. This can be: "
             + System.lineSeparator()
             + "    + a single window lower bound, e.g. `WHERE WINDOWSTART = z`, or"
             + System.lineSeparator()
@@ -590,7 +591,7 @@ public final class StaticQueryExecutor {
             + System.lineSeparator()
             + "WINDOWSTART currently supports operators: " + VALID_WINDOW_BOUNDS_TYPES_STRING
             + System.lineSeparator()
-            + "WINDOWSTART currently comparison with milliseconds "
+            + "WINDOWSTART currently comparison with epoch milliseconds "
             + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN;
 
     return new KsqlException(msg

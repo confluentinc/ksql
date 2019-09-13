@@ -109,7 +109,7 @@ class KsqlMaterialization implements Materialization {
     }
   }
 
-  class KsqlMaterializedWindowedTable implements MaterializedWindowedTable {
+  final class KsqlMaterializedWindowedTable implements MaterializedWindowedTable {
 
     private final MaterializedWindowedTable table;
 

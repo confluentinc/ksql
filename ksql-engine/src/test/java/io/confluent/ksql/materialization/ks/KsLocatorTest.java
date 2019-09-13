@@ -78,7 +78,7 @@ public class KsLocatorTest {
   @Test
   public void shouldRequestMetadata() {
     // When:
-    locator.owner(SOME_KEY);
+    locator.locate(SOME_KEY);
 
     // Then:
     verify(kafkaStreams).metadataForKey(STORE_NAME, SOME_KEY, keySerializer);
@@ -90,7 +90,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.empty());
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -102,7 +102,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.of(hostInfo));
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     final Optional<URL> url = result.map(KsqlNode::location);
@@ -120,7 +120,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.of(hostInfo));
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     assertThat(result.map(KsqlNode::isLocal), is(Optional.of(true)));
@@ -134,7 +134,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.of(hostInfo));
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     assertThat(result.map(KsqlNode::isLocal), is(Optional.of(true)));
@@ -148,7 +148,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.of(hostInfo));
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     assertThat(result.map(KsqlNode::isLocal), is(Optional.of(false)));
@@ -162,7 +162,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.of(hostInfo));
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     assertThat(result.map(KsqlNode::isLocal), is(Optional.of(false)));
@@ -176,7 +176,7 @@ public class KsLocatorTest {
     givenOwnerMetadata(Optional.of(hostInfo));
 
     // When:
-    final Optional<KsqlNode> result = locator.owner(SOME_KEY);
+    final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
     assertThat(result.map(KsqlNode::isLocal), is(Optional.of(false)));

@@ -36,7 +36,7 @@ public interface Locator {
    * @param key the required key.
    * @return the owning node, if known.
    */
-  Optional<KsqlNode> owner(Struct key);
+  Optional<KsqlNode> locate(Struct key);
 
 
   interface KsqlNode {

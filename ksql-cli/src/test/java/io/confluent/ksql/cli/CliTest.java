@@ -21,7 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -601,8 +601,8 @@ public class CliTest {
     );
 
     assertRunCommand(
-        "SELECT * FROM X WHERE ROWKEY='unknown';",
-        hasRow(is("unknown"), either(is("1")).or(is("null")))
+        "SELECT * FROM X WHERE ROWKEY='unknowwn';",
+        is(emptyIterable())
     );
   }
 
@@ -618,8 +618,8 @@ public class CliTest {
     // When:
     run("SELECT * FROM Y WHERE ROWKEY='ITEM_1';", localCli);
 
-    assertThat(terminal.getOutputString(), containsString("ROWKEY (STRING KEY)"));
-    assertThat(terminal.getOutputString(), containsString("COUNT (BIGINT)"));
+    assertThat(terminal.getOutputString(), containsString("ROWKEY STRING KEY"));
+    assertThat(terminal.getOutputString(), containsString("COUNT BIGINT"));
   }
 
   @Test

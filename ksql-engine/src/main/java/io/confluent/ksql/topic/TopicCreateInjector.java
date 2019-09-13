@@ -150,7 +150,7 @@ public class TopicCreateInjector implements Injector {
     final String sourceTopicName = extractor.getPrimaryKafkaTopicName();
 
     topicPropertiesBuilder
-        .withName(prefix + createAsSelect.getName().getSuffix())
+        .withName(prefix + createAsSelect.getName().name())
         .withSource(() -> topicClient.describeTopic(sourceTopicName))
         .withWithClause(
             properties.getKafkaTopic(),

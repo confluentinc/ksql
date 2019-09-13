@@ -309,8 +309,7 @@ public class AstBuilder {
       final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
       final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
 
-      final DataSource<?> target =
-          getSource(targetName.getSuffix(), targetLocation);
+      final DataSource<?> target = getSource(targetName.name(), targetLocation);
 
       if (target.getDataSourceType() != DataSourceType.KSTREAM) {
         throw new KsqlException(
@@ -568,7 +567,7 @@ public class AstBuilder {
         alias = ParserUtil.getIdentifierText(context.identifier());
       } else {
         if (selectItem instanceof QualifiedNameReference) {
-          alias = ((QualifiedNameReference) selectItem).getName().getSuffix();
+          alias = ((QualifiedNameReference) selectItem).getName().name();
         } else if (selectItem instanceof DereferenceExpression) {
           final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItem;
           final String dereferenceExpressionString = dereferenceExp.toString();
@@ -696,7 +695,7 @@ public class AstBuilder {
       if (context.STRING() != null) {
         topicName = QualifiedName.of(ParserUtil.unquote(context.STRING().getText(), "'"));
       } else {
-        topicName = ParserUtil.getQualifiedName(context.qualifiedName());
+        topicName = ParserUtil.getQualifiedNameCaseSensitive(context.qualifiedName());
       }
 
       final IntervalClauseContext intervalContext = context.printClause().intervalClause();
@@ -772,7 +771,7 @@ public class AstBuilder {
       switch (context.children.size()) {
         case 1:
           final Table table = (Table) visit(context.relationPrimary());
-          alias = table.getName().getSuffix();
+          alias = table.getName().name();
           break;
 
         case 2:

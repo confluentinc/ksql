@@ -210,7 +210,7 @@ public class ExpressionTypeManager {
         final QualifiedNameReference node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaColumn = schema.findValueColumn(node.getName().getSuffix())
+      final Column schemaColumn = schema.findValueColumn(node.getName().name())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
@@ -351,13 +351,13 @@ public class ExpressionTypeManager {
         final FunctionCall node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      if (functionRegistry.isAggregate(node.getName().getSuffix())) {
+      if (functionRegistry.isAggregate(node.getName().name())) {
         final Schema schema = node.getArguments().isEmpty()
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
             : getExpressionSchema(node.getArguments().get(0));
 
         final KsqlAggregateFunction aggFunc = functionRegistry
-            .getAggregate(node.getName().getSuffix(), schema);
+            .getAggregate(node.getName().name(), schema);
 
         final Schema returnSchema = aggFunc.getReturnType();
 
@@ -367,7 +367,7 @@ public class ExpressionTypeManager {
         return null;
       }
 
-      if (node.getName().getSuffix().equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
+      if (node.getName().name().equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
         process(node.getArguments().get(0), expressionTypeContext);
         final Schema firstArgSchema = expressionTypeContext.getSchema();
         final String fieldName = ((StringLiteral) node.getArguments().get(1)).getValue();
@@ -380,7 +380,7 @@ public class ExpressionTypeManager {
         final SqlType returnType = CONNECT_TO_SQL_SCHEMA_CONVERTER.toSqlType(returnSchema);
         expressionTypeContext.setSchema(returnType, returnSchema);
       } else {
-        final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().getSuffix());
+        final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
         final List<Schema> argTypes = new ArrayList<>();
         for (final Expression expression : node.getArguments()) {
           process(expression, expressionTypeContext);

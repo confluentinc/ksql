@@ -23,7 +23,7 @@ public final class Identifiers {
   }
 
   public static String escape(final String string, final FormatOptions formatOptions) {
-    return formatOptions.isReservedWord(string) ? "`" + string + "`" : string;
+    return formatOptions.escape(string);
   }
 
   public static String ensureTrimmed(final String string, final String description) {

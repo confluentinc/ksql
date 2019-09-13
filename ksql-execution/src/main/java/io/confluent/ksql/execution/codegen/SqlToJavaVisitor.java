@@ -17,7 +17,6 @@ package io.confluent.ksql.execution.codegen;
 
 import static java.lang.String.format;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
@@ -60,6 +59,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -74,7 +74,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -291,11 +290,8 @@ public class SqlToJavaVisitor {
     }
 
     private String formatQualifiedName(final QualifiedName name) {
-      final List<String> parts = new ArrayList<>();
-      for (final String part : name.getParts()) {
-        parts.add(formatIdentifier(part));
-      }
-      return Joiner.on('.').join(parts);
+      // for now, we don't escape anything in SqlToJavaVisitor
+      return name.toString(FormatOptions.of(word -> false));
     }
 
     public Pair<String, Schema> visitLongLiteral(
@@ -317,7 +313,7 @@ public class SqlToJavaVisitor {
     public Pair<String, Schema> visitFunctionCall(
         final FunctionCall node,
         final Void context) {
-      final String functionName = node.getName().getSuffix();
+      final String functionName = node.getName().name();
 
       final String instanceName = functionName + "_" + functionCounter++;
       final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
@@ -793,11 +789,6 @@ public class SqlToJavaVisitor {
     ) {
       return "(" + process(left, context).getLeft() + " " + operator + " "
           + process(right, context).getLeft() + ")";
-    }
-
-    private String formatIdentifier(final String s) {
-      // TODO: handle escaping properly
-      return s;
     }
 
     private String trimQuotes(final String s) {

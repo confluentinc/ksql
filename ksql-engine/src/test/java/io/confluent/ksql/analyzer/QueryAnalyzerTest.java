@@ -369,8 +369,8 @@ public class QueryAnalyzerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[ORDERS.ORDERTIME, ORDERS.ROWTIME, ORDERS.ROWKEY, ORDERS.ORDERUNITS, ORDERS.MAPCOL, "
-            + "ORDERS.ORDERID, ORDERS.ITEMINFO, ORDERS.ARRAYCOL, ORDERS.ADDRESS]"
+            + "[ORDERS.ADDRESS, ORDERS.ARRAYCOL, ORDERS.ITEMINFO, ORDERS.MAPCOL, ORDERS.ORDERID, "
+            + "ORDERS.ORDERTIME, ORDERS.ORDERUNITS, ORDERS.ROWKEY, ORDERS.ROWTIME]"
     );
 
     // When:

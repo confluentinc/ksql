@@ -54,7 +54,7 @@ public class CreateStreamAsSelect extends CreateAsSelect {
 
   @Override
   public Sink getSink() {
-    return Sink.of(getName().getSuffix(), true, getProperties(), getPartitionByColumn());
+    return Sink.of(getName().name(), true, getProperties(), getPartitionByColumn());
   }
 
   @Override

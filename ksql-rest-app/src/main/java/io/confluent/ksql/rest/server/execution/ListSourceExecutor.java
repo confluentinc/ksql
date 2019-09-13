@@ -135,7 +135,7 @@ public final class ListSourceExecutor {
     final SourceDescriptionWithWarnings descriptionWithWarnings = describeSource(
         executionContext,
         serviceContext,
-        showColumns.getTable().getSuffix(),
+        showColumns.getTable().name(),
         showColumns.isExtended(),
         statement.getStatementText()
     );

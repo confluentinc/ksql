@@ -96,7 +96,7 @@ class AggregateAnalyzer {
 
     @Override
     public Void visitFunctionCall(final FunctionCall node, final Void context) {
-      final String functionName = node.getName().getSuffix();
+      final String functionName = node.getName().name();
       final boolean aggregateFunc = functionRegistry.isAggregate(functionName);
 
       final FunctionCall functionCall = aggregateFunc && node.getArguments().isEmpty()

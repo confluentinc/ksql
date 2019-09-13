@@ -17,6 +17,7 @@ package io.confluent.ksql.schema.connect;
 
 import static java.util.Objects.requireNonNull;
 
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.EnumSet;
@@ -54,7 +55,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
   }
 
   private final Set<Option> options;
-  private final Predicate<String> reservedWordPredicate;
+  private final FormatOptions formatOptions;
 
   /**
    * Construct instance.
@@ -82,7 +83,9 @@ public class SqlSchemaFormatter implements SchemaFormatter {
         ? EnumSet.noneOf(Option.class)
         : EnumSet.of(options[0], options);
 
-    this.reservedWordPredicate = requireNonNull(reservedWordPredicate, "reservedWordPredicate");
+    this.formatOptions = FormatOptions.of(
+        requireNonNull(reservedWordPredicate, "reservedWordPredicate")
+    );
   }
 
   @Override
@@ -92,10 +95,6 @@ public class SqlSchemaFormatter implements SchemaFormatter {
     return options.contains(Option.AS_COLUMN_LIST)
         ? stripTopLevelStruct(converted)
         : converted;
-  }
-
-  private String quoteIfReserved(final String value) {
-    return reservedWordPredicate.test(value) ? "`" + value + "`" : value;
   }
 
   private String typePostFix(final Schema schema) {
@@ -182,7 +181,7 @@ public class SqlSchemaFormatter implements SchemaFormatter {
       final Schema schema = field.schema();
       final String typePostFix = typePostFix(schema);
 
-      return quoteIfReserved(field.name()) + " " + type + typePostFix;
+      return formatOptions.escape(field.name()) + " " + type + typePostFix;
     }
   }
 }

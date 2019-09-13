@@ -70,7 +70,7 @@ public class InsertInto
 
   @Override
   public Sink getSink() {
-    return Sink.of(target.getSuffix(), false, CreateSourceAsProperties.none(), partitionByColumn);
+    return Sink.of(target.name(), false, CreateSourceAsProperties.none(), partitionByColumn);
   }
 
   @Override

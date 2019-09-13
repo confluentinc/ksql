@@ -15,67 +15,77 @@
 
 package io.confluent.ksql.execution.expression.tree;
 
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.collect.Iterables.isEmpty;
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.google.errorprone.annotations.Immutable;
-import java.util.List;
+import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.util.KsqlConstants;
+import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * A name, optionally disambiguated by a qualifier.
+ */
 @Immutable
 public final class QualifiedName {
 
-  private final ImmutableList<String> parts;
+  private final Optional<String> qualifier;
+  private final String name;
 
-  public static QualifiedName of(final String first, final String... rest) {
-    requireNonNull(first, "first is null");
-    return of(ImmutableList.copyOf(Lists.asList(first, rest)));
+  /**
+   * Creates a {@code QualifiedName} with the following qualifier and name. A qualified name
+   * can represent a disambiguation of a specific name using an additional qualifier.
+   *
+   * <p>For example, if two sources {@code A} and {@code B} have the same field {@code foo},
+   * they can be disambiguated by referring to the field with its fully qualified name -
+   * {@code A.foo} and {@code B.foo}</p>
+   *
+   * @param qualifier the qualifier, optionally empty
+   * @param name      the name
+   * @return a {@code QualifiedName} wrapping the {@code qualifier} and the {@code name}.
+   */
+  public static QualifiedName of(final Optional<String> qualifier, final String name) {
+    return new QualifiedName(qualifier, name);
   }
 
+  /**
+   * @see #of(Optional, String)
+   */
+  public static QualifiedName of(final String qualifier, final String name) {
+    return new QualifiedName(Optional.of(qualifier), name);
+  }
+
+  /**
+   * @see #of(Optional, String)
+   */
   public static QualifiedName of(final String name) {
-    requireNonNull(name, "name is null");
-    return of(ImmutableList.of(name));
+    return new QualifiedName(Optional.empty(), name);
   }
 
-  public static QualifiedName of(final Iterable<String> parts) {
-    requireNonNull(parts, "parts is null");
-    checkArgument(!isEmpty(parts), "parts is empty");
-    return new QualifiedName(ImmutableList.copyOf(parts));
+  private QualifiedName(final Optional<String> qualifier, final String name) {
+    this.qualifier = requireNonNull(qualifier, "qualifier");
+    this.name = requireNonNull(name, "name");
   }
 
-  private QualifiedName(final ImmutableList<String> parts) {
-    this.parts = requireNonNull(parts, "parts");
+  public Optional<String> qualifier() {
+    return qualifier;
   }
 
-  public List<String> getParts() {
-    return parts;
+  public String name() {
+    return name;
   }
 
   @Override
   public String toString() {
-    return Joiner.on('.').join(parts);
+    // don't escape anything in the generic toString case
+    return toString(FormatOptions.of(word -> false));
   }
 
-  /**
-   * For an identifier of the form "a.b.c.d", returns "a.b.c"
-   * For an identifier of the form "a", returns absent
-   */
-  public Optional<QualifiedName> getPrefix() {
-    if (parts.size() == 1) {
-      return Optional.empty();
-    }
-
-    final ImmutableList<String> subList = parts.subList(0, parts.size() - 1);
-    return Optional.of(new QualifiedName(subList));
-  }
-
-  public String getSuffix() {
-    return Iterables.getLast(parts);
+  public String toString(final FormatOptions formatOptions) {
+    final String escaped = formatOptions.escape(name);
+    return qualifier
+        .map(q -> formatOptions.escape(q) + KsqlConstants.DOT + escaped)
+        .orElse(escaped);
   }
 
   @Override
@@ -86,11 +96,13 @@ public final class QualifiedName {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    return parts.equals(((QualifiedName) o).parts);
+    final QualifiedName that = (QualifiedName) o;
+    return Objects.equals(qualifier, that.qualifier)
+        && Objects.equals(name, that.name);
   }
 
   @Override
   public int hashCode() {
-    return parts.hashCode();
+    return Objects.hash(qualifier, name);
   }
 }

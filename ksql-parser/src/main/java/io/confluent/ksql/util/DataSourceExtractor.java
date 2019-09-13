@@ -123,7 +123,7 @@ public class DataSourceExtractor {
       final String alias;
       switch (context.children.size()) {
         case 1:
-          alias = table.getName().getSuffix().toUpperCase();
+          alias = table.getName().name().toUpperCase();
           break;
 
         case 2:
@@ -143,9 +143,9 @@ public class DataSourceExtractor {
 
       if (!isJoin) {
         fromAlias = alias;
-        fromName = table.getName().getSuffix().toUpperCase();
-        if (metaStore.getSource(table.getName().getSuffix()) == null) {
-          throw new KsqlException(table.getName().getSuffix() + " does not exist.");
+        fromName = table.getName().name().toUpperCase();
+        if (metaStore.getSource(table.getName().name()) == null) {
+          throw new KsqlException(table.getName().name() + " does not exist.");
         }
 
         return null;
@@ -159,24 +159,24 @@ public class DataSourceExtractor {
       isJoin = true;
       final AliasedRelation left = (AliasedRelation) visit(context.left);
       leftAlias = left.getAlias();
-      leftName = ((Table) left.getRelation()).getName().getSuffix();
+      leftName = ((Table) left.getRelation()).getName().name();
       final DataSource
           leftDataSource =
-          metaStore.getSource(((Table) left.getRelation()).getName().getSuffix());
+          metaStore.getSource(((Table) left.getRelation()).getName().name());
       if (leftDataSource == null) {
-        throw new KsqlException(((Table) left.getRelation()).getName().getSuffix() + " does not "
+        throw new KsqlException(((Table) left.getRelation()).getName().name() + " does not "
             + "exist.");
       }
       addFieldNames(leftDataSource.getSchema(), leftFieldNames);
 
       final AliasedRelation right = (AliasedRelation) visit(context.right);
       rightAlias = right.getAlias();
-      rightName = ((Table) right.getRelation()).getName().getSuffix();
+      rightName = ((Table) right.getRelation()).getName().name();
       final DataSource
           rightDataSource =
-          metaStore.getSource(((Table) right.getRelation()).getName().getSuffix());
+          metaStore.getSource(((Table) right.getRelation()).getName().name());
       if (rightDataSource == null) {
-        throw new KsqlException(((Table) right.getRelation()).getName().getSuffix() + " does not "
+        throw new KsqlException(((Table) right.getRelation()).getName().name() + " does not "
             + "exist.");
       }
       addFieldNames(rightDataSource.getSchema(), rightFieldNames);

@@ -4,6 +4,7 @@ docs/_build/
 dist/
 node/
 node_modules/
+logs/
 
 # IntelliJ data
 *.iml

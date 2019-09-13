@@ -24,13 +24,11 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.SelectValueMapper;
-import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

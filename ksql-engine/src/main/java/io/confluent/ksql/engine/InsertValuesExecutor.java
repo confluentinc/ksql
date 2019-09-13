@@ -33,6 +33,8 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
@@ -45,6 +47,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.HashMap;
@@ -179,6 +182,10 @@ public class InsertValuesExecutor {
 
       throw new KsqlException("Failed to insert values into stream/table: "
           + insertValues.getTarget().name(), rootCause);
+    } catch (KsqlException e) {
+      throw new KsqlStatementException(
+          "Failed to insert values into stream/table: " + e.getMessage(),
+          statement.getStatementText(), e);
     } catch (final Exception e) {
       throw new KsqlException("Failed to insert values into stream/table: "
           + insertValues.getTarget().name(), e);
@@ -466,10 +473,18 @@ public class InsertValuesExecutor {
       }
 
       return defaultSqlValueCoercer.coerce(value, fieldType)
-          .orElseThrow(() -> new KsqlException(
-              "Expected type " + fieldType
-                  + " for field " + fieldName
-                  + " but got " + value));
+          .orElseThrow(() -> {
+            final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
+                .toSqlType(value.getClass());
+
+            return new KsqlException(
+                String.format("Expected type %s for field %s but got %s(%s)",
+                    fieldType,
+                    fieldName,
+                    valueSqlType,
+                    value));
+
+          });
     }
   }
 }

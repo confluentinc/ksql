@@ -141,6 +141,15 @@ public class DefaultSqlValueCoercerTest {
   }
 
   @Test
+  public void shouldNotCoerceIntegerIntoString() {
+    // Given:
+    final int val = 23;
+
+    // Expect:
+    assertThat(coercer.coerce(val, SqlTypes.STRING), is(Optional.empty()));
+  }
+
+  @Test
   public void shouldThrowIfInvalidCoercionString() {
     // Given:
     final String val = "hello";

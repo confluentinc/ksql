@@ -65,6 +65,7 @@ import io.confluent.ksql.parser.tree.ListQueries;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -531,6 +532,36 @@ public class KsqlParserTest {
     assertThat(result.getProperties().getKeyField(), equalTo(Optional.of("userid")));
   }
 
+  @Test
+  public void testPrintTopicNameLowerCase() {
+    // When:
+    final PrintTopic result = (PrintTopic) KsqlParserTestUtil.buildSingleAst(
+        "PRINT topic_name_in_lower_case;", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getTopic().toString(), equalTo("topic_name_in_lower_case"));
+  }
+
+  @Test
+  public void testPrintTopicNameUpperCase() {
+    // When:
+    final PrintTopic result = (PrintTopic) KsqlParserTestUtil.buildSingleAst(
+        "PRINT TOPIC_NAME_IN_UPPER_CASE;", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getTopic().toString(), equalTo("TOPIC_NAME_IN_UPPER_CASE"));
+  }
+
+  @Test
+  public void testPrintTopicNameQuoted() {
+    // When:
+    final PrintTopic result = (PrintTopic) KsqlParserTestUtil.buildSingleAst(
+        "PRINT 'topic_name_in_lower_case';", metaStore).getStatement();
+
+    // Then:
+    assertThat(result.getTopic().toString(), equalTo("topic_name_in_lower_case"));
+  }
+  
   @Test
   public void testCreateStreamAsSelect() {
     // Given:

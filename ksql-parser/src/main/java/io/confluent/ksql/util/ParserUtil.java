@@ -39,13 +39,24 @@ public final class ParserUtil {
   }
 
   public static String getIdentifierText(final SqlBaseParser.IdentifierContext context) {
+    return getIdentifierText(false, context);
+  }
+
+  private static String getIdentifierText(
+      final boolean caseSensitive,
+      final SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
       return unquote(context.getText(), "\"");
     } else if (context instanceof SqlBaseParser.BackQuotedIdentifierContext) {
       return unquote(context.getText(), "`");
     } else {
-      return context.getText().toUpperCase();
+      return caseSensitive ? context.getText() : context.getText().toUpperCase();
     }
+  }
+
+  public static String getIdentifierTextCaseSensitive(
+      final SqlBaseParser.IdentifierContext context) {
+    return getIdentifierText(true, context);
   }
 
   public static String unquote(final String value, final String quote) {
@@ -54,18 +65,30 @@ public final class ParserUtil {
   }
 
   public static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
+    return getQualifiedName(false, context);
+  }
+
+  private static QualifiedName getQualifiedName(
+      final boolean caseSensitive,
+      final SqlBaseParser.QualifiedNameContext context) {
+
     final Optional<String> qualifier;
     final String name;
 
     if (context.identifier(1) == null) {
       qualifier = Optional.empty();
-      name = ParserUtil.getIdentifierText(context.identifier(0));
+      name = ParserUtil.getIdentifierText(caseSensitive, context.identifier(0));
     } else {
       qualifier = Optional.of(ParserUtil.getIdentifierText(context.identifier(0)));
-      name = ParserUtil.getIdentifierText(context.identifier(1));
+      name = ParserUtil.getIdentifierText(caseSensitive, context.identifier(1));
     }
 
     return QualifiedName.of(qualifier, name);
+  }
+
+  public static QualifiedName getQualifiedNameCaseSensitive(
+      final SqlBaseParser.QualifiedNameContext context) {
+    return getQualifiedName(true, context);
   }
 
   public static int processIntegerNumber(final NumberContext number, final String context) {

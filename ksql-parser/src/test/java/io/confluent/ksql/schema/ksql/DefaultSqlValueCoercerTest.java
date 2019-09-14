@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
@@ -60,93 +61,92 @@ public class DefaultSqlValueCoercerTest {
   }
 
   @Test
-  public void shouldOnlyCoerceNonNumberTypesToSelf() {
-    ImmutableMap.of(
-        SqlTypes.BOOLEAN, true,
-        SqlTypes.STRING, "self"
-    ).forEach((sqlType, value) -> {
-
-      assertThat(coercer.coerce(value, sqlType), is(Optional.of(value)));
-      assertThat(coercer.coerce(value, SqlTypes.INTEGER), is(Optional.empty()));
-    });
+  public void shouldCoerceToBoolean() {
+    assertThat(coercer.coerce(true, SqlTypes.BOOLEAN), is(Optional.of(true)));
   }
 
   @Test
-  public void shouldUpCastInt() {
-    // Given:
-    final int val = 1;
-
-    // Then:
-    assertThat(coercer.coerce(val, SqlTypes.INTEGER), is(Optional.of(1)));
-    assertThat(coercer.coerce(val, SqlTypes.BIGINT), is(Optional.of(1L)));
-    assertThat(coercer.coerce(val, SqlTypes.DOUBLE), is(Optional.of(1D)));
+  public void shouldNotCoerceToBoolean() {
+    assertThat(coercer.coerce("true", SqlTypes.BOOLEAN), is(Optional.empty()));
+    assertThat(coercer.coerce(1, SqlTypes.BOOLEAN), is(Optional.empty()));
+    assertThat(coercer.coerce(1l, SqlTypes.BOOLEAN), is(Optional.empty()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.BOOLEAN), is(Optional.empty()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BOOLEAN), is(Optional.empty()));
   }
 
   @Test
-  public void shouldUpCastBigInt() {
-    // Given:
-    final long val = 1L;
-
-    // Then:
-    assertThat(coercer.coerce(val, SqlTypes.BIGINT), is(Optional.of(1L)));
-    assertThat(coercer.coerce(val, SqlTypes.DOUBLE), is(Optional.of(1D)));
+  public void shouldCoerceToInteger() {
+    assertThat(coercer.coerce(1, SqlTypes.INTEGER), is(Optional.of(1)));
   }
 
   @Test
-  public void shouldUpCastDouble() {
-    // Given:
-    final double val = 1D;
-
-    // Then:
-    assertThat(coercer.coerce(val, SqlTypes.DOUBLE), is(Optional.of(1D)));
+  public void shouldNotCoerceToInteger() {
+    assertThat(coercer.coerce(true, SqlTypes.INTEGER), is(Optional.empty()));
+    assertThat(coercer.coerce(1l, SqlTypes.INTEGER), is(Optional.empty()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.INTEGER), is(Optional.empty()));
+    assertThat(coercer.coerce("1", SqlTypes.INTEGER), is(Optional.empty()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.INTEGER), is(Optional.empty()));
   }
 
   @Test
-  public void shouldNotDownCastLong() {
-    // Given:
-    final long val = 1L;
-
-    // Expect:
-    assertThat(coercer.coerce(val, SqlTypes.INTEGER), is(Optional.empty()));
+  public void shouldCoerceToBigInt() {
+    assertThat(coercer.coerce(1, SqlTypes.BIGINT), is(Optional.of(1l)));
+    assertThat(coercer.coerce(1l, SqlTypes.BIGINT), is(Optional.of(1l)));
   }
 
   @Test
-  public void shouldNotDownCastDouble() {
-    // Given:
-    final double val = 1d;
-
-    // Expect:
-    assertThat(coercer.coerce(val, SqlTypes.INTEGER), is(Optional.empty()));
-    assertThat(coercer.coerce(val, SqlTypes.BIGINT), is(Optional.empty()));
+  public void shouldNotCoerceToBigInt() {
+    assertThat(coercer.coerce(true, SqlTypes.BIGINT), is(Optional.empty()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.BIGINT), is(Optional.empty()));
+    assertThat(coercer.coerce("1", SqlTypes.BIGINT), is(Optional.empty()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.BIGINT), is(Optional.empty()));
   }
 
   @Test
-  public void shouldCoerceNumberToDecimal() {
-    // Given:
-    final Object[] values = new Object[]{1, 1L, 1.0d};
-
-    // Expect:
-    for (final Object val : values) {
-      assertThat(coercer.coerce(val, SqlTypes.decimal(2, 1)), is(Optional.of(new BigDecimal("1.0"))));
-    }
+  public void shouldCoerceToDouble() {
+    assertThat(coercer.coerce(1, SqlTypes.DOUBLE), is(Optional.of(1.0d)));
+    assertThat(coercer.coerce(1l, SqlTypes.DOUBLE), is(Optional.of(1.0d)));
+    assertThat(coercer.coerce(1.0d, SqlTypes.DOUBLE), is(Optional.of(1.0d)));
   }
 
   @Test
-  public void shouldCoerceStringToDecimal() {
-    // Given:
-    final String val = "1.0";
-
-    // Expect:
-    assertThat(coercer.coerce(val, SqlTypes.decimal(2, 1)), is(Optional.of(new BigDecimal("1.0"))));
+  public void shouldNotCoerceToDouble() {
+    assertThat(coercer.coerce(true, SqlTypes.DOUBLE), is(Optional.empty()));
+    assertThat(coercer.coerce("1", SqlTypes.DOUBLE), is(Optional.empty()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.DOUBLE), is(Optional.empty()));
   }
 
   @Test
-  public void shouldNotCoerceIntegerIntoString() {
-    // Given:
-    final int val = 23;
+  public void shouldCoerceToString() {
+    assertThat(coercer.coerce("foobar", SqlTypes.STRING), is(Optional.of("foobar")));
+  }
 
-    // Expect:
-    assertThat(coercer.coerce(val, SqlTypes.STRING), is(Optional.empty()));
+  @Test
+  public void shouldNotCoerceToString() {
+    assertThat(coercer.coerce(true, SqlTypes.STRING), is(Optional.empty()));
+    assertThat(coercer.coerce(1, SqlTypes.STRING), is(Optional.empty()));
+    assertThat(coercer.coerce(1l, SqlTypes.STRING), is(Optional.empty()));
+    assertThat(coercer.coerce(1.0d, SqlTypes.STRING), is(Optional.empty()));
+    assertThat(coercer.coerce(new BigDecimal(123), SqlTypes.STRING), is(Optional.empty()));
+  }
+
+
+  @Test
+  public void shouldCoerceToDecimal() {
+    SqlType decimalType = SqlTypes.decimal(2, 1);
+    assertThat(coercer.coerce(1, decimalType), is(Optional.of(new BigDecimal("1.0"))));
+    assertThat(coercer.coerce(1l, decimalType), is(Optional.of(new BigDecimal("1.0"))));
+    assertThat(coercer.coerce(1.0d, decimalType),
+        is(Optional.of(new BigDecimal("1.0"))));
+    assertThat(coercer.coerce("1.0", decimalType),
+        is(Optional.of(new BigDecimal("1.0"))));
+    assertThat(coercer.coerce(new BigDecimal("1.0"), decimalType),
+        is(Optional.of(new BigDecimal("1.0"))));
+  }
+
+  @Test
+  public void shouldNotCoerceToDecimal() {
+    assertThat(coercer.coerce(true, SqlTypes.STRING), is(Optional.empty()));
   }
 
   @Test

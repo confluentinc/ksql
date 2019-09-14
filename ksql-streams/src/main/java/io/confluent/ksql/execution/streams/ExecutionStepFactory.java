@@ -215,7 +215,8 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamSelectKey<KStream<K, GenericRow>> streamSelectKey(
+  @SuppressWarnings("unchecked")
+  public static <K> StreamSelectKey<K> streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStream<K, GenericRow>> source,
       final String fieldName,

@@ -174,14 +174,13 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamTableJoin<KStream<K, GenericRow>, KTable<K, GenericRow>>
-      streamTableJoin(
-          final QueryContext.Stacker stacker,
-          final JoinType joinType,
-          final Formats formats,
-          final ExecutionStep<KStream<K, GenericRow>> left,
-          final ExecutionStep<KTable<K, GenericRow>> right,
-          final LogicalSchema resultSchema
+  public static <K> StreamTableJoin<K> streamTableJoin(
+      final QueryContext.Stacker stacker,
+      final JoinType joinType,
+      final Formats formats,
+      final ExecutionStep<KStream<K, GenericRow>> left,
+      final ExecutionStep<KTable<K, GenericRow>> right,
+      final LogicalSchema resultSchema
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamTableJoin<>(
@@ -193,7 +192,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamStreamJoin<KStream<K, GenericRow>> streamStreamJoin(
+  public static <K> StreamStreamJoin<K> streamStreamJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
       final Formats leftFormats,
@@ -286,7 +285,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> TableTableJoin<KTable<K, GenericRow>> tableTableJoin(
+  public static <K> TableTableJoin<K> tableTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
       final ExecutionStep<KTable<K, GenericRow>> left,

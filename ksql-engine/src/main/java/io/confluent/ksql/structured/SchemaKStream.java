@@ -41,6 +41,8 @@ import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.StreamStreamJoin;
+import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StreamFilterBuilder;
@@ -49,8 +51,9 @@ import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
 import io.confluent.ksql.execution.streams.StreamSelectKeyBuilder;
 import io.confluent.ksql.execution.streams.StreamSinkBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
+import io.confluent.ksql.execution.streams.StreamStreamJoinBuilder;
+import io.confluent.ksql.execution.streams.StreamTableJoinBuilder;
 import io.confluent.ksql.execution.streams.StreamToTableBuilder;
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -69,20 +72,17 @@ import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.Windowed;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -437,26 +437,15 @@ public class SchemaKStream<K> {
     }
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final ValueFormat valueFormat,
-      final Serde<GenericRow> leftValueSerDe,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
-    final KStream<K, GenericRow> joinedKStream =
-        kstream.leftJoin(
-            schemaKTable.getKtable(),
-            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema()),
-            streamsFactories.getJoinedFactory().create(
-                keySerde,
-                leftValueSerDe,
-                null,
-                StreamsUtil.buildOpName(contextStacker.getQueryContext()))
-        );
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamTableJoin(
+    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
         JoinType.LEFT,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
@@ -465,7 +454,14 @@ public class SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKStream<>(
-        joinedKStream,
+        StreamTableJoinBuilder.build(
+            kstream,
+            schemaKTable.getKtable(),
+            step,
+            (fmt, schema, qctx) -> keySerde,
+            queryBuilder,
+            streamsFactories.getJoinedFactory()
+        ),
         step,
         keyFormat,
         keySerde,
@@ -484,23 +480,10 @@ public class SchemaKStream<K> {
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
-      final Serde<GenericRow> leftSerde,
-      final Serde<GenericRow> rightSerde,
-      final QueryContext.Stacker contextStacker) {
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder) {
 
-    final KStream<K, GenericRow> joinStream =
-        kstream
-            .leftJoin(
-                otherSchemaKStream.kstream,
-                new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
-                joinWindows,
-                streamsFactories.getJoinedFactory().create(
-                    keySerde,
-                    leftSerde,
-                    rightSerde,
-                    StreamsUtil.buildOpName(contextStacker.getQueryContext()))
-            );
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamStreamJoin(
+    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.LEFT,
         Formats.of(keyFormat, leftFormat, SerdeOption.none()),
@@ -511,7 +494,14 @@ public class SchemaKStream<K> {
         joinWindows
     );
     return new SchemaKStream<>(
-        joinStream,
+        StreamStreamJoinBuilder.build(
+            kstream,
+            otherSchemaKStream.kstream,
+            step,
+            (fmt, schema, qctx) -> keySerde,
+            queryBuilder,
+            streamsFactories.getJoinedFactory()
+        ),
         step,
         keyFormat,
         keySerde,
@@ -523,26 +513,15 @@ public class SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKStream<K> join(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final ValueFormat valueFormat,
-      final Serde<GenericRow> joinSerDe,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
-    final KStream<K, GenericRow> joinedKStream =
-        kstream.join(
-            schemaKTable.getKtable(),
-            new KsqlValueJoiner(getSchema(), schemaKTable.getSchema()),
-            streamsFactories.getJoinedFactory().create(
-                keySerde,
-                joinSerDe,
-                null,
-                StreamsUtil.buildOpName(contextStacker.getQueryContext()))
-        );
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamTableJoin(
+    final StreamTableJoin<K> step = ExecutionStepFactory.streamTableJoin(
         contextStacker,
         JoinType.INNER,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
@@ -551,7 +530,14 @@ public class SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKStream<>(
-        joinedKStream,
+        StreamTableJoinBuilder.build(
+            kstream,
+            schemaKTable.getKtable(),
+            step,
+            (fmt, schema, qctx) -> keySerde,
+            queryBuilder,
+            streamsFactories.getJoinedFactory()
+        ),
         step,
         keyFormat,
         keySerde,
@@ -570,22 +556,9 @@ public class SchemaKStream<K> {
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
-      final Serde<GenericRow> leftSerde,
-      final Serde<GenericRow> rightSerde,
-      final QueryContext.Stacker contextStacker) {
-    final KStream<K, GenericRow> joinStream =
-        kstream
-            .join(
-                otherSchemaKStream.kstream,
-                new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
-                joinWindows,
-                streamsFactories.getJoinedFactory().create(
-                    keySerde,
-                    leftSerde,
-                    rightSerde,
-                    StreamsUtil.buildOpName(contextStacker.getQueryContext()))
-            );
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamStreamJoin(
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder) {
+    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.INNER,
         Formats.of(keyFormat, leftFormat, SerdeOption.none()),
@@ -596,7 +569,14 @@ public class SchemaKStream<K> {
         joinWindows
     );
     return new SchemaKStream<>(
-        joinStream,
+        StreamStreamJoinBuilder.build(
+            kstream,
+            otherSchemaKStream.kstream,
+            step,
+            (fmt, schema, qctx) -> keySerde,
+            queryBuilder,
+            streamsFactories.getJoinedFactory()
+        ),
         step,
         keyFormat,
         keySerde,
@@ -615,21 +595,9 @@ public class SchemaKStream<K> {
       final JoinWindows joinWindows,
       final ValueFormat leftFormat,
       final ValueFormat rightFormat,
-      final Serde<GenericRow> leftSerde,
-      final Serde<GenericRow> rightSerde,
-      final QueryContext.Stacker contextStacker) {
-    final KStream<K, GenericRow> joinStream = kstream
-        .outerJoin(
-            otherSchemaKStream.kstream,
-            new KsqlValueJoiner(this.getSchema(), otherSchemaKStream.getSchema()),
-            joinWindows,
-            streamsFactories.getJoinedFactory().create(
-                keySerde,
-                leftSerde,
-                rightSerde,
-                StreamsUtil.buildOpName(contextStacker.getQueryContext()))
-        );
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamStreamJoin(
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder) {
+    final StreamStreamJoin<K> step = ExecutionStepFactory.streamStreamJoin(
         contextStacker,
         JoinType.OUTER,
         Formats.of(keyFormat, leftFormat, SerdeOption.none()),
@@ -640,7 +608,14 @@ public class SchemaKStream<K> {
         joinWindows
     );
     return new SchemaKStream<>(
-        joinStream,
+        StreamStreamJoinBuilder.build(
+            kstream,
+            otherSchemaKStream.kstream,
+            step,
+            (fmt, schema, qctx) -> keySerde,
+            queryBuilder,
+            streamsFactories.getJoinedFactory()
+        ),
         step,
         keyFormat,
         keySerde,
@@ -916,41 +891,5 @@ public class SchemaKStream<K> {
     return groupByExpressions.stream()
         .map(Expression::toString)
         .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
-  }
-
-  protected static class KsqlValueJoiner
-      implements ValueJoiner<GenericRow, GenericRow, GenericRow> {
-
-    private final LogicalSchema leftSchema;
-    private final LogicalSchema rightSchema;
-
-    KsqlValueJoiner(final LogicalSchema leftSchema, final LogicalSchema rightSchema) {
-      this.leftSchema = Objects.requireNonNull(leftSchema, "leftSchema");
-      this.rightSchema = Objects.requireNonNull(rightSchema, "rightSchema");
-    }
-
-    @Override
-    public GenericRow apply(final GenericRow left, final GenericRow right) {
-      final List<Object> columns = new ArrayList<>();
-      if (left != null) {
-        columns.addAll(left.getColumns());
-      } else {
-        fillWithNulls(columns, leftSchema.value().size());
-      }
-
-      if (right != null) {
-        columns.addAll(right.getColumns());
-      } else {
-        fillWithNulls(columns, rightSchema.value().size());
-      }
-
-      return new GenericRow(columns);
-    }
-
-    private static void fillWithNulls(final List<Object> columns, final int numToFill) {
-      for (int i = 0; i < numToFill; ++i) {
-        columns.add(null);
-      }
-    }
   }
 }

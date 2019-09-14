@@ -28,11 +28,13 @@ import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.TableFilterBuilder;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder;
 import io.confluent.ksql.execution.streams.TableMapValuesBuilder;
 import io.confluent.ksql.execution.streams.TableSinkBuilder;
+import io.confluent.ksql.execution.streams.TableTableJoinBuilder;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -209,7 +211,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return ktable.toStream();
   }
 
-  public KTable getKtable() {
+  public KTable<K, GenericRow> getKtable() {
     return ktable;
   }
 
@@ -258,18 +260,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         functionRegistry);
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
-    final KTable<K, GenericRow> joinedKTable = ktable.join(
-        schemaKTable.getKtable(),
-        new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
-    );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
         sourceTableStep,
@@ -277,7 +274,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKTable<>(
-        joinedKTable,
+        TableTableJoinBuilder.build(ktable, schemaKTable.ktable, step),
         step,
         keyFormat,
         keySerde,
@@ -289,19 +286,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
-    final KTable<K, GenericRow> joinedKTable =
-        ktable.leftJoin(
-            schemaKTable.getKtable(),
-            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
-        );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
         sourceTableStep,
@@ -309,7 +300,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKTable<>(
-        joinedKTable,
+        TableTableJoinBuilder.build(ktable, schemaKTable.ktable, step),
         step,
         keyFormat,
         keySerde,
@@ -321,19 +312,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
-    final KTable<K, GenericRow> joinedKTable =
-        ktable.outerJoin(
-            schemaKTable.getKtable(),
-            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
-        );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
         sourceTableStep,
@@ -341,7 +326,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKTable<>(
-        joinedKTable,
+        TableTableJoinBuilder.build(ktable, schemaKTable.ktable, step),
         step,
         keyFormat,
         keySerde,

@@ -39,9 +39,12 @@ import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
+import io.confluent.ksql.execution.streams.StreamToTableBuilder;
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -56,7 +59,6 @@ import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.StreamsFactories;
-import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
@@ -67,7 +69,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.Grouped;
@@ -75,11 +76,9 @@ import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.apache.kafka.streams.state.KeyValueStore;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -223,41 +222,26 @@ public class SchemaKStream<K> {
     this.streamsFactories = requireNonNull(streamsFactories);
   }
 
+  @SuppressWarnings("unchecked")
   public SchemaKTable<K> toTable(
       final KeyFormat keyFormat,
       final ValueFormat valueFormat,
-      final Serde<GenericRow> valueSerde,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
-    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
-        streamsFactories.getMaterializedFactory().create(
-            keySerde,
-            valueSerde,
-            StreamsUtil.buildOpName(contextStacker.getQueryContext()));
-    final KTable<K, GenericRow> ktable = kstream
-        // 1. mapValues to transform null records into Optional<GenericRow>.EMPTY. We eventually
-        //    need to aggregate the KStream to produce the KTable. However the KStream aggregator
-        //    filters out records with null keys or values. For tables, a null value for a key
-        //    represents that the key was deleted. So we preserve these "tombstone" records by
-        //    converting them to a not-null representation.
-        .mapValues(Optional::ofNullable)
-
-        // 2. Group by the key, so that we can:
-        .groupByKey()
-
-        // 3. Aggregate the KStream into a KTable using a custom aggregator that handles
-        // Optional.EMPTY
-        .aggregate(
-            () -> null,
-            (k, value, oldValue) -> value.orElse(null),
-            materialized);
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.streamToTable(
-        contextStacker,
-        Formats.of(keyFormat, valueFormat, Collections.emptySet()),
-        sourceStep
-    );
+    final StreamToTable<KStream<K, GenericRow>, KTable<K, GenericRow>> step =
+        ExecutionStepFactory.streamToTable(
+            contextStacker,
+            Formats.of(keyFormat, valueFormat, Collections.emptySet()),
+            sourceStep
+        );
     return new SchemaKTable<>(
-        ktable,
+        StreamToTableBuilder.build(
+            (KStream) kstream,
+            (StreamToTable) step,
+            queryBuilder,
+            streamsFactories.getMaterializedFactory()
+        ),
         step,
         keyFormat,
         keySerde,

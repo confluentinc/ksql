@@ -31,6 +31,7 @@ public class CommandTest {
   public void shouldDeserializeCorrectly() throws IOException {
     final String commandStr = "{" +
         "\"statement\": \"test statement;\", " +
+        "\"useOffsetAsQueryID\": true, " +
         "\"streamsProperties\": {\"foo\": \"bar\"}, " +
         "\"originalProperties\": {\"biz\": \"baz\"} " +
         "}";
@@ -44,12 +45,14 @@ public class CommandTest {
         = Collections.singletonMap("biz", "baz");
     assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
     assertThat(command.isPreVersion5(), is(false));
+    assertThat(command.getUseOffsetAsQueryID(), is(true));
   }
 
   @Test
   public void shouldDeserializeWithoutKsqlConfigCorrectly() throws IOException {
     final String commandStr = "{" +
         "\"statement\": \"test statement;\", " +
+        "\"useOffsetAsQueryID\": true, " +
         "\"streamsProperties\": {\"foo\": \"bar\"}" +
         "}";
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
@@ -59,6 +62,27 @@ public class CommandTest {
     assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
     assertThat(command.getOriginalProperties(), equalTo(Collections.emptyMap()));
     assertThat(command.isPreVersion5(), equalTo(true));
+    assertThat(command.getUseOffsetAsQueryID(), is(true));
+  }
+
+  @Test
+  public void shouldDeserializeWithoutUseOffsetAsQueryIDCorrectly() throws IOException {
+    final String commandStr = "{" +
+            "\"statement\": \"test statement;\", " +
+            "\"streamsProperties\": {\"foo\": \"bar\"}, " +
+            "\"originalProperties\": {\"biz\": \"baz\"} " +
+            "}";
+    final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
+    final Command command = mapper.readValue(commandStr, Command.class);
+    assertThat(command.getStatement(), equalTo("test statement;"));
+    final Map<String, Object> expecteOverwriteProperties
+            = Collections.singletonMap("foo", "bar");
+    assertThat(command.getOverwriteProperties(), equalTo(expecteOverwriteProperties));
+    final Map<String, Object> expectedOriginalProperties
+            = Collections.singletonMap("biz", "baz");
+    assertThat(command.getOriginalProperties(), equalTo(expectedOriginalProperties));
+    assertThat(command.isPreVersion5(), is(false));
+    assertThat(command.getUseOffsetAsQueryID(), is(false));
   }
 
   void grep(final String string, final String regex) {
@@ -68,13 +92,13 @@ public class CommandTest {
   @Test
   public void shouldSerializeDeserializeCorrectly() throws IOException {
     final Command command = new Command(
-        "test statement;",
-        Collections.singletonMap("foo", "bar"),
-        Collections.singletonMap("biz", "baz"));
+        "test statement;", true,
+            Collections.singletonMap("foo", "bar"), Collections.singletonMap("biz", "baz"));
     final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
     final String serialized = mapper.writeValueAsString(command);
     grep(serialized, ".*\"streamsProperties\" *: *\\{ *\"foo\" *: *\"bar\" *\\}.*");
     grep(serialized, ".*\"statement\" *: *\"test statement;\".*");
+    grep(serialized, ".*\"useOffsetAsQueryID\".*:true.*");
     grep(serialized, ".*\"originalProperties\" *: *\\{ *\"biz\" *: *\"baz\" *\\}.*");
     final Command deserialized = mapper.readValue(serialized, Command.class);
     assertThat(deserialized, equalTo(command));

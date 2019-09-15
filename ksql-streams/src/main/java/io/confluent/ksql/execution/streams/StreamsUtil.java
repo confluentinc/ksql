@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.streams;
+package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -23,7 +23,7 @@ public final class StreamsUtil {
   private StreamsUtil() {
   }
 
-  static boolean useProvidedName(final KsqlConfig ksqlConfig) {
+  public static boolean useProvidedName(final KsqlConfig ksqlConfig) {
     return Objects.equals(
         ksqlConfig.getString(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS),
         KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON

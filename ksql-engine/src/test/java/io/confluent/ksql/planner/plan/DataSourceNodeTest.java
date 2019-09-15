@@ -532,9 +532,8 @@ public class DataSourceNodeTest {
     assertThat(returned, is(table));
   }
 
-  @Test
   @SuppressWarnings("unchecked")
-  public void shouldBuildReduceSerdeCorrectlyWhenBuildingTable() {
+  public void shouldPassBuilderWhenBuildingTable() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();
 
@@ -542,16 +541,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildValueSerde(
-        eq(FormatInfo.of(Format.JSON)),
-        eq(PhysicalSchema.from(node.getSchema(), SerdeOption.none())),
-        queryContextCaptor.capture()
-    );
-    assertThat(
-        queryContextCaptor.getValue().getContext(),
-        equalTo(ImmutableList.of("0", "reduce"))
-    );
-    verify(stream).toTable(any(), any(), same(rowSerde), any());
+    verify(stream).toTable(any(), any(), any(), same(ksqlStreamBuilder));
   }
 
   @Test
@@ -564,7 +554,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), any(), any(), stackerCaptor.capture());
+    verify(stream).toTable(any(), any(), stackerCaptor.capture(), any());
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "reduce")));

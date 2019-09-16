@@ -37,6 +37,7 @@ import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 import org.apache.kafka.streams.KafkaStreams;
@@ -110,6 +111,7 @@ public class QueryDescriptionFactoryTest {
         "execution plan",
         QUERY_ID,
         DataSourceType.KSTREAM,
+        Optional.empty(),
         "app id",
         sinkTopic,
         topology,

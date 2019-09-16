@@ -34,7 +34,7 @@ import org.junit.rules.ExternalResource;
 /**
  * Junit external resource for managing an instance of {@link KsqlContext}.
  */
-public final class TestKsqlContext extends ExternalResource {
+public final class TestKsqlContext extends ExternalResource implements AutoCloseable {
 
   private final IntegrationTestHarness testHarness;
   private final Map<String, Object> additionalConfig;
@@ -68,6 +68,19 @@ public final class TestKsqlContext extends ExternalResource {
     delegate.terminateQuery(queryId);
   }
 
+  public void ensureStarted() {
+    if (delegate != null) {
+      return;
+    }
+
+    before();
+  }
+
+  @Override
+  public void close() {
+    after();
+  }
+
   @Override
   protected void before() {
     final KsqlConfig ksqlConfig = KsqlConfigTestUtil.create(
@@ -85,6 +98,9 @@ public final class TestKsqlContext extends ExternalResource {
 
   @Override
   protected void after() {
-    delegate.close();
+    if (delegate != null) {
+      delegate.close();
+      delegate = null;
+    }
   }
 }

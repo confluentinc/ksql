@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,24 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.streams;
+package io.confluent.ksql.materialization;
 
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.util.KsqlConfig;
-import java.util.Objects;
 
-public final class StreamsUtil {
-  private StreamsUtil() {
-  }
+public interface MaterializationProvider {
 
-  static boolean useProvidedName(final KsqlConfig ksqlConfig) {
-    return Objects.equals(
-        ksqlConfig.getString(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS),
-        KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON
-    );
-  }
-
-  public static String buildOpName(final QueryContext opContext) {
-    return String.join("-", opContext.getContext());
-  }
+  /**
+   * Build a materialization in the context of a given query.
+   *
+   * @param contextStacker the query context stacker.
+   * @return the materialization.
+   */
+  Materialization build(QueryContext.Stacker contextStacker);
 }

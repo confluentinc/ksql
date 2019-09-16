@@ -35,6 +35,7 @@ import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
+import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
@@ -69,6 +70,7 @@ import org.apache.kafka.connect.data.Schema;
 
 public class AggregateNode extends PlanNode {
 
+  private static final String AGGREGATE_STATE_STORE_NAME = "Aggregate-aggregate";
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
   private static final String PREPARE_OP_NAME = "prepare";
@@ -87,6 +89,7 @@ public class AggregateNode extends PlanNode {
   private final List<DereferenceExpression> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
+  private Optional<MaterializationInfo> materializationInfo = Optional.empty();
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public AggregateNode(
@@ -160,6 +163,10 @@ public class AggregateNode extends PlanNode {
     return requiredColumns;
   }
 
+  public Optional<MaterializationInfo> getMaterializationInfo() {
+    return materializationInfo;
+  }
+
   private List<SelectExpression> getFinalSelectExpressions() {
     final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
     if (finalSelectExpressions.size() != schema.value().size()) {
@@ -200,6 +207,11 @@ public class AggregateNode extends PlanNode {
             contextStacker.push(PREPARE_OP_NAME),
             builder);
 
+    // This is the schema used in any repartition topic
+    // It contains only the fields from the source that are needed by the aggregation
+    // It uses internal column names, e.g. KSQL_INTERNAL_COL_0
+    final LogicalSchema prepareSchema = aggregateArgExpanded.getSchema();
+
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
     final ValueFormat valueFormat = streamSourceNode
@@ -209,7 +221,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> genericRowSerde = builder.buildValueSerde(
         valueFormat.getFormatInfo(),
-        PhysicalSchema.from(aggregateArgExpanded.getSchema(), SerdeOption.none()),
+        PhysicalSchema.from(prepareSchema, SerdeOption.none()),
         groupByContext.getQueryContext()
     );
 
@@ -234,8 +246,11 @@ public class AggregateNode extends PlanNode {
         internalSchema
     );
 
-    final LogicalSchema aggStageSchema = buildAggregateSchema(
-        aggregateArgExpanded.getSchema(),
+    // This is the schema of the aggregation change log topic and associated state store.
+    // It contains all columns from prepareSchema and columns for any aggregating functions
+    // It uses internal column names, e.g. KSQL_INTERNAL_COL_0 and KSQL_AGG_VARIABLE_0
+    final LogicalSchema aggregationSchema = buildAggregateSchema(
+        prepareSchema,
         aggValToFunctionMap
     );
 
@@ -243,7 +258,7 @@ public class AggregateNode extends PlanNode {
 
     final Serde<GenericRow> aggValueGenericRowSerde = builder.buildValueSerde(
         valueFormat.getFormatInfo(),
-        PhysicalSchema.from(aggStageSchema, SerdeOption.none()),
+        PhysicalSchema.from(aggregationSchema, SerdeOption.none()),
         aggregationContext.getQueryContext()
     );
 
@@ -252,7 +267,7 @@ public class AggregateNode extends PlanNode {
         .map(FunctionCall.class::cast)
         .collect(Collectors.toList());
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
-        aggStageSchema,
+        aggregationSchema,
         initializer,
         requiredColumns.size(),
         functionsWithInternalIdentifiers,
@@ -263,15 +278,29 @@ public class AggregateNode extends PlanNode {
         aggregationContext
     );
 
-    if (havingExpressions != null) {
+    final Optional<Expression> havingExpression = Optional.ofNullable(havingExpressions)
+        .map(internalSchema::resolveToInternal);
+
+    if (havingExpression.isPresent()) {
       aggregated = aggregated.filter(
-          internalSchema.resolveToInternal(havingExpressions),
+          havingExpression.get(),
           contextStacker.push(FILTER_OP_NAME),
           builder.getProcessingLogContext());
     }
 
+    final List<SelectExpression> finalSelects = internalSchema
+        .updateFinalSelectExpressions(getFinalSelectExpressions());
+
+    materializationInfo = Optional.of(MaterializationInfo.of(
+        AGGREGATE_STATE_STORE_NAME,
+        aggregationSchema,
+        havingExpression,
+        schema,
+        finalSelects
+    ));
+
     return aggregated.select(
-        internalSchema.updateFinalSelectExpressions(getFinalSelectExpressions()),
+        finalSelects,
         contextStacker.push(PROJECT_OP_NAME),
         builder);
   }

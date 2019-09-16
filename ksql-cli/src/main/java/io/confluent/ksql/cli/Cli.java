@@ -80,7 +80,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       HandlerMaps
           .forClass(StatementContext.class)
           .withArgTypes(Cli.class, String.class)
-          .put(QueryStatementContext.class, Cli::handleStreamedQuery)
+          .put(QueryStatementContext.class, Cli::handleQuery)
           .put(PrintTopicContext.class, Cli::handlePrintedTopic)
           .put(SetPropertyContext.class, Cli::setPropertyFromCtxt)
           .put(UnsetPropertyContext.class, Cli::unsetPropertyFromCtxt)
@@ -387,6 +387,17 @@ public class Cli implements KsqlRequestExecutor, Closeable {
 
   private boolean limitNotReached(final long rowsRead) {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
+  }
+
+  private void handleQuery(
+      final String statement,
+      final SqlBaseParser.QueryStatementContext query
+  ) {
+    if (query.query().EMIT() == null) {
+      makeKsqlRequest(statement);
+    } else {
+      handleStreamedQuery(statement, query);
+    }
   }
 
   @SuppressWarnings({"try", "unused"})

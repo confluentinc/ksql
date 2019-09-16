@@ -626,7 +626,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailBareQuery() {
+  public void shouldFailBareContinuousQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
@@ -634,6 +634,20 @@ public class KsqlResourceTest {
             "RUN SCRIPT cannot be used with the following statements: \n"
                     + "* PRINT\n"
                     + "* SELECT"))));
+    expectedException.expect(exceptionStatementErrorMessage(statement(is(
+        "SELECT * FROM test_table EMIT CHANGES;"))));
+
+    // When:
+    makeRequest("SELECT * FROM test_table EMIT CHANGES;");
+  }
+
+  @Test
+  public void shouldAllowBareStaticQuery() {
+    // Then:
+    expectedException.expect(KsqlRestException.class);
+    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+    expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
+        "Table 'TEST_TABLE' is not materialized"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "SELECT * FROM test_table;"))));
 

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.streams;
+package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

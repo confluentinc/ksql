@@ -17,6 +17,7 @@ package io.confluent.ksql.planner.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -26,8 +27,6 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.List;
@@ -117,7 +116,7 @@ public class DataSourceNode extends PlanNode {
 
   @Override
   public List<PlanNode> getSources() {
-    return null;
+    return ImmutableList.of();
   }
 
   @Override
@@ -144,12 +143,8 @@ public class DataSourceNode extends PlanNode {
     return schemaKStream.toTable(
         dataSource.getKsqlTopic().getKeyFormat(),
         dataSource.getKsqlTopic().getValueFormat(),
-        builder.buildValueSerde(
-            dataSource.getKsqlTopic().getValueFormat().getFormatInfo(),
-            PhysicalSchema.from(getSchema(), SerdeOption.none()),
-            reduceContextStacker.getQueryContext()
-        ),
-        reduceContextStacker);
+        reduceContextStacker,
+        builder);
   }
 
   interface SchemaKStreamFactory {

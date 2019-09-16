@@ -32,7 +32,6 @@ public final class KsqlConstants {
 
   public static final int legacyDefaultSinkPartitionCount = 4;
   public static final short legacyDefaultSinkReplicaCount = 1;
-  // TODO: Find out the best default value.
   public static final long defaultSinkWindowChangeLogAdditionalRetention = 1000000;
 
   public static final String defaultAutoOffsetRestConfig = "latest";
@@ -50,4 +49,10 @@ public final class KsqlConstants {
   public static final String AVRO_SCHEMA_NAME = "KsqlDataSourceSchema";
   public static final String DEFAULT_AVRO_SCHEMA_FULL_NAME =
           AVRO_SCHEMA_NAMESPACE + "." + AVRO_SCHEMA_NAME;
+
+  /**
+   * Default time and date patterns
+   */
+  public static final String TIME_PATTERN = "HH:mm:ss.SSS";
+  public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'" + TIME_PATTERN;
 }

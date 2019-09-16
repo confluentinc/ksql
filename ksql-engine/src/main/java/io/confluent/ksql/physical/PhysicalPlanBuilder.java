@@ -20,8 +20,14 @@ import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.materialization.KsqlMaterializationFactory;
+import io.confluent.ksql.materialization.MaterializationInfo;
+import io.confluent.ksql.materialization.MaterializationProvider;
+import io.confluent.ksql.materialization.ks.KsMaterialization;
+import io.confluent.ksql.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -30,6 +36,7 @@ import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
+import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -38,6 +45,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.serde.GenericKeySerDe;
+import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
@@ -60,12 +69,16 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class PhysicalPlanBuilder {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final StreamsBuilder builder;
   private final KsqlConfig ksqlConfig;
@@ -77,6 +90,9 @@ public class PhysicalPlanBuilder {
   private final QueryIdGenerator queryIdGenerator;
   private final KafkaStreamsBuilder kafkaStreamsBuilder;
   private final Consumer<QueryMetadata> queryCloseCallback;
+  private final KsMaterializationFactory ksMaterializationFactory;
+  private final KsqlMaterializationFactory ksqlMaterializationFactory;
+
 
   public PhysicalPlanBuilder(
       final StreamsBuilder builder,
@@ -103,6 +119,12 @@ public class PhysicalPlanBuilder {
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
     this.kafkaStreamsBuilder = Objects.requireNonNull(kafkaStreamsBuilder, "kafkaStreamsBuilder");
     this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
+    this.ksMaterializationFactory = new KsMaterializationFactory();
+    this.ksqlMaterializationFactory = new KsqlMaterializationFactory(
+        ksqlConfig,
+        functionRegistry,
+        processingLogContext
+    );
   }
 
   public QueryMetadata buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
@@ -214,30 +236,31 @@ public class PhysicalPlanBuilder {
       final QueryId queryId,
       final QuerySchemas schemas
   ) {
+    final DataSourceType sourceType = (schemaKStream instanceof SchemaKTable)
+        ? DataSourceType.KTABLE
+        : DataSourceType.KSTREAM;
+
     final DataSource<?> sinkDataSource;
-    if (schemaKStream instanceof SchemaKTable) {
-      final SchemaKTable<?> schemaKTable = (SchemaKTable) schemaKStream;
-      sinkDataSource =
-          new KsqlTable<>(
-              sqlExpression,
-              outputNode.getId().toString(),
-              outputNode.getSchema(),
-              outputNode.getSerdeOptions(),
-              schemaKTable.getKeyField(),
-              outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic()
-          );
+    if (sourceType == DataSourceType.KTABLE) {
+      sinkDataSource = new KsqlTable<>(
+          sqlExpression,
+          outputNode.getId().toString(),
+          outputNode.getSchema(),
+          outputNode.getSerdeOptions(),
+          schemaKStream.getKeyField(),
+          outputNode.getTimestampExtractionPolicy(),
+          outputNode.getKsqlTopic()
+      );
     } else {
-      sinkDataSource =
-          new KsqlStream<>(
-              sqlExpression,
-              outputNode.getId().toString(),
-              outputNode.getSchema(),
-              outputNode.getSerdeOptions(),
-              schemaKStream.getKeyField(),
-              outputNode.getTimestampExtractionPolicy(),
-              outputNode.getKsqlTopic()
-          );
+      sinkDataSource = new KsqlStream<>(
+          sqlExpression,
+          outputNode.getId().toString(),
+          outputNode.getSchema(),
+          outputNode.getSerdeOptions(),
+          schemaKStream.getKeyField(),
+          outputNode.getTimestampExtractionPolicy(),
+          outputNode.getKsqlTopic()
+      );
     }
 
     sinkSetUp(outputNode, sinkDataSource);
@@ -262,6 +285,19 @@ public class PhysicalPlanBuilder {
     final PhysicalSchema querySchema = PhysicalSchema
         .from(outputNode.getSchema(), outputNode.getSerdeOptions());
 
+    final Optional<MaterializationInfo> materializationInfo = sourceType == DataSourceType.KTABLE
+        ? findMaterializationInfo(outputNode)
+        : Optional.empty();
+
+    final Optional<MaterializationProvider> materializationBuilder = materializationInfo
+        .flatMap(info -> buildMaterializationProvider(
+            info,
+            streams,
+            querySchema,
+            sinkDataSource.getKsqlTopic().getKeyFormat(),
+            streamsProperties
+        ));
+
     return new PersistentQueryMetadata(
         sqlExpression,
         streams,
@@ -270,9 +306,8 @@ public class PhysicalPlanBuilder {
         sinkDataSource.getName(),
         schemaKStream.getExecutionPlan(""),
         queryId,
-        (schemaKStream instanceof SchemaKTable)
-            ? DataSourceType.KTABLE
-            : DataSourceType.KSTREAM,
+        sourceType,
+        materializationBuilder,
         applicationId,
         sinkDataSource.getKsqlTopic(),
         topology,
@@ -281,6 +316,53 @@ public class PhysicalPlanBuilder {
         overriddenProperties,
         queryCloseCallback
     );
+  }
+
+  private static Optional<MaterializationInfo> findMaterializationInfo(
+      final PlanNode node
+  ) {
+    if (node instanceof AggregateNode) {
+      return ((AggregateNode) node).getMaterializationInfo();
+    }
+
+    return node.getSources().stream()
+        .map(PhysicalPlanBuilder::findMaterializationInfo)
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .findFirst();
+  }
+
+  private Optional<MaterializationProvider> buildMaterializationProvider(
+      final MaterializationInfo info,
+      final KafkaStreams kafkaStreams,
+      final PhysicalSchema schema,
+      final KeyFormat keyFormat,
+      final Map<String, Object> streamsProperties
+  ) {
+    final Serializer<Struct> keySerializer = new GenericKeySerDe().create(
+        keyFormat.getFormatInfo(),
+        schema.keySchema(),
+        ksqlConfig,
+        serviceContext.getSchemaRegistryClientFactory(),
+        "",
+        NoopProcessingLogContext.INSTANCE
+    ).serializer();
+
+    final Optional<KsMaterialization> ksMaterialization = ksMaterializationFactory
+        .create(
+            info.stateStoreName(),
+            kafkaStreams,
+            keySerializer,
+            keyFormat.getWindowType(),
+            streamsProperties
+        );
+
+    return ksMaterialization.map(ksMat -> contextStacker -> ksqlMaterializationFactory
+        .create(
+            ksMat,
+            info,
+            contextStacker
+        ));
   }
 
   private void sinkSetUp(

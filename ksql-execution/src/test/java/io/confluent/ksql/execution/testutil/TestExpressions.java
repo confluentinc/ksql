@@ -8,9 +8,6 @@ import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.DecimalUtil;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class TestExpressions {
   private TestExpressions() {

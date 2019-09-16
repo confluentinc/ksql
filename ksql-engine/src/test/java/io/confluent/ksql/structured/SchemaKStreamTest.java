@@ -23,7 +23,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -52,6 +51,8 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.MaterializedFactory;
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -78,9 +79,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
-import io.confluent.ksql.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
-import io.confluent.ksql.streams.StreamsUtil;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -98,10 +97,8 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -115,10 +112,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
@@ -734,8 +728,8 @@ public class SchemaKStreamTest {
     final SchemaKTable result = initialSchemaKStream.toTable(
         keyFormat,
         valueFormat,
-        leftSerde,
-        childContextStacker
+        childContextStacker,
+        queryBuilder
     );
 
     // Then:
@@ -765,8 +759,8 @@ public class SchemaKStreamTest {
     final SchemaKTable result = initialSchemaKStream.toTable(
         keyFormat,
         valueFormat,
-        leftSerde,
-        childContextStacker
+        childContextStacker,
+        queryBuilder
     );
 
     // Then:
@@ -774,53 +768,6 @@ public class SchemaKStreamTest {
     assertThat(result.getKeyField(), is(initialSchemaKStream.getKeyField()));
     assertThat(result.getKeySerde(), is(initialSchemaKStream.getKeySerde()));
     assertThat(result.getKtable(), is(table));
-  }
-
-  @Test
-  public void shouldConvertToOptionalBeforeGroupingInToTable() {
-    // Given:
-    givenInitialSchemaKStreamUsesMocks();
-    when(mockKStream.mapValues(any(ValueMapper.class))).thenReturn(mockKStream);
-    final KGroupedStream groupedStream = mock(KGroupedStream.class);
-    final KTable table = mock(KTable.class);
-    when(mockKStream.groupByKey()).thenReturn(groupedStream);
-    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
-
-    // When:
-    initialSchemaKStream.toTable(keyFormat, valueFormat, leftSerde, childContextStacker);
-
-    // Then:
-    InOrder inOrder = Mockito.inOrder(mockKStream);
-    final ArgumentCaptor<ValueMapper> captor = ArgumentCaptor.forClass(ValueMapper.class);
-    inOrder.verify(mockKStream).mapValues(captor.capture());
-    inOrder.verify(mockKStream).groupByKey();
-    assertThat(captor.getValue().apply(null), equalTo(Optional.empty()));
-    final GenericRow nonNull = new GenericRow(1, 2, 3);
-    assertThat(captor.getValue().apply(nonNull), equalTo(Optional.of(nonNull)));
-  }
-
-  @Test
-  public void shouldComputeAggregateCorrectlyInToTable() {
-    // Given:
-    givenInitialSchemaKStreamUsesMocks();
-    when(mockKStream.mapValues(any(ValueMapper.class))).thenReturn(mockKStream);
-    final KGroupedStream groupedStream = mock(KGroupedStream.class);
-    final KTable table = mock(KTable.class);
-    when(mockKStream.groupByKey()).thenReturn(groupedStream);
-    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
-
-    // When:
-    initialSchemaKStream.toTable(keyFormat, valueFormat, leftSerde, childContextStacker);
-
-    // Then:
-    final ArgumentCaptor<Initializer> initCaptor = ArgumentCaptor.forClass(Initializer.class);
-    final ArgumentCaptor<Aggregator> captor = ArgumentCaptor.forClass(Aggregator.class);
-    verify(groupedStream)
-        .aggregate(initCaptor.capture(), captor.capture(), same(mockMaterialized));
-    assertThat(initCaptor.getValue().apply(), is(nullValue()));
-    assertThat(captor.getValue().apply(null, Optional.empty(), null), is(nullValue()));
-    final GenericRow nonNull = new GenericRow(1, 2, 3);
-    assertThat(captor.getValue().apply(null, Optional.of(nonNull), null), is(nonNull));
   }
 
   @SuppressWarnings("unchecked")

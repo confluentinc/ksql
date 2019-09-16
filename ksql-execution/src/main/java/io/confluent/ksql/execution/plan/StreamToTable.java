@@ -40,10 +40,17 @@ public class StreamToTable<S, T> implements ExecutionStep<T> {
     return properties;
   }
 
-
   @Override
   public List<ExecutionStep<?>> getSources() {
     return ImmutableList.of(source);
+  }
+
+  public ExecutionStep<S> getSource() {
+    return source;
+  }
+
+  public Formats getFormats() {
+    return formats;
   }
 
   @Override

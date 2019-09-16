@@ -123,7 +123,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamSink<KStream<K, GenericRow>> streamSink(
+  public static <K> StreamSink<K> streamSink(
       final QueryContext.Stacker stacker,
       final LogicalSchema outputSchema,
       final Formats formats,
@@ -235,7 +235,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> TableSink<KTable<K, GenericRow>> tableSink(
+  public static <K> TableSink<K> tableSink(
       final QueryContext.Stacker stacker,
       final LogicalSchema outputSchema,
       final ExecutionStep<KTable<K, GenericRow>> source,

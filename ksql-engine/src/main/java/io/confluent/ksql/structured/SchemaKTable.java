@@ -27,10 +27,12 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.TableFilterBuilder;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder;
 import io.confluent.ksql.execution.streams.TableMapValuesBuilder;
+import io.confluent.ksql.execution.streams.TableSinkBuilder;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -44,7 +46,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -54,7 +55,6 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Produced;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -117,37 +117,27 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public SchemaKTable<K> into(
       final String kafkaTopicName,
-      final Serde<GenericRow> topicValueSerDe,
       final LogicalSchema outputSchema,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final Set<Integer> rowkeyIndexes,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder builder
   ) {
-
-    ktable.toStream()
-        .mapValues(row -> {
-              if (row == null) {
-                return null;
-              }
-              final List<Object> columns = new ArrayList<>();
-              for (int i = 0; i < row.getColumns().size(); i++) {
-                if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.getColumns().get(i));
-                }
-              }
-              return new GenericRow(columns);
-            }
-        ).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
-
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableSink(
+    final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         outputSchema,
         sourceTableStep,
         Formats.of(keyFormat, valueFormat, options),
         kafkaTopicName
+    );
+    TableSinkBuilder.build(
+        ktable,
+        step,
+        (fmt, schema, ctx) -> keySerde,
+        builder
     );
     return new SchemaKTable<>(
         ktable,

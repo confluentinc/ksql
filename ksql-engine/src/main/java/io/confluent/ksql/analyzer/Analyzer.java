@@ -386,11 +386,11 @@ class Analyzer {
       if (!(subExpression instanceof DereferenceExpression)) {
         throw new KsqlException(
             String.format(
-                "%s : Invalid comparison expression in join. Joins must only contain a "
-                    + "field comparison. %s. %s.",
+                "%s : Invalid comparison expression '%s' in join '%s'. Joins must only contain a "
+                    + "field comparison.",
                 comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                comparisonExpression,
-                subExpression
+                subExpression,
+                comparisonExpression
             )
         );
       }
@@ -456,7 +456,8 @@ class Analyzer {
     private Optional<String> getJoinFieldFromSource(
         final String fieldName,
         final String sourceAlias,
-        final LogicalSchema sourceSchema) {
+        final LogicalSchema sourceSchema
+    ) {
       return sourceSchema.findColumn(fieldName)
           .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias, field.name()));
     }

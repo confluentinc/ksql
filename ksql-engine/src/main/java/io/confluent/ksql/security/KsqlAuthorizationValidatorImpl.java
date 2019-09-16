@@ -179,7 +179,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       switch (e.getStatus()) {
         case HttpStatus.SC_UNAUTHORIZED:
         case HttpStatus.SC_FORBIDDEN:
-          throw new KsqlSchemaAuthorizationException(operation, Collections.singleton(subject));
+          throw new KsqlSchemaAuthorizationException(operation, subject);
         default:
           // Do nothing. We assume the NOT FOUND and other errors are caught and  displayed
           // in different place

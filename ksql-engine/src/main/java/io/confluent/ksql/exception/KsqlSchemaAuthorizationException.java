@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.exception;
 
-import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.common.acl.AclOperation;
 
 public class KsqlSchemaAuthorizationException extends RuntimeException {
-  public KsqlSchemaAuthorizationException(final Set<String> unauthorizedSchema) {
+  public KsqlSchemaAuthorizationException(final String unauthorizedSchema) {
     super(
         "Authorization denied to access Schema Registry subject(s): " + unauthorizedSchema
     );
@@ -28,7 +27,7 @@ public class KsqlSchemaAuthorizationException extends RuntimeException {
 
   public KsqlSchemaAuthorizationException(
       final AclOperation operation,
-      final Set<String> unauthorizedSchema
+      final String unauthorizedSchema
   ) {
     super(String.format(
         "Authorization denied to %s on Schema Registry subject(s): %s",

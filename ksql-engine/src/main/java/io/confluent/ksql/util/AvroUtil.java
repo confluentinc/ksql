@@ -20,9 +20,9 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
-import java.util.Collections;
 
 import org.apache.http.HttpStatus;
+import org.apache.kafka.common.acl.AclOperation;
 
 public final class AvroUtil {
 
@@ -90,7 +90,8 @@ public final class AvroUtil {
 
       if (e.getStatus() == HttpStatus.SC_UNAUTHORIZED || e.getStatus() == HttpStatus.SC_FORBIDDEN) {
         throw new KsqlSchemaAuthorizationException(
-            Collections.singleton(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+            AclOperation.WRITE,
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
         );
       }
 

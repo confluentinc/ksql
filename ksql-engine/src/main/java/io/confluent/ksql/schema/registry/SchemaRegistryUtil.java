@@ -22,7 +22,6 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
 import io.confluent.ksql.util.ExecutorUtil;
 import io.confluent.ksql.util.KsqlConstants;
-import java.util.Collections;
 import java.util.stream.Stream;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.common.acl.AclOperation;
@@ -78,7 +77,7 @@ public final class SchemaRegistryUtil {
           case HttpStatus.SC_FORBIDDEN:
             throw new KsqlSchemaAuthorizationException(
                 AclOperation.DELETE,
-                Collections.singleton(subject)
+                subject
             );
           default:
             throw e;

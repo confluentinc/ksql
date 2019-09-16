@@ -48,7 +48,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -376,7 +375,7 @@ public class InsertValuesExecutor {
       if (isAvroSchema(dataSource) && isSchemaAccessUnauthorized(e)) {
         rootCause = new KsqlSchemaAuthorizationException(
             AclOperation.WRITE,
-            Collections.singleton(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX)
+            topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
         );
       }
 
@@ -384,11 +383,11 @@ public class InsertValuesExecutor {
     }
   }
 
-  private boolean isAvroSchema(final DataSource dataSource) {
+  private static boolean isAvroSchema(final DataSource dataSource) {
     return dataSource.getKsqlTopic().getValueFormat().getFormat() == Format.AVRO;
   }
 
-  private boolean isSchemaAccessUnauthorized(final Exception e) {
+  private static boolean isSchemaAccessUnauthorized(final Exception e) {
     final Throwable rootCause = ExceptionUtils.getRootCause(e);
     if (rootCause instanceof RestClientException) {
       switch (((RestClientException) rootCause).getStatus()) {

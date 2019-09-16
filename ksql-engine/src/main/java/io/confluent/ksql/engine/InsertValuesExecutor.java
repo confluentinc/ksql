@@ -136,24 +136,55 @@ public class InsertValuesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
+    final ProducerRecord<byte[], byte[]> record =
+        buildRecord(statement, executionContext, serviceContext, insertValues, config);
+
+    final String tableStreamName = insertValues.getTarget().name();
+
+    try {
+      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+    } catch (final TopicAuthorizationException e) {
+      // TopicAuthorizationException does not give much detailed information about why it failed,
+      // except which topics are denied. Here we just add the ACL to make the error message
+      // consistent with other authorization error messages.
+      final Exception rootCause = new KsqlTopicAuthorizationException(
+          AclOperation.WRITE,
+          e.unauthorizedTopics()
+      );
+
+      throw new KsqlException(createInsertFailedExceptionMessage(tableStreamName), rootCause);
+    } catch (final Exception e) {
+      throw new KsqlException(createInsertFailedExceptionMessage(tableStreamName), e);
+    }
+  }
+
+  private ProducerRecord<byte[], byte[]> buildRecord(
+      final ConfiguredStatement<InsertValues> statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext,
+      final InsertValues insertValues,
+      final KsqlConfig config
+  ) {
     throwIfDisabled(statement.getConfig());
 
-    final InsertValues insertValues = statement.getStatement();
     final DataSource<?> dataSource = executionContext
         .getMetaStore()
         .getSource(insertValues.getTarget().name());
 
+    final String tableStreamName = insertValues.getTarget().name();
+
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
-          + insertValues.getTarget().name());
+          + tableStreamName);
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
-
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
 
     try {
       final RowData row = extractRow(insertValues, dataSource);
@@ -170,26 +201,16 @@ public class InsertValuesExecutor {
           value
       );
 
-      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
-    } catch (final TopicAuthorizationException e) {
-      // TopicAuthorizationException does not give much detailed information about why it failed,
-      // except which topics are denied. Here we just add the ACL to make the error message
-      // consistent with other authorization error messages.
-      final Exception rootCause = new KsqlTopicAuthorizationException(
-          AclOperation.WRITE,
-          e.unauthorizedTopics()
-      );
-
-      throw new KsqlException("Failed to insert values into stream/table: "
-          + insertValues.getTarget().name(), rootCause);
-    } catch (KsqlException e) {
+      return record;
+    } catch (Exception e) {
       throw new KsqlStatementException(
-          "Failed to insert values into stream/table: " + e.getMessage(),
+          createInsertFailedExceptionMessage(tableStreamName) + " " + e.getMessage(),
           statement.getStatementText(), e);
-    } catch (final Exception e) {
-      throw new KsqlException("Failed to insert values into stream/table: "
-          + insertValues.getTarget().name(), e);
     }
+  }
+
+  private String createInsertFailedExceptionMessage(final String streamTableName) {
+    return "Failed to insert values into stream/table: " + streamTableName + ".";
   }
 
   private void throwIfDisabled(final KsqlConfig config) {

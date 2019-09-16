@@ -40,7 +40,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
@@ -50,6 +49,8 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.MaterializedFactory;
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -74,9 +75,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -139,10 +138,10 @@ public class SchemaKTableTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private Serde<GenericRow> rowSerde;
-  private static final Expression TEST_2_COL_1 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1");
-  private static final Expression TEST_2_COL_2 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("TEST2")), "COL2");
+  private static final Expression TEST_2_COL_1 =
+      new QualifiedNameReference(QualifiedName.of("TEST2", "COL1"));
+  private static final Expression TEST_2_COL_2 =
+      new QualifiedNameReference(QualifiedName.of("TEST2", "COL2"));
   private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
   private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
 

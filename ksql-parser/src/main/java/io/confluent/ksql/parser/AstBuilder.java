@@ -567,23 +567,25 @@ public class AstBuilder {
         alias = ParserUtil.getIdentifierText(context.identifier());
       } else {
         if (selectItem instanceof QualifiedNameReference) {
-          alias = ((QualifiedNameReference) selectItem).getName().name();
-        } else if (selectItem instanceof DereferenceExpression) {
-          final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItem;
-          final String dereferenceExpressionString = dereferenceExp.toString();
+          final QualifiedName name = ((QualifiedNameReference) selectItem).getName();
           if (dataSourceExtractor.isJoin()
               && dataSourceExtractor
               .getCommonFieldNames()
-              .contains(dereferenceExp.getFieldName())
+              .contains(name.name())
           ) {
-            alias = replaceDotFieldRef(dereferenceExpressionString);
-          } else if (dereferenceExpressionString.contains(KsqlConstants.STRUCT_FIELD_REF)) {
-            alias = replaceDotFieldRef(
-                    dereferenceExpressionString.substring(
-                        dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1));
+            alias = name.qualifier()
+                .map(q -> q + "_" + name.name())
+                .orElseGet(name::name);
           } else {
-            alias = dereferenceExp.getFieldName();
+            alias = name.name();
           }
+        } else if (selectItem instanceof DereferenceExpression) {
+          final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItem;
+          final String dereferenceExpressionString = dereferenceExp.toString();
+
+          alias = replaceDotFieldRef(
+              dereferenceExpressionString.substring(
+                  dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1));
         } else {
           alias = "KSQL_COL_" + selectItemIndex;
         }
@@ -985,15 +987,9 @@ public class AstBuilder {
       if (prefixName != null) {
         throwOnUnknownNameOrAlias(prefixName);
 
-        final Expression baseExpression =
-            new QualifiedNameReference(
-                getLocation(context),
-                QualifiedName.of(prefixName)
-            );
-        return new DereferenceExpression(
+        return new QualifiedNameReference(
             getLocation(context),
-            baseExpression,
-            columnName
+            QualifiedName.of(prefixName, columnName)
         );
       }
 
@@ -1003,21 +999,17 @@ public class AstBuilder {
         }
 
         if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
-          final Expression baseExpression =
-              new QualifiedNameReference(
-                  getLocation(context),
-                  QualifiedName.of(dataSourceExtractor.getLeftAlias())
-              );
-          return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+          return new QualifiedNameReference(
+              getLocation(context),
+              QualifiedName.of(dataSourceExtractor.getLeftAlias(), columnName)
+          );
         }
 
         if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
-          final Expression baseExpression =
-              new QualifiedNameReference(
-                  getLocation(context),
-                  QualifiedName.of(dataSourceExtractor.getRightAlias())
-              );
-          return new DereferenceExpression(getLocation(context), baseExpression, columnName);
+          return new QualifiedNameReference(
+              getLocation(context),
+              QualifiedName.of(dataSourceExtractor.getRightAlias(), columnName)
+          );
         }
 
         throw new InvalidColumnReferenceException(
@@ -1026,12 +1018,11 @@ public class AstBuilder {
         );
       }
 
-      final Expression baseExpression =
+      return
           new QualifiedNameReference(
               getLocation(context),
-              QualifiedName.of(dataSourceExtractor.getFromAlias())
+              QualifiedName.of(dataSourceExtractor.getFromAlias(), columnName)
           );
-      return new DereferenceExpression(getLocation(context), baseExpression, columnName);
     }
 
     private boolean isValidNameOrAlias(final String name) {

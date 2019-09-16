@@ -22,7 +22,7 @@ import io.confluent.ksql.services.KafkaClusterUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Version;
-
+import java.util.Objects;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -35,7 +35,7 @@ public final class ServerMetadataResource {
   private final ServerMetadata serverMetadata;
 
   private ServerMetadataResource(final ServerMetadata serverMetadata) {
-    this.serverMetadata = serverMetadata;
+    this.serverMetadata = Objects.requireNonNull(serverMetadata, "serverMetadata");
   }
 
   @GET

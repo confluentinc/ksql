@@ -18,36 +18,30 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 
 import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonSubTypes({})
-public class ServerClusterId {
-  private static final String UNUSED_ID = "";
+@Immutable
+public final class ServerClusterId {
   private static final String KAFKA_CLUSTER = "kafka-cluster";
   private static final String KSQL_CLUSTER = "ksql-cluster";
 
-  @JsonProperty("id")
-  private final String id;
-
-  @JsonProperty("scope")
+  private static final String id = "";
   private final Map<String, String> scope;
 
   @JsonCreator
   ServerClusterId(
-      @JsonProperty("id") final String id,
       @JsonProperty("scope") final Map<String, String> scope
   ) {
-    this.id = id;
-    this.scope = scope;
+    this.scope = ImmutableMap.copyOf(Objects.requireNonNull(scope, "scope"));
   }
 
   public static ServerClusterId of(final String kafkaClusterId, final String ksqlClusterId) {
-    return new ServerClusterId(UNUSED_ID, ImmutableMap.of(
+    return new ServerClusterId(ImmutableMap.of(
         KAFKA_CLUSTER, kafkaClusterId,
         KSQL_CLUSTER, ksqlClusterId
     ));
@@ -55,6 +49,10 @@ public class ServerClusterId {
 
   public String getId() {
     return id;
+  }
+
+  public Map<String, String> getScope() {
+    return scope;
   }
 
   @Override

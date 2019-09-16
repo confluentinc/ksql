@@ -16,23 +16,34 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ServerMetadataTest {
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
+
+  @Mock
+  private ServerClusterId serverClusterId;
 
   @Test
   public void shouldReturnServerMetadata() throws IOException {
     // Given:
-    final ServerMetadata expected = new ServerMetadata(
-        "1.0.0",
-        ServerClusterId.of("kafka1", "ksql1")
-    );
+    when(serverClusterId.getId()).thenReturn("");
+    when(serverClusterId.getScope()).thenReturn(ImmutableMap.of(
+        "kafka-cluster", "kafka1",
+        "ksql-cluster", "ksql1"
+    ));
+    final ServerMetadata expected = new ServerMetadata("1.0.0", serverClusterId);
 
     // When:
     final String json = OBJECT_MAPPER.writeValueAsString(expected);
@@ -43,11 +54,13 @@ public class ServerMetadataTest {
         "{" +
             "\"version\":\"1.0.0\"," +
             "\"clusterId\":" +
-            "{\"id\":\"\"," +
-            "\"scope\":" +
-            "{\"kafka-cluster\":\"kafka1\",\"ksql-cluster\":\"ksql1\"}}}",
+            "{\"scope\":" +
+            "{\"kafka-cluster\":\"kafka1\",\"ksql-cluster\":\"ksql1\"}," +
+            "\"id\":\"\"}}",
         json);
 
-    assertEquals(expected, actual);
+    assertEquals(expected.getVersion(), actual.getVersion());
+    assertEquals(expected.getClusterId().getId(), actual.getClusterId().getId());
+    assertEquals(expected.getClusterId().getScope(), actual.getClusterId().getScope());
   }
 }

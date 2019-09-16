@@ -23,7 +23,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -106,7 +105,6 @@ import javax.websocket.DeploymentException;
 import javax.websocket.server.ServerEndpoint;
 import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
-import javax.ws.rs.Path;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.streams.StreamsConfig;
@@ -172,7 +170,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
-    super(injectRestConfigDefaults(config));
+    super(config);
 
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfigNoPort = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -194,20 +192,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
-  }
-
-  private static KsqlRestConfig injectRestConfigDefaults(final KsqlRestConfig restConfig) {
-    final Map<String, Object> restConfigs = restConfig.getOriginals();
-
-    final Set<String> authenticationSkipPaths = ImmutableSet.of(
-        ServerMetadataResource.class.getAnnotation(Path.class).value() + "/*"
-    );
-
-    // REST paths that are public and do not require authentication
-    restConfigs.put(RestConfig.AUTHENTICATION_SKIP_PATHS,
-        Joiner.on(",").join(authenticationSkipPaths));
-
-    return new KsqlRestConfig(restConfigs);
   }
 
   @Override
@@ -562,7 +546,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serviceContext,
         ksqlEngine,
         ksqlConfig,
-        restConfig,
+        injectPathsWithoutAuthentication(restConfig),
         commandRunner,
         commandStore,
         rootDocument,
@@ -681,5 +665,21 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     log.info("Using first listener URL for intra-node communication: {}", firstListener);
 
     return new KsqlConfig(props);
+  }
+
+  private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {
+    final Set<String> authenticationSkipPaths = new HashSet<>(
+        restConfig.getList(RestConfig.AUTHENTICATION_SKIP_PATHS)
+    );
+
+    authenticationSkipPaths.addAll(KsqlAuthorizationFilter.getPathsWithoutAuthorization());
+
+    final Map<String, Object> restConfigs = restConfig.getOriginals();
+
+    // REST paths that are public and do not require authentication
+    restConfigs.put(RestConfig.AUTHENTICATION_SKIP_PATHS,
+        Joiner.on(",").join(authenticationSkipPaths));
+
+    return new KsqlRestConfig(restConfigs);
   }
 }

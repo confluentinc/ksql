@@ -18,13 +18,13 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.google.errorprone.annotations.Immutable;
 
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonSubTypes({})
-public class ServerMetadata {
+@Immutable
+public final class ServerMetadata {
   private final String version;
   private final ServerClusterId clusterId;
 
@@ -33,8 +33,8 @@ public class ServerMetadata {
       @JsonProperty("version") final String version,
       @JsonProperty("clusterId") final ServerClusterId clusterId
   ) {
-    this.version = version;
-    this.clusterId = clusterId;
+    this.version = Objects.requireNonNull(version, "version");
+    this.clusterId = Objects.requireNonNull(clusterId, "clusterId");
   }
 
   public String getVersion() {

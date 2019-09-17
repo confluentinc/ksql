@@ -143,8 +143,6 @@ public class InsertValuesExecutor {
     final ProducerRecord<byte[], byte[]> record =
         buildRecord(statement, executionContext, serviceContext);
 
-    final String tableStreamName = insertValues.getTarget().name();
-
     try {
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
     } catch (final TopicAuthorizationException e) {
@@ -203,12 +201,13 @@ public class InsertValuesExecutor {
     } catch (Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
-          statement.getStatementText(), e);
+          statement.getStatementText(),
+          e);
     }
   }
 
   private static String createInsertFailedExceptionMessage(final InsertValues insertValues) {
-    return "Failed to insert values into stream/table: " + insertValues.getTarget().name() + ".";
+    return "Failed to insert values into '" + insertValues.getTarget().name() + "'.";
   }
 
   private void throwIfDisabled(final KsqlConfig config) {

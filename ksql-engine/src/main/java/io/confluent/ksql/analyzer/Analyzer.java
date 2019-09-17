@@ -377,52 +377,81 @@ class Analyzer {
       return joinType;
     }
 
+    private QualifiedNameReference checkExpressionType(
+        final ComparisonExpression comparisonExpression,
+        final Expression subExpression) {
+
+      if (!(subExpression instanceof QualifiedNameReference)) {
+        throw new KsqlException(
+            String.format(
+                "%s : Invalid comparison expression '%s' in join '%s'. Joins must only contain a "
+                    + "field comparison.",
+                comparisonExpression.getLocation().map(Objects::toString).orElse(""),
+                subExpression,
+                comparisonExpression
+            )
+        );
+      }
+      return (QualifiedNameReference) subExpression;
+    }
+
     private String getJoinFieldName(
         final ComparisonExpression comparisonExpression,
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      Optional<String> joinField = getJoinFieldFromExpr(
-          comparisonExpression.getLeft(),
-          sourceAlias,
-          sourceSchema
-      );
+      final QualifiedNameReference left =
+          checkExpressionType(comparisonExpression, comparisonExpression.getLeft());
 
-      if (!joinField.isPresent()) {
-        joinField = getJoinFieldFromExpr(
-            comparisonExpression.getRight(),
-            sourceAlias,
-            sourceSchema
-        );
+      Optional<String> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
+
+      if (!joinFieldName.isPresent()) {
+        final QualifiedNameReference right =
+            checkExpressionType(comparisonExpression, comparisonExpression.getRight());
+
+        joinFieldName = getJoinFieldNameFromExpr(right, sourceAlias);
+
+        if (!joinFieldName.isPresent()) {
+          // Should never happen as only QualifiedNameReference are allowed
+          throw new IllegalStateException("Cannot find join field name");
+        }
       }
+
+      final String fieldName = joinFieldName.get();
+
+      final Optional<String> joinField =
+          getJoinFieldNameFromSource(fieldName, sourceAlias, sourceSchema);
 
       return joinField
           .orElseThrow(() -> new KsqlException(
               String.format(
-                  "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
+                  "%s : Invalid join criteria %s. Column %s.%s does not exist.",
                   comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                  comparisonExpression, sourceAlias
+                  comparisonExpression,
+                  sourceAlias,
+                  fieldName
               )
           ));
     }
 
-    private Optional<String> getJoinFieldFromExpr(
-        final Expression expression,
-        final String sourceAlias,
-        final LogicalSchema sourceSchema
+    private Optional<String> getJoinFieldNameFromExpr(
+        final QualifiedNameReference nameRef,
+        final String sourceAlias
     ) {
-      if (!(expression instanceof QualifiedNameReference)) {
-        return Optional.empty();
-      }
-
-      final QualifiedNameReference nameRef = (QualifiedNameReference) expression;
-
       if (nameRef.getName().qualifier().isPresent()
           && !nameRef.getName().qualifier().get().equalsIgnoreCase(sourceAlias)) {
         return Optional.empty();
       }
 
       final String fieldName = nameRef.getName().name();
+      return Optional.of(fieldName);
+    }
+
+    private Optional<String> getJoinFieldNameFromSource(
+        final String fieldName,
+        final String sourceAlias,
+        final LogicalSchema sourceSchema
+    ) {
       return sourceSchema.findColumn(fieldName)
           .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias, field.name()));
     }

@@ -82,7 +82,7 @@ public class FilterNode extends PlanNode {
         .filter(
             getPredicate(),
             builder.buildNodeContext(getId().toString()),
-            builder.getProcessingLogContext()
+            builder
         );
   }
 }

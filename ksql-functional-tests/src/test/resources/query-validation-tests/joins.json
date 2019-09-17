@@ -1816,6 +1816,222 @@
         {"topic": "OUTPUT", "key": 0, "value": 1, "timestamp": 10},
         {"topic": "OUTPUT", "key": 0, "value": null, "timestamp": 20}
       ]
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains literal",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = 0;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '0' in join '(T.ID = 0)'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field on lhs- contains literal",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON 0 = t.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '0' in join '(0 = T.ID)'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains function",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = test_udf(tt.id);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression 'TEST_UDF(TT.ID)' in join '(T.ID = TEST_UDF(TT.ID))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains CAST",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = CAST(tt.id AS BIGINT);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression 'CAST(TT.ID AS BIGINT)' in join '(T.ID = CAST(TT.ID AS BIGINT))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains subscript",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = tt.id[0];"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression 'TT.ID[0]' in join '(T.ID = TT.ID[0])'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains subexpression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id = 0);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID = 0)' in join '(T.ID = (TT.ID = 0))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains arithmetic binary expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = tt.id + 1;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID + 1)' in join '(T.ID = (TT.ID + 1))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains IS NULL expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id IS NULL);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID IS NULL)' in join '(T.ID = (TT.ID IS NULL))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains IS NOT NULL expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id IS NOT NULL);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID IS NOT NULL)' in join '(T.ID = (TT.ID IS NOT NULL))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains logical binary expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id AND tt.f1);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID AND TT.F1)' in join '(T.ID = (TT.ID AND TT.F1))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains not expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (NOT tt.id);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(NOT TT.ID)' in join '(T.ID = (NOT TT.ID))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains arithmetic unary expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = -tt.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '-TT.ID' in join '(T.ID = -TT.ID)'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains LIKE expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id LIKE '%x');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID LIKE '%x')' in join '(T.ID = (TT.ID LIKE '%x'))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains CASE expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (CASE WHEN 1 THEN 2 END);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(CASE WHEN 1 THEN 2 END)' in join '(T.ID = (CASE WHEN 1 THEN 2 END))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains IN expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id IN (1, 2, 3));"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID IN (1, 2, 3))' in join '(T.ID = (TT.ID IN (1, 2, 3)))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid join field - contains BETWEEN expression",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id = (tt.id BETWEEN 1 AND 3);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid comparison expression '(TT.ID BETWEEN 1 AND 3)' in join '(T.ID = (TT.ID BETWEEN 1 AND 3))'. Joins must only contain a field comparison."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid left join expression - field does not exist",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.iid= tt.id;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join criteria (T.IID = TT.ID). Column T.IID does not exist."
+      }
+    },
+    {
+      "name": "stream stream left join - invalid right join expression - field does not exist",
+      "statements": [
+        "CREATE STREAM TEST1 (ID bigint) WITH (kafka_topic='left_topic', value_format='JSON');",
+        "CREATE STREAM TEST2 (ID bigint) WITH (kafka_topic='right_topic', value_format='JSON');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT * FROM test1 t left join test2 tt ON t.id= tt.iid;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid join criteria (T.ID = TT.IID). Column TT.IID does not exist."
+      }
     }
   ]
 }

@@ -40,7 +40,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
@@ -48,6 +50,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.StreamsUtil;
@@ -340,7 +343,7 @@ public class SchemaKTableTest {
   }
 
   @Test
-  public void testFilter() {
+  public void shouldBuildSchemaKTableWithCorrectSchemaForFilter() {
     // Given:
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
@@ -351,7 +354,7 @@ public class SchemaKTableTest {
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
         childContextStacker,
-        processingLogContext
+        queryBuilder
     );
 
     // Then:
@@ -369,6 +372,36 @@ public class SchemaKTableTest {
   }
 
   @Test
+  public void shouldRewriteTimeComparisonInFilter() {
+    // Given:
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 "
+        + "WHERE ROWTIME = '1984-01-01T00:00:00+00:00' EMIT CHANGES;";
+    final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
+    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+    initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
+
+    // When:
+    final SchemaKTable filteredSchemaKTable = initialSchemaKTable.filter(
+        filterNode.getPredicate(),
+        childContextStacker,
+        queryBuilder
+    );
+
+    // Then:
+    final TableFilter step = (TableFilter) filteredSchemaKTable.getSourceTableStep();
+    assertThat(
+        step.getFilterExpression(),
+        Matchers.equalTo(
+            new ComparisonExpression(
+                ComparisonExpression.Type.EQUAL,
+                new QualifiedNameReference(QualifiedName.of("TEST2", "ROWTIME")),
+                new LongLiteral(441763200000L)
+            )
+        )
+    );
+  }
+
+  @Test
   public void shouldBuildStepForFilter() {
     // Given:
     final String selectQuery = "SELECT col0, col2, col3 FROM test2 WHERE col0 > 100 EMIT CHANGES;";
@@ -380,7 +413,7 @@ public class SchemaKTableTest {
     final SchemaKTable filteredSchemaKStream = initialSchemaKTable.filter(
         filterNode.getPredicate(),
         childContextStacker,
-        processingLogContext
+        queryBuilder
     );
 
     // Then:

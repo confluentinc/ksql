@@ -21,7 +21,7 @@ import java.util.function.BiConsumer;
 
 final class SetCliProperty implements CliSpecificCommand {
 
-  private static final String HELP = "set <property> <value>:" + System.lineSeparator()
+  private static final String HELP = "set cli <property> <value>:" + System.lineSeparator()
       + "\tSets a CLI local property. NOTE that this differs from setting a KSQL "
       + "property with 'SET property=value' in that it does not affect the server.";
 
@@ -37,12 +37,12 @@ final class SetCliProperty implements CliSpecificCommand {
 
   @Override
   public boolean matches(final String command) {
-    return command.toLowerCase().startsWith(getName().toLowerCase()) && !command.contains("=");
+    return command.toLowerCase().startsWith(getName().toLowerCase());
   }
 
   @Override
   public String getName() {
-    return "set";
+    return "set cli";
   }
 
   @Override

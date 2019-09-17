@@ -146,7 +146,8 @@ public class DefaultSqlValueCoercerTest {
 
   @Test
   public void shouldNotCoerceToDecimal() {
-    assertThat(coercer.coerce(true, SqlTypes.STRING), is(Optional.empty()));
+    assertThat(coercer.coerce(true, SqlTypes.decimal(2, 1)),
+        is(Optional.empty()));
   }
 
   @Test

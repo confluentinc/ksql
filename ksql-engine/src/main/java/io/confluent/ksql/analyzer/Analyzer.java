@@ -24,7 +24,6 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
@@ -246,8 +245,7 @@ class Analyzer {
       for (int idx = selects.size() - 1; idx >= 0; --idx) {
         final Expression select = selects.get(idx);
 
-        if (!(select instanceof DereferenceExpression)
-            && !(select instanceof QualifiedNameReference)) {
+        if (!(select instanceof QualifiedNameReference)) {
           continue;
         }
 
@@ -379,11 +377,11 @@ class Analyzer {
       return joinType;
     }
 
-    private DereferenceExpression checkExpressionType(
+    private QualifiedNameReference checkExpressionType(
         final ComparisonExpression comparisonExpression,
         final Expression subExpression) {
 
-      if (!(subExpression instanceof DereferenceExpression)) {
+      if (!(subExpression instanceof QualifiedNameReference)) {
         throw new KsqlException(
             String.format(
                 "%s : Invalid comparison expression '%s' in join '%s'. Joins must only contain a "
@@ -394,7 +392,7 @@ class Analyzer {
             )
         );
       }
-      return (DereferenceExpression) subExpression;
+      return (QualifiedNameReference) subExpression;
     }
 
     private String getJoinFieldName(
@@ -402,32 +400,27 @@ class Analyzer {
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
+      final QualifiedNameReference left =
+          checkExpressionType(comparisonExpression, comparisonExpression.getLeft());
 
-      final DereferenceExpression left = checkExpressionType(comparisonExpression,
-          comparisonExpression.getLeft());
-      Optional<String> joinFieldName = getJoinFieldNameFromExpr(
-          left,
-          sourceAlias
-      );
+      Optional<String> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
 
       if (!joinFieldName.isPresent()) {
-        final DereferenceExpression right = checkExpressionType(comparisonExpression,
-            comparisonExpression.getRight());
-        joinFieldName = getJoinFieldNameFromExpr(
-            right,
-            sourceAlias
-        );
-      }
+        final QualifiedNameReference right =
+            checkExpressionType(comparisonExpression, comparisonExpression.getRight());
 
-      if (!joinFieldName.isPresent()) {
-        // Should never happen as we only allow DereferenceExpression
-        throw new IllegalStateException("Cannot find join field name");
+        joinFieldName = getJoinFieldNameFromExpr(right, sourceAlias);
+
+        if (!joinFieldName.isPresent()) {
+          // Should never happen as only QualifiedNameReference are allowed
+          throw new IllegalStateException("Cannot find join field name");
+        }
       }
 
       final String fieldName = joinFieldName.get();
 
       final Optional<String> joinField =
-          getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
+          getJoinFieldNameFromSource(fieldName, sourceAlias, sourceSchema);
 
       return joinField
           .orElseThrow(() -> new KsqlException(
@@ -437,23 +430,24 @@ class Analyzer {
                   comparisonExpression,
                   sourceAlias,
                   fieldName
-                  )
+              )
           ));
     }
 
     private Optional<String> getJoinFieldNameFromExpr(
-        final DereferenceExpression expression,
-        final String sourceAlias) {
-      final String sourceAliasVal = expression.getBase().toString();
-      if (!sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
+        final QualifiedNameReference nameRef,
+        final String sourceAlias
+    ) {
+      if (nameRef.getName().qualifier().isPresent()
+          && !nameRef.getName().qualifier().get().equalsIgnoreCase(sourceAlias)) {
         return Optional.empty();
       }
 
-      final String fieldName = expression.getFieldName();
+      final String fieldName = nameRef.getName().name();
       return Optional.of(fieldName);
     }
 
-    private Optional<String> getJoinFieldFromSource(
+    private Optional<String> getJoinFieldNameFromSource(
         final String fieldName,
         final String sourceAlias,
         final LogicalSchema sourceSchema
@@ -531,18 +525,14 @@ class Analyzer {
           continue;
         }
 
-        final QualifiedName name = QualifiedName.of(source.getAlias());
-
-        final QualifiedNameReference nameRef = new QualifiedNameReference(location, name);
-
         final String aliasPrefix = analysis.isJoin()
             ? source.getAlias() + "_"
             : "";
 
         for (final Column column : source.getDataSource().getSchema().columns()) {
 
-          final DereferenceExpression selectItem =
-              new DereferenceExpression(location, nameRef, column.name());
+          final QualifiedNameReference selectItem = new QualifiedNameReference(location,
+              QualifiedName.of(source.getAlias(), column.name()));
 
           final String alias = aliasPrefix + column.name();
 

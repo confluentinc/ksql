@@ -23,7 +23,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -41,7 +40,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -55,6 +53,8 @@ import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
+import io.confluent.ksql.execution.streams.MaterializedFactory;
+import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -81,9 +81,7 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -101,10 +99,8 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -118,18 +114,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
 
-  private static final Expression COL1 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1");
+  private static final Expression COL1 =
+      new QualifiedNameReference(QualifiedName.of("TEST1", "COL1"));
 
   private SchemaKStream initialSchemaKStream;
 
@@ -508,8 +501,7 @@ public class SchemaKStreamTest {
         equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new DereferenceExpression(
-                    new QualifiedNameReference(QualifiedName.of("TEST1")), "ROWTIME"),
+                new QualifiedNameReference(QualifiedName.of("TEST1", "ROWTIME")),
                 new LongLiteral(441763200000L)
             )
         )
@@ -606,8 +598,7 @@ public class SchemaKStreamTest {
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final List<Expression> groupBy = Collections.singletonList(
-        new DereferenceExpression(
-            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0")
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL0"))
     );
 
     // When:
@@ -627,8 +618,7 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
-        new DereferenceExpression(
-            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0")
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL0"))
     );
 
     // When:
@@ -659,10 +649,8 @@ public class SchemaKStreamTest {
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     final List<Expression> groupBy = ImmutableList.of(
-        new DereferenceExpression(
-            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1"),
-        new DereferenceExpression(
-            new QualifiedNameReference(QualifiedName.of("TEST1")), "COL0")
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL1")),
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL0"))
     );
 
     // When:
@@ -701,9 +689,10 @@ public class SchemaKStreamTest {
     // Given:
     final KGroupedStream groupedStream = mock(KGroupedStream.class);
     when(mockKStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
-    final Expression keyExpression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of(ksqlStream.getName())),
-        ksqlStream.getKeyField().name().get());
+    final Expression keyExpression = new QualifiedNameReference(QualifiedName.of(
+        ksqlStream.getName(),
+        ksqlStream.getKeyField().name().get()
+    ));
     final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
     givenInitialSchemaKStreamUsesMocks();
 
@@ -730,10 +719,10 @@ public class SchemaKStreamTest {
     final KGroupedStream groupedStream = mock(KGroupedStream.class);
     when(mockKStream.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
         .thenReturn(groupedStream);
-    final Expression col0Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of(ksqlStream.getName())), "COL0");
-    final Expression col1Expression = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of(ksqlStream.getName())), "COL1");
+    final Expression col0Expression =
+        new QualifiedNameReference(QualifiedName.of(ksqlStream.getName(), "COL0"));
+    final Expression col1Expression =
+        new QualifiedNameReference(QualifiedName.of(ksqlStream.getName(), "COL1"));
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     givenInitialSchemaKStreamUsesMocks();
 

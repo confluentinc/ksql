@@ -280,13 +280,8 @@ public class SqlToJavaVisitor {
         final DereferenceExpression node,
         final Void context
     ) {
-      final String fieldName = node.toString();
-      final Column schemaColumn = schema.findValueColumn(fieldName)
-          .orElseThrow(() ->
-              new KsqlException("Field not found: " + fieldName));
-
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
-      return new Pair<>(fieldName.replace(".", "_"), schema);
+      throw new UnsupportedOperationException(
+          "DereferenceExpression should have been resolved by now");
     }
 
     private String formatQualifiedName(final QualifiedName name) {

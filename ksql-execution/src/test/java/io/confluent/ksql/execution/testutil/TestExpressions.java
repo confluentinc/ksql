@@ -1,6 +1,5 @@
 package io.confluent.ksql.execution.testutil;
 
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
@@ -35,17 +34,17 @@ public final class TestExpressions {
       .build();
 
   private static final String TEST1 = "TEST1";
-  public static final DereferenceExpression COL0 = columnRef(TEST1, "COL0");
-  public static final DereferenceExpression COL1 = columnRef(TEST1, "COL1");
-  public static final DereferenceExpression COL2 = columnRef(TEST1, "COL2");
-  public static final DereferenceExpression COL3 = columnRef(TEST1, "COL3");
-  public static final DereferenceExpression ADDRESS = columnRef(TEST1, "COL6");
-  public static final DereferenceExpression ARRAYCOL = columnRef(TEST1, "COL4");
-  public static final DereferenceExpression MAPCOL = columnRef(TEST1, "COL5");
-  public static final DereferenceExpression COL7 = columnRef(TEST1, "COL7");
+  public static final QualifiedNameReference COL0 = columnRef(TEST1, "COL0");
+  public static final QualifiedNameReference COL1 = columnRef(TEST1, "COL1");
+  public static final QualifiedNameReference COL2 = columnRef(TEST1, "COL2");
+  public static final QualifiedNameReference COL3 = columnRef(TEST1, "COL3");
+  public static final QualifiedNameReference ADDRESS = columnRef(TEST1, "COL6");
+  public static final QualifiedNameReference ARRAYCOL = columnRef(TEST1, "COL4");
+  public static final QualifiedNameReference MAPCOL = columnRef(TEST1, "COL5");
+  public static final QualifiedNameReference COL7 = columnRef(TEST1, "COL7");
 
-  private static DereferenceExpression columnRef(final String source, final String name) {
-    return new DereferenceExpression(new QualifiedNameReference(QualifiedName.of(source)), name);
+  private static QualifiedNameReference columnRef(final String source, final String name) {
+    return new QualifiedNameReference(QualifiedName.of(source, name));
   }
 
   public static Expression literal(int value) {

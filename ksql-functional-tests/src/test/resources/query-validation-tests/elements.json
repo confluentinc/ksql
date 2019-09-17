@@ -496,7 +496,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'UNKNOWN' cannot be resolved."
+        "message": "Field 'INPUT.UNKNOWN' cannot be resolved."
       }
     },
     {
@@ -508,7 +508,19 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'UNKNOWN' cannot be resolved."
+        "message": "Field 'UNKNOWN' cannot be resolved"
+      }
+    },
+    {
+      "name": "join unknown field source",
+      "statements": [
+        "CREATE STREAM INPUT_1 (F0 INT) WITH (kafka_topic='input_1', value_format='JSON');",
+        "CREATE STREAM INPUT_2 (F0 INT) WITH (kafka_topic='input_2', value_format='JSON');",
+        "CREATE STREAM OUTPUT as SELECT * FROM INPUT_1 i1 JOIN INPUT_2 i2 WITHIN 10 SECONDS ON unknown.ROWKEY = i2.ROWKEY;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "'UNKNOWN' is not a valid stream/table name or alias."
       }
     },
     {

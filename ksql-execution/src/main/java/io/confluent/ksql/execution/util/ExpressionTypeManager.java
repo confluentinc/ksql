@@ -210,7 +210,7 @@ public class ExpressionTypeManager {
         final QualifiedNameReference node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaColumn = schema.findValueColumn(node.getName().name())
+      final Column schemaColumn = schema.findValueColumn(node.getName().toString())
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 

@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.expression.formatter;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
@@ -48,6 +49,7 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -59,6 +61,9 @@ import java.util.Optional;
 import org.junit.Test;
 
 public class ExpressionFormatterTest {
+
+  private static final NodeLocation LOCATION = mock(NodeLocation.class);
+
   @Test
   public void shouldFormatBooleanLiteral() {
     assertThat(ExpressionFormatter.formatExpression(new BooleanLiteral("true")), equalTo("true"));
@@ -114,8 +119,18 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatDereferenceExpression() {
-    assertThat(ExpressionFormatter
-        .formatExpression(new DereferenceExpression(new StringLiteral("foo"), "name")), equalTo("'foo'->name"));
+    // Given:
+    final DereferenceExpression expression = new DereferenceExpression(
+        Optional.of(LOCATION),
+        new StringLiteral("foo"),
+        "name"
+    );
+
+    // When:
+    final String text = ExpressionFormatter.formatExpression(expression);
+
+    // Then:
+    assertThat(text, equalTo("'foo'->name"));
   }
 
   @Test

@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
@@ -39,14 +38,13 @@ public class SelectionTest {
       .valueColumn("RACCOON", SqlTypes.BIGINT)
       .build().withAlias("TEST").withMetaAndKeyColsInValue();
 
-  private static final Expression EXPRESSION1 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("TEST")),
-      "GIRAFFE"
-  );
+  private static final Expression EXPRESSION1 =
+      new QualifiedNameReference(QualifiedName.of("TEST", "GIRAFFE"));
+
   private static final Expression EXPRESSION2 = new ArithmeticBinaryExpression(
       Operator.ADD,
-      new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST")), "MANATEE"),
-      new DereferenceExpression(new QualifiedNameReference(QualifiedName.of("TEST")), "RACCOON")
+      new QualifiedNameReference(QualifiedName.of("TEST", "MANATEE")),
+      new QualifiedNameReference(QualifiedName.of("TEST", "RACCOON"))
   );
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
       SelectExpression.of("FOO", EXPRESSION1),

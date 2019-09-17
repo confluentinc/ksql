@@ -30,12 +30,12 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.materialization.Locator;
 import io.confluent.ksql.materialization.Locator.KsqlNode;
@@ -268,7 +268,7 @@ public final class StaticQueryExecutor {
 
     final ComparisonExpression comparison = comparisons.get(0);
 
-    final Expression other = comparison.getRight() instanceof DereferenceExpression
+    final Expression other = comparison.getRight() instanceof QualifiedNameReference
         ? comparison.getLeft()
         : comparison.getRight();
 
@@ -350,7 +350,7 @@ public final class StaticQueryExecutor {
 
   private static Type getBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
-    final boolean inverted = comparison.getRight() instanceof DereferenceExpression;
+    final boolean inverted = comparison.getRight() instanceof QualifiedNameReference;
 
     switch (type) {
       case LESS_THAN:
@@ -367,7 +367,7 @@ public final class StaticQueryExecutor {
   }
 
   private static Instant extractWindowBound(final ComparisonExpression comparison) {
-    final Expression other = comparison.getRight() instanceof DereferenceExpression
+    final Expression other = comparison.getRight() instanceof QualifiedNameReference
         ? comparison.getLeft()
         : comparison.getRight();
 
@@ -447,17 +447,16 @@ public final class StaticQueryExecutor {
   }
 
   private static ComparisonTarget extractWhereClauseTarget(final ComparisonExpression comparison) {
-
-    final DereferenceExpression column;
-    if (comparison.getRight() instanceof DereferenceExpression) {
-      column = (DereferenceExpression) comparison.getRight();
-    } else if (comparison.getLeft() instanceof DereferenceExpression) {
-      column = (DereferenceExpression) comparison.getLeft();
+    final QualifiedNameReference column;
+    if (comparison.getRight() instanceof QualifiedNameReference) {
+      column = (QualifiedNameReference) comparison.getRight();
+    } else if (comparison.getLeft() instanceof QualifiedNameReference) {
+      column = (QualifiedNameReference) comparison.getLeft();
     } else {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
 
-    final String fieldName = column.getFieldName();
+    final String fieldName = column.getName().name();
 
     try {
       return ComparisonTarget.valueOf(fieldName.toUpperCase());

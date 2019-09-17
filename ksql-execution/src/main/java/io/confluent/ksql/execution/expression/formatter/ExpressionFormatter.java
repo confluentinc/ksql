@@ -148,11 +148,9 @@ public final class ExpressionFormatter {
     @Override
     public String visitDereferenceExpression(
         final DereferenceExpression node,
-        final Context context) {
+        final Context context
+    ) {
       final String baseString = process(node.getBase(), context);
-      if (node.getBase() instanceof QualifiedNameReference) {
-        return baseString + KsqlConstants.DOT + context.formatOptions.escape(node.getFieldName());
-      }
       return baseString + KsqlConstants.STRUCT_FIELD_REF
           + context.formatOptions.escape(node.getFieldName());
     }

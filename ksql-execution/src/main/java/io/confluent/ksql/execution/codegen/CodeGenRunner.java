@@ -268,8 +268,8 @@ public class CodeGenRunner {
         final DereferenceExpression node,
         final Object context
     ) {
-      addParameter(getRequiredColumn(node.toString()));
-      return null;
+      throw new UnsupportedOperationException(
+          "DereferenceExpression should have been resolved by now");
     }
 
     @Override
@@ -297,8 +297,7 @@ public class CodeGenRunner {
         final SubscriptExpression node,
         final Object context
     ) {
-      if (node.getBase() instanceof DereferenceExpression
-          || node.getBase() instanceof QualifiedNameReference) {
+      if (node.getBase() instanceof QualifiedNameReference) {
         final String arrayBaseName = node.getBase().toString();
         addParameter(getRequiredColumn(arrayBaseName));
       } else {
@@ -313,7 +312,7 @@ public class CodeGenRunner {
         final QualifiedNameReference node,
         final Object context
     ) {
-      addParameter(getRequiredColumn(node.getName().name()));
+      addParameter(getRequiredColumn(node.getName().toString()));
       return null;
     }
 

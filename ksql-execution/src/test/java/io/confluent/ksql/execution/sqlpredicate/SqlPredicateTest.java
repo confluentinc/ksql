@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
@@ -59,42 +58,38 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("unchecked")
 public class SqlPredicateTest {
-  private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
-  private final ProcessingLogConfig processingLogConfig
-      = new ProcessingLogConfig(Collections.emptyMap());
-  private final LogicalSchema schema = LogicalSchema.builder()
+
+  private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
+
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn("COL0", SqlTypes.BIGINT)
       .valueColumn("COL1", SqlTypes.DOUBLE)
       .valueColumn("COL2", SqlTypes.STRING)
       .build()
       .withAlias("TEST1")
       .withMetaAndKeyColsInValue();
-  private final QualifiedNameReference test1 = new QualifiedNameReference(
-      QualifiedName.of("TEST1")
-  );
-  private final DereferenceExpression col0 = new DereferenceExpression(test1, "COL0");
-  private final DereferenceExpression col2 = new DereferenceExpression(test1, "COL2");
 
-  @Mock
-  private ProcessingLogger processingLogger;
-  @Mock
-  private FunctionRegistry functionRegistry;
-  @Mock
-  private UdfFactory lenFactory;
+  private static final QualifiedNameReference COL0 =
+      new QualifiedNameReference(QualifiedName.of("TEST1", "COL0"));
 
-  private KsqlFunction lenFunction = KsqlFunction.createLegacyBuiltIn(
+  private static final QualifiedNameReference COL2 =
+      new QualifiedNameReference(QualifiedName.of("TEST1", "COL2"));
+
+  private static final KsqlFunction LEN_FUNCTION = KsqlFunction.createLegacyBuiltIn(
       Schema.OPTIONAL_INT32_SCHEMA,
       ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA),
       "LEN",
       LenDummy.class
   );
 
-  private static class LenDummy implements Kudf {
-    @Override
-    public Object evaluate(Object... args) {
-      throw new IllegalStateException();
-    }
-  }
+  @Mock
+  private ProcessingLogger processingLogger;
+  @Mock
+  private ProcessingLogConfig processingLogConfig;
+  @Mock
+  private FunctionRegistry functionRegistry;
+  @Mock
+  private UdfFactory lenFactory;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -102,14 +97,14 @@ public class SqlPredicateTest {
   @Before
   public void init() {
     when(functionRegistry.getUdfFactory("LEN")).thenReturn(lenFactory);
-    when(lenFactory.getFunction(any())).thenReturn(lenFunction);
+    when(lenFactory.getFunction(any())).thenReturn(LEN_FUNCTION);
   }
 
   @Test
   public void testFilter() {
     // Given:
     final SqlPredicate predicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)));
+        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When/Then:
     assertThat(
@@ -125,10 +120,10 @@ public class SqlPredicateTest {
     final SqlPredicate predicate = givenSqlPredicateFor(
         new LogicalBinaryExpression(
             LogicalBinaryExpression.Type.AND,
-            new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)),
+            new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)),
             new ComparisonExpression(
                 Type.EQUAL,
-                new FunctionCall(QualifiedName.of("LEN"), ImmutableList.of(col2)),
+                new FunctionCall(QualifiedName.of("LEN"), ImmutableList.of(COL2)),
                 new IntegerLiteral(5)
             )
         )
@@ -145,7 +140,7 @@ public class SqlPredicateTest {
   public void shouldIgnoreNullRows() {
     // Given:
     final SqlPredicate sqlPredicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)));
+        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When/Then:
     assertThat(sqlPredicate.getPredicate().test("key", null), is(false));
@@ -155,7 +150,7 @@ public class SqlPredicateTest {
   public void shouldWriteProcessingLogOnError() {
     // Given:
     final SqlPredicate sqlPredicate = givenSqlPredicateFor(
-        new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)));
+        new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When:
     sqlPredicate.getPredicate().test(
@@ -185,10 +180,18 @@ public class SqlPredicateTest {
   private SqlPredicate givenSqlPredicateFor(final Expression sqlPredicate) {
     return new SqlPredicate(
         sqlPredicate,
-        schema,
-        ksqlConfig,
+        SCHEMA,
+        KSQL_CONFIG,
         functionRegistry,
         processingLogger
     );
+  }
+
+  private static class LenDummy implements Kudf {
+
+    @Override
+    public Object evaluate(Object... args) {
+      throw new IllegalStateException();
+    }
   }
 }

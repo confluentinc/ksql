@@ -107,6 +107,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
+import org.eclipse.jetty.io.RuntimeIOException;
 import org.jline.terminal.Terminal.Signal;
 import org.jline.terminal.Terminal.SignalHandler;
 import org.slf4j.Logger;
@@ -302,7 +303,7 @@ public class Console implements Closeable {
     return Collections.unmodifiableList(terminal.getHistory());
   }
 
-  public void printErrorMessage(final KsqlErrorMessage errorMessage) throws IOException {
+  public void printErrorMessage(final KsqlErrorMessage errorMessage) {
     if (errorMessage instanceof KsqlStatementErrorMessage) {
       printKsqlEntityList(((KsqlStatementErrorMessage)errorMessage).getEntities());
     }
@@ -317,7 +318,7 @@ public class Console implements Closeable {
   public void printStreamedRow(
       final StreamedRow row,
       final List<FieldInfo> fields
-  ) throws IOException {
+  ) {
     if (row.getErrorMessage() != null) {
       printErrorMessage(row.getErrorMessage());
       return;
@@ -343,7 +344,7 @@ public class Console implements Closeable {
     }
   }
 
-  public void printKsqlEntityList(final List<KsqlEntity> entityList) throws IOException {
+  public void printKsqlEntityList(final List<KsqlEntity> entityList) {
     switch (outputFormat) {
       case JSON:
         printAsJson(entityList);
@@ -366,7 +367,7 @@ public class Console implements Closeable {
     }
   }
 
-  public void printRowHeader(final List<FieldInfo> fields) throws IOException {
+  public void printRowHeader(final List<FieldInfo> fields) {
     switch (outputFormat) {
       case JSON:
         break;
@@ -771,16 +772,21 @@ public class Console implements Closeable {
     return output.toString();
   }
 
-  private void printAsJson(final Object o) throws IOException {
+  private void printAsJson(final Object o) {
     if (!((o instanceof PropertiesList || (o instanceof KsqlEntityList)))) {
       log.warn(
           "Unexpected result class: '{}' found in printAsJson",
           o.getClass().getCanonicalName()
       );
     }
-    objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
-    writer().println();
-    flush();
+
+    try {
+      objectMapper.writerWithDefaultPrettyPrinter().writeValue(writer(), o);
+      writer().println();
+      flush();
+    } catch (final IOException e) {
+      throw new RuntimeIOException("Failed to write to console", e);
+    }
   }
 
   static class NoOpRowCaptor implements RowCaptor {

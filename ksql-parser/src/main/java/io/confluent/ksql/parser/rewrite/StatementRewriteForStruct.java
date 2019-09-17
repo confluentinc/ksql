@@ -21,7 +21,6 @@ import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
@@ -62,40 +61,11 @@ public final class StatementRewriteForStruct {
         final DereferenceExpression node,
         final Context<Void> context
     ) {
-      return createFetchFunctionNodeIfNeeded(node, context);
-    }
-
-    private Optional<Expression> createFetchFunctionNodeIfNeeded(
-        final DereferenceExpression dereferenceExpression,
-        final Context<Void> context
-    ) {
-      if (dereferenceExpression.getBase() instanceof QualifiedNameReference) {
-        return getNewDereferenceExpression(dereferenceExpression, context);
-      }
-      return getNewFunctionCall(dereferenceExpression, context);
-    }
-
-    private Optional<Expression> getNewFunctionCall(
-        final DereferenceExpression dereferenceExpression,
-        final Context<Void> context
-    ) {
-      final Expression createFunctionResult
-          = context.process(dereferenceExpression.getBase());
-      final String fieldName = dereferenceExpression.getFieldName();
+      final Expression createFunctionResult = context.process(node.getBase());
+      final String fieldName = node.getFieldName();
       return Optional.of(new FunctionCall(
           QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),
           ImmutableList.of(createFunctionResult, new StringLiteral(fieldName))));
     }
-
-    private Optional<Expression> getNewDereferenceExpression(
-        final DereferenceExpression dereferenceExpression,
-        final Context<Void> context
-    ) {
-      return Optional.of(new DereferenceExpression(
-          dereferenceExpression.getLocation(),
-          context.process(dereferenceExpression.getBase()),
-          dereferenceExpression.getFieldName()));
-    }
   }
-
 }

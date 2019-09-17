@@ -21,7 +21,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
@@ -168,10 +167,9 @@ public class Analysis {
     fromDataSources.add(new AliasedDataSource(alias, dataSource));
   }
 
-  DereferenceExpression getDefaultArgument() {
-    final String base = fromDataSources.get(0).getAlias();
-    final Expression baseExpression = new QualifiedNameReference(QualifiedName.of(base));
-    return new DereferenceExpression(baseExpression, SchemaUtil.ROWTIME_NAME);
+  QualifiedNameReference getDefaultArgument() {
+    final String alias = fromDataSources.get(0).getAlias();
+    return new QualifiedNameReference(QualifiedName.of(alias, SchemaUtil.ROWTIME_NAME));
   }
 
   void setSerdeOptions(final Set<SerdeOption> serdeOptions) {

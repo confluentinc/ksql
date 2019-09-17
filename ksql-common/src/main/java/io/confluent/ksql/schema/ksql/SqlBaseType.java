@@ -27,6 +27,6 @@ public enum SqlBaseType {
   }
 
   public boolean canUpCast(final SqlBaseType to) {
-    return isNumber() && this.ordinal() <= to.ordinal();
+    return isNumber() && to.isNumber() && this.ordinal() <= to.ordinal();
   }
 }

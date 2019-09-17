@@ -18,7 +18,6 @@ package io.confluent.ksql.analyzer;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
@@ -26,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.util.KsqlException;
@@ -50,19 +50,24 @@ class ExpressionAnalyzer {
     visitor.process(expression, null);
   }
 
-  private void throwOnUnknownField(final String columnName) {
-    final Set<String> sourcesWithField = sourceSchemas.sourcesWithField(columnName);
+  private void throwOnUnknownField(final QualifiedName name) {
+    final Set<String> sourcesWithField = sourceSchemas.sourcesWithField(name.name());
     if (sourcesWithField.isEmpty()) {
-      throw new KsqlException("Field '" + columnName + "' cannot be resolved.");
+      throw new KsqlException("Field '" + name + "' cannot be resolved.");
     }
 
-    if (sourcesWithField.size() > 1) {
+    if (name.qualifier().isPresent()) {
+      if (!sourcesWithField.contains(name.qualifier().get())) {
+        throw new KsqlException("Source '" + name.qualifier() + "', "
+            + "used in '" + name + "' cannot be resolved.");
+      }
+    } else if (sourcesWithField.size() > 1) {
       final String possibilities = sourcesWithField.stream()
           .sorted()
-          .map(source -> SchemaUtil.buildAliasedFieldName(source, columnName))
+          .map(source -> SchemaUtil.buildAliasedFieldName(source, name.name()))
           .collect(Collectors.joining(","));
 
-      throw new KsqlException("Field '" + columnName + "' is ambiguous. "
+      throw new KsqlException("Field '" + name + "' is ambiguous. "
           + "Could be any of: " + possibilities);
     }
   }
@@ -126,25 +131,11 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    public Object visitDereferenceExpression(
-        final DereferenceExpression node,
-        final Object context
-    ) {
-      final String columnName = sourceSchemas.isJoin()
-          ? node.toString()
-          : node.getFieldName();
-
-      throwOnUnknownField(columnName);
-      return null;
-    }
-
-    @Override
     public Object visitQualifiedNameReference(
         final QualifiedNameReference node,
         final Object context
     ) {
-      final String columnName = node.getName().name();
-      throwOnUnknownField(columnName);
+      throwOnUnknownField(node.getName());
       return null;
     }
   }

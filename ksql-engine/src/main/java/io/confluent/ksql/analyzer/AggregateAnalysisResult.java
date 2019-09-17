@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import java.util.List;
 
 public interface AggregateAnalysisResult {
@@ -30,7 +30,7 @@ public interface AggregateAnalysisResult {
    *
    * @return the full set of columns from the source schema that are required.
    */
-  List<DereferenceExpression> getRequiredColumns();
+  List<QualifiedNameReference> getRequiredColumns();
 
   List<FunctionCall> getAggregateFunctions();
 

@@ -136,10 +136,12 @@ public final class Errors {
     return Response
         .status(BAD_REQUEST)
         .entity(new KsqlStatementErrorMessage(
-                ERROR_CODE_QUERY_ENDPOINT,
-                "RUN SCRIPT cannot be used with the following statements: \n"
-                        + "* PRINT\n"
-                        + "* SELECT",
+            ERROR_CODE_QUERY_ENDPOINT,
+            "The following statement types should be issued to the websocket endpoint '/query':"
+                + System.lineSeparator()
+                + "\t* PRINT"
+                + System.lineSeparator()
+                + "\t* SELECT",
             statementText, new KsqlEntityList()))
         .build();
   }

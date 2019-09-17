@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
@@ -109,10 +108,8 @@ public class GroupByMapperTest {
   @Test
   public void shouldGetKeyName() {
     // Given:
-    final Expression exp0 = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("Fred")), "f1");
-    final Expression exp1 = new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("Bob")), "b1");
+    final Expression exp0 = new QualifiedNameReference(QualifiedName.of("Fred", "f1"));
+    final Expression exp1 = new QualifiedNameReference(QualifiedName.of("Bob", "b1"));
 
     // When:
     final String result = GroupByMapper.keyNameFor(ImmutableList.of(exp0, exp1));

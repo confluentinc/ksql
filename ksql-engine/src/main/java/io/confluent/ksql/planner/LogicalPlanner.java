@@ -20,8 +20,8 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -198,7 +198,7 @@ public class LogicalPlanner {
     final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
 
     final Optional<String> keyFieldName = getSelectAliasMatching((expression, alias) ->
-        expression instanceof DereferenceExpression
+        expression instanceof QualifiedNameReference
             && expression.toString().equals(sourceKeyFieldName)
     );
 

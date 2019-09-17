@@ -36,6 +36,8 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.SqlValueCoercer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.Format;
@@ -48,6 +50,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
 import java.util.Arrays;
@@ -137,9 +140,49 @@ public class InsertValuesExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
+    final ProducerRecord<byte[], byte[]> record =
+        buildRecord(statement, executionContext, serviceContext);
+
+    try {
+      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+    } catch (final TopicAuthorizationException e) {
+      // TopicAuthorizationException does not give much detailed information about why it failed,
+      // except which topics are denied. Here we just add the ACL to make the error message
+      // consistent with other authorization error messages.
+      final Exception rootCause = new KsqlTopicAuthorizationException(
+          AclOperation.WRITE,
+          e.unauthorizedTopics()
+      );
+
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
+    } catch (final Exception e) {
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
+    }
+
+    if (record.key() == null) {
+      return Optional.of(new InsertIntoWarning(statement.getStatementText(),
+          Arrays.asList(new KsqlWarning("ROWKEY was null. Was this intentional?"))));
+    } else {
+      return Optional.empty();
+    }
+  }
+
+
+  private ProducerRecord<byte[], byte[]> buildRecord(
+      final ConfiguredStatement<InsertValues> statement,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
     throwIfDisabled(statement.getConfig());
 
     final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
     final DataSource<?> dataSource = executionContext
         .getMetaStore()
         .getSource(insertValues.getTarget().name());
@@ -153,9 +196,6 @@ public class InsertValuesExecutor {
       throw new KsqlException("Cannot insert values into windowed stream/table!");
     }
 
-    final KsqlConfig config = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
-
     try {
       final RowData row = extractRow(insertValues, dataSource);
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
@@ -163,43 +203,24 @@ public class InsertValuesExecutor {
 
       final String topicName = dataSource.getKafkaTopicName();
 
-      final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
+      return new ProducerRecord<>(
           topicName,
           null,
           row.ts,
           key,
           value
       );
-
-      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
-
-      if (key == null) {
-        return Optional.of(new InsertIntoWarning(statement.getStatementText(),
-            Arrays.asList(new KsqlWarning("ROWKEY was null. Was this intentional?"))));
-      } else {
-        return Optional.empty();
-      }
-    } catch (final TopicAuthorizationException e) {
-      // TopicAuthorizationException does not give much detailed information about why it failed,
-      // except which topics are denied. Here we just add the ACL to make the error message
-      // consistent with other authorization error messages.
-      final Exception rootCause = new KsqlTopicAuthorizationException(
-          AclOperation.WRITE,
-          e.unauthorizedTopics()
-      );
-
-      throw new KsqlException("Failed to insert values into stream/table: "
-          + insertValues.getTarget().name(), rootCause);
-    } catch (final Exception e) {
-      throw new KsqlException("Failed to insert values into stream/table: "
-          + insertValues.getTarget().name(), e);
+    } catch (Exception e) {
+      throw new KsqlStatementException(
+          createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
+          statement.getStatementText(),
+          e);
     }
   }
 
-  private boolean keyExplicitlySetToNull() {
-    return false;
+  private static String createInsertFailedExceptionMessage(final InsertValues insertValues) {
+    return "Failed to insert values into '" + insertValues.getTarget().name() + "'.";
   }
-
 
   private void throwIfDisabled(final KsqlConfig config) {
     final boolean isEnabled = config.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED);
@@ -482,10 +503,18 @@ public class InsertValuesExecutor {
       }
 
       return defaultSqlValueCoercer.coerce(value, fieldType)
-          .orElseThrow(() -> new KsqlException(
-              "Expected type " + fieldType
-                  + " for field " + fieldName
-                  + " but got " + value));
+          .orElseThrow(() -> {
+            final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
+                .toSqlType(value.getClass());
+
+            return new KsqlException(
+                String.format("Expected type %s for field %s but got %s(%s)",
+                    fieldType,
+                    fieldName,
+                    valueSqlType,
+                    value));
+
+          });
     }
   }
 }

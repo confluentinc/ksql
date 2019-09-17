@@ -24,12 +24,11 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -38,20 +37,19 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-@SuppressWarnings("unchecked")
 public class AggregateAnalyzerTest {
 
-  private static final DereferenceExpression DEFAULT_ARGUMENT = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), SchemaUtil.ROWTIME_NAME);
+  private static final QualifiedNameReference DEFAULT_ARGUMENT =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", SchemaUtil.ROWTIME_NAME));
 
-  private static final DereferenceExpression COL0 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), "COL0");
+  private static final QualifiedNameReference COL0 =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", "COL0"));
 
-  private static final DereferenceExpression COL1 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), "COL1");
+  private static final QualifiedNameReference COL1 =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", "COL1"));
 
-  private static final DereferenceExpression COL2 = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), "COL2");
+  private static final QualifiedNameReference COL2 =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", "COL2"));
 
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(QualifiedName.of("UCASE"),
       ImmutableList.of(COL0));

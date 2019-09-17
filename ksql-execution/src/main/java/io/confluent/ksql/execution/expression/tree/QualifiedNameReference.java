@@ -22,6 +22,9 @@ import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Expression representing a column name, e.g. {@code col0} or {@code src.col1}.
+ */
 @Immutable
 public class QualifiedNameReference extends Expression {
 

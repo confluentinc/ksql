@@ -60,7 +60,10 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": null, "legacyName": null}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -425,7 +428,10 @@
       "post": {
         "sources": [
           {"name": "DOWNSTREAM", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -492,7 +498,10 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -533,7 +542,10 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO"}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED"}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -582,7 +594,10 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
           {"name": "OUTPUT", "type": "stream", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -612,7 +627,10 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -631,7 +649,10 @@
         "sources": [
           {"name": "INPUT", "type": "stream", "keyField": {"name": "FOO", "legacyName": "FOO", "legacySchema": "INT"}},
           {"name": "OUTPUT", "type": "table", "keyField": {"name": "ALIASED", "legacyName": "ALIASED", "legacySchema": "INT"}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {
@@ -649,7 +670,10 @@
       "post": {
         "sources": [
           {"name": "OUTPUT", "type": "table", "keyField": {"name": null, "legacyName": null}}
-        ]
+        ],
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
       }
     },
     {

@@ -47,6 +47,14 @@ public class TableFilter<T> implements ExecutionStep<T> {
     return Collections.singletonList(source);
   }
 
+  public Expression getFilterExpression() {
+    return filterExpression;
+  }
+
+  public ExecutionStep<T> getSource() {
+    return source;
+  }
+
   @Override
   public T build(final KsqlQueryBuilder builder) {
     throw new UnsupportedOperationException();

@@ -13,27 +13,40 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.structured;
+package io.confluent.ksql.execution.sqlpredicate;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
+import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
+import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.planner.plan.FilterNode;
-import io.confluent.ksql.planner.plan.PlanNode;
-import io.confluent.ksql.testutils.AnalysisTestUtil;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Collections;
 import java.util.function.Function;
+import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -49,27 +62,54 @@ public class SqlPredicateTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final ProcessingLogConfig processingLogConfig
       = new ProcessingLogConfig(Collections.emptyMap());
-
-  private MetaStore metaStore;
-  private InternalFunctionRegistry functionRegistry;
+  private final LogicalSchema schema = LogicalSchema.builder()
+      .valueColumn("COL0", SqlTypes.BIGINT)
+      .valueColumn("COL1", SqlTypes.DOUBLE)
+      .valueColumn("COL2", SqlTypes.STRING)
+      .build()
+      .withAlias("TEST1")
+      .withMetaAndKeyColsInValue();
+  private final QualifiedNameReference test1 = new QualifiedNameReference(
+      QualifiedName.of("TEST1")
+  );
+  private final DereferenceExpression col0 = new DereferenceExpression(test1, "COL0");
+  private final DereferenceExpression col2 = new DereferenceExpression(test1, "COL2");
 
   @Mock
   private ProcessingLogger processingLogger;
+  @Mock
+  private FunctionRegistry functionRegistry;
+  @Mock
+  private UdfFactory lenFactory;
+
+  private KsqlFunction lenFunction = KsqlFunction.createLegacyBuiltIn(
+      Schema.OPTIONAL_INT32_SCHEMA,
+      ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA),
+      "LEN",
+      LenDummy.class
+  );
+
+  private static class LenDummy implements Kudf {
+    @Override
+    public Object evaluate(Object... args) {
+      throw new IllegalStateException();
+    }
+  }
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void init() {
-    metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-    functionRegistry = new InternalFunctionRegistry();
+    when(functionRegistry.getUdfFactory("LEN")).thenReturn(lenFactory);
+    when(lenFactory.getFunction(any())).thenReturn(lenFunction);
   }
 
   @Test
   public void testFilter() {
     // Given:
     final SqlPredicate predicate = givenSqlPredicateFor(
-        "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
+        new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)));
 
     // When/Then:
     assertThat(
@@ -82,9 +122,17 @@ public class SqlPredicateTest {
   @Test
   public void testFilterBiggerExpression() {
     // Given:
-    final SqlPredicate predicate =
-        givenSqlPredicateFor(
-            "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 AND LEN(col2) = 5 EMIT CHANGES;");
+    final SqlPredicate predicate = givenSqlPredicateFor(
+        new LogicalBinaryExpression(
+            LogicalBinaryExpression.Type.AND,
+            new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)),
+            new ComparisonExpression(
+                Type.EQUAL,
+                new FunctionCall(QualifiedName.of("LEN"), ImmutableList.of(col2)),
+                new IntegerLiteral(5)
+            )
+        )
+    );
 
     // When/Then:
     assertThat(
@@ -96,8 +144,8 @@ public class SqlPredicateTest {
   @Test
   public void shouldIgnoreNullRows() {
     // Given:
-    final SqlPredicate sqlPredicate =
-        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
+    final SqlPredicate sqlPredicate = givenSqlPredicateFor(
+        new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)));
 
     // When/Then:
     assertThat(sqlPredicate.getPredicate().test("key", null), is(false));
@@ -106,8 +154,8 @@ public class SqlPredicateTest {
   @Test
   public void shouldWriteProcessingLogOnError() {
     // Given:
-    final SqlPredicate sqlPredicate =
-        givenSqlPredicateFor("SELECT col0 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
+    final SqlPredicate sqlPredicate = givenSqlPredicateFor(
+        new ComparisonExpression(Type.GREATER_THAN, col0, new IntegerLiteral(100)));
 
     // When:
     sqlPredicate.getPredicate().test(
@@ -134,16 +182,10 @@ public class SqlPredicateTest {
     );
   }
 
-  private SqlPredicate givenSqlPredicateFor(final String statement) {
-    final PlanNode logicalPlan = AnalysisTestUtil.buildLogicalPlan(
-        ksqlConfig,
-        statement,
-        metaStore
-    );
-    final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
+  private SqlPredicate givenSqlPredicateFor(final Expression sqlPredicate) {
     return new SqlPredicate(
-        filterNode.getPredicate(),
-        logicalPlan.getTheSourceNode().getSchema(),
+        sqlPredicate,
+        schema,
         ksqlConfig,
         functionRegistry,
         processingLogger

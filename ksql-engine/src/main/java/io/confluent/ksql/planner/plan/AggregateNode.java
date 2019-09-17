@@ -285,7 +285,8 @@ public class AggregateNode extends PlanNode {
       aggregated = aggregated.filter(
           havingExpression.get(),
           contextStacker.push(FILTER_OP_NAME),
-          builder.getProcessingLogContext());
+          builder
+      );
     }
 
     final List<SelectExpression> finalSelects = internalSchema

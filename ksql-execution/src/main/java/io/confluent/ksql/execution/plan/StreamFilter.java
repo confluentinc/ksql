@@ -47,6 +47,14 @@ public class StreamFilter<S> implements ExecutionStep<S> {
     return Collections.singletonList(source);
   }
 
+  public Expression getFilterExpression() {
+    return filterExpression;
+  }
+
+  public ExecutionStep<S> getSource() {
+    return source;
+  }
+
   @Override
   public S build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();

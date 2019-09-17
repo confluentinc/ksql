@@ -30,7 +30,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.Column;

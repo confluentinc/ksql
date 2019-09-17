@@ -24,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -548,8 +547,7 @@ public class AstBuilderTest {
     return statements.get(0).getStatement();
   }
 
-  private static DereferenceExpression column(final String source, final String fieldNamne) {
-    return new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of(source)), fieldNamne);
+  private static QualifiedNameReference column(final String source, final String fieldName) {
+    return new QualifiedNameReference(QualifiedName.of(source, fieldName));
   }
 }

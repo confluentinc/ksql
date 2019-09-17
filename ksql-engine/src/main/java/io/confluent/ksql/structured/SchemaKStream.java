@@ -28,7 +28,6 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.ExecutionStep;
@@ -418,26 +417,11 @@ public class SchemaKStream<K> {
         final String toName = selectExpressions.get(i).getName();
         final Expression toExpression = selectExpressions.get(i).getExpression();
 
-        /*
-         * Sometimes a column reference is a DereferenceExpression, and sometimes its
-         * a QualifiedNameReference. We have an issue
-         * (https://github.com/confluentinc/ksql/issues/1695)
-         * to track cleaning this up and using DereferenceExpression for all column references.
-         * Until then, we have to check for both here.
-         */
-        if (toExpression instanceof DereferenceExpression) {
-          final DereferenceExpression deRef
-              = (DereferenceExpression) toExpression;
-
-          if (SchemaUtil.isFieldName(deRef.toString(), keyField.fullName())) {
-            found = Optional.of(Column.of(toName, keyField.type()));
-            break;
-          }
-        } else if (toExpression instanceof QualifiedNameReference) {
+        if (toExpression instanceof QualifiedNameReference) {
           final QualifiedNameReference nameRef
               = (QualifiedNameReference) toExpression;
 
-          if (SchemaUtil.isFieldName(nameRef.getName().name(), keyField.fullName())) {
+          if (SchemaUtil.isFieldName(nameRef.getName().toString(), keyField.fullName())) {
             found = Optional.of(Column.of(toName, keyField.type()));
             break;
           }
@@ -773,13 +757,9 @@ public class SchemaKStream<K> {
   }
 
   private static String fieldNameFromExpression(final Expression expression) {
-    if (expression instanceof DereferenceExpression) {
-      final DereferenceExpression dereferenceExpression =
-          (DereferenceExpression) expression;
-      return dereferenceExpression.getFieldName();
-    } else if (expression instanceof QualifiedNameReference) {
-      final QualifiedNameReference qualifiedNameReference = (QualifiedNameReference) expression;
-      return qualifiedNameReference.getName().toString();
+    if (expression instanceof QualifiedNameReference) {
+      final QualifiedNameReference nameRef = (QualifiedNameReference) expression;
+      return nameRef.getName().name();
     }
     return null;
   }

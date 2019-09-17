@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.analyzer;
 
-import static io.confluent.ksql.util.ExpressionMatchers.dereferenceExpressions;
+import static io.confluent.ksql.util.ExpressionMatchers.qualifiedNameExpressions;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -31,7 +31,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
@@ -62,14 +61,14 @@ import org.junit.rules.ExpectedException;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerTest {
 
-  private static final DereferenceExpression ITEM_ID = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), "ITEMID");
+  private static final QualifiedNameReference ITEM_ID =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", "ITEMID"));
 
-  private static final DereferenceExpression ORDER_ID = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), "ORDERID");
+  private static final QualifiedNameReference ORDER_ID =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", "ORDERID"));
 
-  private static final DereferenceExpression ORDER_UNITS = new DereferenceExpression(
-      new QualifiedNameReference(QualifiedName.of("ORDERS")), "ORDERUNITS");
+  private static final QualifiedNameReference ORDER_UNITS =
+      new QualifiedNameReference(QualifiedName.of("ORDERS", "ORDERUNITS"));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -106,8 +105,8 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1")));
+    assertThat(analysis.getSelectExpressions(), contains(
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL1"))));
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
@@ -129,8 +128,8 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST2")), "COL1")));
+    assertThat(analysis.getSelectExpressions(), contains(
+        new QualifiedNameReference(QualifiedName.of("TEST2", "COL1"))));
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
@@ -152,8 +151,8 @@ public class QueryAnalyzerTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getSelectExpressions(), contains(new DereferenceExpression(
-        new QualifiedNameReference(QualifiedName.of("TEST1")), "COL1")));
+    assertThat(analysis.getSelectExpressions(), contains(
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL1"))));
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
@@ -359,7 +358,7 @@ public class QueryAnalyzerTest {
 
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().keySet(), containsInAnyOrder(
-        dereferenceExpressions(
+        qualifiedNameExpressions(
             "ORDERS.ROWTIME", "ORDERS.ROWKEY", "ORDERS.ITEMID", "ORDERS.ORDERTIME",
             "ORDERS.ORDERUNITS", "ORDERS.MAPCOL", "ORDERS.ORDERID", "ORDERS.ITEMINFO",
             "ORDERS.ARRAYCOL", "ORDERS.ADDRESS")

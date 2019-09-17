@@ -20,15 +20,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.Mockito.mock;
 
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SingleColumn;
@@ -80,10 +80,9 @@ public class StatementRewriteForStructTest {
     final Expression col0 = ((SingleColumn) query.getSelect().getSelectItems().get(0))
         .getExpression();
 
-    assertThat(col0, instanceOf(DereferenceExpression.class));
+    assertThat(col0, instanceOf(QualifiedNameReference.class));
     assertThat(col0.toString(), equalTo("ORDERS.ORDERID"));
   }
-
 
   @Test
   public void shouldCreateCorrectFunctionCallExpressionWithSubscript() {

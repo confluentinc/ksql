@@ -22,19 +22,20 @@ import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Expression representing a STRUCT field, e.g. {@code Source.Column->fieldName}.
+ */
 @Immutable
 public class DereferenceExpression extends Expression {
 
   private final Expression base;
   private final String fieldName;
 
-  public DereferenceExpression(
-      final Expression base,
-      final String fieldName
-  ) {
-    this(Optional.empty(), base, fieldName);
-  }
-
+  /**
+   * @param location the location in the source SQL.
+   * @param base the base expression that resolves to a struct.
+   * @param fieldName the name of the field within the struct.
+   */
   public DereferenceExpression(
       final Optional<NodeLocation> location,
       final Expression base,
@@ -68,7 +69,7 @@ public class DereferenceExpression extends Expression {
     }
     final DereferenceExpression that = (DereferenceExpression) o;
     return Objects.equals(base, that.base)
-           && Objects.equals(fieldName, that.fieldName);
+        && Objects.equals(fieldName, that.fieldName);
   }
 
   @Override

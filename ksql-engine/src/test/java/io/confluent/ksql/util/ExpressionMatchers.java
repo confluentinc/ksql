@@ -16,8 +16,8 @@
 
 package io.confluent.ksql.util;
 
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -28,13 +28,15 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 public final class ExpressionMatchers {
   private ExpressionMatchers() {}
 
-  public static Matcher<? super Expression> dereferenceExpression(final String value) {
-    return new ExpressionMatcher<>(DereferenceExpression.class, value);
+  public static Matcher<? super Expression> qualifiedNameExpression(final String value) {
+    return new ExpressionMatcher<>(QualifiedNameReference.class, value);
   }
 
-  public static Collection<Matcher<? super Expression>> dereferenceExpressions(final String... values) {
+  public static Collection<Matcher<? super Expression>> qualifiedNameExpressions(
+      final String... values
+  ) {
     return Arrays.stream(values)
-        .map(ExpressionMatchers::dereferenceExpression)
+        .map(ExpressionMatchers::qualifiedNameExpression)
         .collect(Collectors.toList());
   }
 

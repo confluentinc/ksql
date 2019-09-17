@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
@@ -86,7 +85,7 @@ public class AggregateNode extends PlanNode {
   private final WindowExpression windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
-  private final List<DereferenceExpression> requiredColumns;
+  private final List<QualifiedNameReference> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
   private Optional<MaterializationInfo> materializationInfo = Optional.empty();
@@ -101,7 +100,7 @@ public class AggregateNode extends PlanNode {
       final WindowExpression windowExpression,
       final List<Expression> aggregateFunctionArguments,
       final List<FunctionCall> functionList,
-      final List<DereferenceExpression> requiredColumns,
+      final List<QualifiedNameReference> requiredColumns,
       final List<Expression> finalSelectExpressions,
       final Expression havingExpressions
   ) {
@@ -159,7 +158,7 @@ public class AggregateNode extends PlanNode {
     return functionList;
   }
 
-  public List<DereferenceExpression> getRequiredColumns() {
+  public List<QualifiedNameReference> getRequiredColumns() {
     return requiredColumns;
   }
 
@@ -394,7 +393,7 @@ public class AggregateNode extends PlanNode {
     private final Map<String, String> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
-        final List<DereferenceExpression> requiredColumns,
+        final List<QualifiedNameReference> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
       final Set<String> seen = new HashSet<>();
       collectAggregateArgExpressions(requiredColumns, seen);
@@ -489,8 +488,8 @@ public class AggregateNode extends PlanNode {
       }
 
       @Override
-      public Optional<Expression> visitDereferenceExpression(
-          final DereferenceExpression node,
+      public Optional<Expression> visitQualifiedNameReference(
+          final QualifiedNameReference node,
           final Context<Void> context
       ) {
         final String name = expressionToInternalColumnName.get(node.toString());
@@ -499,7 +498,14 @@ public class AggregateNode extends PlanNode {
               new QualifiedNameReference(node.getLocation(), QualifiedName.of(name)));
         }
 
-        throw new KsqlException("Unknown source column: " + node.toString());
+        final boolean isAggregate = node.getName().name()
+            .startsWith(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX);
+
+        if (!isAggregate || node.getName().qualifier().isPresent()) {
+          throw new KsqlException("Unknown source column: " + node.toString());
+        }
+
+        return Optional.of(node);
       }
     }
   }

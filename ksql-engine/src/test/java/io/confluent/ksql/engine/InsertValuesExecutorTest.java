@@ -467,7 +467,7 @@ public class InsertValuesExecutorTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Failed to insert values into stream/table: ");
+    expectedException.expectMessage("Failed to insert values into ");
 
     // When:
     executor.execute(statement, engine, serviceContext);

@@ -379,59 +379,78 @@ class Analyzer {
       return joinType;
     }
 
+    private DereferenceExpression checkExpressionType(
+        final ComparisonExpression comparisonExpression,
+        final Expression subExpression) {
+
+      if (!(subExpression instanceof DereferenceExpression)) {
+        throw new KsqlException(
+            String.format(
+                "%s : Invalid comparison expression '%s' in join '%s'. Joins must only contain a "
+                    + "field comparison.",
+                comparisonExpression.getLocation().map(Objects::toString).orElse(""),
+                subExpression,
+                comparisonExpression
+            )
+        );
+      }
+      return (DereferenceExpression) subExpression;
+    }
+
     private String getJoinFieldName(
         final ComparisonExpression comparisonExpression,
         final String sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      Optional<String> joinField = getJoinFieldFromExpr(
-          comparisonExpression.getLeft(),
-          sourceAlias,
-          sourceSchema
+
+      final DereferenceExpression left = checkExpressionType(comparisonExpression,
+          comparisonExpression.getLeft());
+      Optional<String> joinFieldName = getJoinFieldNameFromExpr(
+          left,
+          sourceAlias
       );
 
-      if (!joinField.isPresent()) {
-        joinField = getJoinFieldFromExpr(
-            comparisonExpression.getRight(),
-            sourceAlias,
-            sourceSchema
+      if (!joinFieldName.isPresent()) {
+        final DereferenceExpression right = checkExpressionType(comparisonExpression,
+            comparisonExpression.getRight());
+        joinFieldName = getJoinFieldNameFromExpr(
+            right,
+            sourceAlias
         );
       }
+
+      if (!joinFieldName.isPresent()) {
+        // Should never happen as we only allow DereferenceExpression
+        throw new IllegalStateException("Cannot find join field name");
+      }
+
+      final String fieldName = joinFieldName.get();
+
+      final Optional<String> joinField =
+          getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
 
       return joinField
           .orElseThrow(() -> new KsqlException(
               String.format(
-                  "%s : Invalid join criteria %s. Could not find a join criteria operand for %s. ",
+                  "%s : Invalid join criteria %s. Column %s.%s does not exist.",
                   comparisonExpression.getLocation().map(Objects::toString).orElse(""),
-                  comparisonExpression, sourceAlias
-              )
+                  comparisonExpression,
+                  sourceAlias,
+                  fieldName
+                  )
           ));
     }
 
-    private Optional<String> getJoinFieldFromExpr(
-        final Expression expression,
-        final String sourceAlias,
-        final LogicalSchema sourceSchema
-    ) {
-      if (expression instanceof DereferenceExpression) {
-        final DereferenceExpression dereferenceExpr = (DereferenceExpression) expression;
-
-        final String sourceAliasVal = dereferenceExpr.getBase().toString();
-        if (!sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
-          return Optional.empty();
-        }
-
-        final String fieldName = dereferenceExpr.getFieldName();
-        return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
+    private Optional<String> getJoinFieldNameFromExpr(
+        final DereferenceExpression expression,
+        final String sourceAlias) {
+      final String sourceAliasVal = expression.getBase().toString();
+      if (!sourceAliasVal.equalsIgnoreCase(sourceAlias)) {
+        return Optional.empty();
       }
 
-      if (expression instanceof QualifiedNameReference) {
-        final QualifiedNameReference qualifiedNameRef = (QualifiedNameReference) expression;
-
-        final String fieldName = qualifiedNameRef.getName().name();
-        return getJoinFieldFromSource(fieldName, sourceAlias, sourceSchema);
-      }
-      return Optional.empty();
+      final String fieldName = expression.getFieldName();
+      return Optional.of(fieldName);
     }
 
     private Optional<String> getJoinFieldFromSource(

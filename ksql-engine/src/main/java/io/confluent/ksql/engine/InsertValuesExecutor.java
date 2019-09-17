@@ -193,15 +193,13 @@ public class InsertValuesExecutor {
 
       final String topicName = dataSource.getKafkaTopicName();
 
-      final ProducerRecord<byte[], byte[]> record = new ProducerRecord<>(
+      return new ProducerRecord<>(
           topicName,
           null,
           row.ts,
           key,
           value
-      );
-
-      return record;
+      );;
     } catch (Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(tableStreamName) + " " + e.getMessage(),
@@ -209,7 +207,7 @@ public class InsertValuesExecutor {
     }
   }
 
-  private String createInsertFailedExceptionMessage(final String streamTableName) {
+  private static String createInsertFailedExceptionMessage(final String streamTableName) {
     return "Failed to insert values into stream/table: " + streamTableName + ".";
   }
 

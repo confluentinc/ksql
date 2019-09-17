@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;

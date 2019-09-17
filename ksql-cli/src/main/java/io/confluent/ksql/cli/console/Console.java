@@ -55,6 +55,7 @@ import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionInfo;
 import io.confluent.ksql.rest.entity.FunctionNameList;
+import io.confluent.ksql.rest.entity.InsertIntoWarning;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KafkaTopicsListExtended;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -165,6 +166,7 @@ public class Console implements Closeable {
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .put(QueryResultEntity.class,
               tablePrinter(QueryResultEntity.class, QueryResultTableBuilder::new))
+          .put(InsertIntoWarning.class, entity -> { })
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(

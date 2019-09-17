@@ -17,6 +17,7 @@ package io.confluent.ksql.engine;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.rest.server.execution.InsertValuesExecutor;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.FakeKafkaRecord;
 import io.confluent.ksql.test.tools.FakeKafkaService;

@@ -94,7 +94,6 @@
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksql-rest-app</artifactId>
       <version>${project.version}</version>
-      <scope>test</scope>
     </dependency>
 
     <dependency>

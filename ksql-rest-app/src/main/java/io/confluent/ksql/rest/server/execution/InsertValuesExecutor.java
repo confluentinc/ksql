@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.engine;
+package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Streams;
@@ -29,6 +29,9 @@ import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.tree.InsertValues;
+import io.confluent.ksql.rest.entity.InsertIntoWarning;
+import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -47,6 +50,7 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -92,7 +96,7 @@ public class InsertValuesExecutor {
   }
 
   @VisibleForTesting
-  InsertValuesExecutor(
+  public InsertValuesExecutor(
       final boolean canBeDisabledByConfig,
       final RecordProducer producer
   ) {
@@ -128,7 +132,7 @@ public class InsertValuesExecutor {
     this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
-  public void execute(
+  public Optional<KsqlEntity> execute(
       final ConfiguredStatement<InsertValues> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
@@ -168,6 +172,13 @@ public class InsertValuesExecutor {
       );
 
       producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+
+      if (key == null) {
+        return Optional.of(new InsertIntoWarning(statement.getStatementText(),
+            Arrays.asList(new KsqlWarning("ROWKEY was null. Was this intentional?"))));
+      } else {
+        return Optional.empty();
+      }
     } catch (final TopicAuthorizationException e) {
       // TopicAuthorizationException does not give much detailed information about why it failed,
       // except which topics are denied. Here we just add the ACL to make the error message
@@ -184,6 +195,11 @@ public class InsertValuesExecutor {
           + insertValues.getTarget().name(), e);
     }
   }
+
+  private boolean keyExplicitlySetToNull() {
+    return false;
+  }
+
 
   private void throwIfDisabled(final KsqlConfig config) {
     final boolean isEnabled = config.getBoolean(KsqlConfig.KSQL_INSERT_INTO_VALUES_ENABLED);

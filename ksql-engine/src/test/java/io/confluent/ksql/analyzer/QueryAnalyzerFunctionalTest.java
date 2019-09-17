@@ -64,7 +64,7 @@ import org.junit.rules.ExpectedException;
  * <p>This test file is more of a functional test, which is better implemented using QTT.
  */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
-public class QueryFunctionalAnalyzerTest {
+public class QueryAnalyzerFunctionalTest {
 
   private static final QualifiedNameReference ITEM_ID =
       new QualifiedNameReference(QualifiedName.of("ORDERS", "ITEMID"));

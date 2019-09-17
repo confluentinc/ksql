@@ -491,7 +491,8 @@ public class SchemaKStreamTest {
   public void shouldRewriteTimeComparisonInFilter() {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf(
-        "SELECT col0, col2, col3 FROM test1 WHERE ROWTIME = '1984' EMIT CHANGES;");
+        "SELECT col0, col2, col3 FROM test1 "
+            + "WHERE ROWTIME = '1984-01-01T00:00:00+00:00' EMIT CHANGES;");
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
 
     // When:
@@ -509,7 +510,7 @@ public class SchemaKStreamTest {
                 ComparisonExpression.Type.EQUAL,
                 new DereferenceExpression(
                     new QualifiedNameReference(QualifiedName.of("TEST1")), "ROWTIME"),
-                new LongLiteral(441792000000L)
+                new LongLiteral(441763200000L)
             )
         )
     );

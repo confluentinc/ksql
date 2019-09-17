@@ -375,8 +375,8 @@ public class SchemaKTableTest {
   @Test
   public void shouldRewriteTimeComparisonInFilter() {
     // Given:
-    final String selectQuery =
-        "SELECT col0, col2, col3 FROM test2 WHERE ROWTIME = '1984' EMIT CHANGES;";
+    final String selectQuery = "SELECT col0, col2, col3 FROM test2 "
+        + "WHERE ROWTIME = '1984-01-01T00:00:00+00:00' EMIT CHANGES;";
     final PlanNode logicalPlan = buildLogicalPlan(selectQuery);
     final FilterNode filterNode = (FilterNode) logicalPlan.getSources().get(0).getSources().get(0);
     initialSchemaKTable = buildSchemaKTableFromPlan(logicalPlan);
@@ -397,7 +397,7 @@ public class SchemaKTableTest {
                 ComparisonExpression.Type.EQUAL,
                 new DereferenceExpression(
                     new QualifiedNameReference(QualifiedName.of("TEST2")), "ROWTIME"),
-                new LongLiteral(441792000000L)
+                new LongLiteral(441763200000L)
             )
         )
     );

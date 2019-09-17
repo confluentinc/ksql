@@ -141,7 +141,7 @@ public class InsertValuesExecutor {
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final ProducerRecord<byte[], byte[]> record =
-        buildRecord(statement, executionContext, serviceContext, insertValues, config);
+        buildRecord(statement, executionContext, serviceContext);
 
     final String tableStreamName = insertValues.getTarget().name();
 
@@ -156,30 +156,30 @@ public class InsertValuesExecutor {
           e.unauthorizedTopics()
       );
 
-      throw new KsqlException(createInsertFailedExceptionMessage(tableStreamName), rootCause);
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), rootCause);
     } catch (final Exception e) {
-      throw new KsqlException(createInsertFailedExceptionMessage(tableStreamName), e);
+      throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
   }
 
   private ProducerRecord<byte[], byte[]> buildRecord(
       final ConfiguredStatement<InsertValues> statement,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final InsertValues insertValues,
-      final KsqlConfig config
+      final ServiceContext serviceContext
   ) {
     throwIfDisabled(statement.getConfig());
+
+    final InsertValues insertValues = statement.getStatement();
+    final KsqlConfig config = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final DataSource<?> dataSource = executionContext
         .getMetaStore()
         .getSource(insertValues.getTarget().name());
 
-    final String tableStreamName = insertValues.getTarget().name();
-
     if (dataSource == null) {
       throw new KsqlException("Cannot insert values into an unknown stream/table: "
-          + tableStreamName);
+          + insertValues.getTarget().name());
     }
 
     if (dataSource.getKsqlTopic().getKeyFormat().isWindowed()) {
@@ -199,16 +199,16 @@ public class InsertValuesExecutor {
           row.ts,
           key,
           value
-      );;
+      );
     } catch (Exception e) {
       throw new KsqlStatementException(
-          createInsertFailedExceptionMessage(tableStreamName) + " " + e.getMessage(),
+          createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
           statement.getStatementText(), e);
     }
   }
 
-  private static String createInsertFailedExceptionMessage(final String streamTableName) {
-    return "Failed to insert values into stream/table: " + streamTableName + ".";
+  private static String createInsertFailedExceptionMessage(final InsertValues insertValues) {
+    return "Failed to insert values into stream/table: " + insertValues.getTarget().name() + ".";
   }
 
   private void throwIfDisabled(final KsqlConfig config) {

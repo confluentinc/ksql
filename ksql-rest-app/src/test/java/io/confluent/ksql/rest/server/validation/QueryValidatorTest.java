@@ -44,28 +44,27 @@ public class QueryValidatorTest {
 
   @Test
   public void shouldThrowExceptionOnQueryEndpoint() {
-    // Expect:
-    // Expect:
+    // Given:
+    final ConfiguredStatement<Query> query = ConfiguredStatement.of(
+        PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+        ImmutableMap.of(),
+        engine.getKsqlConfig()
+    );
+
+    // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-            "RUN SCRIPT cannot be used with the following statements: \n"
-                    + "* PRINT\n"
-                    + "* SELECT"))));
+        "The following statement types should be issued to the websocket endpoint '/query'"
+    ))));
     expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
         "SELECT * FROM test_table"))));
 
     // When:
     CustomValidators.QUERY_ENDPOINT.validate(
-        ConfiguredStatement.of(
-            PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
-            ImmutableMap.of(),
-            engine.getKsqlConfig()
-        ),
+        query,
         engine.getEngine(),
         engine.getServiceContext()
     );
   }
-
-
 }

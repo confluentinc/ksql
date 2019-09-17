@@ -631,9 +631,11 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-            "RUN SCRIPT cannot be used with the following statements: \n"
-                    + "* PRINT\n"
-                    + "* SELECT"))));
+        "The following statement types should be issued to the websocket endpoint '/query':"
+            + System.lineSeparator()
+            + "\t* PRINT"
+            + System.lineSeparator()
+            + "\t* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "SELECT * FROM test_table EMIT CHANGES;"))));
 
@@ -661,9 +663,11 @@ public class KsqlResourceTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
-            "RUN SCRIPT cannot be used with the following statements: \n"
-                    + "* PRINT\n"
-                    + "* SELECT"))));
+        "The following statement types should be issued to the websocket endpoint '/query':"
+            + System.lineSeparator()
+            + "\t* PRINT"
+            + System.lineSeparator()
+            + "\t* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "PRINT 'orders-topic';"))));
 

@@ -131,7 +131,7 @@ class Analyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    final Visitor visitor = new Visitor();
+    final Visitor visitor = new Visitor(query.isStatic());
     visitor.process(query, null);
 
     sink.ifPresent(visitor::analyzeNonStdOutSink);
@@ -146,8 +146,13 @@ class Analyzer {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final Analysis analysis = new Analysis();
+    private final boolean staticQuery;
     private boolean isJoin = false;
     private boolean isGroupBy = false;
+
+    Visitor(final boolean staticQuery) {
+      this.staticQuery = staticQuery;
+    }
 
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
@@ -301,19 +306,26 @@ class Analyzer {
           new ExpressionAnalyzer(analysis.getFromSourceSchemas());
 
       for (final Expression selectExpression : analysis.getSelectExpressions()) {
-        expressionAnalyzer.analyzeExpression(selectExpression);
+        expressionAnalyzer.analyzeExpression(selectExpression, false);
       }
 
       if (analysis.getWhereExpression() != null) {
-        expressionAnalyzer.analyzeExpression(analysis.getWhereExpression());
+        final boolean allowWindowMetaFields = staticQuery
+            && analysis.getFromDataSources().get(0)
+            .getDataSource()
+            .getKsqlTopic()
+            .getKeyFormat()
+            .isWindowed();
+
+        expressionAnalyzer.analyzeExpression(analysis.getWhereExpression(), allowWindowMetaFields);
       }
 
       for (final Expression expression : analysis.getGroupByExpressions()) {
-        expressionAnalyzer.analyzeExpression(expression);
+        expressionAnalyzer.analyzeExpression(expression, false);
       }
 
       if (analysis.getHavingExpression() != null) {
-        expressionAnalyzer.analyzeExpression(analysis.getHavingExpression());
+        expressionAnalyzer.analyzeExpression(analysis.getHavingExpression(), false);
       }
     }
 

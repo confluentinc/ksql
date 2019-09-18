@@ -42,6 +42,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -320,9 +321,11 @@ public class StatementExecutor implements KsqlConfigurable {
           ksqlEngine, mergedConfig, statement.getStatementText());
     }
 
-    final ConfiguredStatement<?> configured = command.getUseOffsetAsQueryID()
-        ? ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig, offset)
-            : ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        statement, command.getOverwriteProperties(), mergedConfig);
+
+    QueryIdGenerator queryIdGenerator = ksqlEngine.getQueryIdGenerator();
+    queryIdGenerator.updateOffset(offset, command.getUseOffsetAsQueryID());
 
     final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
         .getQuery()

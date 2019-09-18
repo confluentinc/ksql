@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicLong;
 public class QueryIdGenerator {
 
   private final AtomicLong queryIdCounter;
+  private boolean useOffsetAsQueryId;
+  private long offset;
 
   public QueryIdGenerator() {
     this(0L);
@@ -27,10 +29,17 @@ public class QueryIdGenerator {
 
   private QueryIdGenerator(final long initialValue) {
     this.queryIdCounter = new AtomicLong(initialValue);
+    this.useOffsetAsQueryId = false;
+    this.offset = 0L;
+  }
+
+  public void updateOffset(final long offset, final boolean useOffsetAsQueryId) {
+    this.offset = offset;
+    this.useOffsetAsQueryId = useOffsetAsQueryId;
   }
 
   public String getNextId() {
-    return String.valueOf(queryIdCounter.getAndIncrement());
+    return String.valueOf((useOffsetAsQueryId ? offset : queryIdCounter.getAndIncrement()));
   }
 
   public QueryIdGenerator copy() {

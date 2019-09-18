@@ -184,6 +184,10 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
     aggregateMetricsCollector.shutdown();
   }
 
+  public QueryIdGenerator getQueryIdGenerator() {
+    return primaryContext.getQueryIdGenerator();
+  }
+
   /**
    * Determines if a statement is executable by the engine.
    *

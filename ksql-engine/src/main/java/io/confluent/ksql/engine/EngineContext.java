@@ -114,6 +114,10 @@ final class EngineContext {
     return Optional.ofNullable(persistentQueries.get(queryId));
   }
 
+  QueryIdGenerator getQueryIdGenerator() {
+    return queryIdGenerator;
+  }
+
   Map<QueryId, PersistentQueryMetadata> getPersistentQueries() {
     return Collections.unmodifiableMap(persistentQueries);
   }

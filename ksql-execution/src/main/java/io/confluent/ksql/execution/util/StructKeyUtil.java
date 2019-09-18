@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.structured;
+package io.confluent.ksql.execution.util;
 
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.util.SchemaUtil;
@@ -25,7 +25,7 @@ import org.apache.kafka.connect.data.Struct;
 /**
  * Helper for dealing with Struct keys.
  */
-final class StructKeyUtil {
+public final class StructKeyUtil {
 
   private static final Schema ROWKEY_STRUCT_SCHEMA = SchemaBuilder
       .struct()
@@ -35,7 +35,7 @@ final class StructKeyUtil {
   private static final org.apache.kafka.connect.data.Field ROWKEY_FIELD =
       ROWKEY_STRUCT_SCHEMA.fields().get(0);
 
-  static final PersistenceSchema ROWKEY_SERIALIZED_SCHEMA = PersistenceSchema.from(
+  public static final PersistenceSchema ROWKEY_SERIALIZED_SCHEMA = PersistenceSchema.from(
       (ConnectSchema) ROWKEY_STRUCT_SCHEMA,
       false
   );
@@ -43,7 +43,7 @@ final class StructKeyUtil {
   private StructKeyUtil() {
   }
 
-  static Struct asStructKey(final String rowKey) {
+  public static Struct asStructKey(final String rowKey) {
     final Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
     keyStruct.put(ROWKEY_FIELD, rowKey);
     return keyStruct;

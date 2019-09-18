@@ -116,7 +116,12 @@
         "CREATE STREAM OUTPUT AS select * from INPUT partition by ROWKEY;"
       ],
       "inputs": [{"topic": "input", "key": 10, "value": {"ID":  22}}],
-      "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}}]
+      "outputs": [{"topic": "OUTPUT", "key": "10", "value": {"ID":  22}}],
+      "post": {
+        "topics": {
+          "blacklist": ".*-repartition"
+        }
+      }
     },
     {
       "name": "partition by ROWTIME",

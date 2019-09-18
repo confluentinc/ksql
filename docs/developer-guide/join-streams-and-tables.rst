@@ -79,8 +79,11 @@ Your KSQL applications must meet specific requirements for joins to be successfu
 Co-partitioned data
     Input data must be co-partitioned when joining. This ensures that input
     records with the same key, from both sides of the join, are delivered to
-    the same stream task during processing. It’s your responsibility to ensure
-    data co-partitioning when joining. For more information, see :ref:`partition-data-to-enable-joins`.
+    the same stream task during processing. Starting in version 5.3.0, the KSQL
+    engine automatically re-partitions one side of a stream-stream join to
+    ensure that co-partitioning requirements are met. For earlier versions,
+    it’s your responsibility to ensure data co-partitioning when joining. For
+    more information, see :ref:`partition-data-to-enable-joins`.
 
 KEY property
     If you set the KEY property when you create a table, ensure that both of the

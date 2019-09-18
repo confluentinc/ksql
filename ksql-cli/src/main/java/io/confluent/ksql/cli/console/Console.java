@@ -62,6 +62,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlWarning;
+import io.confluent.ksql.rest.entity.MessageEntity;
 import io.confluent.ksql.rest.entity.PropertiesList;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
@@ -166,6 +167,7 @@ public class Console implements Closeable {
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
           .put(QueryResultEntity.class,
               tablePrinter(QueryResultEntity.class, QueryResultTableBuilder::new))
+          .put(MessageEntity.class, Console::printMessage)
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -784,6 +786,12 @@ public class Console implements Closeable {
       flush();
     } catch (final IOException e) {
       throw new RuntimeIOException("Failed to write to console", e);
+    }
+  }
+
+  private void printMessage(final MessageEntity message) {
+    if (message.getMessage().isPresent()) {
+      writer().println(message.getMessage().get());
     }
   }
 

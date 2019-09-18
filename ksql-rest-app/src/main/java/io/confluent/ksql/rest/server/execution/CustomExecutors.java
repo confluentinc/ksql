@@ -38,6 +38,7 @@ import io.confluent.ksql.parser.tree.ShowColumns;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.entity.MessageEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.EnumSet;
@@ -116,8 +117,9 @@ public enum CustomExecutors {
     final InsertValuesExecutor executor = new InsertValuesExecutor();
 
     return (statement, executionContext, serviceContext) -> {
-      executor.execute(statement, executionContext, serviceContext);
-      return Optional.empty();
+      final Optional<String> message =
+          executor.execute(statement, executionContext, serviceContext);
+      return Optional.of(new MessageEntity(statement.getStatementText(), null, message));
     };
   }
 }

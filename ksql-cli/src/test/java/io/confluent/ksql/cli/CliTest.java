@@ -860,6 +860,28 @@ public class CliTest {
   }
 
   @Test
+  public void shouldDisplayInsertedKeyValue() throws Exception {
+
+    final String message = String.format(
+        "Inserted:%nkey:%s%nvalue:%s%n",
+        "null",
+        "[ 294 | 8.1 ]"
+    );
+
+    final String line =
+        "CREATE STREAM " + streamName + "(id INT, rating DOUBLE) WITH "
+            + "(kafka_topic='ratings', partitions=1, value_format='json');\n"
+        + "INSERT INTO " + streamName + "(id, rating) VALUES (294, 8.1);";
+
+    localCli.handleLine(line);
+
+    dropStream(streamName);
+
+    final String output = terminal.getOutputString();
+    assertThat(output, containsString(message));
+  }
+
+  @Test
   public void shouldPrintErrorIfCantFindFunction() throws Exception {
     localCli.handleLine("describe function foobar;");
 

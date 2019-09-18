@@ -131,7 +131,7 @@ public class InsertValuesExecutor {
     this.valueSerdeFactory = Objects.requireNonNull(valueSerdeFactory, "valueSerdeFactory");
   }
 
-  public void execute(
+  public Optional<String> execute(
       final ConfiguredStatement<InsertValues> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
@@ -140,11 +140,12 @@ public class InsertValuesExecutor {
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    final ProducerRecord<byte[], byte[]> record =
+    final ProducerRecordInfo producerRecordInfo =
         buildRecord(statement, executionContext, serviceContext);
 
     try {
-      producer.sendRecord(record, serviceContext, config.getProducerClientConfigProps());
+      producer.sendRecord(producerRecordInfo.record,
+          serviceContext, config.getProducerClientConfigProps());
     } catch (final TopicAuthorizationException e) {
       // TopicAuthorizationException does not give much detailed information about why it failed,
       // except which topics are denied. Here we just add the ACL to make the error message
@@ -158,9 +159,16 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
+
+    final String message = String.format(
+        "Inserted:%nkey:%s%nvalue:%s%n",
+        producerRecordInfo.row.key.get("ROWKEY"),
+        producerRecordInfo.row.value
+        );
+    return Optional.of(message);
   }
 
-  private ProducerRecord<byte[], byte[]> buildRecord(
+  private ProducerRecordInfo buildRecord(
       final ConfiguredStatement<InsertValues> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
@@ -188,16 +196,15 @@ public class InsertValuesExecutor {
       final RowData row = extractRow(insertValues, dataSource);
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
       final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
-
       final String topicName = dataSource.getKafkaTopicName();
 
-      return new ProducerRecord<>(
+      return new ProducerRecordInfo(row, new ProducerRecord<>(
           topicName,
           null,
           row.ts,
           key,
           value
-      );
+      ));
     } catch (Exception e) {
       throw new KsqlStatementException(
           createInsertFailedExceptionMessage(insertValues) + " " + e.getMessage(),
@@ -462,6 +469,17 @@ public class InsertValuesExecutor {
       this.ts = ts;
       this.key = key;
       this.value = value;
+    }
+  }
+
+  private static class ProducerRecordInfo {
+    final RowData row;
+    final ProducerRecord<byte[], byte[]> record;
+
+    ProducerRecordInfo(final RowData row,
+        final ProducerRecord<byte[], byte[]> record) {
+      this.row = row;
+      this.record = record;
     }
   }
 

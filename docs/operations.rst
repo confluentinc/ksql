@@ -114,8 +114,8 @@ This is typically caused by the query being configured to process only newly arr
 ------------------------------------------------------------
 Can’t create a stream from the output of windowed aggregate?
 ------------------------------------------------------------
-The output of a windowed aggregate is a record per grouping key and per window, and is not a single record. This is not
-currently supported in KSQL.
+The output of a windowed aggregate isn't a single record, so you can't create
+a stream from it.
 
 ------------------------------------------
 KSQL doesn’t clean up its internal topics?

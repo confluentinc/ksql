@@ -214,7 +214,8 @@ See :ref:`Starting KSQL Server <start_ksql-server>` and :ref:`Starting the KSQL 
 Cannot create a stream from the output of a windowed aggregate
 ***************************************************************
 
-Window aggregation is not currently supported in KSQL.
+The output of a windowed aggregate isn't a single record, so you can't create
+a stream from it.
 
 
 KSQL does not clean up internal topics

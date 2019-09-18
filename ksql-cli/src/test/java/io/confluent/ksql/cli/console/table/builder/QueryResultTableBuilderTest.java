@@ -23,17 +23,12 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.rest.entity.QueryResultEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
-import io.confluent.ksql.rest.entity.QueryResultEntity.Window;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,24 +37,40 @@ public class QueryResultTableBuilderTest {
 
   private static final String SOME_SQL = "some sql";
 
-  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn("k0", SqlTypes.BIGINT)
       .keyColumn("k1", SqlTypes.DOUBLE)
       .valueColumn("v0", SqlTypes.STRING)
       .valueColumn("v1", SqlTypes.INTEGER)
       .build();
 
-  private static final Optional<Window> SESSION_WINDOW = Optional
-      .of(new Window(12_234, OptionalLong.of(43_234)));
-
-  private static final Optional<Window> TIME_WINDOW = Optional
-      .of(new Window(12_234, OptionalLong.empty()));
-
-  private static final LinkedHashMap<String, ?> A_KEY =
-      orderedMap("k0", 10L, "k1", 5.1D);
-
   private static final List<?> VALUES = ImmutableList.of(
-    10L, 5.1D, "x", 5   
+      10L, 5.1D, "x", 5
+  );
+
+  private static final LogicalSchema TIME_WINDOW_SCHEMA = LogicalSchema.builder()
+      .keyColumn("k0", SqlTypes.BIGINT)
+      .keyColumn("k1", SqlTypes.DOUBLE)
+      .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
+      .valueColumn("v0", SqlTypes.STRING)
+      .valueColumn("v1", SqlTypes.INTEGER)
+      .build();
+
+  private static final List<?> TIME_WINDOW_VALUES = ImmutableList.of(
+      10L, 5.1D, 123456L, "x", 5
+  );
+
+  private static final LogicalSchema SESSION_WINDOW_SCHEMA = LogicalSchema.builder()
+      .keyColumn("k0", SqlTypes.BIGINT)
+      .keyColumn("k1", SqlTypes.DOUBLE)
+      .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
+      .keyColumn("WINDOWEND", SqlTypes.BIGINT)
+      .valueColumn("v0", SqlTypes.STRING)
+      .valueColumn("v1", SqlTypes.INTEGER)
+      .build();
+
+  private static final List<?> SESSION_WINDOW_VALUES = ImmutableList.of(
+      10L, 5.1D, 123456L, 23456L, "x", 5
   );
 
   private QueryResultTableBuilder builder;
@@ -74,9 +85,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.empty(),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(Optional.empty(), VALUES))
+        SCHEMA,
+        ImmutableList.of(VALUES)
     );
 
     // When:
@@ -96,9 +106,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.TUMBLING),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(TIME_WINDOW, VALUES))
+        TIME_WINDOW_SCHEMA,
+        ImmutableList.of(TIME_WINDOW_VALUES)
     );
 
     // When:
@@ -106,9 +115,9 @@ public class QueryResultTableBuilderTest {
 
     // Then:
     assertThat(table.headers(), contains(
-        "WINDOWSTART BIGINT",
         "k0 BIGINT KEY",
         "k1 DOUBLE KEY",
+        "WINDOWSTART BIGINT KEY",
         "v0 STRING",
         "v1 INTEGER"
     ));
@@ -119,9 +128,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.SESSION),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, VALUES))
+        SESSION_WINDOW_SCHEMA,
+        ImmutableList.of(SESSION_WINDOW_VALUES)
     );
 
     // When:
@@ -129,10 +137,10 @@ public class QueryResultTableBuilderTest {
 
     // Then:
     assertThat(table.headers(), contains(
-        "WINDOWSTART BIGINT",
-        "WINDOWEND BIGINT",
         "k0 BIGINT KEY",
         "k1 DOUBLE KEY",
+        "WINDOWSTART BIGINT KEY",
+        "WINDOWEND BIGINT KEY",
         "v0 STRING",
         "v1 INTEGER"
     ));
@@ -143,9 +151,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.empty(),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(Optional.empty(), VALUES))
+        SCHEMA,
+        ImmutableList.of(VALUES)
     );
 
     // When:
@@ -161,9 +168,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.HOPPING),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(TIME_WINDOW, VALUES))
+        TIME_WINDOW_SCHEMA,
+        ImmutableList.of(TIME_WINDOW_VALUES)
     );
 
     // When:
@@ -171,7 +177,7 @@ public class QueryResultTableBuilderTest {
 
     // Then:
     assertThat(table.rows(), hasSize(1));
-    assertThat(table.rows().get(0), contains("12234", "10", "5.1", "x", "5"));
+    assertThat(table.rows().get(0), contains("10", "5.1", "123456", "x", "5"));
   }
 
   @Test
@@ -179,9 +185,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.SESSION),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, VALUES))
+        SESSION_WINDOW_SCHEMA,
+        ImmutableList.of(SESSION_WINDOW_VALUES)
     );
 
     // When:
@@ -189,7 +194,7 @@ public class QueryResultTableBuilderTest {
 
     // Then:
     assertThat(table.rows(), hasSize(1));
-    assertThat(table.rows().get(0), contains("12234", "43234", "10", "5.1", "x", "5"));
+    assertThat(table.rows().get(0), contains("10", "5.1", "123456", "23456", "x", "5"));
   }
 
   @Test
@@ -197,9 +202,8 @@ public class QueryResultTableBuilderTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.empty(),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(Optional.empty(), Arrays.asList(10L, null, "x", null)))
+        SCHEMA,
+        ImmutableList.of(Arrays.asList(10L, null, "x", null))
     );
 
     // When:

@@ -27,7 +27,6 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.QueryResultEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -154,12 +153,12 @@ public class StaticQueryFunctionalTest {
 
     // When:
 
-    final List<ResultRow> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<ResultRow> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<List<?>> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
+    final List<List<?>> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
 
     // Then:
     assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0).getValues(), is(ImmutableList.of(key, 1)));
+    assertThat(rows_0.get(0), is(ImmutableList.of(key, 1)));
     assertThat(rows_1, is(rows_0));
   }
 
@@ -183,16 +182,16 @@ public class StaticQueryFunctionalTest {
         + " AND WINDOWSTART = " + BASE_TIME + ";";
 
     // When:
-    final List<ResultRow> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<ResultRow> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<List<?>> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
+    final List<List<?>> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
 
     // Then:
     assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0).getValues(), is(ImmutableList.of(key, 1)));
+    assertThat(rows_0.get(0), is(ImmutableList.of(key, 1)));
     assertThat(rows_1, is(rows_0));
   }
 
-  private static List<ResultRow> makeStaticQueryRequest(
+  private static List<List<?>> makeStaticQueryRequest(
       final TestKsqlRestApp target,
       final String sql
   ) {

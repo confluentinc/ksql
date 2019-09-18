@@ -20,9 +20,8 @@
         {"@type": "currentStatus"},
         {
           "@type": "rows",
-          "windowType": null,
           "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
-          "rows": [{"window": null, "values": ["10", 1]}]
+          "rows": [["10", 1]]
         },
         {"@type": "rows", "rows": []}
       ]
@@ -45,9 +44,8 @@
         {"@type": "currentStatus"},
         {
           "@type": "rows",
-          "windowType": "TUMBLING",
-          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
-          "rows": [{"window": {"start": 12000, "end": null}, "values": ["10", 1]}]
+          "schema": "`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT",
+          "rows": [["10", 12000, 1]]
         },
         {"@type": "rows", "rows": []}
       ]
@@ -71,15 +69,13 @@
         {"@type": "currentStatus"},
         {
           "@type": "rows",
-          "windowType": "HOPPING",
-          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
-          "rows": [{"window": {"start": 12000, "end": null}, "values": ["10", 1]}]
+          "schema": "`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT",
+          "rows": [["10", 12000, 1]]
         },
         {
           "@type": "rows",
-          "windowType": "HOPPING",
-          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
-          "rows": [{"window": {"start": 13000, "end": null}, "values": ["10", 1]}]
+          "schema": "`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT",
+          "rows": [["10", 13000, 1]]
         },
         {"@type": "rows", "rows": []}
       ]
@@ -103,9 +99,8 @@
         {"@type": "currentStatus"},
         {
           "@type": "rows",
-          "windowType": "SESSION",
-          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
-          "rows": [{"window": {"start": 12345, "end": 12366}, "values": ["10", 2]}]
+          "schema": "`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `WINDOWEND` BIGINT KEY, `COUNT` BIGINT",
+          "rows": [["10", 12345, 12366, 2]]
         },
         {"@type": "rows", "rows": []},
         {"@type": "rows", "rows": []}
@@ -131,11 +126,10 @@
         {"@type": "currentStatus"},
         {
           "@type": "rows",
-          "windowType": "TUMBLING",
-          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "schema": "`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT",
           "rows": [
-            {"window": {"start": 12000, "end": null}, "values": ["10", 2]},
-            {"window": {"start": 14000, "end": null}, "values": ["10", 1]}
+            ["10", 12000, 2],
+            ["10", 14000, 1]
           ]
         },
         {"@type": "rows", "rows": []}
@@ -160,11 +154,11 @@
         {
           "@type": "rows",
           "rows": [
-            {"window": {"start": 7000, "end": null}, "values": ["10", 1]},
-            {"window": {"start": 8000, "end": null}, "values": ["10", 1]},
-            {"window": {"start": 9000, "end": null}, "values": ["10", 2]},
-            {"window": {"start": 10000, "end": null}, "values": ["10", 2]},
-            {"window": {"start": 11000, "end": null}, "values": ["10", 1]}
+            ["10", 7000, 1],
+            ["10", 8000, 1],
+            ["10", 9000, 2],
+            ["10", 10000, 2],
+            ["10", 11000, 1]
           ]
         },
         {"@type": "rows", "rows": []}
@@ -190,14 +184,14 @@
         {
           "@type": "rows",
           "rows": [
-            {"window": {"start": 12345, "end": 13456}, "values": ["10", 2]}
+            ["10", 12345, 13456, 2]
           ]
         },
         {
           "@type": "rows",
           "rows": [
-            {"window": {"start": 12345, "end": 13456}, "values": ["10", 2]},
-            {"window": {"start": 24456, "end": 24456}, "values": ["10", 1]}
+            ["10", 12345, 13456, 2],
+            ["10", 24456, 24456, 1]
           ]
         }
       ]
@@ -217,7 +211,7 @@
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
         {"@type": "rows", "rows": [
-          {"window": {"start": 1582501512000, "end": null}, "values": ["10", 1]}
+          ["10", 1582501512000, 1]
         ]}
       ]
     },
@@ -237,7 +231,7 @@
         {
           "@type": "rows",
           "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
-          "rows": [{"window": null, "values": ["10", 1]}]
+          "rows": [["10", 1]]
         }
       ]
     },
@@ -257,7 +251,7 @@
         {
           "@type": "rows",
           "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT, `SUM` INTEGER",
-          "rows": [{"window": null, "values": ["10", 1,10]}]
+          "rows": [["10", 1,10]]
         }
       ]
     },
@@ -276,7 +270,7 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "rows", "rows": [{"window": null, "values": ["10", 9]}]},
+        {"@type": "rows", "rows": [["10", 9]]},
         {"@type": "rows", "rows": []}
       ]
     },

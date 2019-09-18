@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
@@ -26,80 +27,136 @@ import io.confluent.ksql.materialization.Row;
 import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.materialization.Window;
 import io.confluent.ksql.materialization.WindowedRow;
-import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.StructKeyUtil;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.OptionalLong;
-import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class QueryResultEntityFactoryTest {
 
-  private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
       .valueColumn("v0", SqlTypes.BOOLEAN)
       .build();
 
-  private static final Window A_WINDOW = Window.of(Instant.now(), Optional.empty());
-
-  private static final TableRow ROW = Row.of(
-      LOGICAL_SCHEMA,
-      StructKeyUtil.asStructKey("x"),
-      new GenericRow(false)
-  );
-
-  private static final TableRow WINDOWED_ROW = WindowedRow.of(
-      LOGICAL_SCHEMA,
-      StructKeyUtil.asStructKey("y"),
-      A_WINDOW,
-      new GenericRow(true)
-  );
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn("k0", SqlTypes.STRING)
+      .keyColumn("k1", SqlTypes.BOOLEAN)
+      .valueColumn("v0", SqlTypes.INTEGER)
+      .valueColumn("v1", SqlTypes.BOOLEAN)
+      .build();
 
   @Test
-  public void shouldAddAllValuesToRow() {
+  public void shouldAddNonWindowedRowToValues() {
     // Given:
     final List<? extends TableRow> input = ImmutableList.of(
-        ROW,
-        WINDOWED_ROW
+        Row.of(
+            SIMPLE_SCHEMA,
+            StructKeyUtil.asStructKey("x"),
+            new GenericRow(false)
+        )
     );
 
     // When:
-    final List<ResultRow> output = QueryResultEntityFactory.createRows(input);
+    final List<List<?>> output = QueryResultEntityFactory.createRows(input);
 
     // Then:
-    final List<List<?>> values = output.stream()
-        .map(ResultRow::getValues)
-        .collect(Collectors.toList());
-
-    assertThat(values, hasSize(2));
-    assertThat(values.get(0), contains("x", false));
-    assertThat(values.get(1), contains("y", true));
+    assertThat(output, hasSize(1));
+    assertThat(output.get(0), contains("x", false));
   }
 
   @Test
-  public void shouldAddOptionalWindowToRow() {
+  public void shouldAddWindowedRowToValues() {
     // Given:
+    final Instant now = Instant.now();
+    final Window window0 = Window.of(now, Optional.empty());
+    final Window window1 = Window.of(now, Optional.of(now));
+
     final List<? extends TableRow> input = ImmutableList.of(
-        ROW,
-        WINDOWED_ROW
+        WindowedRow.of(
+            SIMPLE_SCHEMA,
+            StructKeyUtil.asStructKey("x"),
+            window0,
+            new GenericRow(true)
+        ),
+        WindowedRow.of(
+            SIMPLE_SCHEMA,
+            StructKeyUtil.asStructKey("y"),
+            window1,
+            new GenericRow(false)
+        )
     );
 
     // When:
-    final List<ResultRow> output = QueryResultEntityFactory.createRows(input);
+    final List<List<?>> output = QueryResultEntityFactory.createRows(input);
 
     // Then:
-    final List<Optional<QueryResultEntity.Window>> windows = output.stream()
-        .map(ResultRow::getWindow)
-        .collect(Collectors.toList());
+    assertThat(output, hasSize(2));
+    assertThat(output.get(0), contains("x", now.toEpochMilli(), true));
+    assertThat(output.get(1), contains("y", now.toEpochMilli(), now.toEpochMilli(), false));
+  }
 
-    assertThat(windows, hasSize(2));
-    assertThat(windows.get(0), is(Optional.empty()));
-    assertThat(windows.get(1), is(Optional.of(new QueryResultEntity.Window(
-        A_WINDOW.start().toEpochMilli(),
-        OptionalLong.empty()
-    ))));
+  @Test
+  public void shouldReturnSameSchemaIfNotWindowed() {
+    // When:
+    final LogicalSchema result = QueryResultEntityFactory.buildSchema(SCHEMA, Optional.empty());
+
+    // Then:
+    assertThat(result, is(sameInstance(SCHEMA)));
+  }
+
+  @Test
+  public void shouldAddHoppingWindowFieldsToSchema() {
+    // When:
+    final LogicalSchema result = QueryResultEntityFactory
+        .buildSchema(SCHEMA, Optional.of(WindowType.HOPPING));
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn("k0", SqlTypes.STRING)
+        .keyColumn("k1", SqlTypes.BOOLEAN)
+        .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
+        .valueColumn("v0", SqlTypes.INTEGER)
+        .valueColumn("v1", SqlTypes.BOOLEAN)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldAddTumblingWindowFieldsToSchema() {
+    // When:
+    final LogicalSchema result = QueryResultEntityFactory
+        .buildSchema(SCHEMA, Optional.of(WindowType.TUMBLING));
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn("k0", SqlTypes.STRING)
+        .keyColumn("k1", SqlTypes.BOOLEAN)
+        .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
+        .valueColumn("v0", SqlTypes.INTEGER)
+        .valueColumn("v1", SqlTypes.BOOLEAN)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldAddSessionWindowFieldsToSchema() {
+    // When:
+    final LogicalSchema result = QueryResultEntityFactory
+        .buildSchema(SCHEMA, Optional.of(WindowType.SESSION));
+
+    // Then:
+    assertThat(result, is(LogicalSchema.builder()
+        .keyColumn("k0", SqlTypes.STRING)
+        .keyColumn("k1", SqlTypes.BOOLEAN)
+        .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
+        .keyColumn("WINDOWEND", SqlTypes.BIGINT)
+        .valueColumn("v0", SqlTypes.INTEGER)
+        .valueColumn("v1", SqlTypes.BOOLEAN)
+        .build()
+    ));
   }
 }

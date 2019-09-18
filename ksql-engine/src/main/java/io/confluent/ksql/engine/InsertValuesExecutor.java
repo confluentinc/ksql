@@ -329,8 +329,7 @@ public class InsertValuesExecutor {
           // Note, ROWKEY must always be a String, but key might not be so we need toString()
           values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue.toString());
         }
-      } else if (keyValue != null) {
-        if (!Objects.equals(keyValue.toString(), rowKeyValue)) {
+      } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
           throw new KsqlException(
               String.format(
                   "Expected ROWKEY and %s to match but got %s and %s respectively.",

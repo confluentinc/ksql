@@ -30,6 +30,6 @@ public class AvroSerdeSupplier implements SerdeSupplier<Object> {
 
   @Override
   public Deserializer<Object> getDeserializer(final SchemaRegistryClient schemaRegistryClient) {
-    return new KafkaAvroDeserializer(schemaRegistryClient);
+    return new KafkaAvroDeserializer<>(schemaRegistryClient);
   }
 } 

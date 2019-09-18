@@ -15,31 +15,51 @@
 
 package io.confluent.ksql.test.tools.conditions;
 
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.anything;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import java.util.Collection;
-import java.util.Objects;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.hamcrest.Matcher;
 
 @SuppressWarnings("unchecked")
 public class PostConditions {
 
-  public static final PostConditions NONE = new PostConditions(hasItems(anything()));
+  public static final String MATCH_NOTHING = "(?!)";
+
+  public static final PostConditions NONE = new PostConditions(
+      hasItems(anything()),
+      Pattern.compile(MATCH_NOTHING)
+  );
 
   private final Matcher<Iterable<DataSource<?>>> sourcesMatcher;
+  private final Pattern topicBlackList;
 
   public PostConditions(
-      final Matcher<Iterable<DataSource<?>>> sourcesMatcher
+      final Matcher<Iterable<DataSource<?>>> sourcesMatcher,
+      final Pattern topicBlackList
   ) {
-    this.sourcesMatcher = Objects.requireNonNull(sourcesMatcher, "sourcesMatcher");
+    this.sourcesMatcher = requireNonNull(sourcesMatcher, "sourcesMatcher");
+    this.topicBlackList = requireNonNull(topicBlackList, "topicBlackList");
   }
 
-  public void verify(final MetaStore metaStore) {
+  public void verify(
+      final MetaStore metaStore,
+      final Collection<String> topicNames
+  ) {
+    verifyMetaStore(metaStore);
+    veriftyTopics(topicNames);
+  }
+
+  private void verifyMetaStore(final MetaStore metaStore) {
     final Collection<DataSource<?>> values = metaStore
         .getAllDataSources()
         .values();
@@ -52,5 +72,13 @@ public class PostConditions {
 
     assertThat("metastore sources after the statements have run:"
         + System.lineSeparator() + text, values, sourcesMatcher);
+  }
+
+  private void veriftyTopics(final Collection<String> topicNames) {
+    final Set<String> blackListed = topicNames.stream()
+        .filter(topicBlackList.asPredicate())
+        .collect(Collectors.toSet());
+
+    assertThat("blacklisted topics found", blackListed, is(empty()));
   }
 }

@@ -52,7 +52,9 @@ import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -62,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Schema;
@@ -224,8 +227,11 @@ public class AggregateNode extends PlanNode {
         groupByContext.getQueryContext()
     );
 
-    final List<Expression> internalGroupByColumns = internalSchema.getInternalExpressionList(
-        getGroupByExpressions());
+    final List<Expression> internalGroupByColumns = internalSchema.resolveGroupByExpressions(
+        getGroupByExpressions(),
+        aggregateArgExpanded,
+        builder.getKsqlConfig()
+    );
 
     final SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupBy(
         valueFormat,
@@ -419,9 +425,31 @@ public class AggregateNode extends PlanNode {
       }
     }
 
-    List<Expression> getInternalExpressionList(final List<Expression> expressionList) {
+    List<Expression> resolveGroupByExpressions(
+        final List<Expression> expressionList,
+        final SchemaKStream<?> aggregateArgExpanded,
+        final KsqlConfig ksqlConfig
+    ) {
+      final boolean specialRowTimeHandling = !(aggregateArgExpanded instanceof SchemaKTable)
+          && !ksqlConfig.getBoolean(KsqlConfig.KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY);
+
+      final Function<Expression, Expression> mapper = e -> {
+        final boolean rowKey = e instanceof QualifiedNameReference
+            && ((QualifiedNameReference) e).getName().name().equals(SchemaUtil.ROWKEY_NAME);
+
+        if (!rowKey || !specialRowTimeHandling) {
+          return resolveToInternal(e);
+        }
+
+        final QualifiedNameReference nameRef = (QualifiedNameReference) e;
+        return new QualifiedNameReference(
+            nameRef.getLocation(),
+            QualifiedName.of(nameRef.getName().name())
+        );
+      };
+
       return expressionList.stream()
-          .map(this::resolveToInternal)
+          .map(mapper)
           .collect(Collectors.toList());
     }
 
@@ -463,14 +491,9 @@ public class AggregateNode extends PlanNode {
           .collect(Collectors.toList());
     }
 
-    String getInternalColumnForExpression(final Expression expression) {
-      return expressionToInternalColumnName.get(expression.toString());
-    }
-
     List<SelectExpression> getAggArgExpansionList() {
       return aggArgExpansions;
     }
-
 
     private Expression resolveToInternal(final Expression exp) {
       final String name = expressionToInternalColumnName.get(exp.toString());

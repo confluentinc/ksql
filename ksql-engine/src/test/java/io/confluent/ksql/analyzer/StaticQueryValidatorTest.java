@@ -59,6 +59,7 @@ public class StaticQueryValidatorTest {
     validator = new StaticQueryValidator();
 
     when(query.isStatic()).thenReturn(true);
+    when(query.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
   }
 
   @Test

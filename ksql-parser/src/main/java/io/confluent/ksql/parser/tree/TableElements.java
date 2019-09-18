@@ -22,7 +22,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -113,17 +112,6 @@ public final class TableElements implements Iterable<TableElement> {
 
     throwOnDuplicateNames(keyColumns, "KEY");
     throwOnDuplicateNames(valueColumns, "non-KEY");
-
-    final long numKeyColumns = keyColumns.size();
-
-    if (numKeyColumns > 1) {
-      throw new KsqlException("KSQL does not yet support multiple KEY columns");
-    }
-
-    if (numKeyColumns == 1
-        && keyColumns.get(0).getType().getSqlType().baseType() != SqlBaseType.STRING) {
-      throw new KsqlException("KEY columns must be of type STRING: " + keyColumns.get(0).getName());
-    }
 
     final ImmutableList.Builder<TableElement> builder = ImmutableList.builder();
 

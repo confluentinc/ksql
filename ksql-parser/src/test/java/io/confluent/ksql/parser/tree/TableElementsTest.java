@@ -126,39 +126,6 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldThrowIfMoreThatOneKeyColumn() {
-    // Given:
-    final List<TableElement> elements = ImmutableList.of(
-        tableElement(KEY, "k0", STRING_TYPE),
-        tableElement(KEY, "k1", STRING_TYPE),
-        tableElement(VALUE, "v0", INT_TYPE)
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("KSQL does not yet support multiple KEY columns");
-
-    // When:
-    TableElements.of(elements);
-  }
-
-  @Test
-  public void shouldThrowIfKeyColumnNotString() {
-    // Given:
-    final List<TableElement> elements = ImmutableList.of(
-        tableElement(KEY, "k0", new Type(SqlTypes.INTEGER)),
-        tableElement(VALUE, "v0", INT_TYPE)
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("KEY columns must be of type STRING: k0");
-
-    // When:
-    TableElements.of(elements);
-  }
-
-  @Test
   public void shouldIterateElements() {
     // Given:
     final TableElement te1 = tableElement(KEY, "k0", STRING_TYPE);

@@ -187,7 +187,7 @@ public class StaticQueryFunctionalTest {
 
     // Then:
     assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0), is(ImmutableList.of(key, 1)));
+    assertThat(rows_0.get(0), is(ImmutableList.of(key, BASE_TIME, 1)));
     assertThat(rows_1, is(rows_0));
   }
 

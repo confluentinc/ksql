@@ -21,6 +21,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.metastore.MetaStore;
@@ -29,6 +30,8 @@ import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.TopologyTestDriver;
 import org.junit.Before;
@@ -43,6 +46,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("ResultOfMethodCallIgnored")
 @RunWith(MockitoJUnitRunner.class)
 public class TestExecutorTest {
+
+  private static final String INTERNAL_TOPIC_0 = "internal";
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -69,12 +74,20 @@ public class TestExecutorTest {
   private PostConditions postConditions;
   @Mock
   private MetaStore metaStore;
+  @Mock
+  private Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
 
   private TestExecutor executor;
 
   @Before
   public void setUp() {
-    executor = new TestExecutor(kafkaService, serviceContext, ksqlEngine, topologyBuilder);
+    executor = new TestExecutor(
+        kafkaService,
+        serviceContext,
+        ksqlEngine,
+        topologyBuilder,
+        internalTopicsAccessor
+    );
 
     when(sourceTopic.getName()).thenReturn("source_topic");
     when(sinkTopic.getName()).thenReturn("sink_topic");
@@ -91,6 +104,9 @@ public class TestExecutorTest {
     when(testCase.getPostConditions()).thenReturn(postConditions);
 
     when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
+
+    when(internalTopicsAccessor.apply(topologyTestDriver))
+        .thenReturn(ImmutableSet.of(INTERNAL_TOPIC_0));
   }
 
   @Test
@@ -254,7 +270,7 @@ public class TestExecutorTest {
     executor.buildAndExecuteQuery(testCase);
 
     // Then:
-    verify(postConditions).verify(metaStore);
+    verify(postConditions).verify(metaStore, ImmutableSet.of(INTERNAL_TOPIC_0));
   }
 
   private void givenExpectedTopology(final String topology) {

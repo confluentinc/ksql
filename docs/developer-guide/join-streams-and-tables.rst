@@ -35,9 +35,9 @@ combination of a ``pageviews`` stream and a ``users`` table:
 
 For the full code example, see :ref:`ksql_quickstart-docker`.
 
-When you join two streams, you can specify an optional WITHIN clause for
-matching records that both occur within a specified time interval. For valid
-time units, see :ref:`ksql-time-units`.
+When you join two streams, you must specify a WITHIN clause for matching
+records that both occur within a specified time interval. For valid time units,
+see :ref:`ksql-time-units`.
 
 Here's an example stream-stream join that combines a ``shipments`` stream with
 an ``orders`` stream, within a time window. The resulting ``late_orders`` stream
@@ -120,9 +120,10 @@ KSQL supports INNER, LEFT OUTER, and FULL OUTER joins between streams.
 
 All of these operations support out-of-order records.
 
-Joins between streams are always windowed joins. A new input record on one side
-produces a join output for each matching record on the other side, and there
-can be multiple such matching records within a join window.
+To join two streams, you must specify a windowing scheme by using the WITHIN
+clause. A new input record on one side produces a join output for each matching
+record on the other side, and there can be multiple such matching records within
+a join window.
 
 Joins cause data re-partitioning of a stream only if the stream was marked
 for re-partitioning. If both streams are marked, both are re-partitioned.

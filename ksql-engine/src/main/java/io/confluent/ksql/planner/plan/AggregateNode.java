@@ -221,12 +221,6 @@ public class AggregateNode extends PlanNode {
         .getKsqlTopic()
         .getValueFormat();
 
-    final Serde<GenericRow> genericRowSerde = builder.buildValueSerde(
-        valueFormat.getFormatInfo(),
-        PhysicalSchema.from(prepareSchema, SerdeOption.none()),
-        groupByContext.getQueryContext()
-    );
-
     final List<Expression> internalGroupByColumns = internalSchema.resolveGroupByExpressions(
         getGroupByExpressions(),
         aggregateArgExpanded,
@@ -235,9 +229,9 @@ public class AggregateNode extends PlanNode {
 
     final SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupBy(
         valueFormat,
-        genericRowSerde,
         internalGroupByColumns,
-        groupByContext
+        groupByContext,
+        builder
     );
 
     // Aggregate computations

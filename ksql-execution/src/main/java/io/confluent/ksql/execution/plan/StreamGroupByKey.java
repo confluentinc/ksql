@@ -17,31 +17,26 @@ package io.confluent.ksql.execution.plan;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.KGroupedStream;
+import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
-public class TableGroupBy<K> implements ExecutionStep<KGroupedTable<Struct, GenericRow>> {
+public class StreamGroupByKey implements ExecutionStep<KGroupedStream<Struct, GenericRow>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KTable<K, GenericRow>> source;
+  private final ExecutionStep<KStream<Struct, GenericRow>> source;
   private final Formats formats;
-  private final List<Expression> groupByExpressions;
 
-  public TableGroupBy(
+  public StreamGroupByKey(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KTable<K, GenericRow>> source,
-      final Formats formats,
-      final List<Expression> groupByExpressions
-  ) {
+      final ExecutionStep<KStream<Struct, GenericRow>> source,
+      final Formats formats) {
     this.properties = Objects.requireNonNull(properties, "properties");
-    this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
-    this.groupByExpressions = Objects.requireNonNull(groupByExpressions, "groupByExpressions");
+    this.source = Objects.requireNonNull(source, "source");
   }
 
   @Override
@@ -54,20 +49,16 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTable<Struct, Gene
     return Collections.singletonList(source);
   }
 
+  public ExecutionStep<KStream<Struct, GenericRow>> getSource() {
+    return source;
+  }
+
   public Formats getFormats() {
     return formats;
   }
 
-  public List<Expression> getGroupByExpressions() {
-    return groupByExpressions;
-  }
-
-  public ExecutionStep<KTable<K, GenericRow>> getSource() {
-    return source;
-  }
-
   @Override
-  public KGroupedTable<Struct, GenericRow> build(final KsqlQueryBuilder builder) {
+  public KGroupedStream<Struct, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 
@@ -79,16 +70,15 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTable<Struct, Gene
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableGroupBy<?> that = (TableGroupBy<?>) o;
+    final StreamGroupByKey that = (StreamGroupByKey) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(formats, that.formats)
-        && Objects.equals(groupByExpressions, that.groupByExpressions);
+        && Objects.equals(formats, that.formats);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, groupByExpressions);
+    return Objects.hash(properties, source, formats);
   }
 }

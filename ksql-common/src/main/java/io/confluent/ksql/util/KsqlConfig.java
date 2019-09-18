@@ -148,6 +148,8 @@ public class KsqlConfig extends AbstractConfig {
   private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
 
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
+  public static final String KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY =
+      "ksql.query.stream.groupby.rowkey.repartition";
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
@@ -277,6 +279,16 @@ public class KsqlConfig extends AbstractConfig {
                   + "This setting is automatically applied for persistent queries started by "
                   + "older versions of KSQL. "
                   + "This setting should not be set manually."
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              Optional.empty(),
+              "Ensures legacy queries that perform a 'GROUP BY ROWKEY' continue to "
+                  + "perform an unnecessary repartition step"
           )
   );
 

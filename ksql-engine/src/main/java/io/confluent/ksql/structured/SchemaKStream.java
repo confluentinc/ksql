@@ -769,13 +769,17 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final Optional<Column> keyColumn = getKeyField().resolve(getSchema(), ksqlConfig);
-    if (!keyColumn.isPresent()) {
+    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
+    if (groupByField == null) {
       return true;
     }
 
-    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
-    if (groupByField == null) {
+    if (groupByField.equals(SchemaUtil.ROWKEY_NAME)) {
+      return false;
+    }
+
+    final Optional<Column> keyColumn = getKeyField().resolve(getSchema(), ksqlConfig);
+    if (!keyColumn.isPresent()) {
       return true;
     }
 
@@ -783,7 +787,6 @@ public class SchemaKStream<K> {
     return !groupByField.equals(keyFieldName);
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
       final Serde<GenericRow> valSerde,
@@ -802,11 +805,8 @@ public class SchemaKStream<K> {
 
       final KGroupedStream kgroupedStream = kstream.groupByKey(grouped);
 
-      if (keySerde.isWindowed()) {
-        throw new UnsupportedOperationException("Group by on windowed should always require rekey");
-      }
+      final KeySerde<Struct> structKeySerde = getGroupByKeyKeySerde();
 
-      final KeySerde<Struct> structKeySerde = (KeySerde) keySerde;
       final ExecutionStep<KGroupedStream<Struct, GenericRow>> step =
           ExecutionStepFactory.streamGroupBy(
               contextStacker,
@@ -864,6 +864,15 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  @SuppressWarnings("unchecked")
+  private KeySerde<Struct> getGroupByKeyKeySerde() {
+    if (keySerde.isWindowed()) {
+      throw new UnsupportedOperationException("Group by on windowed should always require rekey");
+    }
+
+    return (KeySerde<Struct>) keySerde;
   }
 
   ExecutionStep<KStream<K, GenericRow>> getSourceStep() {

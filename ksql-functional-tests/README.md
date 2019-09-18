@@ -241,7 +241,10 @@ A test can define a set of post conditions that must be met for the test to pass
   "post": {
     "sources": [
       {"name": "INPUT", "type": "stream", "keyField": null}
-    ]
+    ],
+    "topics": {
+      "blacklist": ".*-not-allowed"
+    }
   }
 }
 ```
@@ -272,6 +275,22 @@ Each source can define the following attributes:
 | type        | (Required) Specifies if the source is a STREAM or TABLE. |
 | keyField    | (Optional) Specifies the keyField for the source. (See below for details of key field) |
 | valueSchema | (Optional) Specifies the value SQL schema for the source. |
+
+#### Topics
+A post condition can define a check against the set of topics the case creates
+
+```json
+{
+  "blacklist": ".*-repartition"
+}
+```
+
+The topics object can define the following attributes:
+
+| Attribute   | Description |
+|-------------|:------------|
+| blacklist   | Regex defining a blacklist of topic names that should not be created. |
+
 
 ##### Key Fields
 

@@ -7,6 +7,12 @@ When you use KSQL to join streaming data, you must ensure that your streams
 and tables are *co-partitioned*, which means that input records on both sides
 of the join have the same configuration settings for partitions.
 
+.. note::
+
+    Starting in version 5.3.0, the KSQL engine automatically re-partitions one
+    side of a stream-stream join to ensure that co-partitioning requirements
+    are met.
+
 Co-partitioning Requirements
 ****************************
 
@@ -29,7 +35,7 @@ that the join must use the same key field on both sides.
 
 For example, you can join a stream of user clicks that's keyed by a ``VARCHAR userId``
 field with a table of user profiles that's keyed by a ``VARCHAR userId`` field. 
-The join won't match if the key fields don't have the same name and type.
+The join won't match if the key fields don't have the same type and value.
 
 .. _keys-have-same-number-of-partitions:
 

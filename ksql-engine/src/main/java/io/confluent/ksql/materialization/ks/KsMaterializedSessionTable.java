@@ -15,13 +15,15 @@
 
 package io.confluent.ksql.materialization.ks;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.WindowedRow;
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
@@ -43,7 +45,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   }
 
   @Override
-  public Map<Window, GenericRow> get(
+  public List<WindowedRow> get(
       final Struct key,
       final Instant lower,
       final Instant upper
@@ -58,13 +60,15 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
     }
   }
 
-  private static Map<Window, GenericRow> findSession(
+  private List<WindowedRow> findSession(
       final ReadOnlySessionStore<Struct, GenericRow> store,
       final Struct key,
       final Instant lower,
       final Instant upper
   ) {
     try (KeyValueIterator<Windowed<Struct>, GenericRow> it = store.fetch(key)) {
+
+      final Builder<WindowedRow> builder = ImmutableList.builder();
 
       while (it.hasNext()) {
         final KeyValue<Windowed<Struct>, GenericRow> next = it.next();
@@ -76,12 +80,12 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
               Optional.of(next.key.window().endTime())
           );
 
-          return ImmutableMap.of(window, next.value);
+          builder.add(WindowedRow.of(stateStore.schema(), key, window, next.value));
         }
       }
-    }
 
-    return ImmutableMap.of();
+      return builder.build();
+    }
   }
 
   private static boolean intersects(

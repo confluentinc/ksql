@@ -17,12 +17,12 @@ package io.confluent.ksql.materialization.ks;
 
 import static io.confluent.ksql.serde.Format.JSON;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -31,7 +31,9 @@ import io.confluent.ksql.integration.TestKsqlContext;
 import io.confluent.ksql.materialization.Materialization;
 import io.confluent.ksql.materialization.MaterializedTable;
 import io.confluent.ksql.materialization.MaterializedWindowedTable;
+import io.confluent.ksql.materialization.Row;
 import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.WindowedRow;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -200,10 +202,9 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<String, GenericRow> rows = waitForTableRows(
-        STRING_DESERIALIZER,
-        physicalSchema("KSQL_COL_0", SqlTypes.BIGINT)
-    );
+    final LogicalSchema schema = schema("KSQL_COL_0", SqlTypes.BIGINT);
+
+    final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -215,7 +216,11 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat("expected key", table.get(key), is(Optional.of(value)));
+      assertThat(
+          "expected key",
+          table.get(key),
+          is(Optional.of(Row.of(schema, key, value)))
+      );
     });
 
     final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
@@ -231,10 +236,9 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<String, GenericRow> rows = waitForTableRows(
-        STRING_DESERIALIZER,
-        physicalSchema("COUNT", SqlTypes.BIGINT)
-    );
+    final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
+
+    final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -246,7 +250,11 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat("expected key", table.get(key), is(Optional.of(value)));
+      assertThat(
+          "expected key",
+          table.get(key),
+          is(Optional.of(Row.of(schema, key, value)))
+      );
     });
 
     final Struct key = asKeyStruct("Won't find me", query.getPhysicalSchema());
@@ -263,10 +271,10 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<Windowed<String>, GenericRow> rows = waitForTableRows(
-        TIME_WINDOWED_DESERIALIZER,
-        physicalSchema("COUNT", SqlTypes.BIGINT)
-    );
+    final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
+
+    final Map<Windowed<String>, GenericRow> rows =
+        waitForTableRows(TIME_WINDOWED_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -283,18 +291,18 @@ public class KsMaterializationFunctionalTest {
       assertThat(
           "at exact window start",
           table.get(key, w.start(), w.start()),
-          is(ImmutableMap.of(w, v))
+          contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "range including window start",
           table.get(key, w.start().minusMillis(1), w.start().plusMillis(1)),
-          is(ImmutableMap.of(w, v))
+          contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "past start",
-          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)).keySet(),
+          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)),
           is(empty())
       );
     });
@@ -311,10 +319,10 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<Windowed<String>, GenericRow> rows = waitForTableRows(
-        TIME_WINDOWED_DESERIALIZER,
-        physicalSchema("COUNT", SqlTypes.BIGINT)
-    );
+    final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
+
+    final Map<Windowed<String>, GenericRow> rows =
+        waitForTableRows(TIME_WINDOWED_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -331,18 +339,18 @@ public class KsMaterializationFunctionalTest {
       assertThat(
           "at exact window start",
           table.get(key, w.start(), w.start()),
-          is(ImmutableMap.of(w, v))
+          contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "range including window start",
           table.get(key, w.start().minusMillis(1), w.start().plusMillis(1)),
-          is(ImmutableMap.of(w, v))
+          contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "past start",
-          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)).keySet(),
+          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)),
           is(empty())
       );
     });
@@ -358,10 +366,10 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<Windowed<String>, GenericRow> rows = waitForTableRows(
-        SESSION_WINDOWED_DESERIALIZER,
-        physicalSchema("COUNT", SqlTypes.BIGINT)
-    );
+    final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
+
+    final Map<Windowed<String>, GenericRow> rows =
+        waitForTableRows(SESSION_WINDOWED_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -378,18 +386,18 @@ public class KsMaterializationFunctionalTest {
       assertThat(
           "at exact window start",
           table.get(key, w.start(), w.start()),
-          is(ImmutableMap.of(w, v))
+          contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "range including window start",
           table.get(key, w.start().minusMillis(1), w.start().plusMillis(1)),
-          is(ImmutableMap.of(w, v))
+          contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "past start",
-          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)).keySet(),
+          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)),
           is(empty())
       );
     });
@@ -404,14 +412,14 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<String, GenericRow> rows = waitForTableRows(
-        STRING_DESERIALIZER,
-        physicalSchema(
-            "USERID", SqlTypes.STRING,
-            "KSQL_COL_1", SqlTypes.BIGINT,
-            "USERID_2", SqlTypes.STRING
-        )
+    final LogicalSchema schema = schema(
+        "USERID", SqlTypes.STRING,
+        "KSQL_COL_1", SqlTypes.BIGINT,
+        "USERID_2", SqlTypes.STRING
     );
+
+    final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
+
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -423,7 +431,7 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(table.get(key), is(Optional.of(value)));
+      assertThat(table.get(key), is(Optional.of(Row.of(schema, key, value))));
     });
   }
 
@@ -436,13 +444,12 @@ public class KsMaterializationFunctionalTest {
             + " GROUP BY USERID;"
     );
 
-    final Map<String, GenericRow> rows = waitForTableRows(
-        STRING_DESERIALIZER,
-        physicalSchema(
-            "COUNT", SqlTypes.BIGINT,
-            "SUM", SqlTypes.BIGINT
-        )
+    final LogicalSchema schema = schema(
+        "COUNT", SqlTypes.BIGINT,
+        "SUM", SqlTypes.BIGINT
     );
+
+    final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -454,7 +461,7 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(table.get(key), is(Optional.of(value)));
+      assertThat(table.get(key), is(Optional.of(Row.of(schema, key, value))));
     });
   }
 
@@ -470,10 +477,9 @@ public class KsMaterializationFunctionalTest {
             + " HAVING SUM(REGISTERTIME) > 2;"
     );
 
-    final Map<String, GenericRow> rows = waitForTableRows(
-        STRING_DESERIALIZER,
-        physicalSchema("COUNT", SqlTypes.BIGINT)
-    );
+    final LogicalSchema schema = schema("COUNT", SqlTypes.BIGINT);
+
+    final Map<String, GenericRow> rows = waitForTableRows(STRING_DESERIALIZER, schema);
 
     // When:
     final Materialization materialization = query.getMaterialization(contextStacker).get();
@@ -483,19 +489,23 @@ public class KsMaterializationFunctionalTest {
 
     rows.forEach((rowKey, value) -> {
       final Struct key = asKeyStruct(rowKey, query.getPhysicalSchema());
-      assertThat(table.get(key), is(Optional.ofNullable(value)));
+
+      final Optional<Row> row = Optional.ofNullable(value)
+          .map(v -> Row.of(schema, key, v));
+
+      assertThat(table.get(key), is(row));
     });
   }
 
   private <T> Map<T, GenericRow> waitForTableRows(
       final Deserializer<T> keyDeserializer,
-      final PhysicalSchema aggregateSchema
+      final LogicalSchema aggregateSchema
   ) {
     return TEST_HARNESS.verifyAvailableUniqueRows(
         output.toUpperCase(),
         USER_DATA_PROVIDER.data().size(),
         VALUE_FORMAT,
-        aggregateSchema,
+        PhysicalSchema.from(aggregateSchema, SerdeOption.none()),
         keyDeserializer
     );
   }
@@ -527,45 +537,37 @@ public class KsMaterializationFunctionalTest {
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static PhysicalSchema physicalSchema(
-      final String columnName0, final SqlType columnType0
+  private static LogicalSchema schema(
+      final String columnName0,
+      final SqlType columnType0
   ) {
-    return PhysicalSchema.from(
-        LogicalSchema.builder()
-            .valueColumn(columnName0, columnType0)
-            .build(),
-        SerdeOption.none()
-    );
+    return LogicalSchema.builder()
+        .valueColumn(columnName0, columnType0)
+        .build();
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static PhysicalSchema physicalSchema(
+  private static LogicalSchema schema(
       final String columnName0, final SqlType columnType0,
       final String columnName1, final SqlType columnType1
   ) {
-    return PhysicalSchema.from(
-        LogicalSchema.builder()
-            .valueColumn(columnName0, columnType0)
-            .valueColumn(columnName1, columnType1)
-            .build(),
-        SerdeOption.none()
-    );
+    return LogicalSchema.builder()
+        .valueColumn(columnName0, columnType0)
+        .valueColumn(columnName1, columnType1)
+        .build();
   }
 
   @SuppressWarnings("SameParameterValue")
-  private static PhysicalSchema physicalSchema(
+  private static LogicalSchema schema(
       final String columnName0, final SqlType columnType0,
       final String columnName1, final SqlType columnType1,
       final String columnName2, final SqlType columnType2
   ) {
-    return PhysicalSchema.from(
-        LogicalSchema.builder()
-            .valueColumn(columnName0, columnType0)
-            .valueColumn(columnName1, columnType1)
-            .valueColumn(columnName2, columnType2)
-            .build(),
-        SerdeOption.none()
-    );
+    return LogicalSchema.builder()
+        .valueColumn(columnName0, columnType0)
+        .valueColumn(columnName1, columnType1)
+        .valueColumn(columnName2, columnType2)
+        .build();
   }
 
   private static void initializeKsql(final TestKsqlContext ksqlContext) {

@@ -27,8 +27,11 @@ import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
+import io.confluent.ksql.materialization.Row;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.structured.StructKeyUtil;
 import java.util.Optional;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.state.QueryableStoreTypes.KeyValueStoreType;
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore;
@@ -43,7 +46,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializedTableTest {
 
-  private static final Struct A_KEY = new Struct(SchemaBuilder.struct().build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn("ROWKEY", SqlTypes.STRING)
+      .valueColumn("v0", SqlTypes.STRING)
+      .build();
+
+  private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -60,6 +68,7 @@ public class KsMaterializedTableTest {
     table = new KsMaterializedTable(stateStore);
 
     when(stateStore.store(any())).thenReturn(tableStore);
+    when(stateStore.schema()).thenReturn(SCHEMA);
   }
 
   @Test
@@ -119,7 +128,7 @@ public class KsMaterializedTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Optional<GenericRow> result = table.get(A_KEY);
+    final Optional<?> result = table.get(A_KEY);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -132,9 +141,9 @@ public class KsMaterializedTableTest {
     when(tableStore.get(any())).thenReturn(value);
 
     // When:
-    final Optional<GenericRow> result = table.get(A_KEY);
+    final Optional<Row> result = table.get(A_KEY);
 
     // Then:
-    assertThat(result, is(Optional.of(value)));
+    assertThat(result, is(Optional.of(Row.of(SCHEMA, A_KEY, value))));
   }
 }

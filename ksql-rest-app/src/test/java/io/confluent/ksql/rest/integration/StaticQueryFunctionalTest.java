@@ -20,14 +20,14 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.QueryResultEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntity.Row;
+import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -36,7 +36,6 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.UserDataProvider;
 import java.util.List;
@@ -155,13 +154,12 @@ public class StaticQueryFunctionalTest {
 
     // When:
 
-    final List<Row> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<Row> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<ResultRow> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
+    final List<ResultRow> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
 
     // Then:
     assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0).getKey(), is(ImmutableMap.of(SchemaUtil.ROWKEY_NAME, key)));
-    assertThat(rows_0.get(0).getValue(), is(ImmutableMap.of("COUNT", 1)));
+    assertThat(rows_0.get(0).getValues(), is(ImmutableList.of(key, 1)));
     assertThat(rows_1, is(rows_0));
   }
 
@@ -185,17 +183,16 @@ public class StaticQueryFunctionalTest {
         + " AND WINDOWSTART = " + BASE_TIME + ";";
 
     // When:
-    final List<Row> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<Row> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<ResultRow> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
+    final List<ResultRow> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
 
     // Then:
     assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0).getKey(), is(ImmutableMap.of(SchemaUtil.ROWKEY_NAME, key)));
-    assertThat(rows_0.get(0).getValue(), is(ImmutableMap.of("COUNT", 1)));
+    assertThat(rows_0.get(0).getValues(), is(ImmutableList.of(key, 1)));
     assertThat(rows_1, is(rows_0));
   }
 
-  private static List<Row> makeStaticQueryRequest(
+  private static List<ResultRow> makeStaticQueryRequest(
       final TestKsqlRestApp target,
       final String sql
   ) {

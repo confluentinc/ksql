@@ -18,6 +18,7 @@ package io.confluent.ksql.materialization.ks;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializedTable;
+import io.confluent.ksql.materialization.Row;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
@@ -36,14 +37,15 @@ class KsMaterializedTable implements MaterializedTable {
   }
 
   @Override
-  public Optional<GenericRow> get(
+  public Optional<Row> get(
       final Struct key
   ) {
     try {
       final ReadOnlyKeyValueStore<Struct, GenericRow> store = stateStore
           .store(QueryableStoreTypes.keyValueStore());
 
-      return Optional.ofNullable(store.get(key));
+      return Optional.ofNullable(store.get(key))
+          .map(v -> Row.of(stateStore.schema(), key, v));
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }

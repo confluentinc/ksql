@@ -25,7 +25,7 @@ import org.apache.kafka.connect.data.Struct;
 /**
  * Helper for dealing with Struct keys.
  */
-final class StructKeyUtil {
+public final class StructKeyUtil {
 
   private static final Schema ROWKEY_STRUCT_SCHEMA = SchemaBuilder
       .struct()
@@ -43,7 +43,7 @@ final class StructKeyUtil {
   private StructKeyUtil() {
   }
 
-  static Struct asStructKey(final String rowKey) {
+  public static Struct asStructKey(final String rowKey) {
     final Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
     keyStruct.put(ROWKEY_FIELD, rowKey);
     return keyStruct;

@@ -19,12 +19,10 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
@@ -41,7 +39,7 @@ import io.confluent.ksql.materialization.Locator;
 import io.confluent.ksql.materialization.Locator.KsqlNode;
 import io.confluent.ksql.materialization.Materialization;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
-import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -156,26 +154,22 @@ public final class StaticQueryExecutor {
         return Optional.of(proxyTo(owner, statement));
       }
 
-      final Map<Optional<Window>, GenericRow> result;
+      final List<? extends TableRow> result;
       if (whereInfo.windowBounds.isPresent()) {
         final WindowBounds windowBounds = whereInfo.windowBounds.get();
 
-        final Builder<Optional<Window>, GenericRow> builder = ImmutableMap.builder();
-        mat.windowed().get(rowKey, windowBounds.lower, windowBounds.upper)
-            .forEach((k, v) -> builder.put(Optional.of(k), v));
-
-        result = builder.build();
+        result = mat.windowed().get(rowKey, windowBounds.lower, windowBounds.upper);
       } else {
         result = mat.nonWindowed().get(rowKey)
-            .map(v -> ImmutableMap.of(Optional.<Window>empty(), v))
-            .orElse(ImmutableMap.of());
+            .map(ImmutableList::of)
+            .orElse(ImmutableList.of());
       }
 
       final QueryResultEntity entity = new QueryResultEntity(
           statement.getStatementText(),
           mat.windowType(),
           mat.schema(),
-          QueryResultEntityFactory.createRows(rowKey, result, mat.schema())
+          QueryResultEntityFactory.createRows(result)
       );
 
       return Optional.of(entity);

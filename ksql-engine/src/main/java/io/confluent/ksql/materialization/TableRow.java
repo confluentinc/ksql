@@ -15,19 +15,18 @@
 
 package io.confluent.ksql.materialization;
 
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
-/**
- * Materialization of a table with a non-windowed key
- */
-public interface MaterializedTable {
+public interface TableRow {
 
-  /**
-   * Get the value, if one exists, of the supplied {@code key}.
-   *
-   * @param key the key to look up.
-   * @return the value, if one is exists.
-   */
-  Optional<Row> get(Struct key);
+  LogicalSchema schema();
+
+  Struct key();
+
+  Optional<Window> window();
+
+  GenericRow value();
 }

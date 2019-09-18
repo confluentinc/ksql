@@ -352,6 +352,7 @@ public class PhysicalPlanBuilder {
         .create(
             info.stateStoreName(),
             kafkaStreams,
+            info.aggregationSchema(),
             keySerializer,
             keyFormat.getWindowType(),
             streamsProperties

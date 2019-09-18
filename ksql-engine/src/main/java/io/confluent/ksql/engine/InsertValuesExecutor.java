@@ -330,11 +330,9 @@ public class InsertValuesExecutor {
           values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue.toString());
         }
       } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
-          throw new KsqlException(
-              String.format(
-                  "Expected ROWKEY and %s to match but got %s and %s respectively.",
-                  key, rowKeyValue, keyValue));
-        }
+        throw new KsqlException(String.format(
+            "Expected ROWKEY and %s to match but got %s and %s respectively.",
+            key, rowKeyValue, keyValue));
       }
     }
   }

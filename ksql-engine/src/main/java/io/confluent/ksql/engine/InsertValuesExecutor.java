@@ -323,8 +323,12 @@ public class InsertValuesExecutor {
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
       if (keyValue != null ^ rowKeyValue != null) {
-        values.putIfAbsent(key, rowKeyValue);
-        values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue);
+        if (keyValue == null) {
+          values.putIfAbsent(key, rowKeyValue);
+        } else {
+          // Note, ROWKEY must always be a String
+          values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue.toString());
+        }
       } else if (!Objects.equals(keyValue, rowKeyValue)) {
         throw new KsqlException(
             String.format(

@@ -114,8 +114,9 @@ This is typically caused by the query being configured to process only newly arr
 ------------------------------------------------------------
 Can’t create a stream from the output of windowed aggregate?
 ------------------------------------------------------------
-The output of a windowed aggregate isn't a single record, so you can't create
-a stream from it.
+
+KSQL doesn't support structured keys, so you can't create a stream from a
+windowed aggregate.
 
 ------------------------------------------
 KSQL doesn’t clean up its internal topics?

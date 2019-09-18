@@ -326,14 +326,16 @@ public class InsertValuesExecutor {
         if (keyValue == null) {
           values.putIfAbsent(key, rowKeyValue);
         } else {
-          // Note, ROWKEY must always be a String
+          // Note, ROWKEY must always be a String, but key might not be so we need toString()
           values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue.toString());
         }
-      } else if (!Objects.equals(keyValue, rowKeyValue)) {
-        throw new KsqlException(
-            String.format(
-                "Expected ROWKEY and %s to match but got %s and %s respectively.",
-                key, rowKeyValue, keyValue));
+      } else if (keyValue != null) {
+        if (!Objects.equals(keyValue.toString(), rowKeyValue)) {
+          throw new KsqlException(
+              String.format(
+                  "Expected ROWKEY and %s to match but got %s and %s respectively.",
+                  key, rowKeyValue, keyValue));
+        }
       }
     }
   }

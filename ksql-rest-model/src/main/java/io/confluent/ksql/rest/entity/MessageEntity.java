@@ -31,13 +31,13 @@ public class MessageEntity extends KsqlEntity {
       @JsonProperty("warnings")       final List<KsqlWarning> warnings,
       @JsonProperty("message")        final Optional<String> message) {
     super(statementText, warnings);
-    Objects.requireNonNull(message);
-    this.message = message;
+    this.message = Objects.requireNonNull(message);
   }
 
   public Optional<String> getMessage() {
     return message;
   }
+
 
   @Override
   public boolean equals(final Object o) {

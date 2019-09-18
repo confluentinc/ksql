@@ -115,11 +115,10 @@ public enum CustomExecutors {
 
   private static StatementExecutor insertValuesExecutor() {
     final InsertValuesExecutor executor = new InsertValuesExecutor();
-
     return (statement, executionContext, serviceContext) -> {
-      final Optional<String> message =
-          executor.execute(statement, executionContext, serviceContext);
-      return Optional.of(new MessageEntity(statement.getStatementText(), null, message));
+      final Optional<String> res = executor.execute(statement, executionContext, serviceContext);
+      return res.map(msg -> new MessageEntity(statement.getStatementText(),
+              null, Optional.of(msg)));
     };
   }
 }

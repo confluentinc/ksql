@@ -246,6 +246,9 @@ public class CliTest {
     System.out.println("[Terminal Output]");
     System.out.println(terminal.getOutputString());
 
+    dropStream(streamName);
+    dropTable(tableName);
+
     localCli.close();
     console.close();
   }
@@ -276,8 +279,6 @@ public class CliTest {
     /* Assert Results */
     final Map<String, GenericRow> results = topicConsumer
         .readResults(streamName, resultSchema, expectedResults.size(), new StringDeserializer());
-
-    dropStream(streamName);
 
     assertThat(results, equalTo(expectedResults));
   }
@@ -698,7 +699,6 @@ public class CliTest {
             isRow(is("Parsing statement")),
             isRow(is("Executing statement"))));
 
-    dropTable(tableName);
   }
 
   @Test
@@ -862,22 +862,23 @@ public class CliTest {
   @Test
   public void shouldDisplayInsertedKeyValue() throws Exception {
 
-    final String message = String.format(
-        "Inserted:%nkey:%s%nvalue:%s%n",
-        "null",
-        "[ 294 | 8.1 ]"
-    );
+    final String message =
+        "Inserted:\n"
+        + "key:null\n"
+        + "value:[ 294 | 8.1 ]";
 
+    // Given:
     final String line =
         "CREATE STREAM " + streamName + "(id INT, rating DOUBLE) WITH "
             + "(kafka_topic='ratings', partitions=1, value_format='json');\n"
         + "INSERT INTO " + streamName + "(id, rating) VALUES (294, 8.1);";
 
+    // When:
     localCli.handleLine(line);
 
-    dropStream(streamName);
-
     final String output = terminal.getOutputString();
+
+    // Then:
     assertThat(output, containsString(message));
   }
 

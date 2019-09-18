@@ -146,6 +146,8 @@ public class InsertValuesExecutor {
     try {
       producer.sendRecord(producerRecordInfo.record,
           serviceContext, config.getProducerClientConfigProps());
+
+      return Optional.of(producerRecordInfo.toString());
     } catch (final TopicAuthorizationException e) {
       // TopicAuthorizationException does not give much detailed information about why it failed,
       // except which topics are denied. Here we just add the ACL to make the error message
@@ -159,13 +161,6 @@ public class InsertValuesExecutor {
     } catch (final Exception e) {
       throw new KsqlException(createInsertFailedExceptionMessage(insertValues), e);
     }
-
-    final String message = String.format(
-        "Inserted:%nkey:%s%nvalue:%s%n",
-        producerRecordInfo.row.key.get("ROWKEY"),
-        producerRecordInfo.row.value
-        );
-    return Optional.of(message);
   }
 
   private ProducerRecordInfo buildRecord(
@@ -478,8 +473,17 @@ public class InsertValuesExecutor {
 
     ProducerRecordInfo(final RowData row,
         final ProducerRecord<byte[], byte[]> record) {
-      this.row = row;
-      this.record = record;
+      this.row = Objects.requireNonNull(row);
+      this.record = Objects.requireNonNull(record);
+    }
+
+    @Override
+    public String toString() {
+      return String.format(
+          "Inserted:%nkey:%s%nvalue:%s%n",
+          row.key.get("ROWKEY"),
+          row.value
+      );
     }
   }
 

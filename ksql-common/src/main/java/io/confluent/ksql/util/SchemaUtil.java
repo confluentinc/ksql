@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -350,24 +351,57 @@ public final class SchemaUtil {
   }
 
   private static boolean mapEquals(final Schema mapA, final Schema mapB) {
-    return Objects.equals(mapA.keySchema(), mapB.keySchema())
-        && Objects.equals(mapA.valueSchema(), mapB.valueSchema());
+    return areCompatible(mapA.keySchema(), mapB.keySchema())
+        && areCompatible(mapA.valueSchema(), mapB.valueSchema());
   }
 
   private static boolean arrayEquals(final Schema arrayA, final Schema arrayB) {
-    return Objects.equals(arrayA.valueSchema(), arrayB.valueSchema());
+    return areCompatible(arrayA.valueSchema(), arrayB.valueSchema());
   }
 
   private static boolean structEquals(final Schema structA, final Schema structB) {
     return structA.fields().isEmpty()
         || structB.fields().isEmpty()
-        || Objects.equals(structA.fields(), structB.fields());
+        || compareFieldsOfStructs(structA, structB);
+  }
+
+
+  private static boolean compareFieldsOfStructs(final Schema structA, final Schema structB) {
+
+    final List<Field> fieldsA = structA.fields();
+    final List<Field> fieldsB = structB.fields();
+    final int sizeA = fieldsA.size();
+    final int sizeB = fieldsB.size();
+
+    if (sizeA != sizeB) {
+      return false;
+    }
+
+    // Custom field comparison to support comparison of structs with decimals and generics
+    for (int i = 0; i < sizeA; i++) {
+      final Field fieldA = fieldsA.get(i);
+      final Field fieldB = fieldsB.get(i);
+      if (!fieldA.name().equals(fieldB.name())
+          || fieldA.index() != fieldB.index()
+          || ! areCompatible(fieldsA.get(i).schema(), fieldsB.get(i).schema())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private static boolean bytesEquals(final Schema bytesA, final Schema bytesB) {
+    // two datatypes are currently represented as bytes: generics and decimals
+
+    if (GenericsUtil.isGeneric(bytesA)) {
+      if (GenericsUtil.isGeneric(bytesB)) {
+        return bytesA.name().equals(bytesB.name());
+      }
+      return false;
+    }
+
     // from a Java schema perspective, all decimals are the same
-    // since they can all be cast to BigDecimal - other bytes types
-    // are not supported in UDFs
+    // since they can all be cast to BigDecimal
     return DecimalUtil.isDecimal(bytesA) && DecimalUtil.isDecimal(bytesB);
   }
 

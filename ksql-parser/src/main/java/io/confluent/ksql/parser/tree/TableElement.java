@@ -20,9 +20,6 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.ParsingException;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -70,8 +67,6 @@ public final class TableElement extends AstNode {
     this.namespace = requireNonNull(namespace, "namespace");
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
-
-    validate();
   }
 
   public String getName() {
@@ -117,29 +112,5 @@ public final class TableElement extends AstNode {
         + ", type=" + type
         + ", namespace=" + namespace
         + '}';
-  }
-
-  private void validate() {
-    if (name.toUpperCase().equals(SchemaUtil.ROWTIME_NAME)) {
-      throw new ParsingException("'" + name + "' is a reserved field name.", getLocation());
-    }
-
-    final boolean isRowKey = name.toUpperCase().equals(SchemaUtil.ROWKEY_NAME);
-
-    if (namespace == Namespace.KEY) {
-      if (!isRowKey) {
-        throw new ParsingException("'" + name + "' is an invalid KEY field name. "
-            + "KSQL currently only supports KEY fields named ROWKEY.", getLocation());
-      }
-
-      if (type.getSqlType().baseType() != SqlBaseType.STRING) {
-        throw new ParsingException("'" + name + "' is a KEY field with an unsupported type. "
-            + "KSQL currently only supports KEY fields of type " + SqlBaseType.STRING + ".",
-            getLocation());
-      }
-    } else if (isRowKey) {
-      throw new ParsingException("'" + name + "' is a reserved field name. "
-          + "It can only be used for KEY fields.", getLocation());
-    }
   }
 }

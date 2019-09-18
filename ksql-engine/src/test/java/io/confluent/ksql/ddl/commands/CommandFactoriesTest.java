@@ -18,9 +18,13 @@ package io.confluent.ksql.ddl.commands;
 import static io.confluent.ksql.model.WindowType.HOPPING;
 import static io.confluent.ksql.model.WindowType.SESSION;
 import static io.confluent.ksql.model.WindowType.TUMBLING;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.KEY;
+import static io.confluent.ksql.parser.tree.TableElement.Namespace.VALUE;
 import static io.confluent.ksql.serde.Format.AVRO;
 import static io.confluent.ksql.serde.Format.JSON;
 import static io.confluent.ksql.serde.Format.KAFKA;
+import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -29,6 +33,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -105,9 +110,9 @@ public class CommandFactoriesTest {
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final TableElement ELEMENT1 =
-      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
+      tableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
   private static final TableElement ELEMENT2 =
-      new TableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING));
+      tableElement(Namespace.VALUE, "hojjat", new Type(SqlTypes.STRING));
   private static final TableElements SOME_ELEMENTS = TableElements.of(ELEMENT1);
   private static final TableElements TWO_ELEMENTS = TableElements.of(ELEMENT1, ELEMENT2);
   private static final String TOPIC_NAME = "some topic";
@@ -116,7 +121,7 @@ public class CommandFactoriesTest {
       CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(TOPIC_NAME)
   );
   private static final TableElements ONE_ELEMENT = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
+      tableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
   private static final Set<SerdeOption> SOME_SERDE_OPTIONS = ImmutableSet
       .of(SerdeOption.UNWRAP_SINGLE_VALUES);
   private static final String SOME_TYPE_NAME = "newtype";
@@ -194,8 +199,8 @@ public class CommandFactoriesTest {
     // Given:
     final CreateTable ddlStatement = new CreateTable(SOME_NAME,
         TableElements.of(
-            new TableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
-            new TableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
+            tableElement(Namespace.VALUE, "COL1", new Type(SqlTypes.BIGINT)),
+            tableElement(Namespace.VALUE, "COL2", new Type(SqlTypes.STRING))),
         true, withProperties);
 
     // When:
@@ -623,7 +628,7 @@ public class CommandFactoriesTest {
     final CreateStream statement = new CreateStream(
         SOME_NAME,
         TableElements.of(
-            new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
+            tableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
             ELEMENT1,
             ELEMENT2
         ),
@@ -825,6 +830,115 @@ public class CommandFactoriesTest {
     commandFactories.create("sqlExpression", dropStream, ksqlConfig, emptyMap());
   }
 
+  @Test
+  public void shouldThrowOnRowTimeValueColumn() {
+    // Given:
+    final DdlStatement statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(tableElement(Namespace.VALUE, ROWTIME_NAME, new Type(SqlTypes.BIGINT))),
+        true,
+        withProperties
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'ROWTIME' is a reserved field name.");
+
+    // When:
+    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldThrowOnRowTimeKeyColumn() {
+    // Given:
+    final DdlStatement statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(tableElement(Namespace.KEY, ROWTIME_NAME, new Type(SqlTypes.BIGINT))),
+        true,
+        withProperties
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'ROWTIME' is a reserved field name.");
+
+    // When:
+    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldThrowOnRowKeyValueColumn() {
+    // Given:
+    final DdlStatement statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(tableElement(VALUE, ROWKEY_NAME, new Type(SqlTypes.STRING))),
+        true,
+        withProperties
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "'ROWKEY' is a reserved field name. It can only be used for KEY fields.");
+
+    // When:
+    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldNotThrowOnRowKeyKeyColumn() {
+    // Given:
+    final DdlStatement statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(tableElement(KEY, ROWKEY_NAME, new Type(SqlTypes.STRING))),
+        true,
+        withProperties
+    );
+
+    // When:
+    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+
+    // Then: did not throw
+  }
+
+  @Test
+  public void shouldThrowOnRowKeyIfNotString() {
+    // Given:
+    final DdlStatement statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(tableElement(KEY, ROWKEY_NAME, new Type(SqlTypes.INTEGER))),
+        true,
+        withProperties
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'ROWKEY' is a KEY field with an unsupported type. "
+        + "KSQL currently only supports KEY fields of type STRING.");
+
+    // When:
+    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+  }
+
+  @Test
+  public void shouldThrowOnKeyColumnThatIsNotCalledRowKey() {
+    // Given:
+    final DdlStatement statement = new CreateStream(
+        SOME_NAME,
+        TableElements.of(tableElement(KEY, "someKey", new Type(SqlTypes.STRING))),
+        true,
+        withProperties
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("'someKey' is an invalid KEY field name. "
+        + "KSQL currently only supports KEY fields named ROWKEY.");
+
+    // When:
+    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+  }
+
   private void givenProperty(final String name, final Literal value) {
     givenProperties(ImmutableMap.of(name, value));
   }
@@ -833,5 +947,17 @@ public class CommandFactoriesTest {
     final Map<String, Literal> props = withProperties.copyOfOriginalLiterals();
     props.putAll(properties);
     withProperties = CreateSourceProperties.from(props);
+  }
+
+  private static TableElement tableElement(
+      final Namespace namespace,
+      final String name,
+      final Type type
+  ) {
+    final TableElement te = mock(TableElement.class, name);
+    when(te.getName()).thenReturn(name);
+    when(te.getType()).thenReturn(type);
+    when(te.getNamespace()).thenReturn(namespace);
+    return te;
   }
 }

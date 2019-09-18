@@ -459,6 +459,22 @@ public class CliTest {
   }
 
   @Test
+  public void shouldThrowOnInvalidCliProperty() {
+    run("SET CLI FOO BAR", localCli);
+
+    assertThat(terminal.getOutputString(),
+        containsString("Undefined property: FOO. Valid properties are"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliPropertyValue() {
+    run("SET CLI WRAP BURRITO", localCli);
+
+    assertThat(terminal.getOutputString(),
+        containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
+  }
+
+  @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
         "describe " + orderDataProvider.kstreamName(),

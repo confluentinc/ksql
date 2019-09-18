@@ -22,6 +22,7 @@ import org.apache.kafka.common.config.AbstractConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
+import org.apache.kafka.common.config.ConfigException;
 
 public class CliConfig extends AbstractConfig {
 
@@ -43,8 +44,13 @@ public class CliConfig extends AbstractConfig {
   }
 
   public CliConfig with(final String property, final Object value) {
+    if (!CONFIG_DEF.names().contains(property.toUpperCase())) {
+      throw new ConfigException(
+          "Undefined property: " + property + ". Valid properties are: " + CONFIG_DEF.names());
+    }
+
     final Map<String, Object> originals = new HashMap<>(originals());
-    originals.put(property, value);
+    originals.put(property.toUpperCase(), value);
     return new CliConfig(originals);
   }
 

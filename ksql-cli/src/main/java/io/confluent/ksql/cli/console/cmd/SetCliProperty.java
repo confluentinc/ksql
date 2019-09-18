@@ -17,13 +17,14 @@ package io.confluent.ksql.cli.console.cmd;
 
 import java.io.PrintWriter;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.BiConsumer;
 
 final class SetCliProperty implements CliSpecificCommand {
 
   private static final String HELP = "set cli <property> <value>:" + System.lineSeparator()
       + "\tSets a CLI local property. NOTE that this differs from setting a KSQL "
-      + "property with 'SET property=value' in that it does not affect the server.";
+      + "property with \"SET 'property'='value'\" in that it does not affect the server.";
 
   private final BiConsumer<String, String> setProperty;
 
@@ -32,12 +33,7 @@ final class SetCliProperty implements CliSpecificCommand {
   }
 
   private SetCliProperty(final BiConsumer<String, String> setProperty) {
-    this.setProperty = setProperty;
-  }
-
-  @Override
-  public boolean matches(final String command) {
-    return command.toLowerCase().startsWith(getName().toLowerCase());
+    this.setProperty = Objects.requireNonNull(setProperty, "setProperty");
   }
 
   @Override

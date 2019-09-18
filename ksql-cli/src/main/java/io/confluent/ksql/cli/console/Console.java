@@ -106,6 +106,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.jline.terminal.Terminal.Signal;
@@ -276,7 +277,11 @@ public class Console implements Closeable {
   }
 
   public void setCliProperty(final String name, final Object value) {
-    config = config.with(name, value);
+    try {
+      config = config.with(name, value);
+    } catch (final ConfigException e) {
+      terminal.writer().println(e.getMessage());
+    }
   }
 
   @Override

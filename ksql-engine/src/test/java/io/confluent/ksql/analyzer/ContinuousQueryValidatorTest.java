@@ -53,7 +53,6 @@ public class ContinuousQueryValidatorTest {
   @Test
   public void shouldThrowOnContinuousQueryThatIsFinal() {
     // Given:
-    when(query.isStatic()).thenReturn(false);
     when(query.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
 
     // Then:

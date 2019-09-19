@@ -263,7 +263,7 @@ public final class StaticQueryExecutor {
 
     final Expression where = analysis.getWhereExpression();
     if (where == null) {
-      throw invalidWhereClauseException("missing WHERE clause", windowed);
+      throw invalidWhereClauseException("Missing WHERE clause", windowed);
     }
 
     final Map<ComparisonTarget, List<ComparisonExpression>> comparisons = extractComparisons(where);

@@ -34,7 +34,7 @@ public class StaticQueryValidator implements QueryValidator {
 
     if (query.getResultMaterialization() != ResultMaterialization.FINAL) {
       throw new KsqlException("Static queries do not yet support `EMIT CHANGES`. "
-          + "Consider removing 'EMIT CHANGES' to any bare query, "
+          + "Consider removing 'EMIT CHANGES' to any bare query."
           + QueryAnalyzer.NEW_QUERY_SYNTAX_HELP
       );
     }

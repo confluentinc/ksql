@@ -20,7 +20,7 @@ import io.confluent.ksql.parser.tree.Sink;
 import java.util.Optional;
 
 /**
- * Vaidator used by {@link QueryAnalyzer}.
+ * Validator used by {@link QueryAnalyzer}.
  */
 interface QueryValidator {
 

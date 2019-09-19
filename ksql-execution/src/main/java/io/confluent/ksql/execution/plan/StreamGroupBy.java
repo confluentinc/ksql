@@ -78,7 +78,7 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStream<Struct, Ge
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamGroupBy that = (StreamGroupBy) o;
+    final StreamGroupBy<?> that = (StreamGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
@@ -87,7 +87,6 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStream<Struct, Ge
 
   @Override
   public int hashCode() {
-
     return Objects.hash(properties, source, formats, groupByExpressions);
   }
 }

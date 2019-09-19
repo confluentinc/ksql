@@ -14,7 +14,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
@@ -38,7 +37,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
@@ -65,23 +63,21 @@ public class TableGroupByBuilderTest {
       .withMetaAndKeyColsInValue();
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SCHEMA, SerdeOption.none());
 
-  private final List<Expression> groupByExpressions = ImmutableList.of(
+  private static final List<Expression> GROUPBY_EXPRESSIONS = ImmutableList.of(
       columnReference("PAC"),
       columnReference("MAN")
   );
-  private final QueryContext sourceContext =
+  private static final QueryContext SOURCE_CONTEXT =
       new QueryContext.Stacker(new QueryId("qid")).push("foo").push("source").getQueryContext();
-  private final QueryContext stepContext =
+  private static final QueryContext STEP_CONTEXT =
       new QueryContext.Stacker(new QueryId("qid")).push("foo").push("groupby").getQueryContext();
-  private final ExecutionStepProperties sourceProperties = new DefaultExecutionStepProperties(
+  private static final ExecutionStepProperties SOURCE_PROPERTIES =
+      new DefaultExecutionStepProperties(SCHEMA, SOURCE_CONTEXT);
+  private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(
       SCHEMA,
-      sourceContext
+      STEP_CONTEXT
   );
-  private final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
-      SCHEMA,
-      stepContext
-  );
-  private final Formats formats = Formats.of(
+  private static final Formats FORMATS = Formats.of(
       KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
       ValueFormat.of(FormatInfo.of(Format.JSON)),
       SerdeOption.none()
@@ -96,7 +92,7 @@ public class TableGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep sourceStep;
+  private ExecutionStep<KTable<Struct, GenericRow>> sourceStep;
   @Mock
   private KeySerde<Struct> keySerde;
   @Mock
@@ -130,13 +126,13 @@ public class TableGroupByBuilderTest {
     when(sourceTable.filter(any())).thenReturn(filteredTable);
     when(filteredTable.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
         .thenReturn(groupedTable);
-    when(sourceStep.getProperties()).thenReturn(sourceProperties);
+    when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
     groupBy = new TableGroupBy<>(
-        properties,
+        PROPERTIES,
         sourceStep,
-        formats,
-        groupByExpressions
+        FORMATS,
+        GROUPBY_EXPRESSIONS
     );
   }
 
@@ -155,11 +151,11 @@ public class TableGroupByBuilderTest {
     assertThat(mapper.getExpressionMetadata(), hasSize(2));
     assertThat(
         mapper.getExpressionMetadata().get(0).getExpression(),
-        equalTo(groupByExpressions.get(0))
+        equalTo(GROUPBY_EXPRESSIONS.get(0))
     );
     assertThat(
         mapper.getExpressionMetadata().get(1).getExpression(),
-        equalTo(groupByExpressions.get(1))
+        equalTo(GROUPBY_EXPRESSIONS.get(1))
     );
   }
 
@@ -191,9 +187,9 @@ public class TableGroupByBuilderTest {
 
     // Then:
     verify(queryBuilder).buildKeySerde(
-        formats.getKeyFormat().getFormatInfo(),
+        FORMATS.getKeyFormat().getFormatInfo(),
         PHYSICAL_SCHEMA,
-        stepContext
+        STEP_CONTEXT
     );
   }
 
@@ -204,9 +200,9 @@ public class TableGroupByBuilderTest {
 
     // Then:
     verify(queryBuilder).buildValueSerde(
-        formats.getValueFormat().getFormatInfo(),
+        FORMATS.getValueFormat().getFormatInfo(),
         PHYSICAL_SCHEMA,
-        stepContext
+        STEP_CONTEXT
     );
   }
 

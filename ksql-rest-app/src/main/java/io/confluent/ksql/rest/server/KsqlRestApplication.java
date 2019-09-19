@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.jaxrs.base.JsonParseExceptionMapper;
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
@@ -50,6 +51,7 @@ import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.resources.RootDocument;
 import io.confluent.ksql.rest.server.resources.ServerInfoResource;
+import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
@@ -75,6 +77,7 @@ import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.Application;
+import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
 import java.io.OutputStreamWriter;
@@ -90,6 +93,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -167,6 +171,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
     super(config);
+
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.ksqlConfigNoPort = requireNonNull(ksqlConfig, "ksqlConfig");
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
@@ -193,6 +198,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   public void setupResources(final Configurable<?> config, final KsqlRestConfig appConfig) {
     config.register(rootDocument);
     config.register(new ServerInfoResource(serviceContext, ksqlConfigNoPort));
+    config.register(ServerMetadataResource.create(serviceContext, ksqlConfigNoPort));
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
@@ -540,7 +546,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serviceContext,
         ksqlEngine,
         ksqlConfig,
-        restConfig,
+        injectPathsWithoutAuthentication(restConfig),
         commandRunner,
         commandStore,
         rootDocument,
@@ -659,5 +665,21 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     log.info("Using first listener URL for intra-node communication: {}", firstListener);
 
     return new KsqlConfig(props);
+  }
+
+  private static KsqlRestConfig injectPathsWithoutAuthentication(final KsqlRestConfig restConfig) {
+    final Set<String> authenticationSkipPaths = new HashSet<>(
+        restConfig.getList(RestConfig.AUTHENTICATION_SKIP_PATHS)
+    );
+
+    authenticationSkipPaths.addAll(KsqlAuthorizationFilter.getPathsWithoutAuthorization());
+
+    final Map<String, Object> restConfigs = restConfig.getOriginals();
+
+    // REST paths that are public and do not require authentication
+    restConfigs.put(RestConfig.AUTHENTICATION_SKIP_PATHS,
+        Joiner.on(",").join(authenticationSkipPaths));
+
+    return new KsqlRestConfig(restConfigs);
   }
 }

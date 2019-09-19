@@ -141,7 +141,9 @@ public class SchemaKGroupedTableTest {
   private TableAggregationFunction tableFunc;
   @Mock
   private KsqlQueryBuilder queryBuilder;
+  @Mock
   private KTable table;
+
   private KTable kTable;
   private KsqlTable<?> ksqlTable;
 

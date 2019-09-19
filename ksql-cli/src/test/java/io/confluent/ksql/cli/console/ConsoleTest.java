@@ -1264,7 +1264,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of()), any());
@@ -1278,7 +1278,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg1")), any());
@@ -1292,7 +1292,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1306,7 +1306,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0", "Arg 1")), any());
@@ -1320,7 +1320,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1334,7 +1334,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand).execute(eq(ImmutableList.of("Arg0")), any());
@@ -1348,7 +1348,7 @@ public class ConsoleTest {
         .thenReturn("not a CLI command;");
 
     // When:
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
 
     // Then:
     verify(cliCommand, never()).execute(any(), any());
@@ -1356,20 +1356,50 @@ public class ConsoleTest {
 
   @Test
   public void shouldSwallowCliCommandLines() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn(CLI_CMD_NAME)
+        .thenReturn("not a CLI command;");
+
     // When:
-    final boolean executed = console.maybeHandleCliSpecificCommands(CLI_CMD_NAME);
+    final String result = console.readLine();
 
     // Then:
-    assertThat("expected CLI command to be executed", executed);
+    assertThat(result, is("not a CLI command;"));
   }
 
   @Test
   public void shouldSwallowCliCommandLinesEvenWithWhiteSpace() {
+    // Given:
+    when(lineSupplier.get())
+        .thenReturn("   \t   " + CLI_CMD_NAME + "   \t   ")
+        .thenReturn("not a CLI command;");
+
     // When:
-    final boolean executed = console.maybeHandleCliSpecificCommands("NOT CLI COMMAND");
+    final String result = console.readLine();
 
     // Then:
-    assertThat("not a cli command", !executed);
+    assertThat(result, is("not a CLI command;"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliProperty() {
+    // When:
+    console.setCliProperty("FOO", "BAR");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Undefined property: FOO. Valid properties are"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliPropertyValue() {
+    // When:
+    console.setCliProperty(CliConfig.WRAP_CONFIG, "BURRITO");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
   }
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {

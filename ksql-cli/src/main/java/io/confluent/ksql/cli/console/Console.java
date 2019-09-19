@@ -298,7 +298,14 @@ public class Console implements Closeable {
   }
 
   public String readLine() {
-    return terminal.readLine();
+    String line;
+
+    do {
+      line = terminal.readLine();
+
+    } while (maybeHandleCliSpecificCommands(line));
+
+    return line;
   }
 
   public List<HistoryEntry> getHistory() {
@@ -798,7 +805,7 @@ public class Console implements Closeable {
     }
   }
 
-  public boolean maybeHandleCliSpecificCommands(final String line) {
+  private boolean maybeHandleCliSpecificCommands(final String line) {
     if (line == null) {
       return false;
     }

@@ -458,21 +458,7 @@ public class CliTest {
     assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
   }
 
-  @Test
-  public void shouldThrowOnInvalidCliProperty() {
-    run("SET CLI FOO BAR", localCli);
 
-    assertThat(terminal.getOutputString(),
-        containsString("Undefined property: FOO. Valid properties are"));
-  }
-
-  @Test
-  public void shouldThrowOnInvalidCliPropertyValue() {
-    run("SET CLI WRAP BURRITO", localCli);
-
-    assertThat(terminal.getOutputString(),
-        containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
-  }
 
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
@@ -1057,7 +1043,7 @@ public class CliTest {
 
   private void runCliSpecificCommand(final String command) {
     when(lineSupplier.get()).thenReturn(command).thenReturn("");
-    console.maybeHandleCliSpecificCommands(console.readLine());
+    console.readLine();
   }
 
   private void givenRunInteractivelyWillExit() {

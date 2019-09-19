@@ -34,7 +34,6 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.StreamSink;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -50,16 +49,16 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class StreamSinkBuilderTest {
   private static final String TOPIC = "TOPIC";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
@@ -86,14 +85,10 @@ public class StreamSinkBuilderTest {
   private Serde<GenericRow> valSerde;
   @Captor
   private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> mapperCaptor;
-
-  private final QueryContext queryContext =
-      new QueryContext.Stacker(new QueryId("qid")).push("sink").getQueryContext();
+  @Mock
+  private QueryContext queryContext;
 
   private StreamSink<Struct> sink;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   @SuppressWarnings("unchecked")

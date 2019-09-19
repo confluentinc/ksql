@@ -51,16 +51,16 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TableSinkBuilderTest {
   private static final String TOPIC = "TOPIC";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
@@ -94,9 +94,6 @@ public class TableSinkBuilderTest {
       new QueryContext.Stacker(new QueryId("qid")).push("sink").getQueryContext();
 
   private TableSink<Struct> sink;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   @SuppressWarnings("unchecked")

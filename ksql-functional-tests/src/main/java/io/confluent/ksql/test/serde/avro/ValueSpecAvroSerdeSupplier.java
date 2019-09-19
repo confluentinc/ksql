@@ -247,11 +247,11 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
   private static final class ValueSpecAvroDeserializer implements Deserializer<Object> {
 
     private final SchemaRegistryClient schemaRegistryClient;
-    private final KafkaAvroDeserializer avroDeserializer;
+    private final KafkaAvroDeserializer<?> avroDeserializer;
 
     ValueSpecAvroDeserializer(final SchemaRegistryClient schemaRegistryClient) {
       this.schemaRegistryClient = schemaRegistryClient;
-      this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
+      this.avroDeserializer = new KafkaAvroDeserializer<>(schemaRegistryClient);
     }
 
     @Override

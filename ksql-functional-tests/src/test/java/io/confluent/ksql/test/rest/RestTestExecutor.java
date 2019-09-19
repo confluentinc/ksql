@@ -177,13 +177,13 @@ public class RestTestExecutor implements Closeable {
       return results;
     }
 
-    if (!testCase.expectedError().isPresent()
-        && testCase.getExpectedResponses().size() > firstStatic
-    ) {
-      final String firstStaticStatement = statics.get(0);
-      final Response firstStaticResponse = testCase.getExpectedResponses().get(firstStatic);
+    if (!testCase.expectedError().isPresent()) {
+      for (int idx = firstStatic; testCase.getExpectedResponses().size() > idx; ++idx) {
+        final String staticStatement = allStatements.get(firstStatic);
+        final Response staticResponse = testCase.getExpectedResponses().get(firstStatic);
 
-      waitForWarmStateStores(firstStaticStatement, firstStaticResponse);
+        waitForWarmStateStores(staticStatement, staticResponse);
+      }
     }
 
     final Optional<List<KsqlEntity>> moreResults = sendStatements(testCase, statics);

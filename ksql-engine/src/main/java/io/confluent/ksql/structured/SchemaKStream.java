@@ -38,14 +38,17 @@ import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StreamFilterBuilder;
 import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
+import io.confluent.ksql.execution.streams.StreamSelectKeyBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.execution.streams.StreamToTableBuilder;
 import io.confluent.ksql.execution.streams.StreamsUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -697,34 +700,19 @@ public class SchemaKStream<K> {
       );
     }
 
-    final int keyIndexInValue = getSchema().valueColumnIndex(proposedKey.fullName())
-        .orElseThrow(IllegalStateException::new);
-
-    final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null && extractColumn(keyIndexInValue, value) != null)
-        .selectKey((key, value) ->
-            StructKeyUtil.asStructKey(extractColumn(keyIndexInValue, value).toString()))
-        .mapValues((key, row) -> {
-          if (updateRowKey) {
-            final Object rowKey = key.get(key.schema().fields().get(0));
-            row.getColumns().set(SchemaUtil.ROWKEY_INDEX, rowKey);
-          }
-          return row;
-        });
-
     final KeyField newKeyField = getSchema().isMetaColumn(fieldName)
         ? resultantKeyField.withName(Optional.empty())
         : resultantKeyField;
 
     final KeySerde<Struct> selectKeySerde = keySerde.rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamSelectKey(
+    final StreamSelectKey<K> step = ExecutionStepFactory.streamSelectKey(
         contextStacker,
         sourceStep,
         fieldName,
         updateRowKey
     );
-    return (SchemaKStream<Struct>) new SchemaKStream(
-        keyedKStream,
+    return new SchemaKStream<>(
+        StreamSelectKeyBuilder.build(kstream, step),
         step,
         keyFormat,
         selectKeySerde,
@@ -769,13 +757,17 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final Optional<Column> keyColumn = getKeyField().resolve(getSchema(), ksqlConfig);
-    if (!keyColumn.isPresent()) {
+    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
+    if (groupByField == null) {
       return true;
     }
 
-    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
-    if (groupByField == null) {
+    if (groupByField.equals(SchemaUtil.ROWKEY_NAME)) {
+      return false;
+    }
+
+    final Optional<Column> keyColumn = getKeyField().resolve(getSchema(), ksqlConfig);
+    if (!keyColumn.isPresent()) {
       return true;
     }
 
@@ -783,7 +775,6 @@ public class SchemaKStream<K> {
     return !groupByField.equals(keyFieldName);
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
       final Serde<GenericRow> valSerde,
@@ -802,11 +793,8 @@ public class SchemaKStream<K> {
 
       final KGroupedStream kgroupedStream = kstream.groupByKey(grouped);
 
-      if (keySerde.isWindowed()) {
-        throw new UnsupportedOperationException("Group by on windowed should always require rekey");
-      }
+      final KeySerde<Struct> structKeySerde = getGroupByKeyKeySerde();
 
-      final KeySerde<Struct> structKeySerde = (KeySerde) keySerde;
       final ExecutionStep<KGroupedStream<Struct, GenericRow>> step =
           ExecutionStepFactory.streamGroupBy(
               contextStacker,
@@ -864,6 +852,15 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  @SuppressWarnings("unchecked")
+  private KeySerde<Struct> getGroupByKeyKeySerde() {
+    if (keySerde.isWindowed()) {
+      throw new UnsupportedOperationException("Group by on windowed should always require rekey");
+    }
+
+    return (KeySerde<Struct>) keySerde;
   }
 
   ExecutionStep<KStream<K, GenericRow>> getSourceStep() {

@@ -132,8 +132,6 @@ public class StaticQueryFunctionalTest {
   public void cleanUp() {
     REST_APP_0.closePersistentQueries();
     REST_APP_0.dropSourcesExcept(USERS_STREAM);
-    REST_APP_1.closePersistentQueries();
-    REST_APP_1.dropSourcesExcept(USERS_STREAM);
   }
 
   @Test

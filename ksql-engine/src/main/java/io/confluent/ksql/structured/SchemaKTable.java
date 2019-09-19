@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.execution.streams.TableFilterBuilder;
 import io.confluent.ksql.execution.streams.TableMapValuesBuilder;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;

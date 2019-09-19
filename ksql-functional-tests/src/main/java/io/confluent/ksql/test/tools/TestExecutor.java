@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
@@ -40,6 +41,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -66,6 +68,7 @@ public class TestExecutor implements Closeable {
   private final Map<String, Object> config = getConfigs(new HashMap<>());
   private final FakeKafkaService fakeKafkaService;
   private final TopologyBuilder topologyBuilder;
+  private final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
 
   public TestExecutor() {
     this(FakeKafkaService.create(), getServiceContext());
@@ -76,12 +79,14 @@ public class TestExecutor implements Closeable {
       final FakeKafkaService fakeKafkaService,
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
-      final TopologyBuilder topologyBuilder
+      final TopologyBuilder topologyBuilder,
+      final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor
   ) {
-    this.fakeKafkaService = Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.topologyBuilder = Objects.requireNonNull(topologyBuilder, "topologyBuilder");
+    this.fakeKafkaService = requireNonNull(fakeKafkaService, "fakeKafkaService");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
+    this.topologyBuilder = requireNonNull(topologyBuilder, "topologyBuilder");
+    this.internalTopicsAccessor = requireNonNull(internalTopicsAccessor, "internalTopicsAccessor");
   }
 
   private TestExecutor(
@@ -92,7 +97,8 @@ public class TestExecutor implements Closeable {
         fakeKafkaService,
         serviceContext,
         getKsqlEngine(serviceContext),
-        TestExecutorUtil::buildStreamsTopologyTestDrivers
+        TestExecutorUtil::buildStreamsTopologyTestDrivers,
+        KafkaStreamsInternalTopicsAccessor::getInternalTopics
     );
   }
 
@@ -125,6 +131,8 @@ public class TestExecutor implements Closeable {
           .map(record -> record.topic.getName())
           .collect(Collectors.toSet());
 
+      final Set<String> allTopicNames = new HashSet<>();
+
       for (final TopologyTestDriverContainer topologyTestDriverContainer : topologyTestDrivers) {
         verifyTopology(testCase);
 
@@ -151,9 +159,17 @@ public class TestExecutor implements Closeable {
               topologyTestDriverContainer,
               serviceContext);
         }
+
+        allTopicNames.addAll(
+            internalTopicsAccessor.apply(topologyTestDriverContainer.getTopologyTestDriver()));
       }
       verifyOutput(testCase);
-      testCase.getPostConditions().verify(ksqlEngine.getMetaStore());
+
+      fakeKafkaService.getAllTopics().stream()
+          .map(Topic::getName)
+          .forEach(allTopicNames::add);
+
+      testCase.getPostConditions().verify(ksqlEngine.getMetaStore(), allTopicNames);
     } catch (final RuntimeException e) {
       final Optional<Matcher<Throwable>> expectedExceptionMatcher = testCase.expectedException();
       if (!expectedExceptionMatcher.isPresent()) {

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import static org.easymock.EasyMock.mock;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -26,6 +28,9 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import org.apache.commons.csv.CSVFormat;
+import java.util.Collections;
+import java.util.Optional;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -59,7 +64,7 @@ public class KsqlDelimitedDeserializerTest {
 
   @Before
   public void before() {
-    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA);
+    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT);
   }
 
   @Test
@@ -224,6 +229,7 @@ public class KsqlDelimitedDeserializerTest {
     deserializer.deserialize("", bytes);
   }
 
+<<<<<<< HEAD
   @Test
   public void shouldThrowOnArrayTypes() {
     // Given:
@@ -285,7 +291,49 @@ public class KsqlDelimitedDeserializerTest {
     new KsqlDelimitedDeserializer(schema);
   }
 
+  @Test
+  public void shouldDeserializeDelimitedCorrectlyWithOtherDelimitersTDF() {
+    final String rowString = "1511897796092\t1\titem_1\t10.0\r\n";
+
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
+        ORDER_SCHEMA,
+        CSVFormat.TDF,
+        mock(ProcessingLogger.class)
+    );
+
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize(
+        "",
+        rowString.getBytes(StandardCharsets.UTF_8));
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+  }
+
+
+  @Test
+  public void shouldDeserializeDelimitedCorrectlyWithCustomDelimiters() {
+    final String rowString = "1511897796092|1|item_1|10.0\r\n";
+
+    final KsqlDelimitedDeserializer ksqlJsonDeserializer = new KsqlDelimitedDeserializer(
+        ORDER_SCHEMA,
+        CSVFormat.DEFAULT.withDelimiter('|'),
+        mock(ProcessingLogger.class)
+    );
+
+    final GenericRow genericRow = ksqlJsonDeserializer.deserialize(
+        "",
+        rowString.getBytes(StandardCharsets.UTF_8));
+    assertThat(genericRow.getColumns().size(), equalTo(4));
+    assertThat((Long) genericRow.getColumns().get(0), equalTo(1511897796092L));
+    assertThat((Long) genericRow.getColumns().get(1), equalTo(1L));
+    assertThat((String) genericRow.getColumns().get(2), equalTo("item_1"));
+    assertThat((Double) genericRow.getColumns().get(3), equalTo(10.0));
+  }
+
   private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
     return PersistenceSchema.from((ConnectSchema) connectSchema, false);
   }
+
 }

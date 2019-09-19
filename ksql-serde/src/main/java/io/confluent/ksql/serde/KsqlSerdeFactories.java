@@ -71,7 +71,7 @@ final class KsqlSerdeFactories implements SerdeFactories {
         return new KsqlJsonSerdeFactory();
 
       case DELIMITED:
-        return new KsqlDelimitedSerdeFactory();
+        return new KsqlDelimitedSerdeFactory(DdlConfig.VALUE_DELIMITER_DEFAULT);
 
       case KAFKA:
         return new KafkaSerdeFactory();

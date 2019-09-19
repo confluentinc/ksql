@@ -34,6 +34,16 @@ import org.apache.kafka.connect.data.Struct;
 
 public class KsqlDelimitedSerializer implements Serializer<Object> {
 
+  private final CSVFormat csvFormat;
+
+  public KsqlDelimitedSerializer() {
+    this.csvFormat = CSVFormat.DEFAULT;
+  }
+
+  public KsqlDelimitedSerializer(final CSVFormat csvFormat) {
+    this.csvFormat = csvFormat;
+  }
+
   @Override
   public void configure(final Map<String, ?> map, final boolean b) {
   }
@@ -50,7 +60,7 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
       }
 
       final StringWriter stringWriter = new StringWriter();
-      final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, CSVFormat.DEFAULT);
+      final CSVPrinter csvPrinter = new CSVPrinter(stringWriter, csvFormat);
       csvPrinter.printRecord(() -> new FieldIterator((Struct)data));
       final String result = stringWriter.toString();
       return result.substring(0, result.length() - 2).getBytes(StandardCharsets.UTF_8);

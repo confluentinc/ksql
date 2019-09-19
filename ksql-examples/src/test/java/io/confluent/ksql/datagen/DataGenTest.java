@@ -1,4 +1,4 @@
-/*
+\/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
@@ -67,6 +67,14 @@ public class DataGenTest {
         "topic=foo");
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void valueDelimiterCanOnlyBeSingleCharacter() throws Exception {
+    DataGen.run(
+            "schema=./src/main/resources/purchase.avro",
+            "format=delimited",
+            "value_delimiter=@@",
+            "topic=foo");
+  }
   @Test
   public void shouldPassSchemaRegistryUrl() throws Exception {
     final DataGen.Arguments args = new DataGen.Arguments(
@@ -77,6 +85,7 @@ public class DataGenTest {
         null,
         "topic",
         "key",
+        null,
         0,
         0L,
         "srUrl",
@@ -88,5 +97,14 @@ public class DataGenTest {
 
     final Properties props = DataGen.getProperties(args);
     assertThat(props.getProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), equalTo("srUrl"));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void valueDelimiterCanOnlyBeSingleCharacter() throws Exception {
+    DataGen.run(
+        "schema=./src/main/resources/purchase.avro",
+        "format=delimited",
+        "value_delimiter=@@",
+        "topic=foo");
   }
 }

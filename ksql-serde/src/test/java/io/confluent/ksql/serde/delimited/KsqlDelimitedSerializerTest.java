@@ -23,11 +23,20 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+<<<<<<< HEAD
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+=======
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.commons.csv.CSVFormat;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.SchemaBuilder;
+>>>>>>> a5b496a00f53d132c9aaa304a043f78b38ae3777
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -49,8 +58,8 @@ public class KsqlDelimitedSerializerTest {
   private KsqlDelimitedSerializer serializer;
 
   @Before
-  public void setUp() {
-    serializer = new KsqlDelimitedSerializer();
+  public void before() {
+      serializer = new KsqlDelimitedSerializer();
   }
 
   @Test
@@ -78,6 +87,17 @@ public class KsqlDelimitedSerializerTest {
     // Then:
     final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
     assertThat(delimitedString, equalTo("1511897796092,1,item_1,10.0"));
+  }
+
+  @Test
+  public void shouldSerializeRowWithCustomDelimiter() {
+
+    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter('^'));
+    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092^1^item_1^10.0"));
   }
 
   @Test
@@ -295,5 +315,16 @@ public class KsqlDelimitedSerializerTest {
 
     // When:
     serializer.serialize("t1", data);
+  }
+
+  @Test
+  public void shouldSerializeRowWithCustomDelimiter() {
+
+    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
+    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter('^'));
+    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
+
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
+    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092^1^item_1^10.0"));
   }
 }

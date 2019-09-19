@@ -166,6 +166,7 @@ public final class DataGen {
     private final Supplier<InputStream> schemaFile;
     private final Format keyFormat;
     private final Format valueFormat;
+    private final String valueDelimiter;
     private final String topicName;
     private final String keyName;
     private final int iterations;
@@ -185,6 +186,7 @@ public final class DataGen {
         final Format valueFormat,
         final String topicName,
         final String keyName,
+        final String valueDelimiter,
         final int iterations,
         final long maxInterval,
         final String schemaRegistryUrl,
@@ -199,6 +201,7 @@ public final class DataGen {
       this.schemaFile = schemaFile;
       this.keyFormat = keyFormat;
       this.valueFormat = valueFormat;
+      this.valueDelimiter = valueDelimiter;
       this.topicName = topicName;
       this.keyName = keyName;
       this.iterations = iterations;
@@ -228,6 +231,8 @@ public final class DataGen {
               .put("value-format", (builder, arg) -> builder.valueFormat = parseFormat(arg))
               // "format" is maintained for backwards compatibility, but should be removed later.
               .put("format", (builder, argVal) -> builder.valueFormat = parseFormat(argVal))
+              .put("value_delimiter",
+                  (builder, argVal) -> builder.valueDelimiter = parseValueDelimiter(argVal))
               .put("topic", (builder, argVal) -> builder.topicName = argVal)
               .put("key", (builder, argVal) -> builder.keyName = argVal)
               .put("iterations", (builder, argVal) -> builder.iterations = parseInt(argVal, 1))
@@ -248,6 +253,7 @@ public final class DataGen {
       private Supplier<InputStream> schemaFile;
       private Format keyFormat;
       private Format valueFormat;
+      private String valueDelimiter;
       private String topicName;
       private String keyName;
       private int iterations;
@@ -265,6 +271,7 @@ public final class DataGen {
         schemaFile = null;
         keyFormat = Format.KAFKA;
         valueFormat = null;
+        valueDelimiter = ",";
         topicName = null;
         keyName = null;
         iterations = -1;
@@ -360,6 +367,7 @@ public final class DataGen {
             schemaFile,
             keyFormat,
             valueFormat,
+            valueDelimiter,
             topicName,
             keyName,
             iterations,

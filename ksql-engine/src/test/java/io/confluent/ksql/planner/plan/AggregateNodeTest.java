@@ -48,6 +48,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -302,9 +303,9 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream.getSchema().value(), contains(
-        Column.of("COL0", SqlTypes.BIGINT),
-        Column.of("KSQL_COL_1", SqlTypes.DOUBLE),
-        Column.of("KSQL_COL_2", SqlTypes.BIGINT)));
+        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        Column.of(ColumnName.of("KSQL_COL_1"), SqlTypes.DOUBLE),
+        Column.of(ColumnName.of("KSQL_COL_2"), SqlTypes.BIGINT)));
   }
 
   @Test

@@ -27,6 +27,8 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -83,7 +85,7 @@ public class DdlCommandExec {
 
     @Override
     public DdlCommandResult executeDropSource(final DropSourceCommand dropSource) {
-      final String sourceName = dropSource.getSourceName();
+      final SourceName sourceName = dropSource.getSourceName();
       final DataSource<?> dataSource = metaStore.getSource(sourceName);
       if (dataSource == null) {
         return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
@@ -113,7 +115,10 @@ public class DdlCommandExec {
           : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
     }
 
-    private KeyField getKeyField(final Optional<String> keyFieldName, final LogicalSchema schema) {
+    private KeyField getKeyField(
+        final Optional<ColumnName> keyFieldName,
+        final LogicalSchema schema
+    ) {
       if (keyFieldName.isPresent()) {
         final Column keyColumn = schema.findValueColumn(keyFieldName.get())
             .orElseThrow(() -> new IllegalStateException(

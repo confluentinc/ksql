@@ -29,6 +29,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -36,7 +37,6 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper;
@@ -50,6 +50,8 @@ import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -62,6 +64,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -295,7 +298,7 @@ public final class StaticQueryExecutor {
 
     final ComparisonExpression comparison = comparisons.get(0);
 
-    final Expression other = comparison.getRight() instanceof QualifiedNameReference
+    final Expression other = comparison.getRight() instanceof ColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
 
@@ -377,7 +380,7 @@ public final class StaticQueryExecutor {
 
   private static Type getBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
-    final boolean inverted = comparison.getRight() instanceof QualifiedNameReference;
+    final boolean inverted = comparison.getRight() instanceof ColumnReferenceExp;
 
     switch (type) {
       case LESS_THAN:
@@ -394,7 +397,7 @@ public final class StaticQueryExecutor {
   }
 
   private static Instant extractWindowBound(final ComparisonExpression comparison) {
-    final Expression other = comparison.getRight() instanceof QualifiedNameReference
+    final Expression other = comparison.getRight() instanceof ColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
 
@@ -474,16 +477,16 @@ public final class StaticQueryExecutor {
   }
 
   private static ComparisonTarget extractWhereClauseTarget(final ComparisonExpression comparison) {
-    final QualifiedNameReference column;
-    if (comparison.getRight() instanceof QualifiedNameReference) {
-      column = (QualifiedNameReference) comparison.getRight();
-    } else if (comparison.getLeft() instanceof QualifiedNameReference) {
-      column = (QualifiedNameReference) comparison.getLeft();
+    final ColumnReferenceExp column;
+    if (comparison.getRight() instanceof ColumnReferenceExp) {
+      column = (ColumnReferenceExp) comparison.getRight();
+    } else if (comparison.getLeft() instanceof ColumnReferenceExp) {
+      column = (ColumnReferenceExp) comparison.getLeft();
     } else {
       throw invalidWhereClauseException("Invalid WHERE clause: " + comparison, false);
     }
 
-    final String fieldName = column.getName().name();
+    final String fieldName = column.getReference().name().toString(FormatOptions.noEscape());
 
     try {
       return ComparisonTarget.valueOf(fieldName.toUpperCase());
@@ -523,7 +526,7 @@ public final class StaticQueryExecutor {
 
     final LogicalSchema schema = schemaBuilder.build();
 
-    final String sourceName = getSourceName(analysis);
+    final SourceName sourceName = getSourceName(analysis);
 
     final KsqlConfig ksqlConfig = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
@@ -552,7 +555,7 @@ public final class StaticQueryExecutor {
   ) {
     final MetaStore metaStore = executionContext.getMetaStore();
 
-    final String sourceName = getSourceName(analysis);
+    final SourceName sourceName = getSourceName(analysis);
 
     final Set<String> queries = metaStore.getQueriesWithSink(sourceName);
     if (queries.isEmpty()) {
@@ -570,7 +573,7 @@ public final class StaticQueryExecutor {
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
   }
 
-  private static String getSourceName(final Analysis analysis) {
+  private static SourceName getSourceName(final Analysis analysis) {
     final DataSource<?> source = analysis.getFromDataSources().get(0).getDataSource();
     return source.getName();
   }
@@ -613,9 +616,9 @@ public final class StaticQueryExecutor {
     }
   }
 
-  private static KsqlException notMaterializedException(final String sourceTable) {
+  private static KsqlException notMaterializedException(final SourceName sourceTable) {
     return new KsqlException(
-        "Table '" + sourceTable + "' is not materialized."
+        "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
             + " KSQL currently only supports static queries on materialized aggregate tables."
             + " i.e. those created by a"
             + " 'CREATE TABLE AS SELECT <fields> FROM <sources> GROUP BY <key>' style statement.");
@@ -650,7 +653,7 @@ public final class StaticQueryExecutor {
 
   private static Struct asKeyStruct(final Object rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME, rowKey);
+    key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
     return key;
   }
 }

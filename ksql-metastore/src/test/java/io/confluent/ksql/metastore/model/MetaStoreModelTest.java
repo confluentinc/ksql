@@ -25,6 +25,8 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -57,14 +59,16 @@ public class MetaStoreModelTest {
           ValueFormat.of(FormatInfo.of(Format.JSON)),
           false
       ))
+      .put(ColumnName.class, ColumnName.of("f0"))
+      .put(SourceName.class, SourceName.of("f0"))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
       .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
-      .put(LegacyField.class, LegacyField.of("something", SqlTypes.DOUBLE))
-      .put(Column.class, Column.of("someField", SqlTypes.INTEGER))
+      .put(LegacyField.class, LegacyField.of(ColumnName.of("something"), SqlTypes.DOUBLE))
+      .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()
-          .valueColumn("f0", SqlTypes.BIGINT)
+          .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
           .build())
       .put(KeyFormat.class, KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)))
       .put(ValueFormat.class, ValueFormat.of(FormatInfo.of(Format.JSON)))

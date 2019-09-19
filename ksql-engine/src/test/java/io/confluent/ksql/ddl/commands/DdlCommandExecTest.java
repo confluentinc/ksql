@@ -17,6 +17,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -39,12 +41,12 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class DdlCommandExecTest {
-  private static final String STREAM_NAME = "s1";
-  private static final String TABLE_NAME = "t1";
+  private static final SourceName STREAM_NAME = SourceName.of("s1");
+  private static final SourceName TABLE_NAME = SourceName.of("t1");
   private static final String TOPIC_NAME = "topic";
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueColumn("F1", SqlPrimitiveType.of("INTEGER"))
-      .valueColumn("F2", SqlPrimitiveType.of("VARCHAR"))
+      .valueColumn(ColumnName.of("F1"), SqlPrimitiveType.of("INTEGER"))
+      .valueColumn(ColumnName.of("F2"), SqlPrimitiveType.of("VARCHAR"))
       .build();
   private Set<SerdeOption> serdeOptions = SerdeOption.none();
 
@@ -189,7 +191,7 @@ public class DdlCommandExecTest {
     MatcherAssert.assertThat(result.getMessage(), is("Type 'type' does not exist"));
   }
 
-  private void givenDropSourceCommand(final String name) {
+  private void givenDropSourceCommand(final SourceName name) {
     dropSource = new DropSourceCommand(name);
   }
 
@@ -198,7 +200,7 @@ public class DdlCommandExecTest {
         "some sql",
         STREAM_NAME,
         SCHEMA,
-        keyField,
+        keyField.map(ColumnName::of),
         timestampExtractionPolicy,
         serdeOptions,
         new KsqlTopic(
@@ -215,7 +217,7 @@ public class DdlCommandExecTest {
         "some sql",
         TABLE_NAME,
         SCHEMA,
-        keyField,
+        keyField.map(ColumnName::of),
         timestampExtractionPolicy,
         serdeOptions,
         new KsqlTopic(

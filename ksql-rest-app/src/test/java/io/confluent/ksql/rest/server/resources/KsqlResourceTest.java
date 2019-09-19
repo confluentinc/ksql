@@ -68,7 +68,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
@@ -76,6 +75,8 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -119,6 +120,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.rest.util.TerminateCluster;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -190,18 +192,18 @@ public class KsqlResourceTest {
       ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
       0L);
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueColumn("val", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
       .build();
 
   private static final ClusterTerminateRequest VALID_TERMINATE_REQUEST =
       new ClusterTerminateRequest(ImmutableList.of("Foo"));
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "f0", new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, ColumnName.of("f0"), new io.confluent.ksql.execution.expression.tree.Type(SqlTypes.STRING))
   );
   private static final PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement.of(
       "sql with schema",
       new CreateStream(
-          QualifiedName.of("bob"),
+          SourceName.of("bob"),
           SOME_ELEMENTS,
           true,
           CreateSourceProperties.from(ImmutableMap.of(
@@ -217,7 +219,7 @@ public class KsqlResourceTest {
   private static final PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement.of(
       "other sql with schema",
       new CreateStream(
-          QualifiedName.of("john"),
+          SourceName.of("john"),
           SOME_ELEMENTS,
           true,
           CreateSourceProperties.from(ImmutableMap.of(
@@ -231,7 +233,7 @@ public class KsqlResourceTest {
   );
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueColumn("f1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("f1"), SqlTypes.STRING)
       .build();
 
   @Rule
@@ -428,8 +430,8 @@ public class KsqlResourceTest {
   public void shouldShowStreamsExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("FIELD1", SqlTypes.BOOLEAN)
-        .valueColumn("FIELD2", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
         .build();
 
     givenSource(
@@ -443,11 +445,11 @@ public class KsqlResourceTest {
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource("TEST_STREAM"),
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_STREAM")),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_2"))),
         SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource("new_stream"),
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_stream")),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
     );
@@ -457,8 +459,8 @@ public class KsqlResourceTest {
   public void shouldShowTablesExtended() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("FIELD1", SqlTypes.BOOLEAN)
-        .valueColumn("FIELD2", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("FIELD2"), SqlTypes.STRING)
         .build();
 
     givenSource(
@@ -472,11 +474,11 @@ public class KsqlResourceTest {
     // Then:
     assertThat(descriptionList.getSourceDescriptions(), containsInAnyOrder(
         SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource("TEST_TABLE"),
+            ksqlEngine.getMetaStore().getSource(SourceName.of("TEST_TABLE")),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("KAFKA_TOPIC_1"))),
         SourceDescriptionFactory.create(
-            ksqlEngine.getMetaStore().getSource("new_table"),
+            ksqlEngine.getMetaStore().getSource(SourceName.of("new_table")),
             true, "JSON", Collections.emptyList(), Collections.emptyList(),
             Optional.of(kafkaTopicClient.describeTopic("new_topic"))))
     );
@@ -516,7 +518,7 @@ public class KsqlResourceTest {
 
     // Then:
     final SourceDescription expectedDescription = SourceDescriptionFactory.create(
-        ksqlEngine.getMetaStore().getSource("DESCRIBED_STREAM"),
+        ksqlEngine.getMetaStore().getSource(SourceName.of("DESCRIBED_STREAM")),
         false,
         "JSON",
         Collections.singletonList(queries.get(1)),
@@ -1205,7 +1207,7 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat("Should not have registered the source",
-        metaStore.getSource("S3"), is(nullValue()));
+        metaStore.getSource(SourceName.of("S3")), is(nullValue()));
 
     validateQueryDescription(ksqlQueryString, emptyMap(), query);
   }
@@ -1832,9 +1834,9 @@ public class KsqlResourceTest {
 
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Table sourceTable(final String name) {
-    final KsqlTable<?> table = (KsqlTable) ksqlEngine.getMetaStore().getSource(name);
+    final KsqlTable<?> table = (KsqlTable) ksqlEngine.getMetaStore().getSource(SourceName.of(name));
     return new SourceInfo.Table(
-        table.getName(),
+        table.getName().toString(FormatOptions.noEscape()),
         table.getKsqlTopic().getKafkaTopicName(),
         table.getKsqlTopic().getValueFormat().getFormat().name(),
         table.getKsqlTopic().getKeyFormat().isWindowed()
@@ -1843,9 +1845,10 @@ public class KsqlResourceTest {
 
   @SuppressWarnings("SameParameterValue")
   private SourceInfo.Stream sourceStream(final String name) {
-    final KsqlStream<?> stream = (KsqlStream) ksqlEngine.getMetaStore().getSource(name);
+    final KsqlStream<?> stream = (KsqlStream) ksqlEngine.getMetaStore().getSource(
+        SourceName.of(name));
     return new SourceInfo.Stream(
-        stream.getName(),
+        stream.getName().toString(FormatOptions.noEscape()),
         stream.getKsqlTopic().getKafkaTopicName(),
         stream.getKsqlTopic().getValueFormat().getFormat().name()
     );
@@ -1890,7 +1893,7 @@ public class KsqlResourceTest {
         .stream()
         .map(md -> new RunningQuery(
             md.getStatementString(),
-            ImmutableSet.of(md.getSinkName()),
+            ImmutableSet.of(md.getSinkName().toString(FormatOptions.noEscape())),
             new EntityQueryId(md.getQueryId())))
         .collect(Collectors.toList());
   }
@@ -2032,7 +2035,7 @@ public class KsqlResourceTest {
 
   private void addTestTopicAndSources() {
     final LogicalSchema schema1 = LogicalSchema.builder()
-        .valueColumn("S1_F1", SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("S1_F1"), SqlTypes.BOOLEAN)
         .build();
 
     givenSource(
@@ -2040,7 +2043,7 @@ public class KsqlResourceTest {
         "TEST_TABLE", "KAFKA_TOPIC_1", schema1);
 
     final LogicalSchema schema2 = LogicalSchema.builder()
-        .valueColumn("S2_F1", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("S2_F1"), SqlTypes.STRING)
         .build();
 
     givenSource(
@@ -2067,7 +2070,7 @@ public class KsqlResourceTest {
       metaStore.putSource(
           new KsqlStream<>(
               "statementText",
-              sourceName,
+              SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
               KeyField
@@ -2080,7 +2083,7 @@ public class KsqlResourceTest {
       metaStore.putSource(
           new KsqlTable<>(
               "statementText",
-              sourceName,
+              SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
               KeyField

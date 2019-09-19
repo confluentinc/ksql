@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -61,8 +62,8 @@ public class SelectValueMapperFactoryTest {
   public void setUp() {
     factory = new SelectValueMapperFactory(codeGenerator);
 
-    when(select_0.getName()).thenReturn("field_0");
-    when(select_1.getName()).thenReturn("field_1");
+    when(select_0.getName()).thenReturn(ColumnName.of("field_0"));
+    when(select_1.getName()).thenReturn(ColumnName.of("field_1"));
     when(select_1.getExpression()).thenReturn(exp_1);
     when(select_0.getExpression()).thenReturn(exp_0);
     when(select_1.getExpression()).thenReturn(exp_1);
@@ -78,8 +79,8 @@ public class SelectValueMapperFactoryTest {
 
     // Then:
     assertThat(mapper.getSelects(), contains(
-       SelectInfo.of("field_0", md_0),
-       SelectInfo.of("field_1", md_1)
+       SelectInfo.of(ColumnName.of("field_0"), md_0),
+       SelectInfo.of(ColumnName.of("field_1"), md_1)
     ));
   }
 

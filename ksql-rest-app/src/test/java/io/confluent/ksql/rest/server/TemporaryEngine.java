@@ -28,6 +28,8 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -51,9 +53,9 @@ import org.junit.rules.ExternalResource;
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("val", SqlTypes.STRING)
-      .valueColumn("val2", SqlTypes.decimal(2, 1))
-      .valueColumn("ADDRESS", SqlTypes.struct()
+      .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("val2"), SqlTypes.decimal(2, 1))
+      .valueColumn(ColumnName.of("ADDRESS"), SqlTypes.struct()
           .field("STREET", SqlTypes.STRING)
           .field("STATE", SqlTypes.STRING)
           .build())
@@ -106,10 +108,10 @@ public class TemporaryEngine extends ExternalResource {
         source =
             new KsqlStream<>(
                 "statement",
-                name,
+                SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.findValueColumn("val").get()),
+                KeyField.of(ColumnName.of("val"), SCHEMA.findValueColumn("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -118,10 +120,10 @@ public class TemporaryEngine extends ExternalResource {
         source =
             new KsqlTable<>(
                 "statement",
-                name,
+                SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.findValueColumn("val").get()),
+                KeyField.of(ColumnName.of("val"), SCHEMA.findValueColumn("val").get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );

@@ -27,6 +27,7 @@ import io.confluent.ksql.materialization.ks.KsMaterializationFactory.LocatorFact
 import io.confluent.ksql.materialization.ks.KsMaterializationFactory.MaterializationFactory;
 import io.confluent.ksql.materialization.ks.KsMaterializationFactory.StateStoreFactory;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.net.MalformedURLException;
@@ -51,8 +52,8 @@ public class KsMaterializationFactoryTest {
   private static final URL DEFAULT_APP_SERVER = buildDefaultAppServer();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.STRING)
-      .valueColumn("v0", SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
       .build();
 
   @Mock

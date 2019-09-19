@@ -27,8 +27,8 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
@@ -60,6 +60,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -373,18 +375,23 @@ public class SchemaKStream<K> {
       return KeyField.of(findNewKeyField(selectExpressions), findLegacyKeyField(selectExpressions));
     }
 
-    private Optional<String> findNewKeyField(final List<SelectExpression> selectExpressions) {
+    private Optional<ColumnName> findNewKeyField(final List<SelectExpression> selectExpressions) {
       if (!getKeyField().name().isPresent()) {
         return Optional.empty();
       }
 
-      final String fullFieldName = getKeyField().name().get();
-      final Optional<String> fieldAlias = SchemaUtil.getFieldNameAlias(fullFieldName);
-      final String fieldNameWithNoAlias = SchemaUtil.getFieldNameWithNoAlias(fullFieldName);
-      final Column keyColumn = Column.of(fieldAlias, fieldNameWithNoAlias, SqlTypes.STRING);
+      final ColumnName fullFieldName = getKeyField().name().get();
+      final Optional<String> fieldAlias = SchemaUtil.getFieldNameAlias(fullFieldName.name());
+      final String fieldNameWithNoAlias = SchemaUtil.getFieldNameWithNoAlias(fullFieldName.name());
+      final Column keyColumn = Column.of(
+          fieldAlias.map(SourceName::of),
+          ColumnName.of(fieldNameWithNoAlias),
+          SqlTypes.STRING
+      );
 
       return doFindKeyColumn(selectExpressions, keyColumn)
-          .map(Column::fullName);
+          .map(Column::fullName)
+          .map(ColumnName::of);
     }
 
     private Optional<LegacyField> findLegacyKeyField(
@@ -401,7 +408,7 @@ public class SchemaKStream<K> {
       }
 
       return doFindKeyColumn(selectExpressions, Column.of(keyField.name(), keyField.type()))
-          .map(field -> LegacyField.of(field.fullName(), field.type()));
+          .map(field -> LegacyField.of(ColumnName.of(field.fullName()), field.type()));
     }
 
     private Optional<Column> doFindKeyColumn(
@@ -411,14 +418,14 @@ public class SchemaKStream<K> {
       Optional<Column> found = Optional.empty();
 
       for (int i = 0; i < selectExpressions.size(); i++) {
-        final String toName = selectExpressions.get(i).getName();
+        final ColumnName toName = selectExpressions.get(i).getName();
         final Expression toExpression = selectExpressions.get(i).getExpression();
 
-        if (toExpression instanceof QualifiedNameReference) {
-          final QualifiedNameReference nameRef
-              = (QualifiedNameReference) toExpression;
+        if (toExpression instanceof ColumnReferenceExp) {
+          final ColumnReferenceExp nameRef
+              = (ColumnReferenceExp) toExpression;
 
-          if (SchemaUtil.isFieldName(nameRef.getName().toString(), keyField.fullName())) {
+          if (SchemaUtil.isFieldName(nameRef.getReference().toString(), keyField.fullName())) {
             found = Optional.of(Column.of(toName, keyField.type()));
             break;
           }
@@ -426,8 +433,8 @@ public class SchemaKStream<K> {
       }
 
       return found
-          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWTIME_NAME))
-          .filter(f -> !SchemaUtil.isFieldName(f.name(), SchemaUtil.ROWKEY_NAME));
+          .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWTIME_NAME.name()))
+          .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()));
     }
 
     public KeyField getKey() {
@@ -627,7 +634,7 @@ public class SchemaKStream<K> {
 
   @SuppressWarnings("unchecked")
   public SchemaKStream<Struct> selectKey(
-      final String fieldName,
+      final ColumnName fieldName,
       final boolean updateRowKey,
       final QueryContext.Stacker contextStacker
   ) {
@@ -640,7 +647,8 @@ public class SchemaKStream<K> {
     final Column proposedKey = getSchema().findValueColumn(fieldName)
         .orElseThrow(IllegalArgumentException::new);
 
-    final LegacyField proposedLegacy = LegacyField.of(proposedKey.fullName(), proposedKey.type());
+    final LegacyField proposedLegacy = LegacyField.of(
+        ColumnName.of(proposedKey.fullName()), proposedKey.type());
 
     final KeyField resultantKeyField = isRowKey(fieldName)
             ? keyField.withLegacy(proposedLegacy)
@@ -697,8 +705,8 @@ public class SchemaKStream<K> {
     return !ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD);
   }
 
-  private static boolean isRowKey(final String fieldName) {
-    return SchemaUtil.isFieldName(fieldName, SchemaUtil.ROWKEY_NAME);
+  private static boolean isRowKey(final ColumnName fieldName) {
+    return SchemaUtil.isFieldName(fieldName.name(), SchemaUtil.ROWKEY_NAME.name());
   }
 
   private Object extractColumn(final int keyIndexInValue, final GenericRow value) {
@@ -713,10 +721,10 @@ public class SchemaKStream<K> {
         .get(keyIndexInValue);
   }
 
-  private static String fieldNameFromExpression(final Expression expression) {
-    if (expression instanceof QualifiedNameReference) {
-      final QualifiedNameReference nameRef = (QualifiedNameReference) expression;
-      return nameRef.getName().name();
+  private static ColumnName fieldNameFromExpression(final Expression expression) {
+    if (expression instanceof ColumnReferenceExp) {
+      final ColumnReferenceExp nameRef = (ColumnReferenceExp) expression;
+      return nameRef.getReference().name();
     }
     return null;
   }
@@ -726,7 +734,7 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final String groupByField = fieldNameFromExpression(groupByExpressions.get(0));
+    final ColumnName groupByField = fieldNameFromExpression(groupByExpressions.get(0));
     if (groupByField == null) {
       return true;
     }
@@ -740,7 +748,7 @@ public class SchemaKStream<K> {
       return true;
     }
 
-    final String keyFieldName = keyColumn.get().name();
+    final ColumnName keyFieldName = keyColumn.get().name();
     return !groupByField.equals(keyFieldName);
   }
 
@@ -759,10 +767,10 @@ public class SchemaKStream<K> {
     final KeySerde<Struct> groupedKeySerde = keySerde
         .rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
 
-    final String aggregateKeyName = groupedKeyNameFor(groupByExpressions);
+    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
     final LegacyField legacyKeyField = LegacyField
         .notInSchema(aggregateKeyName, SqlTypes.STRING);
-    final Optional<String> newKeyCol = getSchema().findValueColumn(aggregateKeyName)
+    final Optional<ColumnName> newKeyCol = getSchema().findValueColumn(aggregateKeyName)
         .map(Column::name);
 
     final StreamGroupBy<K> source = ExecutionStepFactory.streamGroupBy(
@@ -885,9 +893,9 @@ public class SchemaKStream<K> {
     return functionRegistry;
   }
 
-  String groupedKeyNameFor(final List<Expression> groupByExpressions) {
-    return groupByExpressions.stream()
+  ColumnName groupedKeyNameFor(final List<Expression> groupByExpressions) {
+    return ColumnName.of(groupByExpressions.stream()
         .map(Expression::toString)
-        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR));
+        .collect(Collectors.joining(GROUP_BY_COLUMN_SEPARATOR)));
   }
 }

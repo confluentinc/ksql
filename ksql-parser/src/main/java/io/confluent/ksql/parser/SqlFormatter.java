@@ -20,7 +20,7 @@ import static com.google.common.collect.Iterables.getOnlyElement;
 import com.google.common.base.Strings;
 import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.Name;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -177,14 +177,20 @@ public final class SqlFormatter {
       builder.append(ExpressionFormatterUtil.formatExpression(node.getExpression()));
       builder.append(' ')
                 .append('"')
-                .append(node.getAlias())
+                // for backwards compatibility, we always quote with `""` here
+                .append(node.getAlias().toString(FormatOptions.noEscape()))
                 .append('"');
       return null;
     }
 
     @Override
     protected Void visitAllColumns(final AllColumns node, final Integer context) {
-      builder.append(node.toString());
+      node.getSource()
+          .ifPresent(source ->
+              builder.append(escapedName(source))
+                  .append("."));
+
+      builder.append("*");
 
       return null;
     }
@@ -221,7 +227,7 @@ public final class SqlFormatter {
       process(node.getRelation(), indent);
 
       builder.append(' ')
-              .append(FORMAT_OPTIONS.escape(node.getAlias()));
+              .append(escapedName(node.getAlias()));
 
       return null;
     }
@@ -255,7 +261,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitShowColumns(final ShowColumns node, final Integer context) {
       builder.append("DESCRIBE ")
-              .append(node.getTable());
+              .append(escapedName(node.getTable()));
       return null;
     }
 
@@ -296,7 +302,7 @@ public final class SqlFormatter {
     @Override
     protected Void visitInsertInto(final InsertInto node, final Integer indent) {
       builder.append("INSERT INTO ");
-      builder.append(node.getTarget());
+      builder.append(escapedName(node.getTarget()));
       builder.append(" ");
       process(node.getQuery(), indent);
       processPartitionBy(node.getPartitionByColumn(), indent);
@@ -312,11 +318,14 @@ public final class SqlFormatter {
     @Override
     protected Void visitInsertValues(final InsertValues node, final Integer context) {
       builder.append("INSERT INTO ");
-      builder.append(node.getTarget());
+      builder.append(escapedName(node.getTarget()));
       builder.append(" ");
 
       if (!node.getColumns().isEmpty()) {
-        builder.append(node.getColumns().stream().collect(Collectors.joining(", ", "(", ") ")));
+        builder.append(node.getColumns()
+            .stream()
+            .map(SqlFormatter::escapedName)
+            .collect(Collectors.joining(", ", "(", ") ")));
       }
 
       builder.append("VALUES ");
@@ -489,7 +498,7 @@ public final class SqlFormatter {
     }
 
     private static String formatTableElement(final TableElement e) {
-      return FORMAT_OPTIONS.escape(e.getName())
+      return escapedName(e.getName())
           + " "
           + ExpressionFormatter.formatExpression(
               e.getType(), true, FormatOptions.of(IdentifierUtil::needsQuotes))
@@ -497,7 +506,7 @@ public final class SqlFormatter {
     }
   }
 
-  private static String escapedName(final QualifiedName name) {
+  private static String escapedName(final Name name) {
     return name.toString(FORMAT_OPTIONS);
   }
 }

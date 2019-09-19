@@ -35,6 +35,7 @@ import io.confluent.ksql.materialization.Row;
 import io.confluent.ksql.materialization.Window;
 import io.confluent.ksql.materialization.WindowedRow;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -532,7 +533,7 @@ public class KsMaterializationFunctionalTest {
 
   private static Struct asKeyStruct(final String rowKey, final PhysicalSchema physicalSchema) {
     final Struct key = new Struct(physicalSchema.keySchema().ksqlSchema());
-    key.put(SchemaUtil.ROWKEY_NAME, rowKey);
+    key.put(SchemaUtil.ROWKEY_NAME.name(), rowKey);
     return key;
   }
 
@@ -542,7 +543,7 @@ public class KsMaterializationFunctionalTest {
       final SqlType columnType0
   ) {
     return LogicalSchema.builder()
-        .valueColumn(columnName0, columnType0)
+        .valueColumn(ColumnName.of(columnName0), columnType0)
         .build();
   }
 
@@ -552,8 +553,8 @@ public class KsMaterializationFunctionalTest {
       final String columnName1, final SqlType columnType1
   ) {
     return LogicalSchema.builder()
-        .valueColumn(columnName0, columnType0)
-        .valueColumn(columnName1, columnType1)
+        .valueColumn(ColumnName.of(columnName0), columnType0)
+        .valueColumn(ColumnName.of(columnName1), columnType1)
         .build();
   }
 
@@ -564,9 +565,9 @@ public class KsMaterializationFunctionalTest {
       final String columnName2, final SqlType columnType2
   ) {
     return LogicalSchema.builder()
-        .valueColumn(columnName0, columnType0)
-        .valueColumn(columnName1, columnType1)
-        .valueColumn(columnName2, columnType2)
+        .valueColumn(ColumnName.of(columnName0), columnType0)
+        .valueColumn(ColumnName.of(columnName1), columnType1)
+        .valueColumn(ColumnName.of(columnName2), columnType2)
         .build();
   }
 

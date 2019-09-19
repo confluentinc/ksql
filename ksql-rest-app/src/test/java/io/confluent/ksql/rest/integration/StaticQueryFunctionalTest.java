@@ -25,6 +25,7 @@ import com.google.common.collect.Iterables;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
@@ -71,7 +72,7 @@ public class StaticQueryFunctionalTest {
 
   private static final PhysicalSchema AGGREGATE_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .valueColumn("COUNT", SqlTypes.BIGINT)
+          .valueColumn(ColumnName.of("COUNT"), SqlTypes.BIGINT)
           .build(),
       SerdeOption.none()
   );

@@ -16,6 +16,8 @@
 package io.confluent.ksql.execution.ddl.commands;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -27,9 +29,9 @@ public class CreateStreamCommand extends CreateSourceCommand {
 
   public CreateStreamCommand(
       final String sqlExpression,
-      final String sourceName,
+      final SourceName sourceName,
       final LogicalSchema schema,
-      final Optional<String> keyField,
+      final Optional<ColumnName> keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final Set<SerdeOption> serdeOptions,
       final KsqlTopic ksqlTopic

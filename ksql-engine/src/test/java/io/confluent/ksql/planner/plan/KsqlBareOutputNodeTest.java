@@ -31,6 +31,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -129,9 +130,9 @@ public class KsqlBareOutputNodeTest {
   public void shouldCreateCorrectSchema() {
     final LogicalSchema schema = stream.getSchema();
     assertThat(schema.value(), contains(
-        Column.of("COL0", SqlTypes.BIGINT),
-        Column.of("COL2", SqlTypes.STRING),
-        Column.of("COL3", SqlTypes.DOUBLE)));
+        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        Column.of(ColumnName.of("COL2"), SqlTypes.STRING),
+        Column.of(ColumnName.of("COL3"), SqlTypes.DOUBLE)));
   }
 
   @Test

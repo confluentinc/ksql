@@ -22,8 +22,10 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -34,12 +36,12 @@ public class QueryTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final Relation OTHER_RELATION = new Table(QualifiedName.of("pete"));
+  private static final Relation OTHER_RELATION = new Table(SourceName.of("pete"));
   private static final Select SOME_SELECT = new Select(ImmutableList.of(
       new AllColumns(Optional.empty())));
   private static final Select OTHER_SELECT = new Select(ImmutableList.of(new SingleColumn(
-      new QualifiedNameReference(QualifiedName.of("Bob")), "B")));
-  private static final Relation SOME_FROM = new Table(QualifiedName.of("from"));
+      new ColumnReferenceExp(ColumnRef.of("Bob")), ColumnName.of("B"))));
+  private static final Relation SOME_FROM = new Table(SourceName.of("from"));
   private static final Optional<WindowExpression> SOME_WINDOW = Optional.of(
       mock(WindowExpression.class)
   );

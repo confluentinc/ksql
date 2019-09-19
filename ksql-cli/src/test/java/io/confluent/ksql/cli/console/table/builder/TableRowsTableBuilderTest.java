@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.cli.console.table.Table;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -38,10 +39,10 @@ public class TableRowsTableBuilderTest {
   private static final String SOME_SQL = "some sql";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.BIGINT)
-      .keyColumn("k1", SqlTypes.DOUBLE)
-      .valueColumn("v0", SqlTypes.STRING)
-      .valueColumn("v1", SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("k1"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.INTEGER)
       .build();
 
   private static final List<?> VALUES = ImmutableList.of(
@@ -49,11 +50,11 @@ public class TableRowsTableBuilderTest {
   );
 
   private static final LogicalSchema TIME_WINDOW_SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.BIGINT)
-      .keyColumn("k1", SqlTypes.DOUBLE)
-      .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
-      .valueColumn("v0", SqlTypes.STRING)
-      .valueColumn("v1", SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("k1"), SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.INTEGER)
       .build();
 
   private static final List<?> TIME_WINDOW_VALUES = ImmutableList.of(
@@ -61,12 +62,12 @@ public class TableRowsTableBuilderTest {
   );
 
   private static final LogicalSchema SESSION_WINDOW_SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.BIGINT)
-      .keyColumn("k1", SqlTypes.DOUBLE)
-      .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
-      .keyColumn("WINDOWEND", SqlTypes.BIGINT)
-      .valueColumn("v0", SqlTypes.STRING)
-      .valueColumn("v1", SqlTypes.INTEGER)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("k1"), SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.INTEGER)
       .build();
 
   private static final List<?> SESSION_WINDOW_VALUES = ImmutableList.of(

@@ -47,6 +47,8 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -105,14 +107,14 @@ public class DataSourceNodeTest {
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.STRING)
-      .valueColumn("field2", SqlTypes.STRING)
-      .valueColumn("field3", SqlTypes.STRING)
-      .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
-      .valueColumn("key", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of(TIMESTAMP_FIELD), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
   private static final KeyField KEY_FIELD
-      = KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get());
+      = KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get());
   private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
@@ -120,10 +122,10 @@ public class DataSourceNodeTest {
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
-      "datasource",
+      SourceName.of("datasource"),
       REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of("key", REAL_SCHEMA.findValueColumn("key").get()),
+      KeyField.of(ColumnName.of("key"), REAL_SCHEMA.findValueColumn("key").get()),
       new LongColumnTimestampExtractionPolicy("timestamp"),
       new KsqlTopic(
           "topic",
@@ -289,10 +291,11 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldBuildSchemaKTableWhenKTableSource() {
-    final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
+    final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
+        SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get()),
+        KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic(
             "topic2",
@@ -313,10 +316,11 @@ public class DataSourceNodeTest {
 
   @Test
   public void shouldTransformKStreamToKTableCorrectly() {
-    final KsqlTable<String> table = new KsqlTable<>("sqlExpression", "datasource",
+    final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
+        SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get()),
+        KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get()),
         new LongColumnTimestampExtractionPolicy("timestamp"),
         new KsqlTopic(
             "topic2",
@@ -365,7 +369,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldHaveFullyQualifiedSchema() {
     // Given:
-    final String sourceName = SOME_SOURCE.getName();
+    final SourceName sourceName = SOME_SOURCE.getName();
 
     // When:
     final LogicalSchema schema = node.getSchema();
@@ -375,11 +379,11 @@ public class DataSourceNodeTest {
         LogicalSchema.builder()
             .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
             .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-            .valueColumn("field1", SqlTypes.STRING)
-            .valueColumn("field2", SqlTypes.STRING)
-            .valueColumn("field3", SqlTypes.STRING)
-            .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
-            .valueColumn("key", SqlTypes.STRING)
+            .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of(TIMESTAMP_FIELD), SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
             .build().withAlias(sourceName)));
   }
 
@@ -482,7 +486,7 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
+        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
@@ -507,7 +511,7 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(
         same(ksqlStreamBuilder),
         same(dataSource),
-        eq(StreamSource.getSchemaWithMetaAndKeyFields("name", REAL_SCHEMA)),
+        eq(StreamSource.getSchemaWithMetaAndKeyFields(SourceName.of("name"), REAL_SCHEMA)),
         stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
@@ -568,12 +572,12 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
     when(dataSource.getKeyField())
-        .thenReturn(KeyField.of("field1", REAL_SCHEMA.findValueColumn("field1").get()));
+        .thenReturn(KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get()));
 
     return new DataSourceNode(
         realNodeId,
         dataSource,
-        "t"
+        SourceName.of("t")
     );
   }
 
@@ -583,7 +587,7 @@ public class DataSourceNodeTest {
     return new DataSourceNode(
         PLAN_NODE_ID,
         dataSource,
-        "name",
+        SourceName.of("name"),
         schemaKStreamFactory
     );
   }

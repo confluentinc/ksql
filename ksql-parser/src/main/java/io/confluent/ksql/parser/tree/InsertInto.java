@@ -20,7 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Objects;
@@ -31,12 +31,12 @@ public class InsertInto
     extends Statement
     implements QueryContainer {
 
-  private final QualifiedName target;
+  private final SourceName target;
   private final Query query;
   private final Optional<Expression> partitionByColumn;
 
   public InsertInto(
-      final QualifiedName target,
+      final SourceName target,
       final Query query,
       final Optional<Expression> partitionByColumn
   ) {
@@ -45,7 +45,7 @@ public class InsertInto
 
   public InsertInto(
       final Optional<NodeLocation> location,
-      final QualifiedName target,
+      final SourceName target,
       final Query query,
       final Optional<Expression> partitionByColumn
   ) {
@@ -55,7 +55,7 @@ public class InsertInto
     this.partitionByColumn = requireNonNull(partitionByColumn, "partitionByColumn");
   }
 
-  public QualifiedName getTarget() {
+  public SourceName getTarget() {
     return target;
   }
 
@@ -70,7 +70,7 @@ public class InsertInto
 
   @Override
   public Sink getSink() {
-    return Sink.of(target.name(), false, CreateSourceAsProperties.none(), partitionByColumn);
+    return Sink.of(target, false, CreateSourceAsProperties.none(), partitionByColumn);
   }
 
   @Override

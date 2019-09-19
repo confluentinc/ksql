@@ -116,7 +116,7 @@ public abstract class VisitParentExpressionVisitor<R, C> implements ExpressionVi
   }
 
   @Override
-  public R visitQualifiedNameReference(final QualifiedNameReference node, final C context) {
+  public R visitQualifiedNameReference(final ColumnReferenceExp node, final C context) {
     return visitExpression(node, context);
   }
 

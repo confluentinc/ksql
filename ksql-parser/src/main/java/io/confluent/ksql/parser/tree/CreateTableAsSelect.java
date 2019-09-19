@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Optional;
@@ -25,7 +25,7 @@ import java.util.Optional;
 public class CreateTableAsSelect extends CreateAsSelect {
 
   public CreateTableAsSelect(
-      final QualifiedName name,
+      final SourceName name,
       final Query query,
       final boolean notExists,
       final CreateSourceAsProperties properties
@@ -35,7 +35,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
 
   public CreateTableAsSelect(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final SourceName name,
       final Query query,
       final boolean notExists,
       final CreateSourceAsProperties properties
@@ -62,7 +62,7 @@ public class CreateTableAsSelect extends CreateAsSelect {
 
   @Override
   public Sink getSink() {
-    return Sink.of(getName().name(), true, getProperties(), Optional.empty());
+    return Sink.of(getName(), true, getProperties(), Optional.empty());
   }
 
   @Override

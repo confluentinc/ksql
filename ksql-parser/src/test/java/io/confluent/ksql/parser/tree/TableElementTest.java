@@ -22,8 +22,10 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -33,6 +35,8 @@ public class TableElementTest {
 
   private static final Optional<NodeLocation> A_LOCATION =
       Optional.of(new NodeLocation(2, 4));
+  
+  private static final ColumnName NAME = ColumnName.of("name");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -41,17 +45,17 @@ public class TableElementTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            new TableElement(A_LOCATION, VALUE, "name", new Type(SqlTypes.STRING)),
-            new TableElement(VALUE, "name", new Type(SqlTypes.STRING))
+            new TableElement(A_LOCATION, VALUE, NAME, new Type(SqlTypes.STRING)),
+            new TableElement(VALUE, NAME, new Type(SqlTypes.STRING))
         )
         .addEqualityGroup(
-            new TableElement(VALUE, "different", new Type(SqlTypes.STRING))
+            new TableElement(VALUE, ColumnName.of("different"), new Type(SqlTypes.STRING))
         )
         .addEqualityGroup(
-            new TableElement(VALUE, "name", new Type(SqlTypes.INTEGER))
+            new TableElement(VALUE, NAME, new Type(SqlTypes.INTEGER))
         )
         .addEqualityGroup(
-            new TableElement(KEY, "ROWKEY", new Type(SqlTypes.STRING))
+            new TableElement(KEY, SchemaUtil.ROWKEY_NAME, new Type(SqlTypes.STRING))
         )
         .testEquals();
   }
@@ -60,16 +64,16 @@ public class TableElementTest {
   public void shouldReturnName() {
     // Given:
     final TableElement element =
-        new TableElement(VALUE, "name", new Type(SqlTypes.STRING));
+        new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
 
     // Then:
-    assertThat(element.getName(), is("name"));
+    assertThat(element.getName(), is(NAME));
   }
 
   @Test
   public void shouldReturnType() {
     // Given:
-    final TableElement element = new TableElement(VALUE, "name", new Type(SqlTypes.STRING));
+    final TableElement element = new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
 
     // Then:
     assertThat(element.getType(), is(new Type(SqlTypes.STRING)));
@@ -78,7 +82,7 @@ public class TableElementTest {
   @Test
   public void shouldReturnNamespace() {
     // Given:
-    final TableElement valueElement = new TableElement(VALUE, "name", new Type(SqlTypes.STRING));
+    final TableElement valueElement = new TableElement(VALUE, NAME, new Type(SqlTypes.STRING));
 
     // Then:
     assertThat(valueElement.getNamespace(), is(VALUE));

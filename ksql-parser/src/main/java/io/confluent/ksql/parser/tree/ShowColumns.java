@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,16 +26,16 @@ import java.util.Optional;
 @Immutable
 public class ShowColumns extends Statement {
 
-  private final QualifiedName table;
+  private final SourceName table;
   private final boolean isExtended;
 
-  public ShowColumns(final QualifiedName table, final boolean isExtended) {
+  public ShowColumns(final SourceName table, final boolean isExtended) {
     this(Optional.empty(), table, isExtended);
   }
 
   public ShowColumns(
       final Optional<NodeLocation> location,
-      final QualifiedName table,
+      final SourceName table,
       final boolean isExtended
   ) {
     super(location);
@@ -43,7 +43,7 @@ public class ShowColumns extends Statement {
     this.isExtended = isExtended;
   }
 
-  public QualifiedName getTable() {
+  public SourceName getTable() {
     return table;
   }
 

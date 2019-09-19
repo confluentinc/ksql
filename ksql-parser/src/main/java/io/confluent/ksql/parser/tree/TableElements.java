@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -87,7 +88,7 @@ public final class TableElements implements Iterable<TableElement> {
     final Builder builder = LogicalSchema.builder();
 
     for (final TableElement tableElement : this) {
-      final String fieldName = tableElement.getName();
+      final ColumnName fieldName = tableElement.getName();
       final SqlType fieldType = tableElement.getType().getSqlType();
 
       if (tableElement.getNamespace() == Namespace.KEY) {
@@ -134,7 +135,8 @@ public final class TableElements implements Iterable<TableElement> {
       }
 
       if (!valueFields.isEmpty()) {
-        throw new KsqlException("KEY column declared after VALUE column: " + element.getName()
+        throw new KsqlException("KEY column declared after VALUE column: "
+            + element.getName().name()
             + System.lineSeparator()
             + "All KEY columns must be declared before any VALUE column(s).");
       }
@@ -158,6 +160,7 @@ public final class TableElements implements Iterable<TableElement> {
         .stream()
         .filter(e -> e.getValue() > 1)
         .map(Entry::getKey)
+        .map(ColumnName::toString)
         .collect(Collectors.joining(", "));
 
     if (!duplicates.isEmpty()) {

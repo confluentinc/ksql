@@ -21,9 +21,9 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
@@ -67,7 +67,7 @@ public final class StatementRewriteForStruct {
       final Expression createFunctionResult = context.process(node.getBase());
       final String fieldName = node.getFieldName();
       return Optional.of(new FunctionCall(
-          QualifiedName.of("FETCH_FIELD_FROM_STRUCT"),
+          FunctionName.of("FETCH_FIELD_FROM_STRUCT"),
           ImmutableList.of(createFunctionResult, new StringLiteral(fieldName))));
     }
   }

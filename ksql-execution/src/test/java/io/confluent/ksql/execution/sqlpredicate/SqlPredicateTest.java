@@ -30,8 +30,11 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -62,18 +65,20 @@ public class SqlPredicateTest {
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(Collections.emptyMap());
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("COL0", SqlTypes.BIGINT)
-      .valueColumn("COL1", SqlTypes.DOUBLE)
-      .valueColumn("COL2", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
       .build()
-      .withAlias("TEST1")
+      .withAlias(SourceName.of("TEST1"))
       .withMetaAndKeyColsInValue();
 
-  private static final QualifiedNameReference COL0 =
-      new QualifiedNameReference(QualifiedName.of("TEST1", "COL0"));
+  private static final SourceName TEST1 = SourceName.of("TEST1");
 
-  private static final QualifiedNameReference COL2 =
-      new QualifiedNameReference(QualifiedName.of("TEST1", "COL2"));
+  private static final ColumnReferenceExp COL0 =
+      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL0")));
+
+  private static final ColumnReferenceExp COL2 =
+      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL2")));
 
   private static final KsqlFunction LEN_FUNCTION = KsqlFunction.createLegacyBuiltIn(
       Schema.OPTIONAL_INT32_SCHEMA,
@@ -123,7 +128,7 @@ public class SqlPredicateTest {
             new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)),
             new ComparisonExpression(
                 Type.EQUAL,
-                new FunctionCall(QualifiedName.of("LEN"), ImmutableList.of(COL2)),
+                new FunctionCall(FunctionName.of("LEN"), ImmutableList.of(COL2)),
                 new IntegerLiteral(5)
             )
         )

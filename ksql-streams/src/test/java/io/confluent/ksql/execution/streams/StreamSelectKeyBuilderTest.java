@@ -30,6 +30,8 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -50,14 +52,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StreamSelectKeyBuilderTest {
-  private static final String ALIAS = "ATL";
+  private static final SourceName ALIAS = SourceName.of("ATL");
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("BIG", SqlTypes.BIGINT)
-      .valueColumn("BOI", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("BIG"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("BOI"), SqlTypes.STRING)
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
-  private static final String KEY = "ATL.BOI";
+  private static final ColumnName KEY = ColumnName.of("ATL.BOI");
 
   @Mock
   private KStream<Struct, GenericRow> kstream;

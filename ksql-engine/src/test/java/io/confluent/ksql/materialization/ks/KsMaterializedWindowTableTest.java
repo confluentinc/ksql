@@ -32,6 +32,7 @@ import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.Window;
 import io.confluent.ksql.materialization.WindowedRow;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
@@ -54,8 +55,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsMaterializedWindowTableTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("ROWKEY", SqlTypes.STRING)
-      .valueColumn("v0", SqlTypes.STRING)
+      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.asStructKey("x");

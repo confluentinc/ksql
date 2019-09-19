@@ -24,6 +24,7 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.MoreExecutors;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.rest.server.resources.streaming.StreamingTestUtils.TestSubscriber;
@@ -68,7 +69,7 @@ public class PollingSubscriptionTest {
           MoreExecutors.listeningDecorator(exec),
           subscriber,
           LogicalSchema.builder()
-              .valueColumn("f0", SqlTypes.STRING)
+              .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
               .build()
       );
     }

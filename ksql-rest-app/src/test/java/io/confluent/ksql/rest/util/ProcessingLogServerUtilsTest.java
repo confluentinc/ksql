@@ -39,6 +39,8 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.serde.Format;
@@ -148,14 +150,14 @@ public class ProcessingLogServerUtilsTest {
   }
 
   private void assertLogStream(final String topicName) {
-    final DataSource<?> dataSource = metaStore.getSource(STREAM);
+    final DataSource<?> dataSource = metaStore.getSource(SourceName.of(STREAM));
     assertThat(dataSource, instanceOf(KsqlStream.class));
     final KsqlStream<?> stream = (KsqlStream) dataSource;
     final Schema expected = ProcessingLogServerUtils.getMessageSchema();
     assertThat(stream.getKsqlTopic().getValueFormat().getFormat(), is(Format.JSON));
     assertThat(stream.getKsqlTopic().getKafkaTopicName(), equalTo(topicName));
     assertThat(
-        stream.getSchema().value().stream().map(Column::name).collect(toList()),
+        stream.getSchema().value().stream().map(Column::name).map(ColumnName::name).collect(toList()),
         equalTo(
             new ImmutableList.Builder<String>()
                 .addAll(

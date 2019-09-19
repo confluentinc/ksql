@@ -20,12 +20,13 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -103,19 +104,19 @@ public class LogicalPlanner {
 
     final Into intoDataSource = analysis.getInto().get();
 
-    final Optional<String> partitionByField = analysis.getPartitionBy();
+    final Optional<ColumnName> partitionByField = analysis.getPartitionBy();
 
     partitionByField.ifPresent(keyName ->
         inputSchema.findValueColumn(keyName)
             .orElseThrow(() -> new KsqlException(
-                "Column " + keyName + " does not exist in the result schema. "
+                "Column " + keyName.name() + " does not exist in the result schema. "
                     + "Error in Partition By clause.")
             ));
 
     final KeyField keyField = buildOutputKeyField(sourcePlanNode);
 
     return new KsqlStructuredDataOutputNode(
-        new PlanNodeId(intoDataSource.getName()),
+        new PlanNodeId(intoDataSource.getName().name()),
         sourcePlanNode,
         inputSchema,
         extractionPolicy,
@@ -124,7 +125,8 @@ public class LogicalPlanner {
         partitionByField,
         analysis.getLimitClause(),
         intoDataSource.isCreate(),
-        analysis.getSerdeOptions()
+        analysis.getSerdeOptions(),
+        intoDataSource.getName()
     );
   }
 
@@ -133,12 +135,12 @@ public class LogicalPlanner {
   ) {
     final KeyField sourceKeyField = sourcePlanNode.getKeyField();
 
-    final Optional<String> partitionByField = analysis.getPartitionBy();
+    final Optional<ColumnName> partitionByField = analysis.getPartitionBy();
     if (!partitionByField.isPresent()) {
       return sourceKeyField;
     }
 
-    final String partitionBy = partitionByField.get();
+    final ColumnName partitionBy = partitionByField.get();
     final LogicalSchema schema = sourcePlanNode.getSchema();
 
     if (schema.isMetaColumn(partitionBy)) {
@@ -170,10 +172,10 @@ public class LogicalPlanner {
 
     final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
 
-    final Optional<String> keyFieldName = getSelectAliasMatching((expression, alias) ->
+    final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression.equals(groupBy)
-            && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWTIME_NAME)
-            && !SchemaUtil.isFieldName(alias, SchemaUtil.ROWKEY_NAME));
+            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
+            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()));
 
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
@@ -191,16 +193,18 @@ public class LogicalPlanner {
   }
 
   private ProjectNode buildProjectNode(final PlanNode sourcePlanNode) {
-    final String sourceKeyFieldName = sourcePlanNode
+    final ColumnName sourceKeyFieldName = sourcePlanNode
         .getKeyField()
         .name()
         .orElse(null);
 
     final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
 
-    final Optional<String> keyFieldName = getSelectAliasMatching((expression, alias) ->
-        expression instanceof QualifiedNameReference
-            && expression.toString().equals(sourceKeyFieldName)
+    final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
+        expression instanceof ColumnReferenceExp
+            && sourceKeyFieldName != null
+            && ((ColumnReferenceExp) expression).getReference().aliasedFieldName()
+            .equals(sourceKeyFieldName.name())
     );
 
     return new ProjectNode(
@@ -271,8 +275,8 @@ public class LogicalPlanner {
     );
   }
 
-  private Optional<String> getSelectAliasMatching(
-      final BiFunction<Expression, String, Boolean> matcher
+  private Optional<ColumnName> getSelectAliasMatching(
+      final BiFunction<Expression, ColumnName, Boolean> matcher
   ) {
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final SelectExpression select = analysis.getSelectExpressions().get(i);

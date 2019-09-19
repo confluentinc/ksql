@@ -33,6 +33,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -67,15 +69,15 @@ public class KsqlStructuredDataOutputNodeTest {
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.STRING)
-      .valueColumn("field2", SqlTypes.STRING)
-      .valueColumn("field3", SqlTypes.STRING)
-      .valueColumn("timestamp", SqlTypes.BIGINT)
-      .valueColumn("key", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
 
   private static final KeyField KEY_FIELD =
-      KeyField.of("key", SCHEMA.findValueColumn("key").get());
+      KeyField.of(ColumnName.of("key"), SCHEMA.findValueColumn("key").get());
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -105,7 +107,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private KsqlStructuredDataOutputNode outputNode;
   private LogicalSchema schema;
-  private Optional<String> partitionBy;
+  private Optional<ColumnName> partitionBy;
   private boolean createInto;
 
   @SuppressWarnings("unchecked")
@@ -150,11 +152,11 @@ public class KsqlStructuredDataOutputNodeTest {
         new LongColumnTimestampExtractionPolicy("timestamp"),
         KeyField.none(),
         ksqlTopic,
-        Optional.of("something"),
+        Optional.of(ColumnName.of("something")),
         OptionalInt.empty(),
         false,
-        SerdeOption.none()
-    );
+        SerdeOption.none(),
+        SourceName.of("0"));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -165,13 +167,13 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         SCHEMA,
         new LongColumnTimestampExtractionPolicy("timestamp"),
-        KeyField.of(Optional.of("something else"), Optional.empty()),
+        KeyField.of(Optional.of(ColumnName.of("something else")), Optional.empty()),
         ksqlTopic,
-        Optional.of("something"),
+        Optional.of(ColumnName.of("something")),
         OptionalInt.empty(),
         false,
-        SerdeOption.none()
-    );
+        SerdeOption.none(),
+        SourceName.of("0"));
   }
 
   @Test
@@ -236,7 +238,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(resultStream).selectKey(
-        "ROWKEY",
+        ColumnName.of("ROWKEY"),
         false,
         new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
     );
@@ -254,7 +256,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(resultStream).selectKey(
-        "ROWTIME",
+        ColumnName.of("ROWTIME"),
         false,
         new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
     );
@@ -342,7 +344,7 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   private void givenNodePartitioningByKey(final String field) {
-    this.partitionBy = Optional.of(field);
+    this.partitionBy = Optional.of(ColumnName.of(field));
     buildNode();
   }
 
@@ -362,7 +364,7 @@ public class KsqlStructuredDataOutputNodeTest {
         partitionBy,
         OptionalInt.empty(),
         createInto,
-        SerdeOption.none()
-    );
+        SerdeOption.none(),
+        SourceName.of(PLAN_NODE_ID.toString()));
   }
 }

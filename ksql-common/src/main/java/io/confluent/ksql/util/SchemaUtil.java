@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Ordering;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -46,9 +47,9 @@ public final class SchemaUtil {
 
   private static final String DEFAULT_NAMESPACE = "ksql";
 
-  public static final String ROWKEY_NAME = "ROWKEY";
-  public static final String ROWTIME_NAME = "ROWTIME";
-  public static final String WINDOWSTART_NAME = "WINDOWSTART";
+  public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
+  public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
+  public static final ColumnName WINDOWSTART_NAME = ColumnName.of("WINDOWSTART");
 
   public static final int ROWKEY_INDEX = 1;
 

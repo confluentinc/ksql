@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -35,8 +36,8 @@ public class ItemDataProvider extends TestDataProvider {
   private static final String key = "ID";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueColumn("ID", SqlTypes.STRING)
-      .valueColumn("DESCRIPTION", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("DESCRIPTION"), SqlTypes.STRING)
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

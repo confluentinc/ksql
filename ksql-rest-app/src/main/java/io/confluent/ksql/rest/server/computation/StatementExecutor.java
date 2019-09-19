@@ -19,8 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.ExceptionUtil;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
@@ -220,7 +220,7 @@ public class StatementExecutor implements KsqlConfigurable {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
       final PersistentQueryMetadata query = startQuery(statement, command, mode);
-      final QualifiedName name = ((CreateAsSelect)statement.getStatement()).getName();
+      final String name = ((CreateAsSelect)statement.getStatement()).getName().name();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
@@ -357,11 +357,11 @@ public class StatementExecutor implements KsqlConfigurable {
       return;
     }
     final MetaStore metaStore = ksqlEngine.getMetaStore();
-    if (metaStore.getSource(commandId.getEntity()) == null) {
+    if (metaStore.getSource(SourceName.of(commandId.getEntity())) == null) {
       return;
     }
     final Collection<String> queriesWithSink
-        = Lists.newArrayList(metaStore.getQueriesWithSink(commandId.getEntity()));
+        = Lists.newArrayList(metaStore.getQueriesWithSink(SourceName.of(commandId.getEntity())));
     queriesWithSink.stream()
         .map(QueryId::new)
         .map(ksqlEngine::getPersistentQuery)

@@ -24,10 +24,11 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -39,6 +40,7 @@ import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Table;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
@@ -53,8 +55,10 @@ public class AstBuilderTest {
   private static final MetaStore META_STORE = MetaStoreFixture
       .getNewMetaStore(mock(FunctionRegistry.class));
 
-  private static final Table TEST1 = new Table(QualifiedName.of("TEST1"));
-  private static final Table TEST2 = new Table(QualifiedName.of("TEST2"));
+  private static final SourceName TEST1_NAME = SourceName.of("TEST1");
+  private static final SourceName TEST2_NAME = SourceName.of("TEST2");
+  private static final Table TEST1 = new Table(TEST1_NAME);
+  private static final Table TEST2 = new Table(TEST2_NAME);
 
   private AstBuilder builder;
 
@@ -75,7 +79,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.build(stmt);
 
     // Then:
-    assertThat(result.getFrom(), is(new AliasedRelation(TEST1, "TEST1")));
+    assertThat(result.getFrom(), is(new AliasedRelation(TEST1, TEST1_NAME)));
   }
 
   @Test
@@ -87,7 +91,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.build(stmt);
 
     // Then:
-    assertThat(result.getFrom(), is(new AliasedRelation(TEST1, "T")));
+    assertThat(result.getFrom(), is(new AliasedRelation(TEST1, SourceName.of("T"))));
   }
 
   @Test
@@ -99,7 +103,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.build(stmt);
 
     // Then:
-    assertThat(result.getFrom(), is(new AliasedRelation(TEST1, "T")));
+    assertThat(result.getFrom(), is(new AliasedRelation(TEST1, SourceName.of("T"))));
   }
 
   @Test
@@ -126,8 +130,8 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
-    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, "TEST1")));
-    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, "TEST2")));
+    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, TEST1_NAME)));
+    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, TEST2_NAME)));
   }
 
   @Test
@@ -141,8 +145,8 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
-    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, "T1")));
-    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, "T2")));
+    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
+    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, SourceName.of("T2"))));
   }
 
   @Test
@@ -156,8 +160,8 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
-    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, "T1")));
-    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, "T2")));
+    assertThat((Join) result.getFrom(), hasLeft(new AliasedRelation(TEST1, SourceName.of("T1"))));
+    assertThat((Join) result.getFrom(), hasRight(new AliasedRelation(TEST2, SourceName.of("T2"))));
   }
 
   @Test
@@ -197,7 +201,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
-        new SingleColumn(column("TEST1", "COL0"), "COL0")))));
+        new SingleColumn(column(TEST1_NAME, "COL0"), ColumnName.of("COL0"))))));
   }
 
   @Test
@@ -210,7 +214,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
-        new SingleColumn(column("TEST1", "COL0"), "COL0")))));
+        new SingleColumn(column(TEST1_NAME, "COL0"), ColumnName.of("COL0"))))));
   }
 
   @Test
@@ -223,7 +227,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
-        new SingleColumn(column("T", "COL0"), "COL0")))));
+        new SingleColumn(column(SourceName.of("T"), "COL0"), ColumnName.of("COL0"))))));
   }
 
   @Test
@@ -249,7 +253,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
-        new SingleColumn(column("TEST1", "COL1"), "BOB")))));
+        new SingleColumn(column(TEST1_NAME, "COL1"), ColumnName.of("BOB"))))));
   }
 
   @Test
@@ -275,7 +279,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(),
-        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("TEST1")))))));
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(TEST1_NAME))))));
   }
 
   @Test
@@ -288,7 +292,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(),
-        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("T")))))));
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(SourceName.of("T")))))));
   }
 
   @Test
@@ -329,7 +333,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(),
-        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("TEST1")))))));
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(TEST1_NAME))))));
   }
 
   @Test
@@ -343,7 +347,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(),
-        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("TEST2")))))));
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(TEST2_NAME))))));
   }
 
   @Test
@@ -357,7 +361,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(),
-        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("T1")))))));
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(SourceName.of("T1")))))));
   }
 
   @Test
@@ -371,7 +375,7 @@ public class AstBuilderTest {
 
     // Then:
     assertThat(result.getSelect(),
-        is(new Select(ImmutableList.of(new AllColumns(Optional.of(QualifiedName.of("T2")))))));
+        is(new Select(ImmutableList.of(new AllColumns(Optional.of(SourceName.of("T2")))))));
   }
 
   @Test
@@ -547,7 +551,7 @@ public class AstBuilderTest {
     return statements.get(0).getStatement();
   }
 
-  private static QualifiedNameReference column(final String source, final String fieldName) {
-    return new QualifiedNameReference(QualifiedName.of(source, fieldName));
+  private static ColumnReferenceExp column(final SourceName source, final String fieldName) {
+    return new ColumnReferenceExp(ColumnRef.of(source, ColumnName.of(fieldName)));
   }
 }

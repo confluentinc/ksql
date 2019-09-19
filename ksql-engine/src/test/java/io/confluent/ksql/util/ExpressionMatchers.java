@@ -17,7 +17,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -29,7 +29,7 @@ public final class ExpressionMatchers {
   private ExpressionMatchers() {}
 
   public static Matcher<? super Expression> qualifiedNameExpression(final String value) {
-    return new ExpressionMatcher<>(QualifiedNameReference.class, value);
+    return new ExpressionMatcher<>(ColumnReferenceExp.class, value);
   }
 
   public static Collection<Matcher<? super Expression>> qualifiedNameExpressions(

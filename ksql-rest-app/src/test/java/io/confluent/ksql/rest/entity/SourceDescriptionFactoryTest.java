@@ -25,6 +25,8 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.StreamsErrorCollector;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -66,7 +68,7 @@ public class SourceDescriptionFactoryTest {
 
   private static DataSource<?> buildDataSource(final String kafkaTopicName) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field0", SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("field0"), SqlTypes.INTEGER)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(
@@ -78,7 +80,7 @@ public class SourceDescriptionFactoryTest {
 
     return new KsqlStream<>(
         "query",
-        "stream",
+        SourceName.of("stream"),
         schema,
         SerdeOption.none(),
         KeyField.of(schema.value().get(0).name(), schema.value().get(0)),

@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.streams;
 import static org.junit.Assert.assertEquals;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Arrays;
@@ -35,8 +36,8 @@ public class KsqlValueJoinerTest {
   @Before
   public void setUp() {
     leftSchema = LogicalSchema.builder()
-        .valueColumn("col0", SqlTypes.BIGINT)
-        .valueColumn("col1", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("col0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
         .build();
 
     rightSchema = leftSchema;

@@ -39,6 +39,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.ValueFormat;
@@ -98,7 +99,7 @@ public class ClusterTerminatorTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
-  private final Map<String, DataSource<?>> dataSources = new HashMap<>();
+  private final Map<SourceName, DataSource<?>> dataSources = new HashMap<>();
 
   private ClusterTerminator clusterTerminator;
 
@@ -448,7 +449,7 @@ public class ClusterTerminatorTest {
     final DataSource<?> source = mock(DataSource.class);
     when(source.getKsqlTopic()).thenReturn(topic);
 
-    assertThat("topic already registered", dataSources.put(sourceName, source), is(nullValue()));
+    assertThat("topic already registered", dataSources.put(SourceName.of(sourceName), source), is(nullValue()));
   }
 
   private void givenTopicsExistInKafka(final String... topicNames) {

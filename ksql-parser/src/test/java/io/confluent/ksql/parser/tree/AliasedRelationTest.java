@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
@@ -26,25 +26,26 @@ public class AliasedRelationTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
+  private static final SourceName SOME_NAME = SourceName.of("alias");
 
-  private static final Relation SOME_RELATION = new Table(QualifiedName.of("bob"));
-  private static final Relation OTHER_RELATION = new Table(QualifiedName.of("pete"));
+  private static final Relation SOME_RELATION = new Table(SourceName.of("bob"));
+  private static final Relation OTHER_RELATION = new Table(SourceName.of("pete"));
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
         .addEqualityGroup(
             // Note: At the moment location does not take part in equality testing
-            new AliasedRelation(SOME_RELATION, "alias"),
-            new AliasedRelation(SOME_RELATION, "alias"),
-            new AliasedRelation(Optional.of(SOME_LOCATION), SOME_RELATION, "alias"),
-            new AliasedRelation(Optional.of(OTHER_LOCATION), SOME_RELATION, "alias")
+            new AliasedRelation(SOME_RELATION, SOME_NAME),
+            new AliasedRelation(SOME_RELATION, SOME_NAME),
+            new AliasedRelation(Optional.of(SOME_LOCATION), SOME_RELATION, SOME_NAME),
+            new AliasedRelation(Optional.of(OTHER_LOCATION), SOME_RELATION, SOME_NAME)
         )
         .addEqualityGroup(
-            new AliasedRelation(OTHER_RELATION, "alias")
+            new AliasedRelation(OTHER_RELATION, SOME_NAME)
         )
         .addEqualityGroup(
-            new AliasedRelation(SOME_RELATION, "other")
+            new AliasedRelation(SOME_RELATION, SourceName.of("other"))
         )
         .testEquals();
   }

@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.StreamSink;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -62,8 +63,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StreamSinkBuilderTest {
   private static final String TOPIC = "TOPIC";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("BLUE", SqlTypes.BIGINT)
-      .valueColumn("GREEN", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("BLUE"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
       .build()
       .withMetaAndKeyColsInValue();
   private static final PhysicalSchema PHYSICAL_SCHEMA =

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.planner;
 
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -28,7 +29,7 @@ import java.util.Set;
 
 public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
 
-  private final Set<String> sourceNames;
+  private final Set<SourceName> sourceNames;
 
   public PlanSourceExtractorVisitor() {
     sourceNames = new HashSet<>();
@@ -72,7 +73,7 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
     return null;
   }
 
-  public Set<String> getSourceNames() {
+  public Set<SourceName> getSourceNames() {
     return sourceNames;
   }
 }

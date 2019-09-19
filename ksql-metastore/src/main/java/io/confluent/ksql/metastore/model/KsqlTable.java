@@ -17,6 +17,7 @@ package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -27,7 +28,7 @@ public class KsqlTable<K> extends StructuredDataSource<K> {
 
   public KsqlTable(
       final String sqlExpression,
-      final String datasourceName,
+      final SourceName datasourceName,
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final KeyField keyField,

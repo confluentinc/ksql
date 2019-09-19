@@ -35,6 +35,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -45,8 +46,6 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -58,7 +57,11 @@ import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldF
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -230,7 +233,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     givenUdfWithNameAndReturnType("FLOOR", Schema.OPTIONAL_FLOAT64_SCHEMA);
     final Expression expression =
-        new FunctionCall(QualifiedName.of("FLOOR"), ImmutableList.of(COL3));
+        new FunctionCall(FunctionName.of("FLOOR"), ImmutableList.of(COL3));
 
     // When:
     final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
@@ -246,7 +249,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA);
     final Expression expression =
-        new FunctionCall(QualifiedName.of("LCASE"), ImmutableList.of(COL2));
+        new FunctionCall(FunctionName.of("LCASE"), ImmutableList.of(COL2));
 
     // When:
     final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
@@ -265,11 +268,11 @@ public class ExpressionTypeManagerTest {
     final KsqlFunction function = mock(KsqlFunction.class);
     givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA, outerFactory, function);
     final Expression inner = new FunctionCall(
-        QualifiedName.of("EXTRACTJSONFIELD"),
+        FunctionName.of("EXTRACTJSONFIELD"),
         ImmutableList.of(COL1, new StringLiteral("$.name)"))
     );
     final Expression expression =
-        new FunctionCall(QualifiedName.of("LCASE"), ImmutableList.of(inner));
+        new FunctionCall(FunctionName.of("LCASE"), ImmutableList.of(inner));
 
     // When/Then:
     assertThat(expressionTypeManager.getExpressionSqlType(expression), equalTo(SqlTypes.STRING));
@@ -280,7 +283,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
-        new QualifiedNameReference(QualifiedName.of("TEST1", "COL6")),
+        new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL6"))),
         "STREET"
     );
 
@@ -294,7 +297,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldHandleRewrittenStruct() {
     final Expression expression = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
         ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
     );
     assertThat(
@@ -308,7 +311,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not find field ZIP in TEST1.COL6.");
     final Expression expression = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
         ImmutableList.of(ADDRESS, new StringLiteral("ZIP"))
     );
     expressionTypeManager.getExpressionSqlType(expression);
@@ -319,12 +322,12 @@ public class ExpressionTypeManagerTest {
     // Given:
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("TEST1.COL0", SqlTypes.array(inner))
+        .valueColumn(ColumnName.of("TEST1.COL0"), SqlTypes.array(inner))
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     final Expression arrayRef = new SubscriptExpression(COL0, new IntegerLiteral(1));
     final Expression expression = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
         ImmutableList.of(arrayRef, new StringLiteral("IN0"))
     );
 
@@ -340,11 +343,11 @@ public class ExpressionTypeManagerTest {
         .field("IN0", SqlTypes.array(SqlTypes.INTEGER))
         .build();
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("TEST1.COL0", inner)
+        .valueColumn(ColumnName.of("TEST1.COL0"), inner)
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     final Expression structRef = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
         ImmutableList.of(COL0, new StringLiteral("IN0"))
     );
     final Expression expression = new SubscriptExpression(structRef, new IntegerLiteral(1));

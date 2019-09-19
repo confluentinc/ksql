@@ -29,6 +29,7 @@ import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.materialization.Window;
 import io.confluent.ksql.materialization.WindowedRow;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
@@ -39,14 +40,14 @@ import org.junit.Test;
 public class TableRowsEntityFactoryTest {
 
   private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
-      .valueColumn("v0", SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.STRING)
-      .keyColumn("k1", SqlTypes.BOOLEAN)
-      .valueColumn("v0", SqlTypes.INTEGER)
-      .valueColumn("v1", SqlTypes.BOOLEAN)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
       .build();
 
   @Test
@@ -116,11 +117,11 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn("k0", SqlTypes.STRING)
-        .keyColumn("k1", SqlTypes.BOOLEAN)
-        .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
-        .valueColumn("v0", SqlTypes.INTEGER)
-        .valueColumn("v1", SqlTypes.BOOLEAN)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
+        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()
     ));
   }
@@ -133,11 +134,11 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn("k0", SqlTypes.STRING)
-        .keyColumn("k1", SqlTypes.BOOLEAN)
-        .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
-        .valueColumn("v0", SqlTypes.INTEGER)
-        .valueColumn("v1", SqlTypes.BOOLEAN)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
+        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()
     ));
   }
@@ -150,12 +151,12 @@ public class TableRowsEntityFactoryTest {
 
     // Then:
     assertThat(result, is(LogicalSchema.builder()
-        .keyColumn("k0", SqlTypes.STRING)
-        .keyColumn("k1", SqlTypes.BOOLEAN)
-        .keyColumn("WINDOWSTART", SqlTypes.BIGINT)
-        .keyColumn("WINDOWEND", SqlTypes.BIGINT)
-        .valueColumn("v0", SqlTypes.INTEGER)
-        .valueColumn("v1", SqlTypes.BOOLEAN)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
+        .keyColumn(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
         .build()
     ));
   }

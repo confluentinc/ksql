@@ -24,10 +24,13 @@ import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
@@ -89,7 +92,7 @@ public class QueryAnalyzer {
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
-    final QualifiedNameReference defaultArgument = analysis.getDefaultArgument();
+    final ColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
         new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
@@ -106,7 +109,7 @@ public class QueryAnalyzer {
         && analysis.getGroupByExpressions().isEmpty()) {
       final String aggFuncs = aggregateAnalysis.getAggregateFunctions().stream()
           .map(FunctionCall::getName)
-          .map(QualifiedName::name)
+          .map(FunctionName::name)
           .collect(Collectors.joining(", "));
       throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
           + "Aggregate function(s): " + aggFuncs);
@@ -200,7 +203,7 @@ public class QueryAnalyzer {
           "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
     }
 
-    final SetView<QualifiedNameReference> unmatchedSelectsAgg = Sets
+    final SetView<ColumnReferenceExp> unmatchedSelectsAgg = Sets
         .difference(aggregateAnalysis.getAggregateSelectFields(), groupByExprs);
     if (!unmatchedSelectsAgg.isEmpty()) {
       throw new KsqlException(
@@ -208,10 +211,10 @@ public class QueryAnalyzer {
               + "outside of aggregate functions not part of GROUP BY: " + unmatchedSelectsAgg);
     }
 
-    final Set<QualifiedNameReference> havingColumns = aggregateAnalysis
+    final Set<ColumnReferenceExp> havingColumns = aggregateAnalysis
         .getNonAggregateHavingFields();
 
-    final Set<QualifiedNameReference> havingOnly = Sets.difference(havingColumns, groupByExprs);
+    final Set<ColumnReferenceExp> havingOnly = Sets.difference(havingColumns, groupByExprs);
     if (!havingOnly.isEmpty()) {
       throw new KsqlException(
           "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);

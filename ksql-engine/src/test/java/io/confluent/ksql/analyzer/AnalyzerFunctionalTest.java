@@ -42,6 +42,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -120,7 +122,7 @@ public class AnalyzerFunctionalTest {
         serdeOptiponsSupplier
     );
 
-    when(sink.getName()).thenReturn("TEST0");
+    when(sink.getName()).thenReturn(SourceName.of("TEST0"));
     when(sink.getProperties()).thenReturn(CreateSourceAsProperties.none());
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
@@ -134,7 +136,7 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
     Assert.assertTrue("FROM was not analyzed correctly.",
         analysis.getFromDataSources().get(0).getDataSource().getName()
-                          .equalsIgnoreCase("test1"));
+                          .equalsIgnoreCase(SourceName.of("test1")));
     assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 100)"));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
@@ -157,12 +159,12 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getFromDataSources(), hasSize(2));
-    assertThat(analysis.getFromDataSources().get(0).getAlias(), is("T1"));
-    assertThat(analysis.getFromDataSources().get(1).getAlias(), is("T2"));
+    assertThat(analysis.getFromDataSources().get(0).getAlias(), is(SourceName.of("T1")));
+    assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinField(), is("T1.COL1"));
-    assertThat(analysis.getJoin().get().getRightJoinField(), is("T2.COL1"));
+    assertThat(analysis.getJoin().get().getLeftJoinField(), is(ColumnName.of("T1.COL1")));
+    assertThat(analysis.getJoin().get().getRightJoinField(), is(ColumnName.of("T2.COL1")));
 
     final List<String> selects = analysis.getSelectExpressions().stream()
         .map(SelectExpression::getExpression)
@@ -171,11 +173,12 @@ public class AnalyzerFunctionalTest {
 
     assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
 
-    final List<String> aliases = analysis.getSelectExpressions().stream()
+    final List<ColumnName> aliases = analysis.getSelectExpressions().stream()
         .map(SelectExpression::getName)
         .collect(Collectors.toList());
 
-    assertThat(aliases, contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
+    assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
+        contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 
   @Test
@@ -189,8 +192,8 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(join, is(not(Optional.empty())));
     assertThat(join.get().getType(), is(JoinType.LEFT));
-    assertThat(join.get().getLeftJoinField(), is("T1.ROWKEY"));
-    assertThat(join.get().getRightJoinField(), is("T2.ROWKEY"));
+    assertThat(join.get().getLeftJoinField(), is(ColumnName.of("T1.ROWKEY")));
+    assertThat(join.get().getRightJoinField(), is(ColumnName.of("T2.ROWKEY")));
   }
 
   @Test
@@ -200,7 +203,7 @@ public class AnalyzerFunctionalTest {
 
     Assert.assertTrue("FROM was not analyzed correctly.",
         analysis.getFromDataSources().get(0).getDataSource().getName()
-                          .equalsIgnoreCase("test1"));
+                          .equalsIgnoreCase(SourceName.of("test1")));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
     assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
@@ -297,15 +300,15 @@ public class AnalyzerFunctionalTest {
         false);
 
     final LogicalSchema schema = LogicalSchema.builder()
-            .valueColumn("FIELD1", SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BIGINT)
             .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
         "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
-        "S0",
+        SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.of("FIELD1", schema.findValueColumn("FIELD1").get()),
+        KeyField.of(ColumnName.of("FIELD1"), schema.findValueColumn(ColumnName.of("FIELD1")).get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopic
     );
@@ -386,7 +389,7 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     verify(serdeOptiponsSupplier).build(
-        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of("COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList()),
         Format.AVRO,
         Optional.of(true),
         DEFAULT_SERDE_OPTIONS);
@@ -407,7 +410,7 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     verify(serdeOptiponsSupplier).build(
-        eq(ImmutableList.of("TIME", "KEY", "COL0", "COL1")),
+        eq(ImmutableList.of("TIME", "KEY", "COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList())),
         any(),
         any(),
         any());
@@ -475,7 +478,7 @@ public class AnalyzerFunctionalTest {
 
   private void registerKafkaSource() {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(
@@ -486,7 +489,7 @@ public class AnalyzerFunctionalTest {
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
-        "KAFKA_SOURCE",
+        SourceName.of("KAFKA_SOURCE"),
         schema,
         SerdeOption.none(),
         KeyField.none(),

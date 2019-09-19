@@ -29,6 +29,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -68,13 +69,17 @@ public class MetaStoreImplTest {
   private MetaStoreImpl metaStore;
   private ExecutorService executor;
 
+  private static final SourceName SOME_SOURCE = SourceName.of("some source");
+  private static final SourceName SOME_OTHER_SOURCE = SourceName.of("some other source");
+  private static final SourceName UNKNOWN_SOURCE = SourceName.of("unknown");
+
   @Before
   public void setUp() {
     metaStore = new MetaStoreImpl(functionRegistry);
 
-    when(dataSource.getName()).thenReturn("some source");
+    when(dataSource.getName()).thenReturn(SOME_SOURCE);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
-    when(dataSource1.getName()).thenReturn("some other source");
+    when(dataSource1.getName()).thenReturn(SOME_OTHER_SOURCE);
 
     executor = Executors.newSingleThreadExecutor();
   }
@@ -145,7 +150,7 @@ public class MetaStoreImplTest {
     // Given:
     metaStore.putSource(dataSource);
 
-    final Map<String, DataSource<?>> dataSources = metaStore
+    final Map<SourceName, DataSource<?>> dataSources = metaStore
         .getAllDataSources();
 
     // When
@@ -176,7 +181,7 @@ public class MetaStoreImplTest {
     expectedException.expectMessage("No data source with name bob exists");
 
     // When:
-    metaStore.deleteSource("bob");
+    metaStore.deleteSource(SourceName.of("bob"));
   }
 
   @Test
@@ -205,7 +210,7 @@ public class MetaStoreImplTest {
     // When:
     metaStore.updateForPersistentQuery(
         "source query",
-        ImmutableSet.of("unknown"),
+        ImmutableSet.of(UNKNOWN_SOURCE),
         ImmutableSet.of());
   }
 
@@ -219,7 +224,7 @@ public class MetaStoreImplTest {
     metaStore.updateForPersistentQuery(
         "sink query",
         ImmutableSet.of(),
-        ImmutableSet.of("unknown"));
+        ImmutableSet.of(UNKNOWN_SOURCE));
   }
 
   @Test
@@ -245,7 +250,7 @@ public class MetaStoreImplTest {
     try {
       metaStore.updateForPersistentQuery(
           "some query",
-          ImmutableSet.of(dataSource.getName(), "unknown"),
+          ImmutableSet.of(dataSource.getName(), UNKNOWN_SOURCE),
           ImmutableSet.of(dataSource.getName()));
     } catch (final KsqlException e) {
       // Expected
@@ -263,7 +268,7 @@ public class MetaStoreImplTest {
       metaStore.updateForPersistentQuery(
           "some query",
           ImmutableSet.of(dataSource.getName()),
-          ImmutableSet.of(dataSource.getName(), "unknown"));
+          ImmutableSet.of(dataSource.getName(), UNKNOWN_SOURCE));
     } catch (final KsqlException e) {
       // Expected
     }
@@ -275,12 +280,12 @@ public class MetaStoreImplTest {
 
   @Test
   public void shouldDefaultToEmptySetOfQueriesForUnknownSource() {
-    assertThat(metaStore.getQueriesWithSource("unknown"), is(empty()));
+    assertThat(metaStore.getQueriesWithSource(UNKNOWN_SOURCE), is(empty()));
   }
 
   @Test
   public void shouldDefaultToEmptySetOfQueriesForUnknownSink() {
-    assertThat(metaStore.getQueriesWithSink("unknown"), is(empty()));
+    assertThat(metaStore.getQueriesWithSink(UNKNOWN_SOURCE), is(empty()));
   }
 
   @Test
@@ -342,7 +347,7 @@ public class MetaStoreImplTest {
         .parallel()
         .forEach(idx -> {
           final DataSource<?> source = mock(DataSource.class);
-          when(source.getName()).thenReturn("source" + idx);
+          when(source.getName()).thenReturn(SourceName.of("source" + idx));
           metaStore.putSource(source);
           metaStore.getSource(source.getName());
 
@@ -371,7 +376,7 @@ public class MetaStoreImplTest {
     // Given:
     final int iterations = 1_000;
     final AtomicInteger remaining = new AtomicInteger(iterations);
-    final Set<String> sources = ImmutableSet.of(dataSource1.getName(), dataSource.getName());
+    final ImmutableSet<SourceName> sources = ImmutableSet.of(dataSource1.getName(), dataSource.getName());
 
     metaStore.putSource(dataSource1);
 

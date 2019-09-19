@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.materialization.Materialization;
 import io.confluent.ksql.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
@@ -40,7 +41,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
   private final KsqlTopic resultTopic;
-  private final String sinkName;
+  private final SourceName sinkName;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
   private final Optional<MaterializationProvider> materializationProvider;
@@ -50,8 +51,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final String statementString,
       final KafkaStreams kafkaStreams,
       final PhysicalSchema schema,
-      final Set<String> sourceNames,
-      final String sinkName,
+      final Set<SourceName> sourceNames,
+      final SourceName sinkName,
       final String executionPlan,
       final QueryId id,
       final DataSourceType dataSourceType,
@@ -112,7 +113,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return resultTopic;
   }
 
-  public String getSinkName() {
+  public SourceName getSinkName() {
     return sinkName;
   }
 

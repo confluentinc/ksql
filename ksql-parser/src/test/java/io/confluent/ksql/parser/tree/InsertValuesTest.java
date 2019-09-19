@@ -18,14 +18,17 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.util.KsqlException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class InsertValuesTest {
+
+  private static final SourceName SOME_NAME = SourceName.of("bob");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -34,14 +37,14 @@ public class InsertValuesTest {
   public void shouldImplementEqualsHashcode() {
     new EqualsTester()
         .addEqualityGroup(
-            new InsertValues(QualifiedName.of("a"), ImmutableList.of(), ImmutableList.of(new NullLiteral())),
-            new InsertValues(QualifiedName.of("a"), ImmutableList.of(), ImmutableList.of(new NullLiteral())))
+            new InsertValues(SOME_NAME, ImmutableList.of(), ImmutableList.of(new NullLiteral())),
+            new InsertValues(SOME_NAME, ImmutableList.of(), ImmutableList.of(new NullLiteral())))
         .addEqualityGroup(new InsertValues(
-            QualifiedName.of("diff"), ImmutableList.of(), ImmutableList.of(new StringLiteral("b"))))
+            SourceName.of("diff"), ImmutableList.of(), ImmutableList.of(new StringLiteral("b"))))
         .addEqualityGroup(new InsertValues(
-            QualifiedName.of("a"), ImmutableList.of("diff"), ImmutableList.of(new StringLiteral("b"))))
+            SOME_NAME, ImmutableList.of(ColumnName.of("diff")), ImmutableList.of(new StringLiteral("b"))))
         .addEqualityGroup(new InsertValues(
-            QualifiedName.of("a"), ImmutableList.of(), ImmutableList.of(new StringLiteral("diff"))))
+            SOME_NAME, ImmutableList.of(), ImmutableList.of(new StringLiteral("diff"))))
         .testEquals();
   }
 
@@ -53,8 +56,8 @@ public class InsertValuesTest {
 
     // When:
     new InsertValues(
-        QualifiedName.of("a"),
-        ImmutableList.of("col1"),
+        SOME_NAME,
+        ImmutableList.of(ColumnName.of("col1")),
         ImmutableList.of());
   }
 
@@ -66,8 +69,8 @@ public class InsertValuesTest {
 
     // When:
     new InsertValues(
-        QualifiedName.of("a"),
-        ImmutableList.of("col1"),
+        SOME_NAME,
+        ImmutableList.of(ColumnName.of("col1")),
         ImmutableList.of(new StringLiteral("val1"), new StringLiteral("val2")));
   }
 

@@ -28,6 +28,8 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -120,7 +122,7 @@ public class JsonFormatTest {
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
-        .valueColumn("MESSAGE", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 
     final GenericRow messageRow = new GenericRow(Collections.singletonList(
@@ -243,7 +245,7 @@ public class JsonFormatTest {
       final String resultTopic,
       final int expectedNumMessages
   ) {
-    final DataSource<?> source = metaStore.getSource(streamName);
+    final DataSource<?> source = metaStore.getSource(SourceName.of(streamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),

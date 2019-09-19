@@ -71,6 +71,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -79,7 +80,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.streams.GroupedFactory;
+import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.streams.JoinedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.structured.SchemaKStream.Type;
@@ -148,17 +149,15 @@ public class SchemaKStreamTest {
   private Serde<GenericRow> leftSerde;
   private Serde<GenericRow> rightSerde;
   private LogicalSchema joinSchema;
-  private Serde<GenericRow> rowSerde;
-  private KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
-  private ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
-  private ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
+  private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
+  private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
+  private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
   private final LogicalSchema simpleSchema = LogicalSchema.builder()
       .valueColumn("key", SqlTypes.STRING)
       .valueColumn("val", SqlTypes.BIGINT)
       .build();
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
-  private final QueryContext parentContext = queryContext.push("parent").getQueryContext();
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
 
@@ -176,8 +175,6 @@ public class SchemaKStreamTest {
   private KeySerde keySerde;
   @Mock
   private KeySerde reboundKeySerde;
-  @Mock
-  private KeySerde windowedKeySerde;
   @Mock
   private ExecutionStepProperties tableSourceProperties;
   @Mock
@@ -604,9 +601,9 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
-        rowSerde,
         groupBy,
-        childContextStacker);
+        childContextStacker,
+        queryBuilder);
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().name(), is(Optional.of("TEST1.COL0")));
@@ -614,7 +611,7 @@ public class SchemaKStreamTest {
   }
 
   @Test
-  public void shouldBuildStepForGroupBy() {
+  public void shouldBuildStepForGroupByKey() {
     // Given:
     givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final List<Expression> groupBy = Collections.singletonList(
@@ -624,9 +621,38 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
-        rowSerde,
         groupBy,
-        childContextStacker);
+        childContextStacker,
+        queryBuilder);
+
+    // Then:
+    final KeyFormat expectedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
+    assertThat(
+        groupedSchemaKStream.getSourceStep(),
+        equalTo(
+            ExecutionStepFactory.streamGroupByKey(
+                childContextStacker,
+                initialSchemaKStream.getSourceStep(),
+                Formats.of(expectedKeyFormat, valueFormat, SerdeOption.none())
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldBuildStepForGroupBy() {
+    // Given:
+    givenInitialKStreamOf("SELECT col0, col1 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
+    final List<Expression> groupBy = Collections.singletonList(
+            new QualifiedNameReference(QualifiedName.of("TEST1", "COL1"))
+    );
+
+    // When:
+    final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
+        valueFormat,
+        groupBy,
+        childContextStacker,
+        queryBuilder);
 
     // Then:
     final KeyFormat expectedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
@@ -656,9 +682,9 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
-        rowSerde,
         groupBy,
-        childContextStacker);
+        childContextStacker,
+        queryBuilder);
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().name(), is(Optional.empty()));
@@ -675,9 +701,9 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
-        rowSerde,
         ImmutableList.of(groupBy),
-        childContextStacker);
+        childContextStacker,
+        queryBuilder);
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().name(), is(Optional.empty()));
@@ -695,13 +721,15 @@ public class SchemaKStreamTest {
     ));
     final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
     givenInitialSchemaKStreamUsesMocks();
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(leftSerde);
 
     // When:
     initialSchemaKStream.groupBy(
         valueFormat,
-        leftSerde,
         groupByExpressions,
-        childContextStacker);
+        childContextStacker,
+        queryBuilder);
 
     // Then:
     verify(mockGroupedFactory).create(
@@ -710,6 +738,17 @@ public class SchemaKStreamTest {
         same(leftSerde)
     );
     verify(mockKStream).groupByKey(same(grouped));
+    final LogicalSchema logicalSchema = ksqlStream.getSchema().withAlias(ksqlStream.getName());
+    verify(queryBuilder).buildKeySerde(
+        FormatInfo.of(Format.KAFKA),
+        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
+        childContextStacker.getQueryContext()
+    );
+    verify(queryBuilder).buildValueSerde(
+        valueFormat.getFormatInfo(),
+        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
+        childContextStacker.getQueryContext()
+    );
   }
 
   @Test
@@ -725,13 +764,15 @@ public class SchemaKStreamTest {
         new QualifiedNameReference(QualifiedName.of(ksqlStream.getName(), "COL1"));
     final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
     givenInitialSchemaKStreamUsesMocks();
+    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(reboundKeySerde);
+    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(leftSerde);
 
     // When:
     initialSchemaKStream.groupBy(
         valueFormat,
-        leftSerde,
         groupByExpressions,
-        childContextStacker);
+        childContextStacker,
+        queryBuilder);
 
     // Then:
     verify(mockGroupedFactory).create(
@@ -739,6 +780,17 @@ public class SchemaKStreamTest {
         same(reboundKeySerde),
         same(leftSerde));
     verify(mockKStream).groupBy(any(KeyValueMapper.class), same(grouped));
+    final LogicalSchema logicalSchema = ksqlStream.getSchema().withAlias(ksqlStream.getName());
+    verify(queryBuilder).buildKeySerde(
+        FormatInfo.of(Format.KAFKA),
+        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
+        childContextStacker.getQueryContext()
+    );
+    verify(queryBuilder).buildValueSerde(
+        valueFormat.getFormatInfo(),
+        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
+        childContextStacker.getQueryContext()
+    );
   }
 
   @Test
@@ -1249,6 +1301,7 @@ public class SchemaKStreamTest {
 
   private void givenSourcePropertiesWithSchema(final LogicalSchema schema) {
     reset(sourceProperties);
+    when(sourceStep.getSchema()).thenReturn(schema);
     when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceProperties.withQueryContext(any())).thenAnswer(
         i -> new DefaultExecutionStepProperties(schema, (QueryContext) i.getArguments()[0])
@@ -1337,7 +1390,6 @@ public class SchemaKStreamTest {
         selectQuery,
         metaStore
     );
-
     givenSourcePropertiesWithSchema(logicalPlan.getTheSourceNode().getSchema());
     initialSchemaKStream = new SchemaKStream(
         kStream,
@@ -1350,14 +1402,6 @@ public class SchemaKStreamTest {
         ksqlConfig,
         functionRegistry
     );
-
-    rowSerde = GenericRowSerDe.from(
-        FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema.from(initialSchemaKStream.getSchema().valueConnectSchema(), false),
-        null,
-        () -> null,
-        "test",
-        processingLogContext);
 
     return logicalPlan;
   }

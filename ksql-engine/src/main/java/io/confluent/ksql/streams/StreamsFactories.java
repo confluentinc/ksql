@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.streams;
 
+import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;

@@ -28,6 +28,7 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
+import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSink;
@@ -320,12 +321,11 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamGroupBy<KStream<K, GenericRow>, KGroupedStream<Struct, GenericRow>>
-      streamGroupBy(
-          final QueryContext.Stacker stacker,
-          final ExecutionStep<KStream<K, GenericRow>> sourceStep,
-          final Formats format,
-          final List<Expression> groupingExpressions
+  public static <K> StreamGroupBy<K> streamGroupBy(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KStream<K, GenericRow>> sourceStep,
+      final Formats format,
+      final List<Expression> groupingExpressions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamGroupBy<>(
@@ -333,6 +333,19 @@ public final class ExecutionStepFactory {
         sourceStep,
         format,
         groupingExpressions
+    );
+  }
+
+  public static StreamGroupByKey streamGroupByKey(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KStream<Struct, GenericRow>> sourceStep,
+      final Formats formats
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new StreamGroupByKey(
+        sourceStep.getProperties().withQueryContext(queryContext),
+        sourceStep,
+        formats
     );
   }
 
@@ -355,12 +368,11 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> TableGroupBy<KTable<K, GenericRow>, KGroupedTable<Struct, GenericRow>>
-      tableGroupBy(
-          final QueryContext.Stacker stacker,
-          final ExecutionStep<KTable<K, GenericRow>> sourceStep,
-          final Formats format,
-          final List<Expression> groupingExpressions
+  public static <K> TableGroupBy<K> tableGroupBy(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KTable<K, GenericRow>> sourceStep,
+      final Formats format,
+      final List<Expression> groupingExpressions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new TableGroupBy<>(

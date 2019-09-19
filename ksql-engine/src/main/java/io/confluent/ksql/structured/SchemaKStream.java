@@ -38,14 +38,17 @@ import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.plan.StreamMapValues;
+import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StreamFilterBuilder;
 import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
+import io.confluent.ksql.execution.streams.StreamSelectKeyBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.execution.streams.StreamToTableBuilder;
 import io.confluent.ksql.execution.streams.StreamsUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -697,34 +700,19 @@ public class SchemaKStream<K> {
       );
     }
 
-    final int keyIndexInValue = getSchema().valueColumnIndex(proposedKey.fullName())
-        .orElseThrow(IllegalStateException::new);
-
-    final KStream keyedKStream = kstream
-        .filter((key, value) -> value != null && extractColumn(keyIndexInValue, value) != null)
-        .selectKey((key, value) ->
-            StructKeyUtil.asStructKey(extractColumn(keyIndexInValue, value).toString()))
-        .mapValues((key, row) -> {
-          if (updateRowKey) {
-            final Object rowKey = key.get(key.schema().fields().get(0));
-            row.getColumns().set(SchemaUtil.ROWKEY_INDEX, rowKey);
-          }
-          return row;
-        });
-
     final KeyField newKeyField = getSchema().isMetaColumn(fieldName)
         ? resultantKeyField.withName(Optional.empty())
         : resultantKeyField;
 
     final KeySerde<Struct> selectKeySerde = keySerde.rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamSelectKey(
+    final StreamSelectKey<K> step = ExecutionStepFactory.streamSelectKey(
         contextStacker,
         sourceStep,
         fieldName,
         updateRowKey
     );
-    return (SchemaKStream<Struct>) new SchemaKStream(
-        keyedKStream,
+    return new SchemaKStream<>(
+        StreamSelectKeyBuilder.build(kstream, step),
         step,
         keyFormat,
         selectKeySerde,

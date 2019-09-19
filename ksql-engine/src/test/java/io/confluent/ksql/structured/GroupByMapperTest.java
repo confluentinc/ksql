@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
 import org.easymock.EasyMock;

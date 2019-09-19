@@ -54,6 +54,7 @@ import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.StreamsUtil;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;

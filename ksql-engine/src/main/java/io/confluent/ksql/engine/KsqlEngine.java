@@ -168,7 +168,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {
-
     final ExecuteResult result = EngineExecutor
         .create(primaryContext, serviceContext, statement.getConfig(), statement.getOverrides())
         .execute(statement);

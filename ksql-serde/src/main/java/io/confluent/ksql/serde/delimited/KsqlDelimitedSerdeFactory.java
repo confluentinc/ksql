@@ -37,7 +37,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 @Immutable
 public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
 
-  public static final char DEFAULT_DELIMITER = ',';
+  private static final char DEFAULT_DELIMITER = ',';
 
   private final CSVFormat csvFormat;
 

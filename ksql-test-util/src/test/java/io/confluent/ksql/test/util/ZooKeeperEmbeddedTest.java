@@ -17,6 +17,10 @@ package io.confluent.ksql.test.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.zookeeper.Watcher;
@@ -61,6 +65,7 @@ public class ZooKeeperEmbeddedTest {
     final CountDownLatch connectionLatch = new CountDownLatch(1);
 
     final Watcher watcher = event -> {
+      System.out.println(currentTime() + "Watcher event: " + event);
       if (event.getState() == KeeperState.SyncConnected) {
         connectionLatch.countDown();
       }
@@ -70,9 +75,10 @@ public class ZooKeeperEmbeddedTest {
 
     try {
       final String connectString = server.connectString();
+      System.out.println(currentTime() + "Attempting to connect to : " + name);
       zooKeeper = new ZooKeeper(connectString, 30_000, watcher);
       final boolean success = connectionLatch.await(5, TimeUnit.SECONDS);
-      assertThat("Can not connect to " + name + " on " + connectString, success);
+      assertThat(currentTime() + "Can not connect to " + name + " on " + connectString, success);
 
     } catch (final Exception e) {
       throw new RuntimeException(e);
@@ -86,5 +92,12 @@ public class ZooKeeperEmbeddedTest {
         }
       }
     }
+  }
+
+  private static String currentTime() {
+    final DateTimeFormatter formatter = DateTimeFormatter
+        .ofLocalizedDateTime(FormatStyle.SHORT)
+        .withZone(ZoneId.systemDefault());
+    return formatter.format(Instant.now()) + " ";
   }
 }

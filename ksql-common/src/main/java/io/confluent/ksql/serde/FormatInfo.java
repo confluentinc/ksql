@@ -36,17 +36,9 @@ public final class FormatInfo {
 
   public static FormatInfo of(
       final Format format,
-      final Optional<String> avroFullSchemaName
-  ) {
-    return FormatInfo.of(format, avroFullSchemaName, Optional.empty());
-  }
-
-  public static FormatInfo of(
-      final Format format,
       final Optional<String> avroFullSchemaName,
-      final Optional<Character> delimiter
-  ) {
-    return new FormatInfo(format, avroFullSchemaName, delimiter);
+      final Optional<Character> valueDelimiter) {
+    return new FormatInfo(format, avroFullSchemaName, valueDelimiter);
   }
 
   private FormatInfo(

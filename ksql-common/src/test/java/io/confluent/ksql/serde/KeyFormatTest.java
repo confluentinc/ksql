@@ -44,8 +44,8 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementEquals() {
 
-    final FormatInfo format1 = FormatInfo.of(AVRO, Optional.empty());
-    final FormatInfo format2 = FormatInfo.of(JSON, Optional.empty());
+    final FormatInfo format1 = FormatInfo.of(AVRO, Optional.empty(), Optional.empty());
+    final FormatInfo format2 = FormatInfo.of(JSON, Optional.empty(), Optional.empty());
 
     final WindowInfo window1 = WindowInfo.of(SESSION, Optional.empty());
     final WindowInfo window2 = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(1000)));
@@ -74,7 +74,7 @@ public class KeyFormatTest {
   @Test
   public void shouldImplementToString() {
     // Given:
-    final FormatInfo formatInfo = FormatInfo.of(AVRO, Optional.of("something"));
+    final FormatInfo formatInfo = FormatInfo.of(AVRO, Optional.of("something"), Optional.empty());
     final WindowInfo windowInfo = WindowInfo.of(HOPPING, Optional.of(Duration.ofMillis(10101)));
 
     final KeyFormat keyFormat = KeyFormat.windowed(formatInfo, windowInfo);
@@ -90,7 +90,7 @@ public class KeyFormatTest {
   @Test
   public void shouldGetFormat() {
     // Given:
-    final FormatInfo format = FormatInfo.of(DELIMITED, Optional.empty());
+    final FormatInfo format = FormatInfo.of(DELIMITED, Optional.empty(), Optional.empty());
     final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
 
     // When:
@@ -103,7 +103,7 @@ public class KeyFormatTest {
   @Test
   public void shouldGetFormatInfo() {
     // Given:
-    final FormatInfo format = FormatInfo.of(AVRO, Optional.of("something"));
+    final FormatInfo format = FormatInfo.of(AVRO, Optional.of("something"), Optional.empty());
     final KeyFormat keyFormat = KeyFormat.nonWindowed(format);
 
     // When:
@@ -116,7 +116,8 @@ public class KeyFormatTest {
   @Test
   public void shouldHandleNoneWindowedFunctionsForNonWindowed() {
     // Given:
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(JSON, Optional.empty()));
+    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(JSON, Optional.empty(),
+        Optional.empty()));
 
     // Then:
     assertThat(keyFormat.isWindowed(), is(false));
@@ -142,12 +143,13 @@ public class KeyFormatTest {
   public void shouldHandleWindowedWithAvroSchemaName() {
     // Given:
     final KeyFormat keyFormat = KeyFormat.windowed(
-        FormatInfo.of(AVRO, Optional.of("something")),
+        FormatInfo.of(AVRO, Optional.of("something"), Optional.empty()),
         WindowInfo.of(HOPPING, Optional.of(Duration.ofMinutes(4)))
     );
 
     // Then:
-    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO, Optional.of("something"))));
+    assertThat(keyFormat.getFormatInfo(), is(FormatInfo.of(AVRO, Optional.of("something"),
+        Optional.empty())));
   }
 
   @Test

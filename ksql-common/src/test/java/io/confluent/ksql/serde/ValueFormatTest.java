@@ -30,8 +30,8 @@ public class ValueFormatTest {
 
   private static final FormatInfo FORMAT_INFO =
       FormatInfo.of(
-          AVRO, Optional.of("something")
-      );
+          AVRO, Optional.of("something"),
+          Optional.empty());
 
   @Test
   public void shouldThrowNPEs() {

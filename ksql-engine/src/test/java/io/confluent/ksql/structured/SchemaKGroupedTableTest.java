@@ -266,7 +266,7 @@ public class SchemaKGroupedTableTest {
           null,
           valueFormat,
           GenericRowSerDe.from(
-              FormatInfo.of(Format.JSON, Optional.empty()),
+              FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
               PersistenceSchema.from(ksqlTable.getSchema().valueConnectSchema(), false),
               ksqlConfig,
               () -> null,

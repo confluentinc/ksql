@@ -41,12 +41,14 @@ public final class TopicFactory {
         .map(type -> KeyFormat
             .windowed(FormatInfo.of(Format.KAFKA), WindowInfo.of(type, windowSize)))
         .orElseGet(() -> KeyFormat
-            .nonWindowed(FormatInfo.of(Format.KAFKA, Optional.empty())));
+            .nonWindowed(FormatInfo.of(Format.KAFKA)));
+
+    Optional<Character> valueDelimiter = properties.getValueDelimiter();
 
     final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
         properties.getValueFormat(),
         properties.getValueAvroSchemaName(),
-        properties.getValueDelimiter()
+        valueDelimiter
     ));
 
     return new KsqlTopic(

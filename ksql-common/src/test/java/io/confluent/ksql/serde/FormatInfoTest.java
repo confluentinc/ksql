@@ -84,7 +84,7 @@ public class FormatInfoTest {
   public void shouldThrowOnEmptyAvroSchemaName() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name can not be empty");
+    expectedException.expectMessage("Schema name cannot be empty");
 
     // When:
     FormatInfo.of(Format.AVRO, Optional.of(""));

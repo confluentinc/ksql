@@ -409,7 +409,7 @@ public class AnalyzerTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name can not be empty");
+    expectedException.expectMessage("Schema name cannot be empty");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }

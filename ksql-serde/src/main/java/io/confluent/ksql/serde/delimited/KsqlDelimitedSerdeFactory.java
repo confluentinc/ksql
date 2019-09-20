@@ -24,7 +24,9 @@ import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import java.util.function.Supplier;
+import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -34,6 +36,14 @@ import org.apache.kafka.connect.data.Schema.Type;
 
 @Immutable
 public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
+
+  public static final char DEFAULT_DELIMITER = ',';
+
+  private final CSVFormat csvFormat;
+
+  public KsqlDelimitedSerdeFactory(final Optional<Character> delimiter) {
+    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER));
+  }
 
   @Override
   public void validate(final PersistenceSchema schema) {
@@ -54,8 +64,8 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
     validate(schema);
 
     return Serdes.serdeFrom(
-        new KsqlDelimitedSerializer(),
-        new KsqlDelimitedDeserializer(schema)
+        new KsqlDelimitedSerializer(csvFormat),
+        new KsqlDelimitedDeserializer(schema, csvFormat)
     );
   }
 

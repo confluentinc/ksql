@@ -1,4 +1,4 @@
-\/*
+/*
  * Copyright 2018 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
@@ -19,11 +19,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
+import io.confluent.ksql.datagen.DataGen;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Properties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import scala.reflect.internal.Trees.Throw;
 
 public class DataGenTest {
   @Rule
@@ -67,14 +69,6 @@ public class DataGenTest {
         "topic=foo");
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void valueDelimiterCanOnlyBeSingleCharacter() throws Exception {
-    DataGen.run(
-            "schema=./src/main/resources/purchase.avro",
-            "format=delimited",
-            "value_delimiter=@@",
-            "topic=foo");
-  }
   @Test
   public void shouldPassSchemaRegistryUrl() throws Exception {
     final DataGen.Arguments args = new DataGen.Arguments(
@@ -83,9 +77,9 @@ public class DataGenTest {
         null,
         null,
         null,
+        null,
         "topic",
         "key",
-        null,
         0,
         0L,
         "srUrl",
@@ -99,10 +93,11 @@ public class DataGenTest {
     assertThat(props.getProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), equalTo("srUrl"));
   }
 
-  @Test(expected = IllegalArgumentException.class)
-  public void valueDelimiterCanOnlyBeSingleCharacter() throws Exception {
+  @Test(expected = DataGen.Arguments.ArgumentParseException.class)
+  public void valueDelimiterCanOnlyBeSingleCharacter() throws Throwable {
     DataGen.run(
         "schema=./src/main/resources/purchase.avro",
+        "key=id",
         "format=delimited",
         "value_delimiter=@@",
         "topic=foo");

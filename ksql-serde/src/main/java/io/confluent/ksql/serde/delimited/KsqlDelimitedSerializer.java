@@ -36,10 +36,6 @@ public class KsqlDelimitedSerializer implements Serializer<Object> {
 
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedSerializer() {
-    this.csvFormat = CSVFormat.DEFAULT;
-  }
-
   public KsqlDelimitedSerializer(final CSVFormat csvFormat) {
     this.csvFormat = csvFormat;
   }

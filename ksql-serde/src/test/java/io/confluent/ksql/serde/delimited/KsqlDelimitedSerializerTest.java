@@ -23,20 +23,12 @@ import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
-<<<<<<< HEAD
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-=======
-import java.util.Arrays;
-import java.util.List;
-
 import org.apache.commons.csv.CSVFormat;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
->>>>>>> a5b496a00f53d132c9aaa304a043f78b38ae3777
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -59,7 +51,7 @@ public class KsqlDelimitedSerializerTest {
 
   @Before
   public void before() {
-      serializer = new KsqlDelimitedSerializer();
+      serializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
   }
 
   @Test
@@ -90,17 +82,6 @@ public class KsqlDelimitedSerializerTest {
   }
 
   @Test
-  public void shouldSerializeRowWithCustomDelimiter() {
-
-    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter('^'));
-    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
-
-    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092^1^item_1^10.0"));
-  }
-
-  @Test
   public void shouldSerializeRowWithNull() {
     // Given:
     final Struct data = new Struct(SCHEMA)
@@ -124,7 +105,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", 10L);
@@ -143,7 +124,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("11.12"));
@@ -162,7 +143,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("1.12"));
@@ -181,7 +162,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", BigDecimal.ZERO);
@@ -200,7 +181,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal(0.5));
@@ -219,7 +200,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal(-0.5));
@@ -238,7 +219,7 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
+    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("-1.12"));
@@ -248,6 +229,36 @@ public class KsqlDelimitedSerializerTest {
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-01.12\""));
+  }
+
+  @Test
+  public void shouldSerializeRowCorrectlyWithTabDelimeter() {
+    shouldSerializeRowCorrectlyWithNonDefaultDelimeter('\t');
+  }
+
+  @Test
+  public void shouldSerializeRowCorrectlyWithBarDelimeter() {
+    shouldSerializeRowCorrectlyWithNonDefaultDelimeter('|');
+  }
+
+  private void shouldSerializeRowCorrectlyWithNonDefaultDelimeter(char delimiter) {
+    // Given:
+    final Struct data = new Struct(SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0);
+
+    KsqlDelimitedSerializer serializer =
+        new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(delimiter));
+
+    // When:
+    final byte[] bytes = serializer.serialize("t1", data);
+
+    // Then:
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
+    assertThat(delimitedString, equalTo(
+        "1511897796092" + delimiter +"1" + delimiter + "item_1" + delimiter + "10.0"));
   }
 
   @Test
@@ -317,14 +328,8 @@ public class KsqlDelimitedSerializerTest {
     serializer.serialize("t1", data);
   }
 
-  @Test
-  public void shouldSerializeRowWithCustomDelimiter() {
-
-    final GenericRow genericRow = new GenericRow(Arrays.asList(1511897796092L, 1L, "item_1", 10.0));
-    final KsqlDelimitedSerializer ksqlDelimitedSerializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter('^'));
-    final byte[] bytes = ksqlDelimitedSerializer.serialize("t1", genericRow);
-
-    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
-    assertThat("Incorrect serialization.", delimitedString, equalTo("1511897796092^1^item_1^10.0"));
+  private KsqlDelimitedSerializer createSerializer() {
+    return new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
   }
+
 }

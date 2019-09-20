@@ -176,7 +176,8 @@ class Analyzer {
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           getValueFormat(sink),
-          sink.getProperties().getValueAvroSchemaName()
+          sink.getProperties().getValueAvroSchemaName(),
+          sink.getProperties().getValueDelimiter()
       ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(

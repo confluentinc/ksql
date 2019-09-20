@@ -41,9 +41,6 @@ public final class CommonCreateConfigs {
   public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
 
   public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
-  public static final String AVRO_SCHEMA_FILE = "AVROSCHEMAFILE";
-  public static final String AVRO_SCHEMA = "AVROSCHEMA";
-  public static final String VALUE_DELIMITER_DEFAULT = ",";
 
   static void addToConfigDef(
       final ConfigDef configDef,
@@ -122,7 +119,14 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.LOW,
-            "The fully qualified name of the Avro schema to use");
+            "The fully qualified name of the Avro schema to use"
+        )
+        .define(
+            VALUE_DELIMITER_PROPERTY,
+            ConfigDef.Type.STRING,
+            null,
+            Importance.LOW,
+            "The delimiter to use when VALUE_FORMAT='DELIMITED'.");
   }
 
   private CommonCreateConfigs() {

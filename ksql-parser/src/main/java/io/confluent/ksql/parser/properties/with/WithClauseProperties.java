@@ -20,12 +20,14 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.ConfigMetaData;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -117,4 +119,25 @@ abstract class WithClauseProperties extends AbstractConfig {
           + String.join(",", onlyInProvided));
     }
   }
+
+  public Optional<Character> getValueDelimiter() {
+    final String providedValueDelimiter = getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
+    if (providedValueDelimiter != null && providedValueDelimiter.equalsIgnoreCase("$")) {
+      System.out.println("foo");
+    }
+    if (providedValueDelimiter != null) {
+      if (providedValueDelimiter.length() != 1) {
+        throw new KsqlException("Error in WITH clause property '"
+            + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
+            + "': Delimiter must be a single character."
+            + System.lineSeparator()
+            + "Example valid value: ';'"
+        );
+      }
+      return Optional.of(providedValueDelimiter.charAt(0));
+    } else {
+      return Optional.empty();
+    }
+  }
+
 }

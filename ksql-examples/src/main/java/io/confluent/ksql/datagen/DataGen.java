@@ -166,7 +166,7 @@ public final class DataGen {
     private final Supplier<InputStream> schemaFile;
     private final Format keyFormat;
     private final Format valueFormat;
-    private final String valueDelimiter;
+    private final Character valueDelimiter;
     private final String topicName;
     private final String keyName;
     private final int iterations;
@@ -184,9 +184,9 @@ public final class DataGen {
         final Supplier<InputStream> schemaFile,
         final Format keyFormat,
         final Format valueFormat,
+        final Character valueDelimiter,
         final String topicName,
         final String keyName,
-        final String valueDelimiter,
         final int iterations,
         final long maxInterval,
         final String schemaRegistryUrl,
@@ -253,7 +253,7 @@ public final class DataGen {
       private Supplier<InputStream> schemaFile;
       private Format keyFormat;
       private Format valueFormat;
-      private String valueDelimiter;
+      private char valueDelimiter;
       private String topicName;
       private String keyName;
       private int iterations;
@@ -271,7 +271,7 @@ public final class DataGen {
         schemaFile = null;
         keyFormat = Format.KAFKA;
         valueFormat = null;
-        valueDelimiter = ",";
+        valueDelimiter = ',';
         topicName = null;
         keyName = null;
         iterations = -1;
@@ -328,6 +328,7 @@ public final class DataGen {
         if (help) {
           return new Arguments(
               true,
+              null,
               null,
               null,
               null,
@@ -468,6 +469,20 @@ public final class DataGen {
               + "(case-insensitive)",
               formatString
           ));
+        }
+      }
+
+      private static Character parseValueDelimiter(final String valueDelimiterString) {
+        if (valueDelimiterString == null) {
+          return null;
+        } else {
+          if (valueDelimiterString.length() != 1) {
+            throw new ArgumentParseException(String.format(
+                "Invalid value_delimiter; was expecting a single character, got '%s'",
+                valueDelimiterString
+            ));
+          }
+          return valueDelimiterString.charAt(0);
         }
       }
 

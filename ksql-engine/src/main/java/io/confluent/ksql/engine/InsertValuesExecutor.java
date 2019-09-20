@@ -137,6 +137,7 @@ public class InsertValuesExecutor {
       final ServiceContext serviceContext
   ) {
     final InsertValues insertValues = statement.getStatement();
+
     final KsqlConfig config = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 

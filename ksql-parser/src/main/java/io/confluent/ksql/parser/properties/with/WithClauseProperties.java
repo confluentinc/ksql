@@ -22,6 +22,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.ConfigMetaData;
+import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -126,18 +127,38 @@ abstract class WithClauseProperties extends AbstractConfig {
       System.out.println("foo");
     }
     if (providedValueDelimiter != null) {
-      if (providedValueDelimiter.length() != 1) {
+      if (providedValueDelimiter.isEmpty()) {
         throw new KsqlException("Error in WITH clause property '"
             + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-            + "': Delimiter must be a single character."
+            + "': Delimiter cannot be empty or whitespace."
             + System.lineSeparator()
-            + "Example valid value: ';'"
+            + "For tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
         );
+      } else if (providedValueDelimiter.length() == 1) {
+        return Optional.of(providedValueDelimiter.charAt(0));
+      } else {
+        Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
+        if (delim != null) {
+          return Optional.of(delim);
+        } else {
+          throw new KsqlException("Error in WITH clause property '"
+              + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
+              + "': Delimiter must be a single character, 'TAB' or 'SPACE'."
+              + System.lineSeparator()
+              + "Example valid value: ';'"
+          );
+        }
       }
-      return Optional.of(providedValueDelimiter.charAt(0));
     } else {
       return Optional.empty();
     }
   }
+
+  private static final Map<String, Character> NAMED_DELIMITERS = ImmutableMap
+      .<String, Character>builder()
+      .put("TAB", '\t')
+      .put("SPACE", ' ')
+      .build();
+
 
 }

@@ -842,10 +842,10 @@ public class CommandFactoriesTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'ROWTIME' is a reserved field name.");
+    expectedException.expectMessage("'ROWTIME' is a reserved column name.");
 
     // When:
-    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+    commandFactories.create("sqlExpression", statement, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -860,10 +860,10 @@ public class CommandFactoriesTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'ROWTIME' is a reserved field name.");
+    expectedException.expectMessage("'ROWTIME' is a reserved column name.");
 
     // When:
-    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+    commandFactories.create("sqlExpression", statement, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -879,10 +879,10 @@ public class CommandFactoriesTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "'ROWKEY' is a reserved field name. It can only be used for KEY fields.");
+        "'ROWKEY' is a reserved column name. It can only be used for KEY columns.");
 
     // When:
-    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+    commandFactories.create("sqlExpression", statement, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -896,7 +896,7 @@ public class CommandFactoriesTest {
     );
 
     // When:
-    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+    commandFactories.create("sqlExpression", statement, ksqlConfig, emptyMap());
 
     // Then: did not throw
   }
@@ -913,11 +913,11 @@ public class CommandFactoriesTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'ROWKEY' is a KEY field with an unsupported type. "
-        + "KSQL currently only supports KEY fields of type STRING.");
+    expectedException.expectMessage("'ROWKEY' is a KEY column with an unsupported type. "
+        + "KSQL currently only supports KEY columns of type STRING.");
 
     // When:
-    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+    commandFactories.create("sqlExpression", statement, ksqlConfig, emptyMap());
   }
 
   @Test
@@ -932,11 +932,11 @@ public class CommandFactoriesTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("'someKey' is an invalid KEY field name. "
-        + "KSQL currently only supports KEY fields named ROWKEY.");
+    expectedException.expectMessage("'someKey' is an invalid KEY column name. "
+        + "KSQL currently only supports KEY columns named ROWKEY.");
 
     // When:
-    commandFactories.create("sqlExpresson", statement, ksqlConfig, emptyMap());
+    commandFactories.create("sqlExpression", statement, ksqlConfig, emptyMap());
   }
 
   private void givenProperty(final String name, final Literal value) {

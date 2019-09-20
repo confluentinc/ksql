@@ -65,7 +65,7 @@ public class ZooKeeperEmbeddedTest {
     final CountDownLatch connectionLatch = new CountDownLatch(1);
 
     final Watcher watcher = event -> {
-      System.out.println(currentTime() + "Watcher event: " + event);
+      System.out.println(currentTime() + name + ": Watcher event: " + event);
       if (event.getState() == KeeperState.SyncConnected) {
         connectionLatch.countDown();
       }
@@ -75,10 +75,10 @@ public class ZooKeeperEmbeddedTest {
 
     try {
       final String connectString = server.connectString();
-      System.out.println(currentTime() + "Attempting to connect to : " + name);
+      System.out.println(currentTime() + name + ": Attempting to connect to : " + name);
       zooKeeper = new ZooKeeper(connectString, 30_000, watcher);
       final boolean success = connectionLatch.await(5, TimeUnit.SECONDS);
-      assertThat(currentTime() + "Can not connect to " + name + " on " + connectString, success);
+      assertThat(currentTime() + name + ": Can not connect to " + connectString, success);
 
     } catch (final Exception e) {
       throw new RuntimeException(e);

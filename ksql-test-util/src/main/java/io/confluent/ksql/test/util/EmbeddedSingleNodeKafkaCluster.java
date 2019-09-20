@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.test.util;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
@@ -25,6 +27,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,7 +69,7 @@ import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.collection.JavaConversions;
+import scala.collection.JavaConverters;
 
 /**
  * Runs an in-memory, "embedded" Kafka cluster with 1 ZooKeeper instance and 1 Kafka broker.
@@ -86,10 +89,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final List<Credentials> ALL_VALID_USERS =
       ImmutableList.of(VALID_USER1, VALID_USER2);
 
+  public static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
+  // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
+  public static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
+
   private final String jassConfigFile;
   private final String previousJassConfig;
-  private final Map<String, Object> brokerConfig = new HashMap<>();
-  private final Map<String, Object> clientConfig = new HashMap<>();
+  private final Map<String, Object> customBrokerConfig;
+  private final Map<String, Object> customClientConfig;
   private final TemporaryFolder tmpFolder = new TemporaryFolder();
   @SuppressWarnings("deprecation")
   private final kafka.security.auth.SimpleAclAuthorizer authorizer =
@@ -102,18 +109,20 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   /**
    * Creates and starts a Kafka cluster.
-   *  @param brokerConfig Additional broker configuration settings.
-   * @param clientConfig Additional client configuration settings.
+   * @param customBrokerConfig Additional broker configuration settings.
+   * @param customClientConfig Additional client configuration settings.
    * @param initialAcls a set of ACLs to set when the cluster starts.
    */
   private EmbeddedSingleNodeKafkaCluster(
-      final Map<String, Object> brokerConfig,
-      final Map<String, Object> clientConfig,
+      final Map<String, Object> customBrokerConfig,
+      final Map<String, Object> customClientConfig,
       final String additionalJaasConfig,
       final Map<AclKey, Set<AclOperation>> initialAcls
   ) {
-    this.brokerConfig.putAll(brokerConfig);
-    this.clientConfig.putAll(clientConfig);
+    this.customBrokerConfig = ImmutableMap
+        .copyOf(requireNonNull(customBrokerConfig, "customBrokerConfig"));
+    this.customClientConfig = ImmutableMap
+        .copyOf(requireNonNull(customClientConfig, "customClientConfig"));
     this.initialAcls = ImmutableMap.copyOf(initialAcls);
 
     this.previousJassConfig = System.getProperty("java.security.auth.login.config");
@@ -123,19 +132,14 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   /**
    * Creates and starts a Kafka cluster.
    */
-  @SuppressWarnings("deprecation")
   public void start() throws Exception {
     log.debug("Initiating embedded Kafka cluster startup");
 
+    tmpFolder.create();
+
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
-    brokerConfig.put(kafka.security.auth.SimpleAclAuthorizer.ZkUrlProp(),
-        zookeeper.connectString());
-    // Streams runs multiple consumers, so let's give them all a chance to join.
-    // (Tests run quicker and with a more stable consumer group):
-    brokerConfig.put("group.initial.rebalance.delay.ms", 100);
-    broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
-    clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+    broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
     authorizer.configure(ImmutableMap.of(KafkaConfig.ZkConnectProp(), zookeeperConnect()));
 
     initialAcls.forEach((key, ops) ->
@@ -144,14 +148,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
 
   @Override
   protected void before() throws Exception {
-    tmpFolder.create();
     start();
   }
 
   @Override
   protected void after() {
     stop();
-    tmpFolder.delete();
   }
 
   /**
@@ -171,6 +173,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     }
 
     resetJaasConfig();
+
+    tmpFolder.delete();
   }
 
   /**
@@ -200,7 +204,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
    * @return the properties that should be added to client props.
    */
   public Map<String, Object> getClientProperties() {
-    return Collections.unmodifiableMap(clientConfig);
+    final ImmutableMap.Builder<String, Object> builder = ImmutableMap.builder();
+    builder.putAll(customClientConfig);
+    builder.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
+    return builder.build();
   }
 
   /**
@@ -386,7 +393,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
         .collect(Collectors.toSet());
 
     final scala.collection.immutable.Set<Acl> scalaAcls =
-        JavaConversions.asScalaSet(javaAcls).toSet();
+        JavaConverters.asScalaSet(javaAcls).toSet();
 
     final kafka.security.auth.ResourceType scalaResType =
         ResourceType$.MODULE$.fromJava(resource.resourceType());
@@ -414,23 +421,51 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return newBuilder().build();
   }
 
-  private Properties effectiveBrokerConfigFrom() {
-    final Properties effectiveConfig = new Properties();
-    effectiveConfig.putAll(brokerConfig);
-    effectiveConfig.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+  /**
+   * Build config designed to keep the tests as stable as possible
+   */
+  @SuppressWarnings("deprecation")
+  private Properties buildBrokerConfig(final String logDir) {
+    final Properties config = new Properties();
+    config.putAll(customBrokerConfig);
+    // Only single node, so broker id always:
+    config.put(KafkaConfig.BrokerIdProp(), 0);
+    // Set the log dir for the node:
+    config.put(KafkaConfig.LogDirProp(), logDir);
+    // Need to know where ZK is:
+    config.put(KafkaConfig.ZkConnectProp(), zookeeper.connectString());
+    config.put(kafka.security.auth.SimpleAclAuthorizer.ZkUrlProp(), zookeeper.connectString());
+    // Do not require tests to explicitly create tests:
+    config.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
+    // Default to small number of partitions for auto-created topics:
+    config.put(KafkaConfig.NumPartitionsProp(), 1);
     // Allow tests to delete topics:
-    effectiveConfig.put(KafkaConfig.DeleteTopicEnableProp(), true);
+    config.put(KafkaConfig.DeleteTopicEnableProp(), true);
     // Do not clean logs from under the tests or waste resources doing so:
-    effectiveConfig.put(KafkaConfig.LogCleanerEnableProp(), false);
+    config.put(KafkaConfig.LogCleanerEnableProp(), false);
     // Only single node, so only single RF on offset topic partitions:
-    effectiveConfig.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
+    config.put(KafkaConfig.OffsetsTopicReplicationFactorProp(), (short) 1);
     // Tests do not need large numbers of offset topic partitions:
-    effectiveConfig.put(KafkaConfig.OffsetsTopicPartitionsProp(), "2");
+    config.put(KafkaConfig.OffsetsTopicPartitionsProp(), "1");
     // Shutdown quick:
-    effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    config.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    // Set ZK connect timeout high enough to give ZK time to build log file on build server:
+    config.put(KafkaConfig.ZkConnectionTimeoutMsProp(), (int) ZK_CONNECT_TIMEOUT.toMillis());
+    // Set ZK session timeout high enough that slow build servers don't hit it:
+    config.put(KafkaConfig.ZkSessionTimeoutMsProp(), (int) ZK_SESSION_TIMEOUT.toMillis());
     // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
-    effectiveConfig.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
-    return effectiveConfig;
+    config.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    config.put(KafkaConfig.GroupInitialRebalanceDelayMsProp(), 100);
+    // Stop people writing silly data in tests:
+    config.put(KafkaConfig.MessageMaxBytesProp(), 100_000);
+    // Stop logs being deleted due to retention limits:
+    config.put(KafkaConfig.LogRetentionTimeMillisProp(), -1);
+    // Stop logs marked for deletion from being deleted
+    config.put(KafkaConfig.LogDeleteDelayMsProp(), Long.MAX_VALUE);
+
+    return config;
   }
 
   @SuppressWarnings("unused") // Part of Public API
@@ -438,7 +473,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     return jassConfigFile;
   }
 
-  private String createServerJaasConfig(final String additionalJaasConfig) {
+  private static String createServerJaasConfig(final String additionalJaasConfig) {
     try {
       final String jaasConfigContent = createJaasConfigContent() + additionalJaasConfig;
       final File jaasConfig = TestUtils.tempFile();
@@ -449,7 +484,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     }
   }
 
-  private String createJaasConfigContent() {
+  private static String createJaasConfigContent() {
     final String prefix = JAAS_KAFKA_PROPS_NAME + " {\n  "
                           + PlainLoginModule.class.getName() + " required\n"
                           + "  username=\"broker\"\n"
@@ -594,8 +629,8 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     private final ResourcePattern resourcePattern;
 
     AclKey(final String userName, final ResourcePattern resourcePattern) {
-      this.userName = Objects.requireNonNull(userName, "userName");
-      this.resourcePattern = Objects.requireNonNull(resourcePattern, "resourcePattern");
+      this.userName = requireNonNull(userName, "userName");
+      this.resourcePattern = requireNonNull(resourcePattern, "resourcePattern");
     }
 
     static AclKey of(final String userName, final ResourcePattern resourcePattern) {

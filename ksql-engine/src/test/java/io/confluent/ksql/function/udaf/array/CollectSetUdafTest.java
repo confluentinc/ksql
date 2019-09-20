@@ -28,7 +28,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldCollectDistinctInts() {
-    final Udaf<Integer, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
     final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (final Integer i : values) {
@@ -39,7 +39,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldMergeDistinctIntsIncludingNulls() {
-    final Udaf<Integer, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
 
     List<Integer> lhs = udaf.initialize();
     final Integer[] lhsValues = new Integer[] {1, 2, null, 3};
@@ -61,7 +61,7 @@ public class CollectSetUdafTest {
 
   @Test
   public void shouldRespectSizeLimit() {
-    final Udaf<Integer, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
+    final Udaf<Integer, List<Integer>, List<Integer>> udaf = CollectSetUdaf.createCollectSetInt();
     List<Integer> runningList = udaf.initialize();
     for (int i = 1; i < 2500; i++) {
       runningList = udaf.aggregate(i, runningList);

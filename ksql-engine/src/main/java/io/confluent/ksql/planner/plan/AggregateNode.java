@@ -248,9 +248,10 @@ public class AggregateNode extends PlanNode {
     // This is the schema of the aggregation change log topic and associated state store.
     // It contains all columns from prepareSchema and columns for any aggregating functions
     // It uses internal column names, e.g. KSQL_INTERNAL_COL_0 and KSQL_AGG_VARIABLE_0
-    final LogicalSchema aggregationSchema = buildAggregateSchema(
+    final LogicalSchema aggregationSchema = buildLogicalSchema(
         prepareSchema,
-        aggValToFunctionMap
+        aggValToFunctionMap,
+        true
     );
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
@@ -265,8 +266,14 @@ public class AggregateNode extends PlanNode {
         .map(internalSchema::resolveToInternal)
         .map(FunctionCall.class::cast)
         .collect(Collectors.toList());
+
+    final LogicalSchema outputSchema = buildLogicalSchema(
+        prepareSchema,
+        aggValToFunctionMap,
+        false);
+
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
-        aggregationSchema,
+        outputSchema,
         initializer,
         requiredColumns.size(),
         functionsWithInternalIdentifiers,
@@ -293,7 +300,7 @@ public class AggregateNode extends PlanNode {
 
     materializationInfo = Optional.of(MaterializationInfo.of(
         AGGREGATE_STATE_STORE_NAME,
-        aggregationSchema,
+        outputSchema,
         havingExpression,
         schema,
         finalSelects
@@ -359,10 +366,11 @@ public class AggregateNode extends PlanNode {
     }
   }
 
-  private LogicalSchema buildAggregateSchema(
+  private LogicalSchema buildLogicalSchema(
       final LogicalSchema inputSchema,
-      final Map<Integer, KsqlAggregateFunction> aggregateFunctions
-  ) {
+      final Map<Integer, KsqlAggregateFunction> aggregateFunctions,
+      final boolean useAggregate) {
+
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
     final List<Column> cols = inputSchema.value();
 
@@ -380,7 +388,12 @@ public class AggregateNode extends PlanNode {
           .get(requiredColumns.size() + idx);
 
       final String colName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
-      final SqlType fieldType = converter.toSqlType(aggregateFunction.getReturnType());
+      SqlType fieldType = null;
+      if (useAggregate) {
+        fieldType = converter.toSqlType(aggregateFunction.getAggregateType());
+      } else {
+        fieldType = converter.toSqlType(aggregateFunction.getReturnType());
+      }
       schemaBuilder.valueColumn(colName, fieldType);
     }
 

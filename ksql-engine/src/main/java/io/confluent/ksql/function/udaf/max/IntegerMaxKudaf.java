@@ -23,12 +23,15 @@ import org.apache.kafka.connect.data.Schema;
 public class IntegerMaxKudaf extends BaseNumberKudaf<Integer> {
 
   IntegerMaxKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, Schema.OPTIONAL_INT32_SCHEMA, Integer::max,
-        "Computes the maximum integer value for a key.");
+    super(functionName,
+          argIndexInValue,
+          Schema.OPTIONAL_INT32_SCHEMA,
+          Integer::max,
+          "Computes the maximum integer value for a key.");
   }
 
   @Override
-  public KsqlAggregateFunction<Integer, Integer> getInstance(
+  public KsqlAggregateFunction<Integer, Integer, Integer> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new IntegerMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

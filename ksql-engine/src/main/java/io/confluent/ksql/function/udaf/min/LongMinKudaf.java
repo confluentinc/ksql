@@ -23,12 +23,15 @@ import org.apache.kafka.connect.data.Schema;
 public class LongMinKudaf extends BaseNumberKudaf<Long> {
 
   LongMinKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, Schema.OPTIONAL_INT64_SCHEMA, Long::min,
-        "Computes the minimum long value for a key.");
+    super(functionName,
+          argIndexInValue,
+          Schema.OPTIONAL_INT64_SCHEMA,
+          Long::min,
+          "Computes the minimum long value for a key.");
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(
+  public KsqlAggregateFunction<Long, Long, Long> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new LongMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

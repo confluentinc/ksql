@@ -1880,6 +1880,9 @@ Aggregate functions
 |                        |                           |            | late-arriving record, then the records from the second window in    |
 |                        |                           |            | the order they were originally processed.                           |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
+| AVERAGE                | ``AVG(col1)``             | Stream,    | Return the average value for a given column.                        |
+|                        |                           | Table      | Note: rows where ``col1`` is null are ignored.                  |
++------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window.             |
 |                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+

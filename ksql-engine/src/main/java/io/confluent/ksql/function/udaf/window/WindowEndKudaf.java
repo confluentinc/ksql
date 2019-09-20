@@ -41,7 +41,7 @@ public final class WindowEndKudaf {
   }
 
   @UdafFactory(description = "Extracts the window end time")
-  public static TableUdaf<Long, Long> createWindowEnd() {
+  public static TableUdaf<Long, Long, Long> createWindowEnd() {
     return PlaceholderTableUdaf.INSTANCE;
   }
 }

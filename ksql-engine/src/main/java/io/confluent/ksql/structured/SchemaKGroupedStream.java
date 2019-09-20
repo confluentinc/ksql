@@ -121,7 +121,7 @@ public class SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
-      final LogicalSchema aggregateSchema,
+      final LogicalSchema outputSchema,
       final Initializer initializer,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
@@ -131,7 +131,7 @@ public class SchemaKGroupedStream {
       final Serde<GenericRow> topicValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
-    throwOnValueFieldCountMismatch(aggregateSchema, nonFuncColumnCount, aggValToFunctionMap);
+    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggValToFunctionMap);
 
     final KTable table;
     final KeySerde<?> newKeySerde;
@@ -164,11 +164,12 @@ public class SchemaKGroupedStream {
     final ExecutionStep step = ExecutionStepFactory.streamAggregate(
         contextStacker,
         sourceStep,
-        aggregateSchema,
+        outputSchema,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         nonFuncColumnCount,
         aggregations
     );
+
     return new SchemaKTable(
         table,
         step,
@@ -198,7 +199,9 @@ public class SchemaKGroupedStream {
         StreamsUtil.buildOpName(contextStacker.getQueryContext())
     );
 
-    return kgroupedStream.aggregate(initializer, aggregator, materialized);
+    final KTable aggTable =  kgroupedStream.aggregate(initializer, aggregator, materialized);
+
+    return getAggregationResult(aggTable, aggregator);
   }
 
   @SuppressWarnings("unchecked")
@@ -223,12 +226,16 @@ public class SchemaKGroupedStream {
     final KTable<Windowed<Struct>, GenericRow> aggKtable = ksqlWindowExpression.applyAggregate(
         kgroupedStream, initializer, aggregator, materialized);
 
+    // Apply the mapper before window_start and window_end functions that return null if a
+    // record is not part of the window.
+    final KTable reducedTable = getAggregationResult(aggKtable, aggregator);
+
     final WindowSelectMapper windowSelectMapper = new WindowSelectMapper(indexToFunctionMap);
     if (!windowSelectMapper.hasSelects()) {
-      return aggKtable;
+      return reducedTable;
     }
 
-    return aggKtable.mapValues(windowSelectMapper);
+    return reducedTable.mapValues(windowSelectMapper);
   }
 
   private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
@@ -247,6 +254,11 @@ public class SchemaKGroupedStream {
     );
   }
 
+  @SuppressWarnings("unchecked")
+  private KTable getAggregationResult(final KTable table, final UdafAggregator aggregator) {
+    return table.mapValues(aggregator.getResultMapper());
+  }
+  
   private KeySerde<Windowed<Struct>> getKeySerde(final WindowExpression windowExpression) {
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
       return keySerde.rebind(WindowInfo.of(

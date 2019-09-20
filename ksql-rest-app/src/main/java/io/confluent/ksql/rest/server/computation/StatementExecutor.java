@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -51,6 +52,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +67,7 @@ public class StatementExecutor implements KsqlConfigurable {
 
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
+  private final HybridQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
   private KsqlConfig ksqlConfig;
 
@@ -73,23 +76,29 @@ public class StatementExecutor implements KsqlConfigurable {
     EXECUTE
   }
 
-  public StatementExecutor(final KsqlEngine ksqlEngine) {
+  public StatementExecutor(
+      final KsqlEngine ksqlEngine,
+      final HybridQueryIdGenerator hybridQueryIdGenerator
+  ) {
     this(
         ksqlEngine,
-        new StatementParser(ksqlEngine)
+        new StatementParser(ksqlEngine),
+            hybridQueryIdGenerator
     );
   }
 
   @VisibleForTesting
   StatementExecutor(
       final KsqlEngine ksqlEngine,
-      final StatementParser statementParser
+      final StatementParser statementParser,
+      final HybridQueryIdGenerator hybridQueryIdGenerator
   ) {
     Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
 
     this.ksqlEngine = ksqlEngine;
     this.statementParser = statementParser;
     this.statusStore = new ConcurrentHashMap<>();
+    this.queryIdGenerator = hybridQueryIdGenerator;
   }
 
   @Override
@@ -320,9 +329,12 @@ public class StatementExecutor implements KsqlConfigurable {
           ksqlEngine, mergedConfig, statement.getStatementText());
     }
 
-    final ConfiguredStatement<?> configured = command.getUseOffsetAsQueryID()
-        ? ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig, offset)
-            : ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
+    final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+        statement, command.getOverwriteProperties(), mergedConfig);
+
+    if (command.getUseOffsetAsQueryID()) {
+      queryIdGenerator.updateOffset(offset);
+    }
 
     final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
         .getQuery()

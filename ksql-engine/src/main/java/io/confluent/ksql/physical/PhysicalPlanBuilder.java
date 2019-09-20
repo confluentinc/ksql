@@ -133,7 +133,7 @@ public class PhysicalPlanBuilder {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
-    final QueryId queryId = outputNode.getQueryId(queryIdGenerator, logicalPlanNode.getOffset());
+    final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     final KsqlQueryBuilder ksqlQueryBuilder = KsqlQueryBuilder.of(
         builder,

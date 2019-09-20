@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static java.util.Collections.emptyMap;
+import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -65,6 +66,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
+import io.confluent.ksql.util.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -74,6 +76,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
+
+import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.util.QueryIdGeneratorUsingOffset;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMockSupport;
@@ -97,14 +102,18 @@ public class StatementExecutorTest extends EasyMockSupport {
   private KsqlEngine ksqlEngine;
   private StatementExecutor statementExecutor;
   private KsqlConfig ksqlConfig;
+  private HybridQueryIdGenerator hybridQueryIdGenerator;
 
   private final StatementParser mockParser = niceMock(StatementParser.class);
+  private final HybridQueryIdGenerator mockQueryIdGenerator =
+      niceMock(HybridQueryIdGenerator.class);
   private final KsqlEngine mockEngine = strictMock(KsqlEngine.class);
   private final MetaStore mockMetaStore = niceMock(MetaStore.class);
   private final PersistentQueryMetadata mockQueryMetadata
       = niceMock(PersistentQueryMetadata.class);
   private StatementExecutor statementExecutorWithMocks;
   private ServiceContext serviceContext;
+  private final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -124,15 +133,17 @@ public class StatementExecutorTest extends EasyMockSupport {
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, emptyMap());
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
+    hybridQueryIdGenerator = new HybridQueryIdGenerator();
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        new MetaStoreImpl(new InternalFunctionRegistry())
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        hybridQueryIdGenerator
     );
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlEngine, statementParser);
-    statementExecutorWithMocks = new StatementExecutor(mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(ksqlEngine, statementParser, hybridQueryIdGenerator);
+    statementExecutorWithMocks = new StatementExecutor(mockEngine, mockParser, mockQueryIdGenerator);
 
     statementExecutor.configure(ksqlConfig);
     statementExecutorWithMocks.configure(ksqlConfig);
@@ -163,7 +174,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(mockEngine, mockParser, mockQueryIdGenerator);
 
     // When:
     statementExecutor.handleStatement(queuedCommand);
@@ -172,7 +183,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleRestoreIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(mockEngine, mockParser, mockQueryIdGenerator);
 
     // When:
     statementExecutor.handleRestore(queuedCommand);
@@ -241,8 +252,8 @@ public class StatementExecutorTest extends EasyMockSupport {
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    final ConfiguredStatement<?> configuredCsas =
-        ConfiguredStatement.of(csasStatement, emptyMap(), expectedConfig, 1);
+    final ConfiguredStatement<?> configuredCsas = ConfiguredStatement.of(
+        csasStatement, emptyMap(), expectedConfig);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
@@ -486,6 +497,8 @@ public class StatementExecutorTest extends EasyMockSupport {
     final QueryId queryId = new QueryId("csas-query-id");
     final String name = "foo";
     final PersistentQueryMetadata mockQuery = mockReplayCSAS("CSAS", name, queryId);
+    mockQueryIdGenerator.updateOffset(anyLong());
+    expectLastCall();
     replayAll();
 
     // When:

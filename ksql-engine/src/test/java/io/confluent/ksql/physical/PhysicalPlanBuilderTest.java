@@ -30,7 +30,6 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -66,6 +65,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
+import io.confluent.ksql.util.DefaultQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -228,7 +228,7 @@ public class PhysicalPlanBuilderTest {
         functionRegistry,
         overrideProperties,
         metaStore,
-        new QueryIdGenerator(),
+        new DefaultQueryIdGenerator(),
         testKafkaStreamsBuilder,
         queryCloseCallback
     );
@@ -688,7 +688,7 @@ public class PhysicalPlanBuilderTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(loggerFactory);
     final OutputNode spyNode = spy(
         AnalysisTestUtil.buildLogicalPlan(ksqlConfig, simpleSelectFilter, metaStore));
-    doReturn(new QueryId("foo")).when(spyNode).getQueryId(any(), anyLong());
+    doReturn(new QueryId("foo")).when(spyNode).getQueryId(any());
     when(loggerFactory.getLogger("foo")).thenReturn(logger);
     when(loggerFactory.getLogger(ArgumentMatchers.startsWith("foo.")))
         .thenReturn(mock(ProcessingLogger.class));

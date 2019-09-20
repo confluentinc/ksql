@@ -109,7 +109,7 @@ final class EngineContext {
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
         metaStore.copy(),
-        queryIdGenerator.copy(),
+        queryIdGenerator.createSandbox(),
         (sc, query) -> { /* No-op */ }
     );
 

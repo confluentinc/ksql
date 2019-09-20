@@ -26,13 +26,13 @@ import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
-public class QueryIdGeneratorTest {
+public class DefaultQueryIdGeneratorTest {
 
-  private QueryIdGenerator generator;
+  private DefaultQueryIdGenerator generator;
 
   @Before
   public void setUp() {
-    generator = new QueryIdGenerator();
+    generator = new DefaultQueryIdGenerator();
   }
 
   @Test
@@ -45,7 +45,7 @@ public class QueryIdGeneratorTest {
   @Test
   public void shouldCopy() {
     // When:
-    final QueryIdGenerator copy = generator.copy();
+    final QueryIdGenerator copy = generator.createSandbox();
 
     // Then:
     assertThat(copy.getNextId(), is(generator.getNextId()));

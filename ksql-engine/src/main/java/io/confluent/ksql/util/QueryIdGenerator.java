@@ -15,25 +15,12 @@
 
 package io.confluent.ksql.util;
 
-import java.util.concurrent.atomic.AtomicLong;
+/**
+ * Generator used to provide query ids
+ */
+public interface QueryIdGenerator {
 
-public class QueryIdGenerator {
+  String getNextId();
 
-  private final AtomicLong queryIdCounter;
-
-  public QueryIdGenerator() {
-    this(0L);
-  }
-
-  private QueryIdGenerator(final long initialValue) {
-    this.queryIdCounter = new AtomicLong(initialValue);
-  }
-
-  public String getNextId() {
-    return String.valueOf(queryIdCounter.getAndIncrement());
-  }
-
-  public QueryIdGenerator copy() {
-    return new QueryIdGenerator(queryIdCounter.get());
-  }
+  QueryIdGenerator createSandbox();
 }

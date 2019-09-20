@@ -49,8 +49,10 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
+import io.confluent.ksql.util.QueryIdGeneratorUsingOffset;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.time.Duration;
 import java.util.Arrays;
@@ -81,6 +83,8 @@ public class RecoveryTest {
 
   private final List<QueuedCommand> commands = new LinkedList<>();
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
+  private final HybridQueryIdGenerator hybridQueryIdGenerator =
+      new HybridQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
@@ -97,7 +101,8 @@ public class RecoveryTest {
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        engineMetrics);
+        engineMetrics,
+        hybridQueryIdGenerator);
   }
 
   private static class FakeCommandQueue implements CommandQueue {
@@ -182,7 +187,7 @@ public class RecoveryTest {
           }
       );
 
-      this.statementExecutor = new StatementExecutor(ksqlEngine);
+      this.statementExecutor = new StatementExecutor(ksqlEngine, hybridQueryIdGenerator);
 
       this.commandRunner = new CommandRunner(
           statementExecutor,

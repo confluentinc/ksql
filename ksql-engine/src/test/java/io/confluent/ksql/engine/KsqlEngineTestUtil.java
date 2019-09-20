@@ -27,8 +27,10 @@ import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DefaultQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
+import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
@@ -50,7 +52,23 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty())
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new DefaultQueryIdGenerator()
+    );
+  }
+
+  public static KsqlEngine createKsqlEngine(
+          final ServiceContext serviceContext,
+          final MutableMetaStore metaStore,
+          final QueryIdGenerator queryIdGenerator
+  ) {
+    return new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        "test_instance_",
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        queryIdGenerator
     );
   }
 
@@ -64,7 +82,24 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        ignored -> engineMetrics
+        ignored -> engineMetrics,
+        new DefaultQueryIdGenerator()
+    );
+  }
+
+  public static KsqlEngine createKsqlEngine(
+          final ServiceContext serviceContext,
+          final MutableMetaStore metaStore,
+          final KsqlEngineMetrics engineMetrics,
+          final QueryIdGenerator queryIdGenerator
+  ) {
+    return new KsqlEngine(
+            serviceContext,
+            ProcessingLogContext.create(),
+            "test_instance_",
+            metaStore,
+            ignored -> engineMetrics,
+            queryIdGenerator
     );
   }
 

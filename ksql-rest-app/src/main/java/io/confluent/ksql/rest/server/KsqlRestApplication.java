@@ -67,6 +67,7 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
@@ -444,11 +445,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
+    final HybridQueryIdGenerator hybridQueryIdGenerator =
+        new HybridQueryIdGenerator();
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ServiceInfo.create(ksqlConfig, metricsPrefix)
+        ServiceInfo.create(ksqlConfig, metricsPrefix),
+        hybridQueryIdGenerator
     );
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
@@ -461,7 +465,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());
 
-    final StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine);
+    final StatementExecutor statementExecutor =
+        new StatementExecutor(ksqlEngine, hybridQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 

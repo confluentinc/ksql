@@ -44,7 +44,7 @@ public class KsqlBareOutputNode extends OutputNode {
   }
 
   @Override
-  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator, final long offset) {
+  public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
     return new QueryId(String.valueOf(Math.abs(ThreadLocalRandom.current().nextLong())));
   }
 

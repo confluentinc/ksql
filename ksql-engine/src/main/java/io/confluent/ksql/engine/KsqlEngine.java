@@ -35,6 +35,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.DefaultQueryIdGenerator;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
@@ -77,7 +78,29 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             engine,
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
-        ));
+        ),
+        new DefaultQueryIdGenerator());
+  }
+
+  public KsqlEngine(
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final FunctionRegistry functionRegistry,
+      final ServiceInfo serviceInfo,
+      final QueryIdGenerator queryIdGenerator
+  ) {
+    this(
+        serviceContext,
+        processingLogContext,
+        serviceInfo.serviceId(),
+        new MetaStoreImpl(functionRegistry),
+        (engine) -> new KsqlEngineMetrics(
+            serviceInfo.metricsPrefix(),
+            engine,
+            serviceInfo.customMetricsTags(),
+            serviceInfo.metricsExtension()
+        ),
+        queryIdGenerator);
   }
 
   KsqlEngine(
@@ -85,13 +108,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ProcessingLogContext processingLogContext,
       final String serviceId,
       final MutableMetaStore metaStore,
-      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
+      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
+      final QueryIdGenerator queryIdGenerator
   ) {
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
         metaStore,
-        new QueryIdGenerator(),
+        queryIdGenerator,
         this::unregisterQuery);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);

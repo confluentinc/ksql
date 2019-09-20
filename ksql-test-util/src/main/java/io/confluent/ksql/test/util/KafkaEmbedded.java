@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
@@ -58,6 +59,10 @@ class KafkaEmbedded {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
+
+  public static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
+  // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
+  public static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
 
   private final Properties effectiveConfig;
   private final File logDir;
@@ -264,7 +269,8 @@ class KafkaEmbedded {
     effectiveConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
     effectiveConfig.put(KafkaConfig.MessageMaxBytesProp(), 1_000_000);
     effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), true);
-    effectiveConfig.put(KafkaConfig.ZkSessionTimeoutMsProp(), 30_000);
+    effectiveConfig.put(KafkaConfig.ZkSessionTimeoutMsProp(), ZK_SESSION_TIMEOUT.toMillis());
+    effectiveConfig.put(KafkaConfig.ZkConnectionTimeoutMsProp(), ZK_CONNECT_TIMEOUT.toMillis());
 
     effectiveConfig.putAll(initialConfig);
     effectiveConfig.put(KafkaConfig.LogDirProp(), logDir.getAbsolutePath());

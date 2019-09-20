@@ -17,10 +17,6 @@ package io.confluent.ksql.test.util;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.zookeeper.Watcher;
@@ -30,6 +26,10 @@ import org.junit.Test;
 
 
 public class ZooKeeperEmbeddedTest {
+
+  // Use the same timeouts as KafkaEmbedded so that this test highlights any config issues
+  private static final int SESSION_TIMEOUT_MS = (int) KafkaEmbedded.ZK_SESSION_TIMEOUT.toMillis();
+  private static final long CONNECT_TIMEOUT_MS = (int) KafkaEmbedded.ZK_CONNECT_TIMEOUT.toMillis();
 
   /**
    * Test is only valid if Jetty is on the class path:
@@ -65,7 +65,6 @@ public class ZooKeeperEmbeddedTest {
     final CountDownLatch connectionLatch = new CountDownLatch(1);
 
     final Watcher watcher = event -> {
-      System.out.println(currentTime() + name + ": Watcher event: " + event);
       if (event.getState() == KeeperState.SyncConnected) {
         connectionLatch.countDown();
       }
@@ -75,10 +74,9 @@ public class ZooKeeperEmbeddedTest {
 
     try {
       final String connectString = server.connectString();
-      System.out.println(currentTime() + name + ": Attempting to connect to : " + name);
-      zooKeeper = new ZooKeeper(connectString, 30_000, watcher);
-      final boolean success = connectionLatch.await(5, TimeUnit.SECONDS);
-      assertThat(currentTime() + name + ": Can not connect to " + connectString, success);
+      zooKeeper = new ZooKeeper(connectString, SESSION_TIMEOUT_MS, watcher);
+      final boolean success = connectionLatch.await(CONNECT_TIMEOUT_MS, TimeUnit.SECONDS);
+      assertThat("Can not connect to " + name + " on " + connectString, success);
 
     } catch (final Exception e) {
       throw new RuntimeException(e);
@@ -92,12 +90,5 @@ public class ZooKeeperEmbeddedTest {
         }
       }
     }
-  }
-
-  private static String currentTime() {
-    final DateTimeFormatter formatter = DateTimeFormatter
-        .ofLocalizedDateTime(FormatStyle.SHORT)
-        .withZone(ZoneId.systemDefault());
-    return formatter.format(Instant.now()) + " ";
   }
 }

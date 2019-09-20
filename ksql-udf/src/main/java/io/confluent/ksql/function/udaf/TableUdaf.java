@@ -18,10 +18,10 @@ package io.confluent.ksql.function.udaf;
 /**
  * {@code TableUdaf} is an {@link Udaf} that can be used to
  * aggregate KSQL tables.
- * @param <V> value type
+ * @param <I> value type
  * @param <A> aggregate type
  */
-public interface TableUdaf<V, A> extends Udaf<V, A> {
+public interface TableUdaf<I, A, O> extends Udaf<I, A, O> {
   /**
    * Called to update a value when a record with the same key
    * has been updated. When called this function should
@@ -30,5 +30,5 @@ public interface TableUdaf<V, A> extends Udaf<V, A> {
    * @param aggregateValue the current aggregate
    * @return new aggregate
    */
-  A undo(V valueToUndo, A aggregateValue);
+  A undo(I valueToUndo, A aggregateValue);
 }

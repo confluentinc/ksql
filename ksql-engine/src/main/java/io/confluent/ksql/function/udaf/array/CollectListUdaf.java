@@ -36,8 +36,8 @@ public final class CollectListUdaf {
     // just to make the checkstyle happy
   }
 
-  private static <T> TableUdaf<T, List<T>> listCollector() {
-    return new TableUdaf<T, List<T>>() {
+  private static <T> TableUdaf<T, List<T>, List<T>> listCollector() {
+    return new TableUdaf<T, List<T>, List<T>>() {
 
       @Override
       public List<T> initialize() {
@@ -60,6 +60,11 @@ public final class CollectListUdaf {
       }
 
       @Override
+      public List<T> map(final List<T> agg) {
+        return agg;
+      }
+
+      @Override
       public List<T> undo(final T valueToUndo, final List<T> aggregateValue) {
         aggregateValue.remove(aggregateValue.lastIndexOf(valueToUndo));
         return aggregateValue;
@@ -68,27 +73,27 @@ public final class CollectListUdaf {
   }
 
   @UdafFactory(description = "collect values of a Bigint field into a single Array")
-  public static TableUdaf<Long, List<Long>> createCollectListLong() {
+  public static TableUdaf<Long, List<Long>, List<Long>> createCollectListLong() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of an Integer field into a single Array")
-  public static TableUdaf<Integer, List<Integer>> createCollectListInt() {
+  public static TableUdaf<Integer, List<Integer>, List<Integer>> createCollectListInt() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of a Double field into a single Array")
-  public static TableUdaf<Double, List<Double>> createCollectListDouble() {
+  public static TableUdaf<Double, List<Double>, List<Double>> createCollectListDouble() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of a String/Varchar field into a single Array")
-  public static TableUdaf<String, List<String>> createCollectListString() {
+  public static TableUdaf<String, List<String>, List<String>> createCollectListString() {
     return listCollector();
   }
 
   @UdafFactory(description = "collect values of a Boolean field into a single Array")
-  public static TableUdaf<Boolean, List<Boolean>> createCollectListBool() {
+  public static TableUdaf<Boolean, List<Boolean>, List<Boolean>> createCollectListBool() {
     return listCollector();
   }
 }

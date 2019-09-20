@@ -34,8 +34,8 @@ public final class CollectSetUdaf {
     // just to make the checkstyle happy
   }
   
-  private static <T> Udaf<T, List<T>> setCollector() {
-    return new Udaf<T, List<T>>() {
+  private static <T> Udaf<T, List<T>, List<T>> setCollector() {
+    return new Udaf<T, List<T>, List<T>>() {
       @Override
       public List<T> initialize() {
         return Lists.newArrayList();
@@ -61,31 +61,36 @@ public final class CollectSetUdaf {
         }
         return aggOne;
       }
+
+      @Override
+      public List<T> map(final List<T> agg) {
+        return agg;
+      }
     };
   }
 
   @UdafFactory(description = "collect distinct values of a Bigint field into a single Array")
-  public static Udaf<Long, List<Long>> createCollectSetLong() {
+  public static Udaf<Long, List<Long>, List<Long>> createCollectSetLong() {
     return setCollector();
   }
 
   @UdafFactory(description = "collect distinct values of an Integer field into a single Array")
-  public static Udaf<Integer, List<Integer>> createCollectSetInt() {
+  public static Udaf<Integer, List<Integer>, List<Integer>> createCollectSetInt() {
     return setCollector();
   }
 
   @UdafFactory(description = "collect distinct values of a Double field into a single Array")
-  public static Udaf<Double, List<Double>> createCollectSetDouble() {
+  public static Udaf<Double, List<Double>, List<Double>> createCollectSetDouble() {
     return setCollector();
   }
 
   @UdafFactory(description = "collect distinct values of a String field into a single Array")
-  public static Udaf<String, List<String>> createCollectSetString() {
+  public static Udaf<String, List<String>, List<String>> createCollectSetString() {
     return setCollector();
   }
 
   @UdafFactory(description = "collect distinct values of a Boolean field into a single Array")
-  public static Udaf<Boolean, List<Boolean>> createCollectSetBool() {
+  public static Udaf<Boolean, List<Boolean>, List<Boolean>> createCollectSetBool() {
     return setCollector();
   }
 

@@ -77,7 +77,8 @@ public final class Row implements TableRow {
     return value;
   }
 
-  Row withValue(
+  @Override
+  public Row withValue(
       final GenericRow newValue,
       final LogicalSchema newSchema
   ) {

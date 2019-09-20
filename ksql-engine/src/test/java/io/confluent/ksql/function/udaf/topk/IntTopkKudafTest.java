@@ -35,7 +35,7 @@ import org.junit.Test;
 public class IntTopkKudafTest {
 
   private final List<Integer> valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
-  private KsqlAggregateFunction<Integer, List<Integer>> topkKudaf;
+  private KsqlAggregateFunction<Integer, List<Integer>, List<Integer>> topkKudaf;
 
   @SuppressWarnings("unchecked")
   @Before

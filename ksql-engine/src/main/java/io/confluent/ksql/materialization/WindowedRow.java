@@ -81,7 +81,8 @@ public final class WindowedRow implements TableRow {
     return value;
   }
 
-  WindowedRow withValue(
+  @Override
+  public WindowedRow withValue(
       final GenericRow newValue,
       final LogicalSchema newSchema
   ) {

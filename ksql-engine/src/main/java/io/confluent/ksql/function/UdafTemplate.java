@@ -57,9 +57,12 @@ public final class UdafTemplate {
         MethodSpec.constructorBuilder()
             .addModifiers(Modifier.PUBLIC)
             .addParameter(ParameterizedTypeName.get(List.class, Schema.class), "args")
-            .addParameter(Schema.class, "returnType")
+            .addParameter(Schema.class, "aggregateType")
+            .addParameter(Schema.class, "outputType")
             .addParameter(ParameterizedTypeName.get(Optional.class, Metrics.class), "metrics")
-            .addStatement("super($S, returnType, args, $S, metrics)", udafName, description)
+            .addStatement("super($S, aggregateType, outputType, args, $S, metrics)",
+                          udafName,
+                          description)
             .build());
 
     udafTypeSpec.addMethod(
@@ -68,12 +71,14 @@ public final class UdafTemplate {
             .addParameter(Udaf.class, "udaf")
             .addParameter(int.class, "index")
             .addParameter(ParameterizedTypeName.get(List.class, Schema.class), "args")
-            .addParameter(Schema.class, "returnType")
-            .addParameter(Sensor.class, "aggSensor")
-            .addParameter(Sensor.class, "mergeSensor")
+            .addParameter(Schema.class, "aggregateType")
+            .addParameter(Schema.class, "outputType")
+            .addParameter(ParameterizedTypeName.get(Optional.class, Sensor.class), "aggSensor")
+            .addParameter(ParameterizedTypeName.get(Optional.class, Sensor.class), "mapSensor")
+            .addParameter(ParameterizedTypeName.get(Optional.class, Sensor.class), "mergeSensor")
             .addStatement(
-                "super($S, index, supplier(udaf), returnType, args, $S, aggSensor, mergeSensor)",
-                udafName, description)
+                "super($S, index, supplier(udaf), aggregateType, outputType, args, $S, "
+                    + "aggSensor, mapSensor, mergeSensor)", udafName, description)
             .addStatement("this.udaf = udaf")
             .build());
 
@@ -100,8 +105,8 @@ public final class UdafTemplate {
             .addStatement("args.ensureArgCount($L, $S)", udaf.getParameters().length + 1, udafName)
             .returns(KsqlAggregateFunction.class)
             .addStatement(
-                "return new $L($T.$L($L), args.udafIndex(), getArguments(), getReturnType(), "
-                    + "aggregateSensor, mergeSensor)",
+                "return new $L($T.$L($L), args.udafIndex(), getArguments(), getAggregateType(),"
+                    + " getReturnType(), aggregateSensor, mapSensor, mergeSensor)",
                 className,
                 udaf.getDeclaringClass(),
                 udaf.getName(),

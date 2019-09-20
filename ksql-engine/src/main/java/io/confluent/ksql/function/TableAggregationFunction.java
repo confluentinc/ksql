@@ -15,6 +15,6 @@
 
 package io.confluent.ksql.function;
 
-public interface TableAggregationFunction<V, A> extends KsqlAggregateFunction<V, A> {
-  A undo(V valueToUndo, A aggregateValue);
+public interface TableAggregationFunction<I, A, O> extends KsqlAggregateFunction<I, A, O> {
+  A undo(I valueToUndo, A aggregateValue);
 }

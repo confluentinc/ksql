@@ -32,6 +32,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -89,6 +90,7 @@ import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -137,6 +139,10 @@ public class SchemaKGroupedTableTest {
   private KsqlAggregateFunction otherFunc;
   @Mock
   private TableAggregationFunction tableFunc;
+  @Mock
+  private KsqlQueryBuilder queryBuilder;
+  @Mock
+  private KTable table;
 
   private KTable kTable;
   private KsqlTable<?> ksqlTable;
@@ -160,10 +166,16 @@ public class SchemaKGroupedTableTest {
         Consumed.with(Serdes.String(), rowSerde)
     );
 
+    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
+    when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
+
     when(aggregateSchema.findValueColumn("GROUPING_COLUMN"))
         .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
 
     when(aggregateSchema.value()).thenReturn(mock(List.class));
+
+    when(mockKGroupedTable.aggregate(any(), any(), any(), any())).thenReturn(table);
+    when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
@@ -171,6 +183,7 @@ public class SchemaKGroupedTableTest {
     when(step.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(schema, queryContext.getQueryContext())
     );
+    when(step.getSchema()).thenReturn(schema);
     return step;
   }
 
@@ -198,18 +211,8 @@ public class SchemaKGroupedTableTest {
             .map(c -> new QualifiedNameReference(QualifiedName.of("TEST1", c)))
             .collect(Collectors.toList());
 
-    final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
-        FormatInfo.of(Format.JSON, Optional.empty()),
-        PersistenceSchema
-            .from(initialSchemaKTable.getSchema().withoutAlias().valueConnectSchema(), false),
-        null,
-        () -> null,
-        "test",
-        processingLogContext
-    );
-
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
-        valueFormat, rowSerde, groupByExpressions, queryContext);
+        valueFormat, groupByExpressions, queryContext, queryBuilder);
     Assert.assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     return (SchemaKGroupedTable)groupedSchemaKTable;
   }

@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.streams.kstream.Merger;
@@ -257,6 +258,16 @@ public class InternalFunctionRegistryTest {
               }
 
               @Override
+              public Schema getAggregateType() {
+                return null;
+              }
+
+              @Override
+              public SqlType aggregateType() {
+                return null;
+              }
+
+              @Override
               public Schema getReturnType() {
                 return null;
               }
@@ -278,6 +289,11 @@ public class InternalFunctionRegistryTest {
 
               @Override
               public Merger getMerger() {
+                return null;
+              }
+
+              @Override
+              public Function getResultMapper() {
                 return null;
               }
 

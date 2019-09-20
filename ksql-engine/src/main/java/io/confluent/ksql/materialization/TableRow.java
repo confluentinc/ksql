@@ -29,4 +29,9 @@ public interface TableRow {
   Optional<Window> window();
 
   GenericRow value();
+
+  TableRow withValue(
+      GenericRow newValue,
+      LogicalSchema newSchema
+  );
 }

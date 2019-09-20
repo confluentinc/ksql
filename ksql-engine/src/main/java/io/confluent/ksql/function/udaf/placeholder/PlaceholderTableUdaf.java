@@ -20,7 +20,7 @@ import io.confluent.ksql.function.udaf.TableUdaf;
 /**
  * A no-op {@link TableUdaf} that is used as a placeholder for some later hardcoded computation.
  */
-public final class PlaceholderTableUdaf implements TableUdaf<Long, Long> {
+public final class PlaceholderTableUdaf implements TableUdaf<Long, Long, Long> {
 
   public static final PlaceholderTableUdaf INSTANCE = new PlaceholderTableUdaf();
 
@@ -45,5 +45,10 @@ public final class PlaceholderTableUdaf implements TableUdaf<Long, Long> {
   @Override
   public Long merge(final Long aggOne, final Long aggTwo) {
     return null;
+  }
+
+  @Override
+  public Long map(final Long agg) {
+    return agg;
   }
 }

@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.materialization.Row;
 import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.materialization.Window;
@@ -29,7 +30,6 @@ import io.confluent.ksql.materialization.WindowedRow;
 import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.structured.StructKeyUtil;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;

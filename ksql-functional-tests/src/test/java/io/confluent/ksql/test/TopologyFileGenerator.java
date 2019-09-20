@@ -123,7 +123,7 @@ public final class TopologyFileGenerator {
             .println(String.format("Done writing topology files to %s", generatedTopologyPath));
     }
 
-    private static List<TestCase> getTestCases() {
+    static List<TestCase> getTestCases() {
         return QueryTranslationTest.findTestCases()
             .filter(q -> !q.expectedException().isPresent())
             .collect(Collectors.toList());
@@ -172,7 +172,7 @@ public final class TopologyFileGenerator {
         });
     }
 
-    private static Map<String, Object> baseConfig() {
+    static Map<String, Object> baseConfig() {
         return ImmutableMap.<String, Object>builder()
             .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
             .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
@@ -187,17 +187,17 @@ public final class TopologyFileGenerator {
             .build();
     }
 
-    private static ServiceContext getServiceContext() {
+    static ServiceContext getServiceContext() {
         final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
         return TestServiceContext.create(() -> schemaRegistryClient);
     }
 
-    private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
+    static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
         final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
         return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
     }
 
-    private static PersistentQueryMetadata buildQuery(
+    static PersistentQueryMetadata buildQuery(
         final TestCase testCase,
         final ServiceContext serviceContext,
         final KsqlEngine ksqlEngine,

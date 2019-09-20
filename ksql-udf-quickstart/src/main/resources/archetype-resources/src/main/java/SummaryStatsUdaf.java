@@ -50,9 +50,9 @@ public final class SummaryStatsUdaf {
   @UdafFactory(description = "compute summary stats for doubles")
   // Can be used with stream aggregations. The input of our aggregation will be doubles,
   // and the output will be a map
-  public static Udaf<Double, Map<String, Double>> createUdaf() {
+  public static Udaf<Double, Map<String, Double>, Map<String, Double>> createUdaf() {
 
-    return new Udaf<Double, Map<String, Double>>() {
+    return new Udaf<Double, Map<String, Double>, Map<String, Double>>() {
 
       /**
        * Specify an initial value for our aggregation
@@ -116,6 +116,17 @@ public final class SummaryStatsUdaf {
         newAggregate.put("sample_size", sampleSize);
         newAggregate.put("sum", sum);
         return newAggregate;
+      }
+
+      /**
+       * Called to map the intermediate aggregate value to the final output.
+       *
+       * @param agg the aggregate
+       * @return the result of aggregation
+       */
+      @Override
+      public Map<String, Double> map(final Map<String, Double> agg) {
+        return agg;
       }
     };
   }

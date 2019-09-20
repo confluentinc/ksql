@@ -45,34 +45,18 @@ class ExpressionAnalyzer {
     this.sourceSchemas = Objects.requireNonNull(sourceSchemas, "sourceSchemas");
   }
 
-  void analyzeExpression(final Expression expression) {
-    final Visitor visitor = new Visitor();
+  void analyzeExpression(final Expression expression, final boolean allowWindowMetaFields) {
+    final Visitor visitor = new Visitor(allowWindowMetaFields);
     visitor.process(expression, null);
   }
 
-  private void throwOnUnknownField(final QualifiedName name) {
-    final Set<String> sourcesWithField = sourceSchemas.sourcesWithField(name.name());
-    if (sourcesWithField.isEmpty()) {
-      throw new KsqlException("Field '" + name + "' cannot be resolved.");
+  private final class Visitor extends VisitParentExpressionVisitor<Object, Object> {
+
+    private final boolean allowWindowMetaFields;
+
+    Visitor(final boolean allowWindowMetaFields) {
+      this.allowWindowMetaFields = allowWindowMetaFields;
     }
-
-    if (name.qualifier().isPresent()) {
-      if (!sourcesWithField.contains(name.qualifier().get())) {
-        throw new KsqlException("Source '" + name.qualifier() + "', "
-            + "used in '" + name + "' cannot be resolved.");
-      }
-    } else if (sourcesWithField.size() > 1) {
-      final String possibilities = sourcesWithField.stream()
-          .sorted()
-          .map(source -> SchemaUtil.buildAliasedFieldName(source, name.name()))
-          .collect(Collectors.joining(","));
-
-      throw new KsqlException("Field '" + name + "' is ambiguous. "
-          + "Could be any of: " + possibilities);
-    }
-  }
-
-  private class Visitor extends VisitParentExpressionVisitor<Object, Object> {
 
     public Object visitLikePredicate(final LikePredicate node, final Object context) {
       process(node.getValue(), null);
@@ -137,6 +121,33 @@ class ExpressionAnalyzer {
     ) {
       throwOnUnknownField(node.getName());
       return null;
+    }
+
+    private void throwOnUnknownField(final QualifiedName name) {
+      final Set<String> sourcesWithField = sourceSchemas.sourcesWithField(name.name());
+      if (sourcesWithField.isEmpty()) {
+        if (allowWindowMetaFields && name.name().equals(SchemaUtil.WINDOWSTART_NAME)) {
+          return;
+        }
+
+        throw new KsqlException("Field '" + name + "' cannot be resolved.");
+      }
+
+      if (name.qualifier().isPresent()) {
+        final String qualifier = name.qualifier().get();
+        if (!sourcesWithField.contains(qualifier)) {
+          throw new KsqlException("Source '" + qualifier + "', "
+              + "used in '" + name + "' cannot be resolved.");
+        }
+      } else if (sourcesWithField.size() > 1) {
+        final String possibilities = sourcesWithField.stream()
+            .sorted()
+            .map(source -> SchemaUtil.buildAliasedFieldName(source, name.name()))
+            .collect(Collectors.joining(", "));
+
+        throw new KsqlException("Field '" + name + "' is ambiguous. "
+            + "Could be any of: " + possibilities);
+      }
     }
   }
 }

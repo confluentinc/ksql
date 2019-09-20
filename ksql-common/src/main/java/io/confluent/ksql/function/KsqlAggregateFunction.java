@@ -17,19 +17,24 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 
-public interface KsqlAggregateFunction<V, A> extends IndexedFunction {
+public interface KsqlAggregateFunction<I, A, O> extends IndexedFunction {
 
-  KsqlAggregateFunction<V, A> getInstance(AggregateFunctionArguments aggregateFunctionArguments);
+  KsqlAggregateFunction<I, A, O> getInstance(AggregateFunctionArguments aggregateFunctionArguments);
 
   Supplier<A> getInitialValueSupplier();
 
   int getArgIndexInValue();
+
+  Schema getAggregateType();
+
+  SqlType aggregateType();
 
   Schema getReturnType();
 
@@ -41,12 +46,14 @@ public interface KsqlAggregateFunction<V, A> extends IndexedFunction {
    * Merges values inside the window.
    * @return A - type of return value
    */
-  A aggregate(V currentValue, A aggregateValue);
+  A aggregate(I currentValue, A aggregateValue);
 
   /**
    * Merges two session windows together with the same merge key.
    */
   Merger<Struct, A> getMerger();
+
+  Function<A, O> getResultMapper();
 
   String getDescription();
 

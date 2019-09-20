@@ -48,6 +48,7 @@ public final class SchemaUtil {
 
   public static final String ROWKEY_NAME = "ROWKEY";
   public static final String ROWTIME_NAME = "ROWTIME";
+  public static final String WINDOWSTART_NAME = "WINDOWSTART";
 
   public static final int ROWKEY_INDEX = 1;
 

@@ -29,7 +29,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldCollectInts() {
-    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
     final Integer[] values = new Integer[] {3, 4, 5, 3};
     List<Integer> runningList = udaf.initialize();
     for (final Integer i : values) {
@@ -40,7 +40,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldMergeIntLists() {
-    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
 
     List<Integer> lhs = udaf.initialize();
     final Integer[] lhsValues = new Integer[] {1, 2, null, 3};
@@ -62,7 +62,7 @@ public class CollectListUdafTest {
 
   @Test
   public void shouldRespectSizeLimit() {
-    final TableUdaf<Integer, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
+    final TableUdaf<Integer, List<Integer>, List<Integer>> udaf = CollectListUdaf.createCollectListInt();
     List<Integer> runningList = udaf.initialize();
     for (int i = 1; i < 2500; i++) {
       runningList = udaf.aggregate(i, runningList);

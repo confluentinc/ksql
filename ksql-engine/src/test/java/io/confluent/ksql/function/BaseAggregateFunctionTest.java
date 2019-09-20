@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -74,7 +75,7 @@ public class BaseAggregateFunctionTest {
     assertThat(aggFunc.returnType(), is(SqlTypes.BIGINT));
   }
 
-  private static final class TestAggFunc extends BaseAggregateFunction<String, Integer> {
+  private static final class TestAggFunc extends BaseAggregateFunction<String, Integer, Integer> {
 
     TestAggFunc(
         final String functionName,
@@ -84,12 +85,12 @@ public class BaseAggregateFunctionTest {
         final List<Schema> arguments,
         final String description
     ) {
-      super(functionName, argIndexInValue, initialValueSupplier, returnType, arguments,
-          description);
+      super(functionName, argIndexInValue, initialValueSupplier, returnType, returnType,
+            arguments, description);
     }
 
     @Override
-    public KsqlAggregateFunction<String, Integer> getInstance(
+    public KsqlAggregateFunction<String, Integer, Integer> getInstance(
         final AggregateFunctionArguments args) {
       return null;
     }
@@ -101,6 +102,11 @@ public class BaseAggregateFunctionTest {
 
     @Override
     public Merger<Struct, Integer> getMerger() {
+      return null;
+    }
+
+    @Override
+    public Function<Integer, Integer> getResultMapper() {
       return null;
     }
   }

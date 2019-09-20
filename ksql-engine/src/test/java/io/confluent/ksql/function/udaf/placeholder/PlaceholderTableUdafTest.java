@@ -24,7 +24,7 @@ import org.junit.Test;
 
 public class PlaceholderTableUdafTest {
 
-  private final TableUdaf<Long, Long> udaf = PlaceholderTableUdaf.INSTANCE;
+  private final TableUdaf<Long, Long, Long> udaf = PlaceholderTableUdaf.INSTANCE;
 
   @Test
   public void shouldInitializeAsNull() {

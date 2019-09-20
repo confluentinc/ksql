@@ -24,34 +24,36 @@ import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("unused") // used in generated code
-public abstract class GeneratedTableAggregateFunction<V, A>
-    extends GeneratedAggregateFunction<V, A> implements TableAggregationFunction<V, A> {
+public abstract class GeneratedTableAggregateFunction<I, A, O>
+    extends GeneratedAggregateFunction<I, A, O> implements TableAggregationFunction<I, A, O> {
 
   public GeneratedTableAggregateFunction(
       final String functionName,
-      final Schema returnType,
+      final Schema aggregateType,
+      final Schema outputType,
       final List<Schema> arguments,
       final String description,
       final Optional<Metrics> metrics) {
-    super(functionName, returnType, arguments, description, metrics);
+    super(functionName, aggregateType, outputType, arguments, description, metrics);
   }
 
   protected GeneratedTableAggregateFunction(
       final String functionName,
       final int udafIndex,
       final Supplier<A> udafSupplier,
-      final Schema returnType,
+      final Schema aggregateType,
+      final Schema outputType,
       final List<Schema> arguments,
       final String description,
-      final Sensor aggregateSensor,
-      final Sensor mergeSensor) {
-    super(functionName, udafIndex, udafSupplier, returnType, arguments, description,
-          aggregateSensor,
-          mergeSensor);
+      final Optional<Sensor> aggregateSensor,
+      final Optional<Sensor> mapSensor,
+      final Optional<Sensor> mergeSensor) {
+    super(functionName, udafIndex, udafSupplier, aggregateType, outputType,
+          arguments, description, aggregateSensor, mapSensor, mergeSensor);
   }
 
   @Override
-  public A undo(final V valueToUndo, final A aggregateValue) {
-    return ((TableUdaf<V, A>) getUdaf()).undo(valueToUndo, aggregateValue);
+  public A undo(final I valueToUndo, final A aggregateValue) {
+    return ((TableUdaf<I, A, O>) getUdaf()).undo(valueToUndo, aggregateValue);
   }
 }

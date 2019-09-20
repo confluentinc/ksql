@@ -215,7 +215,7 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
     }
   }
 
-  private static TopologyAndConfigs readTopologyFile(
+  public static TopologyAndConfigs readTopologyFile(
       final String file,
       final ObjectReader objectReader
   ) {

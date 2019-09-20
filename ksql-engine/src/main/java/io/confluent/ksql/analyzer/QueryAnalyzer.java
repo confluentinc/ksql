@@ -17,6 +17,7 @@ package io.confluent.ksql.analyzer;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -27,7 +28,6 @@ import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
@@ -40,33 +40,49 @@ import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
 
-  private static final String NEW_QUERY_SYNTAX_HELP =
-      "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
-          + System.lineSeparator()
-          + "'Bare queries, e.g. those in the format 'SELECT * FROM X ...' are now, by default, "
-          + "static queries, i.e. they query the current state of the system and return a final "
-          + "result."
-          + System.lineSeparator()
-          + "To turn a static query into a streaming query, as was the default in older versions "
-          + "of KSQL, add `EMIT CHANGES` to the end of the statement, before any limit clause."
-          + System.lineSeparator()
-          + "Persistent queries, e.g. `CREATE STREAM AS ...`, currently have an implicit "
-          + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
-          + "as a this will be required in a future release.";
+  static final String NEW_QUERY_SYNTAX_HELP = System.lineSeparator()
+      + "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
+      + System.lineSeparator()
+      + "'Bare queries, e.g. those in the format 'SELECT * FROM X ...' are now, by default, "
+      + "static queries, i.e. they query the current state of the system and return a final "
+      + "result."
+      + System.lineSeparator()
+      + "To turn a static query into a streaming query, as was the default in older versions "
+      + "of KSQL, add `EMIT CHANGES` to the end of the statement, before any limit clause."
+      + System.lineSeparator()
+      + "Persistent queries, e.g. `CREATE STREAM AS ...`, currently have an implicit "
+      + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
+      + "as a this will be required in a future release.";
 
+  private final Analyzer analyzer;
   private final MetaStore metaStore;
-  private final String outputTopicPrefix;
-  private final Set<SerdeOption> defaultSerdeOptions;
+  private final QueryValidator continuousValidator;
+  private final QueryValidator staticValidator;
 
   public QueryAnalyzer(
       final MetaStore metaStore,
       final String outputTopicPrefix,
       final Set<SerdeOption> defaultSerdeOptions
   ) {
+    this(
+        metaStore,
+        new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions),
+        new ContinuousQueryValidator(),
+        new StaticQueryValidator()
+    );
+  }
+
+  @VisibleForTesting
+  QueryAnalyzer(
+      final MetaStore metaStore,
+      final Analyzer analyzer,
+      final QueryValidator continuousValidator,
+      final QueryValidator staticValidator
+  ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
-    this.outputTopicPrefix = requireNonNull(outputTopicPrefix, "outputTopicPrefix");
-    this.defaultSerdeOptions = ImmutableSet.copyOf(
-        requireNonNull(defaultSerdeOptions, "defaultSerdeOptions"));
+    this.analyzer = requireNonNull(analyzer, "analyzer");
+    this.continuousValidator = requireNonNull(continuousValidator, "continuousValidator");
+    this.staticValidator = requireNonNull(staticValidator, "staticValidator");
   }
 
   public Analysis analyze(
@@ -74,23 +90,20 @@ public class QueryAnalyzer {
       final Optional<Sink> sink
   ) {
     if (query.isStatic()) {
-      throw new KsqlException("Static queries are not yet supported. "
-          + "Consider adding 'EMIT CHANGES' to any bare query, "
-          + System.lineSeparator()
-          + NEW_QUERY_SYNTAX_HELP
-      );
+      staticValidator.preValidate(query, sink);
+    } else {
+      continuousValidator.preValidate(query, sink);
     }
 
-    if (query.getResultMaterialization() != ResultMaterialization.CHANGES) {
-      throw new KsqlException("Continous queries do not yet support `EMIT FINAL`. "
-          + "Consider changing to `EMIT CHANGES`."
-          + System.lineSeparator()
-          + NEW_QUERY_SYNTAX_HELP
-      );
+    final Analysis analysis = analyzer.analyze(query, sink);
+
+    if (query.isStatic()) {
+      staticValidator.postValidate(analysis);
+    } else {
+      continuousValidator.postValidate(analysis);
     }
 
-    return new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions)
-        .analyze(query, sink);
+    return analysis;
   }
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {

@@ -28,32 +28,23 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
-import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.kstream.KStream;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -92,13 +83,9 @@ public class KsqlStructuredDataOutputNodeTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private KsqlConfig ksqlConfig;
-  @Mock
   private QueryIdGenerator queryIdGenerator;
   @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
-  @Mock
-  private FunctionRegistry functionRegistry;
   @Mock
   private PlanNode sourceNode;
   @Mock
@@ -112,17 +99,9 @@ public class KsqlStructuredDataOutputNodeTest {
   @Mock
   private SchemaKStream<?> sinkStreamWithKeySelected;
   @Mock
-  private KStream<String, GenericRow> kstream;
-  @Mock
   private KsqlTopic ksqlTopic;
-  @Mock
-  private Serde<GenericRow> rowSerde;
-  @Captor
-  private ArgumentCaptor<QueryContext> queryContextCaptor;
   @Captor
   private ArgumentCaptor<QueryContext.Stacker> stackerCaptor;
-
-  private final Set<SerdeOption> serdeOptions = SerdeOption.none();
 
   private KsqlStructuredDataOutputNode outputNode;
   private LogicalSchema schema;
@@ -145,14 +124,13 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceStream.withKeyField(any()))
         .thenReturn(resultStream);
-    when(resultStream.into(any(), any(), any(), any(), any(), any(), any()))
+    when(resultStream.into(any(), any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
     when(resultStream.selectKey(any(), anyBoolean(), any()))
         .thenReturn((SchemaKStream) resultWithKeySelected);
-    when(resultWithKeySelected.into(any(), any(), any(), any(), any(), any(), any()))
+    when(resultWithKeySelected.into(any(), any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
 
-    when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker(QUERY_ID)
             .push(inv.getArgument(0).toString()));
@@ -334,27 +312,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(ksqlStreamBuilder).buildValueSerde(
-        eq(valueFormat.getFormatInfo()),
-        any(),
-        any()
-    );
-  }
-
-  @Test
-  public void shouldBuildRowSerdeCorrectly() {
-    // When:
-    outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(ksqlStreamBuilder).buildValueSerde(
-        eq(FormatInfo.of(Format.JSON)),
-        eq(PhysicalSchema.from(SCHEMA, serdeOptions)),
-        queryContextCaptor.capture()
-    );
-
-    assertThat(QueryLoggerUtil.queryLoggerName(queryContextCaptor.getValue()),
-        is("output-test.0"));
+    verify(resultStream).into(any(), any(), eq(valueFormat), any(), any(), any());
   }
 
   @Test
@@ -365,69 +323,17 @@ public class KsqlStructuredDataOutputNodeTest {
     // Then:
     verify(resultStream).into(
         eq(SINK_KAFKA_TOPIC_NAME),
-        same(rowSerde),
         eq(SCHEMA),
         eq(JSON_FORMAT),
         eq(SerdeOption.none()),
-        eq(ImmutableSet.of()),
-        stackerCaptor.capture()
+        stackerCaptor.capture(),
+        same(ksqlStreamBuilder)
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0"))
     );
     assertThat(result, sameInstance(sinkStream));
-  }
-
-  @Test
-  public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKey() {
-    // Given:
-    final LogicalSchema schema = SCHEMA.withMetaAndKeyColsInValue();
-    givenNodeWithSchema(schema);
-
-    // When:
-    outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(resultStream).into(
-        eq(SINK_KAFKA_TOPIC_NAME),
-        same(rowSerde),
-        any(),
-        any(),
-        any(),
-        eq(ImmutableSet.of(0, 1)),
-        any()
-    );
-  }
-
-  @Test
-  public void shouldCallIntoWithIndexesToRemoveImplicitsAndRowKeyRegardlessOfLocation() {
-    // Given:
-    final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.STRING)
-        .valueColumn("field2", SqlTypes.STRING)
-        .valueColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("field3", SqlTypes.STRING)
-        .valueColumn("timestamp", SqlTypes.BIGINT)
-        .valueColumn("ROWTIME", SqlTypes.BIGINT)
-        .valueColumn("key", SqlTypes.STRING)
-        .build();
-
-    givenNodeWithSchema(schema);
-
-    // When:
-    outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(resultStream).into(
-        eq(SINK_KAFKA_TOPIC_NAME),
-        same(rowSerde),
-        any(),
-        any(),
-        any(),
-        eq(ImmutableSet.of(2, 5)),
-        any()
-    );
   }
 
   private void givenInsertIntoNode() {

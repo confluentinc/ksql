@@ -23,12 +23,15 @@ import org.apache.kafka.connect.data.Schema;
 public class DoubleMinKudaf extends BaseNumberKudaf<Double> {
 
   DoubleMinKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, Schema.OPTIONAL_FLOAT64_SCHEMA, Double::min,
-        "Computes the minimum double value by key.");
+    super(functionName,
+          argIndexInValue,
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Double::min,
+          "Computes the minimum double value by key.");
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(
+  public KsqlAggregateFunction<Double, Double, Double> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new DoubleMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

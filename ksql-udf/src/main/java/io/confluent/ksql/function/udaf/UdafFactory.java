@@ -90,10 +90,19 @@ public @interface UdafFactory {
    * The schema for the parameter.
    *
    * <p>For simple parameters, this is optional and can be determined from
-   * the Java value itself. For complex return types (e.g. {@code Struct} types),
+   * the Java value itself. For complex input types (e.g. {@code Struct} types),
    * this is required and will fail if not supplied.
    */
   String paramSchema() default "";
+
+  /**
+   * The schema for the intermediate aggregate value.
+   *
+   * <p>For simple parameters, this is optional and can be determined from
+   * the Java value itself. For complex aggregate types (e.g. {@code Struct} types),
+   * this is required and will fail if not supplied.
+   */
+  String aggregateSchema() default "";
 
   /**
    * The schema for the return value.

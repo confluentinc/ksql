@@ -180,7 +180,7 @@ public class UdfLoader {
   ) {
     return (theClass) ->  {
       final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
-      final List<KsqlAggregateFunction<?, ?>> aggregateFunctions
+      final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions
           = Arrays.stream(theClass.getMethods())
           .filter(method -> method.getAnnotation(UdafFactory.class) != null)
           .filter(method -> {
@@ -206,6 +206,7 @@ public class UdfLoader {
                   udafAnnotation.name(),
                   annotation.description(),
                   annotation.paramSchema(),
+                  annotation.aggregateSchema(),
                   annotation.returnSchema()
               ));
             } catch (final Exception e) {
@@ -216,7 +217,7 @@ public class UdfLoader {
                   path,
                   e);
             }
-            return Optional.<KsqlAggregateFunction<?, ?>>empty();
+            return Optional.<KsqlAggregateFunction<?, ?, ?>>empty();
           }).filter(Optional::isPresent)
           .map(Optional::get)
           .collect(Collectors.toList());

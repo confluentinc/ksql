@@ -15,9 +15,22 @@
 
 package io.confluent.ksql.rest.server.filters;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
+
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.util.KsqlException;
+import java.net.URI;
+import java.security.Principal;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import org.glassfish.jersey.internal.PropertiesDelegate;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.junit.Before;
@@ -25,21 +38,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
-
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
-import java.net.URI;
-import java.security.Principal;
-import java.util.Optional;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlAuthorizationFilterTest {
@@ -87,6 +85,32 @@ public class KsqlAuthorizationFilterTest {
     assertThat(request.getAbortResponse().getStatus(), is(FORBIDDEN));
     assertThat(((KsqlErrorMessage)request.getAbortResponse().getEntity()).getMessage(),
         is("access denied"));
+  }
+
+  @Test
+  public void filterShouldContinueOnUnauthorizedMetadataPath() {
+    // Given:
+    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "metadata");
+
+    // When:
+    authorizationFilter.filter(request);
+
+    // Then:
+    assertThat(request.getAbortResponse(), is(nullValue()));
+    verifyZeroInteractions(authorizationProvider);
+  }
+
+  @Test
+  public void filterShouldContinueOnUnauthorizedMetadataIdPath() {
+    // Given:
+    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "metadata/id");
+
+    // When:
+    authorizationFilter.filter(request);
+
+    // Then:
+    assertThat(request.getAbortResponse(), is(nullValue()));
+    verifyZeroInteractions(authorizationProvider);
   }
 
   private ContainerRequest givenRequestContext(

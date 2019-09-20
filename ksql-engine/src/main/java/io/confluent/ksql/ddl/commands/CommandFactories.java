@@ -37,9 +37,11 @@ import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.RegisterType;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.SerdeOption;
@@ -51,6 +53,7 @@ import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
@@ -264,6 +267,29 @@ public class CommandFactories implements DdlCommandFactory {
     if (Iterables.isEmpty(tableElements)) {
       throw new KsqlException("The statement does not define any columns.");
     }
+
+    tableElements.forEach(e -> {
+      if (e.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
+        throw new KsqlException("'" + e.getName() + "' is a reserved column name.");
+      }
+
+      final boolean isRowKey = e.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME);
+
+      if (e.getNamespace() == Namespace.KEY) {
+        if (!isRowKey) {
+          throw new KsqlException("'" + e.getName() + "' is an invalid KEY column name. "
+              + "KSQL currently only supports KEY columns named ROWKEY.");
+        }
+
+        if (e.getType().getSqlType().baseType() != SqlBaseType.STRING) {
+          throw new KsqlException("'" + e.getName() + "' is a KEY column with an unsupported type. "
+              + "KSQL currently only supports KEY columns of type " + SqlBaseType.STRING + ".");
+        }
+      } else if (isRowKey) {
+        throw new KsqlException("'" + e.getName() + "' is a reserved column name. "
+            + "It can only be used for KEY columns.");
+      }
+    });
 
     return tableElements.toLogicalSchema();
   }

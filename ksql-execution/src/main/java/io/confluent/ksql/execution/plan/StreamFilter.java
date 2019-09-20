@@ -15,22 +15,21 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class StreamFilter<S> implements ExecutionStep<S> {
+public class StreamFilter<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<S> source;
+  private final ExecutionStep<KStreamHolder<K>> source;
   private final Expression filterExpression;
 
   public StreamFilter(
       final ExecutionStepProperties properties,
-      final ExecutionStep<S> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final Expression filterExpression) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -51,13 +50,13 @@ public class StreamFilter<S> implements ExecutionStep<S> {
     return filterExpression;
   }
 
-  public ExecutionStep<S> getSource() {
+  public ExecutionStep<KStreamHolder<K>> getSource() {
     return source;
   }
 
   @Override
-  public S build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KStreamHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamFilter(this);
   }
 
   @Override

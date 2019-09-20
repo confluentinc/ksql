@@ -16,23 +16,21 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
 public class StreamGroupByKey implements ExecutionStep<KGroupedStream<Struct, GenericRow>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KStream<Struct, GenericRow>> source;
+  private final ExecutionStep<KStreamHolder<Struct>> source;
   private final Formats formats;
 
   public StreamGroupByKey(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KStream<Struct, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<Struct>> source,
       final Formats formats) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -49,7 +47,7 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStream<Struct, Ge
     return Collections.singletonList(source);
   }
 
-  public ExecutionStep<KStream<Struct, GenericRow>> getSource() {
+  public ExecutionStep<KStreamHolder<Struct>> getSource() {
     return source;
   }
 
@@ -58,8 +56,8 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStream<Struct, Ge
   }
 
   @Override
-  public KGroupedStream<Struct, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KGroupedStream<Struct, GenericRow> build(final PlanBuilder builder) {
+    return builder.visitStreamGroupByKey(this);
   }
 
   @Override

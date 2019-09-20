@@ -17,8 +17,11 @@ package io.confluent.ksql.physical;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
+import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -59,7 +62,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-import io.confluent.ksql.util.QuerySchemas;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -78,6 +80,8 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class PhysicalPlanBuilder {
@@ -152,6 +156,7 @@ public class PhysicalPlanBuilder {
           ksqlConfig.getString(KsqlConfig.KSQL_TRANSIENT_QUERY_NAME_PREFIX_CONFIG);
 
       return buildPlanForBareQuery(
+          ksqlQueryBuilder,
           resultStream,
           (KsqlBareOutputNode) outputNode,
           getServiceId(),
@@ -169,13 +174,13 @@ public class PhysicalPlanBuilder {
           ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
 
       return buildPlanForStructuredOutputNode(
+          ksqlQueryBuilder,
           logicalPlanNode.getStatementText(),
           resultStream,
           ksqlStructuredDataOutputNode,
           getServiceId(),
           persistanceQueryPrefix,
-          queryId,
-          ksqlQueryBuilder.getSchemas()
+          queryId
       );
     }
 
@@ -183,6 +188,7 @@ public class PhysicalPlanBuilder {
   }
 
   private QueryMetadata buildPlanForBareQuery(
+      final KsqlQueryBuilder ksqlQueryBuilder,
       final SchemaKStream<?> schemaKStream,
       final KsqlBareOutputNode bareOutputNode,
       final String serviceId,
@@ -204,8 +210,18 @@ public class PhysicalPlanBuilder {
         processingLogContext
     );
 
+    final KStream<?, GenericRow> kStream;
+    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
+    if (schemaKStream instanceof SchemaKTable) {
+      final KTable<?, GenericRow> kTable =
+          ((SchemaKTable<?>) schemaKStream).getSourceTableStep().build(planBuilder).getTable();
+      kStream = kTable.toStream();
+    } else {
+      kStream = schemaKStream.getSourceStep().build(planBuilder).getStream();
+    }
+
     final TransientQueryQueue<?> queue =
-        new TransientQueryQueue<>(schemaKStream, bareOutputNode.getLimit());
+        new TransientQueryQueue<>(kStream, bareOutputNode.getLimit());
 
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
 
@@ -231,20 +247,22 @@ public class PhysicalPlanBuilder {
   }
 
   private QueryMetadata buildPlanForStructuredOutputNode(
+      final KsqlQueryBuilder ksqlQueryBuilder,
       final String sqlExpression,
       final SchemaKStream<?> schemaKStream,
       final KsqlStructuredDataOutputNode outputNode,
       final String serviceId,
       final String persistanceQueryPrefix,
-      final QueryId queryId,
-      final QuerySchemas schemas
+      final QueryId queryId
   ) {
     final DataSourceType sourceType = (schemaKStream instanceof SchemaKTable)
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM;
 
     final DataSource<?> sinkDataSource;
+    final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
     if (sourceType == DataSourceType.KTABLE) {
+      ((SchemaKTable) schemaKStream).getSourceTableStep().build(planBuilder);
       sinkDataSource = new KsqlTable<>(
           sqlExpression,
           outputNode.getIntoSourceName(),
@@ -255,6 +273,7 @@ public class PhysicalPlanBuilder {
           outputNode.getKsqlTopic()
       );
     } else {
+      schemaKStream.getSourceStep().build(planBuilder);
       sinkDataSource = new KsqlStream<>(
           sqlExpression,
           outputNode.getIntoSourceName(),
@@ -315,7 +334,7 @@ public class PhysicalPlanBuilder {
         applicationId,
         sinkDataSource.getKsqlTopic(),
         topology,
-        schemas,
+        ksqlQueryBuilder.getSchemas(),
         streamsProperties,
         overriddenProperties,
         queryCloseCallback

@@ -12,12 +12,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.plan;
 
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Windowed;
 
 public interface KeySerdeFactory<K> {
   KeySerde<K> buildKeySerde(
@@ -25,4 +28,19 @@ public interface KeySerdeFactory<K> {
       PhysicalSchema physicalSchema,
       QueryContext queryContext
   );
+
+  static KeySerdeFactory<Struct> unwindowed(final KsqlQueryBuilder queryBuilder) {
+    return (fmt, schema, ctx) ->
+        queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx);
+  }
+
+  static KeySerdeFactory<Windowed<Struct>> windowed(final KsqlQueryBuilder queryBuilder) {
+    return (fmt, schema, ctx) ->
+        queryBuilder.buildKeySerde(
+            fmt.getFormatInfo(),
+            fmt.getWindowInfo().get(),
+            schema,
+            ctx
+        );
+  }
 }

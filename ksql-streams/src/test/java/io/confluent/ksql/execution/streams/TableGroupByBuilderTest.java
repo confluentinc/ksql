@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -20,6 +21,9 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.TableKeyValueMapper;
 import io.confluent.ksql.execution.util.StructKeyUtil;
@@ -94,7 +98,7 @@ public class TableGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep<KTable<Struct, GenericRow>> sourceStep;
+  private ExecutionStep<KTableHolder<Struct>> sourceStep;
   @Mock
   private KeySerde<Struct> keySerde;
   @Mock
@@ -112,6 +116,7 @@ public class TableGroupByBuilderTest {
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
 
+  private PlanBuilder planBuilder;
   private TableGroupBy<Struct> groupBy;
 
   @Rule
@@ -130,19 +135,30 @@ public class TableGroupByBuilderTest {
         .thenReturn(groupedTable);
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
+    when(sourceStep.build(any())).thenReturn(
+        new KTableHolder<>(sourceTable, mock(KeySerdeFactory.class)));
     groupBy = new TableGroupBy<>(
         PROPERTIES,
         sourceStep,
         FORMATS,
         GROUPBY_EXPRESSIONS
     );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        new StreamsFactories(
+            groupedFactory,
+            mock(JoinedFactory.class),
+            mock(MaterializedFactory.class)
+        )
+    );
   }
 
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedTable result =
-        TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    final KGroupedTable<Struct, GenericRow> result = groupBy.build(planBuilder);
 
     // Then:
     assertThat(result, is(groupedTable));
@@ -164,7 +180,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldFilterNullRowsBeforeGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(sourceTable).filter(predicateCaptor.capture());
@@ -176,7 +192,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildGroupedCorrectlyForGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
@@ -185,7 +201,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -198,7 +214,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildValueSerde(

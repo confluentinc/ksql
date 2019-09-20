@@ -24,6 +24,8 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,8 +34,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.name.ColumnName;
@@ -141,6 +145,7 @@ public class StreamSourceBuilderTest {
   private ArgumentCaptor<Consumed> consumedCaptor;
   private Optional<AutoOffsetReset> offsetReset = Optional.of(AutoOffsetReset.EARLIEST);
   private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
+  private PlanBuilder planBuilder;
 
   private StreamSource<KStream<?, GenericRow>> streamSource;
 
@@ -170,10 +175,17 @@ public class StreamSourceBuilderTest {
     when(physicalSchemaFactory.apply(any(), any())).thenReturn(PHYSICAL_SCHEMA);
     when(processorCtx.timestamp()).thenReturn(456L);
     when(keyFormat.getFormatInfo()).thenReturn(keyFormatInfo);
-    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
+    );
   }
 
   private void givenWindowedSource() {
+    when(keyFormat.isWindowed()).thenReturn(true);
+    when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
     streamSource = new StreamSource<>(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
@@ -181,12 +193,13 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        SOURCE_SCHEMA,
-        StreamSourceBuilder::buildWindowed
+        SOURCE_SCHEMA
     );
   }
 
   private void givenUnwindowedSource() {
+    when(keyFormat.isWindowed()).thenReturn(false);
+    when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
     streamSource = new StreamSource<>(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
@@ -194,8 +207,7 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        SOURCE_SCHEMA,
-        StreamSourceBuilder::buildUnwindowed
+        SOURCE_SCHEMA
     );
   }
 
@@ -206,10 +218,10 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When:
-    final KStream<?, GenericRow> builtKstream = streamSource.build(queryBuilder);
+    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
 
     // Then:
-    assertThat(builtKstream, is(kStream));
+    assertThat(builtKstream.getStream(), is(kStream));
     final InOrder validator = inOrder(streamsBuilder, kStream);
     validator.verify(streamsBuilder).stream(eq(TOPIC_NAME), consumedCaptor.capture());
     validator.verify(kStream).mapValues(any(ValueMapperWithKey.class));
@@ -230,7 +242,7 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
 
     verify(streamsBuilder).stream(anyString(), consumedCaptor.capture());
     final Consumed consumed = consumedCaptor.getValue();
@@ -249,7 +261,7 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildValueSerde(valueFormatInfo, PHYSICAL_SCHEMA, ctx);
@@ -261,7 +273,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -275,7 +287,7 @@ public class StreamSourceBuilderTest {
   @SuppressWarnings("unchecked")
   private ValueMapperWithKey<?, GenericRow, GenericRow> getMapperFromStreamSource(
       final StreamSource<?> streamSource) {
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
     verify(kStream).mapValues(mapperCaptor.capture());
     return mapperCaptor.getValue();
   }
@@ -326,20 +338,19 @@ public class StreamSourceBuilderTest {
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
             .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
             .valueColumns(SCHEMA.value())
-            .build(),
-        StreamSourceBuilder::buildUnwindowed
+            .build()
     );
 
     // Then:
     expectedException.expect(instanceOf(IllegalStateException.class));
 
     // When:
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
   }
 
   @SuppressWarnings("unchecked")
   private ValueTransformer getTransformerFromStreamSource(final StreamSource<?> streamSource) {
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
     return transformSupplierCaptor.getValue().get();
   }
@@ -366,7 +377,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -384,7 +395,7 @@ public class StreamSourceBuilderTest {
     givenUnwindowedSource();
 
     // When:
-    streamSource.build(queryBuilder);
+    streamSource.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -392,5 +403,35 @@ public class StreamSourceBuilderTest {
         PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS),
         ctx
     );
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldReturnCorrectSerdeFactory() {
+    // Given:
+    givenUnwindowedSource();
+
+    // When:
+    final KStreamHolder<?> stream = streamSource.build(planBuilder);
+
+    // Then:
+    reset(queryBuilder);
+    stream.getKeySerdeFactory().buildKeySerde(keyFormat, PHYSICAL_SCHEMA, ctx);
+    verify(queryBuilder).buildKeySerde(keyFormatInfo, PHYSICAL_SCHEMA, ctx);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldReturnCorrectSerdeFactoryForWindowedSource() {
+    // Given:
+    givenWindowedSource();
+
+    // When:
+    final KStreamHolder<?> stream = streamSource.build(planBuilder);
+
+    // Then:
+    reset(queryBuilder);
+    stream.getKeySerdeFactory().buildKeySerde(keyFormat, PHYSICAL_SCHEMA, ctx);
+    verify(queryBuilder).buildKeySerde(keyFormatInfo, windowInfo, PHYSICAL_SCHEMA, ctx);
   }
 }

@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -32,7 +33,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 public final class TableGroupByBuilder {
@@ -40,7 +40,7 @@ public final class TableGroupByBuilder {
   }
 
   public static <K> KGroupedTable<Struct, GenericRow> build(
-      final KTable<K, GenericRow> ktable,
+      final KTableHolder<K> table,
       final TableGroupBy<K> step,
       final KsqlQueryBuilder queryBuilder,
       final GroupedFactory groupedFactory
@@ -75,7 +75,7 @@ public final class TableGroupByBuilder {
         queryBuilder.getFunctionRegistry()
     );
     final GroupByMapper<K> mapper = new GroupByMapper<>(groupBy);
-    return ktable
+    return table.getTable()
         .filter((key, value) -> value != null)
         .groupBy(new TableKeyValueMapper<>(mapper), grouped);
   }

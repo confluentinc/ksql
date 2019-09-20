@@ -16,7 +16,6 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -24,11 +23,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
-public class StreamSource<S> implements ExecutionStep<S> {
+public class StreamSource<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepProperties properties;
   private final String topicName;
   private final Formats formats;
@@ -36,7 +34,6 @@ public class StreamSource<S> implements ExecutionStep<S> {
   private final int timestampIndex;
   private final Optional<AutoOffsetReset> offsetReset;
   private final LogicalSchema sourceSchema;
-  private final BiFunction<KsqlQueryBuilder, StreamSource<S>, S> builder;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
       final SourceName alias,
@@ -52,8 +49,7 @@ public class StreamSource<S> implements ExecutionStep<S> {
       final TimestampExtractionPolicy timestampPolicy,
       final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
-      final LogicalSchema sourceSchema,
-      final BiFunction<KsqlQueryBuilder, StreamSource<S>, S> builder) {
+      final LogicalSchema sourceSchema) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -61,12 +57,6 @@ public class StreamSource<S> implements ExecutionStep<S> {
     this.timestampIndex = timestampIndex;
     this.offsetReset = Objects.requireNonNull(offsetReset, "offsetReset");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
-    this.builder = Objects.requireNonNull(builder, "builder");
-  }
-
-  @Override
-  public S build(final KsqlQueryBuilder ksqlQueryBuilder) {
-    return builder.apply(ksqlQueryBuilder, this);
   }
 
   @Override
@@ -101,6 +91,11 @@ public class StreamSource<S> implements ExecutionStep<S> {
 
   public String getTopicName() {
     return topicName;
+  }
+
+  @Override
+  public KStreamHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamSource(this);
   }
 
   @Override

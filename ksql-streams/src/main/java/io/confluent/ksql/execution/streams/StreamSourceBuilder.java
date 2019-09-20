@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -40,7 +41,19 @@ public final class StreamSourceBuilder {
   private StreamSourceBuilder() {
   }
 
-  public static KStream<Struct, GenericRow> buildUnwindowed(
+  @SuppressWarnings("unchecked")
+  public static <K> KStreamHolder<K> build(
+      final KsqlQueryBuilder queryBuilder,
+      final StreamSource<?> streamSource
+  ) {
+    if (streamSource.getFormats().getKeyFormat().isWindowed()) {
+      return (KStreamHolder) buildWindowed(queryBuilder,streamSource);
+    } else {
+      return (KStreamHolder) buildUnwindowed(queryBuilder, streamSource);
+    }
+  }
+
+  public static KStreamHolder<Struct> buildUnwindowed(
       final KsqlQueryBuilder queryBuilder,
       final StreamSource<?> streamSource
   ) {
@@ -57,15 +70,19 @@ public final class StreamSourceBuilder {
         ),
         valueSerde
     );
-    return buildKStream(
+    final KStream<Struct, GenericRow> kstream = buildKStream(
         streamSource,
         queryBuilder,
         consumed,
         nonWindowedValueMapper(streamSource.getSourceSchema())
     );
+    return new KStreamHolder<>(
+        kstream,
+        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+    );
   }
 
-  public static KStream<Windowed<Struct>, GenericRow> buildWindowed(
+  public static KStreamHolder<Windowed<Struct>> buildWindowed(
       final KsqlQueryBuilder queryBuilder,
       final StreamSource<?> streamSource
   ) {
@@ -83,11 +100,20 @@ public final class StreamSourceBuilder {
         ),
         valueSerde
     );
-    return buildKStream(
+    final KStream<Windowed<Struct>, GenericRow> kstream = buildKStream(
         streamSource,
         queryBuilder,
         consumed,
         windowedMapper(streamSource.getSourceSchema())
+    );
+    return new KStreamHolder<>(
+        kstream,
+        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(
+            fmt.getFormatInfo(),
+            fmt.getWindowInfo().get(),
+            schema,
+            ctx
+        )
     );
   }
 

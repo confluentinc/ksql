@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -25,11 +24,10 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public class StreamWindowedAggregate
-    implements ExecutionStep<KTable<Windowed<Struct>, GenericRow>> {
+    implements ExecutionStep<KTableHolder<Windowed<Struct>>> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KGroupedStream<Struct, GenericRow>> source;
   private final Formats formats;
@@ -85,9 +83,13 @@ public class StreamWindowedAggregate
     return windowExpression;
   }
 
+  public ExecutionStep<KGroupedStream<Struct, GenericRow>> getSource() {
+    return source;
+  }
+
   @Override
-  public KTable<Windowed<Struct>, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
+    return builder.visitStreamWindowedAggregate(this);
   }
 
   @Override

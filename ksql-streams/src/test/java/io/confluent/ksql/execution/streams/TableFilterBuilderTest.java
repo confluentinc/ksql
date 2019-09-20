@@ -3,6 +3,7 @@
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,9 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -54,7 +58,7 @@ public class TableFilterBuilderTest {
   @Mock
   private LogicalSchema schema;
   @Mock
-  private ExecutionStep sourceStep;
+  private ExecutionStep<KTableHolder<Struct>> sourceStep;
   @Mock
   private ExecutionStepProperties sourceProperties;
   @Mock
@@ -63,12 +67,15 @@ public class TableFilterBuilderTest {
   private KTable<Struct, GenericRow> filteredKTable;
   @Mock
   private Expression filterExpression;
+  @Mock
+  private KeySerdeFactory<Struct> keySerdeFactory;
 
   private final QueryContext queryContext = new QueryContext.Stacker(new QueryId("foo"))
       .push("bar")
       .getQueryContext();
 
-  private TableFilter<KTable<Struct, GenericRow>> step;
+  private PlanBuilder planBuilder;
+  private TableFilter<Struct> step;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -91,28 +98,32 @@ public class TableFilterBuilderTest {
         queryContext
     );
     step = new TableFilter<>(properties, sourceStep, filterExpression);
+    when(sourceStep.build(any())).thenReturn(
+        new KTableHolder<>(sourceKTable, keySerdeFactory));
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        predicateFactory,
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
+    );
   }
 
   @Test
   @SuppressWarnings("unchecked")
   public void shouldFilterSourceTable() {
     // When:
-    final KTable result = TableFilterBuilder.build(
-        sourceKTable,
-        step,
-        queryBuilder,
-        predicateFactory
-    );
+    final KTableHolder<Struct> result = step.build(planBuilder);
 
     // Then:
-    assertThat(result, is(filteredKTable));
+    assertThat(result.getTable(), is(filteredKTable));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
     verify(sourceKTable).filter(predicate);
   }
 
   @Test
   public void shouldBuildSqlPredicateCorrectly() {
     // When:
-    TableFilterBuilder.build(sourceKTable, step, queryBuilder, predicateFactory);
+    step.build(planBuilder);
 
     // Then:
     verify(predicateFactory).create(
@@ -127,7 +138,7 @@ public class TableFilterBuilderTest {
   @Test
   public void shouldUseCorrectNameForProcessingLogger() {
     // When:
-    TableFilterBuilder.build(sourceKTable, step, queryBuilder, predicateFactory);
+    step.build(planBuilder);
 
     // Then:
     verify(processingLoggerFactory).getLogger("foo.bar.FILTER");

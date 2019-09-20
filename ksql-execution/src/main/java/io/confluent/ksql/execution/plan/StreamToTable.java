@@ -16,18 +16,17 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class StreamToTable<S, T> implements ExecutionStep<T> {
-  private final ExecutionStep<S> source;
+public class StreamToTable<K> implements ExecutionStep<KTableHolder<K>> {
+  private final ExecutionStep<KStreamHolder<K>> source;
   private final Formats formats;
   private final ExecutionStepProperties properties;
 
   public StreamToTable(
-      final ExecutionStep<S> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final Formats formats,
       final ExecutionStepProperties properties) {
     this.source = Objects.requireNonNull(source, "source");
@@ -45,7 +44,7 @@ public class StreamToTable<S, T> implements ExecutionStep<T> {
     return ImmutableList.of(source);
   }
 
-  public ExecutionStep<S> getSource() {
+  public ExecutionStep<KStreamHolder<K>> getSource() {
     return source;
   }
 
@@ -54,8 +53,8 @@ public class StreamToTable<S, T> implements ExecutionStep<T> {
   }
 
   @Override
-  public T build(final KsqlQueryBuilder builder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamToTable(this);
   }
 
   @Override
@@ -66,7 +65,7 @@ public class StreamToTable<S, T> implements ExecutionStep<T> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamToTable<?, ?> that = (StreamToTable<?, ?>) o;
+    final StreamToTable<?> that = (StreamToTable<?>) o;
     return Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
         && Objects.equals(properties, that.properties);

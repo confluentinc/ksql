@@ -23,6 +23,8 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -55,8 +57,6 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Windowed;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -65,7 +65,7 @@ public final class ExecutionStepFactory {
   private ExecutionStepFactory() {
   }
 
-  public static StreamSource<KStream<Windowed<Struct>, GenericRow>> streamSourceWindowed(
+  public static StreamSource<Windowed<Struct>> streamSourceWindowed(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
@@ -84,12 +84,11 @@ public final class ExecutionStepFactory {
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        schema.getOriginalSchema(),
-        StreamSourceBuilder::buildWindowed
+        schema.getOriginalSchema()
     );
   }
 
-  public static StreamSource<KStream<Struct, GenericRow>> streamSource(
+  public static StreamSource<Struct> streamSource(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
@@ -108,15 +107,14 @@ public final class ExecutionStepFactory {
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        schema.getOriginalSchema(),
-        StreamSourceBuilder::buildUnwindowed
+        schema.getOriginalSchema()
     );
   }
 
-  public static <K> StreamToTable<KStream<K, GenericRow>, KTable<K, GenericRow>> streamToTable(
+  public static <K> StreamToTable<K> streamToTable(
       final QueryContext.Stacker stacker,
       final Formats formats,
-      final ExecutionStep<KStream<K, GenericRow>> source
+      final ExecutionStep<KStreamHolder<K>> source
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamToTable<>(
@@ -130,7 +128,7 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final LogicalSchema outputSchema,
       final Formats formats,
-      final ExecutionStep<KStream<K, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final String topicName
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -142,9 +140,9 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamFilter<KStream<K, GenericRow>> streamFilter(
+  public static <K> StreamFilter<K> streamFilter(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStream<K, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final Expression filterExpression
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -155,9 +153,9 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamMapValues<KStream<K, GenericRow>> streamMapValues(
+  public static <K> StreamMapValues<K> streamMapValues(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStream<K, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final List<SelectExpression> selectExpressions,
       final KsqlQueryBuilder queryBuilder
   ) {
@@ -181,8 +179,8 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final JoinType joinType,
       final Formats formats,
-      final ExecutionStep<KStream<K, GenericRow>> left,
-      final ExecutionStep<KTable<K, GenericRow>> right,
+      final ExecutionStep<KStreamHolder<K>> left,
+      final ExecutionStep<KTableHolder<K>> right,
       final LogicalSchema resultSchema
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -200,8 +198,8 @@ public final class ExecutionStepFactory {
       final JoinType joinType,
       final Formats leftFormats,
       final Formats rightFormats,
-      final ExecutionStep<KStream<K, GenericRow>> left,
-      final ExecutionStep<KStream<K, GenericRow>> right,
+      final ExecutionStep<KStreamHolder<K>> left,
+      final ExecutionStep<KStreamHolder<K>> right,
       final LogicalSchema resultSchema,
       final JoinWindows joinWindows
   ) {
@@ -221,7 +219,7 @@ public final class ExecutionStepFactory {
   @SuppressWarnings("unchecked")
   public static <K> StreamSelectKey<K> streamSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStream<K, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final ColumnName fieldName,
       final boolean updateRowKey
   ) {
@@ -240,7 +238,7 @@ public final class ExecutionStepFactory {
   public static <K> TableSink<K> tableSink(
       final QueryContext.Stacker stacker,
       final LogicalSchema outputSchema,
-      final ExecutionStep<KTable<K, GenericRow>> source,
+      final ExecutionStep<KTableHolder<K>> source,
       final Formats formats,
       final String topicName
   ) {
@@ -253,9 +251,9 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> TableFilter<KTable<K, GenericRow>> tableFilter(
+  public static <K> TableFilter<K> tableFilter(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KTable<K, GenericRow>> source,
+      final ExecutionStep<KTableHolder<K>> source,
       final Expression filterExpression
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -266,9 +264,9 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> TableMapValues<KTable<K, GenericRow>> tableMapValues(
+  public static <K> TableMapValues<K> tableMapValues(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KTable<K, GenericRow>> source,
+      final ExecutionStep<KTableHolder<K>> source,
       final List<SelectExpression> selectExpressions,
       final KsqlQueryBuilder queryBuilder
   ) {
@@ -291,8 +289,8 @@ public final class ExecutionStepFactory {
   public static <K> TableTableJoin<K> tableTableJoin(
       final QueryContext.Stacker stacker,
       final JoinType joinType,
-      final ExecutionStep<KTable<K, GenericRow>> left,
-      final ExecutionStep<KTable<K, GenericRow>> right,
+      final ExecutionStep<KTableHolder<K>> left,
+      final ExecutionStep<KTableHolder<K>> right,
       final LogicalSchema resultSchema
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -348,7 +346,7 @@ public final class ExecutionStepFactory {
 
   public static <K> StreamGroupBy<K> streamGroupBy(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStream<K, GenericRow>> sourceStep,
+      final ExecutionStep<KStreamHolder<K>> sourceStep,
       final Formats format,
       final List<Expression> groupingExpressions
   ) {
@@ -363,7 +361,7 @@ public final class ExecutionStepFactory {
 
   public static StreamGroupByKey streamGroupByKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStream<Struct, GenericRow>> sourceStep,
+      final ExecutionStep<KStreamHolder<Struct>> sourceStep,
       final Formats formats
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
@@ -396,7 +394,7 @@ public final class ExecutionStepFactory {
 
   public static <K> TableGroupBy<K> tableGroupBy(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KTable<K, GenericRow>> sourceStep,
+      final ExecutionStep<KTableHolder<K>> sourceStep,
       final Formats format,
       final List<Expression> groupingExpressions
   ) {

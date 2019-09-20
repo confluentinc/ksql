@@ -17,6 +17,8 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import org.apache.kafka.common.utils.Bytes;
@@ -30,7 +32,7 @@ public final class TableAggregateBuilder {
   private TableAggregateBuilder() {
   }
 
-  public static KTable<Struct, GenericRow> build(
+  public static KTableHolder<Struct> build(
       final KGroupedTable<Struct, GenericRow> kgroupedTable,
       final TableAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -44,7 +46,7 @@ public final class TableAggregateBuilder {
     );
   }
 
-  public static KTable<Struct, GenericRow> build(
+  public static KTableHolder<Struct> build(
       final KGroupedTable<Struct, GenericRow> kgroupedTable,
       final TableAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -66,11 +68,12 @@ public final class TableAggregateBuilder {
             queryBuilder,
             materializedFactory
         );
-    return kgroupedTable.aggregate(
+    final KTable<Struct, GenericRow> aggregated = kgroupedTable.aggregate(
         aggregateParams.getInitializer(),
         aggregateParams.getAggregator(),
         aggregateParams.getUndoAggregator(),
         materialized
     ).mapValues(aggregateParams.getAggregator().getResultMapper());
+    return new KTableHolder<>(aggregated, KeySerdeFactory.unwindowed(queryBuilder));
   }
 }

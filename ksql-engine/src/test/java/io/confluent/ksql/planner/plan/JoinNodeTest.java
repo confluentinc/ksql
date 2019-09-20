@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
@@ -995,7 +996,13 @@ public class JoinNodeTest {
 
   private void buildJoin(final String queryString) {
     buildJoinNode(queryString);
-    joinNode.buildStream(ksqlStreamBuilder);
+    final SchemaKStream stream = joinNode.buildStream(ksqlStreamBuilder);
+    if (stream instanceof SchemaKTable) {
+      final SchemaKTable table = (SchemaKTable) stream;
+      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    } else {
+      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    }
   }
 
   private void buildJoinNode(final String queryString) {

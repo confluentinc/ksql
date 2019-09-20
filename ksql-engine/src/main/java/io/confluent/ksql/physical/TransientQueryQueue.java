@@ -16,7 +16,6 @@
 package io.confluent.ksql.physical;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -24,6 +23,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.ForeachAction;
+import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -37,13 +37,12 @@ class TransientQueryQueue<K> {
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =
       new LinkedBlockingQueue<>(100);
 
-  TransientQueryQueue(final SchemaKStream<K> schemaKStream, final OptionalInt limit) {
+  TransientQueryQueue(final KStream<?, GenericRow> kstream, final OptionalInt limit) {
     this.callback = limit.isPresent()
         ? new LimitedQueueCallback(limit.getAsInt())
         : new UnlimitedQueueCallback();
 
-    schemaKStream.getKstream()
-        .foreach(new TransientQueryQueue.QueuePopulator<>(rowQueue, callback));
+    kstream.foreach(new TransientQueryQueue.QueuePopulator<>(rowQueue, callback));
   }
 
   BlockingQueue<KeyValue<String, GenericRow>> getQueue() {

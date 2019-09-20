@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.util.SinkSchemaUtil;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -28,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.Produced;
 
 public final class StreamSinkBuilder {
@@ -36,15 +36,14 @@ public final class StreamSinkBuilder {
   }
 
   public static <K> void build(
-      final KStream<K, GenericRow> kstream,
+      final KStreamHolder<K> stream,
       final StreamSink<K> streamSink,
-      final KeySerdeFactory<K> keySerdeFactory,
       final KsqlQueryBuilder queryBuilder) {
     final QueryContext queryContext = streamSink.getProperties().getQueryContext();
     final LogicalSchema schema = SinkSchemaUtil.sinkSchema(streamSink);
     final Formats formats = streamSink.getFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
-    final KeySerde<K> keySerde = keySerdeFactory.buildKeySerde(
+    final KeySerde<K> keySerde = stream.getKeySerdeFactory().buildKeySerde(
         formats.getKeyFormat(),
         physicalSchema,
         queryContext
@@ -57,7 +56,7 @@ public final class StreamSinkBuilder {
     final Set<Integer> rowkeyIndexes =
         SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(streamSink);
     final String kafkaTopicName = streamSink.getTopicName();
-    kstream
+    stream.getStream()
         .mapValues(row -> {
           if (row == null) {
             return null;

@@ -22,7 +22,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -55,14 +54,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.SessionWindowedKStream;
-import org.apache.kafka.streams.kstream.SessionWindows;
-import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
 import org.junit.Test;
@@ -73,10 +65,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKGroupedStreamTest {
-  private static final LogicalSchema IN_SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("IN1"), SqlTypes.INTEGER)
-      .build();
   private static final LogicalSchema AGG_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("AGG0"), SqlTypes.BIGINT)
@@ -94,27 +82,17 @@ public class SchemaKGroupedStreamTest {
   );
 
   @Mock
-  private KGroupedStream groupedStream;
-  @Mock
-  private SessionWindowedKStream sessionWindowedStream;
-  @Mock
   private KeyField keyField;
   @Mock
   private List<SchemaKStream> sourceStreams;
   @Mock
   private KsqlConfig config;
   @Mock
-  private Serde<GenericRow> topicValueSerDe;
-  @Mock
   private FunctionCall aggCall;
-  @Mock
-  private KTable table;
   @Mock
   private WindowExpression windowExp;
   @Mock
   private MaterializedFactory materializedFactory;
-  @Mock
-  private Materialized materialized;
   @Mock
   private KeySerde<Struct> keySerde;
   @Mock
@@ -137,7 +115,6 @@ public class SchemaKGroupedStreamTest {
   @Before
   public void setUp() {
     schemaGroupedStream = new SchemaKGroupedStream(
-        groupedStream,
         sourceStep,
         keyFormat,
         keySerde,
@@ -147,22 +124,13 @@ public class SchemaKGroupedStreamTest {
         functionRegistry,
         materializedFactory
     );
-    when(sourceStep.getSchema()).thenReturn(IN_SCHEMA);
     when(windowExp.getKsqlWindowExpression()).thenReturn(KSQL_WINDOW_EXP);
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
-    when(materializedFactory.create(any(), any(), any())).thenReturn(materialized);
-    when(builder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(builder.buildValueSerde(any(), any(), any())).thenReturn(topicValueSerDe);
-    when(builder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
-    when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
   }
 
   @Test
   public void shouldReturnKTableWithOutputSchema() {
-    // Given:
-    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
-
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
         AGG_SCHEMA,
@@ -181,9 +149,6 @@ public class SchemaKGroupedStreamTest {
 
   @Test
   public void shouldBuildStepForAggregate() {
-    // Given:
-    when(groupedStream.aggregate(any(), any(), any())).thenReturn(table);
-
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
         AGG_SCHEMA,
@@ -211,16 +176,10 @@ public class SchemaKGroupedStreamTest {
             )
         )
     );
-    assertThat(result.getKtable(), is(table));
   }
 
   @Test
   public void shouldBuildStepForWindowedAggregate() {
-    // Given:
-    when(groupedStream.windowedBy(any(SessionWindows.class))).thenReturn(sessionWindowedStream);
-    when(sessionWindowedStream.aggregate(any(), any(), any(), any(Materialized.class))).thenReturn(table);
-    when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
-
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
         AGG_SCHEMA,
@@ -253,7 +212,6 @@ public class SchemaKGroupedStreamTest {
             )
         )
     );
-    assertThat(result.getKtable(), is(table));
   }
 
   @Test(expected = IllegalArgumentException.class)

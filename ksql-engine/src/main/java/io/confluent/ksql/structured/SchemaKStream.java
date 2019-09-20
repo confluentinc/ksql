@@ -33,6 +33,7 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
@@ -46,15 +47,7 @@ import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.StreamFilterBuilder;
-import io.confluent.ksql.execution.streams.StreamGroupByBuilder;
-import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
-import io.confluent.ksql.execution.streams.StreamSelectKeyBuilder;
-import io.confluent.ksql.execution.streams.StreamSinkBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
-import io.confluent.ksql.execution.streams.StreamStreamJoinBuilder;
-import io.confluent.ksql.execution.streams.StreamTableJoinBuilder;
-import io.confluent.ksql.execution.streams.StreamToTableBuilder;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -70,7 +63,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
@@ -83,8 +75,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Windowed;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -99,7 +89,6 @@ public class SchemaKStream<K> {
 
   public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
-  final KStream<K, GenericRow> kstream;
   final KeyFormat keyFormat;
   final KeySerde<K> keySerde;
   final KeyField keyField;
@@ -107,19 +96,16 @@ public class SchemaKStream<K> {
   final Type type;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
-  final StreamsFactories streamsFactories;
-  private final ExecutionStep<KStream<K, GenericRow>> sourceStep;
+  private final ExecutionStep<KStreamHolder<K>> sourceStep;
   private final ExecutionStepProperties sourceProperties;
 
   private static <K> SchemaKStream<K> forSource(
       final KsqlQueryBuilder builder,
       final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
-      final StreamSource<KStream<K, GenericRow>> streamSource,
+      final StreamSource<K> streamSource,
       final KeyField keyField) {
-    final KStream<K, GenericRow> kstream = streamSource.build(builder);
     return new SchemaKStream<>(
-        kstream,
         streamSource,
         keyFormat,
         keySerde,
@@ -142,7 +128,7 @@ public class SchemaKStream<K> {
   ) {
     final KsqlTopic topic = dataSource.getKsqlTopic();
     if (topic.getKeyFormat().isWindowed()) {
-      final StreamSource<KStream<Windowed<Struct>, GenericRow>> step = streamSourceWindowed(
+      final StreamSource<Windowed<Struct>> step = streamSourceWindowed(
           contextStacker,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
@@ -158,7 +144,7 @@ public class SchemaKStream<K> {
           step,
           keyField);
     } else {
-      final StreamSource<KStream<Struct, GenericRow>> step = streamSource(
+      final StreamSource<Struct> step = streamSource(
           contextStacker,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
@@ -178,8 +164,7 @@ public class SchemaKStream<K> {
 
   @VisibleForTesting
   SchemaKStream(
-      final KStream<K, GenericRow> kstream,
-      final ExecutionStep<KStream<K, GenericRow>> sourceStep,
+      final ExecutionStep<KStreamHolder<K>> sourceStep,
       final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
       final KeyField keyField,
@@ -189,7 +174,6 @@ public class SchemaKStream<K> {
       final FunctionRegistry functionRegistry
   ) {
     this(
-        kstream,
         requireNonNull(sourceStep, "sourceStep"),
         sourceStep.getProperties(),
         keyFormat,
@@ -198,15 +182,13 @@ public class SchemaKStream<K> {
         sourceSchemaKStreams,
         type,
         ksqlConfig,
-        functionRegistry,
-        StreamsFactories.create(ksqlConfig)
+        functionRegistry
     );
   }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumber
   SchemaKStream(
-      final KStream<K, GenericRow> kstream,
-      final ExecutionStep<KStream<K, GenericRow>> sourceStep,
+      final ExecutionStep<KStreamHolder<K>> sourceStep,
       final ExecutionStepProperties sourceProperties,
       final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
@@ -214,21 +196,18 @@ public class SchemaKStream<K> {
       final List<SchemaKStream> sourceSchemaKStreams,
       final Type type,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final StreamsFactories streamsFactories
+      final FunctionRegistry functionRegistry
   ) {
     // CHECKSTYLE_RULES.ON: ParameterNumber
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");
     this.keySerde = requireNonNull(keySerde, "keySerde");
     this.sourceStep = sourceStep;
     this.sourceProperties = Objects.requireNonNull(sourceProperties, "sourceProperties");
-    this.kstream = kstream;
     this.keyField = requireNonNull(keyField, "keyField").validateKeyExistsIn(getSchema());
     this.sourceSchemaKStreams = requireNonNull(sourceSchemaKStreams, "sourceSchemaKStreams");
     this.type = requireNonNull(type, "type");
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
-    this.streamsFactories = requireNonNull(streamsFactories);
   }
 
   @SuppressWarnings("unchecked")
@@ -238,19 +217,12 @@ public class SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final StreamToTable<KStream<K, GenericRow>, KTable<K, GenericRow>> step =
-        ExecutionStepFactory.streamToTable(
-            contextStacker,
-            Formats.of(keyFormat, valueFormat, Collections.emptySet()),
-            sourceStep
-        );
+    final StreamToTable<K> step = ExecutionStepFactory.streamToTable(
+        contextStacker,
+        Formats.of(keyFormat, valueFormat, Collections.emptySet()),
+        sourceStep
+    );
     return new SchemaKTable<>(
-        StreamToTableBuilder.build(
-            (KStream) kstream,
-            (StreamToTable) step,
-            queryBuilder,
-            streamsFactories.getMaterializedFactory()
-        ),
         step,
         keyFormat,
         keySerde,
@@ -264,7 +236,6 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> withKeyField(final KeyField resultKeyField) {
     return new SchemaKStream<>(
-        kstream,
         sourceStep,
         keyFormat,
         keySerde,
@@ -292,14 +263,7 @@ public class SchemaKStream<K> {
         sourceStep,
         kafkaTopicName
     );
-    StreamSinkBuilder.build(
-        kstream,
-        step,
-        (fmt, schema, ctx) -> keySerde,
-        queryBuilder
-    );
     return new SchemaKStream<>(
-        kstream,
         step,
         keyFormat,
         keySerde,
@@ -316,13 +280,12 @@ public class SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder queryBuilder
   ) {
-    final StreamFilter<KStream<K, GenericRow>> step = ExecutionStepFactory.streamFilter(
+    final StreamFilter<K> step = ExecutionStepFactory.streamFilter(
         contextStacker,
         sourceStep,
         rewriteTimeComparisonForFilter(filterExpression)
     );
     return new SchemaKStream<>(
-        StreamFilterBuilder.build(kstream, step, queryBuilder),
         step,
         keyFormat,
         keySerde,
@@ -344,14 +307,13 @@ public class SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder) {
     final KeySelection selection = new KeySelection(selectExpressions);
-    final StreamMapValues<KStream<K, GenericRow>> step = ExecutionStepFactory.streamMapValues(
+    final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
         contextStacker,
         sourceStep,
         selectExpressions,
         ksqlQueryBuilder
     );
     return new SchemaKStream<>(
-        StreamMapValuesBuilder.build(kstream, step, ksqlQueryBuilder),
         step,
         keyFormat,
         keySerde,
@@ -459,14 +421,6 @@ public class SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKStream<>(
-        StreamTableJoinBuilder.build(
-            kstream,
-            schemaKTable.getKtable(),
-            step,
-            (fmt, schema, qctx) -> keySerde,
-            queryBuilder,
-            streamsFactories.getJoinedFactory()
-        ),
         step,
         keyFormat,
         keySerde,
@@ -499,14 +453,6 @@ public class SchemaKStream<K> {
         joinWindows
     );
     return new SchemaKStream<>(
-        StreamStreamJoinBuilder.build(
-            kstream,
-            otherSchemaKStream.kstream,
-            step,
-            (fmt, schema, qctx) -> keySerde,
-            queryBuilder,
-            streamsFactories.getJoinedFactory()
-        ),
         step,
         keyFormat,
         keySerde,
@@ -535,14 +481,6 @@ public class SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKStream<>(
-        StreamTableJoinBuilder.build(
-            kstream,
-            schemaKTable.getKtable(),
-            step,
-            (fmt, schema, qctx) -> keySerde,
-            queryBuilder,
-            streamsFactories.getJoinedFactory()
-        ),
         step,
         keyFormat,
         keySerde,
@@ -574,14 +512,6 @@ public class SchemaKStream<K> {
         joinWindows
     );
     return new SchemaKStream<>(
-        StreamStreamJoinBuilder.build(
-            kstream,
-            otherSchemaKStream.kstream,
-            step,
-            (fmt, schema, qctx) -> keySerde,
-            queryBuilder,
-            streamsFactories.getJoinedFactory()
-        ),
         step,
         keyFormat,
         keySerde,
@@ -613,14 +543,6 @@ public class SchemaKStream<K> {
         joinWindows
     );
     return new SchemaKStream<>(
-        StreamStreamJoinBuilder.build(
-            kstream,
-            otherSchemaKStream.kstream,
-            step,
-            (fmt, schema, qctx) -> keySerde,
-            queryBuilder,
-            streamsFactories.getJoinedFactory()
-        ),
         step,
         keyFormat,
         keySerde,
@@ -665,7 +587,6 @@ public class SchemaKStream<K> {
 
     if (namesMatch || treatAsRowKey) {
       return (SchemaKStream<Struct>) new SchemaKStream<>(
-          kstream,
           sourceStep,
           keyFormat,
           keySerde,
@@ -689,7 +610,6 @@ public class SchemaKStream<K> {
         updateRowKey
     );
     return new SchemaKStream<>(
-        StreamSelectKeyBuilder.build(kstream, step),
         step,
         keyFormat,
         selectKeySerde,
@@ -780,12 +700,6 @@ public class SchemaKStream<K> {
         groupByExpressions
     );
     return new SchemaKGroupedStream(
-        StreamGroupByBuilder.build(
-            kstream,
-            source,
-            queryBuilder,
-            streamsFactories.getGroupedFactory()
-        ),
         source,
         rekeyedKeyFormat,
         groupedKeySerde,
@@ -811,12 +725,6 @@ public class SchemaKStream<K> {
             Formats.of(rekeyedKeyFormat, valueFormat, SerdeOption.none())
         );
     return new SchemaKGroupedStream(
-        StreamGroupByBuilder.build(
-            (KStream) kstream,
-            step,
-            queryBuilder,
-            streamsFactories.getGroupedFactory()
-        ),
         step,
         keyFormat,
         structKeySerde,
@@ -836,7 +744,7 @@ public class SchemaKStream<K> {
     return (KeySerde<Struct>) keySerde;
   }
 
-  ExecutionStep<KStream<K, GenericRow>> getSourceStep() {
+  public ExecutionStep<KStreamHolder<K>> getSourceStep() {
     return sourceStep;
   }
 
@@ -854,10 +762,6 @@ public class SchemaKStream<K> {
 
   public KeySerde<K> getKeySerde() {
     return keySerde;
-  }
-
-  public KStream<K, GenericRow> getKstream() {
-    return kstream;
   }
 
   public List<SchemaKStream> getSourceSchemaKStreams() {

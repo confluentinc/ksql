@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.execution.plan;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 
@@ -23,7 +22,7 @@ public interface ExecutionStep<S> {
 
   List<ExecutionStep<?>> getSources();
 
-  S build(KsqlQueryBuilder queryBuilder);
+  S build(PlanBuilder planBuilder);
 
   default LogicalSchema getSchema() {
     return getProperties().getSchema();

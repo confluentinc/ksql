@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -177,12 +178,10 @@ public class TestExecutorTest {
 
     // Then:
     expectedException.expect(AssertionError.class);
-    expectedException.expectMessage(
+    expectedException.expectMessage(containsString(
         "Schemas used by topology differ from those used by previous versions of KSQL "
             + "- this likely means there is a non-backwards compatible change.\n"
-            + "THIS IS BAD!\n"
-            + "Expected: is \"expected-schemas\"\n"
-            + "     but: was \"actual-schemas\"");
+            + "THIS IS BAD!\n"));
 
     // When:
     executor.buildAndExecuteQuery(testCase);

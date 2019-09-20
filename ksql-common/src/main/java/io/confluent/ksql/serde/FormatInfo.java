@@ -61,7 +61,8 @@ public final class FormatInfo {
       throw new KsqlException("Full schema name only supported with AVRO format");
     }
 
-    if (format == Format.AVRO && avroFullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
+    if (format == Format.AVRO
+        && avroFullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
       throw new KsqlException("Schema name cannot be empty");
     }
 

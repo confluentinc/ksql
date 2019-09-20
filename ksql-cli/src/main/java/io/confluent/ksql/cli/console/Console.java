@@ -648,12 +648,12 @@ public class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Type", description.getStatus().type()));
     writer().println(String.format("%-20s : %s", "State", status.connector().state()));
     writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
-    if (!status.connector().trace().isEmpty()) {
+    if (!ObjectUtils.defaultIfNull(status.connector().trace(), "").isEmpty()) {
       writer().println(String.format("%-20s : %s", "Trace", status.connector().trace()));
     }
-    writer().println();
 
     if (!status.tasks().isEmpty()) {
+      writer().println();
       final Table taskTable = new Table.Builder()
           .withColumnHeaders(ImmutableList.of("Task ID", "State", "Error Trace"))
           .withRows(status.tasks()
@@ -664,10 +664,10 @@ public class Console implements Closeable {
                   ObjectUtils.defaultIfNull(task.trace(), ""))))
           .build();
       taskTable.print(this);
-      writer().println();
     }
 
     if (!description.getSources().isEmpty()) {
+      writer().println();
       final Table sourceTable = new Table.Builder()
           .withColumnHeaders("KSQL Source Name", "Kafka Topic", "Type")
           .withRows(description.getSources()
@@ -676,6 +676,15 @@ public class Console implements Closeable {
                   .of(source.getName(), source.getTopic(), source.getType())))
           .build();
       sourceTable.print(this);
+    }
+
+    if (!description.getTopics().isEmpty()) {
+      writer().println();
+      final Table topicTable = new Table.Builder()
+          .withColumnHeaders("Related Topics")
+          .withRows(description.getTopics().stream().map(ImmutableList::of))
+          .build();
+      topicTable.print(this);
     }
   }
 

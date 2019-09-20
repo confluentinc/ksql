@@ -39,6 +39,7 @@ import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
+import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
@@ -46,6 +47,7 @@ import io.confluent.ksql.execution.streams.StreamFilterBuilder;
 import io.confluent.ksql.execution.streams.StreamGroupByBuilder;
 import io.confluent.ksql.execution.streams.StreamMapValuesBuilder;
 import io.confluent.ksql.execution.streams.StreamSelectKeyBuilder;
+import io.confluent.ksql.execution.streams.StreamSinkBuilder;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.execution.streams.StreamToTableBuilder;
 import io.confluent.ksql.execution.streams.StreamsUtil;
@@ -80,7 +82,6 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueJoiner;
 import org.apache.kafka.streams.kstream.Windowed;
 
@@ -273,34 +274,27 @@ public class SchemaKStream<K> {
     );
   }
 
+  @SuppressWarnings("unchecked")
   public SchemaKStream<K> into(
       final String kafkaTopicName,
-      final Serde<GenericRow> topicValueSerDe,
       final LogicalSchema outputSchema,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final Set<Integer> rowkeyIndexes,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
-    kstream
-        .mapValues(row -> {
-          if (row == null) {
-            return null;
-          }
-          final List<Object> columns = new ArrayList<>();
-          for (int i = 0; i < row.getColumns().size(); i++) {
-            if (!rowkeyIndexes.contains(i)) {
-              columns.add(row.getColumns().get(i));
-            }
-          }
-          return new GenericRow(columns);
-        }).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
-    final ExecutionStep<KStream<K, GenericRow>> step = ExecutionStepFactory.streamSink(
+    final StreamSink<K> step = ExecutionStepFactory.streamSink(
         contextStacker,
         outputSchema,
         Formats.of(keyFormat, valueFormat, options),
         sourceStep,
         kafkaTopicName
+    );
+    StreamSinkBuilder.build(
+        kstream,
+        step,
+        (fmt, schema, ctx) -> keySerde,
+        queryBuilder
     );
     return new SchemaKStream<>(
         kstream,

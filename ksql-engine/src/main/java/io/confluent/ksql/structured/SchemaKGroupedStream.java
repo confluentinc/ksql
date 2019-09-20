@@ -232,6 +232,15 @@ public class SchemaKGroupedStream {
   }
 
   private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
+    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
+      return KeyFormat.windowed(
+          FormatInfo.of(Format.KAFKA),
+          WindowInfo.of(
+              WindowType.TUMBLING,
+              Optional.of(Duration.ofMillis(Long.MAX_VALUE))
+          )
+      );
+    }
     return KeyFormat.windowed(
         FormatInfo.of(Format.KAFKA),
         windowExpression.getKsqlWindowExpression().getWindowInfo()

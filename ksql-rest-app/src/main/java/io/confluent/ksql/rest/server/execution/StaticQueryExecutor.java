@@ -19,7 +19,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
@@ -48,7 +47,7 @@ import io.confluent.ksql.materialization.Locator;
 import io.confluent.ksql.materialization.Locator.KsqlNode;
 import io.confluent.ksql.materialization.Materialization;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
-import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.tree.AllColumns;
@@ -80,7 +79,6 @@ import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -160,24 +158,17 @@ public final class StaticQueryExecutor {
       if (whereInfo.windowBounds.isPresent()) {
         final WindowBounds windowBounds = whereInfo.windowBounds.get();
 
-        final Builder<Optional<Window>, GenericRow> builder = ImmutableMap.builder();
-        mat.windowed().get(rowKey, windowBounds.lower, windowBounds.upper)
-            .forEach((k, v) -> builder.put(Optional.of(k), v));
+        final List<? extends TableRow> rows = mat.windowed()
+            .get(rowKey, windowBounds.lower, windowBounds.upper);
 
-        result = new Result(
-            mat.schema(),
-            builder.build()
-        );
+        result = new Result(mat.schema(), rows);
       } else {
-        final ImmutableMap<Optional<Window>, GenericRow> rows = mat
+        final List<? extends TableRow> rows = mat
             .nonWindowed().get(rowKey)
-            .map(v -> ImmutableMap.of(Optional.<Window>empty(), v))
-            .orElse(ImmutableMap.of());
+            .map(ImmutableList::of)
+            .orElse(ImmutableList.of());
 
-        result = new Result(
-            mat.schema(),
-            rows
-        );
+        result = new Result(mat.schema(), rows);
       }
 
       result = handleSelects(result, statement, executionContext, analysis);
@@ -186,7 +177,7 @@ public final class StaticQueryExecutor {
           statement.getStatementText(),
           mat.windowType(),
           result.schema,
-          QueryResultEntityFactory.createRows(rowKey, result.rows, result.schema)
+          QueryResultEntityFactory.createRows(result.rows)
       );
 
       return Optional.of(entity);
@@ -244,11 +235,11 @@ public final class StaticQueryExecutor {
   private static final class Result {
 
     private final LogicalSchema schema;
-    private final Map<Optional<Window>, GenericRow> rows;
+    private final List<? extends TableRow> rows;
 
     private Result(
         final LogicalSchema schema,
-        final Map<Optional<Window>, GenericRow> rows
+        final List<? extends TableRow> rows
     ) {
       this.schema = Objects.requireNonNull(schema, "schema");
       this.rows = Objects.requireNonNull(rows, "rows");
@@ -520,8 +511,8 @@ public final class StaticQueryExecutor {
       return input;
     }
 
-    final LogicalSchema.Builder schema = LogicalSchema.builder();
-    schema.keyColumns(input.schema.key());
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+    schemaBuilder.keyColumns(input.schema.key());
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         input.schema,
@@ -534,8 +525,10 @@ public final class StaticQueryExecutor {
       final String alias = analysis.getSelectExpressionAlias().get(idx);
       selects.add(SelectExpression.of(alias, exp));
       final SqlType type = expressionTypeManager.getExpressionSqlType(exp);
-      schema.valueColumn(alias, type);
+      schemaBuilder.valueColumn(alias, type);
     }
+
+    final LogicalSchema schema = schemaBuilder.build();
 
     final String sourceName = getSourceName(analysis);
 
@@ -550,12 +543,14 @@ public final class StaticQueryExecutor {
         NoopProcessingLogContext.INSTANCE.getLoggerFactory().getLogger("any")
     );
 
-    final Map<Optional<Window>, GenericRow> output = new LinkedHashMap<>();
-    input.rows.forEach((k, v) -> output.put(k, mapper.apply(v)));
-    return new Result(
-        schema.build(),
-        output
-    );
+    final ImmutableList.Builder<TableRow> output = ImmutableList.builder();
+    input.rows.forEach(r -> {
+      final GenericRow mapped = mapper.apply(r.value());
+      final TableRow tableRow = r.withValue(mapped, schema);
+      output.add(tableRow);
+    });
+
+    return new Result(schema, output.build());
   }
 
   private static PersistentQueryMetadata findMaterializingQuery(

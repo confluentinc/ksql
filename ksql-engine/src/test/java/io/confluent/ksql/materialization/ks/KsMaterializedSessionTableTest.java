@@ -16,6 +16,7 @@
 package io.confluent.ksql.materialization.ks;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -23,17 +24,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.WindowedRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -52,7 +56,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializedSessionTableTest {
 
-  private static final Struct A_KEY = new Struct(SchemaBuilder.struct().build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn("ROWKEY", SqlTypes.STRING)
+      .valueColumn("v0", SqlTypes.STRING)
+      .build();
+
+  private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
+
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
   private static final GenericRow A_VALUE = new GenericRow("c0l");
@@ -67,14 +77,23 @@ public class KsMaterializedSessionTableTest {
   @Mock
   private KeyValueIterator<Windowed<Struct>, GenericRow> fetchIterator;
   private KsMaterializedSessionTable table;
+  private final List<KeyValue<Windowed<Struct>, GenericRow>> sessions = new ArrayList<>();
+  private int sessionIdx;
 
   @Before
   public void setUp() {
     table = new KsMaterializedSessionTable(stateStore);
 
     when(stateStore.store(any())).thenReturn(sessionStore);
+    when(stateStore.schema()).thenReturn(SCHEMA);
 
     when(sessionStore.fetch(any())).thenReturn(fetchIterator);
+
+    sessions.clear();
+    sessionIdx = 0;
+
+    when(fetchIterator.hasNext()).thenAnswer(inv -> sessionIdx < sessions.size());
+    when(fetchIterator.next()).thenAnswer(inv -> sessions.get(sessionIdx++));
   }
 
   @Test
@@ -143,10 +162,10 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<?> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
 
     // Then:
-    assertThat(result.keySet(), is(empty()));
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -155,10 +174,10 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.minusMillis(1));
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<?> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
 
     // Then:
-    assertThat(result.keySet(), is(empty()));
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -167,10 +186,10 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<?> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
 
     // Then:
-    assertThat(result.keySet(), is(empty()));
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -179,10 +198,12 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
 
     // Then:
-    assertThat(result, is(ImmutableMap.of(
+    assertThat(result, contains(WindowedRow.of(
+        SCHEMA,
+        A_KEY,
         Window.of(LOWER_INSTANT, Optional.of(LOWER_INSTANT.plusMillis(1))),
         A_VALUE
     )));
@@ -194,10 +215,12 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
 
     // Then:
-    assertThat(result, is(ImmutableMap.of(
+    assertThat(result, contains(WindowedRow.of(
+        SCHEMA,
+        A_KEY,
         Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT.plusMillis(1))),
         A_VALUE
     )));
@@ -209,13 +232,31 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(5));
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
 
     // Then:
-    assertThat(result, is(ImmutableMap.of(
+    assertThat(result, contains(WindowedRow.of(
+        SCHEMA,
+        A_KEY,
         Window.of(LOWER_INSTANT.plusMillis(1), Optional.of(UPPER_INSTANT.plusMillis(5))),
         A_VALUE
     )));
+  }
+
+  @Test
+  public void shouldReturnMultipleSessions() {
+    // Given:
+    givenSingleSession(LOWER_INSTANT, LOWER_INSTANT);
+    givenSingleSession(UPPER_INSTANT, UPPER_INSTANT);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+
+    // Then:
+    assertThat(result, contains(
+        WindowedRow.of(SCHEMA, A_KEY, Window.of(LOWER_INSTANT, Optional.of(LOWER_INSTANT)), A_VALUE),
+        WindowedRow.of(SCHEMA, A_KEY, Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT)), A_VALUE)
+    ));
   }
 
   private void givenSingleSession(
@@ -230,12 +271,6 @@ public class KsMaterializedSessionTableTest {
         A_VALUE
     );
 
-    when(fetchIterator.hasNext())
-        .thenReturn(true)
-        .thenReturn(false);
-
-    when(fetchIterator.next())
-        .thenReturn(kv)
-        .thenThrow(new AssertionError());
+    sessions.add(kv);
   }
 }

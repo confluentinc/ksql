@@ -20,8 +20,7 @@ import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.rest.entity.QueryResultEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntity.Row;
-import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Objects;
@@ -46,7 +45,7 @@ public class QueryResultTableBuilder implements TableBuilder<QueryResultEntity> 
     final Stream<List<String>> rows = entity
         .getRows()
         .stream()
-        .map(r -> buildRow(r, entity.getSchema().value()));
+        .map(QueryResultTableBuilder::buildRow);
 
     return new Builder()
         .withColumnHeaders(headers)
@@ -57,9 +56,6 @@ public class QueryResultTableBuilder implements TableBuilder<QueryResultEntity> 
   private static List<String> buildHeadings(final QueryResultEntity entity) {
     final LogicalSchema schema = entity.getSchema();
 
-    final Stream<String> keys = schema.key().stream()
-        .map(f -> f.fullName() + " " + f.type() + " KEY");
-
     final Stream<String> window = entity.getWindowType()
         .map(wt -> wt == WindowType.SESSION
             ? SESSION_WINDOW_HEADINGS
@@ -67,30 +63,28 @@ public class QueryResultTableBuilder implements TableBuilder<QueryResultEntity> 
         .orElse(ImmutableList.of())
         .stream();
 
+    final Stream<String> keys = schema.key().stream()
+        .map(f -> f.fullName() + " " + f.type() + " KEY");
+
     final Stream<String> values = schema.value().stream()
         .map(f -> f.fullName() + " " + f.type());
 
-    return Stream.concat(keys, Stream.concat(window, values))
+    return Stream.concat(window, Stream.concat(keys, values))
         .collect(Collectors.toList());
   }
 
   private static List<String> buildRow(
-      final Row row,
-      final List<Column> valueSchema
+      final ResultRow row
   ) {
-    final Stream<?> keys = row.getKey().values().stream();
-
     final Stream<?> window = row.getWindow()
         .map(w -> w.getEnd().isPresent()
             ? Stream.of(w.getStart(), w.getEnd().getAsLong())
             : Stream.of(w.getStart()))
         .orElse(Stream.of());
 
-    final Stream<?> values = row.getValue() == null
-        ? valueSchema.stream().map(f -> null)
-        : row.getValue().values().stream();
+    final Stream<?> values = row.getValues().stream();
 
-    return Stream.concat(keys, Stream.concat(window, values))
+    return Stream.concat(window, values)
         .map(Objects::toString)
         .collect(Collectors.toList());
   }

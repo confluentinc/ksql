@@ -23,10 +23,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -36,13 +33,13 @@ public class QueryResultEntity extends KsqlEntity {
 
   private final Optional<WindowType> windowType;
   private final LogicalSchema schema;
-  private final ImmutableList<Row> rows;
+  private final ImmutableList<ResultRow> rows;
 
   public QueryResultEntity(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("windowType") final Optional<WindowType> windowType,
       @JsonProperty("schema") final LogicalSchema schema,
-      @JsonProperty("rows") final List<Row> rows
+      @JsonProperty("rows") final List<ResultRow> rows
   ) {
     super(statementText);
     this.windowType = requireNonNull(windowType, "windowType");
@@ -60,7 +57,7 @@ public class QueryResultEntity extends KsqlEntity {
     return schema;
   }
 
-  public List<Row> getRows() {
+  public List<ResultRow> getRows() {
     return rows;
   }
 
@@ -132,35 +129,33 @@ public class QueryResultEntity extends KsqlEntity {
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static final class Row {
+  public static final class ResultRow {
 
     private final Optional<Window> window;
-    private final Map<String, ?> key;
-    private final Optional<Map<String, ?>> value;
+    private final List<?> values;
 
     @JsonCreator
-    public Row(
+    public static ResultRow of(
         @JsonProperty("window") final Optional<Window> window,
-        @JsonProperty("key") final LinkedHashMap<String, ?> key,
-        @JsonProperty("value") final LinkedHashMap<String, ?> value
+        @JsonProperty("values") final List<?> values
+    ) {
+      return new ResultRow(window, values);
+    }
+
+    private ResultRow(
+        final Optional<Window> window,
+        final List<?> values
     ) {
       this.window = requireNonNull(window, "window");
-      this.key = new LinkedHashMap<>(requireNonNull(key, "key"));
-      this.value = Optional.ofNullable(value).map(LinkedHashMap::new);
+      this.values = requireNonNull(values, "values");
     }
 
     public Optional<Window> getWindow() {
       return window;
     }
 
-    public Map<String, ?> getKey() {
-      return Collections.unmodifiableMap(key);
-    }
-
-    public Map<String, ?> getValue() {
-      return value
-          .map(Collections::unmodifiableMap)
-          .orElse(null);
+    public List<?> getValues() {
+      return values;
     }
 
     @Override
@@ -173,15 +168,14 @@ public class QueryResultEntity extends KsqlEntity {
         return false;
       }
 
-      final Row that = (Row) o;
+      final ResultRow that = (ResultRow) o;
       return Objects.equals(this.window, that.window)
-          && Objects.equals(this.key, that.key)
-          && Objects.equals(this.value, that.value);
+          && Objects.equals(this.values, that.values);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(window, key, value);
+      return Objects.hash(window, values);
     }
 
     void validate(
@@ -206,21 +200,15 @@ public class QueryResultEntity extends KsqlEntity {
         }
       });
 
-      if (schema.key().size() != key.size()) {
-        throw new IllegalArgumentException("key field count mismatch."
-            + " expected: " + schema.key().size()
-            + ", got: " + key.size()
+      final int expectedSize = schema.key().size() + schema.value().size();
+      final int actualSize = values.size();
+
+      if (expectedSize != actualSize) {
+        throw new IllegalArgumentException("field count mismatch."
+            + " expected: " + expectedSize
+            + ", got: " + actualSize
         );
       }
-
-      value.ifPresent(v -> {
-        if (schema.value().size() != v.size()) {
-          throw new IllegalArgumentException("value field count mismatch."
-              + " expected: " + schema.value().size()
-              + ", got: " + v.size()
-          );
-        }
-      });
     }
   }
 }

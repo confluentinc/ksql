@@ -17,7 +17,6 @@ package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -26,11 +25,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
-import io.confluent.ksql.rest.entity.QueryResultEntity.Row;
+import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
 import io.confluent.ksql.rest.entity.QueryResultEntity.Window;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.util.LinkedHashMap;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.junit.Test;
@@ -52,11 +52,8 @@ public class QueryResultEntityTest {
   private static final Optional<Window> TIME_WINDOW = Optional
       .of(new Window(12_234, OptionalLong.empty()));
 
-  private static final LinkedHashMap<String, ?> A_KEY =
-      orderedMap("ROWKEY", "x");
-
-  private static final LinkedHashMap<String, ?> A_VALUE =
-      orderedMap("v0", 10.1D, "v1", "some text");
+  private static final List<?> A_VALUE =
+      ImmutableList.of("key value", 10.1D, "some text");
 
   static {
     MAPPER = new ObjectMapper();
@@ -71,7 +68,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.TUMBLING),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(SESSION_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
     );
   }
 
@@ -81,7 +78,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.empty(),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(SESSION_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
     );
   }
 
@@ -91,7 +88,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.TUMBLING),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(Optional.empty(), A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(Optional.empty(), A_VALUE))
     );
   }
 
@@ -101,7 +98,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.SESSION),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(SESSION_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
     );
   }
 
@@ -111,7 +108,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.HOPPING),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(TIME_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(TIME_WINDOW, A_VALUE))
     );
   }
 
@@ -121,7 +118,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.TUMBLING),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(TIME_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(TIME_WINDOW, A_VALUE))
     );
   }
 
@@ -132,7 +129,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.SESSION),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(SESSION_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
     );
 
     // When:
@@ -140,41 +137,17 @@ public class QueryResultEntityTest {
 
     // Then:
     assertThat(json, is("{"
-        + "\"@type\":\"row\","
+        + "\"@type\":\"rows\","
         + "\"statementText\":\"some SQL\","
         + "\"windowType\":\"SESSION\","
         + "\"schema\":\"`ROWKEY` STRING KEY, `v0` DOUBLE, `v1` STRING\","
         + "\"rows\":["
         + "{"
         + "\"window\":{\"start\":12234,\"end\":43234},"
-        + "\"key\":{\"ROWKEY\":\"x\"},"
-        + "\"value\":{\"v0\":10.1,\"v1\":\"some text\"}"
+        + "\"values\":[\"key value\",10.1,\"some text\"]"
         + "}"
         + "],"
         + "\"warnings\":[]}"));
-
-    // When:
-    final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
-
-    // Then:
-    assertThat(result, is(entity));
-  }
-
-  @Test
-  public void shouldSerializeNullValue() throws Exception {
-    // Given:
-    final QueryResultEntity entity = new QueryResultEntity(
-        SOME_SQL,
-        Optional.of(WindowType.SESSION),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(SESSION_WINDOW, A_KEY, null))
-    );
-
-    // When:
-    final String json = MAPPER.writeValueAsString(entity);
-
-    // Then:
-    assertThat(json, containsString("\"value\":null"));
 
     // When:
     final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
@@ -190,14 +163,14 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.SESSION),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(SESSION_WINDOW, A_KEY, orderedMap("v0", 10.1D, "v1", null)))
+        ImmutableList.of(ResultRow.of(SESSION_WINDOW, Arrays.asList(null, 10.1D, null)))
     );
 
     // When:
     final String json = MAPPER.writeValueAsString(entity);
 
     // Then:
-    assertThat(json, containsString("\"value\":{\"v0\":10.1,\"v1\":null}"));
+    assertThat(json, containsString("\"values\":[null,10.1,null]"));
 
     // When:
     final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
@@ -213,7 +186,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.empty(),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(Optional.empty(), A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(Optional.empty(), A_VALUE))
     );
 
     // When:
@@ -237,7 +210,7 @@ public class QueryResultEntityTest {
         SOME_SQL,
         Optional.of(WindowType.HOPPING),
         LOGICAL_SCHEMA,
-        ImmutableList.of(new Row(TIME_WINDOW, A_KEY, A_VALUE))
+        ImmutableList.of(ResultRow.of(TIME_WINDOW, A_VALUE))
     );
 
     // When:
@@ -251,21 +224,5 @@ public class QueryResultEntityTest {
 
     // Then:
     assertThat(result, is(entity));
-  }
-
-  private static LinkedHashMap<String, ?> orderedMap(final Object... keysAndValues) {
-    assertThat("invalid test", keysAndValues.length % 2, is(0));
-
-    final LinkedHashMap<String, Object> orderedMap = new LinkedHashMap<>();
-
-    for (int idx = 0; idx < keysAndValues.length; idx = idx + 2) {
-      final Object key = keysAndValues[idx];
-      final Object value = keysAndValues[idx + 1];
-
-      assertThat("invalid test", key, instanceOf(String.class));
-      orderedMap.put((String) key, value);
-    }
-
-    return orderedMap;
   }
 }

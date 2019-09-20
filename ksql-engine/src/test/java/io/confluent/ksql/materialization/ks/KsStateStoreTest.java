@@ -30,6 +30,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.NotRunningException;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.support.metrics.common.time.Clock;
 import java.time.Duration;
 import org.apache.kafka.streams.KafkaStreams;
@@ -56,6 +58,10 @@ public class KsStateStoreTest {
 
   private static final String STORE_NAME = "someStore";
   private static final Duration TIMEOUT = Duration.ofMillis(10);
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn("k0", SqlTypes.STRING)
+      .keyColumn("v0", SqlTypes.BIGINT)
+      .build();
 
   @Rule
   public final Timeout timeout = Timeout.seconds(1);
@@ -72,7 +78,7 @@ public class KsStateStoreTest {
 
   @Before
   public void setUp() {
-    store = new KsStateStore(STORE_NAME, kafkaStreams, TIMEOUT, clock);
+    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, TIMEOUT, clock);
 
     when(kafkaStreams.state()).thenReturn(State.RUNNING);
   }
@@ -81,6 +87,7 @@ public class KsStateStoreTest {
   public void shouldThrowNPEs() {
     new NullPointerTester()
         .setDefault(KafkaStreams.class, kafkaStreams)
+        .setDefault(LogicalSchema.class, SCHEMA)
         .setDefault(Clock.class, clock)
         .testConstructors(KsStateStore.class, Visibility.PACKAGE);
   }

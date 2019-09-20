@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.rest.entity;
 
-import com.google.common.collect.ImmutableMap;
-import org.junit.Test;
-
-import java.util.Map;
-
 import static org.junit.Assert.assertEquals;
+
+import com.google.common.collect.ImmutableMap;
+import java.util.Map;
+import org.junit.Test;
 
 public class ServerClusterIdTest {
   @Test

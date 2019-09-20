@@ -323,13 +323,15 @@ public class InsertValuesExecutor {
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
       if (keyValue != null ^ rowKeyValue != null) {
-        values.putIfAbsent(key, rowKeyValue);
-        values.putIfAbsent(SchemaUtil.ROWKEY_NAME, keyValue);
-      } else if (!Objects.equals(keyValue, rowKeyValue)) {
-        throw new KsqlException(
-            String.format(
-                "Expected ROWKEY and %s to match but got %s and %s respectively.",
-                key, rowKeyValue, keyValue));
+        if (keyValue == null) {
+          values.put(key, rowKeyValue);
+        } else {
+          values.put(SchemaUtil.ROWKEY_NAME, keyValue.toString());
+        }
+      } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
+        throw new KsqlException(String.format(
+            "Expected ROWKEY and %s to match but got %s and %s respectively.",
+            key, rowKeyValue, keyValue));
       }
     }
   }

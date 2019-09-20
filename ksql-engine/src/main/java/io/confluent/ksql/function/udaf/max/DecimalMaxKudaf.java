@@ -28,12 +28,15 @@ public class DecimalMaxKudaf extends BaseNumberKudaf<BigDecimal> {
       final Integer argIndexInValue,
       final Schema returnSchema
   ) {
-    super(functionName, argIndexInValue, returnSchema, BigDecimal::max,
-        "Computes the maximum decimal value for a key.");
+    super(functionName,
+          argIndexInValue,
+          returnSchema,
+          BigDecimal::max,
+          "Computes the maximum decimal value for a key.");
   }
 
   @Override
-  public KsqlAggregateFunction<BigDecimal, BigDecimal> getInstance(
+  public KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments
   ) {
     return new DecimalMaxKudaf(

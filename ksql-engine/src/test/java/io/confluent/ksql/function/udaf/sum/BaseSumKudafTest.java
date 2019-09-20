@@ -29,7 +29,7 @@ import org.junit.Test;
 
 @Ignore
 public abstract class BaseSumKudafTest<
-    T extends Number, AT extends TableAggregationFunction<T, T>> {
+    T extends Number, AT extends TableAggregationFunction<T, T, T>> {
   protected interface TGenerator<TG> {
     TG fromInt(Integer s);
   }

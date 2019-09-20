@@ -19,26 +19,28 @@ import io.confluent.ksql.function.BaseAggregateFunction;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
-public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFunction<T, T> {
+public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFunction<T, T, T> {
 
   private final BiFunction<T, T, T> aggregatePrimitive;
 
   public BaseNumberKudaf(
       final String functionName,
       final Integer argIndexInValue,
-      final Schema type,
+      final Schema outputSchema,
       final BiFunction<T, T, T> aggregatePrimitive,
       final String description
   ) {
     super(functionName,
         argIndexInValue,
         () -> null,
-        type,
-        Collections.singletonList(type),
+        outputSchema,
+        outputSchema,
+        Collections.singletonList(outputSchema),
         description);
     this.aggregatePrimitive = Objects.requireNonNull(aggregatePrimitive, "aggregatePrimitive");
   }
@@ -59,5 +61,10 @@ public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFun
   @Override
   public final Merger<Struct, T> getMerger() {
     return (key, a, b) -> aggregate(a, b);
+  }
+
+  @Override
+  public Function<T, T> getResultMapper() {
+    return Function.identity();
   }
 }

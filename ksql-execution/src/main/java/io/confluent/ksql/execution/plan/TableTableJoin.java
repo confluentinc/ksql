@@ -16,22 +16,24 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class TableTableJoin<T> implements ExecutionStep<T> {
+public class TableTableJoin<K> implements ExecutionStep<KTable<K, GenericRow>> {
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
-  private final ExecutionStep<T> left;
-  private final ExecutionStep<T> right;
+  private final ExecutionStep<KTable<K, GenericRow>> left;
+  private final ExecutionStep<KTable<K, GenericRow>> right;
 
   public TableTableJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
-      final ExecutionStep<T> left,
-      final ExecutionStep<T> right) {
+      final ExecutionStep<KTable<K, GenericRow>> left,
+      final ExecutionStep<KTable<K, GenericRow>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
@@ -48,8 +50,20 @@ public class TableTableJoin<T> implements ExecutionStep<T> {
     return ImmutableList.of(left, right);
   }
 
+  public ExecutionStep<KTable<K, GenericRow>> getLeft() {
+    return left;
+  }
+
+  public ExecutionStep<KTable<K, GenericRow>> getRight() {
+    return right;
+  }
+
+  public JoinType getJoinType() {
+    return joinType;
+  }
+
   @Override
-  public T build(final KsqlQueryBuilder builder) {
+  public KTable<K, GenericRow> build(final KsqlQueryBuilder builder) {
     throw new UnsupportedOperationException();
   }
 

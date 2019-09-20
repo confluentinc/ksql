@@ -52,6 +52,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -435,6 +436,7 @@ public class AggregateNodeTest {
               stream.mapValues.keySet().stream(),
               stream.groupStreams()
                   .flatMap(FakeKGroupedStream::tables)
+                  .flatMap(t -> t.tables())
                   .flatMap(t -> t.mapValues.keySet().stream())
           )).collect(Collectors.toList());
     }
@@ -568,6 +570,14 @@ public class AggregateNodeTest {
         final FakeKTable table = new FakeKTable();
         mapValues.put(mapper, table);
         return table.createProxy();
+      }
+
+      Stream<FakeKTable> tables() {
+        final Stream<FakeKTable> children = mapValues.values().stream();
+        final Stream<FakeKTable> grandChildren =
+            mapValues.values().stream().flatMap(FakeKTable::tables);
+
+        return Streams.concat(children, grandChildren);
       }
     }
   }

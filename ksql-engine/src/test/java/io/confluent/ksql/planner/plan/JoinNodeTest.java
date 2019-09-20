@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -360,9 +361,9 @@ public class JoinNodeTest {
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
-        any(),
-        any(),
-        eq(CONTEXT_STACKER));
+        eq(CONTEXT_STACKER),
+        same(ksqlStreamBuilder)
+    );
   }
 
   @Test
@@ -392,9 +393,9 @@ public class JoinNodeTest {
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
-        any(),
-        any(),
-        eq(CONTEXT_STACKER));
+        eq(CONTEXT_STACKER),
+        same(ksqlStreamBuilder)
+    );
   }
 
   @Test
@@ -424,9 +425,9 @@ public class JoinNodeTest {
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
-        any(),
-        any(),
-        eq(CONTEXT_STACKER));
+        eq(CONTEXT_STACKER),
+        same(ksqlStreamBuilder)
+    );
   }
 
   @Test
@@ -565,8 +566,9 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
-        any(),
-        eq(CONTEXT_STACKER));
+        eq(CONTEXT_STACKER),
+        same(ksqlStreamBuilder)
+    );
   }
 
   @Test
@@ -594,8 +596,9 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
-        any(),
-        eq(CONTEXT_STACKER));
+        eq(CONTEXT_STACKER),
+        same(ksqlStreamBuilder)
+    );
   }
 
   @Test
@@ -623,8 +626,9 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
-        any(),
-        eq(CONTEXT_STACKER));
+        eq(CONTEXT_STACKER),
+        same(ksqlStreamBuilder)
+    );
   }
 
   @Test
@@ -908,64 +912,6 @@ public class JoinNodeTest {
         anyBoolean(),
         any()
     );
-  }
-
-  @Test
-  public void shouldBuildLeftRowSerde() {
-    // Given:
-    setupStream(left, leftSchemaKStream);
-    setupStream(right, rightSchemaKStream);
-
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
-        WITHIN_EXPRESSION
-    );
-
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    final PhysicalSchema expected = PhysicalSchema
-        .from(LEFT_NODE_SCHEMA.withoutAlias(), SerdeOption.none());
-
-    verify(ksqlStreamBuilder).buildValueSerde(
-        any(),
-        eq(expected),
-        any());
-  }
-
-  @Test
-  public void shouldBuildRightRowSerde() {
-    // Given:
-    setupStream(left, leftSchemaKStream);
-    setupStream(right, rightSchemaKStream);
-
-    final JoinNode joinNode = new JoinNode(
-        nodeId,
-        JoinNode.JoinType.LEFT,
-        left,
-        right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
-        WITHIN_EXPRESSION
-    );
-
-    // When:
-    joinNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    final PhysicalSchema expected = PhysicalSchema
-        .from(RIGHT_NODE_SCHEMA.withoutAlias(), SerdeOption.none());
-
-    verify(ksqlStreamBuilder).buildValueSerde(
-        any(),
-        eq(expected),
-        any());
   }
 
   @Test

@@ -54,10 +54,12 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
       case INT64:
       case FLOAT64:
       case STRING:
-        return new TopkDistinctKudaf(NAME, 0, -1, argSchema, SchemaUtil.getJavaType(argSchema));
+        return new TopkDistinctKudaf(NAME, 0, -1, argSchema,
+                                     SchemaUtil.getJavaType(argSchema));
       case BYTES:
         DecimalUtil.requireDecimal(argSchema);
-        return new TopkDistinctKudaf(NAME, 0, -1, argSchema, SchemaUtil.getJavaType(argSchema));
+        return new TopkDistinctKudaf(NAME, 0, -1, argSchema,
+                                     SchemaUtil.getJavaType(argSchema));
       default:
         throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
             + " argument type exists!");

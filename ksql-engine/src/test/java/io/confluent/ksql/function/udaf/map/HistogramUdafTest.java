@@ -27,7 +27,7 @@ public class HistogramUdafTest {
 
   @Test
   public void shouldCountStrings() {
-    final TableUdaf<String, Map<String, Long>> udaf = HistogramUdaf.histogramString();
+    final TableUdaf<String, Map<String, Long>, Map<String, Long>> udaf = HistogramUdaf.histogramString();
     Map<String, Long> agg = udaf.initialize();
     final String[] values = new String[] {"foo", "bar", "foo", "foo", "baz"};
     for (final String thisValue : values) {
@@ -41,7 +41,7 @@ public class HistogramUdafTest {
 
   @Test
   public void shouldMergeCountsIncludingNulls() {
-    final TableUdaf<String, Map<String, Long>> udaf = HistogramUdaf.histogramString();
+    final TableUdaf<String, Map<String, Long>, Map<String, Long>> udaf = HistogramUdaf.histogramString();
 
     Map<String, Long> lhs = udaf.initialize();
     final Integer[] leftValues = new Integer[] {1, 2, 1, 4};
@@ -78,7 +78,7 @@ public class HistogramUdafTest {
 
   @Test
   public void shouldUndoCountedValues() {
-    final TableUdaf<String, Map<String, Long>> udaf = HistogramUdaf.histogramString();
+    final TableUdaf<String, Map<String, Long>, Map<String, Long>> udaf = HistogramUdaf.histogramString();
     Map<String, Long> agg = udaf.initialize();
     final Boolean[] values = new Boolean[] {true, true, false, null, true};
     for (final Boolean thisValue : values) {
@@ -98,7 +98,7 @@ public class HistogramUdafTest {
 
   @Test
   public void shouldNotExceedSizeLimit() {
-    final TableUdaf<String, Map<String, Long>> udaf = HistogramUdaf.histogramString();
+    final TableUdaf<String, Map<String, Long>, Map<String, Long>> udaf = HistogramUdaf.histogramString();
     Map<String, Long> agg = udaf.initialize();
     for (int thisValue = 1; thisValue < 2500; thisValue++) {
       agg = udaf.aggregate(String.valueOf(thisValue), agg);

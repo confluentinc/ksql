@@ -191,6 +191,63 @@
         {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":4.0}},
         {"topic": "S2", "key": 0, "value": {"ID":0,"SUM_VAL":5.0}}
       ]
+    },
+    {
+      "name": "sum list of doubles into a single double",
+      "statements": [
+        "CREATE STREAM INPUT (VALUE ARRAY<double>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT sum_list(VALUE) AS sum_val FROM INPUT group by ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"value":[1.0, 1.0]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[2.0, 2.0]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[9223372036854775807.0, 1.0]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[1.0, 1.0, null]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2.0}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6.0}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":9223372036854775814.0}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":9223372036854775816.0}}
+      ]
+    },
+    {
+      "name": "sum list of ints into a single int",
+      "statements": [
+        "CREATE STREAM INPUT (VALUE ARRAY<integer>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT sum_list(VALUE) AS sum_val FROM INPUT group by ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"value":[1, 1]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[2, 2]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100, null]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":206}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":406}}
+      ]
+    },
+    {
+      "name": "sum list of longs into a single long",
+      "statements": [
+        "CREATE STREAM INPUT (VALUE ARRAY<bigint>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT as SELECT sum_list(VALUE) AS sum_val FROM INPUT group by ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"value":[1, 1]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[2, 2]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[100, 100, null]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":206}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":406}}
+      ]
     }
   ]
 }

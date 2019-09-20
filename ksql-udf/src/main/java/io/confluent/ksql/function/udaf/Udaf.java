@@ -21,10 +21,10 @@ package io.confluent.ksql.function.udaf;
  * Type support is presently limited to: int, Integer, long, Long, boolean, Boolean, double,
  * Double, String, Map, and List.
  *
- * @param <V> value type
+ * @param <I> value type
  * @param <A> aggregate type
  */
-public interface Udaf<V, A> {
+public interface Udaf<I, A, O> {
   /**
    * The initializer for the Aggregation
    * @return initial value to use when aggregating
@@ -37,7 +37,14 @@ public interface Udaf<V, A> {
    * @param aggregate value of the Aggregate
    * @return new aggregate
    */
-  A aggregate(V current, A aggregate);
+  A aggregate(I current, A aggregate);
+
+  /**
+   * Map the intermediate aggregate value into the actual returned value.
+   * @param agg aggregate value of current record
+   * @return new value of current record
+   */
+  O map(A agg);
 
   /**
    * Merge two aggregates

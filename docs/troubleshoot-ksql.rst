@@ -220,7 +220,8 @@ See :ref:`Starting KSQL Server <start_ksql-server>` and :ref:`Starting the KSQL 
 Cannot create a stream from the output of a windowed aggregate
 ***************************************************************
 
-Window aggregation is not currently supported in KSQL.
+KSQL doesn't support structured keys, so you can't create a stream from a
+windowed aggregate.
 
 
 KSQL does not clean up internal topics

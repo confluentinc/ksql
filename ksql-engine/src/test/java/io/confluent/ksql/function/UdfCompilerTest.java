@@ -176,6 +176,7 @@ public class UdfCompilerTest {
         "test-udf",
         "desc",
         "",
+        "",
         "");
     assertThat(function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
@@ -204,6 +205,7 @@ public class UdfCompilerTest {
         "test-udf",
         "desc",
         "",
+        "",
         "");
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
@@ -216,6 +218,7 @@ public class UdfCompilerTest {
         classLoader,
         "test-udf",
         "desc",
+        "",
         "",
         "");
     final KsqlAggregateFunction instance = function.getInstance(
@@ -237,9 +240,10 @@ public class UdfCompilerTest {
         "test-udf",
         "desc",
         "",
+        "",
         "");
 
-    final KsqlAggregateFunction<Long, Long> executable = function.getInstance(
+    final KsqlAggregateFunction<Long, Long, Long> executable = function.getInstance(
         new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
 
     executable.aggregate(1L, 1L);
@@ -255,6 +259,50 @@ public class UdfCompilerTest {
     UdfCompiler.compile(
         getClass().getMethod("udf", Set.class),
         classLoader);
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfUnsupportedInputType() throws Exception {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("invalidInputTypeUdaf"),
+                                 classLoader,
+                                 "test",
+                                 "desc",
+                                 "",
+                                 "",
+                                 "");
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfMissingInputTypeSchema() throws Exception {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
+                                 classLoader,
+                                 "test",
+                                 "desc",
+                                 "",
+                                 "",
+                                 "");
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfMissingAggregateTypeSchema() throws Exception {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
+                                 classLoader,
+                                 "test",
+                                 "desc",
+                                 "",
+                                 "",
+                                 "");
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
+    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
+                                 classLoader,
+                                 "test",
+                                 "desc",
+                                 "",
+                                 "",
+                                 "");
   }
 
   @Test
@@ -289,12 +337,13 @@ public class UdfCompilerTest {
   public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws Exception {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
-        + "or io.confluent.ksql.function.udaf.TableUdaf .method='createBlah', functionName='test'"
-        + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest");
+        + "or io.confluent.ksql.function.udaf.TableUdaf. method='createBlah', functionName='test',"
+        + " UDFClass='class io.confluent.ksql.function.UdfCompilerTest'");
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createBlah"),
         classLoader,
         "test",
         "desc",
+        "",
         "",
         "");
   }
@@ -306,6 +355,7 @@ public class UdfCompilerTest {
         "test",
         "desc",
         "",
+        "",
         "");
   }
 
@@ -315,6 +365,7 @@ public class UdfCompilerTest {
         classLoader,
         "test",
         "desc",
+        "",
         "",
         "");
   }
@@ -326,6 +377,7 @@ public class UdfCompilerTest {
         "test",
         "desc",
         "",
+        "",
         "");
   }
 
@@ -335,6 +387,7 @@ public class UdfCompilerTest {
         classLoader,
         "test",
         "desc",
+        "",
         "",
         "");
   }
@@ -346,15 +399,17 @@ public class UdfCompilerTest {
         "test",
         "desc",
         "",
+        "",
         "");
   }
 
   @Test
-  public void shouldHandleUdafsWithListValTypeBooleamAggType() throws Exception {
+  public void shouldHandleUdafsWithListValTypeBooleanAggType() throws Exception {
     udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("createListBoolean"),
         classLoader,
         "test",
         "desc",
+        "",
         "",
         "");
   }
@@ -366,6 +421,7 @@ public class UdfCompilerTest {
         "test",
         "desc",
         "",
+        "",
         "");
   }
 
@@ -375,6 +431,7 @@ public class UdfCompilerTest {
         classLoader,
         "test",
         "desc",
+        "",
         "",
         "");
   }
@@ -386,6 +443,7 @@ public class UdfCompilerTest {
         "test",
         "desc",
         "STRUCT<A VARCHAR>",
+        "STRUCT<B VARCHAR>",
         "STRUCT<B VARCHAR>");
   }
 
@@ -396,6 +454,7 @@ public class UdfCompilerTest {
         "test",
         "desc",
         "",
+        "",
         "");
   }
 
@@ -405,6 +464,7 @@ public class UdfCompilerTest {
         classLoader,
         "test",
         "desc",
+        "",
         "",
         "");
   }
@@ -493,39 +553,39 @@ public class UdfCompilerTest {
     return i * l * d;
   }
 
-  public static Udaf<Long, Double> createLongDouble() {
+  public static Udaf<Long, Double, Double> createLongDouble() {
     return null;
   }
 
-  public static Udaf<Double, Long> createDoubleLong() {
+  public static Udaf<Double, Long, Long> createDoubleLong() {
     return null;
   }
 
-  public static Udaf<Integer, String> createIntegerString() {
+  public static Udaf<Integer, String, String> createIntegerString() {
     return null;
   }
 
-  public static Udaf<String, Integer> createStringInteger() {
+  public static Udaf<String, Integer, Integer> createStringInteger() {
     return null;
   }
 
-  public static Udaf<Boolean, List<Long>> createBooleanList() {
+  public static Udaf<Boolean, List<Long>, List<Long>> createBooleanList() {
     return null;
   }
 
-  public static Udaf<List<Integer>, Boolean> createListBoolean() {
+  public static Udaf<List<Integer>, Boolean, Boolean> createListBoolean() {
     return null;
   }
   
-  public static Udaf<Map<String, Integer>, Map<String, Boolean>> createMapMap() {
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap() {
     return null;
   }
 
-  public static Udaf<Map<String, Integer>, Map<String, Boolean>> createMapMap(int ignored) {
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap(int ignored) {
     return null;
   }
 
-  public static Udaf<Struct, Struct> createStructStruct() {
+  public static Udaf<Struct, Struct, Struct> createStructStruct() {
     return null;
   }
 
@@ -533,11 +593,11 @@ public class UdfCompilerTest {
     return null;
   }
 
-  public static Udaf<Character, Character> createBad() {
+  public static Udaf<Character, Character, Character> createBad() {
     return null;
   }
 
-  public Udaf<String, String> createNonStatic() {
+  public Udaf<String, String, String> createNonStatic() {
     return null;
   }
 
@@ -546,6 +606,22 @@ public class UdfCompilerTest {
   }
 
   public static String invalidUdf(final int[] ints, final int... moreInts) {
+    return null;
+  }
+
+  public Udaf<List<?>, String, String> invalidInputTypeUdaf() {
+    return null;
+  }
+
+  public Udaf<Struct, String, String> missingInputSchemaAnnotationUdaf() {
+    return null;
+  }
+
+  public Udaf<String, Struct, String> missingAggregateSchemaAnnotationUdaf() {
+    return null;
+  }
+
+  public Udaf<String, String, Struct> missingOutputSchemaAnnotationUdaf() {
     return null;
   }
 }

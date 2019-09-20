@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.structured;
+package io.confluent.ksql.execution.streams;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Struct;
 import org.easymock.EasyMock;
@@ -46,21 +47,21 @@ public class GroupByMapperTest {
   @Mock(MockType.NICE)
   private GenericRow row;
 
-  private GroupByMapper mapper;
+  private GroupByMapper<Struct> mapper;
 
   @Before
   public void setUp() {
-    mapper = new GroupByMapper(ImmutableList.of(groupBy0, groupBy1));
+    mapper = new GroupByMapper<>(ImmutableList.of(groupBy0, groupBy1));
   }
 
   @Test(expected = NullPointerException.class)
   public void shouldThrowOnNullParam() {
-    new GroupByMapper(null);
+    new GroupByMapper<Struct>(null);
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnEmptyParam() {
-    new GroupByMapper(Collections.emptyList());
+    new GroupByMapper<Struct>(Collections.emptyList());
   }
 
   @Test
@@ -71,7 +72,7 @@ public class GroupByMapperTest {
     EasyMock.replay(groupBy0, groupBy1);
 
     // When:
-    final Struct result = mapper.apply("key", row);
+    final Struct result = mapper.apply(StructKeyUtil.asStructKey("key"), row);
 
     // Then:
     assertThat(result, is(StructKeyUtil.asStructKey("result0|+|result1")));
@@ -85,7 +86,7 @@ public class GroupByMapperTest {
     EasyMock.replay(groupBy0, groupBy1);
 
     // When:
-    final Struct result = mapper.apply("key", row);
+    final Struct result = mapper.apply(StructKeyUtil.asStructKey("key"), row);
 
     // Then:
     assertThat(result, is(StructKeyUtil.asStructKey("null|+|result1")));
@@ -99,22 +100,9 @@ public class GroupByMapperTest {
     EasyMock.replay(groupBy0, groupBy1);
 
     // When:
-    final Struct result = mapper.apply("key", row);
+    final Struct result = mapper.apply(StructKeyUtil.asStructKey("key"), row);
 
     // Then:
     assertThat(result, is(StructKeyUtil.asStructKey("null|+|result1")));
-  }
-
-  @Test
-  public void shouldGetKeyName() {
-    // Given:
-    final Expression exp0 = new QualifiedNameReference(QualifiedName.of("Fred", "f1"));
-    final Expression exp1 = new QualifiedNameReference(QualifiedName.of("Bob", "b1"));
-
-    // When:
-    final String result = GroupByMapper.keyNameFor(ImmutableList.of(exp0, exp1));
-
-    // Then:
-    assertThat(result, is("Fred.f1|+|Bob.b1"));
   }
 }

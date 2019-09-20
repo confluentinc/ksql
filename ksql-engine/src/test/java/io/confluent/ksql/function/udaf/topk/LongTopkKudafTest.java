@@ -42,7 +42,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldAggregateTopK() {
-    final KsqlAggregateFunction<Long, List<Long>> longTopkKudaf =
+    final KsqlAggregateFunction<Long, List<Long>, List<Long>> longTopkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     List<Long> window = new ArrayList<>();
     for (final Long value : valuesArray) {
@@ -53,7 +53,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
-    final KsqlAggregateFunction<Long, List<Long>> longTopkKudaf =
+    final KsqlAggregateFunction<Long, List<Long>, List<Long>> longTopkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<Long> window = longTopkKudaf.aggregate(80L, new ArrayList());
     assertThat("Invalid results.", window, equalTo(ImmutableList.of(80L)));
@@ -61,7 +61,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldMergeTopK() {
-    final KsqlAggregateFunction<Long, List<Long>> topkKudaf =
+    final KsqlAggregateFunction<Long, List<Long>, List<Long>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<Long> array1 = ImmutableList.of(50L, 45L, 25L);
     final List<Long> array2 = ImmutableList.of(60L, 55L, 48L);
@@ -72,7 +72,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithNulls() {
-    final KsqlAggregateFunction<Long, List<Long>> topkKudaf =
+    final KsqlAggregateFunction<Long, List<Long>, List<Long>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<Long> array1 = ImmutableList.of(50L, 45L);
     final List<Long> array2 = ImmutableList.of(60L);
@@ -83,7 +83,7 @@ public class LongTopkKudafTest {
 
   @Test
   public void shouldMergeTopKWithMoreNulls() {
-    final KsqlAggregateFunction<Long, List<Long>> topkKudaf =
+    final KsqlAggregateFunction<Long, List<Long>, List<Long>> topkKudaf =
         topKFactory.getProperAggregateFunction(argumentType);
     final List<Long> array1 = ImmutableList.of(50L);
     final List<Long> array2 = ImmutableList.of(60L);

@@ -16,12 +16,19 @@
 package io.confluent.ksql.rest.server.filters;
 
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
+import java.lang.reflect.Method;
 import java.security.Principal;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Priority;
+import javax.ws.rs.Path;
 import javax.ws.rs.Priorities;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +38,9 @@ import org.slf4j.LoggerFactory;
 @Priority(Priorities.AUTHORIZATION)
 public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
   private static final Logger log = LoggerFactory.getLogger(KsqlAuthorizationFilter.class);
+
+  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION =
+      getPathsFrom(ServerMetadataResource.class);
 
   private final KsqlAuthorizationProvider authorizationProvider;
 
@@ -44,6 +54,10 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
     final String method = requestContext.getMethod(); // i.e GET, POST
     final String path = "/" + requestContext.getUriInfo().getPath();
 
+    if (!requiresAuthorization(path)) {
+      return;
+    }
+
     try {
       authorizationProvider.checkEndpointAccess(user, method, path);
     } catch (final Throwable t) {
@@ -51,5 +65,30 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
           user.getName(), method, path), t);
       requestContext.abortWith(Errors.accessDenied(t.getMessage()));
     }
+  }
+
+  public static Set<String> getPathsWithoutAuthorization() {
+    return PATHS_WITHOUT_AUTHORIZATION;
+  }
+
+  private boolean requiresAuthorization(final String path) {
+    return !PATHS_WITHOUT_AUTHORIZATION.contains(path);
+  }
+
+  private static Set<String> getPathsFrom(final Class<?> resourceClass) {
+    final Set<String> paths = new HashSet<>();
+    final String mainPath = StringUtils.stripEnd(
+        resourceClass.getAnnotation(Path.class).value(), "/"
+    );
+
+    paths.add(mainPath);
+    for (Method m : resourceClass.getMethods()) {
+      if (m.isAnnotationPresent(Path.class)) {
+        paths.add(mainPath + "/"
+            + StringUtils.strip(m.getAnnotation(Path.class).value(), "/"));
+      }
+    }
+
+    return Collections.unmodifiableSet(paths);
   }
 }

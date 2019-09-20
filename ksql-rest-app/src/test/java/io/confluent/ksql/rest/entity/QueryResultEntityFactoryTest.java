@@ -16,178 +16,90 @@
 package io.confluent.ksql.rest.entity;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
+import io.confluent.ksql.materialization.Row;
+import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.materialization.Window;
-import io.confluent.ksql.rest.entity.QueryResultEntity.Row;
+import io.confluent.ksql.materialization.WindowedRow;
+import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
+import java.util.stream.Collectors;
 import org.junit.Test;
 
 public class QueryResultEntityFactoryTest {
 
-  private static final Schema STRUCT_SCHEMA = SchemaBuilder.struct()
-      .field("i0", Schema.OPTIONAL_INT32_SCHEMA)
-      .optional()
-      .build();
-
-  private static final Schema NESTED_SCHEMA = SchemaBuilder.struct()
-      .field("o0", STRUCT_SCHEMA)
-      .optional()
-      .build();
-
-  private static final Struct STRUCT = new Struct(STRUCT_SCHEMA)
-      .put("i0", 10);
-
-  private static final Struct NESTED_STRUCT = new Struct(NESTED_SCHEMA)
-      .put("o0", STRUCT);
-
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .valueColumn("o0", SchemaConverters.connectToSqlConverter().toSqlType(STRUCT_SCHEMA))
+      .valueColumn("v0", SqlTypes.BOOLEAN)
       .build();
 
-  private static final GenericRow A_VALUE = new GenericRow(STRUCT);
+  private static final Window A_WINDOW = Window.of(Instant.now(), Optional.empty());
 
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnValueFieldMismatch() {
+  private static final TableRow ROW = Row.of(
+      LOGICAL_SCHEMA,
+      StructKeyUtil.asStructKey("x"),
+      new GenericRow(false)
+  );
+
+  private static final TableRow WINDOWED_ROW = WindowedRow.of(
+      LOGICAL_SCHEMA,
+      StructKeyUtil.asStructKey("y"),
+      A_WINDOW,
+      new GenericRow(true)
+  );
+
+  @Test
+  public void shouldAddAllValuesToRow() {
     // Given:
-    final GenericRow value = new GenericRow("text", 10); // <-- 2 fields vs 1 in schema
-
-    // When:
-    QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(Optional.empty(), value), LOGICAL_SCHEMA);
-  }
-
-  @Test
-  public void shouldHandleNestedStructsInKey() {
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(NESTED_STRUCT, ImmutableMap.of(Optional.empty(), A_VALUE), LOGICAL_SCHEMA);
-
-    // Then:
-    final Map<String, ?> key = rows.get(0).getKey();
-    assertThat(key.get("o0"), is(instanceOf(Map.class)));
-    assertThat(((Map<?, ?>) key.get("o0")), hasEntry("i0", 10));
-  }
-
-  @Test
-  public void shouldHandleValue() {
-    // Given:
-    final LogicalSchema logicalSchema = LogicalSchema.builder()
-        .valueColumn("c0", SqlTypes.STRING)
-        .valueColumn("c1", SqlTypes.INTEGER)
-        .build();
-
-    final GenericRow row = new GenericRow("text", 10);
-
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(Optional.empty(), row), logicalSchema);
-
-    // Then:
-    final Map<String, ?> value = rows.get(0).getValue();
-    assertThat(value.get("c0"), is("text"));
-    assertThat(value.get("c1"), is(10));
-  }
-
-  @Test
-  public void shouldHandleNestedStructsInValue() {
-    // Given:
-    final GenericRow row = new GenericRow(STRUCT);
-
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(Optional.empty(), row), LOGICAL_SCHEMA);
-
-    // Then:
-    final Map<String, ?> value = rows.get(0).getValue();
-    assertThat(value.get("o0"), is(instanceOf(Map.class)));
-    assertThat(((Map<?, ?>) value.get("o0")), hasEntry("i0", 10));
-  }
-
-  @Test
-  public void shouldHandleNoValue() {
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(), LOGICAL_SCHEMA);
-
-    // Then:
-    assertThat(rows, is(empty()));
-  }
-
-  @Test
-  public void shouldHandleNullStructInKey() {
-    // Given:
-    final Struct nestedStruct = new Struct(NESTED_SCHEMA)
-        .put("o0", null);
-
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(nestedStruct, ImmutableMap.of(Optional.empty(), A_VALUE), LOGICAL_SCHEMA);
-
-    // Then:
-    assertThat(rows.get(0).getKey().get("o0"), is(nullValue()));
-  }
-
-  @Test
-  public void shouldHandleNullStructInValue() {
-    // Given:
-    final GenericRow row = new GenericRow((Object) null);
-
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(Optional.empty(), row), LOGICAL_SCHEMA);
-
-    // Then:
-    assertThat(rows.get(0).getValue().get("o0"), is(nullValue()));
-  }
-
-  @Test
-  public void shouldHandleTimedWindow() {
-    // Given:
-    final Window window = Window.of(Instant.ofEpochMilli(10_123), Optional.empty());
-
-    // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(Optional.of(window), A_VALUE), LOGICAL_SCHEMA);
-
-    // Then:
-    final Optional<QueryResultEntity.Window> actual = rows.get(0).getWindow();
-    assertThat(actual, is(Optional.of(new QueryResultEntity.Window(10_123, OptionalLong.empty()))));
-  }
-
-  @Test
-  public void shouldHandleSessionWindow() {
-    // Given:
-    final Window window = Window.of(
-        Instant.ofEpochMilli(10_123),
-        Optional.of(Instant.ofEpochMilli(32_101))
+    final List<? extends TableRow> input = ImmutableList.of(
+        ROW,
+        WINDOWED_ROW
     );
 
     // When:
-    final List<Row> rows = QueryResultEntityFactory
-        .createRows(STRUCT, ImmutableMap.of(Optional.of(window), A_VALUE), LOGICAL_SCHEMA);
+    final List<ResultRow> output = QueryResultEntityFactory.createRows(input);
 
     // Then:
-    final Optional<QueryResultEntity.Window> actual = rows.get(0).getWindow();
-    assertThat(actual, is(Optional.of(new QueryResultEntity.Window(
-        10_123,
-        OptionalLong.of(32_101)
+    final List<List<?>> values = output.stream()
+        .map(ResultRow::getValues)
+        .collect(Collectors.toList());
+
+    assertThat(values, hasSize(2));
+    assertThat(values.get(0), contains("x", false));
+    assertThat(values.get(1), contains("y", true));
+  }
+
+  @Test
+  public void shouldAddOptionalWindowToRow() {
+    // Given:
+    final List<? extends TableRow> input = ImmutableList.of(
+        ROW,
+        WINDOWED_ROW
+    );
+
+    // When:
+    final List<ResultRow> output = QueryResultEntityFactory.createRows(input);
+
+    // Then:
+    final List<Optional<QueryResultEntity.Window>> windows = output.stream()
+        .map(ResultRow::getWindow)
+        .collect(Collectors.toList());
+
+    assertThat(windows, hasSize(2));
+    assertThat(windows.get(0), is(Optional.empty()));
+    assertThat(windows.get(1), is(Optional.of(new QueryResultEntity.Window(
+        A_WINDOW.start().toEpochMilli(),
+        OptionalLong.empty()
     ))));
   }
 }

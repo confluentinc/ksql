@@ -16,10 +16,11 @@
 package io.confluent.ksql.materialization;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -27,19 +28,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.materialization.KsqlMaterialization.KsqlMaterializedTable;
 import io.confluent.ksql.materialization.KsqlMaterialization.KsqlMaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.junit.Before;
@@ -52,12 +55,31 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationTest {
 
-  private static final Struct A_KEY = new Struct(SchemaBuilder.struct().build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+      .valueColumn("v0", SqlTypes.STRING)
+      .valueColumn("v1", SqlTypes.STRING)
+      .build();
+
+  private static final Struct A_KEY = StructKeyUtil.asStructKey("k");
   private static final Instant AN_INSTANT = Instant.now();
   private static final Instant LATER_INSTANT = AN_INSTANT.plusSeconds(10);
   private static final GenericRow A_VALUE = new GenericRow("a", "b");
   private static final GenericRow TRANSFORMED = new GenericRow("x", "y");
   private static final Window A_WINDOW = Window.of(Instant.now(), Optional.empty());
+
+  private static final Row ROW = Row.of(
+      SCHEMA,
+      A_KEY,
+      A_VALUE
+  );
+
+  private static final WindowedRow WINDOWED_ROW = WindowedRow.of(
+      SCHEMA,
+      A_KEY,
+      A_WINDOW,
+      A_VALUE
+  );
 
   @Mock
   private Materialization inner;
@@ -69,8 +91,7 @@ public class KsqlMaterializationTest {
   private MaterializedTable innerNonWindowed;
   @Mock
   private MaterializedWindowedTable innerWindowed;
-  @Mock
-  private LogicalSchema schema;
+
   private KsqlMaterialization materialization;
 
 
@@ -80,14 +101,14 @@ public class KsqlMaterializationTest {
         inner,
         havingPredicate,
         storeToTableTransform,
-        schema
+        SCHEMA
     );
 
     when(inner.nonWindowed()).thenReturn(innerNonWindowed);
     when(inner.windowed()).thenReturn(innerWindowed);
 
-    when(innerNonWindowed.get(any())).thenReturn(Optional.of(A_VALUE));
-    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableMap.of(A_WINDOW, A_VALUE));
+    when(innerNonWindowed.get(any())).thenReturn(Optional.of(ROW));
+    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
 
     when(havingPredicate.test(any(), any())).thenReturn(true);
 
@@ -98,7 +119,7 @@ public class KsqlMaterializationTest {
   public void shouldThrowNPEs() {
     new NullPointerTester()
         .setDefault(Materialization.class, inner)
-        .setDefault(LogicalSchema.class, schema)
+        .setDefault(LogicalSchema.class, SCHEMA)
         .testConstructors(KsqlMaterialization.class, Visibility.PACKAGE);
   }
 
@@ -200,7 +221,7 @@ public class KsqlMaterializationTest {
     when(innerNonWindowed.get(any())).thenReturn(Optional.empty());
 
     // When:
-    final Optional<GenericRow> result = table.get(A_KEY);
+    final Optional<?> result = table.get(A_KEY);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -210,13 +231,13 @@ public class KsqlMaterializationTest {
   public void shouldReturnEmptyIfInnerWindowedReturnsEmpty() {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
-    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableMap.of());
+    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableList.of());
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<?> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
 
     // Then:
-    assertThat(result.entrySet(), is(empty()));
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -226,7 +247,7 @@ public class KsqlMaterializationTest {
     when(havingPredicate.test(any(), any())).thenReturn(false);
 
     // When:
-    final Optional<GenericRow> result = table.get(A_KEY);
+    final Optional<?> result = table.get(A_KEY);
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -239,10 +260,10 @@ public class KsqlMaterializationTest {
     when(havingPredicate.test(any(), any())).thenReturn(false);
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<?> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
 
     // Then:
-    assertThat(result.entrySet(), is(empty()));
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -297,6 +318,7 @@ public class KsqlMaterializationTest {
     verify(storeToTableTransform).apply(A_VALUE);
   }
 
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Test
   public void shouldReturnTransformedFromNonWindowed() {
     // Given:
@@ -304,23 +326,29 @@ public class KsqlMaterializationTest {
     when(storeToTableTransform.apply(any())).thenReturn(TRANSFORMED);
 
     // When:
-    final Optional<GenericRow> result = table.get(A_KEY);
+    final Optional<Row> result = table.get(A_KEY);
 
     // Then:
-    assertThat(result, is(Optional.of(TRANSFORMED)));
+    assertThat(result, is(not(Optional.empty())));
+    assertThat(result.get().key(), is(A_KEY));
+    assertThat(result.get().window(), is(Optional.empty()));
+    assertThat(result.get().value(), is(TRANSFORMED));
   }
 
   @Test
   public void shouldReturnTransformedFromWindowed() {
     // Given:
-    final MaterializedTable table = materialization.nonWindowed();
+    final MaterializedWindowedTable table = materialization.windowed();
     when(storeToTableTransform.apply(any())).thenReturn(TRANSFORMED);
 
     // When:
-    final Optional<GenericRow> result = table.get(A_KEY);
+    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, AN_INSTANT);
 
     // Then:
-    assertThat(result, is(Optional.of(TRANSFORMED)));
+    assertThat(result, hasSize(1));
+    assertThat(result.get(0).key(), is(A_KEY));
+    assertThat(result.get(0).window(), is(Optional.of(A_WINDOW)));
+    assertThat(result.get(0).value(), is(TRANSFORMED));
   }
 
   @Test
@@ -331,16 +359,22 @@ public class KsqlMaterializationTest {
     final Window window1 = mock(Window.class);
     final Window window2 = mock(Window.class);
     final Window window3 = mock(Window.class);
-    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableMap.of(
-        window1, new GenericRow(),
-        window2, new GenericRow(),
-        window3, new GenericRow()
-    ));
+
+    final ImmutableList<WindowedRow> rows = ImmutableList.of(
+        WindowedRow.of(SCHEMA, A_KEY, window1, A_VALUE),
+        WindowedRow.of(SCHEMA, A_KEY, window2, A_VALUE),
+        WindowedRow.of(SCHEMA, A_KEY, window3, A_VALUE)
+    );
+
+    when(innerWindowed.get(any(), any(), any())).thenReturn(rows);
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
 
     // Then:
-    assertThat(result.keySet(), contains(window1, window2, window3));
+    assertThat(result, hasSize(rows.size()));
+    assertThat(result.get(0).window(), is(Optional.of(window1)));
+    assertThat(result.get(1).window(), is(Optional.of(window2)));
+    assertThat(result.get(2).window(), is(Optional.of(window3)));
   }
 }

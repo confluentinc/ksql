@@ -25,11 +25,16 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
+import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
+import io.confluent.ksql.execution.plan.TableSink;
+import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.execution.streams.TableFilterBuilder;
+import io.confluent.ksql.execution.streams.TableGroupByBuilder;
 import io.confluent.ksql.execution.streams.TableMapValuesBuilder;
+import io.confluent.ksql.execution.streams.TableSinkBuilder;
+import io.confluent.ksql.execution.streams.TableTableJoinBuilder;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -43,20 +48,14 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.KeyValue;
-import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Produced;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -119,37 +118,27 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public SchemaKTable<K> into(
       final String kafkaTopicName,
-      final Serde<GenericRow> topicValueSerDe,
       final LogicalSchema outputSchema,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final Set<Integer> rowkeyIndexes,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder builder
   ) {
-
-    ktable.toStream()
-        .mapValues(row -> {
-              if (row == null) {
-                return null;
-              }
-              final List<Object> columns = new ArrayList<>();
-              for (int i = 0; i < row.getColumns().size(); i++) {
-                if (!rowkeyIndexes.contains(i)) {
-                  columns.add(row.getColumns().get(i));
-                }
-              }
-              return new GenericRow(columns);
-            }
-        ).to(kafkaTopicName, Produced.with(keySerde, topicValueSerDe));
-
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableSink(
+    final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
         outputSchema,
         sourceTableStep,
         Formats.of(keyFormat, valueFormat, options),
         kafkaTopicName
+    );
+    TableSinkBuilder.build(
+        ktable,
+        step,
+        (fmt, schema, ctx) -> keySerde,
+        builder
     );
     return new SchemaKTable<>(
         ktable,
@@ -222,7 +211,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return ktable.toStream();
   }
 
-  public KTable getKtable() {
+  public KTable<K, GenericRow> getKtable() {
     return ktable;
   }
 
@@ -231,48 +220,37 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
-      final Serde<GenericRow> valSerde,
       final List<Expression> groupByExpressions,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
 
-    final GroupBy groupBy = new GroupBy(groupByExpressions);
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
     final KeySerde<Struct> groupedKeySerde = keySerde
         .rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
 
-    final Grouped<Struct, GenericRow> grouped = streamsFactories.getGroupedFactory()
-        .create(
-            StreamsUtil.buildOpName(contextStacker.getQueryContext()),
-            groupedKeySerde,
-            valSerde
-        );
+    final String aggregateKeyName = groupedKeyNameFor(groupByExpressions);
+    final LegacyField legacyKeyField = LegacyField.notInSchema(aggregateKeyName, SqlTypes.STRING);
+    final Optional<String> newKeyField =
+        getSchema().findValueColumn(aggregateKeyName).map(Column::fullName);
 
-    final KGroupedTable kgroupedTable = ktable
-        .filter((key, value) -> value != null)
-        .groupBy(
-            (key, value) -> new KeyValue<>(groupBy.mapper.apply(key, value), value),
-            grouped
-        );
-
-    final LegacyField legacyKeyField = LegacyField
-        .notInSchema(groupBy.aggregateKeyName, SqlTypes.STRING);
-
-    final Optional<String> newKeyField = getSchema().findValueColumn(groupBy.aggregateKeyName)
-        .map(Column::fullName);
-
-    final ExecutionStep<KGroupedTable<Struct, GenericRow>> step =
-        ExecutionStepFactory.tableGroupBy(
-            contextStacker,
-            sourceTableStep,
-            Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
-            groupByExpressions
-        );
+    final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
+        contextStacker,
+        sourceTableStep,
+        Formats.of(groupedKeyFormat, valueFormat, SerdeOption.none()),
+        groupByExpressions
+    );
     return new SchemaKGroupedTable(
-        kgroupedTable,
+        TableGroupByBuilder.build(
+            ktable,
+            step,
+            queryBuilder,
+            streamsFactories.getGroupedFactory()
+        ),
         step,
         groupedKeyFormat,
         groupedKeySerde,
@@ -282,18 +260,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         functionRegistry);
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> join(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
-    final KTable<K, GenericRow> joinedKTable = ktable.join(
-        schemaKTable.getKtable(),
-        new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
-    );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.INNER,
         sourceTableStep,
@@ -301,7 +274,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKTable<>(
-        joinedKTable,
+        TableTableJoinBuilder.build(ktable, schemaKTable.ktable, step),
         step,
         keyFormat,
         keySerde,
@@ -313,19 +286,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> leftJoin(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
-    final KTable<K, GenericRow> joinedKTable =
-        ktable.leftJoin(
-            schemaKTable.getKtable(),
-            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
-        );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.LEFT,
         sourceTableStep,
@@ -333,7 +300,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKTable<>(
-        joinedKTable,
+        TableTableJoinBuilder.build(ktable, schemaKTable.ktable, step),
         step,
         keyFormat,
         keySerde,
@@ -345,19 +312,13 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> outerJoin(
       final SchemaKTable<K> schemaKTable,
       final LogicalSchema joinSchema,
       final KeyField keyField,
       final QueryContext.Stacker contextStacker
   ) {
-    final KTable<K, GenericRow> joinedKTable =
-        ktable.outerJoin(
-            schemaKTable.getKtable(),
-            new KsqlValueJoiner(this.getSchema(), schemaKTable.getSchema())
-        );
-    final ExecutionStep<KTable<K, GenericRow>> step = ExecutionStepFactory.tableTableJoin(
+    final TableTableJoin<K> step = ExecutionStepFactory.tableTableJoin(
         contextStacker,
         JoinType.OUTER,
         sourceTableStep,
@@ -365,7 +326,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         joinSchema
     );
     return new SchemaKTable<>(
-        joinedKTable,
+        TableTableJoinBuilder.build(ktable, schemaKTable.ktable, step),
         step,
         keyFormat,
         keySerde,

@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.materialization.Locator;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
@@ -70,6 +71,7 @@ public final class KsMaterializationFactory {
   public Optional<KsMaterialization> create(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
+      final LogicalSchema schema,
       final Serializer<Struct> keySerializer,
       final Optional<WindowType> windowType,
       final Map<String, ?> streamsProperties
@@ -90,7 +92,8 @@ public final class KsMaterializationFactory {
 
     final KsStateStore stateStore = storeFactory.create(
         stateStoreName,
-        kafkaStreams
+        kafkaStreams,
+        schema
     );
 
     final KsMaterialization materialization = materializationFactory.create(
@@ -129,7 +132,8 @@ public final class KsMaterializationFactory {
 
     KsStateStore create(
         String stateStoreName,
-        KafkaStreams kafkaStreams
+        KafkaStreams kafkaStreams,
+        LogicalSchema schema
     );
   }
 

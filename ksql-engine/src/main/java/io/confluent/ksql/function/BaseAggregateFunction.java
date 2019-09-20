@@ -25,7 +25,7 @@ import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
-public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFunction<V, A> {
+public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFunction<I, A, O> {
 
   private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER
       = SchemaConverters.connectToSqlConverter();
@@ -36,8 +36,10 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
    **/
   private final int argIndexInValue;
   private final Supplier<A> initialValueSupplier;
-  private final Schema returnSchema;
-  private final SqlType returnType;
+  private final Schema aggregateSchema;
+  private final SqlType aggregateType;
+  private final Schema outputSchema;
+  private final SqlType outputType;
   private final List<Schema> arguments;
 
   protected final String functionName;
@@ -47,7 +49,8 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
       final String functionName,
       final int argIndexInValue,
       final Supplier<A> initialValueSupplier,
-      final Schema returnType,
+      final Schema aggregateType,
+      final Schema outputType,
       final List<Schema> arguments,
       final String description
   ) {
@@ -60,13 +63,15 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
       }
       return val;
     };
-    this.returnSchema = Objects.requireNonNull(returnType, "returnType");
-    this.returnType = CONNECT_TO_SQL_CONVERTER.toSqlType(returnType);
+    this.aggregateSchema = Objects.requireNonNull(aggregateType, "aggregateType");
+    this.aggregateType = CONNECT_TO_SQL_CONVERTER.toSqlType(aggregateType);
+    this.outputSchema = Objects.requireNonNull(outputType, "outputType");
+    this.outputType = CONNECT_TO_SQL_CONVERTER.toSqlType(outputType);
     this.arguments = Objects.requireNonNull(arguments, "arguments");
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
 
-    if (!returnType.isOptional()) {
+    if (!outputType.isOptional() || !aggregateType.isOptional()) {
       throw new IllegalArgumentException("KSQL only supports optional field types");
     }
   }
@@ -90,13 +95,22 @@ public abstract class BaseAggregateFunction<V, A> implements KsqlAggregateFuncti
     return argIndexInValue;
   }
 
+  public Schema getAggregateType() {
+    return aggregateSchema;
+  }
+
+  @Override
+  public SqlType aggregateType() {
+    return aggregateType;
+  }
+
   public Schema getReturnType() {
-    return returnSchema;
+    return outputSchema;
   }
 
   @Override
   public SqlType returnType() {
-    return returnType;
+    return outputType;
   }
 
   public List<Schema> getArguments() {

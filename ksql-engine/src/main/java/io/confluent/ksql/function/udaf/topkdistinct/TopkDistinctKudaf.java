@@ -22,13 +22,15 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class TopkDistinctKudaf<T extends Comparable<? super T>>
-    extends BaseAggregateFunction<T, List<T>> {
+    extends BaseAggregateFunction<T, List<T>, List<T>> {
 
   private final int tkVal;
   private final Class<T> ttClass;
@@ -43,8 +45,10 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
       final Class<T> ttClass
   ) {
     super(
-        functionName, argIndexInValue,
+        functionName,
+        argIndexInValue,
         ArrayList::new,
+        SchemaBuilder.array(outputSchema).optional().build(),
         SchemaBuilder.array(outputSchema).optional().build(),
         Collections.singletonList(outputSchema),
         "Calculates the Topk distinct values for a column, per key."
@@ -52,7 +56,7 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
 
     this.tkVal = tkVal;
     this.ttClass = ttClass;
-    this.outputSchema = outputSchema;
+    this.outputSchema = Objects.requireNonNull(outputSchema);
   }
 
   @Override
@@ -112,17 +116,23 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
     };
   }
 
+  @Override
+  public Function<List<T>, List<T>> getResultMapper() {
+    return Function.identity();
+  }
+
   private static <T> T getNextItem(final List<T> aggList, final int idx) {
     return idx < aggList.size() ? aggList.get(idx) : null;
   }
 
   @Override
-  public KsqlAggregateFunction<T, List<T>> getInstance(
+  public KsqlAggregateFunction<T, List<T>, List<T>> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     aggregateFunctionArguments.ensureArgCount(2, "TopkDistinct");
     final int udafIndex = aggregateFunctionArguments.udafIndex();
     final int tkValFromArg = Integer.parseInt(aggregateFunctionArguments.arg(1));
-    return new TopkDistinctKudaf<>(functionName, udafIndex, tkValFromArg, outputSchema, ttClass);
+    return new TopkDistinctKudaf<>(functionName, udafIndex, tkValFromArg,
+                                   outputSchema, ttClass);
   }
 
   Schema getOutputSchema() {

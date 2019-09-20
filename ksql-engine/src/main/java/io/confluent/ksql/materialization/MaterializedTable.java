@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.materialization;
 
-import io.confluent.ksql.GenericRow;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -30,5 +29,5 @@ public interface MaterializedTable {
    * @param key the key to look up.
    * @return the value, if one is exists.
    */
-  Optional<GenericRow> get(Struct key);
+  Optional<Row> get(Struct key);
 }

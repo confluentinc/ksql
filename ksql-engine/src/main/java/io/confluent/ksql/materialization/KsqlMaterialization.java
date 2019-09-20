@@ -17,14 +17,13 @@ package io.confluent.ksql.materialization;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.time.Instant;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
@@ -83,12 +82,12 @@ class KsqlMaterialization implements Materialization {
 
   private Optional<GenericRow> filterAndTransform(
       final Struct key,
-      final GenericRow row
+      final GenericRow value
   ) {
-    return Optional.of(row)
+    return Optional.of(value)
         // HAVING predicate from source table query that has not already been applied to the
         // store, so must be applied to any result from the store.
-        .filter(value -> havingPredicate.test(key, value))
+        .filter(v -> havingPredicate.test(key, v))
         // SELECTS that map from the stores internal schema to the tables true schema
         // i.e. maps from internal schema of the store to external schema of the table:
         .map(storeToTableTransform);
@@ -103,9 +102,11 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public Optional<GenericRow> get(final Struct key) {
+    public Optional<Row> get(final Struct key) {
       return table.get(key)
-          .flatMap(v -> filterAndTransform(key, v));
+          .flatMap(row -> filterAndTransform(key, row.value())
+              .map(v -> row.withValue(v, schema()))
+          );
     }
   }
 
@@ -118,14 +119,14 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public Map<Window, GenericRow> get(final Struct key, final Instant lower, final Instant upper) {
-      final Map<Window, GenericRow> result = table.get(key, lower, upper);
+    public List<WindowedRow> get(final Struct key, final Instant lower, final Instant upper) {
+      final List<WindowedRow> result = table.get(key, lower, upper);
 
-      final Builder<Window, GenericRow> builder = ImmutableMap.builder();
+      final Builder<WindowedRow> builder = ImmutableList.builder();
 
-      for (final Entry<Window, GenericRow> e : result.entrySet()) {
-        filterAndTransform(key, e.getValue())
-            .ifPresent(v -> builder.put(e.getKey(), v));
+      for (final WindowedRow row : result) {
+        filterAndTransform(key, row.value())
+            .ifPresent(v -> builder.add(row.withValue(v, schema())));
       }
 
       return builder.build();

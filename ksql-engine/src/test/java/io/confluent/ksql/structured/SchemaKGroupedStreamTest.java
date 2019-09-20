@@ -161,6 +161,9 @@ public class SchemaKGroupedStreamTest {
     when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
 
     when(aggregateSchema.value()).thenReturn(mock(List.class));
+
+    when(ksqlWindowExp.applyAggregate(any(), any(), any(), any())).thenReturn(table);
+    when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
   }
 
   @Test
@@ -231,7 +234,6 @@ public class SchemaKGroupedStreamTest {
     // Given:
     final WindowInfo windowInfo = WindowInfo
         .of(WindowType.HOPPING, Optional.of(Duration.ofMillis(10)));
-
     when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
 
     // When:
@@ -259,7 +261,6 @@ public class SchemaKGroupedStreamTest {
         .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(10)));
 
     when(ksqlWindowExp.getWindowInfo()).thenReturn(windowInfo);
-
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(
         aggregateSchema,
@@ -315,7 +316,6 @@ public class SchemaKGroupedStreamTest {
       when(groupedStream.aggregate(any(), any(), any()))
           .thenReturn(table);
     }
-
     givenAggregateSchemaFieldCount(funcMap.size());
 
     // When:
@@ -333,19 +333,14 @@ public class SchemaKGroupedStreamTest {
 
     // Then:
     assertThat(result.getKtable(), is(sameInstance(table)));
-    verify(table, never()).mapValues(any(ValueMapper.class));
     verify(table, never()).mapValues(any(ValueMapperWithKey.class));
   }
 
   private void assertDoesInstallWindowSelectMapper(
       final Map<Integer, KsqlAggregateFunction> funcMap) {
+
     // Given:
-    when(ksqlWindowExp.applyAggregate(any(), any(), any(), any()))
-        .thenReturn(table);
-
-    when(table.mapValues(any(ValueMapperWithKey.class)))
-        .thenReturn(table2);
-
+    when(table.mapValues(any(ValueMapperWithKey.class))).thenReturn(table2);
     givenAggregateSchemaFieldCount(funcMap.size());
 
     // When:
@@ -379,8 +374,7 @@ public class SchemaKGroupedStreamTest {
     // Given:
     final Materialized materialized = whenMaterializedFactoryCreates();
     final KTable mockKTable = mock(KTable.class);
-    when(groupedStream.aggregate(any(), any(), same(materialized)))
-        .thenReturn(mockKTable);
+    when(groupedStream.aggregate(any(), any(), same(materialized))).thenReturn(mockKTable);
 
     // When:
     schemaGroupedStream.aggregate(
@@ -458,6 +452,8 @@ public class SchemaKGroupedStreamTest {
     final Map<Integer, KsqlAggregateFunction> functions = ImmutableMap.of(1,  otherFunc);
     when(aggregateSchema.value())
         .thenReturn(ImmutableList.of(mock(Column.class), mock(Column.class)));
+    when(groupedStream.aggregate(any(), any(), any()))
+        .thenReturn(table);
 
     // When:
     final SchemaKTable result = schemaGroupedStream.aggregate(

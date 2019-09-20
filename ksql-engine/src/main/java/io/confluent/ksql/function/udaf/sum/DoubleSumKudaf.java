@@ -20,19 +20,22 @@ import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class DoubleSumKudaf
-    extends BaseAggregateFunction<Double, Double>
-    implements TableAggregationFunction<Double, Double> {
+    extends BaseAggregateFunction<Double, Double, Double>
+    implements TableAggregationFunction<Double, Double, Double> {
 
   DoubleSumKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> 0.0, Schema.OPTIONAL_FLOAT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-        "Computes the sum for a key."
-    );
+    super(functionName,
+          argIndexInValue, () -> 0.0,
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+          "Computes the sum for a key.");
   }
 
   @Override
@@ -57,7 +60,12 @@ public class DoubleSumKudaf
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(
+  public Function<Double, Double> getResultMapper() {
+    return Function.identity();
+  }
+
+  @Override
+  public KsqlAggregateFunction<Double, Double, Double> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new DoubleSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

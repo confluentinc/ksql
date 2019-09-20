@@ -33,8 +33,8 @@ public final class HistogramUdaf {
   private HistogramUdaf() {
   }
   
-  private static <T> TableUdaf<T, Map<T, Long>> histogram() {
-    return new TableUdaf<T, Map<T, Long>>() {
+  private static <T> TableUdaf<T, Map<T, Long>, Map<T, Long>> histogram() {
+    return new TableUdaf<T, Map<T, Long>, Map<T, Long>>() {
 
       @Override
       public Map<T, Long> initialize() {
@@ -64,11 +64,17 @@ public final class HistogramUdaf {
         aggregate.compute(valueToUndo, (k, v) -> (--v < 1) ? null : v);
         return aggregate;
       }
+
+      @Override
+      public Map<T, Long> map(final Map<T, Long> aggregate) {
+        return aggregate;
+      }
+
     };
   }
 
   @UdafFactory(description = "Build a value-to-count histogram of input Strings")
-  public static TableUdaf<String, Map<String, Long>> histogramString() {
+  public static TableUdaf<String, Map<String, Long>, Map<String, Long>> histogramString() {
     return histogram();
   }
 

@@ -21,6 +21,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.Config;
 import org.apache.kafka.clients.admin.DescribeClusterOptions;
@@ -32,6 +33,8 @@ import org.slf4j.LoggerFactory;
 
 public final class KafkaClusterUtil {
   private static final Logger LOG = LoggerFactory.getLogger(KafkaClusterUtil.class);
+
+  private static final long DESCRIBE_CLUSTER_TIMEOUT_SECONDS = 30;
 
   private KafkaClusterUtil() {
 
@@ -74,6 +77,17 @@ public final class KafkaClusterUtil {
       throw e;
     } catch (final Exception e) {
       throw new KsqlServerException("Could not get Kafka cluster configuration!", e);
+    }
+  }
+
+  public static String getKafkaClusterId(final ServiceContext serviceContext) {
+    try {
+      return serviceContext.getAdminClient()
+          .describeCluster()
+          .clusterId()
+          .get(DESCRIBE_CLUSTER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to get Kafka cluster information", e);
     }
   }
 }

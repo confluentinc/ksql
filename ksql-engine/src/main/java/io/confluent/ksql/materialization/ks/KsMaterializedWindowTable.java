@@ -15,14 +15,15 @@
 
 package io.confluent.ksql.materialization.ks;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializedWindowedTable;
 import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.WindowedRow;
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
@@ -43,7 +44,7 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   }
 
   @Override
-  public Map<Window, GenericRow> get(
+  public List<WindowedRow> get(
       final Struct key,
       final Instant lower,
       final Instant upper
@@ -54,12 +55,12 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
       try (WindowStoreIterator<GenericRow> it = store.fetch(key, lower, upper)) {
 
-        final Builder<Window, GenericRow> builder = ImmutableMap.builder();
+        final Builder<WindowedRow> builder = ImmutableList.builder();
 
         while (it.hasNext()) {
           final KeyValue<Long, GenericRow> next = it.next();
           final Window window = Window.of(Instant.ofEpochMilli(next.key), Optional.empty());
-          builder.put(window, next.value);
+          builder.add(WindowedRow.of(stateStore.schema(), key, window, next.value));
         }
 
         return builder.build();

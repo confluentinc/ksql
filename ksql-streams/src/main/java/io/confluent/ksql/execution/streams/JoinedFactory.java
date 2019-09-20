@@ -13,9 +13,8 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.streams;
+package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Joined;

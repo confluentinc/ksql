@@ -24,17 +24,19 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.WindowedRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.state.QueryableStoreTypes.WindowStoreType;
@@ -51,7 +53,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsMaterializedWindowTableTest {
 
-  private static final Struct A_KEY = new Struct(SchemaBuilder.struct().build());
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn("ROWKEY", SqlTypes.STRING)
+      .valueColumn("v0", SqlTypes.STRING)
+      .build();
+
+  private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
   private static final Instant AN_INSTANT = Instant.now();
   private static final Instant LATER_INSTANT = AN_INSTANT.plusSeconds(10);
 
@@ -72,6 +79,7 @@ public class KsMaterializedWindowTableTest {
     table = new KsMaterializedWindowTable(stateStore);
 
     when(stateStore.store(any())).thenReturn(tableStore);
+    when(stateStore.schema()).thenReturn(SCHEMA);
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
   }
 
@@ -142,10 +150,10 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<?> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
 
     // Then:
-    assertThat(result.keySet(), is(empty()));
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -167,13 +175,13 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
 
     // Then:
-    assertThat(result, is(ImmutableMap.of(
-        Window.of(Instant.ofEpochMilli(1), Optional.empty()), value1,
-        Window.of(Instant.ofEpochMilli(2), Optional.empty()), value2
-    )));
+    assertThat(result, contains(
+        WindowedRow.of(SCHEMA, A_KEY, Window.of(Instant.ofEpochMilli(1), Optional.empty()), value1),
+        WindowedRow.of(SCHEMA, A_KEY, Window.of(Instant.ofEpochMilli(2), Optional.empty()), value2)
+    ));
   }
 
   @Test
@@ -186,21 +194,36 @@ public class KsMaterializedWindowTableTest {
         .thenReturn(false);
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(1L, new GenericRow()))
-        .thenReturn(new KeyValue<>(3L, new GenericRow()))
-        .thenReturn(new KeyValue<>(2L, new GenericRow()))
+        .thenReturn(new KeyValue<>(1L, new GenericRow("a")))
+        .thenReturn(new KeyValue<>(3L, new GenericRow("b")))
+        .thenReturn(new KeyValue<>(2L, new GenericRow("c")))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final Map<Window, GenericRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
 
     // Then:
-    assertThat(result.keySet(), contains(
-        Window.of(Instant.ofEpochMilli(1), Optional.empty()),
-        Window.of(Instant.ofEpochMilli(3), Optional.empty()),
-        Window.of(Instant.ofEpochMilli(2), Optional.empty())
+    assertThat(result, contains(
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(Instant.ofEpochMilli(1), Optional.empty()),
+            new GenericRow("a")
+        ),
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(Instant.ofEpochMilli(3), Optional.empty()),
+            new GenericRow("b")
+        ),
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(Instant.ofEpochMilli(2), Optional.empty()),
+            new GenericRow("c")
+        )
     ));
   }
 }

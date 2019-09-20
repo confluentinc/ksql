@@ -15,13 +15,15 @@
 
 package io.confluent.ksql.materialization.ks;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.NotRunningException;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.support.metrics.common.time.Clock;
 import java.time.Duration;
-import java.util.Objects;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.state.QueryableStoreType;
@@ -35,27 +37,35 @@ class KsStateStore {
 
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
+  private final LogicalSchema schema;
   private final Duration timeout;
   private final Clock clock;
 
   KsStateStore(
       final String stateStoreName,
-      final KafkaStreams kafkaStreams
+      final KafkaStreams kafkaStreams,
+      final LogicalSchema schema
   ) {
-    this(stateStoreName, kafkaStreams, DEFAULT_TIMEOUT, System::currentTimeMillis);
+    this(stateStoreName, kafkaStreams, schema, DEFAULT_TIMEOUT, System::currentTimeMillis);
   }
 
   @VisibleForTesting
   KsStateStore(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
+      final LogicalSchema schema,
       final Duration timeout,
       final Clock clock
   ) {
-    this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
-    this.stateStoreName = Objects.requireNonNull(stateStoreName, "stateStoreName");
-    this.timeout = Objects.requireNonNull(timeout, "timeout");
-    this.clock = Objects.requireNonNull(clock, "clock");
+    this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
+    this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
+    this.schema = requireNonNull(schema, "schema");
+    this.timeout = requireNonNull(timeout, "timeout");
+    this.clock = requireNonNull(clock, "clock");
+  }
+
+  LogicalSchema schema() {
+    return schema;
   }
 
   <T> T store(final QueryableStoreType<T> queryableStoreType) {

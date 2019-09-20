@@ -20,17 +20,22 @@ import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class LongSumKudaf
-    extends BaseAggregateFunction<Long, Long> implements TableAggregationFunction<Long, Long> {
+    extends BaseAggregateFunction<Long, Long, Long>
+    implements TableAggregationFunction<Long, Long, Long> {
 
   LongSumKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, () -> 0L, Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-        "Computes the sum for a key.");
+    super(functionName,
+          argIndexInValue, () -> 0L,
+          Schema.OPTIONAL_INT64_SCHEMA,
+          Schema.OPTIONAL_INT64_SCHEMA,
+          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+          "Computes the sum for a key.");
   }
 
   @Override
@@ -55,7 +60,12 @@ public class LongSumKudaf
   }
 
   @Override
-  public KsqlAggregateFunction<Long, Long> getInstance(
+  public Function<Long, Long> getResultMapper() {
+    return Function.identity();
+  }
+
+  @Override
+  public KsqlAggregateFunction<Long, Long, Long> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new LongSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

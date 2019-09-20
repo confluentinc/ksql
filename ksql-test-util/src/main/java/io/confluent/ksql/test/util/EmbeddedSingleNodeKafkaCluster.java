@@ -215,6 +215,7 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     // Try to keep consumer groups stable:
     config.put(ConsumerConfig.HEARTBEAT_INTERVAL_MS_CONFIG, 7_000);
     config.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, 20_000);
+    config.put(ConsumerConfig.METADATA_MAX_AGE_CONFIG, 3_000);
     return config;
   }
 

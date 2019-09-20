@@ -190,7 +190,8 @@ public class DataSourceNodeTest {
         new QueryContext.Stacker(queryId)
             .push(inv.getArgument(0).toString()));
 
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn((KeySerde)keySerde);
+    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
+        .thenReturn((KeySerde)keySerde);
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn((KeySerde)keySerde);
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);

@@ -23,12 +23,15 @@ import org.apache.kafka.connect.data.Schema;
 public class IntegerMinKudaf extends BaseNumberKudaf<Integer> {
 
   IntegerMinKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, Schema.OPTIONAL_INT32_SCHEMA, Integer::min,
-        "Computes the minimum integer value for a key.");
+    super(functionName,
+          argIndexInValue,
+          Schema.OPTIONAL_INT32_SCHEMA,
+          Integer::min,
+          "Computes the minimum integer value for a key.");
   }
 
   @Override
-  public KsqlAggregateFunction<Integer, Integer> getInstance(
+  public KsqlAggregateFunction<Integer, Integer, Integer> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new IntegerMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

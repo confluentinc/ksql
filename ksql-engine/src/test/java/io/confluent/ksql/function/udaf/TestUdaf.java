@@ -23,8 +23,8 @@ import org.apache.kafka.connect.data.Struct;
 public class TestUdaf {
 
   @UdafFactory(description = "sums longs")
-  public static TableUdaf<Long, Long> createSumLong() {
-    return new TableUdaf<Long, Long>() {
+  public static TableUdaf<Long, Long, Long> createSumLong() {
+    return new TableUdaf<Long, Long, Long>() {
       @Override
       public Long undo(final Long valueToUndo, final Long aggregateValue) {
         return aggregateValue - valueToUndo;
@@ -44,12 +44,17 @@ public class TestUdaf {
       public Long merge(final Long aggOne, final Long aggTwo) {
         return aggOne + aggTwo;
       }
+
+      @Override
+      public Long map(final Long agg) {
+        return agg;
+      }
     };
   }
 
   @UdafFactory(description = "sums int")
-  public static TableUdaf<Integer, Long> createSumInt() {
-    return new TableUdaf<Integer, Long>() {
+  public static TableUdaf<Integer, Long,Long> createSumInt() {
+    return new TableUdaf<Integer, Long, Long>() {
       @Override
       public Long undo(final Integer valueToUndo, final Long aggregateValue) {
         return aggregateValue - valueToUndo;
@@ -69,12 +74,17 @@ public class TestUdaf {
       public Long merge(final Long aggOne, final Long aggTwo) {
         return aggOne + aggTwo;
       }
+
+      @Override
+      public Long map(final Long agg) {
+        return agg;
+      }
     };
   }
 
   @UdafFactory(description = "sums double")
-  public static Udaf<Double, Double> createSumDouble() {
-    return new Udaf<Double, Double>() {
+  public static Udaf<Double, Double, Double> createSumDouble() {
+    return new Udaf<Double, Double, Double>() {
       @Override
       public Double initialize() {
         return 0.0;
@@ -89,12 +99,17 @@ public class TestUdaf {
       public Double merge(final Double aggOne, final Double aggTwo) {
         return aggOne + aggTwo;
       }
+
+      @Override
+      public Double map(final Double agg) {
+        return agg;
+      }
     };
   }
 
   @UdafFactory(description = "sums the length of strings")
-  public static Udaf<String, Long> createSumLengthString(final String initialString) {
-    return new Udaf<String, Long>() {
+  public static Udaf<String, Long, Long> createSumLengthString(final String initialString) {
+    return new Udaf<String, Long, Long>() {
       @Override
       public Long initialize() {
         return (long) initialString.length();
@@ -109,15 +124,21 @@ public class TestUdaf {
       public Long merge(final Long aggOne, final Long aggTwo) {
         return aggOne + aggTwo;
       }
+
+      @Override
+      public Long map(final Long agg) {
+        return agg;
+      }
     };
   }
 
   @UdafFactory(
       description = "returns a struct with {SUM(in->A), SUM(in->B)}",
       paramSchema = "STRUCT<A INTEGER, B INTEGER>",
+      aggregateSchema = "STRUCT<A INTEGER, B INTEGER>",
       returnSchema = "STRUCT<A INTEGER, B INTEGER>")
-  public static Udaf<Struct, Struct> createStructUdaf() {
-    return new Udaf<Struct, Struct>() {
+  public static Udaf<Struct, Struct, Struct> createStructUdaf() {
+    return new Udaf<Struct, Struct, Struct>() {
 
       @Override
       public Struct initialize() {
@@ -140,6 +161,11 @@ public class TestUdaf {
       @Override
       public Struct merge(final Struct aggOne, final Struct aggTwo) {
         return aggregate(aggOne, aggTwo);
+      }
+
+      @Override
+      public Struct map(final Struct agg) {
+        return agg;
       }
     };
   }

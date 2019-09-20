@@ -75,9 +75,16 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+/**
+ * DO NOT ADD NEW TESTS TO THIS FILE
+ *
+ * <p>Instead add new JSON based tests to QueryTranslationTest.
+ *
+ * <p>This test file is more of a functional test, which is better implemented using QTT.
+ */
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
-public class AnalyzerTest {
+public class AnalyzerFunctionalTest {
 
   private static final Set<SerdeOption> DEFAULT_SERDE_OPTIONS = SerdeOption.none();
 

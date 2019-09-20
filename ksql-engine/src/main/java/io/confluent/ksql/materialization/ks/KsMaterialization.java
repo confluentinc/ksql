@@ -46,8 +46,7 @@ public final class KsMaterialization implements Materialization {
 
   @Override
   public LogicalSchema schema() {
-    // Not needed
-    throw new UnsupportedOperationException();
+    return stateStore.schema();
   }
 
   @Override

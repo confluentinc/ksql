@@ -15,22 +15,26 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.KGroupedTable;
+import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class TableGroupBy<T, G> implements ExecutionStep<G> {
+public class TableGroupBy<K> implements ExecutionStep<KGroupedTable<Struct, GenericRow>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<T> source;
+  private final ExecutionStep<KTable<K, GenericRow>> source;
   private final Formats formats;
   private final List<Expression> groupByExpressions;
 
   public TableGroupBy(
       final ExecutionStepProperties properties,
-      final ExecutionStep<T> source,
+      final ExecutionStep<KTable<K, GenericRow>> source,
       final Formats formats,
       final List<Expression> groupByExpressions
   ) {
@@ -50,8 +54,20 @@ public class TableGroupBy<T, G> implements ExecutionStep<G> {
     return Collections.singletonList(source);
   }
 
+  public Formats getFormats() {
+    return formats;
+  }
+
+  public List<Expression> getGroupByExpressions() {
+    return groupByExpressions;
+  }
+
+  public ExecutionStep<KTable<K, GenericRow>> getSource() {
+    return source;
+  }
+
   @Override
-  public G build(final KsqlQueryBuilder builder) {
+  public KGroupedTable<Struct, GenericRow> build(final KsqlQueryBuilder builder) {
     throw new UnsupportedOperationException();
   }
 
@@ -63,7 +79,7 @@ public class TableGroupBy<T, G> implements ExecutionStep<G> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableGroupBy<?, ?> that = (TableGroupBy<?, ?>) o;
+    final TableGroupBy<?> that = (TableGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

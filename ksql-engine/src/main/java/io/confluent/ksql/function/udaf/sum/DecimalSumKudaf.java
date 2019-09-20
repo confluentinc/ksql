@@ -23,37 +23,39 @@ import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
 public class DecimalSumKudaf
-    extends BaseAggregateFunction<BigDecimal, BigDecimal>
-    implements TableAggregationFunction<BigDecimal, BigDecimal> {
+    extends BaseAggregateFunction<BigDecimal, BigDecimal, BigDecimal>
+    implements TableAggregationFunction<BigDecimal, BigDecimal, BigDecimal> {
 
   private final MathContext context;
 
   DecimalSumKudaf(
       final String functionName,
       final int argIndexInValue,
-      final Schema returnSchema
+      final Schema outputSchema
   ) {
     super(
         functionName,
         argIndexInValue,
         DecimalSumKudaf::initialValue,
-        returnSchema,
-        Collections.singletonList(returnSchema),
+        outputSchema,
+        outputSchema,
+        Collections.singletonList(outputSchema),
         "Computes the sum of decimal values for a key, resulting in a decimal with the same "
             + "precision and scale.");
-    context = new MathContext(DecimalUtil.precision(returnSchema));
+    context = new MathContext(DecimalUtil.precision(outputSchema));
   }
 
   @Override
-  public KsqlAggregateFunction<BigDecimal, BigDecimal> getInstance(
+  public KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new DecimalSumKudaf(
-        functionName, aggregateFunctionArguments.udafIndex(), getReturnType());
+        functionName, aggregateFunctionArguments.udafIndex(), getAggregateType());
   }
 
   @Override
@@ -68,6 +70,11 @@ public class DecimalSumKudaf
   @Override
   public Merger<Struct, BigDecimal> getMerger() {
     return (key, agg1, agg2) -> agg1.add(agg2, context);
+  }
+
+  @Override
+  public Function<BigDecimal, BigDecimal> getResultMapper() {
+    return Function.identity();
   }
 
   @Override

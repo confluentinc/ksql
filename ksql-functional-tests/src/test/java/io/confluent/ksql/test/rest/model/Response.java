@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.test.rest.model;
 
-import static io.confluent.ksql.test.utils.ImmutableCollections.immutableCopyOf;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -29,7 +29,7 @@ public final class Response {
 
   @JsonCreator
   public Response(final Map<String, Object> content) {
-    this.content = immutableCopyOf(content);
+    this.content = Collections.unmodifiableMap(new LinkedHashMap<>(content));
   }
 
   public Map<String, Object> getContent() {

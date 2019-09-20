@@ -23,12 +23,15 @@ import org.apache.kafka.connect.data.Schema;
 public class DoubleMaxKudaf extends BaseNumberKudaf<Double> {
 
   DoubleMaxKudaf(final String functionName, final int argIndexInValue) {
-    super(functionName, argIndexInValue, Schema.OPTIONAL_FLOAT64_SCHEMA, Double::max,
-        "Computes the maximum double value for a key.");
+    super(functionName,
+          argIndexInValue,
+          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          Double::max,
+          "Computes the maximum double value for a key.");
   }
 
   @Override
-  public KsqlAggregateFunction<Double, Double> getInstance(
+  public KsqlAggregateFunction<Double, Double, Double> getInstance(
       final AggregateFunctionArguments aggregateFunctionArguments) {
     return new DoubleMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }

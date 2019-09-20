@@ -18,10 +18,52 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": null, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]},
-        {"@type": "row", "rows": []}
+        {
+          "@type": "rows",
+          "windowType": null,
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [{"window": null, "values": ["10", 1]}]
+        },
+        {"@type": "rows", "rows": []}
+      ]
+    },
+    {
+      "name": "non-windowed with projection",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT COUNT, CONCAT(ID, 'x') AS ID, COUNT * 2 FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "11", "value": {}},
+        {"topic": "test_topic", "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {"@type": "rows", "rows": [
+          {"window": null, "values": ["10", 1, "10x", 2]}
+        ]}
+      ]
+    },
+    {
+      "name": "windowed with projection",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT COUNT, CONCAT(ID, 'x') AS ID, COUNT * 2 FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {"@type": "rows", "rows": [
+          {"window": {"start": 12000, "end": null}, "values": ["10", 1, "10x", 2]}
+        ]}
       ]
     },
     {
@@ -40,10 +82,13 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 12000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]},
-        {"@type": "row", "rows": []}
+        {
+          "@type": "rows",
+          "windowType": "TUMBLING",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [{"window": {"start": 12000, "end": null}, "values": ["10", 1]}]
+        },
+        {"@type": "rows", "rows": []}
       ]
     },
     {
@@ -63,13 +108,19 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 12000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]},
-        {"@type": "row", "rows": [
-          {"window": {"start": 13000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]},
-        {"@type": "row", "rows": []}
+        {
+          "@type": "rows",
+          "windowType": "HOPPING",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [{"window": {"start": 12000, "end": null}, "values": ["10", 1]}]
+        },
+        {
+          "@type": "rows",
+          "windowType": "HOPPING",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [{"window": {"start": 13000, "end": null}, "values": ["10", 1]}]
+        },
+        {"@type": "rows", "rows": []}
       ]
     },
     {
@@ -89,11 +140,14 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 12345, "end": 12366}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 2}}
-        ]},
-        {"@type": "row", "rows": []},
-        {"@type": "row", "rows": []}
+        {
+          "@type": "rows",
+          "windowType": "SESSION",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [{"window": {"start": 12345, "end": 12366}, "values": ["10", 2]}]
+        },
+        {"@type": "rows", "rows": []},
+        {"@type": "rows", "rows": []}
       ]
     },
     {
@@ -114,11 +168,16 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 12000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 2}},
-          {"window": {"start": 14000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]},
-        {"@type": "row", "rows": []}
+        {
+          "@type": "rows",
+          "windowType": "TUMBLING",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [
+            {"window": {"start": 12000, "end": null}, "values": ["10", 2]},
+            {"window": {"start": 14000, "end": null}, "values": ["10", 1]}
+          ]
+        },
+        {"@type": "rows", "rows": []}
       ]
     },
     {
@@ -137,14 +196,17 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 7000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}},
-          {"window": {"start": 8000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}},
-          {"window": {"start": 9000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 2}},
-          {"window": {"start": 10000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 2}},
-          {"window": {"start": 11000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]},
-        {"@type": "row", "rows": []}
+        {
+          "@type": "rows",
+          "rows": [
+            {"window": {"start": 7000, "end": null}, "values": ["10", 1]},
+            {"window": {"start": 8000, "end": null}, "values": ["10", 1]},
+            {"window": {"start": 9000, "end": null}, "values": ["10", 2]},
+            {"window": {"start": 10000, "end": null}, "values": ["10", 2]},
+            {"window": {"start": 11000, "end": null}, "values": ["10", 1]}
+          ]
+        },
+        {"@type": "rows", "rows": []}
       ]
     },
     {
@@ -153,7 +215,7 @@
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(10 SECOND) GROUP BY ROWKEY;",
         "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND 8001 <= WindowStart AND WindowStart < 19444;",
-        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND 14000 <= WindowStart AND WindowStart < 11234756356;"
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND 8001 <= WindowStart AND WindowStart < 11234756356;"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
@@ -164,16 +226,24 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 12345, "end": 13456}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 2}}
-        ]},
-        {"@type": "row", "rows": [
-          {"window": {"start": 24456, "end": 24456}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]}
+        {
+          "@type": "rows",
+          "rows": [
+            {"window": {"start": 12345, "end": 13456}, "values": ["10", 2]}
+          ]
+        },
+        {
+          "@type": "rows",
+          "rows": [
+            {"window": {"start": 12345, "end": 13456}, "values": ["10", 2]},
+            {"window": {"start": 24456, "end": 24456}, "values": ["10", 1]}
+          ]
+        }
       ]
     },
     {
       "name": "text datetime window bounds",
+      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -186,8 +256,8 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": {"start": 1582501512000, "end": null}, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
+        {"@type": "rows", "rows": [
+          {"window": {"start": 1582501512000, "end": null}, "values": ["10", 1]}
         ]}
       ]
     },
@@ -204,9 +274,11 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": null, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1}}
-        ]}
+        {
+          "@type": "rows",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [{"window": null, "values": ["10", 1]}]
+        }
       ]
     },
     {
@@ -222,9 +294,11 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": null, "key": {"ROWKEY": "10"}, "value": {"COUNT": 1, "SUM": 10}}
-        ]}
+        {
+          "@type": "rows",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT, `SUM` INTEGER",
+          "rows": [{"window": null, "values": ["10", 1,10]}]
+        }
       ]
     },
     {
@@ -242,24 +316,9 @@
       "responses": [
         {"@type": "currentStatus"},
         {"@type": "currentStatus"},
-        {"@type": "row", "rows": [
-          {"window": null, "key": {"ROWKEY": "10"}, "value": {"SUM": 9}}
-        ]},
-        {"@type": "row", "rows": []}
+        {"@type": "rows", "rows": [{"window": null, "values": ["10", 9]}]},
+        {"@type": "rows", "rows": []}
       ]
-    },
-    {
-      "name": "fail on unsupported query feature: non-select-star projections",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT COUNT FROM AGGREGATE WHERE ROWKEY='10';"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries currently only support a 'SELECT *' projections",
-        "status": 400
-      }
     },
     {
       "name": "fail on unsupported query feature: join",
@@ -387,6 +446,19 @@
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
         "message": "WHERE clause missing WINDOWSTART",
+        "status": 400
+      }
+    },
+    {
+      "name": "fail if WINDOWSTART used in non-windowed static query",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND WINDOWSTART=10;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Field 'AGGREGATE.WINDOWSTART' cannot be resolved",
         "status": 400
       }
     }

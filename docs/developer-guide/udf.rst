@@ -332,154 +332,273 @@ be annotated with ``@UdafFactory``, and must return either ``Udaf`` or ``TableUd
 you create represents a collection of UDAFs all with the same name but may have different
 arguments and return types.
 
+Both ``Udaf`` and ``TableUdaf`` are parameterized by three types: ``I`` is the input type of the
+UDAF. ``A`` is the data type of the intermediate storage used to keep track of the state of the UDAF.
+``O`` is the data type of the return value. Decoupling the data types of the state and
+return value allows you to define UDAFs like average as we show in the example below. When creating
+a UDAF, use the ``map`` method to provide the logic that transforms an intermediate aggregate value
+to the returned value.
+
+
 .. _example-udaf-class:
 
 Example UDAF class
 ~~~~~~~~~~~~~~~~~~
 
-The class below creates a UDAF named ``my_sum``. The name of the UDAF is provided in the ``name``
+The class below creates a UDAF named ``my_average``. The name of the UDAF is provided in the ``name``
 parameter of the ``UdafDescription`` annotation. This name is case-insensitive and is what can be
-used to call the UDAF. The UDAF can be invoked in four ways:
+used to call the UDAF.
 
-- With a Long (BIGINT) column, returning the aggregated value as Long (BIGINT). Can also be used to support table aggregations
-  as the return type is ``TableUdaf`` and therefore supports the ``undo`` operation.
-- with an Integer column returning the aggregated value as Long (BIGINT).
-- with a Double column, returning the aggregated value as Double.
-- with a String (VARCHAR) and an initializer that is a String (VARCHAR), returning the aggregated String (VARCHAR) length
-  as a Long (BIGINT).
-- with a Struct (STRUCT<A INTEGER, B INTEGER>) that wraps two integers, returning an aggregate that
-  sums each value independently
+The class provides three factories that return a ``TableUdaf``, one for each
+of the input types Long, Integer and Double. Moreover, it provides a factory that returns a ``Udaf``
+that does not support undo. Each method defines a different type for the
+intermediate state based on the input type (``I``), which in this case is a STRUCT consisting of two
+fields, the SUM of type ``I`` and the COUNT of type Long. To get the result of the UDAF, each method
+implements a ``map`` function that returns the Double division of the accumulated SUM and COUNT.
+
+The UDAF can be invoked in four ways:
+
+- With a Long (BIGINT) column, returning the aggregated value as Double. Defines the schema for
+  intermediate state type using the annotation parameter ``parameterSchema``.
+  The return type is ``TableUdaf`` and therefore supports the ``undo`` operation.
+- With an Integer column returning the aggregated value as Double. Likewise defines the schema of
+  the Struct and supports undo.
+- With a Double column, returning the aggregated value as Double. Likewise defines the schema of
+  the Struct and supports undo.
+- With a String (VARCHAR) column and an initializer that is a String (VARCHAR), returning the average
+  String (VARCHAR) length as a Double.
 
 .. code:: java
 
-    @UdafDescription(name = "my_sum", description = "sums")
-    public class SumUdaf {
+    @UdafDescription(name = "my_average", description = "Computes the average.")
+    public class AverageUdaf {
 
-      @UdafFactory(description = "sums longs")
+      private static final String COUNT = "COUNT";
+      private static final String SUM = "SUM";
+
+      @UdafFactory(description = "Compute average of column with type Long.",
+          aggregateSchema = "STRUCT<SUM bigint, COUNT bigint>")
       // Can be used with table aggregations
-      public static TableUdaf<Long, Long> createSumLong() {
-        return new TableUdaf<Long, Long>() {
+      public static TableUdaf<Long, Struct, Double> averageLong() {
+
+        final Schema STRUCT_LONG = SchemaBuilder.struct().optional()
+              .field(SUM, Schema.OPTIONAL_INT64_SCHEMA)
+              .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
+              .build();
+
+        return new TableUdaf<Long, Struct, Double>() {
+
           @Override
-          public Long undo(final Long valueToUndo, final Long aggregateValue) {
-            return aggregateValue - valueToUndo;
+          public Struct initialize() {
+            return new Struct(STRUCT_LONG).put(SUM, 0L).put(COUNT, 0L);
           }
 
           @Override
-          public Long initialize() {
-            return 0L;
+          public Struct aggregate(final Long newValue,
+                                  final Struct aggregate) {
+
+            if (newValue == null) {
+              return aggregate;
+            }
+            return new Struct(STRUCT_LONG)
+                .put(SUM, aggregate.getInt64(SUM) + newValue)
+                .put(COUNT, aggregate.getInt64(COUNT) + 1);
           }
 
           @Override
-          public Long aggregate(final Long value, final Long aggregate) {
-            return aggregate + value;
+          public Double map(final Struct aggregate) {
+            final long count = aggregate.getInt64(COUNT);
+            if (count == 0) {
+              return 0.0;
+            }
+            return aggregate.getInt64(SUM) / ((double)count);
           }
 
           @Override
-          public Long merge(final Long aggOne, final Long aggTwo) {
-            return aggOne + aggTwo;
+          public Struct merge(final Struct agg1,
+                              final Struct agg2) {
+
+            return new Struct(STRUCT_LONG)
+                .put(SUM, agg1.getInt64(SUM) + agg2.getInt64(SUM))
+                .put(COUNT, agg1.getInt64(COUNT) + agg2.getInt64(COUNT));
+          }
+
+          @Override
+          public Struct undo(final Long valueToUndo,
+                             final Struct aggregate) {
+
+            return new Struct(STRUCT_LONG)
+                .put(SUM, aggregate.getInt64(SUM) - valueToUndo)
+                .put(COUNT, aggregate.getInt64(COUNT) - 1);
           }
         };
       }
 
-      @UdafFactory(description = "sums int")
-      public static TableUdaf<Integer, Long> createSumInt() {
-        return new TableUdaf<Integer, Long>() {
+      @UdafFactory(description = "Compute average of column with type Integer.",
+          aggregateSchema = "STRUCT<SUM integer, COUNT bigint>")
+      public static TableUdaf<Integer, Struct, Double> averageInt() {
+
+        final Schema STRUCT_INT = SchemaBuilder.struct().optional()
+              .field(SUM, Schema.OPTIONAL_INT32_SCHEMA)
+              .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
+              .build();
+
+        return new TableUdaf<Integer, Struct, Double>() {
+
           @Override
-          public Long undo(final Integer valueToUndo, final Long aggregateValue) {
-            return aggregateValue - valueToUndo;
+          public Struct initialize() {
+            return new Struct(STRUCT_INT).put(SUM, 0).put(COUNT, 0L);
           }
 
           @Override
-          public Long initialize() {
-            return 0L;
+          public Struct aggregate(final Integer newValue,
+                                  final Struct aggregate) {
+
+            if (newValue == null) {
+              return aggregate;
+            }
+            return new Struct(STRUCT_INT)
+                .put(SUM, aggregate.getInt32(SUM) + newValue)
+                .put(COUNT, aggregate.getInt64(COUNT) + 1);
+
           }
 
           @Override
-          public Long aggregate(final Integer current, final Long aggregate) {
-            return current + aggregate;
+          public Double map(final Struct aggregate) {
+            final long count = aggregate.getInt64(COUNT);
+            if (count == 0) {
+              return 0.0;
+            }
+            return aggregate.getInt64(SUM) / ((double)count);
           }
 
           @Override
-          public Long merge(final Long aggOne, final Long aggTwo) {
-            return aggOne + aggTwo;
+          public Struct merge(final Struct agg1,
+                              final Struct agg2) {
+
+            return new Struct(STRUCT_INT)
+                .put(SUM, agg1.getInt32(SUM) + agg2.getInt64(SUM))
+                .put(COUNT, agg1.getInt64(COUNT) + agg2.getInt64(COUNT));
+          }
+
+          @Override
+          public Struct undo(final Integer valueToUndo,
+                             final Struct aggregate) {
+
+            return new Struct(STRUCT_INT)
+                .put(SUM, aggregate.getInt32(SUM) - valueToUndo)
+                .put(COUNT, aggregate.getInt64(COUNT) - 1);
           }
         };
       }
 
-      @UdafFactory(description = "sums double")
-      public static Udaf<Double, Double> createSumDouble() {
-        return new Udaf<Double, Double>() {
+      @UdafFactory(description = "Compute average of column with type Double.",
+          aggregateSchema = "STRUCT<SUM double, COUNT bigint>")
+      public static TableUdaf<Double, Struct, Double> averageDouble() {
+
+        final Schema STRUCT_DOUBLE = SchemaBuilder.struct().optional()
+            .field(SUM, Schema.OPTIONAL_FLOAT64_SCHEMA)
+            .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
+            .build();
+
+        return new TableUdaf<Double, Struct, Double>() {
+
           @Override
-          public Double initialize() {
-            return 0.0;
+          public Struct initialize() {
+            return new Struct(STRUCT_DOUBLE).put(SUM, 0.0).put(COUNT, 0L);
           }
 
           @Override
-          public Double aggregate(final Double val, final Double aggregate) {
-            return aggregate + val;
+          public Struct aggregate(final Double newValue,
+                                  final Struct aggregate) {
+
+            if (newValue == null) {
+              return aggregate;
+            }
+            return new Struct(STRUCT_DOUBLE)
+                .put(SUM, aggregate.getFloat64(SUM) + newValue)
+                .put(COUNT, aggregate.getInt64(COUNT) + 1);
+
           }
 
           @Override
-          public Double merge(final Double aggOne, final Double aggTwo) {
-            return aggOne + aggTwo;
+          public Double map(final Struct aggregate) {
+            final long count = aggregate.getInt64(COUNT);
+            if (count == 0) {
+              return 0.0;
+            }
+            return aggregate.getFloat64(SUM) / ((double)count);
+          }
+
+          @Override
+          public Struct merge(final Struct agg1,
+                              final Struct agg2) {
+
+            return new Struct(STRUCT_DOUBLE)
+                .put(SUM, agg1.getFloat64(SUM) + agg2.getFloat64(SUM))
+                .put(COUNT, agg1.getInt64(COUNT) + agg2.getInt64(COUNT));
+          }
+
+          @Override
+          public Struct undo(final Double valueToUndo,
+                             final Struct aggregate) {
+
+            return new Struct(STRUCT_DOUBLE)
+                .put(SUM, aggregate.getFloat64(SUM) - valueToUndo)
+                .put(COUNT, aggregate.getInt64(COUNT) - 1);
           }
         };
       }
 
       // This method shows providing an initial value to an aggregated, i.e., it would be called
-      // with my_sum(col1, 'some_initial_value')
-      @UdafFactory(description = "sums the length of strings")
-      public static Udaf<String, Long> createSumLengthString(final String initialString) {
-        return new Udaf<String, Long>() {
+      // with my_average(col1, 'some_initial_value')
+      @UdafFactory(description = "Compute average of length of strings",
+          aggregateSchema = "STRUCT<SUM bigint, COUNT bigint>")
+      public static Udaf<String, Struct, Double> averageStringLength(final String initialString) {
+
+        final Schema STRUCT_LONG = SchemaBuilder.struct().optional()
+              .field(SUM, Schema.OPTIONAL_INT64_SCHEMA)
+              .field(COUNT, Schema.OPTIONAL_INT64_SCHEMA)
+              .build();
+
+        return new Udaf<String, Struct, Double>() {
+
           @Override
-          public Long initialize() {
-            return (long) initialString.length();
+          public Struct initialize() {
+            return new Struct(STRUCT_LONG).put(SUM, (long) initialString.length()).put(COUNT, 1L);
           }
 
           @Override
-          public Long aggregate(final String s, final Long aggregate) {
-            return aggregate + s.length();
+          public Struct aggregate(final String newValue,
+                                  final Struct aggregate) {
+
+            if (newValue == null) {
+              return aggregate;
+            }
+            return new Struct(STRUCT_LONG)
+                .put(SUM, aggregate.getInt64(SUM) + newValue.length())
+                .put(COUNT, aggregate.getInt64(COUNT) + 1);
           }
 
           @Override
-          public Long merge(final Long aggOne, final Long aggTwo) {
-            return aggOne + aggTwo;
+          public Double map(final Struct aggregate) {
+            final long count = aggregate.getInt64(COUNT);
+            if (count == 0) {
+              return 0.0;
+            }
+            return aggregate.getInt64(SUM) / ((double)count);
+          }
+
+          @Override
+          public Struct merge(final Struct agg1,
+                              final Struct agg2) {
+
+            return new Struct(STRUCT_LONG)
+                .put(SUM, agg1.getInt64(SUM) + agg2.getInt64(SUM))
+                .put(COUNT, agg1.getInt64(COUNT) + agg2.getInt64(COUNT));
           }
         };
       }
-
-      @UdafFactory(
-            description = "returns a struct with {SUM(in->A), SUM(in->B)}",
-            paramSchema = "STRUCT<A INTEGER, B INTEGER>",
-            returnSchema = "STRUCT<A INTEGER, B INTEGER>")
-        public static Udaf<Struct, Struct> createStructUdaf() {
-          return new Udaf<Struct, Struct>() {
-
-            @Override
-            public Struct initialize() {
-              return new Struct(SchemaBuilder.struct()
-                  .field("A", Schema.OPTIONAL_INT32_SCHEMA)
-                  .field("B", Schema.OPTIONAL_INT32_SCHEMA)
-                  .optional()
-                  .build())
-                  .put("A", 0)
-                  .put("B", 0);
-            }
-
-            @Override
-            public Struct aggregate(final Struct current, final Struct aggregate) {
-              aggregate.put("A", current.getInt32("A") + aggregate.getInt32("A"));
-              aggregate.put("B", current.getInt32("B") + aggregate.getInt32("B"));
-              return aggregate;
-            }
-
-            @Override
-            public Struct merge(final Struct aggOne, final Struct aggTwo) {
-              return aggregate(aggOne, aggTwo);
-            }
-          };
-        }
-
     }
 
 UdafDescription Annotation
@@ -512,21 +631,24 @@ The method must return either ``Udaf``, or, if it supports table aggregations, `
 Each annotated method is a factory for an invocable aggregate function in KSQL. The annotation supports
 the following fields:
 
-+-------------+------------------------------+------------------------+
-| Field       | Description                  | Required               |
-+=============+==============================+========================+
-| description | A string describing generally| Yes                    |
-|             | what the function(s) in this |                        |
-|             | class do.                    |                        |
-+-------------+------------------------------+------------------------+
-| paramSchema | The KSQL schema for the      | For complex types      |
-|             | parameter.                   | such as STRUCT         |
-+-------------+------------------------------+------------------------+
-| returnSchema| The KSQL schema for the      | For complex types      |
-|             | return value.                | such as STRUCT         |
-+-------------+------------------------------+------------------------+
++-----------------+------------------------------+------------------------+
+| Field           | Description                  | Required               |
++=================+==============================+========================+
+| description     | A string describing generally| Yes                    |
+|                 | what the function(s) in this |                        |
+|                 | class do.                    |                        |
++-----------------+------------------------------+------------------------+
+| paramSchema     | The KSQL schema for the input| For complex types      |
+|                 | parameter.                   | such as STRUCT         |
++-----------------+------------------------------+------------------------+
+| aggregateSchema | The KSQL schema for the      | For complex types      |
+|                 | intermediate state.          | such as STRUCT         |
++-----------------+------------------------------+------------------------+
+| returnSchema    | The KSQL schema for the      | For complex types      |
+|                 | return value.                | such as STRUCT         |
++-----------------+------------------------------+------------------------+
 
-.. note:: If ``paramSchema`` or ``returnSchema`` is supplied in the ``@UdfParameter`` annotation for
+.. note:: If ``paramSchema`` , ``aggregateSchema``  or ``returnSchema`` is supplied in the ``@UdfParameter`` annotation for
           a ``STRUCT`` it is considered "strict" - any inputs must match exactly, including order
           and names of the fields.
 
@@ -534,17 +656,14 @@ You can use this to better describe what a particular version of the UDF does, f
 
 .. code:: java
 
-    @UdafFactory(description = "Sums BIGINT columns.")
-    public static TableUdaf<Long, Long> createSumLong(){...}
+    @UdafFactory(description = "Compute average of column with type Long.",
+              aggregateSchema = "STRUCT<SUM bigint, COUNT bigint>")
+    public static TableUdaf<Long, Struct, Double> averageLong(){...}
 
-    @UdafFactory(description = "Sums the length of VARCHAR columns".)
-    public static Udaf<String, Long> createSumLengthString(final String initialString){...}
+    @@UdafFactory(description = "Compute average of length of strings",
+               aggregateSchema = "STRUCT<SUM bigint, COUNT bigint>")
+    public static Udaf<String, Struct, Double> averageStringLength(final String initialString){...}
 
-    @UdafFactory(
-          description = "returns a struct with {SUM(in->A), SUM(in->B)}",
-          paramSchema = "STRUCT<A INTEGER, B INTEGER>",
-          returnSchema = "STRUCT<A INTEGER, B INTEGER>")
-    public static Udaf<Struct, Struct> createStructUdaf(){...}
 
 
 ===============
@@ -580,8 +699,6 @@ The types supported by UDFs are currently limited to:
 +--------------+------------------+
 | Struct       | STRUCT           |
 +--------------+------------------+
-
-Note: Lists and Maps are not supported in UDAFs
 
 .. _deploying-udf:
 

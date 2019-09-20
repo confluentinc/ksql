@@ -19,13 +19,14 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
+import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
@@ -37,21 +38,21 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.SelectValueMapper;
+import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.materialization.Locator;
 import io.confluent.ksql.materialization.Locator.KsqlNode;
 import io.confluent.ksql.materialization.Materialization;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
-import io.confluent.ksql.materialization.Window;
+import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.parser.tree.AliasedRelation;
-import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Relation;
-import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
-import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
@@ -61,9 +62,13 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.QueryResultEntity;
 import io.confluent.ksql.rest.entity.QueryResultEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
@@ -73,9 +78,11 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -108,20 +115,11 @@ public final class StaticQueryExecutor {
     }
 
     try {
-      validateSelects(queryStmt.getSelect());
+      final Analysis analysis = analyze(statement, executionContext);
 
-      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, queryStmt);
+      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 
-      extractWhereInfo(queryStmt.getWhere(), query);
-
-      if (queryStmt.getWindow().isPresent()) {
-        throw new KsqlException("Static queries do not support WINDOW clauses.");
-      }
-
-      if (queryStmt.getGroupBy().isPresent()) {
-        throw new KsqlException("Static queries do not support GROUP BY clauses.");
-      }
-
+      extractWhereInfo(analysis, query);
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage(),
@@ -137,17 +135,17 @@ public final class StaticQueryExecutor {
       final ServiceContext serviceContext
   ) {
     try {
-      final Query queryStmt = statement.getStatement();
+      final Analysis analysis = analyze(statement, executionContext);
 
-      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, queryStmt);
+      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
 
-      final WhereInfo whereInfo = extractWhereInfo(queryStmt.getWhere(), query);
+      final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
       final QueryContext.Stacker contextStacker = new Stacker(new QueryId("static-query"));
 
       final Materialization mat = query
           .getMaterialization(contextStacker)
-          .orElseThrow(() -> notMaterializedException(getSourceRelation(queryStmt.getFrom())));
+          .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
 
@@ -156,26 +154,30 @@ public final class StaticQueryExecutor {
         return Optional.of(proxyTo(owner, statement));
       }
 
-      final Map<Optional<Window>, GenericRow> result;
+      Result result;
       if (whereInfo.windowBounds.isPresent()) {
         final WindowBounds windowBounds = whereInfo.windowBounds.get();
 
-        final Builder<Optional<Window>, GenericRow> builder = ImmutableMap.builder();
-        mat.windowed().get(rowKey, windowBounds.lower, windowBounds.upper)
-            .forEach((k, v) -> builder.put(Optional.of(k), v));
+        final List<? extends TableRow> rows = mat.windowed()
+            .get(rowKey, windowBounds.lower, windowBounds.upper);
 
-        result = builder.build();
+        result = new Result(mat.schema(), rows);
       } else {
-        result = mat.nonWindowed().get(rowKey)
-            .map(v -> ImmutableMap.of(Optional.<Window>empty(), v))
-            .orElse(ImmutableMap.of());
+        final List<? extends TableRow> rows = mat
+            .nonWindowed().get(rowKey)
+            .map(ImmutableList::of)
+            .orElse(ImmutableList.of());
+
+        result = new Result(mat.schema(), rows);
       }
+
+      result = handleSelects(result, statement, executionContext, analysis);
 
       final QueryResultEntity entity = new QueryResultEntity(
           statement.getStatementText(),
           mat.windowType(),
-          mat.schema(),
-          QueryResultEntityFactory.createRows(rowKey, result, mat.schema())
+          result.schema,
+          QueryResultEntityFactory.createRows(result.rows)
       );
 
       return Optional.of(entity);
@@ -186,6 +188,19 @@ public final class StaticQueryExecutor {
           e
       );
     }
+  }
+
+  private static Analysis analyze(
+      final ConfiguredStatement<Query> statement,
+      final KsqlExecutionContext executionContext
+  ) {
+    final QueryAnalyzer queryAnalyzer = new QueryAnalyzer(
+        executionContext.getMetaStore(),
+        "",
+        SerdeOption.none()
+    );
+
+    return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
   }
 
   private static final class WindowBounds {
@@ -217,14 +232,30 @@ public final class StaticQueryExecutor {
     }
   }
 
+  private static final class Result {
+
+    private final LogicalSchema schema;
+    private final List<? extends TableRow> rows;
+
+    private Result(
+        final LogicalSchema schema,
+        final List<? extends TableRow> rows
+    ) {
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.rows = Objects.requireNonNull(rows, "rows");
+    }
+  }
+
   private static WhereInfo extractWhereInfo(
-      final Optional<Expression> possibleWhere,
+      final Analysis analysis,
       final PersistentQueryMetadata query
   ) {
     final boolean windowed = query.getResultTopic().getKeyFormat().isWindowed();
 
-    final Expression where = possibleWhere
-        .orElseThrow(() -> invalidWhereClauseException("missing WHERE clause", windowed));
+    final Expression where = analysis.getWhereExpression();
+    if (where == null) {
+      throw invalidWhereClauseException("Missing WHERE clause", windowed);
+    }
 
     final Map<ComparisonTarget, List<ComparisonExpression>> comparisons = extractComparisons(where);
 
@@ -237,7 +268,7 @@ public final class StaticQueryExecutor {
 
     if (!windowed) {
       if (comparisons.size() > 1) {
-        throw invalidWhereClauseException("Unsupported WHERE clause", windowed);
+        throw invalidWhereClauseException("Unsupported WHERE clause", false);
       }
 
       return new WhereInfo(rowKey, Optional.empty());
@@ -249,7 +280,7 @@ public final class StaticQueryExecutor {
     if (windowBoundsComparison == null) {
       throw invalidWhereClauseException(
           "WHERE clause missing " + ComparisonTarget.WINDOWSTART,
-          windowed
+          true
       );
     }
 
@@ -465,32 +496,77 @@ public final class StaticQueryExecutor {
     }
   }
 
-  private static void validateSelects(final Select select) {
-    final List<SelectItem> selectItems = select.getSelectItems();
+  private static boolean isSelectStar(final List<SelectItem> selects) {
+    return selects.size() == 1 && selects.get(0) instanceof AllColumns;
+  }
 
-    if (selectItems.size() != 1
-        || selectItems.get(0) instanceof SingleColumn
-    ) {
-      throw new KsqlException("Static queries currently only support a 'SELECT *' projections");
+  private static Result handleSelects(
+      final Result input,
+      final ConfiguredStatement<Query> statement,
+      final KsqlExecutionContext executionContext,
+      final Analysis analysis
+  ) {
+    final List<SelectItem> selectItems = statement.getStatement().getSelect().getSelectItems();
+    if (input.rows.isEmpty() || isSelectStar(selectItems)) {
+      return input;
     }
+
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+    schemaBuilder.keyColumns(input.schema.key());
+
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        input.schema,
+        executionContext.getMetaStore()
+    );
+
+    final List<SelectExpression> selects = new ArrayList<>(selectItems.size());
+    for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
+      final Expression exp = analysis.getSelectExpressions().get(idx);
+      final String alias = analysis.getSelectExpressionAlias().get(idx);
+      selects.add(SelectExpression.of(alias, exp));
+      final SqlType type = expressionTypeManager.getExpressionSqlType(exp);
+      schemaBuilder.valueColumn(alias, type);
+    }
+
+    final LogicalSchema schema = schemaBuilder.build();
+
+    final String sourceName = getSourceName(analysis);
+
+    final KsqlConfig ksqlConfig = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
+    final SelectValueMapper mapper = SelectValueMapperFactory.create(
+        selects,
+        input.schema.withAlias(sourceName),
+        ksqlConfig,
+        executionContext.getMetaStore(),
+        NoopProcessingLogContext.INSTANCE.getLoggerFactory().getLogger("any")
+    );
+
+    final ImmutableList.Builder<TableRow> output = ImmutableList.builder();
+    input.rows.forEach(r -> {
+      final GenericRow mapped = mapper.apply(r.value());
+      final TableRow tableRow = r.withValue(mapped, schema);
+      output.add(tableRow);
+    });
+
+    return new Result(schema, output.build());
   }
 
   private static PersistentQueryMetadata findMaterializingQuery(
       final KsqlExecutionContext executionContext,
-      final Query query
+      final Analysis analysis
   ) {
     final MetaStore metaStore = executionContext.getMetaStore();
 
-    final Table sourceTable = getSourceRelation(query.getFrom());
+    final String sourceName = getSourceName(analysis);
 
-    final DataSource<?> source = getSource(sourceTable, metaStore);
-
-    final Set<String> queries = metaStore.getQueriesWithSink(source.getName());
+    final Set<String> queries = metaStore.getQueriesWithSink(sourceName);
     if (queries.isEmpty()) {
-      throw notMaterializedException(sourceTable);
+      throw notMaterializedException(sourceName);
     }
     if (queries.size() > 1) {
-      throw new KsqlException("Multiple queries currently materialize '" + sourceTable + "'."
+      throw new KsqlException("Multiple queries currently materialize '" + sourceName + "'."
           + " KSQL currently only supports static queries when the table has only been"
           + " materialized once.");
     }
@@ -501,32 +577,9 @@ public final class StaticQueryExecutor {
         .orElseThrow(() -> new KsqlException("Materializing query has been stopped"));
   }
 
-  private static DataSource<?> getSource(
-      final Table sourceTable,
-      final MetaStore metaStore
-  ) {
-    final DataSource<?> source = metaStore.getSource(sourceTable.getName().toString());
-    if (source == null) {
-      throw new KsqlException("Unknown source: " + sourceTable.getName());
-    }
-
-    return source;
-  }
-
-  private static Table getSourceRelation(final Relation from) {
-    if (from instanceof Join) {
-      throw new KsqlException("Static queries do not support joins.");
-    }
-
-    if (from instanceof Table) {
-      return (Table) from;
-    }
-
-    if (from instanceof AliasedRelation) {
-      return getSourceRelation(((AliasedRelation) from).getRelation());
-    }
-
-    throw new KsqlException("Unsupported source type: " + from.getClass().getSimpleName());
+  private static String getSourceName(final Analysis analysis) {
+    final DataSource<?> source = analysis.getFromDataSources().get(0).getDataSource();
+    return source.getName();
   }
 
   private static KsqlNode getOwner(final Struct rowKey, final Materialization mat) {
@@ -567,7 +620,7 @@ public final class StaticQueryExecutor {
     }
   }
 
-  private static KsqlException notMaterializedException(final Table sourceTable) {
+  private static KsqlException notMaterializedException(final String sourceTable) {
     return new KsqlException(
         "Table '" + sourceTable + "' is not materialized."
             + " KSQL currently only supports static queries on materialized aggregate tables."

@@ -54,6 +54,7 @@ import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.StreamsUtil;
+import io.confluent.ksql.execution.streams.KsqlValueJoiner;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -78,7 +79,7 @@ import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.execution.streams.GroupedFactory;
-import io.confluent.ksql.streams.JoinedFactory;
+import io.confluent.ksql.execution.streams.JoinedFactory;
 import io.confluent.ksql.streams.StreamsFactories;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -555,7 +556,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldPerformTableToTableLeftJoin() {
     expect(mockKTable.leftJoin(eq(secondSchemaKTable.getKtable()),
-                               anyObject(SchemaKStream.KsqlValueJoiner.class)))
+                               anyObject(KsqlValueJoiner.class)))
         .andReturn(EasyMock.niceMock(KTable.class));
 
     replay(mockKTable);
@@ -581,7 +582,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldPerformTableToTableInnerJoin() {
     expect(mockKTable.join(eq(secondSchemaKTable.getKtable()),
-                           anyObject(SchemaKStream.KsqlValueJoiner.class)))
+                           anyObject(KsqlValueJoiner.class)))
         .andReturn(EasyMock.niceMock(KTable.class));
 
     replay(mockKTable);
@@ -605,7 +606,7 @@ public class SchemaKTableTest {
   @Test
   public void shouldPerformTableToTableOuterJoin() {
     expect(mockKTable.outerJoin(eq(secondSchemaKTable.getKtable()),
-                                anyObject(SchemaKStream.KsqlValueJoiner.class)))
+                                anyObject(KsqlValueJoiner.class)))
         .andReturn(EasyMock.niceMock(KTable.class));
 
     replay(mockKTable);
@@ -639,15 +640,15 @@ public class SchemaKTableTest {
     final KTable resultTable = EasyMock.niceMock(KTable.class);
     expect(mockKTable.outerJoin(
         eq(secondSchemaKTable.getKtable()),
-        anyObject(SchemaKStream.KsqlValueJoiner.class))
+        anyObject(KsqlValueJoiner.class))
     ).andReturn(resultTable);
     expect(mockKTable.join(
         eq(secondSchemaKTable.getKtable()),
-        anyObject(SchemaKStream.KsqlValueJoiner.class))
+        anyObject(KsqlValueJoiner.class))
     ).andReturn(resultTable);
     expect(mockKTable.leftJoin(
         eq(secondSchemaKTable.getKtable()),
-        anyObject(SchemaKStream.KsqlValueJoiner.class))
+        anyObject(KsqlValueJoiner.class))
     ).andReturn(resultTable);
     replay(mockKTable);
 

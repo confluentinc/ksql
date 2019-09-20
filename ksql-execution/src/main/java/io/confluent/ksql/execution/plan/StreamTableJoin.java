@@ -16,25 +16,28 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class StreamTableJoin<S, T> implements ExecutionStep<S> {
+public class StreamTableJoin<K> implements ExecutionStep<KStream<K, GenericRow>> {
 
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
   private final Formats formats;
-  private final ExecutionStep<S> left;
-  private final ExecutionStep<T> right;
+  private final ExecutionStep<KStream<K, GenericRow>> left;
+  private final ExecutionStep<KTable<K, GenericRow>> right;
 
   public StreamTableJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
       final Formats formats,
-      final ExecutionStep<S> left,
-      final ExecutionStep<T> right) {
+      final ExecutionStep<KStream<K, GenericRow>> left,
+      final ExecutionStep<KTable<K, GenericRow>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
@@ -53,8 +56,24 @@ public class StreamTableJoin<S, T> implements ExecutionStep<S> {
   }
 
   @Override
-  public S build(final KsqlQueryBuilder streamsBuilder) {
+  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
+  }
+
+  public Formats getFormats() {
+    return formats;
+  }
+
+  public ExecutionStep<KStream<K, GenericRow>> getLeft() {
+    return left;
+  }
+
+  public ExecutionStep<KTable<K, GenericRow>> getRight() {
+    return right;
+  }
+
+  public JoinType getJoinType() {
+    return joinType;
   }
 
   @Override
@@ -65,7 +84,7 @@ public class StreamTableJoin<S, T> implements ExecutionStep<S> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamTableJoin<?, ?> that = (StreamTableJoin<?, ?>) o;
+    final StreamTableJoin<?> that = (StreamTableJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(formats, that.formats)

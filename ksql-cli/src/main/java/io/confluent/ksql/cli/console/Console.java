@@ -648,7 +648,7 @@ public class Console implements Closeable {
     writer().println(String.format("%-20s : %s", "Type", description.getStatus().type()));
     writer().println(String.format("%-20s : %s", "State", status.connector().state()));
     writer().println(String.format("%-20s : %s", "WorkerId", status.connector().workerId()));
-    if (status.connector().trace() != null && !status.connector().trace().isEmpty()) {
+    if (!ObjectUtils.defaultIfNull(status.connector().trace(), "").isEmpty()) {
       writer().println(String.format("%-20s : %s", "Trace", status.connector().trace()));
     }
 

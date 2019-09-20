@@ -82,8 +82,8 @@
         "CREATE STREAM INPUT (ROWKEY INT KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 1:23: 'ROWKEY' is a KEY field with an unsupported type. KSQL currently only supports KEY fields of type STRING."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'ROWKEY' is a KEY column with an unsupported type. KSQL currently only supports KEY columns of type STRING."
       }
     },
     {
@@ -92,8 +92,8 @@
         "CREATE STREAM INPUT (OTHER STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 1:23: 'OTHER' is an invalid KEY field name. KSQL currently only supports KEY fields named ROWKEY."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'OTHER' is an invalid KEY column name. KSQL currently only supports KEY columns named ROWKEY."
       }
     },
     {
@@ -102,8 +102,8 @@
         "CREATE STREAM INPUT (KEY STRING KEY, ID bigint) WITH (kafka_topic='input',value_format='JSON');"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "line 1:23: 'KEY' is an invalid KEY field name. KSQL currently only supports KEY fields named ROWKEY."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "'KEY' is an invalid KEY column name. KSQL currently only supports KEY columns named ROWKEY."
       }
     },
     {

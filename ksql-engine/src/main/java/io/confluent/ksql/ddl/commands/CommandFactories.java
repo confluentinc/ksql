@@ -270,24 +270,24 @@ public class CommandFactories implements DdlCommandFactory {
 
     tableElements.forEach(e -> {
       if (e.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
-        throw new KsqlException("'" + e.getName() + "' is a reserved field name.");
+        throw new KsqlException("'" + e.getName() + "' is a reserved column name.");
       }
 
-      final boolean isRowKey = e.getName().toUpperCase().equals(SchemaUtil.ROWKEY_NAME);
+      final boolean isRowKey = e.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME);
 
       if (e.getNamespace() == Namespace.KEY) {
         if (!isRowKey) {
-          throw new KsqlException("'" + e.getName() + "' is an invalid KEY field name. "
-              + "KSQL currently only supports KEY fields named ROWKEY.");
+          throw new KsqlException("'" + e.getName() + "' is an invalid KEY column name. "
+              + "KSQL currently only supports KEY columns named ROWKEY.");
         }
 
         if (e.getType().getSqlType().baseType() != SqlBaseType.STRING) {
-          throw new KsqlException("'" + e.getName() + "' is a KEY field with an unsupported type. "
-              + "KSQL currently only supports KEY fields of type " + SqlBaseType.STRING + ".");
+          throw new KsqlException("'" + e.getName() + "' is a KEY column with an unsupported type. "
+              + "KSQL currently only supports KEY columns of type " + SqlBaseType.STRING + ".");
         }
       } else if (isRowKey) {
-        throw new KsqlException("'" + e.getName() + "' is a reserved field name. "
-            + "It can only be used for KEY fields.");
+        throw new KsqlException("'" + e.getName() + "' is a reserved column name. "
+            + "It can only be used for KEY columns.");
       }
     });
 

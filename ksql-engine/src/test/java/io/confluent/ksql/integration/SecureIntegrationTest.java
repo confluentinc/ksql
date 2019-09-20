@@ -55,6 +55,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.OrderDataProvider;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.util.TopicConsumer;
 import io.confluent.ksql.util.TopicProducer;
 import java.util.Collections;
@@ -270,7 +271,8 @@ public class SecureIntegrationTest {
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig),
+        new SequentialQueryIdGenerator());
 
     execInitCreateStreamQueries();
   }

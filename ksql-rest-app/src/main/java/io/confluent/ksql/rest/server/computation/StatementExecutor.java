@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -38,7 +39,6 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -52,7 +52,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +82,7 @@ public class StatementExecutor implements KsqlConfigurable {
     this(
         ksqlEngine,
         new StatementParser(ksqlEngine),
-            hybridQueryIdGenerator
+        hybridQueryIdGenerator
     );
   }
 
@@ -93,12 +92,11 @@ public class StatementExecutor implements KsqlConfigurable {
       final StatementParser statementParser,
       final HybridQueryIdGenerator hybridQueryIdGenerator
   ) {
-    Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
-
-    this.ksqlEngine = ksqlEngine;
-    this.statementParser = statementParser;
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");;
+    this.statementParser = Objects.requireNonNull(statementParser, "statementParser");;
+    this.queryIdGenerator =
+        Objects.requireNonNull(hybridQueryIdGenerator, "hybridQueryIdGenerator");
     this.statusStore = new ConcurrentHashMap<>();
-    this.queryIdGenerator = hybridQueryIdGenerator;
   }
 
   @Override
@@ -333,7 +331,9 @@ public class StatementExecutor implements KsqlConfigurable {
         statement, command.getOverwriteProperties(), mergedConfig);
 
     if (command.getUseOffsetAsQueryID()) {
-      queryIdGenerator.updateOffset(offset);
+      queryIdGenerator.activateNewGenerator(offset);
+    } else {
+      queryIdGenerator.activateLegacyGenerator();
     }
 
     final QueryMetadata queryMetadata = ksqlEngine.execute(configured)

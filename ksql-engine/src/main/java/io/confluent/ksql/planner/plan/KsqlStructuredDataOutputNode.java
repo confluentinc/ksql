@@ -26,11 +26,11 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Objects;
 import java.util.Optional;
@@ -101,7 +101,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   @Override
   public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    final String base = queryIdGenerator.getNextId();
+    final String base = String.valueOf(queryIdGenerator.getNext());
     if (!doCreateInto) {
       return new QueryId("InsertQuery_" + base);
     }

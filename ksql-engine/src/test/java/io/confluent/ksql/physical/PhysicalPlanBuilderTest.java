@@ -56,6 +56,7 @@ import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanTestUtil;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -65,14 +66,13 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
-import io.confluent.ksql.util.DefaultQueryIdGenerator;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Arrays;
@@ -150,6 +150,7 @@ public class PhysicalPlanBuilderTest {
   private final KafkaTopicClient kafkaTopicClient = new FakeKafkaTopicClient();
   private KsqlEngine ksqlEngine;
   private ProcessingLogContext processingLogContext;
+  private final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -228,7 +229,7 @@ public class PhysicalPlanBuilderTest {
         functionRegistry,
         overrideProperties,
         metaStore,
-        new DefaultQueryIdGenerator(),
+        queryIdGenerator,
         testKafkaStreamsBuilder,
         queryCloseCallback
     );

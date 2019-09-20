@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,14 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.query.id;
 
 /**
  * Generator used to provide query ids
  */
 public interface QueryIdGenerator {
 
-  String getNextId();
+  long getNext();
+
+  long peekNext();
 
   QueryIdGenerator createSandbox();
 }

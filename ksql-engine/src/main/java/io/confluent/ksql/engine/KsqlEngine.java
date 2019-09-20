@@ -32,12 +32,11 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.DefaultQueryIdGenerator;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.List;
@@ -61,26 +60,6 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
   private final ScheduledExecutorService aggregateMetricsCollector;
   private final String serviceId;
   private final EngineContext primaryContext;
-
-  public KsqlEngine(
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final FunctionRegistry functionRegistry,
-      final ServiceInfo serviceInfo
-  ) {
-    this(
-        serviceContext,
-        processingLogContext,
-        serviceInfo.serviceId(),
-        new MetaStoreImpl(functionRegistry),
-        (engine) -> new KsqlEngineMetrics(
-            serviceInfo.metricsPrefix(),
-            engine,
-            serviceInfo.customMetricsTags(),
-            serviceInfo.metricsExtension()
-        ),
-        new DefaultQueryIdGenerator());
-  }
 
   public KsqlEngine(
       final ServiceContext serviceContext,

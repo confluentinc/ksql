@@ -42,7 +42,6 @@ import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.hamcrest.Description;

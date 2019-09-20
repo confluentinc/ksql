@@ -27,6 +27,8 @@ import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
@@ -64,7 +66,8 @@ public final class KsqlContextTestUtil {
         serviceContext,
         ProcessingLogContext.create(),
         functionRegistry,
-        ServiceInfo.create(ksqlConfig, metricsPrefix)
+        ServiceInfo.create(ksqlConfig, metricsPrefix),
+        new SequentialQueryIdGenerator()
     );
 
     return new KsqlContext(

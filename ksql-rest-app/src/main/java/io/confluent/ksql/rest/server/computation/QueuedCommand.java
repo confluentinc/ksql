@@ -25,30 +25,16 @@ public class QueuedCommand {
   private final Optional<CommandStatusFuture> status;
   private final Long offset;
 
-  public QueuedCommand(final CommandId commandId,
-                       final Command command,
-                       final Optional<CommandStatusFuture> status,
-                       final Long offset) {
+  public QueuedCommand(
+      final CommandId commandId,
+      final Command command,
+      final Optional<CommandStatusFuture> status,
+      final Long offset
+  ) {
     this.commandId = Objects.requireNonNull(commandId);
     this.command = Objects.requireNonNull(command);
     this.status = Objects.requireNonNull(status);
     this.offset = Objects.requireNonNull(offset);
-  }
-
-  QueuedCommand(final CommandId commandId, final Command command) {
-    this(commandId, command, Optional.empty(), -1L);
-  }
-
-  QueuedCommand(final CommandId commandId, final Command command, final long offset) {
-    this(commandId, command, Optional.empty(), offset);
-  }
-
-  public QueuedCommand(
-      final CommandId commandId,
-      final Command command,
-      final Optional<CommandStatusFuture> status
-  ) {
-    this(commandId, command, status, -1L);
   }
 
   public CommandId getCommandId() {

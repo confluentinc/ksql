@@ -13,34 +13,38 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.query.id;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-public class DefaultQueryIdGenerator implements QueryIdGenerator {
+/**
+ * Incrementally returns query Id identifier. The legacy method of generating a query Id
+ */
+public class SequentialQueryIdGenerator implements QueryIdGenerator {
 
   private final AtomicLong queryIdCounter;
 
-  public DefaultQueryIdGenerator() {
+  public SequentialQueryIdGenerator() {
     this(0L);
   }
 
-  public DefaultQueryIdGenerator(final long initialValue) {
+  SequentialQueryIdGenerator(final long initialValue) {
     this.queryIdCounter = new AtomicLong(initialValue);
   }
 
-  protected long getId() {
+  @Override
+  public long peekNext() {
     return queryIdCounter.get();
   }
 
   @Override
-  public String getNextId() {
-    return String.valueOf(queryIdCounter.getAndIncrement());
+  public long getNext() {
+    return queryIdCounter.getAndIncrement();
   }
 
   @Override
   public QueryIdGenerator createSandbox() {
-    return new DefaultQueryIdGenerator(queryIdCounter.get());
+    return new SequentialQueryIdGenerator(queryIdCounter.get());
   }
 }
 

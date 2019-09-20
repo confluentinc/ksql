@@ -49,10 +49,9 @@ import io.confluent.ksql.services.FakeKafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
-import io.confluent.ksql.util.HybridQueryIdGenerator;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryIdGeneratorUsingOffset;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.time.Duration;
 import java.util.Arrays;
@@ -101,7 +100,7 @@ public class RecoveryTest {
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        engineMetrics,
+        ignored -> engineMetrics,
         hybridQueryIdGenerator);
   }
 
@@ -589,7 +588,10 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", true, ImmutableMap.of(), ImmutableMap.of()))
+            new Command("DROP STREAM B DELETE TOPIC;", true, ImmutableMap.of(), ImmutableMap.of()),
+            Optional.empty(),
+            0L
+        )
     ));
 
     assertThat(topicClient.listTopicNames(), hasItem("B"));
@@ -651,7 +653,9 @@ public class RecoveryTest {
                     true,
                     Collections.emptyMap(),
                     null
-                )
+                ),
+                Optional.empty(),
+                0L
             ),
             new QueuedCommand(
                 new CommandId(Type.STREAM, "A", Action.CREATE),
@@ -660,7 +664,9 @@ public class RecoveryTest {
                     true,
                     Collections.emptyMap(),
                     null
-                )
+                ),
+                Optional.empty(),
+                1L
             )
         )
     );
@@ -672,7 +678,9 @@ public class RecoveryTest {
     commands.add(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B;", true, Collections.emptyMap(), null)
+            new Command("DROP STREAM B;", true, Collections.emptyMap(), null),
+            Optional.empty(),
+            2L
         )
     );
     final KsqlServer recovered = new KsqlServer(commands);
@@ -685,39 +693,64 @@ public class RecoveryTest {
   @Test
   public void shouldUseOldQueryIdGenerationAndNewGeneration() {
     commands.addAll(
-            ImmutableList.of(
-                new QueuedCommand(
-                    new CommandId(Type.STREAM, "A", Action.CREATE),
-                    new Command(
-                        "CREATE STREAM A (COLUMN STRING) "
-                                + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
-                        false,
-                        Collections.emptyMap(),
-                        null
-                    ),
-                    0
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM A (COLUMN STRING) "
+                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                    false,
+                    Collections.emptyMap(),
+                    null
                 ),
-                new QueuedCommand(
-                    new CommandId(Type.STREAM, "A", Action.CREATE),
-                    new Command(
-                        "CREATE STREAM B AS SELECT * FROM A;",
-                        false,
-                        Collections.emptyMap(),
-                        null
-                    ),
-                    1
+                Optional.empty(),
+                0L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM B AS SELECT * FROM A;",
+                    false,
+                    Collections.emptyMap(),
+                    null
                 ),
-                new QueuedCommand(
-                    new CommandId(Type.STREAM, "A", Action.CREATE),
-                    new Command(
-                        "CREATE STREAM C AS SELECT * FROM A;",
-                        true,
-                        Collections.emptyMap(),
-                        null
-                    ),
-                    2
-                )
+                Optional.empty(),
+                1L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM C AS SELECT * FROM A;",
+                    true,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                2L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM D AS SELECT * FROM A;",
+                    false,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                3L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM E AS SELECT * FROM A;",
+                    true,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                4L
             )
+        )
     );
     final KsqlServer server = new KsqlServer(commands);
     server.recover();
@@ -725,6 +758,11 @@ public class RecoveryTest {
 
     assertThat(
         queryIdNames,
-        contains(new QueryId("CSAS_C_2"), new QueryId("CSAS_B_0")));
+        contains(
+            new QueryId("CSAS_E_4"),
+            new QueryId("CSAS_D_1"),
+            new QueryId("CSAS_C_2"),
+            new QueryId("CSAS_B_0"))
+    );
   }
 }

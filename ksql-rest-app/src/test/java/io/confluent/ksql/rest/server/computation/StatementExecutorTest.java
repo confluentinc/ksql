@@ -40,6 +40,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -54,6 +55,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -66,7 +68,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
-import io.confluent.ksql.util.HybridQueryIdGenerator;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -77,8 +79,6 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 
-import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.QueryIdGeneratorUsingOffset;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.easymock.EasyMockSupport;
@@ -102,7 +102,6 @@ public class StatementExecutorTest extends EasyMockSupport {
   private KsqlEngine ksqlEngine;
   private StatementExecutor statementExecutor;
   private KsqlConfig ksqlConfig;
-  private HybridQueryIdGenerator hybridQueryIdGenerator;
 
   private final StatementParser mockParser = niceMock(StatementParser.class);
   private final HybridQueryIdGenerator mockQueryIdGenerator =
@@ -113,7 +112,6 @@ public class StatementExecutorTest extends EasyMockSupport {
       = niceMock(PersistentQueryMetadata.class);
   private StatementExecutor statementExecutorWithMocks;
   private ServiceContext serviceContext;
-  private final QueryIdGenerator queryIdGenerator = mock(QueryIdGenerator.class);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -133,10 +131,11 @@ public class StatementExecutorTest extends EasyMockSupport {
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, emptyMap());
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
-    hybridQueryIdGenerator = new HybridQueryIdGenerator();
+    final HybridQueryIdGenerator hybridQueryIdGenerator = new HybridQueryIdGenerator();
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
         hybridQueryIdGenerator
     );
 
@@ -368,7 +367,9 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     for (int i = 0; i < priorCommands.size(); i++) {
       final Pair<CommandId, Command> pair = priorCommands.get(i);
-      statementExecutor.handleRestore(new QueuedCommand(pair.left, pair.right, i));
+      statementExecutor.handleRestore(
+          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
+      );
     }
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
@@ -497,7 +498,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final QueryId queryId = new QueryId("csas-query-id");
     final String name = "foo";
     final PersistentQueryMetadata mockQuery = mockReplayCSAS("CSAS", name, queryId);
-    mockQueryIdGenerator.updateOffset(anyLong());
+    mockQueryIdGenerator.activateNewGenerator(anyLong());
     expectLastCall();
     replayAll();
 
@@ -505,7 +506,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, name, Action.CREATE),
-            new Command("CSAS", true, emptyMap(), emptyMap())
+            new Command("CSAS", true, emptyMap(), emptyMap()),
+            Optional.empty(),
+                0L
         )
     );
 
@@ -535,7 +538,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command("DROP", true, emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS)
+            new Command("DROP", true, emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -568,7 +573,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command(drop, true, emptyMap(), emptyMap())
+            new Command(drop, true, emptyMap(), emptyMap()),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -643,7 +650,9 @@ public class StatementExecutorTest extends EasyMockSupport {
                 runScriptStatement,
                 true,
                 Collections.singletonMap("ksql.run.script.statements", queryStatement),
-                emptyMap())
+                emptyMap()),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -665,7 +674,9 @@ public class StatementExecutorTest extends EasyMockSupport {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement, true,
-                    Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap())
+                    Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap()),
+            Optional.empty(),
+            0L
         )
     );
 

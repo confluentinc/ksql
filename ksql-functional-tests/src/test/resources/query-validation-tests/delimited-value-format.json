@@ -47,6 +47,60 @@
       "outputs": []
     },
     {
+      "name": "validate delimeter is not empty",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='');"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "format": "DELIMITED"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace."
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "validate delimeter is not a space",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter=' ');"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "format": "DELIMITED"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace."
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
+      "name": "validate delimeter is not a tab character",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='\t');"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "format": "DELIMITED"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace."
+      },
+      "inputs": [],
+      "outputs": []
+    },
+    {
       "name": "select delimited value_format with pipe separated values using custom delimiter character",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='|');",
@@ -72,7 +126,7 @@
       ]
     },
     {
-      "name": "Serialize delimited value_format with $",
+      "name": "select delimited value_format with $ separated values using custom delimiter character",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='|');",
         "CREATE STREAM S2 WITH(value_delimiter='$') AS SELECT * FROM test;"
@@ -97,7 +151,7 @@
       ]
     },
     {
-      "name": "select delimited value_format with space separated values using custom delimiter character",
+      "name": "select delimited value_format with SPACE separated values using custom delimiter character",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='SPACE');",
         "CREATE STREAM S2 as SELECT id, name, value FROM test;"
@@ -122,7 +176,7 @@
       ]
     },
     {
-      "name": "select delimited value_format with tab separated values using custom delimiter character",
+      "name": "select delimited value_format with TAB separated values using custom delimiter character",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='TAB');",
         "CREATE STREAM S2 as SELECT id, name, value FROM test;"
@@ -145,6 +199,24 @@
         {"topic": "S2", "key": 100, "value": "100,100,500", "timestamp": 0},
         {"topic": "S2", "key": 100, "value": "100,100,100", "timestamp": 0}
       ]
+    },
+    {
+      "name": "validate cannot specify delimeter with json format",
+      "statements": [
+        "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='JSON', value_delimiter='|');"
+      ],
+      "topics": [
+        {
+          "name": "test_topic",
+          "format": "JSON"
+        }
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Delimeter only supported with DELIMITED format"
+      },
+      "inputs": [],
+      "outputs": []
     }
   ]
 }

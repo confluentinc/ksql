@@ -22,7 +22,6 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.ConfigMetaData;
-import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -137,7 +136,7 @@ abstract class WithClauseProperties extends AbstractConfig {
       } else if (providedValueDelimiter.length() == 1) {
         return Optional.of(providedValueDelimiter.charAt(0));
       } else {
-        Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
+        final Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
         if (delim != null) {
           return Optional.of(delim);
         } else {

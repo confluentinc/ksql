@@ -122,9 +122,6 @@ abstract class WithClauseProperties extends AbstractConfig {
 
   public Optional<Character> getValueDelimiter() {
     final String providedValueDelimiter = getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    if (providedValueDelimiter != null && providedValueDelimiter.equalsIgnoreCase("$")) {
-      System.out.println("foo");
-    }
     if (providedValueDelimiter != null) {
       if (providedValueDelimiter.isEmpty()) {
         throw new KsqlException("Error in WITH clause property '"

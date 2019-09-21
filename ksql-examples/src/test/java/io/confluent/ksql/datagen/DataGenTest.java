@@ -19,13 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 
-import io.confluent.ksql.datagen.DataGen;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Properties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import scala.reflect.internal.Trees.Throw;
 
 public class DataGenTest {
   @Rule

@@ -51,7 +51,7 @@ public class KsqlDelimitedSerializerTest {
 
   @Before
   public void before() {
-      serializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
+    serializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
   }
 
   @Test

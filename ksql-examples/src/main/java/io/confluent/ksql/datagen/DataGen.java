@@ -476,9 +476,11 @@ public final class DataGen {
         if (valueDelimiterString == null) {
           return null;
         } else {
-          if (valueDelimiterString.length() != 1) {
+          if (valueDelimiterString.length() != 1 &&
+          !(valueDelimiterString.equals("TAB") || valueDelimiterString.equals("SPACE"))) {
             throw new ArgumentParseException(String.format(
-                "Invalid value_delimiter; was expecting a single character, got '%s'",
+                "Invalid value_delimiter; was expecting a single character, 'TAB', or "
+                    + "'SPACE', got '%s'",
                 valueDelimiterString
             ));
           }

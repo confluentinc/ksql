@@ -23,16 +23,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
-import io.confluent.ksql.rest.entity.QueryResultEntity.ResultRow;
-import io.confluent.ksql.rest.entity.QueryResultEntity.Window;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-import java.util.OptionalLong;
 import org.junit.Test;
 
 public class QueryResultEntityTest {
@@ -46,11 +41,6 @@ public class QueryResultEntityTest {
       .valueColumn("v1", SqlTypes.STRING)
       .build();
 
-  private static final Optional<Window> SESSION_WINDOW = Optional
-      .of(new Window(12_234, OptionalLong.of(43_234)));
-
-  private static final Optional<Window> TIME_WINDOW = Optional
-      .of(new Window(12_234, OptionalLong.empty()));
 
   private static final List<?> A_VALUE =
       ImmutableList.of("key value", 10.1D, "some text");
@@ -66,59 +56,8 @@ public class QueryResultEntityTest {
   public void shouldThrowOnRowWindowTypeMismatch() {
     new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.TUMBLING),
         LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
-    );
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnRowWindowTypeIfNoWindowTypeSupplied() {
-    new QueryResultEntity(
-        SOME_SQL,
-        Optional.empty(),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
-    );
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNoRowWindowIfWindowTypeSupplied() {
-    new QueryResultEntity(
-        SOME_SQL,
-        Optional.of(WindowType.TUMBLING),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(Optional.empty(), A_VALUE))
-    );
-  }
-
-  @Test
-  public void shouldNotThrowOnSessionRows() {
-    new QueryResultEntity(
-        SOME_SQL,
-        Optional.of(WindowType.SESSION),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
-    );
-  }
-
-  @Test
-  public void shouldNotThrowOnHoppingRows() {
-    new QueryResultEntity(
-        SOME_SQL,
-        Optional.of(WindowType.HOPPING),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(TIME_WINDOW, A_VALUE))
-    );
-  }
-
-  @Test
-  public void shouldNotThrowOnTumblingRows() {
-    new QueryResultEntity(
-        SOME_SQL,
-        Optional.of(WindowType.TUMBLING),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(TIME_WINDOW, A_VALUE))
+        ImmutableList.of(ImmutableList.of("too", "few"))
     );
   }
 
@@ -127,9 +66,8 @@ public class QueryResultEntityTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.SESSION),
         LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, A_VALUE))
+        ImmutableList.of(A_VALUE)
     );
 
     // When:
@@ -139,13 +77,9 @@ public class QueryResultEntityTest {
     assertThat(json, is("{"
         + "\"@type\":\"rows\","
         + "\"statementText\":\"some SQL\","
-        + "\"windowType\":\"SESSION\","
         + "\"schema\":\"`ROWKEY` STRING KEY, `v0` DOUBLE, `v1` STRING\","
         + "\"rows\":["
-        + "{"
-        + "\"window\":{\"start\":12234,\"end\":43234},"
-        + "\"values\":[\"key value\",10.1,\"some text\"]"
-        + "}"
+        + "[\"key value\",10.1,\"some text\"]"
         + "],"
         + "\"warnings\":[]}"));
 
@@ -161,63 +95,15 @@ public class QueryResultEntityTest {
     // Given:
     final QueryResultEntity entity = new QueryResultEntity(
         SOME_SQL,
-        Optional.of(WindowType.SESSION),
         LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(SESSION_WINDOW, Arrays.asList(null, 10.1D, null)))
+        ImmutableList.of(Arrays.asList(null, 10.1D, null))
     );
 
     // When:
     final String json = MAPPER.writeValueAsString(entity);
 
     // Then:
-    assertThat(json, containsString("\"values\":[null,10.1,null]"));
-
-    // When:
-    final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
-
-    // Then:
-    assertThat(result, is(entity));
-  }
-
-  @Test
-  public void shouldSerializeRowWithNoWindow() throws Exception {
-    // Given:
-    final QueryResultEntity entity = new QueryResultEntity(
-        SOME_SQL,
-        Optional.empty(),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(Optional.empty(), A_VALUE))
-    );
-
-    // When:
-    final String json = MAPPER.writeValueAsString(entity);
-
-    // Then:
-    assertThat(json, containsString("\"window\":null"));
-
-    // When:
-    final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);
-
-    // Then:
-    assertThat(result, is(entity));
-  }
-
-  @Test
-  public void shouldSerializeRowWithTimeWindow() throws Exception {
-    // Given:
-
-    final QueryResultEntity entity = new QueryResultEntity(
-        SOME_SQL,
-        Optional.of(WindowType.HOPPING),
-        LOGICAL_SCHEMA,
-        ImmutableList.of(ResultRow.of(TIME_WINDOW, A_VALUE))
-    );
-
-    // When:
-    final String json = MAPPER.writeValueAsString(entity);
-
-    // Then:
-    assertThat(json, containsString("\"window\":{\"start\":12234,\"end\":null}"));
+    assertThat(json, containsString("[null,10.1,null]"));
 
     // When:
     final KsqlEntity result = MAPPER.readValue(json, KsqlEntity.class);

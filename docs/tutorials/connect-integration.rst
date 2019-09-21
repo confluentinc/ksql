@@ -84,16 +84,17 @@ by running ``DESCRIBE CONNECTOR "jdbc-connector";``. Your output should resemble
      0       | RUNNING |
     ---------------------------------
 
-     KSQL Source Name     | Kafka Topic | Type
-    ---------------------------------------------
-     JDBC_CONNECTOR_USERS | jdbc-users  | TABLE
-    ---------------------------------------------
+     Related Topics
+    ----------------
+     jdbc-users
+    ----------------
 
-Now select everything from the topic to see how it gets auto populated:
+Import that topic as a table to KSQL ``CREATE TABLE JDBC_USERS WITH(value_format='AVRO', kafka_topic='jdbc-users');``
+and select everything from the topic to see how it gets auto populated:
 
 .. code::
 
-    ksql> SELECT * FROM JDBC_CONNECTOR2_USERS;
+    ksql>SELECT * FROM JDBC_USERS EMIT CHANGES;
 
     +------------------+------------------+------------------+------------------+
     |ROWTIME           |ROWKEY            |USERNAME          |POPULARITY        |

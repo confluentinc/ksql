@@ -27,7 +27,6 @@ import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.confluent.ksql.ServiceInfo;
-import io.confluent.ksql.connect.KsqlConnect;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
@@ -37,9 +36,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
-import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -138,7 +135,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;
   private final List<KsqlServerPrecondition> preconditions;
-  private final KsqlConnect ksqlConnect;
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
@@ -166,7 +162,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final ServerState serverState,
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
-      final KsqlConnect ksqlConnect,
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler
   ) {
@@ -188,7 +183,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     this.serviceContextBinderFactory =
         requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
     this.securityExtension = requireNonNull(securityExtension, "securityExtension");
-    this.ksqlConnect = requireNonNull(ksqlConnect, "ksqlConnect");
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
@@ -214,7 +208,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
     startKsql();
     commandRunner.start();
-    ksqlConnect.startAsync();
     final Properties metricsProperties = new Properties();
     metricsProperties.putAll(getConfiguration().getOriginals());
     if (versionCheckerAgent != null) {
@@ -288,12 +281,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   @Override
   public void stop() {
-    try {
-      ksqlConnect.close();
-    } catch (final Exception e) {
-      log.error("Exception while waiting for ksqlConnect to close", e);
-    }
-
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -524,15 +511,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         KsqlServerPrecondition.class
     );
 
-    final KsqlConnect ksqlConnect = new KsqlConnect(
-        ksqlEngine,
-        ksqlConfig,
-        cs -> ksqlResource.handleKsqlStatements(
-            ksqlEngine.getServiceContext(),
-            new KsqlRequest(SqlFormatter.formatSql(cs), null, null)
-        )
-    );
-
     final List<KsqlConfigurable> configurables = ImmutableList.of(
         ksqlResource,
         streamedQueryResource,
@@ -559,7 +537,6 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         serverState,
         processingLogContext,
         preconditions,
-        ksqlConnect,
         configurables,
         rocksDBConfigSetterHandler
     );

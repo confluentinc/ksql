@@ -28,18 +28,22 @@ public class ConnectorDescription extends KsqlEntity {
   private final String connectorClass;
   private final ConnectorStateInfo status;
   private final List<SourceDescription> sources;
+  private final List<String> topics;
 
   @JsonCreator
   public ConnectorDescription(
       @JsonProperty("statementText")  final String statementText,
       @JsonProperty("connectorClass") final String connectorClass,
       @JsonProperty("status")         final ConnectorStateInfo status,
-      @JsonProperty("sources")        final List<SourceDescription> sources
+      @JsonProperty("sources")        final List<SourceDescription> sources,
+      @JsonProperty("topics")         final List<String> topics,
+      @JsonProperty("warnings")       final List<KsqlWarning> warnings
   ) {
-    super(statementText);
+    super(statementText, warnings);
     this.connectorClass = Objects.requireNonNull(connectorClass, "connectorClass");
     this.status = Objects.requireNonNull(status, "status");
     this.sources = Objects.requireNonNull(sources, "sources");
+    this.topics = Objects.requireNonNull(topics, "topics");
   }
 
   public String getConnectorClass() {
@@ -54,6 +58,10 @@ public class ConnectorDescription extends KsqlEntity {
     return sources;
   }
 
+  public List<String> getTopics() {
+    return topics;
+  }
+
   @Override
   public boolean equals(final Object o) {
     if (this == o) {
@@ -65,12 +73,13 @@ public class ConnectorDescription extends KsqlEntity {
     final ConnectorDescription that = (ConnectorDescription) o;
     return Objects.equals(status, that.status)
         && Objects.equals(connectorClass, that.connectorClass)
-        && Objects.equals(sources, that.sources);
+        && Objects.equals(sources, that.sources)
+        && Objects.equals(topics, that.topics);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(status, sources, connectorClass);
+    return Objects.hash(status, sources, connectorClass, topics);
   }
 
   @Override
@@ -79,6 +88,7 @@ public class ConnectorDescription extends KsqlEntity {
         + "status=" + status
         + ", sources=" + sources
         + ", connectorClass='" + connectorClass + "'"
+        + ", topics='" + topics + "'"
         + '}';
   }
 }

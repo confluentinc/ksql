@@ -28,7 +28,6 @@ import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
 import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
 import io.confluent.ksql.function.udf.math.CeilKudf;
 import io.confluent.ksql.function.udf.math.RandomKudf;
-import io.confluent.ksql.function.udf.math.RoundKudf;
 import io.confluent.ksql.function.udf.string.ConcatKudf;
 import io.confluent.ksql.function.udf.string.IfNullKudf;
 import io.confluent.ksql.function.udf.string.LCaseKudf;
@@ -223,18 +222,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
           "CEIL",
           CeilKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_INT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          RoundKudf.NAME,
-          RoundKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA, Schema.OPTIONAL_INT32_SCHEMA),
-          RoundKudf.NAME,
-          RoundKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,

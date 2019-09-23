@@ -53,7 +53,7 @@ public class StaticQueryValidator implements QueryValidator {
       + System.lineSeparator()
       + System.lineSeparator()
       + "Note: Persistent queries, like `CREATE TABLE AS ...`, have an implicit "
-      + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
+      + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements.";
       + "going forward, as a this will be required in a future release.";
 
   @Override

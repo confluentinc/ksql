@@ -234,24 +234,19 @@ public class KudfTester {
 
     if (minArgs > argTypes.size()) {
       throw new IllegalStateException("Can not set min arg count higher that the size of the list"
-                                      + " of argument types passed to withArgumentTypes()");
+          + " of argument types passed to withArgumentTypes()");
     }
 
     if (maxArgs < argTypes.size()) {
       throw new IllegalStateException("Can not set max arg count lower that the size of the list"
-                                      + " of argument types passed to withArgumentTypes()");
-    }
-
-    if (maxArgs != NO_MAX_ARGS && minArgs != 0 && maxArgs - minArgs > 1) {
-      throw new IllegalStateException("Only all or one optional arg currently supported");
+          + " of argument types passed to withArgumentTypes()");
     }
 
     try {
-      // TODO this class should also test with all numbers of args from minArgs to maxArgs inclusive
       evaluate(args);
     } catch (final Exception e) {
       throw new AssertionError("UDF threw unexpected exception with the supplied argument(types)",
-                               e);
+          e);
     }
   }
 
@@ -265,9 +260,7 @@ public class KudfTester {
 
     try {
       evaluate(theArgs);
-      if (theArgs.size() < minArgs) {
-        fail("UDF did not throw on too few arguments. minArgs: " + minArgs);
-      }
+      fail("UDF did not throw on two few arguments. minArgs: " + minArgs);
     } catch (final KsqlException e) {
       // expected
     }
@@ -283,7 +276,7 @@ public class KudfTester {
 
     try {
       evaluate(theArgs);
-      fail("UDF did not throw on too many arguments. maxArgs: " + maxArgs);
+      fail("UDF did not throw on two many arguments. maxArgs: " + maxArgs);
     } catch (final KsqlException e) {
       // expected
     }
@@ -306,15 +299,15 @@ public class KudfTester {
       } catch (final KsqlException e) {
         if (!exceptionExpected) {
           throw new AssertionError("Unexpected exception thrown by UDF when arg "
-                                   + idx + " is null.", e);
+              + idx + " is null.", e);
         }
       } catch (final Exception e) {
         if (exceptionExpected) {
           throw new AssertionError("Unexpected exception thrown by UDF when arg "
-                                   + idx + " is null. Expected KsqlException", e);
+              + idx + " is null. Expected KsqlException", e);
         }
         throw new AssertionError("Unexpected exception thrown by UDF when arg "
-                                 + idx + " is null.", e);
+            + idx + " is null.", e);
       }
 
       theArgs.set(idx, old);
@@ -341,7 +334,7 @@ public class KudfTester {
         // Expected
       } catch (final Exception e) {
         throw new AssertionError("UDF threw unexpected exception type when arg " + idx
-                                 + " was the wrong type. Expected: KSQLException", e);
+            + " was the wrong type. Expected: KSQLException", e);
       }
 
       theArgs.set(idx, old);

@@ -234,19 +234,19 @@ public class KudfTester {
 
     if (minArgs > argTypes.size()) {
       throw new IllegalStateException("Can not set min arg count higher that the size of the list"
-          + " of argument types passed to withArgumentTypes()");
+                                      + " of argument types passed to withArgumentTypes()");
     }
 
     if (maxArgs < argTypes.size()) {
       throw new IllegalStateException("Can not set max arg count lower that the size of the list"
-          + " of argument types passed to withArgumentTypes()");
+                                      + " of argument types passed to withArgumentTypes()");
     }
 
     try {
       evaluate(args);
     } catch (final Exception e) {
       throw new AssertionError("UDF threw unexpected exception with the supplied argument(types)",
-          e);
+                               e);
     }
   }
 
@@ -299,15 +299,15 @@ public class KudfTester {
       } catch (final KsqlException e) {
         if (!exceptionExpected) {
           throw new AssertionError("Unexpected exception thrown by UDF when arg "
-              + idx + " is null.", e);
+                                   + idx + " is null.", e);
         }
       } catch (final Exception e) {
         if (exceptionExpected) {
           throw new AssertionError("Unexpected exception thrown by UDF when arg "
-              + idx + " is null. Expected KsqlException", e);
+                                   + idx + " is null. Expected KsqlException", e);
         }
         throw new AssertionError("Unexpected exception thrown by UDF when arg "
-            + idx + " is null.", e);
+                                 + idx + " is null.", e);
       }
 
       theArgs.set(idx, old);
@@ -334,7 +334,7 @@ public class KudfTester {
         // Expected
       } catch (final Exception e) {
         throw new AssertionError("UDF threw unexpected exception type when arg " + idx
-            + " was the wrong type. Expected: KSQLException", e);
+                                 + " was the wrong type. Expected: KSQLException", e);
       }
 
       theArgs.set(idx, old);

@@ -32,7 +32,7 @@ public class ContinuousQueryValidator implements QueryValidator {
     }
 
     if (query.getResultMaterialization() != ResultMaterialization.CHANGES) {
-      throw new IllegalArgumentException("Continuous queries do not yet support `EMIT FINAL`.");
+      throw new IllegalArgumentException("Continuous queries don't support `EMIT FINAL`.");
     }
   }
 

@@ -59,8 +59,8 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.QueryResultEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntityFactory;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -173,10 +173,10 @@ public final class StaticQueryExecutor {
 
       result = handleSelects(result, statement, executionContext, analysis);
 
-      final QueryResultEntity entity = new QueryResultEntity(
+      final TableRowsEntity entity = new TableRowsEntity(
           statement.getStatementText(),
-          QueryResultEntityFactory.buildSchema(result.schema, mat.windowType()),
-          QueryResultEntityFactory.createRows(result.rows)
+          TableRowsEntityFactory.buildSchema(result.schema, mat.windowType()),
+          TableRowsEntityFactory.createRows(result.rows)
       );
 
       return Optional.of(entity);

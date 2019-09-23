@@ -30,9 +30,9 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 
 /**
- * Factory class for {@link QueryResultEntity}
+ * Factory class for {@link TableRowsEntity}
  */
-public final class QueryResultEntityFactory {
+public final class TableRowsEntityFactory {
 
   private static final List<Column> TIME_WINDOW_COLUMNS = ImmutableList
       .of(Column.of("WINDOWSTART", SqlTypes.BIGINT));
@@ -42,14 +42,14 @@ public final class QueryResultEntityFactory {
       .add(Column.of("WINDOWEND", SqlTypes.BIGINT))
       .build();
 
-  private QueryResultEntityFactory() {
+  private TableRowsEntityFactory() {
   }
 
   public static List<List<?>> createRows(
       final List<? extends TableRow> result
   ) {
     return result.stream()
-        .map(QueryResultEntityFactory::createRow)
+        .map(TableRowsEntityFactory::createRow)
         .collect(Collectors.toList());
   }
 

@@ -1,6 +1,8 @@
 package io.confluent.ksql.parser.rewrite;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -17,6 +19,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -48,6 +51,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
+
   @Mock
   private BiFunction<Expression, Object, Expression> expressionRewriter;
   @Mock
@@ -88,7 +92,6 @@ public class StatementRewriterTest {
   private CreateSourceAsProperties csasProperties;
   @Mock
   private ResultMaterialization resultMaterialization;
-  private boolean staticQuery;
 
   private StatementRewriter<Object> rewriter;
 
@@ -139,7 +142,7 @@ public class StatementRewriterTest {
         groupBy,
         having,
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt
     );
   }
@@ -163,7 +166,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -188,7 +191,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -215,7 +218,7 @@ public class StatementRewriterTest {
         Optional.of(rewrittenGroupBy),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -242,7 +245,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -267,7 +270,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.of(rewrittenExpression),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -631,5 +634,34 @@ public class StatementRewriterTest {
             )
         )
     );
+  }
+
+  @Test
+  public void shouldRewriteExplainWithQuery() {
+    // Given:
+    final Explain explain = new Explain(location, Optional.empty(), Optional.of(query));
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(explain, context);
+
+    // Then:
+    assertThat(rewritten, is(new Explain(
+        location,
+        Optional.empty(),
+        Optional.of(rewrittenQuery)
+    )));
+  }
+
+  @Test
+  public void shouldNotRewriteExplainWithId() {
+    // Given:
+    final Explain explain = new Explain(location, Optional.of("id"), Optional.empty());
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(explain, context);
+
+    // Then:
+    assertThat(rewritten, is(sameInstance(explain)));
   }
 }

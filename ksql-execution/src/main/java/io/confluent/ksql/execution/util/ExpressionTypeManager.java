@@ -224,13 +224,8 @@ public class ExpressionTypeManager {
         final DereferenceExpression node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      final Column schemaColumn = schema.findValueColumn(node.toString())
-          .orElseThrow(() ->
-              new KsqlException(String.format("Invalid Expression %s.", node.toString())));
-
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
-      expressionTypeContext.setSchema(schemaColumn.type(), schema);
-      return null;
+      throw new IllegalArgumentException("Dereferenced expressions should have been rewritten to "
+          + FetchFieldFromStruct.FUNCTION_NAME + " by this point");
     }
 
     @Override

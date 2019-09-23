@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
@@ -46,7 +47,8 @@ public final class StatementRewriteForStruct {
 
   public static boolean requiresRewrite(final Statement statement) {
     return statement instanceof Query
-        || statement instanceof QueryContainer;
+        || statement instanceof QueryContainer
+        || statement instanceof Explain;
   }
 
   private static final class Plugin

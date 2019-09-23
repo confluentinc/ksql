@@ -47,7 +47,7 @@ public class StaticQueryValidator implements QueryValidator {
       + "\t'SELECT * FROM X WHERE ROWKEY=Y AND WINDOWSTART>=Z;' (windowed table)"
       + System.lineSeparator()
       + System.lineSeparator()
-      + "and, the following is a streaming query:"
+      + "The following is a streaming query:"
       + System.lineSeparator()
       + "\t'SELECT * FROM X EMIT CHANGES;'"
       + System.lineSeparator()

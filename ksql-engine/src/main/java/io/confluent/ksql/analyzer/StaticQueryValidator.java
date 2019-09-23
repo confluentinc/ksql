@@ -32,7 +32,7 @@ public class StaticQueryValidator implements QueryValidator {
       + "- Static queries: query the current state of the system, return a result, and terminate the query."
       + System.lineSeparator()
       + "- Streaming queries: query the state of the system in motion and continue to output "
-      + "results until they meet any LIMIT clause criteria or are terminated by the user."
+      + "results until they meet a LIMIT clause condition or the user terminates the query."
       + System.lineSeparator()
       + System.lineSeparator()
       + "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes. "

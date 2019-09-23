@@ -51,6 +51,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
+
   @Mock
   private BiFunction<Expression, Object, Expression> expressionRewriter;
   @Mock

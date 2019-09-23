@@ -49,7 +49,7 @@ public class ContinuousQueryValidatorTest {
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Continuous queries do not yet support `EMIT FINAL`.");
+    expectedException.expectMessage("Continuous queries don't support `EMIT FINAL`.");
 
     // When:
     validator.validate(analysis);

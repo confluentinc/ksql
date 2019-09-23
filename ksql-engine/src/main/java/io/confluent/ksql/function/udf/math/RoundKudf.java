@@ -20,11 +20,25 @@ import io.confluent.ksql.function.udf.Kudf;
 
 public class RoundKudf implements Kudf {
 
+  public static final String NAME = "ROUND";
+
   @Override
   public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Len udf should have one input argument.");
+    if (args.length != 1 && args.length != 2) {
+      throw new KsqlFunctionException("Round udf should have one or two input arguments.");
     }
-    return Math.round((Double) args[0]);
+
+    if (args[0] == null) {
+      return null;
+    }
+    final Object value = args[0];
+    final Double number = (Double) value;
+
+    if (args.length == 1 || args[1] == null) {
+      return Math.round(number);
+    }
+
+    final Double round = Math.pow(10, (Integer) args[1]);
+    return Math.round(number * round) / round;
   }
 }

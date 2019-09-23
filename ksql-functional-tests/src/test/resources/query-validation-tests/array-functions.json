@@ -1,0 +1,84 @@
+{
+  "comments": [
+    "Tests covering the use of the ROUND(DOUBLE), FLOOR(DOUBLE), CEIL(DOUBLE) functions."
+  ],
+  "tests": [
+    {
+      "name": "calculate ROUND function",
+      "statements": [
+        "CREATE STREAM test (v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ROUND(v) as R0, ROUND(v, 0) as R00, ROUND(v, 1) as R1, ROUND(v, 2) as R2, ROUND(v, 10) as R10, ROUND(v , -1) as 1R , ROUND(v , -2) as 2R  FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"v" : 1.2}},
+        {"topic": "test_topic", "value": {"v" : 1.7}},
+        {"topic": "test_topic", "value": {"v" : 1.5}},
+        {"topic": "test_topic", "value": {"v" : 3}},
+        {"topic": "test_topic", "value": {"v" : 1.234567}},
+        {"topic": "test_topic", "value": {"v" : 0}},
+        {"topic": "test_topic", "value": {"v" : 111}},
+        {"topic": "test_topic", "value": {"v" : null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"R0" : 1, "R00" : 1.0, "R1" :  1.2, "R2" : 1.2,  "R10" :  1.2, "1R" :  0.0 ,"2R" :  0.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 2, "R00" : 2.0, "R1" :  1.7, "R2" : 1.7,  "R10" :  1.7, "1R" :  0.0 ,"2R" :  0.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 2, "R00" : 2.0, "R1" :  1.5, "R2" : 1.5,  "R10" :  1.5, "1R" :  0.0 ,"2R" :  0.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 3, "R00" : 3.0, "R1" :  3.0, "R2" : 3.0,  "R10" :  3.0, "1R" :  0.0 ,"2R" :  0.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 1, "R00" : 1.0, "R1" :  1.2, "R2" : 1.23, "R10" :  1.234567,"1R" :  0.0 ,"2R" :  0.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 0, "R00" : 0.0, "R1" :  0.0, "R2" : 0.0,  "R10" :  0.0, "1R" :  0.0 ,"2R" :  0.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : 111, "R00" : 111.0, "R1" :  111.0, "R2" : 111.0,  "R10" :  111.0, "1R" :  110.0 ,"2R" :  100.0 }},
+        {"topic": "OUTPUT", "value": {"R0" : null, "R00" : null, "R1" :  null, "R2" : null, "R10" : null,"1R" :  null ,"2R" :  null }}
+      ]
+    },
+    {
+      "name": "calculate FLOOR function",
+      "statements": [
+        "CREATE STREAM test (v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT FLOOR(v) as F0 FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"v" : 1.2}},
+        {"topic": "test_topic", "value": {"v" : 1.7}},
+        {"topic": "test_topic", "value": {"v" : 1.5}},
+        {"topic": "test_topic", "value": {"v" : 3}},
+        {"topic": "test_topic", "value": {"v" : 1.234567}},
+        {"topic": "test_topic", "value": {"v" : 0.0}},
+        {"topic": "test_topic", "value": {"v" : null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 3.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 1.0}},
+        {"topic": "OUTPUT", "value": {"F0" : 0.0}},
+        {"topic": "OUTPUT", "value": {"F0" : null}}
+      ]
+    },
+    {
+      "name": "calculate CEIL function",
+      "statements": [
+        "CREATE STREAM test (v DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT CEIL(v) as C0 FROM test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"v" : 1.2}},
+        {"topic": "test_topic", "value": {"v" : 1.7}},
+        {"topic": "test_topic", "value": {"v" : 1.5}},
+        {"topic": "test_topic", "value": {"v" : 3}},
+        {"topic": "test_topic", "value": {"v" : 1.234567}},
+        {"topic": "test_topic", "value": {"v" : 0}},
+        {"topic": "test_topic", "value": {"v" : null}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 3.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 2.0}},
+        {"topic": "OUTPUT", "value": {"C0" : 0.0}},
+        {"topic": "OUTPUT", "value": {"C0" : null}}
+      ]
+    }
+  ]
+}

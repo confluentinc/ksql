@@ -242,7 +242,12 @@ public class KudfTester {
                                       + " of argument types passed to withArgumentTypes()");
     }
 
+    if (maxArgs != NO_MAX_ARGS && minArgs != 0 && maxArgs - minArgs > 1) {
+      throw new IllegalStateException("Only all or one optional arg currently supported");
+    }
+
     try {
+      // TODO this class should also test with all numbers of args from minArgs to maxArgs inclusive
       evaluate(args);
     } catch (final Exception e) {
       throw new AssertionError("UDF threw unexpected exception with the supplied argument(types)",
@@ -260,7 +265,9 @@ public class KudfTester {
 
     try {
       evaluate(theArgs);
-      fail("UDF did not throw on two few arguments. minArgs: " + minArgs);
+      if (theArgs.size() < minArgs) {
+        fail("UDF did not throw on too few arguments. minArgs: " + minArgs);
+      }
     } catch (final KsqlException e) {
       // expected
     }
@@ -276,7 +283,7 @@ public class KudfTester {
 
     try {
       evaluate(theArgs);
-      fail("UDF did not throw on two many arguments. maxArgs: " + maxArgs);
+      fail("UDF did not throw on too many arguments. maxArgs: " + maxArgs);
     } catch (final KsqlException e) {
       // expected
     }

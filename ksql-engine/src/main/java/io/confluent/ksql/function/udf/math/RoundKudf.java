@@ -31,14 +31,24 @@ public class RoundKudf implements Kudf {
     if (args[0] == null) {
       return null;
     }
-    final Object value = args[0];
-    final Double number = (Double) value;
+    final Object arg0 = args[0];
+    if (!(arg0 instanceof Number)) {
+      throw new KsqlFunctionException("Round udf first argument must be a number.");
+    }
+    final double number = ((Number)arg0).doubleValue();
 
     if (args.length == 1 || args[1] == null) {
       return Math.round(number);
     }
 
-    final Double round = Math.pow(10, (Integer) args[1]);
+    final Object arg1 = args[1];
+    if (!(arg1 instanceof Integer)) {
+      throw new KsqlFunctionException("Round udf second argument must be an integer.");
+    }
+
+    final int places = (Integer)arg1;
+
+    final double round = Math.pow(10, places);
     return Math.round(number * round) / round;
   }
 }

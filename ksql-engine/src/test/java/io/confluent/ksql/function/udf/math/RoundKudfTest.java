@@ -34,8 +34,9 @@ public class RoundKudfTest {
 
   @Test
   public void shouldBeWellBehavedUdf() {
-    new KudfTester(AbsKudf::new)
-        .withArgumentTypes(Number.class)
+    new KudfTester(RoundKudf::new)
+        .withArgumentTypes(Number.class, Integer.class)
+        .withMinArgCount(1)
         .test();
   }
 

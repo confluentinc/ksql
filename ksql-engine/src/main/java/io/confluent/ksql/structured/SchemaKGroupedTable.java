@@ -40,6 +40,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
@@ -113,12 +114,12 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      final WindowExpression windowExpression,
+      final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
       final Serde<GenericRow> topicValueSerDe,
       final QueryContext.Stacker contextStacker
   ) {
-    if (windowExpression != null) {
+    if (windowExpression.isPresent()) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 

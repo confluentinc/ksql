@@ -22,6 +22,7 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -72,14 +73,14 @@ public class LogicalPlanner {
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
 
-    if (analysis.getWhereExpression() != null) {
-      currentNode = buildFilterNode(currentNode);
+    if (analysis.getWhereExpression().isPresent()) {
+      currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
     }
 
-    if (!analysis.getGroupByExpressions().isEmpty()) {
-      currentNode = buildAggregateNode(currentNode);
-    } else {
+    if (analysis.getGroupByExpressions().isEmpty()) {
       currentNode = buildProjectNode(currentNode);
+    } else {
+      currentNode = buildAggregateNode(currentNode);
     }
 
     return buildOutputNode(currentNode);
@@ -211,9 +212,10 @@ public class LogicalPlanner {
     );
   }
 
-  private FilterNode buildFilterNode(final PlanNode sourcePlanNode) {
-
-    final Expression filterExpression = analysis.getWhereExpression();
+  private static FilterNode buildFilterNode(
+      final PlanNode sourcePlanNode,
+      final Expression filterExpression
+  ) {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
@@ -273,11 +275,10 @@ public class LogicalPlanner {
       final BiFunction<Expression, String, Boolean> matcher
   ) {
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final Expression expression = analysis.getSelectExpressions().get(i);
-      final String alias = analysis.getSelectExpressionAlias().get(i);
+      final SelectExpression select = analysis.getSelectExpressions().get(i);
 
-      if (matcher.apply(expression, alias)) {
-        return Optional.of(alias);
+      if (matcher.apply(select.getExpression(), select.getName())) {
+        return Optional.of(select.getName());
       }
     }
 
@@ -299,12 +300,12 @@ public class LogicalPlanner {
     builder.keyColumns(keyColumns);
 
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final Expression expression = analysis.getSelectExpressions().get(i);
-      final String alias = analysis.getSelectExpressionAlias().get(i);
+      final SelectExpression select = analysis.getSelectExpressions().get(i);
 
-      final SqlType expressionType = expressionTypeManager.getExpressionSqlType(expression);
+      final SqlType expressionType = expressionTypeManager
+          .getExpressionSqlType(select.getExpression());
 
-      builder.valueColumn(alias, expressionType);
+      builder.valueColumn(select.getName(), expressionType);
     }
 
     return builder.build();

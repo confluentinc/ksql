@@ -199,7 +199,7 @@ public class CodeGenRunnerTest {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Select");
+            (analysis.getSelectExpressions().get(0).getExpression(), "Select");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
@@ -218,7 +218,7 @@ public class CodeGenRunnerTest {
 
         // When:
         final Object result = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Select")
+            (analysis.getSelectExpressions().get(0).getExpression(), "Select")
             .evaluate(genericRow(ONE_ROW));
 
         // Then:
@@ -231,7 +231,7 @@ public class CodeGenRunnerTest {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Filter");
+            (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
@@ -642,7 +642,8 @@ public class CodeGenRunnerTest {
         final Expression expression = analyzeQuery(
             "SELECT col11['key1'] as Address FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -664,7 +665,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -686,7 +688,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -708,7 +711,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -729,7 +733,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -749,7 +754,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -768,7 +774,8 @@ public class CodeGenRunnerTest {
             "SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM codegen_test EMIT CHANGES;",
             metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -832,7 +839,7 @@ public class CodeGenRunnerTest {
         final GenericRow input = buildRow(inputValues);
 
         return analysis.getSelectExpressions().stream()
-            .map(exp -> codeGenRunner.buildCodeGenFromParseTree(exp, "Select"))
+            .map(exp -> codeGenRunner.buildCodeGenFromParseTree(exp.getExpression(), "Select"))
             .map(md -> md.evaluate(input))
             .collect(Collectors.toList());
     }
@@ -875,7 +882,7 @@ public class CodeGenRunnerTest {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Filter");
+            (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), containsInAnyOrder(cola, colb));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(2));
 
@@ -916,8 +923,8 @@ public class CodeGenRunnerTest {
     private boolean evalBetweenClause(final String simpleQuery, final int col, final Object val) {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getWhereExpression(), "Filter");
+        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner
+            .buildCodeGenFromParseTree(analysis.getWhereExpression().get(), "Filter");
 
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         columns.set(col, val);

@@ -85,7 +85,7 @@ public class AggregateNode extends PlanNode {
   private final LogicalSchema schema;
   private final KeyField keyField;
   private final List<Expression> groupByExpressions;
-  private final WindowExpression windowExpression;
+  private final Optional<WindowExpression> windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
   private final List<QualifiedNameReference> requiredColumns;
@@ -100,7 +100,7 @@ public class AggregateNode extends PlanNode {
       final LogicalSchema schema,
       final Optional<String> keyFieldName,
       final List<Expression> groupByExpressions,
-      final WindowExpression windowExpression,
+      final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
       final List<FunctionCall> functionList,
       final List<QualifiedNameReference> requiredColumns,
@@ -113,7 +113,7 @@ public class AggregateNode extends PlanNode {
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
     this.groupByExpressions = requireNonNull(groupByExpressions, "groupByExpressions");
-    this.windowExpression = windowExpression;
+    this.windowExpression = requireNonNull(windowExpression, "windowExpression");
     this.aggregateFunctionArguments =
         requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments");
     this.functionList = requireNonNull(functionList, "functionList");
@@ -149,7 +149,7 @@ public class AggregateNode extends PlanNode {
     return groupByExpressions;
   }
 
-  public WindowExpression getWindowExpression() {
+  public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
   }
 
@@ -278,7 +278,7 @@ public class AggregateNode extends PlanNode {
         requiredColumns.size(),
         functionsWithInternalIdentifiers,
         aggValToFunctionMap,
-        getWindowExpression(),
+        windowExpression,
         valueFormat,
         aggValueGenericRowSerde,
         aggregationContext

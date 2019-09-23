@@ -68,7 +68,7 @@ public class StaticQueryValidatorTest {
     when(query.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("Static queries do not yet support `EMIT CHANGES`");
 
     // When:

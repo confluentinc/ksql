@@ -23,8 +23,9 @@ import java.util.Optional;
 
 public class StaticQueryValidator implements QueryValidator {
 
-  private static final String NEW_QUERY_SYNTAX_HELP = System.lineSeparator()
-      + "Did you mean to execute a continuous query? If so, add an 'EMIT CHANGES' clause."
+  private static final String NEW_QUERY_SYNTAX_HELP = " "
+      + "Did you mean to execute a continuous query? Add an 'EMIT CHANGES' clause to do so."
+      + System.lineSeparator()
       + System.lineSeparator()
       + "Query syntax in KSQL has changed. There are now two broad categories of queries:"
       + System.lineSeparator()
@@ -34,7 +35,7 @@ public class StaticQueryValidator implements QueryValidator {
       + "results until they meet any LIMIT clause criteria or are terminated by the user."
       + System.lineSeparator()
       + System.lineSeparator()
-      + "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
+      + "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes. "
       + "To turn a static query into a streaming query, as was the default in older versions "
       + "of KSQL, add `EMIT CHANGES` to the end of the statement before any limit clause."
       + System.lineSeparator()
@@ -65,10 +66,7 @@ public class StaticQueryValidator implements QueryValidator {
     }
 
     if (query.getResultMaterialization() != ResultMaterialization.FINAL) {
-      throw new KsqlException("Static queries do not yet support `EMIT CHANGES`. "
-          + "Consider removing 'EMIT CHANGES' from any bare query."
-          + NEW_QUERY_SYNTAX_HELP
-      );
+      throw new IllegalArgumentException("Static queries do not yet support `EMIT CHANGES`.");
     }
 
     if (sink.isPresent()) {

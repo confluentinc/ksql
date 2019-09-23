@@ -398,7 +398,7 @@ public class QueryAnalyzerFunctionalTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[(ORDERS.ITEMID + FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET'))]"
+            + "[(ORDERS.ITEMID + ORDERS.ADDRESS->STREET)]"
     );
 
     // When:

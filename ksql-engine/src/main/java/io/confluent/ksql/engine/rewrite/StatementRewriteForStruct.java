@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,39 +13,39 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.rewrite;
+package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
-import java.util.Objects;
 import java.util.Optional;
 
 public final class StatementRewriteForStruct {
 
-  private final Statement statement;
+  @SuppressWarnings("MethodMayBeStatic") // Used for DI
+  public Statement rewriteForStruct(final Statement statement) {
+    if (!requiresRewrite(statement)) {
+      return statement;
+    }
 
-  public StatementRewriteForStruct(final Statement statement) {
-    this.statement = Objects.requireNonNull(statement, "statement");
-  }
-
-  public Statement rewriteForStruct() {
-    return (Statement) new StatementRewriter<>(
+    final StatementRewriter<Object> rewritter = new StatementRewriter<>(
         (e, c) -> ExpressionTreeRewriter.rewriteWith(new Plugin()::process, e)
-    ).rewrite(statement, null);
+    );
+
+    return (Statement) rewritter.rewrite(statement, null);
   }
 
-  public static boolean requiresRewrite(final Statement statement) {
+  private static boolean requiresRewrite(final Statement statement) {
     return statement instanceof Query
         || statement instanceof QueryContainer
         || statement instanceof Explain;
@@ -53,6 +53,7 @@ public final class StatementRewriteForStruct {
 
   private static final class Plugin
       extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
+
     private Plugin() {
       super(Optional.empty());
     }

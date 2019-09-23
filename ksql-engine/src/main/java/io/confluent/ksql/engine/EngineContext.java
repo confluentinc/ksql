@@ -15,9 +15,13 @@
 
 package io.confluent.ksql.engine;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.engine.rewrite.StatementRewriteForStruct;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -27,6 +31,7 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -39,7 +44,6 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -55,28 +59,10 @@ final class EngineContext {
   private final DdlCommandExec ddlCommandExec;
   private final QueryIdGenerator queryIdGenerator;
   private final ProcessingLogContext processingLogContext;
-  private final KsqlParser parser = new DefaultKsqlParser();
+  private final KsqlParser parser;
   private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-
-  private EngineContext(
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final MutableMetaStore metaStore,
-      final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
-  ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
-    this.ddlCommandFactory = new CommandFactories(serviceContext, metaStore);
-    this.outerOnQueryCloseCallback = Objects
-        .requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
-    this.ddlCommandExec = new DdlCommandExec(metaStore);
-    this.persistentQueries = new ConcurrentHashMap<>();
-    this.processingLogContext = Objects
-        .requireNonNull(processingLogContext, "processingLogContext");
-  }
+  private final StatementRewriteForStruct rewriter;
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -90,7 +76,32 @@ final class EngineContext {
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        onQueryCloseCallback);
+        onQueryCloseCallback,
+        new DefaultKsqlParser(),
+        new StatementRewriteForStruct()
+    );
+  }
+
+  @VisibleForTesting
+  EngineContext(
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final MutableMetaStore metaStore,
+      final QueryIdGenerator queryIdGenerator,
+      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback,
+      final KsqlParser parser,
+      final StatementRewriteForStruct rewriter
+  ) {
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.metaStore = requireNonNull(metaStore, "metaStore");
+    this.queryIdGenerator = requireNonNull(queryIdGenerator, "queryIdGenerator");
+    this.ddlCommandFactory = new CommandFactories(serviceContext, metaStore);
+    this.outerOnQueryCloseCallback = requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
+    this.ddlCommandExec = new DdlCommandExec(metaStore);
+    this.persistentQueries = new ConcurrentHashMap<>();
+    this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
+    this.parser = requireNonNull(parser, "parser");
+    this.rewriter = requireNonNull(rewriter, "rewriter");
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -132,7 +143,11 @@ final class EngineContext {
 
   PreparedStatement<?> prepare(final ParsedStatement stmt) {
     try {
-      return parser.prepare(stmt, metaStore);
+      final PreparedStatement<?> prepared = parser.prepare(stmt, metaStore);
+
+      final Statement rewritten = rewriter.rewriteForStruct(prepared.getStatement());
+
+      return PreparedStatement.of(stmt.getStatementText(), rewritten);
     } catch (final KsqlException e) {
       throw e;
     } catch (final Exception e) {

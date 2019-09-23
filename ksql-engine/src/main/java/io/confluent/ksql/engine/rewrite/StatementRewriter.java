@@ -107,6 +107,11 @@ public final class StatementRewriter<C> {
     }
 
     @Override
+    protected AstNode visitNode(final AstNode node, final C context) {
+      return node;
+    }
+
+    @Override
     protected AstNode visitStatements(final Statements node, final C context) {
       final List<Statement> rewrittenStatements = node.getStatements()
           .stream()
@@ -163,7 +168,7 @@ public final class StatementRewriter<C> {
       return new Explain(
           node.getLocation(),
           node.getQueryId(),
-          rewritten == null ? Optional.of(original) : Optional.of(rewritten)
+          Optional.of(rewritten)
       );
     }
 

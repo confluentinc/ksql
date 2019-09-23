@@ -28,8 +28,11 @@ import org.junit.Test;
 public class ZooKeeperEmbeddedTest {
 
   // Use the same timeouts as KafkaEmbedded so that this test highlights any config issues
-  private static final int SESSION_TIMEOUT_MS = (int) KafkaEmbedded.ZK_SESSION_TIMEOUT.toMillis();
-  private static final long CONNECT_TIMEOUT_MS = (int) KafkaEmbedded.ZK_CONNECT_TIMEOUT.toMillis();
+  private static final int SESSION_TIMEOUT_MS = (int) EmbeddedSingleNodeKafkaCluster
+      .ZK_SESSION_TIMEOUT.toMillis();
+
+  private static final long CONNECT_TIMEOUT_MS = (int) EmbeddedSingleNodeKafkaCluster
+      .ZK_CONNECT_TIMEOUT.toMillis();
 
   /**
    * Test is only valid if Jetty is on the class path:

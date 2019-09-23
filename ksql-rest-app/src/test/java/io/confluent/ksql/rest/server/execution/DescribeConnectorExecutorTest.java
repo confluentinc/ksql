@@ -52,7 +52,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.admin.Admin;

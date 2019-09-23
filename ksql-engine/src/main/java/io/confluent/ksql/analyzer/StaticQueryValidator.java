@@ -29,7 +29,7 @@ public class StaticQueryValidator implements QueryValidator {
       + System.lineSeparator()
       + "Query syntax in KSQL has changed. There are now two broad categories of queries:"
       + System.lineSeparator()
-      + "- Static queries: query the current state of the system, return a result and terminate."
+      + "- Static queries: query the current state of the system, return a result, and terminate the query."
       + System.lineSeparator()
       + "- Streaming queries: query the state of the system in motion and will continue to output "
       + "results until they meet any LIMIT clause criteria or are terminated by the user."

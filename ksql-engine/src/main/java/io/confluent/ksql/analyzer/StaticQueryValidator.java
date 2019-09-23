@@ -66,7 +66,7 @@ public class StaticQueryValidator implements QueryValidator {
     }
 
     if (query.getResultMaterialization() != ResultMaterialization.FINAL) {
-      throw new IllegalArgumentException("Static queries do not yet support `EMIT CHANGES`.");
+      throw new IllegalArgumentException("Static queries don't support `EMIT CHANGES`.");
     }
 
     if (sink.isPresent()) {

@@ -458,8 +458,6 @@ public class CliTest {
     assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
   }
 
-
-
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(

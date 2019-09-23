@@ -139,10 +139,11 @@ public class TabularRow {
   private static boolean shouldClip(final List<String> parts, final int rowsToPrint) {
     // clip if there are more than one line and any of the remaining lines are non-empty
     return parts.size() > rowsToPrint
-        && parts.subList(rowsToPrint, parts.size())
+        && !parts
+        .subList(rowsToPrint, parts.size())
         .stream()
         .map(String::trim)
-        .noneMatch(String::isEmpty);
+        .allMatch(String::isEmpty);
   }
 
   @SuppressWarnings("UnstableApiUsage")

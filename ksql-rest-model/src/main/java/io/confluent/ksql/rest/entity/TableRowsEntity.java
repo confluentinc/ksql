@@ -28,12 +28,12 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class QueryResultEntity extends KsqlEntity {
+public class TableRowsEntity extends KsqlEntity {
 
   private final LogicalSchema schema;
   private final ImmutableList<List<?>> rows;
 
-  public QueryResultEntity(
+  public TableRowsEntity(
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("schema") final LogicalSchema schema,
       @JsonProperty("rows") final List<List<?>> rows
@@ -58,10 +58,10 @@ public class QueryResultEntity extends KsqlEntity {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof QueryResultEntity)) {
+    if (!(o instanceof TableRowsEntity)) {
       return false;
     }
-    final QueryResultEntity that = (QueryResultEntity) o;
+    final TableRowsEntity that = (TableRowsEntity) o;
     return Objects.equals(schema, that.schema)
         && Objects.equals(rows, that.rows);
   }

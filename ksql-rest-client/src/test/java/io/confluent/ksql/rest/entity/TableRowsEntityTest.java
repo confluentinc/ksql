@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 
-public class QueryResultEntityTest {
+public class TableRowsEntityTest {
 
   private static final ObjectMapper MAPPER;
   private static final String SOME_SQL = "some SQL";
@@ -54,7 +54,7 @@ public class QueryResultEntityTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnRowWindowTypeMismatch() {
-    new QueryResultEntity(
+    new TableRowsEntity(
         SOME_SQL,
         LOGICAL_SCHEMA,
         ImmutableList.of(ImmutableList.of("too", "few"))
@@ -64,7 +64,7 @@ public class QueryResultEntityTest {
   @Test
   public void shouldSerializeEntity() throws Exception {
     // Given:
-    final QueryResultEntity entity = new QueryResultEntity(
+    final TableRowsEntity entity = new TableRowsEntity(
         SOME_SQL,
         LOGICAL_SCHEMA,
         ImmutableList.of(A_VALUE)
@@ -93,7 +93,7 @@ public class QueryResultEntityTest {
   @Test
   public void shouldSerializeNullElements() throws Exception {
     // Given:
-    final QueryResultEntity entity = new QueryResultEntity(
+    final TableRowsEntity entity = new TableRowsEntity(
         SOME_SQL,
         LOGICAL_SCHEMA,
         ImmutableList.of(Arrays.asList(null, 10.1D, null))

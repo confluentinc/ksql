@@ -17,24 +17,24 @@ package io.confluent.ksql.cli.console.table.builder;
 
 import io.confluent.ksql.cli.console.table.Table;
 import io.confluent.ksql.cli.console.table.Table.Builder;
-import io.confluent.ksql.rest.entity.QueryResultEntity;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class QueryResultTableBuilder implements TableBuilder<QueryResultEntity> {
+public class TableRowsTableBuilder implements TableBuilder<TableRowsEntity> {
 
   @Override
-  public Table buildTable(final QueryResultEntity entity) {
+  public Table buildTable(final TableRowsEntity entity) {
 
     final List<String> headers = buildHeadings(entity);
 
     final Stream<List<String>> rows = entity
         .getRows()
         .stream()
-        .map(QueryResultTableBuilder::buildRow);
+        .map(TableRowsTableBuilder::buildRow);
 
     return new Builder()
         .withColumnHeaders(headers)
@@ -42,7 +42,7 @@ public class QueryResultTableBuilder implements TableBuilder<QueryResultEntity> 
         .build();
   }
 
-  private static List<String> buildHeadings(final QueryResultEntity entity) {
+  private static List<String> buildHeadings(final TableRowsEntity entity) {
     final LogicalSchema schema = entity.getSchema();
 
     final Stream<String> keys = schema.key().stream()

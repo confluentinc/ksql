@@ -38,8 +38,9 @@ clause, which can changed what the table is keyed on.
 
 KSQL will automatically repartition a stream of data before joining, if required. In the example below
 KSQL is used to join a stream of clicks with a table of users.  The ``clicks`` stream is not keyed on anything
-initially. The ``users`` table keyed on ``userId``.  Because the stream is being joined on a column other than
-it's key field, i.e. ``ROWKEY``, KSQL will automatically repartition the stream under the hood.
+initially, or not keyed on the ``userId``. The ``users`` table is keyed on ``userId``.
+Because the stream is being joined on a column other than its key field, i.e. ``ROWKEY``,
+KSQL will automatically repartition the stream under the hood.
 
 .. code:: sql
 
@@ -55,13 +56,19 @@ it's key field, i.e. ``ROWKEY``, KSQL will automatically repartition the stream 
 .. note::
 
    While KSQL will automatically repartition a stream should a join require it, KSQL will reject any join
-   any table's column that is not the key. This is because KSQL does not support joins on foreign keys
-   and repartitioning a table would corrupt the data.
+   on a table's column that is not the key. This is because KSQL does not support joins on foreign keys
+   and repartitioning a table's topic has the potential to reorder events and misinterpret tombstones,
+   which can lead to unintended or undesired side effects.
 
 If you are using the same sources in more than one join that requires the data to be repartitioned you
 may choose to repartition manually to avoid KSQL repartitioning multiple times.
 
-To repartition a stream, use the PARTITION BY clause.
+To repartition a stream, use the PARTITION BY clause. Be aware that Kafka guarantees the relative
+order of any two messages from one source partition only if they are also both in the same partition
+after the repartition. Otherwise, Kafka is likely to interleave messages. The use case will determine
+if these ordering guarantees are acceptable.
+
+.. note::
 
 For example, if you need to re-partition a stream to be keyed by a ``product_id``
 field, and keys need to be distributed over 6 partitions to make a join work,

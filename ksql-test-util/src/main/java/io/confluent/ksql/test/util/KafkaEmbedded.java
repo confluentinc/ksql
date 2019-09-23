@@ -22,12 +22,13 @@ import static org.hamcrest.Matchers.is;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.io.File;
 import java.io.IOException;
-import java.time.Duration;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -42,7 +43,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.common.network.ListenerName;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
 import org.apache.kafka.common.utils.SystemTime;
-import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,13 +60,7 @@ class KafkaEmbedded {
 
   private static final Logger log = LoggerFactory.getLogger(KafkaEmbedded.class);
 
-  public static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
-  // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
-  public static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
-
-  private final Properties effectiveConfig;
-  private final File logDir;
-  private final TemporaryFolder tmpFolder;
+  private final Properties config;
   private final KafkaServer kafka;
 
   /**
@@ -76,15 +70,12 @@ class KafkaEmbedded {
    *               the broker should use.  Note that you cannot change some settings such as
    *               `log.dirs`.
    */
-  KafkaEmbedded(final Properties config) throws IOException {
-    this.tmpFolder = new TemporaryFolder();
-    this.tmpFolder.create();
-    this.logDir = tmpFolder.newFolder();
-    this.effectiveConfig = effectiveConfigFrom(config, logDir);
+  KafkaEmbedded(final Properties config) {
+    this.config = Objects.requireNonNull(config, "config");
 
-    final KafkaConfig kafkaConfig = new KafkaConfig(effectiveConfig, true);
+    final KafkaConfig kafkaConfig = new KafkaConfig(this.config, true);
     log.debug("Starting embedded Kafka broker (with log.dirs={} and ZK ensemble at {}) ...",
-        logDir, zookeeperConnect());
+        logDir(), zookeeperConnect());
 
     kafka = TestUtils.createServer(kafkaConfig, new SystemTime());
     log.debug("Startup of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
@@ -125,8 +116,12 @@ class KafkaEmbedded {
         brokerList(), zookeeperConnect());
     kafka.shutdown();
     kafka.awaitShutdown();
-    log.debug("Removing temp folder {} with logs.dir at {} ...", tmpFolder, logDir);
-    tmpFolder.delete();
+    log.debug("Deleting logs.dir at {} ...", logDir());
+    try {
+      Files.delete(Paths.get(logDir()));
+    } catch (IOException e) {
+      log.error("Failed to delete log dir {}", logDir());
+    }
     log.debug("Shutdown of embedded Kafka broker at {} completed (with ZK ensemble at {}) ...",
         brokerList(), zookeeperConnect());
   }
@@ -260,26 +255,12 @@ class KafkaEmbedded {
     }
   }
 
-  private static Properties effectiveConfigFrom(final Properties initialConfig, final File logDir) {
-    final Properties effectiveConfig = new Properties();
-    effectiveConfig.put(KafkaConfig.BrokerIdProp(), 0);
-    effectiveConfig.put(KafkaConfig.HostNameProp(), "127.0.0.1");
-    effectiveConfig.put(KafkaConfig.ListenersProp(), "PLAINTEXT://:0");
-    effectiveConfig.put(KafkaConfig.NumPartitionsProp(), 1);
-    effectiveConfig.put(KafkaConfig.AutoCreateTopicsEnableProp(), true);
-    effectiveConfig.put(KafkaConfig.MessageMaxBytesProp(), 1_000_000);
-    effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), true);
-    effectiveConfig.put(KafkaConfig.ZkSessionTimeoutMsProp(), (int) ZK_SESSION_TIMEOUT.toMillis());
-    effectiveConfig
-        .put(KafkaConfig.ZkConnectionTimeoutMsProp(), (int) ZK_CONNECT_TIMEOUT.toMillis());
-
-    effectiveConfig.putAll(initialConfig);
-    effectiveConfig.put(KafkaConfig.LogDirProp(), logDir.getAbsolutePath());
-    return effectiveConfig;
+  private String zookeeperConnect() {
+    return config.getProperty(KafkaConfig.ZkConnectProp());
   }
 
-  private String zookeeperConnect() {
-    return effectiveConfig.getProperty(KafkaConfig.ZkConnectProp());
+  private String logDir() {
+    return config.getProperty(KafkaConfig.LogDirProp());
   }
 
   private AdminClient adminClient() {

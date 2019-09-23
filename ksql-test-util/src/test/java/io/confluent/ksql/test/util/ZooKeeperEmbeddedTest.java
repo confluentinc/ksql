@@ -27,6 +27,13 @@ import org.junit.Test;
 
 public class ZooKeeperEmbeddedTest {
 
+  // Use the same timeouts as KafkaEmbedded so that this test highlights any config issues
+  private static final int SESSION_TIMEOUT_MS = (int) EmbeddedSingleNodeKafkaCluster
+      .ZK_SESSION_TIMEOUT.toMillis();
+
+  private static final long CONNECT_TIMEOUT_MS = (int) EmbeddedSingleNodeKafkaCluster
+      .ZK_CONNECT_TIMEOUT.toMillis();
+
   /**
    * Test is only valid if Jetty is on the class path:
    */
@@ -70,8 +77,8 @@ public class ZooKeeperEmbeddedTest {
 
     try {
       final String connectString = server.connectString();
-      zooKeeper = new ZooKeeper(connectString, 30_000, watcher);
-      final boolean success = connectionLatch.await(5, TimeUnit.SECONDS);
+      zooKeeper = new ZooKeeper(connectString, SESSION_TIMEOUT_MS, watcher);
+      final boolean success = connectionLatch.await(CONNECT_TIMEOUT_MS, TimeUnit.SECONDS);
       assertThat("Can not connect to " + name + " on " + connectString, success);
 
     } catch (final Exception e) {

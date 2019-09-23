@@ -532,7 +532,9 @@ public class ConsoleTest {
                     new TaskState(0, "task", "worker", "task_msg")
                 ),
                 ConnectorType.SOURCE),
-            ImmutableList.of(sourceDescription)
+            ImmutableList.of(sourceDescription),
+            ImmutableList.of("a-jdbc-topic"),
+            ImmutableList.of()
         )
     ));
 
@@ -605,6 +607,7 @@ public class ConsoleTest {
           + "    \"partitions\" : 2,\n"
           + "    \"replication\" : 1\n"
           + "  } ],\n"
+          + "  \"topics\" : [ \"a-jdbc-topic\" ],\n"
           + "  \"warnings\" : [ ]\n"
           + "} ]\n"));
     } else {
@@ -624,7 +627,12 @@ public class ConsoleTest {
           + " KSQL Source Name | Kafka Topic | Type  \n"
           + "----------------------------------------\n"
           + " TestSource       | kadka-topic | TABLE \n"
-          + "----------------------------------------\n"));
+          + "----------------------------------------\n"
+          + "\n"
+          + " Related Topics \n"
+          + "----------------\n"
+          + " a-jdbc-topic   \n"
+          + "----------------\n"));
     }
   }
 

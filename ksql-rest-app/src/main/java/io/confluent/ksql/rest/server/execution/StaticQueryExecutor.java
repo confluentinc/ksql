@@ -175,8 +175,7 @@ public final class StaticQueryExecutor {
 
       final QueryResultEntity entity = new QueryResultEntity(
           statement.getStatementText(),
-          mat.windowType(),
-          result.schema,
+          QueryResultEntityFactory.buildSchema(result.schema, mat.windowType()),
           QueryResultEntityFactory.createRows(result.rows)
       );
 

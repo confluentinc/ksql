@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.connect.Connector;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -50,8 +51,13 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.http.HttpStatus;
+import org.apache.kafka.clients.admin.Admin;
+import org.apache.kafka.clients.admin.ListTopicsResult;
+import org.apache.kafka.common.KafkaFuture;
+import org.apache.kafka.common.internals.KafkaFutureImpl;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -98,6 +104,11 @@ public class DescribeConnectorExecutorTest {
   @Mock
   private Connector connector;
 
+  @Mock
+  private Admin adminClient;
+  @Mock
+  private ListTopicsResult topics;
+
   private Function<ConnectorInfo, Optional<Connector>> connectorFactory;
   private DescribeConnectorExecutor executor;
   private ConfiguredStatement<DescribeConnector> describeStatement;
@@ -106,6 +117,7 @@ public class DescribeConnectorExecutorTest {
   public void setUp() {
     when(engine.getMetaStore()).thenReturn(metaStore);
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
+    when(serviceContext.getAdminClient()).thenReturn(adminClient);
     when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of("source", source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
     when(source.getKsqlTopic()).thenReturn(
@@ -127,7 +139,10 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
 
     when(connector.matches(any())).thenReturn(false);
-    when(connector.matches("kafka-topic")).thenReturn(true);
+    when(connector.matches(TOPIC)).thenReturn(true);
+
+    when(topics.names()).thenReturn(KafkaFuture.completedFuture(ImmutableSet.of(TOPIC, "other-topic")));
+    when(adminClient.listTopics()).thenReturn(topics);
 
     connectorFactory = info -> Optional.of(connector);
     executor = new DescribeConnectorExecutor(connectorFactory);
@@ -155,6 +170,28 @@ public class DescribeConnectorExecutorTest {
     assertThat(description.getSources().size(), is(1));
     assertThat(description.getSources().get(0).getName(), is("source"));
     assertThat(description.getSources().get(0).getTopic(), is(TOPIC));
+    assertThat(description.getTopics().size(), is(1));
+    assertThat(description.getTopics().get(0), is(TOPIC));
+  }
+
+  @Test
+  public void shouldDescribeKnownConnectorIfTopicListFails() {
+    // Given:
+    KafkaFuture<Set<String>> fut = new KafkaFutureImpl<>();
+    fut.cancel(true);
+    when(topics.names()).thenReturn(fut);
+
+    // When:
+    final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
+
+    // Then:
+    assertThat("Expected a response", entity.isPresent());
+    assertThat(entity.get(), instanceOf(ConnectorDescription.class));
+
+    final ConnectorDescription description = (ConnectorDescription) entity.get();
+    assertThat(description.getConnectorClass(), is(CONNECTOR_CLASS));
+    assertThat(description.getTopics().size(), is(0));
+    assertThat(description.getWarnings().size(), is(1));
   }
 
   @Test

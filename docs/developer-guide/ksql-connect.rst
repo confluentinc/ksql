@@ -23,10 +23,6 @@ There are two ways to deploy the KSQL-Connect integration:
    this, supply a connect properties configuration file to the server and specify this file in the
    ``ksql.connect.worker.config`` property.
 
-If you additionally want KSQL to listen for changes in the |kconnect| cluster and automatically import
-topics as KSQL tables/streams, specify ``ksql.connect.polling.enable=true`` and provide the name
-of the connect config topic as ``ksql.connect.configs.topic``.
-
 .. note:: For environments that need to share connect clusters and provide predictable workloads,
           running |kconnect| externally is the recommended deployment option.
 
@@ -44,7 +40,7 @@ Natively Supported Connectors
 -----------------------------
 
 While it is possible to create, describe and list connectors of all types, KSQL currently supports
-a few connectors more natively by providing templates to ease creation and custom code to import
+a few connectors more natively by providing templates to ease creation and custom code to explore
 topics created by these connectors into KSQL:
 
 - :ref:`connect_jdbc`: since the JDBC connector does not automatically populate the key for the
@@ -135,6 +131,11 @@ Your output should resemble:
     --------------------------------------------
      JDBC_CONNECTOR_USERS | jdbc-users  | TABLE
     --------------------------------------------
+
+     Related Topics
+    ----------------
+     jdbc-users
+    ----------------
 
 SHOW CONNECTORS
 ---------------

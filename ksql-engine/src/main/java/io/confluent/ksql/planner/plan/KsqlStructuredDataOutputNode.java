@@ -101,7 +101,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   @Override
   public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    final String base = String.valueOf(queryIdGenerator.getNext());
+    final String base = queryIdGenerator.getNext();
     if (!doCreateInto) {
       return new QueryId("InsertQuery_" + base);
     }

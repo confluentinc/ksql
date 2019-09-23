@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.query.id;
 
-import java.util.NoSuchElementException;
+import io.confluent.ksql.util.KsqlServerException;
 
 /**
  * Returns a specific query Id identifier based on what's set. Only returns each set Id once and
@@ -42,13 +42,13 @@ public class SpecificQueryIdGenerator implements QueryIdGenerator {
   }
 
   @Override
-  public long getNext() {
+  public String getNext() {
     if (alreadyUsed) {
-      throw new NoSuchElementException("QueryIdGenerator has not been updated with new offset");
+      throw new KsqlServerException("QueryIdGenerator has not been updated with new offset");
     }
 
     alreadyUsed = true;
-    return nextId;
+    return String.valueOf(nextId);
   }
 
   @Override

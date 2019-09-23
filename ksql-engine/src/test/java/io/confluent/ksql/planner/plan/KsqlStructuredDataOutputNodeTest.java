@@ -63,8 +63,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlStructuredDataOutputNodeTest {
 
-  private static final long QUERY_ID_LONG = 123;
-  private static final QueryId QUERY_ID = new QueryId(String.valueOf(QUERY_ID_LONG));
+  private static final String QUERY_ID_VALUE = "output-test";
+  private static final QueryId QUERY_ID = new QueryId(QUERY_ID_VALUE);
 
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
@@ -117,7 +117,7 @@ public class KsqlStructuredDataOutputNodeTest {
     partitionBy = Optional.empty();
     createInto = true;
 
-    when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_LONG);
+    when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_VALUE);
 
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
@@ -271,7 +271,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("CSAS_0_" + QUERY_ID_LONG)));
+    assertThat(queryId, equalTo(new QueryId("CSAS_0_" + QUERY_ID_VALUE)));
   }
 
   @Test
@@ -285,7 +285,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("CTAS_0_" + QUERY_ID_LONG)));
+    assertThat(queryId, equalTo(new QueryId("CTAS_0_" + QUERY_ID_VALUE)));
   }
 
   @Test
@@ -298,7 +298,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(queryIdGenerator, times(1)).getNext();
-    assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_LONG)));
+    assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_VALUE)));
   }
 
   @Test

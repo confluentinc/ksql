@@ -92,8 +92,8 @@ public class StatementExecutor implements KsqlConfigurable {
       final StatementParser statementParser,
       final HybridQueryIdGenerator hybridQueryIdGenerator
   ) {
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");;
-    this.statementParser = Objects.requireNonNull(statementParser, "statementParser");;
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.queryIdGenerator =
         Objects.requireNonNull(hybridQueryIdGenerator, "hybridQueryIdGenerator");
     this.statusStore = new ConcurrentHashMap<>();

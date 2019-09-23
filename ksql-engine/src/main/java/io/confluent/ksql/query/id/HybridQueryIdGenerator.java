@@ -20,7 +20,8 @@ import com.google.common.annotations.VisibleForTesting;
 /**
  * Contains both a Sequential Query Id Generator and a Specific QueryId Generator
  * Can toggle between the two depending on which one is currently activated
- * The query id generation method was changed from using
+ * The query id generation method was changed from using an incremented counter
+ * to using the offset of the record containing the query generating command.
  */
 public class HybridQueryIdGenerator implements QueryIdGenerator {
 
@@ -62,9 +63,8 @@ public class HybridQueryIdGenerator implements QueryIdGenerator {
     return activeGenerator.peekNext();
   }
 
-
   @Override
-  public long getNext() {
+  public String getNext() {
     return activeGenerator.getNext();
   }
 

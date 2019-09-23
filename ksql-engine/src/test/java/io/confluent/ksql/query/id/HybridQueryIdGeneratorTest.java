@@ -45,35 +45,35 @@ public class HybridQueryIdGeneratorTest {
   @Test
   public void shouldUseLegacyGeneratorByDefault() {
     // Given:
-    when(sequentialQueryIdGenerator.getNext()).thenReturn(3L);
-    when(specificQueryIdGenerator.getNext()).thenReturn(5L);
+    when(sequentialQueryIdGenerator.getNext()).thenReturn("3");
+    when(specificQueryIdGenerator.getNext()).thenReturn("5");
 
     // Then:
-    assertThat(generator.getNext(), is(3L));
+    assertThat(generator.getNext(), is("3"));
   }
 
   @Test
   public void shouldUseNewGenerator() {
     // Given:
-    when(sequentialQueryIdGenerator.getNext()).thenReturn(3L);
-    when(specificQueryIdGenerator.getNext()).thenReturn(5L);
+    when(sequentialQueryIdGenerator.getNext()).thenReturn("3");
+    when(specificQueryIdGenerator.getNext()).thenReturn("5");
     generator.activateNewGenerator(5L);
 
     // Then:
-    assertThat(generator.getNext(), is(5L));
+    assertThat(generator.getNext(), is("5"));
     verify(specificQueryIdGenerator, times(1)).setNextId(5L);
   }
 
   @Test
   public void shouldSwitchBetweenGenerators() {
     // Given:
-    when(sequentialQueryIdGenerator.getNext()).thenReturn(3L);
-    when(specificQueryIdGenerator.getNext()).thenReturn(5L);
+    when(sequentialQueryIdGenerator.getNext()).thenReturn("3");
+    when(specificQueryIdGenerator.getNext()).thenReturn("5");
     generator.activateNewGenerator(anyLong());
     generator.activateLegacyGenerator();
 
     // Then:
-    assertThat(generator.getNext(), is(3L));
+    assertThat(generator.getNext(), is("3"));
   }
 
 

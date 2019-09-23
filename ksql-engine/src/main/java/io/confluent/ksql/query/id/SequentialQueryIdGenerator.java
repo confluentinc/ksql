@@ -38,8 +38,8 @@ public class SequentialQueryIdGenerator implements QueryIdGenerator {
   }
 
   @Override
-  public long getNext() {
-    return queryIdCounter.getAndIncrement();
+  public String getNext() {
+    return String.valueOf(queryIdCounter.getAndIncrement());
   }
 
   @Override

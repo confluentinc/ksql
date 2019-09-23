@@ -124,6 +124,27 @@ public class KsqlResourceFunctionalTest {
   }
 
   @Test
+  public void shouldHandleInterDependantCsasTerminateAndDrop() {
+    // When:
+    final List<KsqlEntity> results = makeKsqlRequest(
+        "CREATE STREAM SS AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
+    );
+
+    final String query = REST_APP.getPersistentQueries().iterator().next();
+    results.addAll(makeKsqlRequest("TERMINATE " + query + ";"
+        + "DROP STREAM SS;"));
+
+    // Then:
+    assertThat(results, contains(
+        instanceOf(CommandStatusEntity.class),
+        instanceOf(CommandStatusEntity.class),
+        instanceOf(CommandStatusEntity.class)
+    ));
+
+    assertSuccessful(results);
+  }
+
+  @Test
   public void shouldInsertIntoValuesForAvroTopic() throws Exception {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(

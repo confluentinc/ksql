@@ -18,10 +18,9 @@ package io.confluent.ksql.query.id;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.util.KsqlServerException;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.NoSuchElementException;
 
 public class SpecificQueryIdGeneratorTest {
 
@@ -35,9 +34,9 @@ public class SpecificQueryIdGeneratorTest {
   @Test
   public void shouldGenerateIdBasedOnSetNextId() {
     generator.setNextId(3L);
-    assertThat(generator.getNext(), is(3L));
+    assertThat(generator.getNext(), is("3"));
     generator.setNextId(5L);
-    assertThat(generator.getNext(), is(5L));
+    assertThat(generator.getNext(), is("5"));
   }
 
   @Test
@@ -53,7 +52,7 @@ public class SpecificQueryIdGeneratorTest {
     assertThat(generator.peekNext(), is(4L));
   }
 
-  @Test(expected = NoSuchElementException.class)
+  @Test(expected = KsqlServerException.class)
   public void shouldThrowWhenGetNextBeforeSet() {
     generator.setNextId(3L);
     generator.getNext();

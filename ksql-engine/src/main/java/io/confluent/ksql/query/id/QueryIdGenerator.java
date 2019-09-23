@@ -20,7 +20,7 @@ package io.confluent.ksql.query.id;
  */
 public interface QueryIdGenerator {
 
-  long getNext();
+  String getNext();
 
   long peekNext();
 

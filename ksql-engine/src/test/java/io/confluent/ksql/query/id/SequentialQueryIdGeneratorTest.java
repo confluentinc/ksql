@@ -32,16 +32,16 @@ public class SequentialQueryIdGeneratorTest {
 
   @Test
   public void shouldGenerateMonotonicallyIncrementingIds() {
-    assertThat(generator.getNext(), is(0L));
-    assertThat(generator.getNext(), is(1L));
-    assertThat(generator.getNext(), is(2L));
+    assertThat(generator.getNext(), is("0"));
+    assertThat(generator.getNext(), is("1"));
+    assertThat(generator.getNext(), is("2"));
   }
 
   @Test
   public void shouldNotIncrementWhenPeekNext() {
-    assertThat(generator.getNext(), is(0L));
+    assertThat(generator.getNext(), is("0"));
     assertThat(generator.peekNext(), is(1L));
-    assertThat(generator.getNext(), is(1L));
+    assertThat(generator.getNext(), is("1"));
   }
 
   @Test

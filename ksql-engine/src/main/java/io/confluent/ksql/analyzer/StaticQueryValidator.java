@@ -36,7 +36,7 @@ public class StaticQueryValidator implements QueryValidator {
       + System.lineSeparator()
       + System.lineSeparator()
       + "Use 'EMIT CHANGES' to indicate that a query is continuous and outputs all changes. "
-      + "To turn a static query into a streaming query, as was the default in older versions "
+      + "To convert a static query into a streaming query, which was the default behavior in older versions "
       + "of KSQL, add `EMIT CHANGES` to the end of the statement before any limit clause."
       + System.lineSeparator()
       + System.lineSeparator()

@@ -75,18 +75,12 @@ public class QueryAnalyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    if (query.isStatic()) {
-      staticValidator.preValidate(query, sink);
-    } else {
-      continuousValidator.preValidate(query, sink);
-    }
-
     final Analysis analysis = analyzer.analyze(query, sink);
 
     if (query.isStatic()) {
-      staticValidator.postValidate(analysis);
+      staticValidator.validate(analysis);
     } else {
-      continuousValidator.postValidate(analysis);
+      continuousValidator.validate(analysis);
     }
 
     return analysis;

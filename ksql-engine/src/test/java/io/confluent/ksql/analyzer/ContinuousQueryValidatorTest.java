@@ -17,10 +17,7 @@ package io.confluent.ksql.analyzer;
 
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
-import io.confluent.ksql.parser.tree.Sink;
-import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,29 +33,25 @@ public class ContinuousQueryValidatorTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private Query query;
-  @Mock
-  private Sink sink;
+  private Analysis analysis;
 
   private QueryValidator validator;
 
   @Before
   public void setUp() {
     validator = new ContinuousQueryValidator();
-
-    when(query.isStatic()).thenReturn(false);
   }
 
   @Test
   public void shouldThrowOnContinuousQueryThatIsFinal() {
     // Given:
-    when(query.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
+    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("Continuous queries do not yet support `EMIT FINAL`.");
 
     // When:
-    validator.preValidate(query, Optional.empty());
+    validator.validate(analysis);
   }
 }

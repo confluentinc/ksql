@@ -323,7 +323,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries do not support joins.",
+        "message": "Static queries don't support JOIN clauses.",
         "status": 400
       }
     },
@@ -336,7 +336,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries do not support WINDOW clauses.",
+        "message": "Static queries don't support WINDOW clauses.",
         "status": 400
       }
     },
@@ -349,7 +349,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries do not support GROUP BY clauses",
+        "message": "Static queries don't support GROUP BY clauses",
         "status": 400
       }
     },
@@ -401,7 +401,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "ROWKEY must be comparsed to STRING literal.",
+        "message": "ROWKEY must be compared to STRING literal.",
         "status": 400
       }
     },

@@ -131,7 +131,7 @@ class Analyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    final Visitor visitor = new Visitor(query.isStatic());
+    final Visitor visitor = new Visitor(query);
     visitor.process(query, null);
 
     sink.ifPresent(visitor::analyzeNonStdOutSink);
@@ -145,13 +145,14 @@ class Analyzer {
   private final class Visitor extends DefaultTraversalVisitor<AstNode, Void> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-    private final Analysis analysis = new Analysis();
+    private final Analysis analysis;
     private final boolean staticQuery;
     private boolean isJoin = false;
     private boolean isGroupBy = false;
 
-    Visitor(final boolean staticQuery) {
-      this.staticQuery = staticQuery;
+    Visitor(final Query query) {
+      this.staticQuery = query.isStatic();
+      this.analysis = new Analysis(query.getResultMaterialization());
     }
 
     private void analyzeNonStdOutSink(final Sink sink) {
@@ -284,7 +285,6 @@ class Analyzer {
         final Query node,
         final Void context
     ) {
-
       process(node.getFrom(), context);
 
       process(node.getSelect(), context);

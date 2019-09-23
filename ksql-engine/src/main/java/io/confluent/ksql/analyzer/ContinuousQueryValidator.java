@@ -18,7 +18,6 @@ package io.confluent.ksql.analyzer;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 
 public class ContinuousQueryValidator implements QueryValidator {
@@ -33,10 +32,7 @@ public class ContinuousQueryValidator implements QueryValidator {
     }
 
     if (query.getResultMaterialization() != ResultMaterialization.CHANGES) {
-      throw new KsqlException("Continuous queries do not yet support `EMIT FINAL`. "
-          + "Consider changing to `EMIT CHANGES`."
-          + QueryAnalyzer.NEW_QUERY_SYNTAX_HELP
-      );
+      throw new IllegalArgumentException("Continuous queries do not yet support `EMIT FINAL`.");
     }
   }
 

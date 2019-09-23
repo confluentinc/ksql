@@ -20,7 +20,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
@@ -56,7 +55,7 @@ public class ContinuousQueryValidatorTest {
     when(query.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
 
     // Then:
-    expectedException.expect(KsqlException.class);
+    expectedException.expect(IllegalArgumentException.class);
     expectedException.expectMessage("Continuous queries do not yet support `EMIT FINAL`.");
 
     // When:

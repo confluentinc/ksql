@@ -92,10 +92,12 @@ public class Round {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
           + "type as first parameter.");
     }
-    final SqlType s1 = params.get(0);
-    if (s1.baseType() != SqlBaseType.INTEGER) {
-      throw new KsqlException("The schema provider method for round expects an Integer parameter"
-          + "type as second parameter.");
+    if (params.size() == 2) {
+      final SqlType s1 = params.get(1);
+      if (s1.baseType() != SqlBaseType.INTEGER) {
+        throw new KsqlException("The schema provider method for round expects an Integer parameter"
+            + "type as second parameter.");
+      }
     }
     return s0;
   }

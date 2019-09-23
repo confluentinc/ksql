@@ -45,10 +45,11 @@ ROUND(-1.9) -> -2
 public class Round {
 
   static final String DESCRIPTION =
-      "Returns the value rounded to the specified number of decimnal places. "
-      + "If the number of decimal places is omitted it defaults to zero. "
-      + "If the digit to the right of the number of decimal places is 5 or greater than the "
-      + "function will round up, otherwise it will round down.";
+      "Returns the value rounded to the specified number of decimal places. "
+      + "If the number of decimal places is omitted it defaults to zero."
+      + "Numbers are rounded to the nearest digit at the last required decimal place. "
+      + "If the digit to the right of the last required decimal place is equidistant (i.e. a 5) "
+      + "then it is rounded up.";
 
   private static final MathContext SIMPLE_ROUND_HALF_UP =
       new MathContext(1, RoundingMode.HALF_UP);

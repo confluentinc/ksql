@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
@@ -45,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -274,7 +276,23 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldHandleStruct() {
+  public void shouldThrowOnStructFieldDereference() {
+    // Given:
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new QualifiedNameReference(QualifiedName.of("TEST1", "COL6")),
+        "STREET"
+    );
+
+    // Then:
+    expectedException.expect(IllegalArgumentException.class);
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  @Test
+  public void shouldHandleRewrittenStruct() {
     final Expression expression = new FunctionCall(
         QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
         ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))

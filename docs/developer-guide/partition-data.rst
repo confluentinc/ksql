@@ -10,26 +10,69 @@ of the join have the same configuration settings for partitions.
 Co-partitioning Requirements
 ****************************
 
-* The input records for the join must have the :ref:`same keying scheme <keys-have-same-keying-scheme>`
+* The input records for the join must have the :ref:`same key schema <keys-have-same-key-schema>`
 * The input records must have the :ref:`same number of partitions <keys-have-same-number-of-partitions>` on both sides.
 * Both sides of the join must have the :ref:`same partitioning strategy <records-have-same-partitioning-strategy>`.  
 
 When your inputs are co-partitioned, records with the same key, from both
 sides of the join, are delivered to the same stream task during processing.
-If your inputs aren't co-partitioned, you need to :ref:`re-key one of the
-them <ensure-co-partitioning>` by using the PARTITION BY clause.
 
-.. _keys-have-same-keying-scheme:
+.. _keys-have-same-key-schema:
 
-Records Have the Same Keying Scheme
-===================================
+Records have the Same Key Schema
+================================
 
-The input records for the join must have the same keying scheme, which means
-that the join must use the same key field on both sides.
+For a join to work the keys from both sides must have the same serialized binary data.
 
-For example, you can join a stream of user clicks that's keyed by a ``VARCHAR userId``
-field with a table of user profiles that's keyed by a ``VARCHAR userId`` field. 
-The join won't match if the key fields don't have the same name and type.
+For example, you can join a stream of user clicks that's keyed on a ``VARCHAR`` user id with a table
+of user's profiles that's also keyed on a ``VARCHAR`` user id. Records with the exact same user id
+on both sides will be joined.
+
+Tables created on top of existing Kafka topics, for example those created with a ``CREATE TABLE``
+statement, will be keyed on the data held in the key of the records in the
+Kafka topic.  KSQL presents this data in the ``ROWKEY`` column, and expects the data to be a ``VARCHAR``.
+
+Tables created inside KSQL from other sources, for example those created with a ``CREATE TABLE AS SELECT``
+statement, will copy the key from their source(s) unless there is an explicit ``GROUP BY`` or ``PARTITION BY``
+clause, which can changed what the table is keyed on.
+
+KSQL will automatically repartition a stream of data before joining, if required. In the example below
+KSQL is used to join a stream of clicks with a table of users.  The ``clicks`` stream is not keyed on anything
+initially. The ``users`` table keyed on ``userId``.  Because the stream is being joined on a column other than
+it's key field, i.e. ``ROWKEY``, KSQL will automatically repartition the stream under the hood.
+
+.. code:: sql
+
+   -- clicks stream, with an unknown key.
+   CREATE STREAM clicks (userId STRING, url STRING) WITH(kafka_topic='clickstream', value_format='json');
+
+   -- users table, where the records have the userId in the record's key:
+   CREATE TABLE  users  (userId STRING, fullName STRING) WITH(kafka_topic='users', value_format='json', key='userId');
+
+   -- join will automatically repartition clicks stream:
+   SELECT clicks.url, users.fullName FROM clicks JOIN users ON clicks.userId = users.userId;
+
+.. note::
+
+   While KSQL will automatically repartition a stream should a join require it, KSQL will reject any join
+   any table's column that is not the key. This is because KSQL does not support joins on foreign keys
+   and repartitioning a table would corrupt the data.
+
+If you are using the same sources in more than one join that requires the data to be repartitioned you
+may choose to repartition manually to avoid KSQL repartitioning multiple times.
+
+To repartition a stream, use the PARTITION BY clause.
+
+For example, if you need to re-partition a stream to be keyed by a ``product_id``
+field, and keys need to be distributed over 6 partitions to make a join work,
+use the following KSQL statement:
+
+.. code:: sql
+
+   CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY product_id;
+
+For more information, see `Inspecting and Changing Topic Keys <https://www.confluent.io/stream-processing-cookbook/ksql-recipes/inspecting-changing-topic-keys>`__
+in the `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__.
 
 .. _keys-have-same-number-of-partitions:
 
@@ -39,12 +82,20 @@ Records Have the Same Number of Partitions
 The input records for the join must have the same number of partitions on both
 sides.
 
-KSQL checks this part of the co-partitioning requirement and throws a runtime
-exception if the partition count is different.
+KSQL checks this part of the co-partitioning requirement and rejects any join where the partition counts differ.
 
-Use the ``<path-to-confluent>/bin/kafka-topics`` CLI tool
-with the ``--describe`` option to see the number of partitions for the
-Kafka topics that correspond with your streams and tables.
+Use the ``DESCRIBE EXTENDED <source name>`` command in the CLI to determine the Kafka topic under a source,
+and use the ``SHOW TOPICS;`` command in the CLI to list out topics and their partition counts.
+
+If the sides of the join have different partition counts then you may wish to look at changing the partition counts
+of the source topics, or repartition one side to match the partition count of the other.
+
+The following example will create a repartitioned stream, maintaining the existing key, and with the
+specified number of partitions:
+
+.. code:: sql
+
+   CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY ROWKEY;
 
 .. _records-have-same-partitioning-strategy:
 
@@ -52,8 +103,8 @@ Records Have the Same Partitioning Strategy
 ===========================================
 
 Records on both sides of the join must have the same partitioning strategy.
-If you use the default partitioner settings across all applications, you don't
-need to worry about the partitioning strategy.
+If you use the default partitioner settings across all applications, and your producers aren't
+specifying an explicit partition, you don't need to worry about the partitioning strategy.
 
 But if the producer applications for your records have custom partitioners
 specified in `configuration <http://kafka.apache.org/documentation/#producerconfigs>`__,
@@ -85,34 +136,4 @@ and are assigned in the producer configuration property, ``partitioner.class``.
 For example implementations of a custom partitioner, see
 `Built for realtime: Big data messaging with Apache Kafka, Part 2 <https://www.javaworld.com/article/3066873/big-data/big-data-messaging-with-kafka-part-2.html>`__
 and `Apache Kafka Foundation Course - Custom Partitioner <https://www.learningjournal.guru/courses/kafka/kafka-foundation-training/custom-partitioner/>`__.
-
-.. _ensure-co-partitioning:
-
-Ensure Data Co-partitioning
-***************************
-
-If your join inputs aren't co-partitioned, you must ensure it manually
-by re-keying the data on one side of the join.
-
-For example, in a stream-table join, if a stream of user clicks is keyed by
-``pageId``, but a table of user profiles is keyed by ``userId``, one of the
-two inputs must be re-keyed (re-partitioned). Which of the two should be re-keyed
-depends on the situation.
-
-If the stream has very high volume, you may not want to re-key it,
-because this would duplicate a large data source. Instead, you may prefer to
-re-key the smaller table.
-
-To enforce co-partitioning, use the PARTITION BY clause.
-
-For example, if you need to re-partition a stream to be keyed by a ``product_id`` 
-field, and keys need to be distributed over 6 partitions to make a join work,
-use the following KSQL statement:
-
-.. code:: sql
-
-   CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY product_id;
-
-For more information, see `Inspecting and Changing Topic Keys <https://www.confluent.io/stream-processing-cookbook/ksql-recipes/inspecting-changing-topic-keys>`__ 
-in the `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__.
 

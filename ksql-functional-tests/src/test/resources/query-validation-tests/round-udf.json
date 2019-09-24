@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests covering the use of the ROUND(DOUBLE), FLOOR(DOUBLE), CEIL(DOUBLE) functions."
+    "Tests covering the use of the ROUND."
   ],
   "tests": [
     {

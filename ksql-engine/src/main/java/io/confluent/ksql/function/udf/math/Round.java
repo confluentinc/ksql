@@ -73,7 +73,7 @@ public class Round {
     return val == null ? null : round(val, 0);
   }
 
-  @Udf(schemaProvider = "provideDecimalSchema")
+  @Udf(schemaProvider = "provideDecimalSchemaWithDecimalPlaces")
   public BigDecimal round(
       @UdfParameter final BigDecimal val,
       @UdfParameter
@@ -83,21 +83,32 @@ public class Round {
   }
 
   @UdfSchemaProvider
-  public SqlType provideDecimalSchema(final List<SqlType> params) {
-    if (params.size() != 1 && params.size() != 2) {
-      throw new KsqlException("Round udf accepts one or two parameters");
+  public SqlType provideDecimalSchemaWithDecimalPlaces(final List<SqlType> params) {
+    if (params.size() != 2) {
+      throw new KsqlException("Round udf with decimal places accepts two parameters");
     }
     final SqlType s0 = params.get(0);
     if (s0.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
           + "type as first parameter.");
     }
-    if (params.size() == 2) {
-      final SqlType s1 = params.get(1);
-      if (s1.baseType() != SqlBaseType.INTEGER) {
-        throw new KsqlException("The schema provider method for round expects an Integer parameter"
-            + "type as second parameter.");
-      }
+    final SqlType s1 = params.get(1);
+    if (s1.baseType() != SqlBaseType.INTEGER) {
+      throw new KsqlException("The schema provider method for round expects an Integer parameter"
+          + "type as second parameter.");
+    }
+    return s0;
+  }
+
+  @UdfSchemaProvider
+  public SqlType provideDecimalSchema(final List<SqlType> params) {
+    if (params.size() != 1) {
+      throw new KsqlException("Round udf accepts one parameter");
+    }
+    final SqlType s0 = params.get(0);
+    if (s0.baseType() != SqlBaseType.DECIMAL) {
+      throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
+          + "type as a parameter.");
     }
     return s0;
   }

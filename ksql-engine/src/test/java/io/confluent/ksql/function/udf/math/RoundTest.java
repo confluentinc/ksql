@@ -66,7 +66,6 @@ public class RoundTest {
 
   @Test
   public void testRoundSimpleBigDecimalPositive() {
-
     assertThat(udf.round(new BigDecimal("0.0")), is(new BigDecimal("0")));
     assertThat(udf.round(new BigDecimal("1.23")), is(new BigDecimal("1")));
     assertThat(udf.round(new BigDecimal("1.0")), is(new BigDecimal("1")));
@@ -85,8 +84,7 @@ public class RoundTest {
   public void testRoundSimpleBigDecimalNegative() {
     assertThat(udf.round(new BigDecimal("-1.23")), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.0")), is(new BigDecimal("-1")));
-    // TODO fix this
-    //assertThat(udf.round(new BigDecimal("-1.5")), is(new BigDecimal("-1")));
+    assertThat(udf.round(new BigDecimal("-1.5")), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1530000")), is(new BigDecimal("-1530000")));
     assertThat(udf.round(new BigDecimal("-10.1")), is(new BigDecimal("-10")));
     assertThat(udf.round(new BigDecimal("-12345.5")), is(new BigDecimal("-12345")));
@@ -98,10 +96,6 @@ public class RoundTest {
 
   @Test
   public void testRoundDoubleWithDecimalPlacesPositive() {
-    // This won't work if BigDecimal(double) constructor is used in Round rather than
-    // BigDecimal.valueOf(double)
-    assertThat(udf.round(265.335d, 2), is(265.34d));
-
     assertThat(udf.round(0d, 0), is(0d));
     assertThat(udf.round(1.0d, 0), is(1.0d));
     assertThat(udf.round(1.1d, 0), is(1.0d));
@@ -110,22 +104,18 @@ public class RoundTest {
     assertThat(udf.round(100.1d, 0), is(100.0d));
     assertThat(udf.round(100.5d, 0), is(101.0d));
     assertThat(udf.round(100.75d, 0), is(101.0d));
-
     assertThat(udf.round(100.10d, 1), is(100.1d));
     assertThat(udf.round(100.11d, 1), is(100.1d));
     assertThat(udf.round(100.15d, 1), is(100.2d));
     assertThat(udf.round(100.17d, 1), is(100.2d));
-
     assertThat(udf.round(100.110d, 2), is(100.11d));
     assertThat(udf.round(100.111d, 2), is(100.11d));
     assertThat(udf.round(100.115d, 2), is(100.12d));
     assertThat(udf.round(100.117d, 2), is(100.12d));
-
     assertThat(udf.round(100.1110d, 3), is(100.111d));
     assertThat(udf.round(100.1111d, 3), is(100.111d));
     assertThat(udf.round(100.1115d, 3), is(100.112d));
     assertThat(udf.round(100.1117d, 3), is(100.112d));
-
     assertThat(udf.round(12345.67d, -1), is(12350d));
     assertThat(udf.round(12345.67d, -2), is(12300d));
     assertThat(udf.round(12345.67d, -3), is(12000d));
@@ -135,9 +125,6 @@ public class RoundTest {
 
   @Test
   public void testRoundDoubleWithDecimalPlacesNegative() {
-
-    assertThat(udf.round(-265.335d, 2), is(-265.33d));
-
     assertThat(udf.round(-1.0d, 0), is(-1.0d));
     assertThat(udf.round(-1.1d, 0), is(-1.0d));
     assertThat(udf.round(-1.5d, 0), is(-1.0d));
@@ -145,22 +132,18 @@ public class RoundTest {
     assertThat(udf.round(-100.1d, 0), is(-100.0d));
     assertThat(udf.round(-100.5d, 0), is(-100.0d));
     assertThat(udf.round(-100.75d, 0), is(-101.0d));
-
     assertThat(udf.round(-100.10d, 1), is(-100.1d));
     assertThat(udf.round(-100.11d, 1), is(-100.1d));
     assertThat(udf.round(-100.15d, 1), is(-100.1d));
     assertThat(udf.round(-100.17d, 1), is(-100.2d));
-
     assertThat(udf.round(-100.110d, 2), is(-100.11d));
     assertThat(udf.round(-100.111d, 2), is(-100.11d));
     assertThat(udf.round(-100.115d, 2), is(-100.11d));
     assertThat(udf.round(-100.117d, 2), is(-100.12d));
-
     assertThat(udf.round(-100.1110d, 3), is(-100.111d));
     assertThat(udf.round(-100.1111d, 3), is(-100.111d));
     assertThat(udf.round(-100.1115d, 3), is(-100.111d));
     assertThat(udf.round(-100.1117d, 3), is(-100.112d));
-
     assertThat(udf.round(-12345.67d, -1), is(-12350d));
     assertThat(udf.round(-12345.67d, -2), is(-12300d));
     assertThat(udf.round(-12345.67d, -3), is(-12000d));
@@ -170,10 +153,6 @@ public class RoundTest {
 
   @Test
   public void testRoundBigDecimalWithDecimalPlacesPositive() {
-    // This won't work if BigDecimal(double) constructor is used in Round rather than
-    // BigDecimal.valueOf(double)
-    assertThat(udf.round(new BigDecimal("265.335"), 2), is(new BigDecimal("265.34")));
-
     assertThat(udf.round(new BigDecimal("0"), 0), is(new BigDecimal("0")));
     assertThat(udf.round(new BigDecimal("1.0"), 0), is(new BigDecimal("1")));
     assertThat(udf.round(new BigDecimal("1.1"), 0), is(new BigDecimal("1")));
@@ -182,22 +161,18 @@ public class RoundTest {
     assertThat(udf.round(new BigDecimal("100.1"), 0),is(new BigDecimal("100")));
     assertThat(udf.round(new BigDecimal("100.5"), 0), is(new BigDecimal("101")));
     assertThat(udf.round(new BigDecimal("100.75"), 0), is(new BigDecimal("101")));
-
     assertThat(udf.round(new BigDecimal("100.10"), 1), is(new BigDecimal("100.1")));
     assertThat(udf.round(new BigDecimal("100.11"), 1), is(new BigDecimal("100.1")));
     assertThat(udf.round(new BigDecimal("100.15"), 1), is(new BigDecimal("100.2")));
     assertThat(udf.round(new BigDecimal("100.17"), 1), is(new BigDecimal("100.2")));
-
     assertThat(udf.round(new BigDecimal("100.110"), 2), is(new BigDecimal("100.11")));
     assertThat(udf.round(new BigDecimal("100.111"), 2), is(new BigDecimal("100.11")));
     assertThat(udf.round(new BigDecimal("100.115"), 2), is(new BigDecimal("100.12")));
     assertThat(udf.round(new BigDecimal("100.117"), 2), is(new BigDecimal("100.12")));
-
     assertThat(udf.round(new BigDecimal("100.1110"), 3), is(new BigDecimal("100.111")));
     assertThat(udf.round(new BigDecimal("100.1111"), 3), is(new BigDecimal("100.111")));
     assertThat(udf.round(new BigDecimal("100.1115"), 3), is(new BigDecimal("100.112")));
     assertThat(udf.round(new BigDecimal("100.1117"), 3), is(new BigDecimal("100.112")));
-
     assertThat(udf.round(new BigDecimal("12345.67"), -1), is(new BigDecimal("1.235E4")));
     assertThat(udf.round(new BigDecimal("12345.67"), -2), is(new BigDecimal("1.23E4")));
     assertThat(udf.round(new BigDecimal("12345.67"), -3), is(new BigDecimal("1.2E4")));
@@ -207,10 +182,6 @@ public class RoundTest {
 
   @Test
   public void testRoundBigDecimalWithDecimalPlacesNegative() {
-    // This won't work if BigDecimal(double) constructor is used in Round rather than
-    // BigDecimal.valueOf(double)
-    assertThat(udf.round(new BigDecimal("-265.335"), 2), is(new BigDecimal("-265.33")));
-
     assertThat(udf.round(new BigDecimal("-1.0"), 0), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.1"), 0), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.5"), 0), is(new BigDecimal("-1")));
@@ -218,22 +189,18 @@ public class RoundTest {
     assertThat(udf.round(new BigDecimal("-100.1"), 0), is(new BigDecimal("-100")));
     assertThat(udf.round(new BigDecimal("-100.5"), 0), is(new BigDecimal("-100")));
     assertThat(udf.round(new BigDecimal("-100.75"), 0), is(new BigDecimal("-101")));
-
     assertThat(udf.round(new BigDecimal("-100.10"), 1), is(new BigDecimal("-100.1")));
     assertThat(udf.round(new BigDecimal("-100.11"), 1), is(new BigDecimal("-100.1")));
     assertThat(udf.round(new BigDecimal("-100.15"), 1), is(new BigDecimal("-100.1")));
     assertThat(udf.round(new BigDecimal("-100.17"), 1), is(new BigDecimal("-100.2")));
-
     assertThat(udf.round(new BigDecimal("-100.110"), 2), is(new BigDecimal("-100.11")));
     assertThat(udf.round(new BigDecimal("-100.111"), 2), is(new BigDecimal("-100.11")));
     assertThat(udf.round(new BigDecimal("-100.115"), 2), is(new BigDecimal("-100.11")));
     assertThat(udf.round(new BigDecimal("-100.117"), 2), is(new BigDecimal("-100.12")));
-
     assertThat(udf.round(new BigDecimal("-100.1110"), 3), is(new BigDecimal("-100.111")));
     assertThat(udf.round(new BigDecimal("-100.1111"), 3), is(new BigDecimal("-100.111")));
     assertThat(udf.round(new BigDecimal("-100.1115"), 3), is(new BigDecimal("-100.111")));
     assertThat(udf.round(new BigDecimal("-100.1117"), 3), is(new BigDecimal("-100.112")));
-
     assertThat(udf.round(new BigDecimal("-12345.67"), -1), is(new BigDecimal("-1.235E4")));
     assertThat(udf.round(new BigDecimal("-12345.67"), -2), is(new BigDecimal("-1.23E4")));
     assertThat(udf.round(new BigDecimal("-12345.67"), -3), is(new BigDecimal("-1.2E4")));
@@ -241,7 +208,20 @@ public class RoundTest {
     assertThat(udf.round(new BigDecimal("-12345.67"), -5), is(new BigDecimal("-0E5")));
   }
 
+  /*
+  These test some numbers which can't be represented exactly as doubles and end with 5
+  This really verifies the BigDecimal(double) constructor isn't being used
+   */
   @Test
+  public void testPathologicalDoublesEndingWith5() {
+    assertThat(udf.round(new BigDecimal("265.335"), 2), is(new BigDecimal("265.34")));
+    assertThat(udf.round(new BigDecimal("-265.335"), 2), is(new BigDecimal("-265.33")));
+
+    assertThat(udf.round(new BigDecimal("265.365"), 2), is(new BigDecimal("265.37")));
+    assertThat(udf.round(new BigDecimal("-265.365"), 2), is(new BigDecimal("-265.36")));
+  }
+
+    @Test
   public void testNullValues() {
     assertThat(udf.round((Double)null), is((Long)null));
     assertThat(udf.round((BigDecimal) null), is((BigDecimal) null));

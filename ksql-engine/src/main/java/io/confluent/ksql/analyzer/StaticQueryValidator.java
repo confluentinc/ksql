@@ -54,7 +54,7 @@ public class StaticQueryValidator implements QueryValidator {
       throw new KsqlException("Static queries do not support joins.");
     }
 
-    if (analysis.getWindowExpression() != null) {
+    if (analysis.getWindowExpression().isPresent()) {
       throw new KsqlException("Static queries do not support WINDOW clauses.");
     }
 
@@ -66,7 +66,7 @@ public class StaticQueryValidator implements QueryValidator {
       throw new KsqlException("Static queries do not support PARTITION BY clauses.");
     }
 
-    if (analysis.getHavingExpression() != null) {
+    if (analysis.getHavingExpression().isPresent()) {
       throw new KsqlException("Static queries do not support HAVING clauses.");
     }
 

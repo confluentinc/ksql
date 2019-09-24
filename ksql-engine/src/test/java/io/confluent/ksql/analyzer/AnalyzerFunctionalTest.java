@@ -36,12 +36,12 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.parser.ExpressionFormatterUtil;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -63,6 +63,7 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -131,39 +132,19 @@ public class AnalyzerFunctionalTest {
   public void testSimpleQueryAnalysis() {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT alias is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
         analysis.getFromDataSources().get(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
-    Assert.assertEquals(analysis.getSelectExpressions().size(),
-        analysis.getSelectExpressionAlias().size());
-    final String
-        sqlStr =
-        ExpressionFormatterUtil
-            .formatExpression(analysis.getWhereExpression()).replace("\n", " ");
-    Assert.assertTrue(sqlStr.equalsIgnoreCase("(TEST1.COL0 > 100)"));
+    assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 100)"));
 
-    final String
-        select1 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(0))
-            .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("TEST1.COL0"));
-    final String
-        select2 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(1))
-            .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    final String
-        select3 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(2))
-            .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("TEST1.COL3"));
+    final List<SelectExpression> selects = analysis.getSelectExpressions();
+    assertThat(selects.get(0).getExpression().toString(), is("TEST1.COL0"));
+    assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
+    assertThat(selects.get(2).getExpression().toString(), is("TEST1.COL3"));
 
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(0).equalsIgnoreCase("COL0"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(1).equalsIgnoreCase("COL2"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(2).equalsIgnoreCase("COL3"));
+    assertThat(selects.get(0).getName(), is("COL0"));
+    assertThat(selects.get(1).getName(), is("COL2"));
+    assertThat(selects.get(2).getName(), is("COL3"));
   }
 
   @Test
@@ -179,20 +160,22 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getFromDataSources().get(0).getAlias(), is("T1"));
     assertThat(analysis.getFromDataSources().get(1).getAlias(), is("T2"));
 
-    assertThat(analysis.getSelectExpressions().size(),
-        is(analysis.getSelectExpressionAlias().size()));
-
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
     assertThat(analysis.getJoin().get().getLeftJoinField(), is("T1.COL1"));
     assertThat(analysis.getJoin().get().getRightJoinField(), is("T2.COL1"));
 
     final List<String> selects = analysis.getSelectExpressions().stream()
-        .map(ExpressionFormatterUtil::formatExpression)
+        .map(SelectExpression::getExpression)
+        .map(Objects::toString)
         .collect(Collectors.toList());
 
     assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
-    assertThat(analysis.getSelectExpressionAlias(),
-        contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
+
+    final List<String> aliases = analysis.getSelectExpressions().stream()
+        .map(SelectExpression::getName)
+        .collect(Collectors.toList());
+
+    assertThat(aliases, contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 
   @Test
@@ -215,28 +198,14 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
     Assert.assertTrue("FROM was not analyzed correctly.",
         analysis.getFromDataSources().get(0).getDataSource().getName()
                           .equalsIgnoreCase("test1"));
 
-    final String
-        select1 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(0))
-            .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
-    final String
-        select2 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(1))
-            .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    final String
-        select3 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(2))
-            .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
+    final List<SelectExpression> selects = analysis.getSelectExpressions();
+    assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
+    assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
+    assertThat(selects.get(2).getExpression().toString(), is("(TEST1.COL3 > TEST1.COL1)"));
   }
 
   @Test
@@ -244,30 +213,13 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
-    Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName()
-                    .equalsIgnoreCase("test1"));
+    assertThat(analysis.getFromDataSources().get(0).getDataSource().getName(), is("TEST1"));
 
-    final String
-            select1 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(0))
-                    .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
-    final String
-            select2 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(1))
-                    .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    final String
-            select3 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(2))
-                    .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
-    Assert.assertTrue("testFilterAnalysis failed.", analysis.getWhereExpression().toString().equalsIgnoreCase("(TEST1.COL0 > 20)"));
-
+    final List<SelectExpression> selects = analysis.getSelectExpressions();
+    assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
+    assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
+    assertThat(selects.get(2).getExpression().toString(), is("(TEST1.COL3 > TEST1.COL1)"));
+    assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 20)"));
   }
 
   @Test
@@ -280,7 +232,6 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
-    Assert.assertNotNull("INTO is null", analysis.getInto());
     final Optional<Into> into = analysis.getInto();
     assertThat(into, is(not((Optional.empty()))));
     final KsqlTopic createdKsqlTopic = into.get().getKsqlTopic();

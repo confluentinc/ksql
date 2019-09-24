@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
@@ -36,6 +37,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -49,20 +51,18 @@ public class Analysis {
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
-  private Expression whereExpression = null;
-  private final List<Expression> selectExpressions = new ArrayList<>();
-  private final List<String> selectExpressionAlias = new ArrayList<>();
+  private Optional<Expression> whereExpression = Optional.empty();
+  private final List<SelectExpression> selectExpressions = new ArrayList<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
-  private WindowExpression windowExpression = null;
+  private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<String> partitionBy = Optional.empty();
   private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
-  private Expression havingExpression = null;
+  private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
 
   void addSelectItem(final Expression expression, final String alias) {
-    selectExpressions.add(expression);
-    selectExpressionAlias.add(alias);
+    selectExpressions.add(SelectExpression.of(alias, expression));
   }
 
   public Optional<Into> getInto() {
@@ -73,20 +73,16 @@ public class Analysis {
     this.into = Optional.of(into);
   }
 
-  public Expression getWhereExpression() {
+  public Optional<Expression> getWhereExpression() {
     return whereExpression;
   }
 
   void setWhereExpression(final Expression whereExpression) {
-    this.whereExpression = whereExpression;
+    this.whereExpression = Optional.of(whereExpression);
   }
 
-  public List<Expression> getSelectExpressions() {
-    return selectExpressions;
-  }
-
-  public List<String> getSelectExpressionAlias() {
-    return selectExpressionAlias;
+  public List<SelectExpression> getSelectExpressions() {
+    return Collections.unmodifiableList(selectExpressions);
   }
 
   public List<Expression> getGroupByExpressions() {
@@ -97,20 +93,20 @@ public class Analysis {
     groupByExpressions.addAll(expressions);
   }
 
-  public WindowExpression getWindowExpression() {
+  public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
   }
 
   void setWindowExpression(final WindowExpression windowExpression) {
-    this.windowExpression = windowExpression;
+    this.windowExpression = Optional.of(windowExpression);
   }
 
-  Expression getHavingExpression() {
+  Optional<Expression> getHavingExpression() {
     return havingExpression;
   }
 
   void setHavingExpression(final Expression havingExpression) {
-    this.havingExpression = havingExpression;
+    this.havingExpression = Optional.of(havingExpression);
   }
 
   public Optional<String> getPartitionBy() {

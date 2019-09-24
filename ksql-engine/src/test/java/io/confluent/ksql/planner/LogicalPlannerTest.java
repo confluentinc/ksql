@@ -42,6 +42,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class LogicalPlannerTest {
 
   private MetaStore metaStore;
@@ -136,7 +137,7 @@ public class LogicalPlannerTest {
     final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
     assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
     assertThat(aggregateNode.getFunctionCalls().get(0).getName().name(), equalTo("SUM"));
-    assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
+    assertThat(aggregateNode.getWindowExpression().get().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
@@ -158,7 +159,7 @@ public class LogicalPlannerTest {
     final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
     assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
     assertThat(aggregateNode.getFunctionCalls().get(0).getName().name(), equalTo("SUM"));
-    assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
+    assertThat(aggregateNode.getWindowExpression().get().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));

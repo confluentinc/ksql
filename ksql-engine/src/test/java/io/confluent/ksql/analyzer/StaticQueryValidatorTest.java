@@ -97,7 +97,7 @@ public class StaticQueryValidatorTest {
   public void shouldThrowOnStaticQueryThatIsWindowed() {
     // Given:
 
-    when(analysis.getWindowExpression()).thenReturn(windowExpression);
+    when(analysis.getWindowExpression()).thenReturn(Optional.of(windowExpression));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -136,7 +136,7 @@ public class StaticQueryValidatorTest {
   @Test
   public void shouldThrowOnStaticQueryThatHasHavingClause() {
     // Given:
-    when(analysis.getHavingExpression()).thenReturn(AN_EXPRESSION);
+    when(analysis.getHavingExpression()).thenReturn(Optional.of(AN_EXPRESSION));
 
     // Then:
     expectedException.expect(KsqlException.class);

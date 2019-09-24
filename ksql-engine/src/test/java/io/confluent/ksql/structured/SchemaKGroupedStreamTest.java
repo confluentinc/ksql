@@ -218,7 +218,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -243,7 +243,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -268,7 +268,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -292,7 +292,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -325,7 +325,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         funcMap,
-        windowExp,
+        Optional.ofNullable(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -350,7 +350,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         funcMap,
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -383,7 +383,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         Collections.emptyMap(),
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -413,7 +413,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         Collections.emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext);
@@ -436,7 +436,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -462,7 +462,7 @@ public class SchemaKGroupedStreamTest {
         1,
         ImmutableList.of(aggCall),
         functions,
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -493,7 +493,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         Collections.emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -535,7 +535,7 @@ public class SchemaKGroupedStreamTest {
         2,
         ImmutableList.of(aggCall),
         aggColumns,
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext

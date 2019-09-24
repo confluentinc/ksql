@@ -122,31 +122,30 @@ abstract class WithClauseProperties extends AbstractConfig {
 
   public Optional<Character> getValueDelimiter() {
     final String providedValueDelimiter = getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    if (providedValueDelimiter != null) {
-      if (providedValueDelimiter.isEmpty()) {
+    if (providedValueDelimiter == null) {
+      return Optional.empty();
+    }
+    if (providedValueDelimiter.isEmpty()) {
+      throw new KsqlException("Error in WITH clause property '"
+          + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
+          + "': Delimiter cannot be empty or whitespace."
+          + System.lineSeparator()
+          + "For tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
+      );
+    } else if (providedValueDelimiter.length() == 1) {
+      return Optional.of(providedValueDelimiter.charAt(0));
+    } else {
+      final Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
+      if (delim != null) {
+        return Optional.of(delim);
+      } else {
         throw new KsqlException("Error in WITH clause property '"
             + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-            + "': Delimiter cannot be empty or whitespace."
+            + "': Delimiter must be a single character, 'TAB' or 'SPACE'."
             + System.lineSeparator()
-            + "For tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
+            + "Example valid value: ';'"
         );
-      } else if (providedValueDelimiter.length() == 1) {
-        return Optional.of(providedValueDelimiter.charAt(0));
-      } else {
-        final Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
-        if (delim != null) {
-          return Optional.of(delim);
-        } else {
-          throw new KsqlException("Error in WITH clause property '"
-              + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-              + "': Delimiter must be a single character, 'TAB' or 'SPACE'."
-              + System.lineSeparator()
-              + "Example valid value: ';'"
-          );
-        }
       }
-    } else {
-      return Optional.empty();
     }
   }
 
@@ -155,6 +154,5 @@ abstract class WithClauseProperties extends AbstractConfig {
       .put("TAB", '\t')
       .put("SPACE", ' ')
       .build();
-
 
 }

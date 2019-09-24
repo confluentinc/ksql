@@ -300,7 +300,7 @@ public final class StaticQueryExecutor {
         : comparison.getRight();
 
     if (!(other instanceof StringLiteral)) {
-      throw invalidWhereClauseException("ROWKEY must be comparsed to STRING literal.", false);
+      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal.", false);
     }
 
     if (comparison.getType() != Type.EQUAL) {

@@ -29,6 +29,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
@@ -40,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 
 public class Analysis {
 
+  private final ResultMaterialization resultMaterialization;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
@@ -60,6 +61,14 @@ public class Analysis {
   private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
+
+  public Analysis(final ResultMaterialization resultMaterialization) {
+    this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+  }
+
+  ResultMaterialization getResultMaterialization() {
+    return resultMaterialization;
+  }
 
   void addSelectItem(final Expression expression, final String alias) {
     selectExpressions.add(SelectExpression.of(alias, expression));
@@ -177,7 +186,7 @@ public class Analysis {
   }
 
   void setProperties(final CreateSourceAsProperties properties) {
-    withProperties = Objects.requireNonNull(properties, "properties");
+    withProperties = requireNonNull(properties, "properties");
   }
 
   public CreateSourceAsProperties getProperties() {
@@ -232,8 +241,8 @@ public class Analysis {
         final String alias,
         final DataSource<?> dataSource
     ) {
-      this.alias = Objects.requireNonNull(alias, "alias");
-      this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
+      this.alias = requireNonNull(alias, "alias");
+      this.dataSource = requireNonNull(dataSource, "dataSource");
 
       if (alias.trim().isEmpty()) {
         throw new IllegalArgumentException("Alias or name can not be empty: '" + alias + "'");
@@ -264,10 +273,10 @@ public class Analysis {
         final Optional<WithinExpression> withinExpression
 
     ) {
-      this.leftJoinField =  Objects.requireNonNull(leftJoinField, "leftJoinField");
-      this.rightJoinField =  Objects.requireNonNull(rightJoinField, "rightJoinField");
-      this.type = Objects.requireNonNull(type, "type");
-      this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
+      this.leftJoinField =  requireNonNull(leftJoinField, "leftJoinField");
+      this.rightJoinField =  requireNonNull(rightJoinField, "rightJoinField");
+      this.type = requireNonNull(type, "type");
+      this.withinExpression = requireNonNull(withinExpression, "withinExpression");
 
       if (leftJoinField.trim().isEmpty()) {
         throw new IllegalArgumentException("left join field name can not be empty");

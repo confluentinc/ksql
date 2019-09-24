@@ -41,20 +41,6 @@ import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
 
-  static final String NEW_QUERY_SYNTAX_HELP = System.lineSeparator()
-      + "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
-      + System.lineSeparator()
-      + "'Bare queries, e.g. those in the format 'SELECT * FROM X ...' are now, by default, "
-      + "static queries, i.e. they query the current state of the system and return a final "
-      + "result."
-      + System.lineSeparator()
-      + "To turn a static query into a streaming query, as was the default in older versions "
-      + "of KSQL, add `EMIT CHANGES` to the end of the statement, before any limit clause."
-      + System.lineSeparator()
-      + "Persistent queries, e.g. `CREATE STREAM AS ...`, currently have an implicit "
-      + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
-      + "as a this will be required in a future release.";
-
   private final Analyzer analyzer;
   private final MetaStore metaStore;
   private final QueryValidator continuousValidator;
@@ -90,18 +76,12 @@ public class QueryAnalyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    if (query.isStatic()) {
-      staticValidator.preValidate(query, sink);
-    } else {
-      continuousValidator.preValidate(query, sink);
-    }
-
     final Analysis analysis = analyzer.analyze(query, sink);
 
     if (query.isStatic()) {
-      staticValidator.postValidate(analysis);
+      staticValidator.validate(analysis);
     } else {
-      continuousValidator.postValidate(analysis);
+      continuousValidator.validate(analysis);
     }
 
     return analysis;

@@ -15,16 +15,10 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.Sink;
-import java.util.Optional;
-
 /**
  * Validator used by {@link QueryAnalyzer}.
  */
 interface QueryValidator {
 
-  void preValidate(Query query, Optional<Sink> sink);
-
-  void postValidate(Analysis analysis);
+  void validate(Analysis analysis);
 }

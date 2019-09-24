@@ -56,10 +56,6 @@ public class HybridQueryIdGenerator implements QueryIdGenerator {
     activeGenerator.set(newGenerator);
   }
 
-  public void activateLegacyGenerator() {
-    activeGenerator.set(legacyGenerator);
-  }
-
   @Override
   public String getNext() {
     return activeGenerator.get().getNext();

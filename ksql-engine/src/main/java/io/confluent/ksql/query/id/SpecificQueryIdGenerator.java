@@ -21,7 +21,7 @@ import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * Returns a specific query Id identifier based on what's set. Only returns each set Id once and
- * will throw an exception if getNextId() is called twice without update.
+ * will throw an exception if getNext() is called twice without being set.
  */
 @NotThreadSafe
 public class SpecificQueryIdGenerator implements QueryIdGenerator {

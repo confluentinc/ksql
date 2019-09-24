@@ -332,8 +332,6 @@ public class StatementExecutor implements KsqlConfigurable {
 
     if (command.getUseOffsetAsQueryID()) {
       queryIdGenerator.activateNewGenerator(offset);
-    } else {
-      queryIdGenerator.activateLegacyGenerator();
     }
 
     final QueryMetadata queryMetadata = ksqlEngine.execute(configured)

@@ -731,8 +731,9 @@ public class RecoveryTest {
             new QueuedCommand(
                 new CommandId(Type.STREAM, "A", Action.CREATE),
                 new Command(
-                    "CREATE STREAM D AS SELECT * FROM A;",
-                    false,
+                    "CREATE STREAM test(COLUMN STRING) "
+                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                    true,
                     Collections.emptyMap(),
                     null
                 ),
@@ -742,7 +743,7 @@ public class RecoveryTest {
             new QueuedCommand(
                 new CommandId(Type.STREAM, "A", Action.CREATE),
                 new Command(
-                    "CREATE STREAM E AS SELECT * FROM A;",
+                    "CREATE STREAM D AS SELECT * FROM test;",
                     true,
                     Collections.emptyMap(),
                     null
@@ -756,13 +757,9 @@ public class RecoveryTest {
     server.recover();
     final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries()).keySet();
 
-    assertThat(
-        queryIdNames,
-        contains(
-            new QueryId("CSAS_E_4"),
-            new QueryId("CSAS_D_1"),
-            new QueryId("CSAS_C_2"),
-            new QueryId("CSAS_B_0"))
-    );
+    assertThat(queryIdNames, contains(
+        new QueryId("CSAS_C_2"),
+        new QueryId("CSAS_D_4"),
+        new QueryId("CSAS_B_0")));
   }
 }

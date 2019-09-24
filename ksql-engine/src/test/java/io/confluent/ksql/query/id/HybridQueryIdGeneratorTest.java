@@ -63,16 +63,4 @@ public class HybridQueryIdGeneratorTest {
     assertThat(generator.getNext(), is("5"));
     verify(specificQueryIdGenerator, times(1)).setNextId(5L);
   }
-
-  @Test
-  public void shouldSwitchBetweenGenerators() {
-    // Given:
-    when(sequentialQueryIdGenerator.getNext()).thenReturn("3");
-    when(specificQueryIdGenerator.getNext()).thenReturn("5");
-    generator.activateNewGenerator(anyLong());
-    generator.activateLegacyGenerator();
-
-    // Then:
-    assertThat(generator.getNext(), is("3"));
-  }
 }

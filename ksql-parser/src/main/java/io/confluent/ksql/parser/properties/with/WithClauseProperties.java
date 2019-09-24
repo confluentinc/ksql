@@ -132,20 +132,20 @@ abstract class WithClauseProperties extends AbstractConfig {
           + System.lineSeparator()
           + "For tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
       );
-    } else if (providedValueDelimiter.length() == 1) {
+    }
+    if (providedValueDelimiter.length() == 1) {
       return Optional.of(providedValueDelimiter.charAt(0));
     } else {
       final Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
       if (delim != null) {
         return Optional.of(delim);
-      } else {
-        throw new KsqlException("Error in WITH clause property '"
-            + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-            + "': Delimiter must be a single character, 'TAB' or 'SPACE'."
-            + System.lineSeparator()
-            + "Example valid value: ';'"
-        );
       }
+      throw new KsqlException("Error in WITH clause property '"
+          + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
+          + "': Delimiter must be a single character, 'TAB' or 'SPACE'."
+          + System.lineSeparator()
+          + "Example valid value: ';'"
+      );
     }
   }
 

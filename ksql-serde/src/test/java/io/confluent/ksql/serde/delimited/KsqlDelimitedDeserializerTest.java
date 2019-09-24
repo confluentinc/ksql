@@ -59,7 +59,7 @@ public class KsqlDelimitedDeserializerTest {
   private KsqlDelimitedDeserializer deserializer;
 
   @Before
-  public void before() {
+  public void setUp() {
     deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT);
   }
 

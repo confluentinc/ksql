@@ -362,7 +362,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
 |                         | defaults to ','.                                                                           |
-|                         | For space and tab delimited values you mnust use the special values 'SPACE' or 'TAB', not  |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not   |
 |                         | an actual space or tab character.                                                          |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
@@ -477,7 +477,7 @@ The WITH clause supports the following properties:
 +-------------------------+--------------------------------------------------------------------------------------------+
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
 |                         | defaults to ','.                                                                           |
-|                         | For space and tab delimited values you mnust use the special values 'SPACE' or 'TAB', not  |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not   |
 |                         | an actual space or tab character.                                                          |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
@@ -599,7 +599,7 @@ The WITH clause for the result supports the following properties:
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,                     |
 |                         | defaults to ','.                                                                                     |
-|                         | For space and tab delimited values you mnust use the special values 'SPACE' or 'TAB', not            |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not             |
 |                         | an actual space or tab character.                                                                    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
@@ -711,7 +711,7 @@ The WITH clause supports the following properties:
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,                     |
 |                         | defaults to ','.                                                                                     |
-|                         | For space and tab delimited values you mnust use the special values 'SPACE' or 'TAB', not            |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not             |
 |                         | an actual space or tab character.                                                                    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |

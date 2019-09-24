@@ -50,7 +50,7 @@ public class KsqlDelimitedSerializerTest {
   private KsqlDelimitedSerializer serializer;
 
   @Before
-  public void before() {
+  public void setUp() {
     serializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
   }
 
@@ -105,8 +105,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final Serializer<Object> serializer = createSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", 10L);
 
@@ -123,8 +121,6 @@ public class KsqlDelimitedSerializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
-
-    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("11.12"));
@@ -143,8 +139,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = createSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("1.12"));
 
@@ -161,8 +155,6 @@ public class KsqlDelimitedSerializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
-
-    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", BigDecimal.ZERO);
@@ -181,8 +173,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = createSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal(0.5));
 
@@ -200,8 +190,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = createSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal(-0.5));
 
@@ -218,8 +206,6 @@ public class KsqlDelimitedSerializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
-
-    final Serializer<Object> serializer = createSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("-1.12"));
@@ -241,7 +227,7 @@ public class KsqlDelimitedSerializerTest {
     shouldSerializeRowCorrectlyWithNonDefaultDelimeter('|');
   }
 
-  private void shouldSerializeRowCorrectlyWithNonDefaultDelimeter(char delimiter) {
+  private void shouldSerializeRowCorrectlyWithNonDefaultDelimeter(final char delimiter) {
     // Given:
     final Struct data = new Struct(SCHEMA)
         .put("ORDERTIME", 1511897796092L)
@@ -249,7 +235,7 @@ public class KsqlDelimitedSerializerTest {
         .put("ITEMID", "item_1")
         .put("ORDERUNITS", 10.0);
 
-    KsqlDelimitedSerializer serializer =
+    final KsqlDelimitedSerializer serializer =
         new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(delimiter));
 
     // When:
@@ -326,10 +312,6 @@ public class KsqlDelimitedSerializerTest {
 
     // When:
     serializer.serialize("t1", data);
-  }
-
-  private KsqlDelimitedSerializer createSerializer() {
-    return new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
   }
 
 }

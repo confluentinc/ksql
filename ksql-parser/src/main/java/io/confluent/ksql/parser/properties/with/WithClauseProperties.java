@@ -125,14 +125,6 @@ abstract class WithClauseProperties extends AbstractConfig {
     if (providedValueDelimiter == null) {
       return Optional.empty();
     }
-    if (providedValueDelimiter.isEmpty()) {
-      throw new KsqlException("Error in WITH clause property '"
-          + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-          + "': Delimiter cannot be empty or whitespace."
-          + System.lineSeparator()
-          + "For tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
-      );
-    }
     if (providedValueDelimiter.length() == 1) {
       return Optional.of(providedValueDelimiter.charAt(0));
     } else {

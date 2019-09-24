@@ -125,6 +125,7 @@ public final class CommonCreateConfigs {
             VALUE_DELIMITER_PROPERTY,
             ConfigDef.Type.STRING,
             null,
+            new NonEmptyString(),
             Importance.LOW,
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
               + "character to be a delimiter, defaults to ','. For space and tab delimited values "

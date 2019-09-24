@@ -41,7 +41,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter must be a single character, 'TAB' or 'SPACE'.\nExample valid value: ';'"
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter must be a single character or TAB, SPACE\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []

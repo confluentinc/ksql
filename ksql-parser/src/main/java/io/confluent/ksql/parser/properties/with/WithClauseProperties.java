@@ -25,6 +25,7 @@ import io.confluent.ksql.properties.with.ConfigMetaData;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -134,7 +135,7 @@ abstract class WithClauseProperties extends AbstractConfig {
       }
       throw new KsqlException("Error in WITH clause property '"
           + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-          + "': Delimiter must be a single character, 'TAB' or 'SPACE'."
+          + "': Delimiter must be a single character or " + NAMED_DELIMITERS_STRING
           + System.lineSeparator()
           + "Example valid value: ';'"
       );
@@ -146,5 +147,20 @@ abstract class WithClauseProperties extends AbstractConfig {
       .put("TAB", '\t')
       .put("SPACE", ' ')
       .build();
+
+  private static final String NAMED_DELIMITERS_STRING = getNamedDelimitersString();
+
+  private static String getNamedDelimitersString() {
+    final StringBuilder sb = new StringBuilder();
+    final Iterator<String> iter = NAMED_DELIMITERS.keySet().iterator();
+    while (iter.hasNext()) {
+      sb.append(iter.next());
+      if (iter.hasNext()) {
+        sb.append(", ");
+      }
+    }
+    return sb.toString();
+  }
+
 
 }

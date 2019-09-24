@@ -182,7 +182,7 @@ class Analyzer {
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           getValueFormat(sink),
           sink.getProperties().getValueAvroSchemaName(),
-          sink.getProperties().getValueDelimiter()
+          getValueDelimiter(sink)
       ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
@@ -277,6 +277,21 @@ class Analyzer {
               .getKsqlTopic()
               .getValueFormat()
               .getFormat());
+    }
+
+    private Optional<Character> getValueDelimiter(final Sink sink) {
+      if (sink.getProperties().getValueDelimiter().isPresent()) {
+        return sink.getProperties().getValueDelimiter();
+      } else {
+        return analysis
+            .getFromDataSources()
+            .get(0)
+            .getDataSource()
+            .getKsqlTopic()
+            .getValueFormat()
+            .getFormatInfo()
+            .getDelimiter();
+      }
     }
 
 

@@ -17,10 +17,13 @@ package io.confluent.ksql.query.id;
 
 import io.confluent.ksql.util.KsqlServerException;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 /**
  * Returns a specific query Id identifier based on what's set. Only returns each set Id once and
  * will throw an exception if getNextId() is called twice without update.
  */
+@NotThreadSafe
 public class SpecificQueryIdGenerator implements QueryIdGenerator {
 
   private long nextId;
@@ -37,11 +40,6 @@ public class SpecificQueryIdGenerator implements QueryIdGenerator {
   }
 
   @Override
-  public long peekNext() {
-    return alreadyUsed ? nextId + 1 : nextId;
-  }
-
-  @Override
   public String getNext() {
     if (alreadyUsed) {
       throw new KsqlServerException("QueryIdGenerator has not been updated with new offset");
@@ -53,7 +51,6 @@ public class SpecificQueryIdGenerator implements QueryIdGenerator {
 
   @Override
   public QueryIdGenerator createSandbox() {
-    // We don't expect to have this function called for this type of generator
-    throw new UnsupportedOperationException();
+    return new SequentialQueryIdGenerator(nextId + 1);
   }
 }

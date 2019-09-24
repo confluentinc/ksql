@@ -17,6 +17,8 @@ package io.confluent.ksql.query.id;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 /**
  * Contains both a Sequential Query Id Generator and a Specific QueryId Generator
  * Can toggle between the two depending on which one is currently activated
@@ -27,7 +29,7 @@ public class HybridQueryIdGenerator implements QueryIdGenerator {
 
   private final SequentialQueryIdGenerator legacyGenerator;
   private final SpecificQueryIdGenerator newGenerator;
-  private QueryIdGenerator activeGenerator;
+  private AtomicReference<QueryIdGenerator> activeGenerator;
 
   public HybridQueryIdGenerator() {
     this(0L);
@@ -36,7 +38,7 @@ public class HybridQueryIdGenerator implements QueryIdGenerator {
   public HybridQueryIdGenerator(final long initialValue) {
     this.legacyGenerator = new SequentialQueryIdGenerator(initialValue);
     this.newGenerator = new SpecificQueryIdGenerator();
-    this.activeGenerator = this.legacyGenerator;
+    this.activeGenerator = new AtomicReference<>(this.legacyGenerator);
   }
 
   @VisibleForTesting
@@ -46,30 +48,25 @@ public class HybridQueryIdGenerator implements QueryIdGenerator {
   ) {
     this.legacyGenerator = sequentialQueryIdGenerator;
     this.newGenerator = specificQueryIdGenerator;
-    this.activeGenerator = this.legacyGenerator;
+    this.activeGenerator = new AtomicReference<>(this.legacyGenerator);
   }
 
   public void activateNewGenerator(final long nextId) {
     newGenerator.setNextId(nextId);
-    this.activeGenerator = newGenerator;
+    activeGenerator.set(newGenerator);
   }
 
   public void activateLegacyGenerator() {
-    activeGenerator = legacyGenerator;
-  }
-
-  @Override
-  public long peekNext() {
-    return activeGenerator.peekNext();
+    activeGenerator.set(legacyGenerator);
   }
 
   @Override
   public String getNext() {
-    return activeGenerator.getNext();
+    return activeGenerator.get().getNext();
   }
 
   @Override
   public QueryIdGenerator createSandbox() {
-    return new SequentialQueryIdGenerator(activeGenerator.peekNext());
+    return activeGenerator.get().createSandbox();
   }
 }

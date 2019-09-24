@@ -38,13 +38,6 @@ public class SequentialQueryIdGeneratorTest {
   }
 
   @Test
-  public void shouldNotIncrementWhenPeekNext() {
-    assertThat(generator.getNext(), is("0"));
-    assertThat(generator.peekNext(), is(1L));
-    assertThat(generator.getNext(), is("1"));
-  }
-
-  @Test
   public void shouldCopy() {
     // When:
     final QueryIdGenerator copy = generator.createSandbox();

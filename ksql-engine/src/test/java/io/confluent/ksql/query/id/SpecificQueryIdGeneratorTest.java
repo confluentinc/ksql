@@ -16,6 +16,7 @@
 package io.confluent.ksql.query.id;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.util.KsqlServerException;
@@ -39,18 +40,7 @@ public class SpecificQueryIdGeneratorTest {
     assertThat(generator.getNext(), is("5"));
   }
 
-  @Test
-  public void shouldReturnNextIdWhenPeekNext() {
-    generator.setNextId(3L);
-    assertThat(generator.peekNext(), is(3L));
-  }
 
-  @Test
-  public void shouldReturnNextIdIncrementedWhenPeekNextAfterGetNext() {
-    generator.setNextId(3L);
-    generator.getNext();
-    assertThat(generator.peekNext(), is(4L));
-  }
 
   @Test(expected = KsqlServerException.class)
   public void shouldThrowWhenGetNextBeforeSet() {
@@ -59,8 +49,11 @@ public class SpecificQueryIdGeneratorTest {
     generator.getNext();
   }
 
-  @Test(expected = UnsupportedOperationException.class)
-  public void shouldCopy() {
-    generator.createSandbox();
+  @Test
+  public void shouldReturnSequentialGeneratorFromLastId() {
+    generator.setNextId(3L);
+    final QueryIdGenerator copy = generator.createSandbox();
+    assertThat(copy, instanceOf(SequentialQueryIdGenerator.class));
+    assertThat(copy.getNext(), is("4"));
   }
 }

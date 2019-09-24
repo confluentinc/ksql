@@ -16,13 +16,22 @@
 package io.confluent.ksql.query.id;
 
 /**
- * Generator used to provide query ids
+ * Generator used to provide query ids.
  */
 public interface QueryIdGenerator {
 
+  /**
+   * Returns the next query id identifier.
+   *
+   * @return a string query id identifier
+   */
   String getNext();
 
-  long peekNext();
-
+  /**
+   * Create an generator that can be used to create new ids without affecting the state
+   * of the real generator.
+   *
+   * @return a new generator initialized at what the next id would be
+   */
   QueryIdGenerator createSandbox();
 }

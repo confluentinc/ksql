@@ -18,7 +18,7 @@ package io.confluent.ksql.query.id;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * Incrementally returns query Id identifier. The legacy method of generating a query Id
+ * Incrementally returns query Id identifier. The legacy method of generating a query Id.
  */
 public class SequentialQueryIdGenerator implements QueryIdGenerator {
 
@@ -30,11 +30,6 @@ public class SequentialQueryIdGenerator implements QueryIdGenerator {
 
   SequentialQueryIdGenerator(final long initialValue) {
     this.queryIdCounter = new AtomicLong(initialValue);
-  }
-
-  @Override
-  public long peekNext() {
-    return queryIdCounter.get();
   }
 
   @Override

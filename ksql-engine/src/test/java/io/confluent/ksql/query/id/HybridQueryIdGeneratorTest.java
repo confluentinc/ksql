@@ -75,37 +75,4 @@ public class HybridQueryIdGeneratorTest {
     // Then:
     assertThat(generator.getNext(), is("3"));
   }
-
-
-  @Test
-  public void shouldUseActiveGeneratorWhenPeekNext() {
-    // Given:
-    when(sequentialQueryIdGenerator.peekNext()).thenReturn(3L);
-    when(specificQueryIdGenerator.peekNext()).thenReturn(5L);
-
-    // Then:
-    assertThat(generator.peekNext(), is(3L));
-    generator.activateNewGenerator(5L);
-    assertThat(generator.peekNext(), is(5L));
-    generator.activateLegacyGenerator();
-    assertThat(generator.peekNext(), is(3L));
-  }
-
-
-  @Test
-  public void shouldSandboxActiveGenerator() {
-    // Given:
-    when(sequentialQueryIdGenerator.peekNext()).thenReturn(3L);
-    when(specificQueryIdGenerator.peekNext()).thenReturn(5L);
-
-    // Then:
-    final QueryIdGenerator copyGenerator1 = generator.createSandbox();
-    assertThat(copyGenerator1.peekNext(), is(3L));
-
-    generator.activateNewGenerator(anyLong());
-    final QueryIdGenerator copyGenerator12 = generator.createSandbox();
-    assertThat(copyGenerator12.peekNext(), is(5L));
-  }
-
-
 }

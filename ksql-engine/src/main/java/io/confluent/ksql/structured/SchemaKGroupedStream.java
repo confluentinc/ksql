@@ -126,7 +126,7 @@ public class SchemaKGroupedStream {
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
       final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      final WindowExpression windowExpression,
+      final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
       final Serde<GenericRow> topicValueSerDe,
       final QueryContext.Stacker contextStacker
@@ -136,15 +136,16 @@ public class SchemaKGroupedStream {
     final KTable table;
     final KeySerde<?> newKeySerde;
     final KeyFormat keyFormat;
-    if (windowExpression != null) {
-      keyFormat = getKeyFormat(windowExpression);
-      newKeySerde = getKeySerde(windowExpression);
+
+    if (windowExpression.isPresent()) {
+      keyFormat = getKeyFormat(windowExpression.get());
+      newKeySerde = getKeySerde(windowExpression.get());
 
       table = aggregateWindowed(
           initializer,
           nonFuncColumnCount,
           aggValToFunctionMap,
-          windowExpression,
+          windowExpression.get(),
           topicValueSerDe,
           contextStacker
       );

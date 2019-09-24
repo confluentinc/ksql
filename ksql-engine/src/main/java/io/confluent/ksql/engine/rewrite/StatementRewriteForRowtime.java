@@ -13,11 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.rewrite;
+package io.confluent.ksql.engine.rewrite;
 
 import static io.confluent.ksql.util.KsqlConstants.DATE_TIME_PATTERN;
 import static io.confluent.ksql.util.KsqlConstants.TIME_PATTERN;
 
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -25,27 +26,24 @@ import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.ZoneId;
-import java.util.Objects;
 import java.util.Optional;
 
 public class StatementRewriteForRowtime {
-  private final Expression expression;
 
-  public StatementRewriteForRowtime(final Expression expression) {
-    this.expression = Objects.requireNonNull(expression, "expression");
-  }
-
-  public static boolean requiresRewrite(final Expression expression) {
-    return expression.toString().contains("ROWTIME");
-  }
-
-  public Expression rewriteForRowtime() {
+  @SuppressWarnings("MethodMayBeStatic") // Used for DI
+  public Expression rewriteForRowtime(final Expression expression) {
+    if (!requiresRewrite(expression)) {
+      return expression;
+    }
     return new ExpressionTreeRewriter<>(
         new OperatorPlugin()::process).rewrite(expression, null);
+  }
+
+  private static boolean requiresRewrite(final Expression expression) {
+    return expression.toString().contains("ROWTIME");
   }
 
   private static final class OperatorPlugin

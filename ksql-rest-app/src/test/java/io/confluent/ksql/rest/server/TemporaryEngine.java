@@ -53,6 +53,10 @@ public class TemporaryEngine extends ExternalResource {
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn("val", SqlTypes.STRING)
       .valueColumn("val2", SqlTypes.decimal(2, 1))
+      .valueColumn("ADDRESS", SqlTypes.struct()
+          .field("STREET", SqlTypes.STRING)
+          .field("STATE", SqlTypes.STRING)
+          .build())
       .build();
 
   private MutableMetaStore metaStore;

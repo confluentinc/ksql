@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -36,8 +38,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -85,7 +85,7 @@ public class AggregateNode extends PlanNode {
   private final LogicalSchema schema;
   private final KeyField keyField;
   private final List<Expression> groupByExpressions;
-  private final WindowExpression windowExpression;
+  private final Optional<WindowExpression> windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
   private final List<QualifiedNameReference> requiredColumns;
@@ -100,7 +100,7 @@ public class AggregateNode extends PlanNode {
       final LogicalSchema schema,
       final Optional<String> keyFieldName,
       final List<Expression> groupByExpressions,
-      final WindowExpression windowExpression,
+      final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
       final List<FunctionCall> functionList,
       final List<QualifiedNameReference> requiredColumns,
@@ -113,7 +113,7 @@ public class AggregateNode extends PlanNode {
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
     this.groupByExpressions = requireNonNull(groupByExpressions, "groupByExpressions");
-    this.windowExpression = windowExpression;
+    this.windowExpression = requireNonNull(windowExpression, "windowExpression");
     this.aggregateFunctionArguments =
         requireNonNull(aggregateFunctionArguments, "aggregateFunctionArguments");
     this.functionList = requireNonNull(functionList, "functionList");
@@ -149,7 +149,7 @@ public class AggregateNode extends PlanNode {
     return groupByExpressions;
   }
 
-  public WindowExpression getWindowExpression() {
+  public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
   }
 
@@ -278,7 +278,7 @@ public class AggregateNode extends PlanNode {
         requiredColumns.size(),
         functionsWithInternalIdentifiers,
         aggValToFunctionMap,
-        getWindowExpression(),
+        windowExpression,
         valueFormat,
         aggValueGenericRowSerde,
         aggregationContext

@@ -106,6 +106,25 @@ public class ExplainExecutorTest {
   }
 
   @Test
+  public void shouldExplainStatementWithStructFieldDereference() {
+    // Given:
+    engine.givenSource(DataSourceType.KSTREAM, "Y");
+    final String statementText = "SELECT address->street FROM Y EMIT CHANGES;";
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
+
+    // When:
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
+        explain,
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
+    assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
+  }
+
+  @Test
   public void shouldFailOnNonQueryExplain() {
     // Expect:
     expectedException.expect(KsqlException.class);

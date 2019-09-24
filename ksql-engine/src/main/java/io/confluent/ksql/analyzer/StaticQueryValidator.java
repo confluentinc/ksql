@@ -71,7 +71,7 @@ public class StaticQueryValidator implements QueryValidator {
           "Static queries don't support JOIN clauses."
       ),
       Rule.of(
-          analysis -> analysis.getWindowExpression() == null,
+          analysis -> !analysis.getWindowExpression().isPresent(),
           "Static queries don't support WINDOW clauses."
       ),
       Rule.of(
@@ -83,7 +83,7 @@ public class StaticQueryValidator implements QueryValidator {
           "Static queries don't support PARTITION BY clauses."
       ),
       Rule.of(
-          analysis -> analysis.getHavingExpression() == null,
+          analysis -> !analysis.getHavingExpression().isPresent(),
           "Static queries don't support HAVING clauses."
       ),
       Rule.of(

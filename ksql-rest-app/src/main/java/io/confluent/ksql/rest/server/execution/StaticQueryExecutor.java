@@ -59,8 +59,8 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.QueryResultEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntityFactory;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -78,7 +78,6 @@ import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -173,10 +172,10 @@ public final class StaticQueryExecutor {
 
       result = handleSelects(result, statement, executionContext, analysis);
 
-      final QueryResultEntity entity = new QueryResultEntity(
+      final TableRowsEntity entity = new TableRowsEntity(
           statement.getStatementText(),
-          QueryResultEntityFactory.buildSchema(result.schema, mat.windowType()),
-          QueryResultEntityFactory.createRows(result.rows)
+          TableRowsEntityFactory.buildSchema(result.schema, mat.windowType()),
+          TableRowsEntityFactory.createRows(result.rows)
       );
 
       return Optional.of(entity);
@@ -251,10 +250,8 @@ public final class StaticQueryExecutor {
   ) {
     final boolean windowed = query.getResultTopic().getKeyFormat().isWindowed();
 
-    final Expression where = analysis.getWhereExpression();
-    if (where == null) {
-      throw invalidWhereClauseException("Missing WHERE clause", windowed);
-    }
+    final Expression where = analysis.getWhereExpression()
+        .orElseThrow(() -> invalidWhereClauseException("Missing WHERE clause", windowed));
 
     final Map<ComparisonTarget, List<ComparisonExpression>> comparisons = extractComparisons(where);
 
@@ -518,13 +515,10 @@ public final class StaticQueryExecutor {
         executionContext.getMetaStore()
     );
 
-    final List<SelectExpression> selects = new ArrayList<>(selectItems.size());
     for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
-      final Expression exp = analysis.getSelectExpressions().get(idx);
-      final String alias = analysis.getSelectExpressionAlias().get(idx);
-      selects.add(SelectExpression.of(alias, exp));
-      final SqlType type = expressionTypeManager.getExpressionSqlType(exp);
-      schemaBuilder.valueColumn(alias, type);
+      final SelectExpression select = analysis.getSelectExpressions().get(idx);
+      final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
+      schemaBuilder.valueColumn(select.getName(), type);
     }
 
     final LogicalSchema schema = schemaBuilder.build();
@@ -535,7 +529,7 @@ public final class StaticQueryExecutor {
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
     final SelectValueMapper mapper = SelectValueMapperFactory.create(
-        selects,
+        analysis.getSelectExpressions(),
         input.schema.withAlias(sourceName),
         ksqlConfig,
         executionContext.getMetaStore(),

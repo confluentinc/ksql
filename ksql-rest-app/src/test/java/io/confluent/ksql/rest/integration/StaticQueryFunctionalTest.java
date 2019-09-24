@@ -26,7 +26,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.QueryResultEntity;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -197,8 +197,8 @@ public class StaticQueryFunctionalTest {
     assertThat(entities, hasSize(1));
 
     final KsqlEntity entity = entities.get(0);
-    assertThat(entity, instanceOf(QueryResultEntity.class));
-    return ((QueryResultEntity)entity).getRows();
+    assertThat(entity, instanceOf(TableRowsEntity.class));
+    return ((TableRowsEntity)entity).getRows();
   }
 
   private static List<KsqlEntity> makeKsqlRequest(

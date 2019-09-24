@@ -37,7 +37,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Arrays;
 import java.util.Optional;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,10 +50,12 @@ public class ProjectNodeTest {
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
   private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
-  private static final String KEY_FIELD_NAME = "field1";
+  private static final SelectExpression SELECT_0 = SelectExpression.of("col0", TRUE_EXPRESSION);
+  private static final SelectExpression SELECT_1 = SelectExpression.of("col1", FALSE_EXPRESSION);
+  private static final String KEY_FIELD_NAME = "col0";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.STRING)
-      .valueColumn("field2", SqlTypes.STRING)
+      .valueColumn("col0", SqlTypes.STRING)
+      .valueColumn("col1", SqlTypes.STRING)
       .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
       .of("source-key", Column.of("legacy-source-key", SqlTypes.STRING));
@@ -84,7 +85,7 @@ public class ProjectNodeTest {
         source,
         SCHEMA,
         Optional.of(KEY_FIELD_NAME),
-        ImmutableList.of(TRUE_EXPRESSION, FALSE_EXPRESSION));
+        ImmutableList.of(SELECT_0, SELECT_1));
   }
 
   @Test(expected = KsqlException.class)
@@ -93,8 +94,22 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of("field1"),
-        ImmutableList.of(TRUE_EXPRESSION)); // <-- not enough expressions
+        Optional.of("col0"),
+        ImmutableList.of(SELECT_0)); // <-- not enough expressions
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void shouldThrowOnSchemaSelectNameMismatch() {
+    projectNode = new ProjectNode(
+        NODE_ID,
+        source,
+        SCHEMA,
+        Optional.of(KEY_FIELD_NAME),
+        ImmutableList.of(
+            SelectExpression.of("wrongName", TRUE_EXPRESSION),
+            SELECT_1
+        )
+    );
   }
 
   @Test
@@ -113,9 +128,7 @@ public class ProjectNodeTest {
 
     // Then:
     verify(stream).select(
-        eq(Arrays.asList(
-            SelectExpression.of("field1", TRUE_EXPRESSION),
-            SelectExpression.of("field2", FALSE_EXPRESSION))),
+        eq(ImmutableList.of(SELECT_0, SELECT_1)),
         eq(stacker),
         same(ksqlStreamBuilder)
     );
@@ -128,7 +141,7 @@ public class ProjectNodeTest {
         source,
         SCHEMA,
         Optional.of("Unknown Key Field"),
-        ImmutableList.of(TRUE_EXPRESSION, FALSE_EXPRESSION));
+        ImmutableList.of(SELECT_0, SELECT_1));
   }
 
   @Test

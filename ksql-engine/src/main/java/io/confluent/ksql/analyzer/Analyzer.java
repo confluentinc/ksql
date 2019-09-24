@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
@@ -57,7 +58,6 @@ import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -200,8 +200,7 @@ class Analyzer {
     }
 
     private KeyFormat buildKeyFormat() {
-      final Optional<KsqlWindowExpression> ksqlWindow = Optional
-          .ofNullable(analysis.getWindowExpression())
+      final Optional<KsqlWindowExpression> ksqlWindow = analysis.getWindowExpression()
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
@@ -244,22 +243,25 @@ class Analyzer {
      */
     private List<String> getNoneMetaOrKeySelectAliases() {
       final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
-      final List<Expression> selects = analysis.getSelectExpressions();
+      final List<SelectExpression> selects = analysis.getSelectExpressions();
 
-      final List<String> columnNames = new ArrayList<>(analysis.getSelectExpressionAlias());
+      final List<String> columnNames = analysis.getSelectExpressions().stream()
+          .map(SelectExpression::getName)
+          .collect(Collectors.toList());
 
       for (int idx = selects.size() - 1; idx >= 0; --idx) {
-        final Expression select = selects.get(idx);
+        final SelectExpression select = selects.get(idx);
+        final Expression expression = select.getExpression();
 
-        if (!(select instanceof QualifiedNameReference)) {
+        if (!(expression instanceof QualifiedNameReference)) {
           continue;
         }
 
-        if (!sourceSchemas.matchesNonValueField(select.toString())) {
+        if (!sourceSchemas.matchesNonValueField(expression.toString())) {
           continue;
         }
 
-        final String columnName = columnNames.get(idx);
+        final String columnName = select.getName();
         if (columnName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
             || columnName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
           columnNames.remove(idx);
@@ -305,11 +307,11 @@ class Analyzer {
       final ExpressionAnalyzer expressionAnalyzer =
           new ExpressionAnalyzer(analysis.getFromSourceSchemas());
 
-      for (final Expression selectExpression : analysis.getSelectExpressions()) {
-        expressionAnalyzer.analyzeExpression(selectExpression, false);
+      for (final SelectExpression selectExpression : analysis.getSelectExpressions()) {
+        expressionAnalyzer.analyzeExpression(selectExpression.getExpression(), false);
       }
 
-      if (analysis.getWhereExpression() != null) {
+      analysis.getWhereExpression().ifPresent(where -> {
         final boolean allowWindowMetaFields = staticQuery
             && analysis.getFromDataSources().get(0)
             .getDataSource()
@@ -317,16 +319,16 @@ class Analyzer {
             .getKeyFormat()
             .isWindowed();
 
-        expressionAnalyzer.analyzeExpression(analysis.getWhereExpression(), allowWindowMetaFields);
-      }
+        expressionAnalyzer.analyzeExpression(where, allowWindowMetaFields);
+      });
 
       for (final Expression expression : analysis.getGroupByExpressions()) {
         expressionAnalyzer.analyzeExpression(expression, false);
       }
 
-      if (analysis.getHavingExpression() != null) {
-        expressionAnalyzer.analyzeExpression(analysis.getHavingExpression(), false);
-      }
+      analysis.getHavingExpression().ifPresent(having ->
+          expressionAnalyzer.analyzeExpression(having, false)
+      );
     }
 
     @Override

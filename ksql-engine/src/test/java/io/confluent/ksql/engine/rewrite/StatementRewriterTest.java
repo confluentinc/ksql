@@ -1,6 +1,23 @@
-package io.confluent.ksql.parser.rewrite;
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
+package io.confluent.ksql.engine.rewrite;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -17,6 +34,7 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -48,6 +66,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StatementRewriterTest {
+
   @Mock
   private BiFunction<Expression, Object, Expression> expressionRewriter;
   @Mock
@@ -88,7 +107,6 @@ public class StatementRewriterTest {
   private CreateSourceAsProperties csasProperties;
   @Mock
   private ResultMaterialization resultMaterialization;
-  private boolean staticQuery;
 
   private StatementRewriter<Object> rewriter;
 
@@ -139,7 +157,7 @@ public class StatementRewriterTest {
         groupBy,
         having,
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt
     );
   }
@@ -163,7 +181,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -188,7 +206,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -215,7 +233,7 @@ public class StatementRewriterTest {
         Optional.of(rewrittenGroupBy),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -242,7 +260,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.empty(),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -267,7 +285,7 @@ public class StatementRewriterTest {
         Optional.empty(),
         Optional.of(rewrittenExpression),
         resultMaterialization,
-        staticQuery,
+        false,
         optionalInt))
     );
   }
@@ -631,5 +649,34 @@ public class StatementRewriterTest {
             )
         )
     );
+  }
+
+  @Test
+  public void shouldRewriteExplainWithQuery() {
+    // Given:
+    final Explain explain = new Explain(location, Optional.empty(), Optional.of(query));
+    when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(explain, context);
+
+    // Then:
+    assertThat(rewritten, is(new Explain(
+        location,
+        Optional.empty(),
+        Optional.of(rewrittenQuery)
+    )));
+  }
+
+  @Test
+  public void shouldNotRewriteExplainWithId() {
+    // Given:
+    final Explain explain = new Explain(location, Optional.of("id"), Optional.empty());
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(explain, context);
+
+    // Then:
+    assertThat(rewritten, is(sameInstance(explain)));
   }
 }

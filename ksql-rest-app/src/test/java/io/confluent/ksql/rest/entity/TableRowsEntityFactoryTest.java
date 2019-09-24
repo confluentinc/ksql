@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
 
-public class QueryResultEntityFactoryTest {
+public class TableRowsEntityFactoryTest {
 
   private static final LogicalSchema SIMPLE_SCHEMA = LogicalSchema.builder()
       .valueColumn("v0", SqlTypes.BOOLEAN)
@@ -61,7 +61,7 @@ public class QueryResultEntityFactoryTest {
     );
 
     // When:
-    final List<List<?>> output = QueryResultEntityFactory.createRows(input);
+    final List<List<?>> output = TableRowsEntityFactory.createRows(input);
 
     // Then:
     assertThat(output, hasSize(1));
@@ -91,7 +91,7 @@ public class QueryResultEntityFactoryTest {
     );
 
     // When:
-    final List<List<?>> output = QueryResultEntityFactory.createRows(input);
+    final List<List<?>> output = TableRowsEntityFactory.createRows(input);
 
     // Then:
     assertThat(output, hasSize(2));
@@ -102,7 +102,7 @@ public class QueryResultEntityFactoryTest {
   @Test
   public void shouldReturnSameSchemaIfNotWindowed() {
     // When:
-    final LogicalSchema result = QueryResultEntityFactory.buildSchema(SCHEMA, Optional.empty());
+    final LogicalSchema result = TableRowsEntityFactory.buildSchema(SCHEMA, Optional.empty());
 
     // Then:
     assertThat(result, is(sameInstance(SCHEMA)));
@@ -111,7 +111,7 @@ public class QueryResultEntityFactoryTest {
   @Test
   public void shouldAddHoppingWindowFieldsToSchema() {
     // When:
-    final LogicalSchema result = QueryResultEntityFactory
+    final LogicalSchema result = TableRowsEntityFactory
         .buildSchema(SCHEMA, Optional.of(WindowType.HOPPING));
 
     // Then:
@@ -128,7 +128,7 @@ public class QueryResultEntityFactoryTest {
   @Test
   public void shouldAddTumblingWindowFieldsToSchema() {
     // When:
-    final LogicalSchema result = QueryResultEntityFactory
+    final LogicalSchema result = TableRowsEntityFactory
         .buildSchema(SCHEMA, Optional.of(WindowType.TUMBLING));
 
     // Then:
@@ -145,7 +145,7 @@ public class QueryResultEntityFactoryTest {
   @Test
   public void shouldAddSessionWindowFieldsToSchema() {
     // When:
-    final LogicalSchema result = QueryResultEntityFactory
+    final LogicalSchema result = TableRowsEntityFactory
         .buildSchema(SCHEMA, Optional.of(WindowType.SESSION));
 
     // Then:

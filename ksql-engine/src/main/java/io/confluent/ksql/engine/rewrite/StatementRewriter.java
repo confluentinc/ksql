@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.rewrite;
+package io.confluent.ksql.engine.rewrite;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.Type;
@@ -26,6 +26,7 @@ import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.DropTable;
+import io.confluent.ksql.parser.tree.Explain;
 import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -106,6 +107,11 @@ public final class StatementRewriter<C> {
     }
 
     @Override
+    protected AstNode visitNode(final AstNode node, final C context) {
+      return node;
+    }
+
+    @Override
     protected AstNode visitStatements(final Statements node, final C context) {
       final List<Statement> rewrittenStatements = node.getStatements()
           .stream()
@@ -147,6 +153,22 @@ public final class StatementRewriter<C> {
           node.getResultMaterialization(),
           node.isStatic(),
           node.getLimit()
+      );
+    }
+
+    @Override
+    protected AstNode visitExplain(final Explain node, final C context) {
+      if (!node.getStatement().isPresent()) {
+        return node;
+      }
+
+      final Statement original = node.getStatement().get();
+      final Statement rewritten = (Statement) rewriter.apply(original, context);
+
+      return new Explain(
+          node.getLocation(),
+          node.getQueryId(),
+          Optional.of(rewritten)
       );
     }
 

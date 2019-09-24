@@ -236,7 +236,7 @@ public class SchemaKGroupedTableTest {
         0,
         emptyList(),
         emptyMap(),
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -263,7 +263,7 @@ public class SchemaKGroupedTableTest {
           1,
           ImmutableList.of(aggCall1, aggCall2),
           aggValToFunctionMap,
-          null,
+          Optional.empty(),
           valueFormat,
           GenericRowSerDe.from(
               FormatInfo.of(Format.JSON, Optional.empty()),
@@ -323,7 +323,7 @@ public class SchemaKGroupedTableTest {
         0,
         emptyList(),
         Collections.emptyMap(),
-        null,
+        Optional.empty(),
         valueFormat,
         valueSerde,
         queryContext);
@@ -359,7 +359,7 @@ public class SchemaKGroupedTableTest {
         1,
         ImmutableList.of(aggCall1),
         functions,
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -394,7 +394,7 @@ public class SchemaKGroupedTableTest {
         0,
         emptyList(),
         emptyMap(),
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -423,7 +423,7 @@ public class SchemaKGroupedTableTest {
         2,
         ImmutableList.of(aggCall1),
         aggColumns,
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext

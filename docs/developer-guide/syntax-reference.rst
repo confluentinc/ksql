@@ -1662,8 +1662,8 @@ Scalar functions
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------|
 | ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                                | Round a value to the nearest value at the given   |
 |                        |                                                                           | number of decimal places.                         |
-|                        |                                                                           | Numbers equidistant to the nearest value will be  |
-|                        |                                                                           | rounded up (ie in a positive direction).          |
+|                        |                                                                           | Numbers equidistant to the nearest value are      |
+|                        |                                                                           | rounded up (in the positive direction).           |
 |                        |                                                                           | If the number of decimal places is not provided   |
 |                        |                                                                           | it defaults to zero.                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

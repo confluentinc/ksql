@@ -57,8 +57,8 @@ public class Round {
   }
 
   @Udf
-  public Integer round(@UdfParameter final int val) {
-    return val;
+  public Long round(@UdfParameter final int val) {
+    return (long)val;
   }
 
   @Udf

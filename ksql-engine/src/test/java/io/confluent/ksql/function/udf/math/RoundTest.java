@@ -231,7 +231,7 @@ public class RoundTest {
 
   @Test
   public void testRoundInt() {
-    assertThat(udf.round(123), is(123));
+    assertThat(udf.round(123), is(123L));
   }
 
   @Test

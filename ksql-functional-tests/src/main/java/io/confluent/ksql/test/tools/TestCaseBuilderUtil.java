@@ -229,9 +229,11 @@ public final class TestCaseBuilderUtil {
           ? WindowType.SESSION.name()
           : WindowType.TUMBLING.name());
       final KeyFormat windowKeyFormat = KeyFormat.windowed(
-          Format.KAFKA,
-          Optional.empty(),
-          Optional.empty(),
+          FormatInfo.of(
+            Format.KAFKA,
+            Optional.empty(),
+            Optional.empty()
+          ),
           WindowInfo.of(
               windowType,
               windowType == WindowType.SESSION

@@ -40,7 +40,7 @@
         }
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter must be a single character, 'TAB' or 'SPACE'.\nExample valid value: ';'"
       },
       "inputs": [],
@@ -58,8 +58,8 @@
         }
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace.\nFor tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
       },
       "inputs": [],
       "outputs": []
@@ -76,8 +76,8 @@
         }
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace.\nFor tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
       },
       "inputs": [],
       "outputs": []
@@ -94,8 +94,8 @@
         }
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace."
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Error in WITH clause property 'VALUE_DELIMITER': Delimiter cannot be empty or whitespace.\nFor tab or space delimited use 'TAB' or 'SPACE' as the delimeter."
       },
       "inputs": [],
       "outputs": []
@@ -212,7 +212,7 @@
         }
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
+        "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Delimeter only supported with DELIMITED format"
       },
       "inputs": [],

@@ -229,4 +229,14 @@ public class RoundTest {
     assertThat(udf.round((BigDecimal) null, 2), is((BigDecimal) null));
   }
 
+  @Test
+  public void testRoundInt() {
+    assertThat(udf.round(123), is(123));
+  }
+
+  @Test
+  public void testRoundLong() {
+    assertThat(udf.round(123L), is(123L));
+  }
+
 }

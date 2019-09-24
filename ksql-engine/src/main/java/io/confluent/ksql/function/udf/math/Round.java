@@ -51,8 +51,15 @@ public class Round {
       + "If the digit to the right of the last required decimal place is equidistant (i.e. a 5) "
       + "then it is rounded up.";
 
-  private static final MathContext SIMPLE_ROUND_HALF_UP =
-      new MathContext(1, RoundingMode.HALF_UP);
+  @Udf
+  public Long round(@UdfParameter final long val) {
+    return val;
+  }
+
+  @Udf
+  public Integer round(@UdfParameter final int val) {
+    return val;
+  }
 
   @Udf
   public Long round(@UdfParameter final Double val) {

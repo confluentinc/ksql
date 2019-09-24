@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -36,8 +38,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;

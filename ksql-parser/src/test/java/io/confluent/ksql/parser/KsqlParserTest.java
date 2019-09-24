@@ -35,8 +35,8 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
@@ -377,13 +377,9 @@ public class KsqlParserTest {
     assertThat(query.getSelect().getSelectItems().size(), equalTo(2));
     final SingleColumn singleColumn0 = (SingleColumn) query.getSelect().getSelectItems().get(0);
     final SingleColumn singleColumn1 = (SingleColumn) query.getSelect().getSelectItems().get(1);
-    assertThat(singleColumn0.getExpression(), instanceOf(FunctionCall.class));
-    final FunctionCall functionCall0 = (FunctionCall) singleColumn0.getExpression();
-    assertThat(functionCall0.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(FETCH_FIELD_FROM_STRUCT(ORDERS.ITEMINFO, 'CATEGORY'), 'NAME')"));
-
-    final FunctionCall functionCall1 = (FunctionCall) singleColumn1.getExpression();
-    assertThat(functionCall1.toString(), equalTo("FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET')"));
-
+    assertThat(singleColumn0.getExpression(), instanceOf(DereferenceExpression.class));
+    assertThat(singleColumn0.getExpression().toString(), is("ORDERS.ITEMINFO->CATEGORY->NAME"));
+    assertThat(singleColumn1.getExpression().toString(), is("ORDERS.ADDRESS->STREET"));
   }
 
   @Test
@@ -1039,7 +1035,7 @@ public class KsqlParserTest {
     assertThat(statement, instanceOf(CreateStreamAsSelect.class));
     final Query query = ((CreateStreamAsSelect) statement).getQuery();
     assertThat(query.getSelect().getSelectItems().get(0),
-        equalToColumn("FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY')", "ADDRESS__CITY"));
+        equalToColumn("A.ADDRESS->CITY", "ADDRESS__CITY"));
   }
 
   @Test
@@ -1053,7 +1049,7 @@ public class KsqlParserTest {
 
     final SelectItem item = query.getSelect().getSelectItems().get(0);
     assertThat(item, equalToColumn(
-        "FETCH_FIELD_FROM_STRUCT(ADDRESS.ADDRESS, 'CITY')",
+        "ADDRESS.ADDRESS->CITY",
         "ADDRESS__CITY"
     ));
   }

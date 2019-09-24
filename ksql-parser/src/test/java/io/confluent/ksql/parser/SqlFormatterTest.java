@@ -66,7 +66,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -369,7 +368,7 @@ public class SqlFormatterTest {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
     final Statement statement = parseSingle(statementString);
-    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
+    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT A.ADDRESS->CITY \"ADDRESS__CITY\"\n"
         + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 

@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
@@ -59,7 +60,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.parser.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -332,11 +332,9 @@ public class SchemaKStream<K> {
     );
   }
 
-  Expression rewriteTimeComparisonForFilter(final Expression expression) {
-    if (StatementRewriteForRowtime.requiresRewrite(expression)) {
-      return new StatementRewriteForRowtime(expression).rewriteForRowtime();
-    }
-    return expression;
+  static Expression rewriteTimeComparisonForFilter(final Expression expression) {
+    return new StatementRewriteForRowtime()
+        .rewriteForRowtime(expression);
   }
 
   public SchemaKStream<K> select(

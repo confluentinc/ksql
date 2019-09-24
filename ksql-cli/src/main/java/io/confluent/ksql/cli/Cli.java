@@ -231,7 +231,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       return;
     }
 
-    handleStatements(line);
+    handleStatements(trimmedLine);
   }
 
   /**

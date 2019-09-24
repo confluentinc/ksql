@@ -19,6 +19,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.cli.console.CliConfig;
+import io.confluent.ksql.cli.console.CliConfig.OnOff;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,29 +29,34 @@ import java.util.stream.Collectors;
 
 public class TabularRow {
 
+  private static final String CLIPPED = "...";
   private static final int MIN_CELL_WIDTH = 5;
 
   private final int width;
   private final List<String> value;
   private final List<String> header;
   private final boolean isHeader;
+  private final boolean shouldWrap;
 
   public static TabularRow createHeader(final int width, final List<FieldInfo> header) {
     return new TabularRow(
         width,
         header.stream().map(FieldInfo::getName).collect(Collectors.toList()),
-        null);
+        null,
+        true);
   }
 
   public static TabularRow createRow(
       final int width,
       final List<FieldInfo> header,
-      final GenericRow value
+      final GenericRow value,
+      final CliConfig config
   ) {
     return new TabularRow(
         width,
         header.stream().map(FieldInfo::getName).collect(Collectors.toList()),
-        value.getColumns().stream().map(Objects::toString).collect(Collectors.toList())
+        value.getColumns().stream().map(Objects::toString).collect(Collectors.toList()),
+        config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString())
     );
   }
 
@@ -57,12 +64,14 @@ public class TabularRow {
   TabularRow(
       final int width,
       final List<String> header,
-      final List<String> value
+      final List<String> value,
+      final boolean shouldWrap
   ) {
     this.header = Objects.requireNonNull(header, "header");
     this.width = width;
     this.value = value;
     this.isHeader = value == null;
+    this.shouldWrap = shouldWrap;
   }
 
   @Override
@@ -92,7 +101,7 @@ public class TabularRow {
         .map(s -> addUntil(s, createCell("", cellWidth), maxSplit))
         .collect(Collectors.toList());
 
-    formatRow(builder, buffered, maxSplit);
+    formatRow(builder, buffered, shouldWrap ? maxSplit : 1);
 
     if (isHeader) {
       builder.append('\n');
@@ -111,12 +120,30 @@ public class TabularRow {
     for (int row = 0; row < numRows; row++) {
       builder.append('|');
       for (int col = 0; col < columns.size(); col++) {
-        builder.append(columns.get(col).get(row));
+        final String colValue = columns.get(col).get(row);
+        if (shouldClip(columns.get(col), numRows)) {
+          builder.append(colValue, 0, colValue.length() - CLIPPED.length())
+              .append(CLIPPED)
+              .append('|');
+        } else {
+          builder.append(colValue)
+              .append('|');
+        }
       }
       if (row != numRows - 1) {
         builder.append('\n');
       }
     }
+  }
+
+  private static boolean shouldClip(final List<String> parts, final int rowsToPrint) {
+    // clip if there are more than one line and any of the remaining lines are non-empty
+    return parts.size() > rowsToPrint
+        && !parts
+        .subList(rowsToPrint, parts.size())
+        .stream()
+        .map(String::trim)
+        .allMatch(String::isEmpty);
   }
 
   @SuppressWarnings("UnstableApiUsage")
@@ -141,7 +168,7 @@ public class TabularRow {
   }
 
   private static String createCell(final String value, final int width) {
-    final String format = "%-" + width + "s|";
+    final String format = "%-" + width + "s";
     return String.format(format, value);
   }
 

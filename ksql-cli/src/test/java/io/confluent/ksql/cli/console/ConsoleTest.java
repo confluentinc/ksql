@@ -135,6 +135,8 @@ public class ConsoleTest {
     this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
 
     when(cliCommand.getName()).thenReturn(CLI_CMD_NAME);
+    when(cliCommand.matches(any()))
+        .thenAnswer(i -> ((String) i.getArgument(0)).toLowerCase().startsWith(CLI_CMD_NAME.toLowerCase()));
     console.registerCliSpecificCommand(cliCommand);
   }
 
@@ -1386,6 +1388,26 @@ public class ConsoleTest {
 
     // Then:
     assertThat(result, is("not a CLI command;"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliProperty() {
+    // When:
+    console.setCliProperty("FOO", "BAR");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Undefined property: FOO. Valid properties are"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliPropertyValue() {
+    // When:
+    console.setCliProperty(CliConfig.WRAP_CONFIG, "BURRITO");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
   }
 
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {

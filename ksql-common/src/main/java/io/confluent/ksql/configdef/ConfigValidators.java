@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
@@ -30,6 +31,23 @@ import org.apache.kafka.common.config.ConfigException;
 public final class ConfigValidators {
 
   private ConfigValidators() {
+  }
+
+  public static void parses(
+      final String name,
+      final Object val,
+      final Function<String, ?> parser) {
+    try {
+      if (val == null) {
+        return;
+      }
+      if (!(val instanceof String)) {
+        throw new ConfigException(name, val, "Must be String");
+      }
+      parser.apply((String)val);
+    } catch (Exception e) {
+      throw new ConfigException(name, val, e.getMessage());
+    }
   }
 
   public static <T extends Enum<T>> Validator enumValues(final Class<T> enumClass) {

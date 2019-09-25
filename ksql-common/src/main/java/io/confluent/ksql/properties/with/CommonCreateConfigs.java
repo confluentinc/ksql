@@ -16,6 +16,7 @@
 package io.confluent.ksql.properties.with;
 
 import io.confluent.ksql.configdef.ConfigValidators;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -125,7 +126,7 @@ public final class CommonCreateConfigs {
             VALUE_DELIMITER_PROPERTY,
             ConfigDef.Type.STRING,
             null,
-            new NonEmptyString(),
+            (name, val) -> ConfigValidators.parses(name, val, Delimiter::parse),
             Importance.LOW,
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
               + "character to be a delimiter, defaults to ','. For space and tab delimited values "

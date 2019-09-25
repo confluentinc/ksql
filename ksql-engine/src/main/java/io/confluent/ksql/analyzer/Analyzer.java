@@ -49,6 +49,7 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -279,7 +280,7 @@ class Analyzer {
               .getFormat());
     }
 
-    private Optional<Character> getValueDelimiter(final Sink sink) {
+    private Optional<Delimiter> getValueDelimiter(final Sink sink) {
       if (sink.getProperties().getValueDelimiter().isPresent()) {
         return sink.getProperties().getValueDelimiter();
       } else {

@@ -20,15 +20,12 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.ConfigMetaData;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -120,47 +117,5 @@ abstract class WithClauseProperties extends AbstractConfig {
           + String.join(",", onlyInProvided));
     }
   }
-
-  public Optional<Character> getValueDelimiter() {
-    final String providedValueDelimiter = getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    if (providedValueDelimiter == null) {
-      return Optional.empty();
-    }
-    if (providedValueDelimiter.length() == 1) {
-      return Optional.of(providedValueDelimiter.charAt(0));
-    } else {
-      final Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
-      if (delim != null) {
-        return Optional.of(delim);
-      }
-      throw new KsqlException("Error in WITH clause property '"
-          + CommonCreateConfigs.VALUE_DELIMITER_PROPERTY
-          + "': Delimiter must be a single character or " + NAMED_DELIMITERS_STRING
-          + System.lineSeparator()
-          + "Example valid value: ';'"
-      );
-    }
-  }
-
-  private static final Map<String, Character> NAMED_DELIMITERS = ImmutableMap
-      .<String, Character>builder()
-      .put("TAB", '\t')
-      .put("SPACE", ' ')
-      .build();
-
-  private static final String NAMED_DELIMITERS_STRING = getNamedDelimitersString();
-
-  private static String getNamedDelimitersString() {
-    final StringBuilder sb = new StringBuilder();
-    final Iterator<String> iter = NAMED_DELIMITERS.keySet().iterator();
-    while (iter.hasNext()) {
-      sb.append(iter.next());
-      if (iter.hasNext()) {
-        sb.append(", ");
-      }
-    }
-    return sb.toString();
-  }
-
 
 }

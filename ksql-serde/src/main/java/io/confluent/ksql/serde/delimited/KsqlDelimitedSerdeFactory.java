@@ -19,6 +19,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KsqlSerdeFactory;
 import io.confluent.ksql.util.DecimalUtil;
@@ -37,12 +38,12 @@ import org.apache.kafka.connect.data.Schema.Type;
 @Immutable
 public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
 
-  private static final char DEFAULT_DELIMITER = ',';
+  private static final Delimiter DEFAULT_DELIMITER = Delimiter.of(',');
 
   private final CSVFormat csvFormat;
 
-  public KsqlDelimitedSerdeFactory(final Optional<Character> delimiter) {
-    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER));
+  public KsqlDelimitedSerdeFactory(final Optional<Delimiter> delimiter) {
+    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER).delimiter);
   }
 
   @Override

@@ -28,7 +28,7 @@ public final class FormatInfo {
 
   private final Format format;
   private final Optional<String> avroFullSchemaName;
-  private final Optional<Character> delimiter;
+  private final Optional<Delimiter> delimiter;
 
   public static FormatInfo of(final Format format) {
     return FormatInfo.of(format, Optional.empty(), Optional.empty());
@@ -37,14 +37,14 @@ public final class FormatInfo {
   public static FormatInfo of(
       final Format format,
       final Optional<String> avroFullSchemaName,
-      final Optional<Character> valueDelimiter) {
+      final Optional<Delimiter> valueDelimiter) {
     return new FormatInfo(format, avroFullSchemaName, valueDelimiter);
   }
 
   private FormatInfo(
       final Format format,
       final Optional<String> avroFullSchemaName,
-      final Optional<Character> delimiter
+      final Optional<Delimiter> delimiter
   ) {
     this.format = Objects.requireNonNull(format, "format");
     this.avroFullSchemaName = Objects.requireNonNull(avroFullSchemaName, "avroFullSchemaName");
@@ -74,7 +74,7 @@ public final class FormatInfo {
     return avroFullSchemaName;
   }
 
-  public Optional<Character> getDelimiter() {
+  public Optional<Delimiter> getDelimiter() {
     return delimiter;
   }
 

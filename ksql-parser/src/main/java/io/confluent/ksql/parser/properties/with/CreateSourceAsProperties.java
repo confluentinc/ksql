@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
@@ -90,6 +91,11 @@ public final class CreateSourceAsProperties extends WithClauseProperties {
 
   public Optional<Boolean> getWrapSingleValues() {
     return Optional.ofNullable(getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+  }
+
+  public Optional<Delimiter> getValueDelimiter() {
+    final String val = getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
+    return val == null ? Optional.empty() : Optional.of(Delimiter.of(val));
   }
 
   public CreateSourceAsProperties withTopic(

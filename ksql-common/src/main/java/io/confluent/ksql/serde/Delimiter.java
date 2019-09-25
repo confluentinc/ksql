@@ -20,9 +20,19 @@ import com.google.errorprone.annotations.Immutable;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 @Immutable
 public final class Delimiter {
+
+  private static final Map<String, Character> NAMED_DELIMITERS = ImmutableMap
+      .<String, Character>builder()
+      .put("TAB", '\t')
+      .put("SPACE", ' ')
+      .build();
+
+  private static final String NAMED_DELIMITERS_STRING =
+      StringUtils.join(NAMED_DELIMITERS, ",");
 
   private final char delimiter;
 
@@ -59,26 +69,6 @@ public final class Delimiter {
         + System.lineSeparator()
         + "Example valid value: ';'"
     );
-  }
-
-  private static final Map<String, Character> NAMED_DELIMITERS = ImmutableMap
-      .<String, Character>builder()
-      .put("TAB", '\t')
-      .put("SPACE", ' ')
-      .build();
-
-  private static final String NAMED_DELIMITERS_STRING = getNamedDelimitersString();
-
-  private static String getNamedDelimitersString() {
-    final StringBuilder sb = new StringBuilder();
-    final Iterator<String> iter = NAMED_DELIMITERS.keySet().iterator();
-    while (iter.hasNext()) {
-      sb.append(iter.next());
-      if (iter.hasNext()) {
-        sb.append(", ");
-      }
-    }
-    return sb.toString();
   }
 
   @Override

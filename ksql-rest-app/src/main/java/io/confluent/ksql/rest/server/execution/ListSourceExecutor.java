@@ -154,7 +154,7 @@ public final class ListSourceExecutor {
   ) {
     return executionContext.getMetaStore().getAllDataSources().values().stream()
         .filter(KsqlTable.class::isInstance)
-        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+        .filter(structuredDataSource -> !structuredDataSource.getName().equals(
             KsqlRestApplication.getCommandsStreamName()))
         .map(table -> (KsqlTable<?>) table)
         .collect(Collectors.toList());
@@ -165,7 +165,7 @@ public final class ListSourceExecutor {
   ) {
     return executionContext.getMetaStore().getAllDataSources().values().stream()
         .filter(KsqlStream.class::isInstance)
-        .filter(structuredDataSource -> !structuredDataSource.getName().equalsIgnoreCase(
+        .filter(structuredDataSource -> !structuredDataSource.getName().equals(
             KsqlRestApplication.getCommandsStreamName()))
         .map(table -> (KsqlStream<?>) table)
         .collect(Collectors.toList());

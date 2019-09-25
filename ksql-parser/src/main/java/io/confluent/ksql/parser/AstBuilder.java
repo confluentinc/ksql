@@ -1037,14 +1037,14 @@ public class AstBuilder {
 
     private boolean isValidNameOrAlias(final SourceName name) {
       if (dataSourceExtractor.isJoin()) {
-        final boolean sameAsLeft = name.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
-            || name.equalsIgnoreCase(dataSourceExtractor.getLeftName());
-        final boolean sameAsRight = name.equalsIgnoreCase(dataSourceExtractor.getRightAlias())
-            || name.equalsIgnoreCase(dataSourceExtractor.getRightName());
+        final boolean sameAsLeft = name.equals(dataSourceExtractor.getLeftAlias())
+            || name.equals(dataSourceExtractor.getLeftName());
+        final boolean sameAsRight = name.equals(dataSourceExtractor.getRightAlias())
+            || name.equals(dataSourceExtractor.getRightName());
         return sameAsLeft || sameAsRight;
       }
-      return ((name.equalsIgnoreCase(dataSourceExtractor.getFromAlias())
-          || name.equalsIgnoreCase(dataSourceExtractor.getFromName())));
+      return ((name.equals(dataSourceExtractor.getFromAlias())
+          || name.equals(dataSourceExtractor.getFromName())));
     }
 
     @Override

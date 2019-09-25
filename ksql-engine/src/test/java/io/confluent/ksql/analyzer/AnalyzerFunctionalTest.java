@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -134,9 +135,9 @@ public class AnalyzerFunctionalTest {
   public void testSimpleQueryAnalysis() {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
-    Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName()
-                          .equalsIgnoreCase(SourceName.of("test1")));
+    assertEquals("FROM was not analyzed correctly.",
+        analysis.getFromDataSources().get(0).getDataSource().getName(),
+        SourceName.of("TEST1"));
     assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 100)"));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
@@ -201,9 +202,8 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName()
-                          .equalsIgnoreCase(SourceName.of("test1")));
+    assertEquals("FROM was not analyzed correctly.",
+        analysis.getFromDataSources().get(0).getDataSource().getName(), SourceName.of("TEST1"));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
     assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));

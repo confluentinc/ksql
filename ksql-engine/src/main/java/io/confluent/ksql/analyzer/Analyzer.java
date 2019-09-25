@@ -266,8 +266,8 @@ class Analyzer {
         }
 
         final ColumnName columnName = select.getName();
-        if (columnName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
-            || columnName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
+        if (columnName.equals(SchemaUtil.ROWTIME_NAME)
+            || columnName.equals(SchemaUtil.ROWKEY_NAME)) {
           columnNames.remove(idx);
         }
       }
@@ -457,7 +457,7 @@ class Analyzer {
         final SourceName sourceAlias
     ) {
       if (nameRef.getReference().qualifier().isPresent()
-          && !nameRef.getReference().qualifier().get().equalsIgnoreCase(sourceAlias)) {
+          && !nameRef.getReference().qualifier().get().equals(sourceAlias)) {
         return Optional.empty();
       }
 

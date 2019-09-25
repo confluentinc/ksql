@@ -478,7 +478,7 @@ public class PhysicalPlanBuilder {
 
     if (sinkKeyCol.isPresent()
         && resultKeyCol.isPresent()
-        && sinkKeyCol.get().name().equalsIgnoreCase(resultKeyCol.get().name())
+        && sinkKeyCol.get().name().equals(resultKeyCol.get().name())
         && Objects.equals(sinkKeyCol.get().type(), resultKeyCol.get().type())) {
       return;
     }

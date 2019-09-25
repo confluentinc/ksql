@@ -17,9 +17,7 @@ package io.confluent.ksql.properties.with;
 
 import static io.confluent.ksql.configdef.ConfigValidators.enumValues;
 
-import io.confluent.ksql.configdef.ConfigValidators;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.parser.DurationParser;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
 import org.apache.kafka.common.config.ConfigDef.Type;
@@ -56,7 +54,6 @@ public final class CreateConfigs {
           WINDOW_SIZE_PROPERTY,
           Type.STRING,
           null,
-          ConfigValidators.nullsAllowed(ConfigValidators.parses(DurationParser::parse)),
           Importance.LOW,
           "If the data is windowed, i.e., was created using KSQL via a query that "
               + "contains a ``WINDOW`` clause and the window is a HOPPING or TUMBLING window, "

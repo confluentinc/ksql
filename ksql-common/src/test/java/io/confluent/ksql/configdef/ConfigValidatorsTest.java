@@ -15,28 +15,16 @@
 
 package io.confluent.ksql.configdef;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.function.Function;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
 public class ConfigValidatorsTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-
-  @Mock
-  private Function<String, ?> parser;
 
   @Test
   public void shouldFailIfValueNotInEnum() {
@@ -132,54 +120,6 @@ public class ConfigValidatorsTest {
 
     // When:
     validator.ensureValid("propName", null);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnNonStringFromParse() {
-    // Given:
-    final Validator validator = ConfigValidators.parses(parser);
-
-    // When:
-    validator.ensureValid("propName", 10);
-  }
-
-  @Test
-  public void shouldPassNullsToParser() {
-    // Given:
-    final Validator validator = ConfigValidators.parses(parser);
-
-    // When:
-    validator.ensureValid("propName", null);
-
-    // Then:
-    verify(parser).apply(null);
-  }
-
-  @Test
-  public void shouldPassStringsToParser() {
-    // Given:
-    final Validator validator = ConfigValidators.parses(parser);
-
-    // When:
-    validator.ensureValid("propName", "value");
-
-    // Then:
-    verify(parser).apply("value");
-  }
-
-  @Test
-  public void shouldThrowIfParserThrows() {
-    // Given:
-    final Validator validator = ConfigValidators.parses(parser);
-    when(parser.apply(any())).thenThrow(new IllegalArgumentException("some error"));
-
-    // Then:
-    expectedException.expect(ConfigException.class);
-    expectedException
-        .expectMessage("Invalid value value for configuration propName: Invalid value: some error");
-
-    // When:
-    validator.ensureValid("propName", "value");
   }
 
   private enum TestEnum {

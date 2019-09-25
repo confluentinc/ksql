@@ -339,7 +339,6 @@ public class StreamedQueryResourceTest {
             limitHandler -> {},
             "",
             rowQueue,
-            DataSourceType.KSTREAM,
             "",
             mock(Topology.class),
             Collections.emptyMap(),

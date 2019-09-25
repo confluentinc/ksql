@@ -218,6 +218,75 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldThrowOnInsertIntoStreamWithTableResult() {
+    KsqlEngineTestUtil.execute(
+        ksqlEngine, "create stream bar as select itemid, orderid from orders;", KSQL_CONFIG,
+        Collections.emptyMap());
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "Incompatible data sink and query result. "
+            + "Data sink (BAR) type is KSTREAM but select query result is KTABLE.")));
+    expectedException.expect(statementText(
+        is("insert into bar select itemid, count(*) from orders group by itemid;")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        "insert into bar select itemid, count(*) from orders group by itemid;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+  }
+
+  @Test
+  public void shouldThrowOnInsertIntoWithKeyMismatch() {
+    KsqlEngineTestUtil.execute(
+        ksqlEngine, "create stream bar as select * from orders;", KSQL_CONFIG,
+        Collections.emptyMap());
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "Incompatible key fields for sink and results. "
+            + "Sink key field is ORDERTIME (type: BIGINT) "
+            + "while result key field is ITEMID (type: STRING)")));
+    expectedException.expect(statementText(
+        is("insert into bar select * from orders partition by itemid;")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        "insert into bar select * from orders partition by itemid;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+  }
+
+  @Test
+  public void shouldThrowWhenInsertIntoSchemaDoesNotMatch() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        ksqlEngine, "create stream bar as select * from orders;", KSQL_CONFIG,
+        Collections.emptyMap());
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "Incompatible schema between results and sink.")));
+    expectedException.expect(statementText(is("insert into bar select itemid from orders;")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        ksqlEngine,
+        "insert into bar select itemid from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+  }
+
+  @Test
   public void shouldExecuteInsertIntoStream() {
     // Given:
     KsqlEngineTestUtil.execute(
@@ -540,6 +609,24 @@ public class KsqlEngineTest {
 
     // Then:
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
+  }
+
+  @Test
+  public void shouldSetKsqlSinkForSinks() {
+    // When:
+    KsqlEngineTestUtil.execute(ksqlEngine,
+        "create stream s as select * from orders;"
+            + "create table t as select itemid, count(*) from orders group by itemid;",
+        KSQL_CONFIG, Collections.emptyMap());
+
+    // Then:
+    assertThat(metaStore.getSource(SourceName.of("S")).getKsqlTopic().isKsqlSink(), is(true));
+    assertThat(metaStore.getSource(SourceName.of("T")).getKsqlTopic().isKsqlSink(), is(true));
+  }
+
+  @Test
+  public void shouldThrowIfLeftTableNotJoiningOnTableKey() {
+
   }
 
   @SuppressWarnings("unchecked")

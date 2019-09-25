@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.query;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.util.KsqlException;
@@ -28,10 +28,8 @@ import org.apache.kafka.streams.kstream.Windowed;
 
 /**
  * A queue of rows for transient queries.
- *
- * @param <K> the key type.
  */
-class TransientQueryQueue<K> {
+class TransientQueryQueue {
 
   private final LimitQueueCallback callback;
   private final BlockingQueue<KeyValue<String, GenericRow>> rowQueue =

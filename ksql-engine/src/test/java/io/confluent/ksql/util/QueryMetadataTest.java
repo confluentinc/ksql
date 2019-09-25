@@ -68,7 +68,6 @@ public class QueryMetadataTest {
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",
-        DataSourceType.KSTREAM,
         QUERY_APPLICATION_ID,
         topoplogy,
         Collections.emptyMap(),

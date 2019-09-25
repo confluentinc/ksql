@@ -13,23 +13,16 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.query;
 
-/**
- * A {@code LimitQueueCallback} that does not apply a limit.
- */
-public class UnlimitedQueueCallback implements LimitQueueCallback {
+public interface LimitQueueCallback extends QueueCallback {
 
-  @Override
-  public void setLimitHandler(final LimitHandler limitHandler) {
-  }
-
-  @Override
-  public boolean shouldQueue() {
-    return true;
-  }
-
-  @Override
-  public void onQueued() {
-  }
+  /**
+   * Sets the limit handler that will be called when the limit is reached.
+   *
+   * <p>Replaces any previous handler.
+   *
+   * @param limitHandler the handler.
+   */
+  void setLimitHandler(LimitHandler limitHandler);
 }

@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.query;
 
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;

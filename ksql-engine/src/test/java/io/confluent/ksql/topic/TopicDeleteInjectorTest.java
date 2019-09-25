@@ -213,7 +213,7 @@ public class TopicDeleteInjectorTest {
     expectedException.expect(RuntimeException.class);
     expectedException.expectMessage(
         "Refusing to delete topic. "
-            + "Found other data sources (OTHER2, OTHER1) using topic something");
+            + "Found other data sources (OTHER1, OTHER2) using topic something");
 
     // When:
     deleteInjector.inject(dropStatement);

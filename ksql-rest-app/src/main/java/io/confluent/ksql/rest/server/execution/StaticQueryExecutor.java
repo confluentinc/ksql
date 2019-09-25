@@ -50,7 +50,6 @@ import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;

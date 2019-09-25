@@ -143,6 +143,7 @@ public class TopicDeleteInjector implements Injector {
         .map(DataSource::getName)
         .filter(name -> !sourceName.equals(name))
         .map(SourceName::name)
+        .sorted()
         .collect(Collectors.joining(", "));
     if (!using.isEmpty()) {
       throw new RuntimeException(

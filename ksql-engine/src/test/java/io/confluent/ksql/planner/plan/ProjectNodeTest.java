@@ -55,8 +55,8 @@ public class ProjectNodeTest {
   private static final SelectExpression SELECT_1 = SelectExpression.of(ColumnName.of("col1"), FALSE_EXPRESSION);
   private static final String KEY_FIELD_NAME = "col0";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
       .of(ColumnName.of("source-key"), Column.of(ColumnName.of("legacy-source-key"), SqlTypes.STRING));
@@ -151,7 +151,7 @@ public class ProjectNodeTest {
     final KeyField keyField = projectNode.getKeyField();
 
     // Then:
-    assertThat(keyField.name(), is(Optional.of(KEY_FIELD_NAME)));
+    assertThat(keyField.name(), is(Optional.of(ColumnName.of(KEY_FIELD_NAME))));
     assertThat(keyField.legacy(), is(SOURCE_KEY_FIELD.legacy()));
   }
 }

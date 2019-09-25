@@ -144,9 +144,9 @@ public class AnalyzerFunctionalTest {
     assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
     assertThat(selects.get(2).getExpression().toString(), is("TEST1.COL3"));
 
-    assertThat(selects.get(0).getName(), is("COL0"));
-    assertThat(selects.get(1).getName(), is("COL2"));
-    assertThat(selects.get(2).getName(), is("COL3"));
+    assertThat(selects.get(0).getName(), is(ColumnName.of("COL0")));
+    assertThat(selects.get(1).getName(), is(ColumnName.of("COL2")));
+    assertThat(selects.get(2).getName(), is(ColumnName.of("COL3")));
   }
 
   @Test
@@ -216,7 +216,7 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    assertThat(analysis.getFromDataSources().get(0).getDataSource().getName(), is("TEST1"));
+    assertThat(analysis.getFromDataSources().get(0).getDataSource().getName(), is(SourceName.of("TEST1")));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
     assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));

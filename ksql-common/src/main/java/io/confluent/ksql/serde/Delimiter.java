@@ -17,7 +17,6 @@ package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
@@ -32,7 +31,7 @@ public final class Delimiter {
       .build();
 
   private static final String NAMED_DELIMITERS_STRING =
-      StringUtils.join(NAMED_DELIMITERS, ",");
+      StringUtils.join(NAMED_DELIMITERS.keySet(), ",");
 
   private final char delimiter;
 
@@ -64,7 +63,8 @@ public final class Delimiter {
       return new Delimiter(delim);
     }
     throw new IllegalArgumentException(
-        "Delimiter must be a single character or "
+        "Invalid delimiter value: '" + str
+        + "'. Delimiter must be a single character or "
         + NAMED_DELIMITERS_STRING
         + System.lineSeparator()
         + "Example valid value: ';'"

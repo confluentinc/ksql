@@ -49,7 +49,7 @@ public final class ConfigValidators {
         }
         parser.apply((String)val);
       } catch (Exception e) {
-        throw new ConfigException(name, val, e.getMessage());
+        throw new ConfigException("Configuration " + name + " is invalid: " + e.getMessage());
       }
     };
   }

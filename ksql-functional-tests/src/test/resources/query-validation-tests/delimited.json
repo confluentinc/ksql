@@ -29,7 +29,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value <~> for property VALUE_DELIMITER: Delimiter must be a single character or TAB, SPACE\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Configuration VALUE_DELIMITER is invalid: Invalid delimiter value: '<~>'. Delimiter must be a single character or TAB,SPACE\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []
@@ -47,7 +47,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Configuration VALUE_DELIMITER is invalid: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []
@@ -59,7 +59,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Configuration VALUE_DELIMITER is invalid: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []
@@ -71,7 +71,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Configuration VALUE_DELIMITER is invalid: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []

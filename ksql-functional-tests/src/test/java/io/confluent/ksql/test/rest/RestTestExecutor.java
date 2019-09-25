@@ -29,6 +29,7 @@ import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.Record;
@@ -212,9 +213,13 @@ public class RestTestExecutor implements Closeable {
     if (resp.isErroneous()) {
       final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
       if (!expectedError.isPresent()) {
+        final String statement = resp.getErrorMessage() instanceof KsqlStatementErrorMessage
+            ? ((KsqlStatementErrorMessage)resp.getErrorMessage()).getStatementText()
+            : "";
+
         throw new AssertionError(
             "Server failed to execute statement" + System.lineSeparator()
-                + "statement: " + System.lineSeparator()
+                + "statement: " + statement + System.lineSeparator()
                 + "reason: " + resp.getErrorMessage()
         );
       }

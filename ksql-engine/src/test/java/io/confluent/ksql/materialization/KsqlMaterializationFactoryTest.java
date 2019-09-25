@@ -18,6 +18,7 @@ package io.confluent.ksql.materialization;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -25,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
@@ -33,18 +35,21 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.materialization.KsqlMaterializationFactory.AggregateMapperFactory;
 import io.confluent.ksql.materialization.KsqlMaterializationFactory.MaterializationFactory;
+import io.confluent.ksql.materialization.KsqlMaterializationFactory.SelectMapperFactory;
 import io.confluent.ksql.materialization.KsqlMaterializationFactory.SqlPredicateFactory;
-import io.confluent.ksql.materialization.KsqlMaterializationFactory.ValueMapperFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
@@ -73,6 +78,11 @@ public class KsqlMaterializationFactoryTest {
   private static final List<SelectExpression> SELECTS = ImmutableList.of(
       mock(SelectExpression.class)
   );
+  private static final int NONE_AGG_COLUMN_COUNT = 2;
+  private static final Map<Integer, KsqlAggregateFunction> AGG_FUNCTIONS = ImmutableMap.of(
+      2, mock(KsqlAggregateFunction.class),
+      3, mock(KsqlAggregateFunction.class)
+  );
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -93,13 +103,17 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
-  private ValueMapperFactory valueMapperFactory;
+  private AggregateMapperFactory aggregateMapperFactory;
+  @Mock
+  private SelectMapperFactory selectMapperFactory;
   @Mock
   private SqlPredicate havingSqlPredicate;
   @Mock
+  private Function<GenericRow, GenericRow> aggregateMapper;
+  @Mock
   private Predicate<Struct, GenericRow> havingPredicate;
   @Mock
-  private Function<GenericRow, GenericRow> valueMapper;
+  private Function<GenericRow, GenericRow> selectMapper;
   @Mock
   private MaterializationFactory materializationFactory;
 
@@ -114,8 +128,9 @@ public class KsqlMaterializationFactoryTest {
         ksqlConfig,
         functionRegistry,
         processingLogContext,
+        aggregateMapperFactory,
         sqlPredicateFactory,
-        valueMapperFactory,
+        selectMapperFactory,
         materializationFactory
     );
 
@@ -123,13 +138,16 @@ public class KsqlMaterializationFactoryTest {
     when(processingLoggerFactory.getLogger("start.filter")).thenReturn(filterProcessingLogger);
     when(processingLoggerFactory.getLogger("start.project")).thenReturn(projectProcessingLogger);
 
+    when(info.nonAddFuncColumnCount()).thenReturn(NONE_AGG_COLUMN_COUNT);
+    when(info.aggregateFunctionsByIndex()).thenReturn(AGG_FUNCTIONS);
     when(info.aggregationSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(info.tableSchema()).thenReturn(TABLE_SCHEMA);
 
+    when(aggregateMapperFactory.create(anyInt(), any())).thenReturn(aggregateMapper);
     when(havingSqlPredicate.getPredicate()).thenReturn((Predicate) havingPredicate);
     when(sqlPredicateFactory.create(any(), any(), any(), any(), any()))
         .thenReturn(havingSqlPredicate);
-    when(valueMapperFactory.create(any(), any(), any(), any(), any())).thenReturn(valueMapper);
+    when(selectMapperFactory.create(any(), any(), any(), any(), any())).thenReturn(selectMapper);
 
     when(info.havingExpression()).thenReturn(Optional.of(HAVING_EXP));
   }
@@ -189,6 +207,21 @@ public class KsqlMaterializationFactoryTest {
   }
 
   @Test
+  public void shouldBuildSelectAggregateMapperWithCorrectParameters() {
+    // Given:
+    when(info.tableSelects()).thenReturn(SELECTS);
+
+    // When:
+    factory.create(materialization, info, contextStacker);
+
+    // Then:
+    verify(aggregateMapperFactory).create(
+        NONE_AGG_COLUMN_COUNT,
+        AGG_FUNCTIONS
+    );
+  }
+
+  @Test
   public void shouldBuildSelectValueMapperWithCorrectParameters() {
     // Given:
     when(info.tableSelects()).thenReturn(SELECTS);
@@ -197,7 +230,7 @@ public class KsqlMaterializationFactoryTest {
     factory.create(materialization, info, contextStacker);
 
     // Then:
-    verify(valueMapperFactory).create(
+    verify(selectMapperFactory).create(
         SELECTS,
         AGGREGATE_SCHEMA,
         ksqlConfig,
@@ -214,8 +247,9 @@ public class KsqlMaterializationFactoryTest {
     // Then:
     verify(materializationFactory).create(
         eq(materialization),
+        eq(aggregateMapper),
         eq(havingPredicate),
-        any(),
+        eq(selectMapper),
         eq(TABLE_SCHEMA)
     );
   }
@@ -224,7 +258,8 @@ public class KsqlMaterializationFactoryTest {
   public void shouldReturnMaterialization() {
     // Given:
     final KsqlMaterialization ksqlMaterialization = mock(KsqlMaterialization.class);
-    when(materializationFactory.create(any(), any(), any(), any())).thenReturn(ksqlMaterialization);
+    when(materializationFactory.create(any(), any(), any(), any(), any()))
+        .thenReturn(ksqlMaterialization);
 
     // When:
     final Materialization result = factory

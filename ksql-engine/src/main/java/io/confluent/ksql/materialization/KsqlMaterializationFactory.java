@@ -27,11 +27,14 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Predicate;
@@ -47,8 +50,9 @@ public final class KsqlMaterializationFactory {
   private final KsqlConfig ksqlConfig;
   private final FunctionRegistry functionRegistry;
   private final ProcessingLogContext processingLogContext;
+  private final AggregateMapperFactory aggregateMapperFactory;
   private final SqlPredicateFactory sqlPredicateFactory;
-  private final ValueMapperFactory valueMapperFactory;
+  private final SelectMapperFactory selectMapperFactory;
   private final MaterializationFactory materializationFactory;
 
   public KsqlMaterializationFactory(
@@ -60,6 +64,7 @@ public final class KsqlMaterializationFactory {
         ksqlConfig,
         functionRegistry,
         processingLogContext,
+        defaultAggregateMapperFactory(),
         SqlPredicate::new,
         defaultValueMapperFactory(),
         KsqlMaterialization::new
@@ -71,15 +76,17 @@ public final class KsqlMaterializationFactory {
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
       final ProcessingLogContext processingLogContext,
+      final AggregateMapperFactory aggregateMapperFactory,
       final SqlPredicateFactory sqlPredicateFactory,
-      final ValueMapperFactory valueMapperFactory,
+      final SelectMapperFactory selectMapperFactory,
       final MaterializationFactory materializationFactory
   ) {
     this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
+    this.aggregateMapperFactory = requireNonNull(aggregateMapperFactory, "aggregateMapperFactory");
     this.sqlPredicateFactory = requireNonNull(sqlPredicateFactory, "sqlPredicateFactory");
-    this.valueMapperFactory = requireNonNull(valueMapperFactory, "valueMapperFactory");
+    this.selectMapperFactory = requireNonNull(selectMapperFactory, "selectMapperFactory");
     this.materializationFactory = requireNonNull(materializationFactory, "materializationFactory");
   }
 
@@ -88,6 +95,9 @@ public final class KsqlMaterializationFactory {
       final MaterializationInfo info,
       final QueryContext.Stacker contextStacker
   ) {
+    final Function<GenericRow, GenericRow> aggregateMapper =
+        bakeAggregateMapper(info);
+
     final Predicate<Struct, GenericRow> havingPredicate =
         bakeHavingExpression(info, contextStacker);
 
@@ -96,9 +106,19 @@ public final class KsqlMaterializationFactory {
 
     return materializationFactory.create(
         delegate,
+        aggregateMapper,
         havingPredicate,
         valueMapper,
         info.tableSchema()
+    );
+  }
+
+  private Function<GenericRow, GenericRow> bakeAggregateMapper(
+      final MaterializationInfo info
+  ) {
+    return aggregateMapperFactory.create(
+        info.nonAddFuncColumnCount(),
+        info.aggregateFunctionsByIndex()
     );
   }
 
@@ -135,7 +155,7 @@ public final class KsqlMaterializationFactory {
         QueryLoggerUtil.queryLoggerName(contextStacker.push(PROJECT_OP_NAME).getQueryContext())
     );
 
-    return valueMapperFactory.create(
+    return selectMapperFactory.create(
         info.tableSelects(),
         info.aggregationSchema(),
         ksqlConfig,
@@ -144,7 +164,13 @@ public final class KsqlMaterializationFactory {
     );
   }
 
-  private static ValueMapperFactory defaultValueMapperFactory() {
+  private static AggregateMapperFactory defaultAggregateMapperFactory() {
+    return (nonAggregateColumnCount, aggregateFunctionsByIndex) ->
+        new KudafAggregator(nonAggregateColumnCount, aggregateFunctionsByIndex)
+            .getResultMapper()::apply;
+  }
+
+  private static SelectMapperFactory defaultValueMapperFactory() {
     return (selectExpressions, sourceSchema, ksqlConfig, functionRegistry, processingLogger) ->
         SelectValueMapperFactory.create(
             selectExpressions,
@@ -153,6 +179,14 @@ public final class KsqlMaterializationFactory {
             functionRegistry,
             processingLogger
         )::apply;
+  }
+
+  interface AggregateMapperFactory {
+
+    Function<GenericRow, GenericRow> create(
+        int nonAggregateColumnCount,
+        Map<Integer, KsqlAggregateFunction> aggregateFunctionsByIndex
+    );
   }
 
   interface SqlPredicateFactory {
@@ -166,7 +200,7 @@ public final class KsqlMaterializationFactory {
     );
   }
 
-  interface ValueMapperFactory {
+  interface SelectMapperFactory {
 
     Function<GenericRow, GenericRow> create(
         List<SelectExpression> selectExpressions,
@@ -181,6 +215,7 @@ public final class KsqlMaterializationFactory {
 
     KsqlMaterialization create(
         Materialization inner,
+        Function<GenericRow, GenericRow> aggregateTransform,
         Predicate<Struct, GenericRow> havingPredicate,
         Function<GenericRow, GenericRow> storeToTableTransform,
         LogicalSchema schema

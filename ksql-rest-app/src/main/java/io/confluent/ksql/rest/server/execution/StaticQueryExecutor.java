@@ -183,7 +183,7 @@ public final class StaticQueryExecutor {
       return Optional.of(entity);
     } catch (final Exception e) {
       throw new KsqlStatementException(
-          e.getMessage(),
+          e.getMessage() == null ? "Server Error" : e.getMessage(),
           statement.getStatementText(),
           e
       );

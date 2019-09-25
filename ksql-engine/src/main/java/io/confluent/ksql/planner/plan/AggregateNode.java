@@ -267,6 +267,8 @@ public class AggregateNode extends PlanNode {
         .map(FunctionCall.class::cast)
         .collect(Collectors.toList());
 
+    // This is the schema post any {@link Udaf#map} steps to reduce intermediate aggregate state
+    // to the final output state
     final LogicalSchema outputSchema = buildLogicalSchema(
         prepareSchema,
         aggValToFunctionMap,
@@ -301,6 +303,8 @@ public class AggregateNode extends PlanNode {
     materializationInfo = Optional.of(MaterializationInfo.of(
         AGGREGATE_STATE_STORE_NAME,
         outputSchema,
+        requiredColumns.size(),
+        aggValToFunctionMap,
         havingExpression,
         schema,
         finalSelects

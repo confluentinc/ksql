@@ -15,14 +15,17 @@
 
 package io.confluent.ksql.function.udaf;
 
-import com.google.common.collect.ImmutableMap;
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdafAggregator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.apache.kafka.streams.kstream.ValueMapper;
@@ -30,15 +33,19 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 public class KudafAggregator implements UdafAggregator {
 
   private final int nonFuncColumnCount;
-  private final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap;
-  private static final String UNINITIALIZED_COLUMN = "";
+  private final List<KsqlAggregateFunction> aggregateFunctions;
+  private final int columnCount;
 
   public KudafAggregator(
       final int nonFuncColumnCount,
       final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap
   ) {
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggValToAggFunctionMap = ImmutableMap.copyOf(aggValToAggFunctionMap);
+    this.aggregateFunctions = validateAggregates(
+        nonFuncColumnCount,
+        requireNonNull(aggValToAggFunctionMap, "aggValToAggFunctionMap")
+    );
+    this.columnCount = nonFuncColumnCount + aggregateFunctions.size();
   }
 
   @SuppressWarnings("unchecked")
@@ -52,14 +59,12 @@ public class KudafAggregator implements UdafAggregator {
     // compute the aggregation and write it into the output row. Its assumed that
     // the columns written by this statement do not overlap with those written by
     // the above statement.
-    for (Entry<Integer, KsqlAggregateFunction> entry: aggValToAggFunctionMap.entrySet()) {
-      final int index = entry.getKey();
-      final KsqlAggregateFunction ksqlAggregateFunction = entry.getValue();
-      aggRowValue.getColumns().set(
-            index,
-            ksqlAggregateFunction.aggregate(
-                rowValue.getColumns().get(ksqlAggregateFunction.getArgIndexInValue()),
-                aggRowValue.getColumns().get(index)));
+    for (int idx = nonFuncColumnCount; idx < columnCount; idx++) {
+      final KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+      final Object currentValue = rowValue.getColumns().get(function.getArgIndexInValue());
+      final Object currentAggregate = aggRowValue.getColumns().get(idx);
+      final Object newAggregate = function.aggregate(currentValue, currentAggregate);
+      aggRowValue.getColumns().set(idx, newAggregate);
     }
 
     return aggRowValue;
@@ -68,22 +73,18 @@ public class KudafAggregator implements UdafAggregator {
   @SuppressWarnings("unchecked")
   public ValueMapper<GenericRow, GenericRow> getResultMapper() {
 
-    return (aggRow) -> {
-      final int size = aggRow.getColumns().size();
-      final List<Object> columns = new ArrayList<>(size);
-      for (int i = 0; i < size; i++) {
-        columns.add(UNINITIALIZED_COLUMN);
-      }
+    return aggRow -> {
+      final List<Object> columns = new ArrayList<>(columnCount);
 
       for (int idx = 0; idx < nonFuncColumnCount; idx++) {
-        columns.set(idx, aggRow.getColumns().get(idx));
+        columns.add(idx, aggRow.getColumns().get(idx));
       }
 
-      for (Entry<Integer, KsqlAggregateFunction> entry: aggValToAggFunctionMap.entrySet()) {
-        final int index = entry.getKey();
-        final KsqlAggregateFunction ksqlAggregateFunction = entry.getValue();
-        columns.set(index,
-                    ksqlAggregateFunction.getResultMapper().apply(aggRow.getColumns().get(index)));
+      for (int idx = nonFuncColumnCount; idx < columnCount; idx++) {
+        final KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+        final Object agg = aggRow.getColumns().get(idx);
+        final Object reduced = function.getResultMapper().apply(agg);
+        columns.add(idx, reduced);
       }
 
       return new GenericRow(columns);
@@ -95,28 +96,59 @@ public class KudafAggregator implements UdafAggregator {
   public Merger<Struct, GenericRow> getMerger() {
 
     return (key, aggRowOne, aggRowTwo) -> {
-      final int size = aggRowOne.getColumns().size();
-      final List<Object> columns = new ArrayList<>(size);
-      for (int i = 0; i < size; i++) {
-        columns.add(UNINITIALIZED_COLUMN);
-      }
+      final List<Object> columns = new ArrayList<>(columnCount);
 
       for (int idx = 0; idx < nonFuncColumnCount; idx++) {
         if (aggRowOne.getColumns().get(idx) == null) {
-          columns.set(idx, aggRowTwo.getColumns().get(idx));
+          columns.add(idx, aggRowTwo.getColumns().get(idx));
         } else {
-          columns.set(idx, aggRowOne.getColumns().get(idx));
+          columns.add(idx, aggRowOne.getColumns().get(idx));
         }
       }
 
-      for (Entry<Integer, KsqlAggregateFunction> entry: aggValToAggFunctionMap.entrySet()) {
-        final int index = entry.getKey();
-        final KsqlAggregateFunction ksqlAggregateFunction = entry.getValue();
-        columns.set(index, ksqlAggregateFunction.getMerger()
-            .apply(key, aggRowOne.getColumns().get(index), aggRowTwo.getColumns().get(index)));
+      for (int idx = nonFuncColumnCount; idx < columnCount; idx++) {
+        final KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+        final Object aggOne = aggRowOne.getColumns().get(idx);
+        final Object aggTwo = aggRowTwo.getColumns().get(idx);
+        final Object merged = function.getMerger().apply(key, aggOne, aggTwo);
+        columns.add(idx, merged);
       }
 
       return new GenericRow(columns);
     };
+  }
+
+  private KsqlAggregateFunction aggregateFunctionForColumn(final int columnIndex) {
+    return aggregateFunctions.get(columnIndex - nonFuncColumnCount);
+  }
+
+  private static List<KsqlAggregateFunction> validateAggregates(
+      final int nonFuncColumnCount,
+      final Map<Integer, KsqlAggregateFunction> aggValToAggFunctionMap
+  ) {
+    final List<Integer> indexes = aggValToAggFunctionMap.keySet().stream()
+        .sorted()
+        .collect(Collectors.toList());
+
+    if (indexes.isEmpty()) {
+      throw new IllegalArgumentException("Aggregator needs aggregate functions");
+    }
+
+    Integer last = nonFuncColumnCount - 1;
+    for (final Integer idx : indexes) {
+      if (idx != (last + 1)) {
+        throw new IllegalArgumentException("Non-sequential aggregate indexes");
+      }
+
+      last = idx;
+    }
+
+    final Builder<KsqlAggregateFunction> builder = ImmutableList.builder();
+
+    final int total = nonFuncColumnCount + aggValToAggFunctionMap.size();
+    for (int idx = nonFuncColumnCount; idx < total; idx++) {
+      builder.add(aggValToAggFunctionMap.get(idx));
+    }
+    return builder.build();
   }
 }

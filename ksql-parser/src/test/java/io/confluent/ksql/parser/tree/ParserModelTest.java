@@ -32,6 +32,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;

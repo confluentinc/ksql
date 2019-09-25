@@ -31,7 +31,6 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
-import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.Relation;
@@ -236,14 +235,8 @@ public final class StatementRewriter<C> {
       return new WindowExpression(
           node.getLocation(),
           node.getWindowName(),
-          (KsqlWindowExpression) rewriter.apply(node.getKsqlWindowExpression(), context));
-    }
-
-    @Override
-    protected AstNode visitKsqlWindowExpression(
-        final KsqlWindowExpression node,
-        final C context) {
-      return node;
+          node.getKsqlWindowExpression()
+      );
     }
 
     @Override

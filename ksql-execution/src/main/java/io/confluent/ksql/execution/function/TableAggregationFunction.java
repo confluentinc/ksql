@@ -13,7 +13,9 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function;
+package io.confluent.ksql.execution.function;
+
+import io.confluent.ksql.function.KsqlAggregateFunction;
 
 public interface TableAggregationFunction<I, A, O> extends KsqlAggregateFunction<I, A, O> {
   A undo(I valueToUndo, A aggregateValue);

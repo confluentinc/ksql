@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf;
+package io.confluent.ksql.execution.function.udaf;
 
 import static java.util.Objects.requireNonNull;
 
@@ -150,5 +150,13 @@ public class KudafAggregator implements UdafAggregator {
       builder.add(aggValToAggFunctionMap.get(idx));
     }
     return builder.build();
+  }
+
+  public int getNonFuncColumnCount() {
+    return nonFuncColumnCount;
+  }
+
+  public List<KsqlAggregateFunction> getAggValToAggFunctionMap() {
+    return aggregateFunctions;
   }
 }

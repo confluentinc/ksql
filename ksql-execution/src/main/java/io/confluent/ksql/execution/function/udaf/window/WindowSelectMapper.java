@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf.window;
+package io.confluent.ksql.execution.function.udaf.window;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
@@ -26,14 +26,17 @@ import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
- * Used to handle the special cased {@link WindowStartKudaf} and {@link WindowEndKudaf}.
+ * Used to handle the special cased {WindowStart} and {WindowEnd}.
  */
 public final class WindowSelectMapper
     implements ValueMapperWithKey<Windowed<?>, GenericRow, GenericRow> {
 
+  public static final String WINDOW_START_NAME = "WindowStart";
+  public static final String WINDOW_END_NAME = "WindowEnd";
+
   private static final Map<String, Type> WINDOW_FUNCTION_NAMES = ImmutableMap.of(
-      WindowStartKudaf.getFunctionName().toUpperCase(), Type.StartTime,
-      WindowEndKudaf.getFunctionName().toUpperCase(), Type.EndTime
+      WINDOW_START_NAME.toUpperCase(), Type.StartTime,
+      WINDOW_END_NAME.toUpperCase(), Type.EndTime
   );
 
   private final Map<Integer, Type> windowSelects;

@@ -177,7 +177,7 @@ public class ConfigValidatorsTest {
     // Then:
     expectedException.expect(ConfigException.class);
     expectedException
-            .expectMessage("Invalid value value for configuration propName: Invalid value: some error");
+            .expectMessage("Configuration propName is invalid: some error");
 
     // When:
     validator.ensureValid("propName", "value");

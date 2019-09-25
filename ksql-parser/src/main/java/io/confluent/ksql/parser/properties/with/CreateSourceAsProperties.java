@@ -34,7 +34,7 @@ import org.apache.kafka.common.config.ConfigException;
 @Immutable
 public final class CreateSourceAsProperties {
 
-  private final WithPropertiesDef def;
+  private final PropertiesConfig props;
 
   public static CreateSourceAsProperties none() {
     return new CreateSourceAsProperties(ImmutableMap.of());
@@ -54,44 +54,44 @@ public final class CreateSourceAsProperties {
   }
 
   private CreateSourceAsProperties(final Map<String, Literal> originals) {
-    this.def = new WithPropertiesDef(CreateAsConfigs.CONFIG_METADATA, originals);
+    this.props = new PropertiesConfig(CreateAsConfigs.CONFIG_METADATA, originals);
 
-    def.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
+    props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }
 
   public Optional<Format> getValueFormat() {
-    return Optional.ofNullable(def.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
         .map(String::toUpperCase)
         .map(Format::valueOf);
   }
 
   public Optional<String> getKafkaTopic() {
-    return Optional.ofNullable(def.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
   }
 
   public Optional<Integer> getPartitions() {
-    return Optional.ofNullable(def.getInt(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS));
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS));
   }
 
   public Optional<Short> getReplicas() {
-    return Optional.ofNullable(def.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
+    return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
 
   public Optional<String> getTimestampColumnName() {
-    return Optional.ofNullable(def.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
   }
 
   public Optional<String> getTimestampFormat() {
-    return Optional.ofNullable(def.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
   public Optional<String> getValueAvroSchemaName() {
-    return Optional.ofNullable(def.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
   }
 
   public Optional<Boolean> getWrapSingleValues() {
-    return Optional.ofNullable(def.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+    return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
   }
 
   public CreateSourceAsProperties withTopic(
@@ -99,11 +99,16 @@ public final class CreateSourceAsProperties {
       final int partitions,
       final short replicas
   ) {
-    final Map<String, Literal> originals = def.copyOfOriginalLiterals();
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(name));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
     return new CreateSourceAsProperties(originals);
+  }
+
+  @Override
+  public String toString() {
+    return props.toString();
   }
 }

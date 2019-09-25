@@ -22,12 +22,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
 import io.confluent.ksql.serde.Format;
@@ -446,20 +445,6 @@ public class CreateSourcePropertiesTest {
             .put("foo", new StringLiteral("bar"))
             .build()
     );
-  }
-
-  @Test
-  public void shouldProperlyImplementEqualsAndHashCode() {
-    new EqualsTester()
-        .addEqualityGroup(
-            CreateSourceProperties.from(MINIMUM_VALID_PROPS),
-            CreateSourceProperties.from(MINIMUM_VALID_PROPS))
-        .addEqualityGroup(
-            CreateSourceProperties.from(ImmutableMap.<String, Literal>builder()
-                .putAll(MINIMUM_VALID_PROPS)
-                .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"))
-                .build()))
-        .testEquals();
   }
 
   @Test

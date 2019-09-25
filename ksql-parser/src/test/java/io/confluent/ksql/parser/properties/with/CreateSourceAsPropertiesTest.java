@@ -20,10 +20,8 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.util.KsqlException;
@@ -39,8 +37,8 @@ public class CreateSourceAsPropertiesTest {
 
   @Test
   public void shouldHandleNoProperties() {
-    assertThat(CreateSourceAsProperties.from(ImmutableMap.of()),
-        is(CreateSourceAsProperties.none()));
+    assertThat(CreateSourceAsProperties.from(ImmutableMap.of()).toString(),
+        is(CreateSourceAsProperties.none().toString()));
   }
 
   @Test
@@ -186,22 +184,6 @@ public class CreateSourceAsPropertiesTest {
     CreateSourceAsProperties.from(
         ImmutableMap.of("foo", new StringLiteral("bar"))
     );
-  }
-
-  @Test
-  public void shouldProperlyImplementEqualsAndHashCode() {
-    final ImmutableMap<String, Literal> someConfig = ImmutableMap
-        .of(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("schema"));
-
-    new EqualsTester()
-        .addEqualityGroup(
-            CreateSourceAsProperties.from(someConfig),
-            CreateSourceAsProperties.from(someConfig)
-        )
-        .addEqualityGroup(
-            CreateSourceAsProperties.from(ImmutableMap.of())
-        )
-        .testEquals();
   }
 
   @Test

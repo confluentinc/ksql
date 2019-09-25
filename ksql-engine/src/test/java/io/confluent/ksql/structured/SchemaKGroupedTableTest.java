@@ -16,7 +16,6 @@
 package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -146,6 +145,7 @@ public class SchemaKGroupedTableTest {
 
   private KTable kTable;
   private KsqlTable<?> ksqlTable;
+  private Map<Integer, KsqlAggregateFunction> someUdfs;
 
   @Before
   public void init() {
@@ -172,10 +172,12 @@ public class SchemaKGroupedTableTest {
     when(aggregateSchema.findValueColumn("GROUPING_COLUMN"))
         .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
 
-    when(aggregateSchema.value()).thenReturn(mock(List.class));
+    when(aggregateSchema.value()).thenReturn(ImmutableList.of(mock(Column.class)));
 
     when(mockKGroupedTable.aggregate(any(), any(), any(), any())).thenReturn(table);
     when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
+
+    someUdfs = ImmutableMap.of(0, tableFunc);
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
@@ -235,7 +237,7 @@ public class SchemaKGroupedTableTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
+        someUdfs,
         Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
@@ -322,7 +324,7 @@ public class SchemaKGroupedTableTest {
         () -> null,
         0,
         emptyList(),
-        Collections.emptyMap(),
+        someUdfs,
         Optional.empty(),
         valueFormat,
         valueSerde,
@@ -393,7 +395,7 @@ public class SchemaKGroupedTableTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
+        someUdfs,
         Optional.empty(),
         valueFormat,
         topicValueSerDe,

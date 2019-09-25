@@ -13,11 +13,12 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf;
+package io.confluent.ksql.execution.function.udaf;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -25,11 +26,14 @@ import org.apache.kafka.streams.kstream.Initializer;
 
 public class KudafInitializer implements Initializer<GenericRow> {
 
-  private final List<Supplier> aggValueSuppliers = new ArrayList<>();
+  private final List<Supplier> initialValueSuppliers;
   private final int nonAggValSize;
 
-  public KudafInitializer(final int nonAggValSize) {
+  public KudafInitializer(final int nonAggValSize, final List<Supplier> initialValueSuppliers) {
     this.nonAggValSize = nonAggValSize;
+    this.initialValueSuppliers = ImmutableList.copyOf(
+        Objects.requireNonNull(initialValueSuppliers, "initialValueSuppliers")
+    );
   }
 
   @Override
@@ -38,11 +42,7 @@ public class KudafInitializer implements Initializer<GenericRow> {
         .mapToObj(value -> null)
         .collect(Collectors.toList());
 
-    aggValueSuppliers.forEach(supplier -> values.add(supplier.get()));
+    initialValueSuppliers.forEach(supplier -> values.add(supplier.get()));
     return new GenericRow(values);
-  }
-
-  public void addAggregateIntializer(final Supplier intialValueSupplier) {
-    aggValueSuppliers.add(intialValueSupplier);
   }
 }

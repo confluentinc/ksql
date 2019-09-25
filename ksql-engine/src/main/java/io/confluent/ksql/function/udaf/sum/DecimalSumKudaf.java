@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.function.udaf.sum;
 
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.TableAggregationFunction;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;

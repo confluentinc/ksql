@@ -16,21 +16,19 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.StreamAggregate;
+import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
-import io.confluent.ksql.execution.streams.StreamsUtil;
+import io.confluent.ksql.execution.streams.StreamAggregateBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.UdafAggregator;
-import io.confluent.ksql.function.udaf.KudafAggregator;
-import io.confluent.ksql.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.model.WindowType;
-import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
@@ -43,15 +41,11 @@ import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.util.KsqlConfig;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public class SchemaKGroupedStream {
@@ -121,18 +115,18 @@ public class SchemaKGroupedStream {
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
+      final LogicalSchema aggregateSchema,
       final LogicalSchema outputSchema,
-      final Initializer initializer,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
-      final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
-    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggValToFunctionMap);
+    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggregations);
 
+    final ExecutionStep<? extends KTable<?, GenericRow>> step;
     final KTable table;
     final KeySerde<?> newKeySerde;
     final KeyFormat keyFormat;
@@ -140,36 +134,43 @@ public class SchemaKGroupedStream {
     if (windowExpression.isPresent()) {
       keyFormat = getKeyFormat(windowExpression.get());
       newKeySerde = getKeySerde(windowExpression.get());
-
-      table = aggregateWindowed(
-          initializer,
+      final StreamWindowedAggregate aggregate = ExecutionStepFactory.streamWindowedAggregate(
+          contextStacker,
+          sourceStep,
+          outputSchema,
+          Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonFuncColumnCount,
-          aggValToFunctionMap,
-          windowExpression.get(),
-          topicValueSerDe,
-          contextStacker
+          aggregations,
+          aggregateSchema,
+          windowExpression.get().getKsqlWindowExpression()
+      );
+      step = aggregate;
+      table = StreamAggregateBuilder.build(
+          kgroupedStream,
+          aggregate,
+          queryBuilder,
+          materializedFactory
       );
     } else {
       keyFormat = this.keyFormat;
       newKeySerde = keySerde;
-
-      table = aggregateNonWindowed(
-          initializer,
+      final StreamAggregate aggregate = ExecutionStepFactory.streamAggregate(
+          contextStacker,
+          sourceStep,
+          outputSchema,
+          Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonFuncColumnCount,
-          aggValToFunctionMap,
-          topicValueSerDe,
-          contextStacker
+          aggregations,
+          aggregateSchema
+      );
+      step = aggregate;
+      table = StreamAggregateBuilder.build(
+          kgroupedStream,
+          aggregate,
+          queryBuilder,
+          materializedFactory
       );
     }
-
-    final ExecutionStep step = ExecutionStepFactory.streamAggregate(
-        contextStacker,
-        sourceStep,
-        outputSchema,
-        Formats.of(keyFormat, valueFormat, SerdeOption.none()),
-        nonFuncColumnCount,
-        aggregations
-    );
 
     return new SchemaKTable(
         table,
@@ -182,61 +183,6 @@ public class SchemaKGroupedStream {
         ksqlConfig,
         functionRegistry
     );
-  }
-
-  @SuppressWarnings("unchecked")
-  private KTable aggregateNonWindowed(
-      final Initializer initializer,
-      final int nonFuncColumnCount,
-      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
-      final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker
-  ) {
-    final UdafAggregator aggregator = new KudafAggregator(nonFuncColumnCount, indexToFunctionMap);
-
-    final Materialized<Struct, GenericRow, ?> materialized = materializedFactory.create(
-        keySerde,
-        topicValueSerDe,
-        StreamsUtil.buildOpName(contextStacker.getQueryContext())
-    );
-
-    final KTable aggTable =  kgroupedStream.aggregate(initializer, aggregator, materialized);
-
-    return getAggregationResult(aggTable, aggregator);
-  }
-
-  @SuppressWarnings("unchecked")
-  private KTable aggregateWindowed(
-      final Initializer initializer,
-      final int nonFuncColumnCount,
-      final Map<Integer, KsqlAggregateFunction> indexToFunctionMap,
-      final WindowExpression windowExpression,
-      final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker
-  ) {
-    final UdafAggregator aggregator = new KudafAggregator(nonFuncColumnCount, indexToFunctionMap);
-
-    final KsqlWindowExpression ksqlWindowExpression = windowExpression.getKsqlWindowExpression();
-
-    final Materialized<Struct, GenericRow, ?> materialized = materializedFactory.create(
-        keySerde,
-        topicValueSerDe,
-        StreamsUtil.buildOpName(contextStacker.getQueryContext())
-    );
-
-    final KTable<Windowed<Struct>, GenericRow> aggKtable = ksqlWindowExpression.applyAggregate(
-        kgroupedStream, initializer, aggregator, materialized);
-
-    // Apply the mapper before window_start and window_end functions that return null if a
-    // record is not part of the window.
-    final KTable reducedTable = getAggregationResult(aggKtable, aggregator);
-
-    final WindowSelectMapper windowSelectMapper = new WindowSelectMapper(indexToFunctionMap);
-    if (!windowSelectMapper.hasSelects()) {
-      return reducedTable;
-    }
-
-    return reducedTable.mapValues(windowSelectMapper);
   }
 
   private KeyFormat getKeyFormat(final WindowExpression windowExpression) {
@@ -255,11 +201,6 @@ public class SchemaKGroupedStream {
     );
   }
 
-  @SuppressWarnings("unchecked")
-  private KTable getAggregationResult(final KTable table, final UdafAggregator aggregator) {
-    return table.mapValues(aggregator.getResultMapper());
-  }
-  
   private KeySerde<Windowed<Struct>> getKeySerde(final WindowExpression windowExpression) {
     if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
       return keySerde.rebind(WindowInfo.of(
@@ -274,10 +215,9 @@ public class SchemaKGroupedStream {
   static void throwOnValueFieldCountMismatch(
       final LogicalSchema aggregateSchema,
       final int nonFuncColumnCount,
-      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap
+      final List<FunctionCall> aggregateFunctions
   ) {
-    final int nonAggColumnCount = aggValToFunctionMap.size();
-    final int totalColumnCount = nonAggColumnCount + nonFuncColumnCount;
+    final int totalColumnCount = aggregateFunctions.size() + nonFuncColumnCount;
 
     final int valueColumnCount = aggregateSchema.value().size();
     if (valueColumnCount != totalColumnCount) {

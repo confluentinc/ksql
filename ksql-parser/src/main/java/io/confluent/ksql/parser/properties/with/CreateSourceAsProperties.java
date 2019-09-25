@@ -25,6 +25,7 @@ import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -110,5 +111,22 @@ public final class CreateSourceAsProperties {
   @Override
   public String toString() {
     return props.toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateSourceAsProperties that = (CreateSourceAsProperties) o;
+    return Objects.equals(props, that.props);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(props);
   }
 }

@@ -39,7 +39,7 @@ import org.apache.kafka.common.config.ConfigException;
 public final class CreateSourceProperties {
 
   private final PropertiesConfig props;
-  private final Function<String, Duration> durationParser;
+  private final transient Function<String, Duration> durationParser;
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {
     try {
@@ -155,6 +155,23 @@ public final class CreateSourceProperties {
   @Override
   public String toString() {
     return props.toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateSourceProperties that = (CreateSourceProperties) o;
+    return Objects.equals(props, that.props);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(props);
   }
 
   private void validateWindowInfo() {

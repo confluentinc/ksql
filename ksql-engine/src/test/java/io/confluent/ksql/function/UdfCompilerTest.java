@@ -41,6 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+@SuppressWarnings({"MethodMayBeStatic", "WeakerAccess", "unused"}) //  UDFs not static / private
 public class UdfCompilerTest {
 
   private static final Schema STRUCT_SCHEMA =
@@ -272,37 +273,59 @@ public class UdfCompilerTest {
                                  "");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   public void shouldThrowIfMissingInputTypeSchema() throws Exception {
-    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
-                                 classLoader,
-                                 "test",
-                                 "desc",
-                                 "",
-                                 "",
-                                 "");
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Must specify 'paramSchema' for STRUCT parameter in @UdafFactory.");
+
+    // When:
+    udfCompiler.compileAggregate(
+        UdfCompilerTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
+        classLoader,
+        "test",
+        "desc",
+        "",
+        "",
+        "");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   public void shouldThrowIfMissingAggregateTypeSchema() throws Exception {
-    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
-                                 classLoader,
-                                 "test",
-                                 "desc",
-                                 "",
-                                 "",
-                                 "");
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Must specify 'aggregateSchema' for STRUCT parameter in @UdafFactory.");
+
+    // When:
+    udfCompiler.compileAggregate(
+        UdfCompilerTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
+        classLoader,
+        "test",
+        "desc",
+        "",
+        "",
+        "");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
-    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
-                                 classLoader,
-                                 "test",
-                                 "desc",
-                                 "",
-                                 "",
-                                 "");
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Must specify 'returnSchema' for STRUCT parameter in @UdafFactory.");
+
+    // When:
+    udfCompiler.compileAggregate(
+        UdfCompilerTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
+        classLoader,
+        "test",
+        "desc",
+        "",
+        "",
+        ""
+    );
   }
 
   @Test

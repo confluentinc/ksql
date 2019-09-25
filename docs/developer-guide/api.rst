@@ -121,8 +121,7 @@ statements use the ``/query`` endpoint.
    The following fields are common to all responses.
 
    :>json string statementText: The KSQL statement whose result is being returned.
-   :>json array  warnings: A list of warnings about conditions that may be unexpected by the user, b
-ut don't result in failure to execute the statement.
+   :>json array  warnings: A list of warnings about conditions that may be unexpected by the user, but don't result in failure to execute the statement.
    :>json string warnings[i].message: A message detailing the condition being warned on.
 
    **CREATE, DROP, TERMINATE**

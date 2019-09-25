@@ -95,6 +95,12 @@ public class RoundTest {
   }
 
   @Test
+  public void testFoo() {
+    BigDecimal rounded = udf.round(new BigDecimal("10.1"));
+    assertThat(rounded, is(new BigDecimal("10")));
+  }
+
+  @Test
   public void shouldRoundDoubleWithDecimalPlacesPositive() {
     assertThat(udf.round(0d, 0), is(0d));
     assertThat(udf.round(1.0d, 0), is(1.0d));
@@ -207,7 +213,7 @@ public class RoundTest {
     assertThat(udf.round(new BigDecimal("-12345.67"), -4), is(new BigDecimal("-1E4")));
     assertThat(udf.round(new BigDecimal("-12345.67"), -5), is(new BigDecimal("-0E5")));
   }
-  
+
   @Test
   public void shouldHandleDoubleLiteralsEndingWith5ThatCannotBeRepresentedExactylyAsDoubles() {
     assertThat(udf.round(new BigDecimal("265.335"), 2), is(new BigDecimal("265.34")));

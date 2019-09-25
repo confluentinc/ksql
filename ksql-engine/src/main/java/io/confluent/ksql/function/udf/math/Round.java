@@ -20,10 +20,12 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.sql.SQLDataException;
 import java.util.List;
 
 /*
@@ -108,7 +110,8 @@ public class Round {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
           + "type as a parameter.");
     }
-    return s0;
+    final SqlDecimal param = (SqlDecimal)s0;
+    return SqlDecimal.of(param.getPrecision() - param.getScale(), 0);
   }
 
   /*

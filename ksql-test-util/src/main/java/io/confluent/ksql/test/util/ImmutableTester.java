@@ -131,7 +131,11 @@ public final class ImmutableTester {
 
       final Class<?> superclass = clazz.getSuperclass();
       if (superclass != null && superclass != Object.class) {
-        checkImmutableType(clazz.getGenericSuperclass(), knownImmutable);
+        checkImmutableType(
+            clazz.getGenericSuperclass(),
+            // if we see this type again, we can assume it is immutable
+            knownImmutable.or(type::equals)
+        );
       }
 
       if (clazz.isAnnotationPresent(Immutable.class)) {

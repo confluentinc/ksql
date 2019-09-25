@@ -16,6 +16,7 @@
 package io.confluent.ksql.materialization;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Schema;
@@ -28,10 +29,10 @@ import org.junit.rules.ExpectedException;
 public class TableRowValidationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.STRING)
-      .keyColumn("k1", SqlTypes.INTEGER)
-      .valueColumn("v0", SqlTypes.STRING)
-      .valueColumn("v1", SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.DOUBLE)
       .build();
 
   private static final Schema KEY_STRUCT_SCHEMA = SchemaBuilder.struct()

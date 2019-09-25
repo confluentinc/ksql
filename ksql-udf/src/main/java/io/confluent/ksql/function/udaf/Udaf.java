@@ -18,11 +18,21 @@ package io.confluent.ksql.function.udaf;
 /**
  * {@code Udaf} represents a custom UDAF (User Defined Aggregate Function)
  * that can be used to perform aggregations on KSQL Streams.
- * Type support is presently limited to: int, Integer, long, Long, boolean, Boolean, double,
+ *
+ * <p>Type support is presently limited to: int, Integer, long, Long, boolean, Boolean, double,
  * Double, String, Map, and List.
  *
- * @param <I> value type
- * @param <A> aggregate type
+ * <p>Sequence of calls is:
+ * <ol>
+ *   <li>{@code initialize()}: to get the initial value for the aggregate</li>
+ *   <li>{@code aggregate(value, aggregate)}: adds {@code value} to the {@code aggregate}.</li>
+ *   <li>{@code merge(agg1, agg2)}: merges to aggregates together, e.g. on session merges.</li>
+ *   <li>{@code map(agg)}: reduces the intermediate state to the final output type.</li>
+ * </ol>
+ *
+ * @param <I> the input type
+ * @param <A> the intermediate aggregate type
+ * @param <O> the final output type
  */
 public interface Udaf<I, A, O> {
   /**
@@ -40,17 +50,17 @@ public interface Udaf<I, A, O> {
   A aggregate(I current, A aggregate);
 
   /**
-   * Map the intermediate aggregate value into the actual returned value.
-   * @param agg aggregate value of current record
-   * @return new value of current record
-   */
-  O map(A agg);
-
-  /**
    * Merge two aggregates
    * @param aggOne first aggregate
    * @param aggTwo second aggregate
    * @return new aggregate
    */
   A merge(A aggOne, A aggTwo);
+
+  /**
+   * Map the intermediate aggregate value into the actual returned value.
+   * @param agg aggregate value of current record
+   * @return new value of current record
+   */
+  O map(A agg);
 }

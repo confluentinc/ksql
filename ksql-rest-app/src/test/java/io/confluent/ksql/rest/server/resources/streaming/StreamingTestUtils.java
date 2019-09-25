@@ -20,7 +20,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Streams;
 import io.confluent.ksql.parser.tree.PrintTopic;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -83,7 +82,7 @@ class StreamingTestUtils {
       final Integer limit) {
     return new PrintTopic(
         Optional.empty(),
-        QualifiedName.of(name),
+        name,
         fromBeginning,
         interval == null ? OptionalInt.empty() : OptionalInt.of(interval),
         limit == null ? OptionalInt.empty() : OptionalInt.of(limit)

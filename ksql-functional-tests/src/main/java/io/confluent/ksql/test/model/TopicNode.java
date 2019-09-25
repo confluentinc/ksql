@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.NullNode;
 import io.confluent.connect.avro.AvroData;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -102,7 +103,9 @@ public final class TopicNode {
 
     final Builder schemaBuilder = LogicalSchema.builder();
 
-    valueType.fields().forEach(field -> schemaBuilder.valueColumn(field.name(), field.type()));
+    valueType.fields().forEach(field -> schemaBuilder.valueColumn(
+        ColumnName.of(field.name()),
+        field.type()));
 
     return schemaBuilder.build();
   }

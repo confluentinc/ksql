@@ -12,7 +12,9 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
@@ -30,9 +32,9 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperTest {
-  private static final String NAME0 = "apple";
-  private static final String NAME1 = "cherry";
-  private static final String NAME2 = "banana";
+  private static final ColumnName NAME0 = ColumnName.of("apple");
+  private static final ColumnName NAME1 = ColumnName.of("cherry");
+  private static final ColumnName NAME2 = ColumnName.of("banana");
   private static final GenericRow ROW = new GenericRow(ImmutableList.of(1234, 0, "hotdog"));
 
   @Mock
@@ -93,7 +95,7 @@ public class SelectValueMapperTest {
   public void shouldWriteProcessingLogOnError() {
     // Given:
     when(col0.getExpression()).thenReturn(
-        new FunctionCall(QualifiedName.of("kumquat"), ImmutableList.of())
+        new FunctionCall(FunctionName.of("kumquat"), ImmutableList.of())
     );
     when(col0.evaluate(any())).thenThrow(new RuntimeException("oops"));
 

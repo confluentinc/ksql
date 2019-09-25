@@ -37,9 +37,10 @@ import org.apache.kafka.common.config.ConfigException;
  * Performs validation of a CREATE statement's WITH clause.
  */
 @Immutable
-public final class CreateSourceProperties extends WithClauseProperties {
+public final class CreateSourceProperties {
 
-  private final Function<String, Duration> durationParser;
+  private final PropertiesConfig props;
+  private final transient Function<String, Duration> durationParser;
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {
     try {
@@ -59,36 +60,36 @@ public final class CreateSourceProperties extends WithClauseProperties {
       final Map<String, Literal> originals,
       final Function<String, Duration> durationParser
   ) {
-    super(CreateConfigs.CONFIG_METADATA, originals);
+    this.props = new PropertiesConfig(CreateConfigs.CONFIG_METADATA, originals);
     this.durationParser = Objects.requireNonNull(durationParser, "durationParser");
 
-    validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
+    props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
     validateWindowInfo();
   }
 
   public Format getValueFormat() {
-    return Format.valueOf(getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY).toUpperCase());
+    return Format.valueOf(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY).toUpperCase());
   }
 
   public String getKafkaTopic() {
-    return getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
+    return props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY);
   }
 
   public Optional<Integer> getPartitions() {
-    return Optional.ofNullable(getInt(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS));
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS));
   }
 
   public Optional<Short> getReplicas() {
-    return Optional.ofNullable(getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
+    return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
   public Optional<String> getKeyField() {
-    return Optional.ofNullable(getString(CreateConfigs.KEY_NAME_PROPERTY));
+    return Optional.ofNullable(props.getString(CreateConfigs.KEY_NAME_PROPERTY));
   }
 
   public Optional<WindowType> getWindowType() {
     try {
-      return Optional.ofNullable(getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
+      return Optional.ofNullable(props.getString(CreateConfigs.WINDOW_TYPE_PROPERTY))
           .map(WindowType::of);
     } catch (final Exception e) {
       throw new KsqlException("Error in WITH clause property '"
@@ -99,7 +100,7 @@ public final class CreateSourceProperties extends WithClauseProperties {
 
   public Optional<Duration> getWindowSize() {
     try {
-      return Optional.ofNullable(getString(CreateConfigs.WINDOW_SIZE_PROPERTY))
+      return Optional.ofNullable(props.getString(CreateConfigs.WINDOW_SIZE_PROPERTY))
           .map(durationParser);
     } catch (final Exception e) {
       throw new KsqlException("Error in WITH clause property '"
@@ -111,23 +112,23 @@ public final class CreateSourceProperties extends WithClauseProperties {
   }
 
   public Optional<String> getTimestampColumnName() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
   }
 
   public Optional<String> getTimestampFormat() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
   public Optional<Integer> getAvroSchemaId() {
-    return Optional.ofNullable(getInt(CreateConfigs.AVRO_SCHEMA_ID));
+    return Optional.ofNullable(props.getInt(CreateConfigs.AVRO_SCHEMA_ID));
   }
 
   public Optional<String> getValueAvroSchemaName() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
   }
 
   public Optional<Boolean> getWrapSingleValues() {
-    return Optional.ofNullable(getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+    return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
   }
 
   public Optional<Delimiter> getValueDelimiter() {
@@ -136,7 +137,7 @@ public final class CreateSourceProperties extends WithClauseProperties {
   }
 
   public CreateSourceProperties withSchemaId(final int id) {
-    final Map<String, Literal> originals = copyOfOriginalLiterals();
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CreateConfigs.AVRO_SCHEMA_ID, new IntegerLiteral(id));
 
     return new CreateSourceProperties(originals, durationParser);
@@ -146,11 +147,37 @@ public final class CreateSourceProperties extends WithClauseProperties {
       final int partitions,
       final short replicas
   ) {
-    final Map<String, Literal> originals = copyOfOriginalLiterals();
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
     return new CreateSourceProperties(originals, durationParser);
+  }
+
+  public Map<String, Literal> copyOfOriginalLiterals() {
+    return props.copyOfOriginalLiterals();
+  }
+
+  @Override
+  public String toString() {
+    return props.toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateSourceProperties that = (CreateSourceProperties) o;
+    return Objects.equals(props, that.props);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(props);
   }
 
   private void validateWindowInfo() {

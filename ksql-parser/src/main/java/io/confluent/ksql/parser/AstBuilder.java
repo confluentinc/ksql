@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -43,8 +44,6 @@ import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -54,10 +53,14 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlBaseParser.CreateConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DescribeConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropConnectorContext;
 import io.confluent.ksql.parser.SqlBaseParser.DropTypeContext;
+import io.confluent.ksql.parser.SqlBaseParser.IdentifierContext;
 import io.confluent.ksql.parser.SqlBaseParser.InsertValuesContext;
 import io.confluent.ksql.parser.SqlBaseParser.IntervalClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
@@ -125,6 +128,8 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.DataSourceExtractor;
 import io.confluent.ksql.util.KsqlConstants;
@@ -234,7 +239,7 @@ public class AstBuilder {
 
       return new CreateTable(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
           TableElements.of(elements),
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
@@ -251,7 +256,7 @@ public class AstBuilder {
 
       return new CreateStream(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
           TableElements.of(elements),
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
@@ -266,11 +271,11 @@ public class AstBuilder {
 
       return new CreateStreamAsSelect(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier(0))),
           query,
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties),
-          getPartitionBy(context.identifier())
+          getPartitionBy(context.identifier(1))
       );
     }
 
@@ -282,7 +287,7 @@ public class AstBuilder {
 
       return new CreateTableAsSelect(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
           query,
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties)
@@ -306,15 +311,15 @@ public class AstBuilder {
     @Override
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
 
-      final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
-      final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
+      final SourceName targetName = SourceName.of(getIdentifierText(context.identifier(0)));
+      final Optional<NodeLocation> targetLocation = getLocation(context.identifier(0));
 
-      final DataSource<?> target = getSource(targetName.name(), targetLocation);
+      final DataSource<?> target = getSource(targetName, targetLocation);
 
       if (target.getDataSourceType() != DataSourceType.KSTREAM) {
         throw new KsqlException(
             "INSERT INTO can only be used to insert into a stream. "
-                + targetName + " is a table.");
+                + targetName.toString(FormatOptions.noEscape()) + " is a table.");
       }
 
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
@@ -323,19 +328,20 @@ public class AstBuilder {
           getLocation(context),
           targetName,
           query,
-          getPartitionBy(context.identifier()));
+          getPartitionBy(context.identifier(1)));
     }
 
     @Override
     public Node visitInsertValues(final InsertValuesContext context) {
-      final QualifiedName targetName = ParserUtil.getQualifiedName(context.qualifiedName());
-      final Optional<NodeLocation> targetLocation = getLocation(context.qualifiedName());
+      final String targetName = getIdentifierText(context.identifier());
+      final Optional<NodeLocation> targetLocation = getLocation(context.identifier());
 
-      final List<String> columns;
+      final List<ColumnName> columns;
       if (context.columns() != null) {
         columns = context.columns().identifier()
             .stream()
             .map(ParserUtil::getIdentifierText)
+            .map(ColumnName::of)
             .collect(Collectors.toList());
       } else {
         columns = ImmutableList.of();
@@ -343,7 +349,7 @@ public class AstBuilder {
 
       return new InsertValues(
           targetLocation,
-          targetName,
+          SourceName.of(targetName),
           columns,
           visit(context.values().literal(), Expression.class));
     }
@@ -352,7 +358,7 @@ public class AstBuilder {
     public Node visitDropTable(final SqlBaseParser.DropTableContext context) {
       return new DropTable(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
           context.EXISTS() != null,
           context.DELETE() != null
       );
@@ -362,7 +368,7 @@ public class AstBuilder {
     public Node visitDropStream(final SqlBaseParser.DropStreamContext context) {
       return new DropStream(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
           context.EXISTS() != null,
           context.DELETE() != null
       );
@@ -550,11 +556,11 @@ public class AstBuilder {
 
     @Override
     public Node visitSelectAll(final SqlBaseParser.SelectAllContext context) {
-      final Optional<QualifiedName> prefix = Optional.ofNullable(context.qualifiedName())
-          .map(ParserUtil::getQualifiedName);
+      final Optional<SourceName> prefix = Optional.ofNullable(context.identifier())
+          .map(ParserUtil::getIdentifierText)
+          .map(SourceName::of);
 
-      prefix.ifPresent(name -> throwOnUnknownNameOrAlias(name.toString()));
-
+      prefix.ifPresent(this::throwOnUnknownNameOrAlias);
       return new AllColumns(getLocation(context), prefix);
     }
 
@@ -562,19 +568,20 @@ public class AstBuilder {
     public Node visitSelectSingle(final SqlBaseParser.SelectSingleContext context) {
       final Expression selectItem = (Expression) visit(context.expression());
 
-      final String alias;
+      final ColumnName alias;
       if (context.identifier() != null) {
-        alias = ParserUtil.getIdentifierText(context.identifier());
+        alias = ColumnName.of(ParserUtil.getIdentifierText(context.identifier()));
       } else {
-        if (selectItem instanceof QualifiedNameReference) {
-          final QualifiedName name = ((QualifiedNameReference) selectItem).getName();
+        if (selectItem instanceof ColumnReferenceExp) {
+          final ColumnRef name = ((ColumnReferenceExp) selectItem).getReference();
           if (dataSourceExtractor.isJoin()
               && dataSourceExtractor
               .getCommonFieldNames()
               .contains(name.name())
           ) {
             alias = name.qualifier()
-                .map(q -> q + "_" + name.name())
+                .map(q -> q.name() + "_" + name.name().name())
+                .map(ColumnName::of)
                 .orElseGet(name::name);
           } else {
             alias = name.name();
@@ -583,11 +590,11 @@ public class AstBuilder {
           final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItem;
           final String dereferenceExpressionString = dereferenceExp.toString();
 
-          alias = replaceDotFieldRef(
+          alias = ColumnName.of(replaceDotFieldRef(
               dereferenceExpressionString.substring(
-                  dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1));
+                  dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
         } else {
-          alias = "KSQL_COL_" + selectItemIndex;
+          alias = ColumnName.of("KSQL_COL_" + selectItemIndex);
         }
       }
       selectItemIndex++;
@@ -659,14 +666,17 @@ public class AstBuilder {
 
     @Override
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
-      return new TerminateQuery(getLocation(context), context.qualifiedName().getText());
+      return new TerminateQuery(
+          getLocation(context),
+          context.identifier().getText()
+      );
     }
 
     @Override
     public Node visitShowColumns(final SqlBaseParser.ShowColumnsContext context) {
       return new ShowColumns(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
           context.EXTENDED() != null
       );
     }
@@ -693,11 +703,11 @@ public class AstBuilder {
     public Node visitPrintTopic(final SqlBaseParser.PrintTopicContext context) {
       final boolean fromBeginning = context.printClause().FROM() != null;
 
-      final QualifiedName topicName;
+      final String topicName;
       if (context.STRING() != null) {
-        topicName = QualifiedName.of(ParserUtil.unquote(context.STRING().getText(), "'"));
+        topicName = ParserUtil.unquote(context.STRING().getText(), "'");
       } else {
-        topicName = ParserUtil.getQualifiedNameCaseSensitive(context.qualifiedName());
+        topicName = ParserUtil.getIdentifierText(true, context.identifier());
       }
 
       final IntervalClauseContext intervalContext = context.printClause().intervalClause();
@@ -791,14 +801,14 @@ public class AstBuilder {
           );
       }
 
-      return new AliasedRelation(getLocation(context), child, alias);
+      return new AliasedRelation(getLocation(context), child, SourceName.of(alias.toUpperCase()));
     }
 
     @Override
     public Node visitTableName(final SqlBaseParser.TableNameContext context) {
       return new Table(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName())
+          SourceName.of(ParserUtil.getIdentifierText(context.identifier()))
       );
     }
 
@@ -922,7 +932,7 @@ public class AstBuilder {
     public Node visitConcatenation(final SqlBaseParser.ConcatenationContext context) {
       return new FunctionCall(
           getLocation(context.CONCAT()),
-          QualifiedName.of("concat"), ImmutableList.of(
+          FunctionName.of("concat"), ImmutableList.of(
           (Expression) visit(context.left),
           (Expression) visit(context.right)
       )
@@ -971,61 +981,61 @@ public class AstBuilder {
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
 
-      final String columnName;
-      final String prefixName;
+      final ColumnName columnName;
+      final SourceName prefixName;
       final Optional<NodeLocation> columnLocation;
       if (context.identifier(1) == null) {
         prefixName = null;
-        columnName = ParserUtil.getIdentifierText(context.identifier(0));
+        columnName = ColumnName.of(ParserUtil.getIdentifierText(context.identifier(0)));
         columnLocation = getLocation(context.identifier(0));
       } else {
-        prefixName = ParserUtil.getIdentifierText(context.identifier(0));
-        columnName = ParserUtil.getIdentifierText(context.identifier(1));
+        prefixName = SourceName.of(ParserUtil.getIdentifierText(context.identifier(0)));
+        columnName = ColumnName.of(ParserUtil.getIdentifierText(context.identifier(1)));
         columnLocation = getLocation(context.identifier(1));
       }
 
       if (prefixName != null) {
         throwOnUnknownNameOrAlias(prefixName);
 
-        return new QualifiedNameReference(
+        return new ColumnReferenceExp(
             getLocation(context),
-            QualifiedName.of(prefixName, columnName)
+            ColumnRef.of(prefixName, columnName)
         );
       }
 
       if (dataSourceExtractor.isJoin()) {
         if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-          throw new KsqlException("Field '" + columnName + "' is ambiguous.");
+          throw new KsqlException("Field '" + columnName.name() + "' is ambiguous.");
         }
 
         if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
-          return new QualifiedNameReference(
+          return new ColumnReferenceExp(
               getLocation(context),
-              QualifiedName.of(dataSourceExtractor.getLeftAlias(), columnName)
+              ColumnRef.of(dataSourceExtractor.getLeftAlias(), columnName)
           );
         }
 
         if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
-          return new QualifiedNameReference(
+          return new ColumnReferenceExp(
               getLocation(context),
-              QualifiedName.of(dataSourceExtractor.getRightAlias(), columnName)
+              ColumnRef.of(dataSourceExtractor.getRightAlias(), columnName)
           );
         }
 
         throw new InvalidColumnReferenceException(
             columnLocation,
-            "Field '" + columnName + "' cannot be resolved."
+            "Field '" + columnName.name() + "' cannot be resolved."
         );
       }
 
       return
-          new QualifiedNameReference(
+          new ColumnReferenceExp(
               getLocation(context),
-              QualifiedName.of(dataSourceExtractor.getFromAlias(), columnName)
+              ColumnRef.of(dataSourceExtractor.getFromAlias(), columnName)
           );
     }
 
-    private boolean isValidNameOrAlias(final String name) {
+    private boolean isValidNameOrAlias(final SourceName name) {
       if (dataSourceExtractor.isJoin()) {
         final boolean sameAsLeft = name.equalsIgnoreCase(dataSourceExtractor.getLeftAlias())
             || name.equalsIgnoreCase(dataSourceExtractor.getLeftName());
@@ -1069,7 +1079,7 @@ public class AstBuilder {
     public Node visitFunctionCall(final SqlBaseParser.FunctionCallContext context) {
       return new FunctionCall(
           getLocation(context),
-          ParserUtil.getQualifiedName(context.qualifiedName()),
+          FunctionName.of(ParserUtil.getIdentifierText(context.identifier())),
           visit(context.expression(), Expression.class)
       );
     }
@@ -1079,7 +1089,7 @@ public class AstBuilder {
       return new TableElement(
           getLocation(context),
           context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
-          ParserUtil.getIdentifierText(context.identifier()),
+          ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
           typeParser.getType(context.type())
       );
     }
@@ -1133,8 +1143,8 @@ public class AstBuilder {
 
     @Override
     public Node visitExplain(final SqlBaseParser.ExplainContext ctx) {
-      final SqlBaseParser.QualifiedNameContext qualifiedName = ctx.qualifiedName();
-      final Optional<String> queryId = Optional.ofNullable(qualifiedName)
+      final IdentifierContext queryIdentifier = ctx.identifier();
+      final Optional<String> queryId = Optional.ofNullable(queryIdentifier)
           .map(RuleContext::getText);
 
       final Optional<Statement> statement = Optional.ofNullable(ctx.statement())
@@ -1145,7 +1155,7 @@ public class AstBuilder {
 
     @Override
     public Node visitDescribeFunction(final SqlBaseParser.DescribeFunctionContext ctx) {
-      return new DescribeFunction(getLocation(ctx), ctx.qualifiedName().getText());
+      return new DescribeFunction(getLocation(ctx), ctx.identifier().getText());
     }
 
     @Override
@@ -1183,9 +1193,9 @@ public class AstBuilder {
       );
     }
 
-    private void throwOnUnknownNameOrAlias(final String name) {
+    private void throwOnUnknownNameOrAlias(final SourceName name) {
       if (!isValidNameOrAlias(name)) {
-        throw new KsqlException("'" + name + "' is not a valid stream/table name or alias.");
+        throw new KsqlException("'" + name.name() + "' is not a valid stream/table name or alias.");
       }
     }
 
@@ -1211,8 +1221,8 @@ public class AstBuilder {
       }
 
       final Optional<NodeLocation> location = getLocation(identifier);
-      final QualifiedName name = QualifiedName.of(ParserUtil.getIdentifierText(identifier));
-      return Optional.of(new QualifiedNameReference(location, name));
+      final ColumnRef name = ColumnRef.of(ColumnName.of(ParserUtil.getIdentifierText(identifier)));
+      return Optional.of(new ColumnReferenceExp(location, name));
     }
 
     private static Operator getArithmeticBinaryOperator(
@@ -1270,12 +1280,12 @@ public class AstBuilder {
     }
 
     private DataSource<?> getSource(
-        final String name,
+        final SourceName name,
         final Optional<NodeLocation> location
     ) {
       final DataSource<?> source = metaStore.getSource(name);
       if (source == null) {
-        throw new InvalidColumnReferenceException(location, name + " does not exist.");
+        throw new InvalidColumnReferenceException(location, name.name() + " does not exist.");
       }
 
       return source;

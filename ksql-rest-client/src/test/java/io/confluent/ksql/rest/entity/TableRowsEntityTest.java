@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -30,15 +31,15 @@ import java.util.Arrays;
 import java.util.List;
 import org.junit.Test;
 
-public class QueryResultEntityTest {
+public class TableRowsEntityTest {
 
   private static final ObjectMapper MAPPER;
   private static final String SOME_SQL = "some SQL";
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn("ROWKEY", SqlTypes.STRING)
-      .valueColumn("v0", SqlTypes.DOUBLE)
-      .valueColumn("v1", SqlTypes.STRING)
+      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
 
@@ -54,7 +55,7 @@ public class QueryResultEntityTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnRowWindowTypeMismatch() {
-    new QueryResultEntity(
+    new TableRowsEntity(
         SOME_SQL,
         LOGICAL_SCHEMA,
         ImmutableList.of(ImmutableList.of("too", "few"))
@@ -64,7 +65,7 @@ public class QueryResultEntityTest {
   @Test
   public void shouldSerializeEntity() throws Exception {
     // Given:
-    final QueryResultEntity entity = new QueryResultEntity(
+    final TableRowsEntity entity = new TableRowsEntity(
         SOME_SQL,
         LOGICAL_SCHEMA,
         ImmutableList.of(A_VALUE)
@@ -93,7 +94,7 @@ public class QueryResultEntityTest {
   @Test
   public void shouldSerializeNullElements() throws Exception {
     // Given:
-    final QueryResultEntity entity = new QueryResultEntity(
+    final TableRowsEntity entity = new TableRowsEntity(
         SOME_SQL,
         LOGICAL_SCHEMA,
         ImmutableList.of(Arrays.asList(null, 10.1D, null))

@@ -15,8 +15,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -25,7 +24,10 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.TableKeyValueMapper;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -54,10 +56,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class TableGroupByBuilderTest {
-  private static final String ALIAS = "SOURCE";
+  private static final SourceName ALIAS = SourceName.of("SOURCE");
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("PAC", SqlTypes.BIGINT)
-      .valueColumn("MAN", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
@@ -207,6 +209,6 @@ public class TableGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new QualifiedNameReference(QualifiedName.of(ALIAS, column));
+    return new ColumnReferenceExp(ColumnRef.of(ALIAS, ColumnName.of(column)));
   }
 }

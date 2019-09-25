@@ -27,7 +27,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -109,10 +108,6 @@ public class SerdeBenchmark {
 
   @State(Scope.Thread)
   public static class SerdeState {
-
-    private static final org.apache.kafka.connect.data.Schema KEY_SCHEMA = SchemaBuilder.struct()
-        .field(SchemaUtil.ROWKEY_NAME, org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
-        .build();
 
     Serializer<GenericRow> serializer;
     Deserializer<GenericRow> deserializer;

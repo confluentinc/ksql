@@ -33,6 +33,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
@@ -52,7 +54,6 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.admin.Admin;
@@ -119,7 +120,7 @@ public class DescribeConnectorExecutorTest {
     when(engine.getMetaStore()).thenReturn(metaStore);
     when(serviceContext.getConnectClient()).thenReturn(connectClient);
     when(serviceContext.getAdminClient()).thenReturn(adminClient);
-    when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of("source", source));
+    when(metaStore.getAllDataSources()).thenReturn(ImmutableMap.of(SourceName.of("source"), source));
     when(source.getKafkaTopicName()).thenReturn(TOPIC);
     when(source.getKsqlTopic()).thenReturn(
         new KsqlTopic(
@@ -131,11 +132,11 @@ public class DescribeConnectorExecutorTest {
     );
     when(source.getSchema()).thenReturn(
         LogicalSchema.builder()
-            .valueColumn("foo", SqlPrimitiveType.of( SqlBaseType.STRING))
+            .valueColumn(ColumnName.of("foo"), SqlPrimitiveType.of( SqlBaseType.STRING))
             .build());
     when(source.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(source.getKeyField()).thenReturn(KeyField.none());
-    when(source.getName()).thenReturn("source");
+    when(source.getName()).thenReturn(SourceName.of("source"));
     when(connectClient.status(CONNECTOR_NAME)).thenReturn(ConnectResponse.success(STATUS, HttpStatus.SC_OK));
     when(connectClient.describe("connector")).thenReturn(ConnectResponse.success(INFO, HttpStatus.SC_OK));
 

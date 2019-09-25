@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import java.util.Objects;
@@ -27,14 +27,14 @@ import java.util.Optional;
 @Immutable
 public abstract class CreateSource extends Statement {
 
-  private final QualifiedName name;
+  private final SourceName name;
   private final TableElements elements;
   private final boolean notExists;
   private final CreateSourceProperties properties;
 
   CreateSource(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final SourceName name,
       final TableElements elements,
       final boolean notExists,
       final CreateSourceProperties properties
@@ -50,7 +50,7 @@ public abstract class CreateSource extends Statement {
     return properties;
   }
 
-  public QualifiedName getName() {
+  public SourceName getName() {
     return name;
   }
 

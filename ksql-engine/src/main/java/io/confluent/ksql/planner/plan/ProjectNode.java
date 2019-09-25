@@ -19,14 +19,14 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
@@ -36,21 +36,22 @@ public class ProjectNode extends PlanNode {
 
   private final PlanNode source;
   private final LogicalSchema schema;
-  private final List<Expression> projectExpressions;
+  private final List<SelectExpression> projectExpressions;
   private final KeyField keyField;
 
   public ProjectNode(
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<String> keyFieldName,
-      final List<Expression> projectExpressions
+      final Optional<ColumnName> keyFieldName,
+      final List<SelectExpression> projectExpressions
   ) {
     super(id, source.getNodeOutputType());
 
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
-    this.projectExpressions = requireNonNull(projectExpressions, "projectExpressions");
+    this.projectExpressions = ImmutableList
+        .copyOf(requireNonNull(projectExpressions, "projectExpressions"));
     this.keyField = KeyField.of(
         requireNonNull(keyFieldName, "keyFieldName"),
         source.getKeyField().legacy())
@@ -60,6 +61,8 @@ public class ProjectNode extends PlanNode {
       throw new KsqlException("Error in projection. Schema fields and expression list are not "
           + "compatible.");
     }
+
+    validate();
   }
 
   @Override
@@ -87,14 +90,7 @@ public class ProjectNode extends PlanNode {
   }
 
   public List<SelectExpression> getProjectSelectExpressions() {
-    final List<SelectExpression> selects = new ArrayList<>();
-    for (int i = 0; i < projectExpressions.size(); i++) {
-      final SelectExpression selectExp = SelectExpression
-          .of(schema.value().get(i).name(), projectExpressions.get(i));
-
-      selects.add(selectExp);
-    }
-    return selects;
+    return projectExpressions;
   }
 
   @Override
@@ -110,5 +106,16 @@ public class ProjectNode extends PlanNode {
             builder.buildNodeContext(getId().toString()),
             builder
         );
+  }
+
+  private void validate() {
+    for (int i = 0; i < projectExpressions.size(); i++) {
+      final Column column = schema.value().get(i);
+      final SelectExpression selectExpression = projectExpressions.get(i);
+
+      if (!column.name().equals(selectExpression.getName())) {
+        throw new IllegalArgumentException("Mismatch between schema and selects");
+      }
+    }
   }
 }

@@ -18,6 +18,8 @@ package io.confluent.ksql.metastore.model;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
@@ -36,10 +38,10 @@ public final class MetaStoreMatchers {
   }
 
   public static Matcher<DataSource<?>> hasName(final String name) {
-    return new FeatureMatcher<DataSource<?>, String>
-        (is(name), "source with name", "name") {
+    return new FeatureMatcher<DataSource<?>, SourceName>
+        (is(SourceName.of(name)), "source with name", "name") {
       @Override
-      protected String featureValueOf(final DataSource<?> actual) {
+      protected SourceName featureValueOf(final DataSource<?> actual) {
         return actual.getName();
       }
     };
@@ -107,10 +109,10 @@ public final class MetaStoreMatchers {
     }
 
     public static Matcher<KeyField> hasName(final Optional<String> name) {
-      return new FeatureMatcher<KeyField, Optional<String>>
-          (is(name), "field with name", "name") {
+      return new FeatureMatcher<KeyField, Optional<ColumnName>>
+          (is(name.map(ColumnName::of)), "field with name", "name") {
         @Override
-        protected Optional<String> featureValueOf(final KeyField actual) {
+        protected Optional<ColumnName> featureValueOf(final KeyField actual) {
           return actual.name();
         }
       };
@@ -121,10 +123,10 @@ public final class MetaStoreMatchers {
     }
 
     public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {
-      return new FeatureMatcher<KeyField, Optional<String>>
-          (is(name), "field with legacy name", "legacy name") {
+      return new FeatureMatcher<KeyField, Optional<ColumnName>>
+          (is(name.map(ColumnName::of)), "field with legacy name", "legacy name") {
         @Override
-        protected Optional<String> featureValueOf(final KeyField actual) {
+        protected Optional<ColumnName> featureValueOf(final KeyField actual) {
           return actual.legacy().map(LegacyField::name);
         }
       };
@@ -151,10 +153,10 @@ public final class MetaStoreMatchers {
     }
 
     public static Matcher<LegacyField> hasName(final String name) {
-      return new FeatureMatcher<LegacyField, String>
-          (is(name), "field with name", "name") {
+      return new FeatureMatcher<LegacyField, ColumnName>
+          (is(ColumnName.of(name)), "field with name", "name") {
         @Override
-        protected String featureValueOf(final LegacyField actual) {
+        protected ColumnName featureValueOf(final LegacyField actual) {
           return actual.name();
         }
       };
@@ -177,6 +179,16 @@ public final class MetaStoreMatchers {
     }
 
     public static Matcher<Column> hasFullName(final String name) {
+      return new FeatureMatcher<Column, String>
+          (is(name), "field with name", "name") {
+        @Override
+        protected String featureValueOf(final Column actual) {
+          return actual.fullName();
+        }
+      };
+    }
+
+    public static Matcher<Column> hasFullName(final ColumnName name) {
       return new FeatureMatcher<Column, String>
           (is(name), "field with name", "name") {
         @Override

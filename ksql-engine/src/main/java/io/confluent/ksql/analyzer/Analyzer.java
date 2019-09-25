@@ -23,12 +23,14 @@ import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -48,6 +50,8 @@ import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
@@ -58,7 +62,6 @@ import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -132,7 +135,7 @@ class Analyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    final Visitor visitor = new Visitor(query.isStatic());
+    final Visitor visitor = new Visitor(query);
     visitor.process(query, null);
 
     sink.ifPresent(visitor::analyzeNonStdOutSink);
@@ -146,13 +149,14 @@ class Analyzer {
   private final class Visitor extends DefaultTraversalVisitor<AstNode, Void> {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-    private final Analysis analysis = new Analysis();
+    private final Analysis analysis;
     private final boolean staticQuery;
     private boolean isJoin = false;
     private boolean isGroupBy = false;
 
-    Visitor(final boolean staticQuery) {
-      this.staticQuery = staticQuery;
+    Visitor(final Query query) {
+      this.staticQuery = query.isStatic();
+      this.analysis = new Analysis(query.getResultMaterialization());
     }
 
     private void analyzeNonStdOutSink(final Sink sink) {
@@ -164,7 +168,8 @@ class Analyzer {
       if (!sink.shouldCreateSink()) {
         final DataSource<?> existing = metaStore.getSource(sink.getName());
         if (existing == null) {
-          throw new KsqlException("Unknown source: " + sink.getName());
+          throw new KsqlException("Unknown source: "
+              + sink.getName().toString(FormatOptions.noEscape()));
         }
 
         analysis.setInto(Into.of(
@@ -176,7 +181,7 @@ class Analyzer {
       }
 
       final String topicName = sink.getProperties().getKafkaTopic()
-          .orElseGet(() -> topicPrefix + sink.getName());
+          .orElseGet(() -> topicPrefix + sink.getName().name());
 
       final KeyFormat keyFormat = buildKeyFormat();
 
@@ -201,8 +206,7 @@ class Analyzer {
     }
 
     private KeyFormat buildKeyFormat() {
-      final Optional<KsqlWindowExpression> ksqlWindow = Optional
-          .ofNullable(analysis.getWindowExpression())
+      final Optional<KsqlWindowExpression> ksqlWindow = analysis.getWindowExpression()
           .map(WindowExpression::getKsqlWindowExpression);
 
       return ksqlWindow
@@ -216,7 +220,7 @@ class Analyzer {
     }
 
     private void setSerdeOptions(final Sink sink) {
-      final List<String> columnNames = getNoneMetaOrKeySelectAliases();
+      final List<ColumnName> columnNames = getNoneMetaOrKeySelectAliases();
 
       final Format valueFormat = getValueFormat(sink);
 
@@ -243,24 +247,27 @@ class Analyzer {
      *
      * @return the list of column names in the sink that are not meta or key columns.
      */
-    private List<String> getNoneMetaOrKeySelectAliases() {
+    private List<ColumnName> getNoneMetaOrKeySelectAliases() {
       final SourceSchemas sourceSchemas = analysis.getFromSourceSchemas();
-      final List<Expression> selects = analysis.getSelectExpressions();
+      final List<SelectExpression> selects = analysis.getSelectExpressions();
 
-      final List<String> columnNames = new ArrayList<>(analysis.getSelectExpressionAlias());
+      final List<ColumnName> columnNames = analysis.getSelectExpressions().stream()
+          .map(SelectExpression::getName)
+          .collect(Collectors.toList());
 
       for (int idx = selects.size() - 1; idx >= 0; --idx) {
-        final Expression select = selects.get(idx);
+        final SelectExpression select = selects.get(idx);
+        final Expression expression = select.getExpression();
 
-        if (!(select instanceof QualifiedNameReference)) {
+        if (!(expression instanceof ColumnReferenceExp)) {
           continue;
         }
 
-        if (!sourceSchemas.matchesNonValueField(select.toString())) {
+        if (!sourceSchemas.matchesNonValueField(expression.toString())) {
           continue;
         }
 
-        final String columnName = columnNames.get(idx);
+        final ColumnName columnName = select.getName();
         if (columnName.equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)
             || columnName.equalsIgnoreCase(SchemaUtil.ROWKEY_NAME)) {
           columnNames.remove(idx);
@@ -300,7 +307,6 @@ class Analyzer {
         final Query node,
         final Void context
     ) {
-
       process(node.getFrom(), context);
 
       process(node.getSelect(), context);
@@ -321,11 +327,11 @@ class Analyzer {
       final ExpressionAnalyzer expressionAnalyzer =
           new ExpressionAnalyzer(analysis.getFromSourceSchemas());
 
-      for (final Expression selectExpression : analysis.getSelectExpressions()) {
-        expressionAnalyzer.analyzeExpression(selectExpression, false);
+      for (final SelectExpression selectExpression : analysis.getSelectExpressions()) {
+        expressionAnalyzer.analyzeExpression(selectExpression.getExpression(), false);
       }
 
-      if (analysis.getWhereExpression() != null) {
+      analysis.getWhereExpression().ifPresent(where -> {
         final boolean allowWindowMetaFields = staticQuery
             && analysis.getFromDataSources().get(0)
             .getDataSource()
@@ -333,16 +339,16 @@ class Analyzer {
             .getKeyFormat()
             .isWindowed();
 
-        expressionAnalyzer.analyzeExpression(analysis.getWhereExpression(), allowWindowMetaFields);
-      }
+        expressionAnalyzer.analyzeExpression(where, allowWindowMetaFields);
+      });
 
       for (final Expression expression : analysis.getGroupByExpressions()) {
         expressionAnalyzer.analyzeExpression(expression, false);
       }
 
-      if (analysis.getHavingExpression() != null) {
-        expressionAnalyzer.analyzeExpression(analysis.getHavingExpression(), false);
-      }
+      analysis.getHavingExpression().ifPresent(having ->
+          expressionAnalyzer.analyzeExpression(having, false)
+      );
     }
 
     @Override
@@ -365,13 +371,13 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final String leftJoinField = getJoinFieldName(
+      final ColumnName leftJoinField = getJoinFieldName(
           comparisonExpression,
           left.getAlias(),
           left.getDataSource().getSchema()
       );
 
-      final String rightJoinField = getJoinFieldName(
+      final ColumnName rightJoinField = getJoinFieldName(
           comparisonExpression,
           right.getAlias(),
           right.getDataSource().getSchema()
@@ -405,11 +411,11 @@ class Analyzer {
       return joinType;
     }
 
-    private QualifiedNameReference checkExpressionType(
+    private ColumnReferenceExp checkExpressionType(
         final ComparisonExpression comparisonExpression,
         final Expression subExpression) {
 
-      if (!(subExpression instanceof QualifiedNameReference)) {
+      if (!(subExpression instanceof ColumnReferenceExp)) {
         throw new KsqlException(
             String.format(
                 "%s : Invalid comparison expression '%s' in join '%s'. Joins must only contain a "
@@ -420,21 +426,21 @@ class Analyzer {
             )
         );
       }
-      return (QualifiedNameReference) subExpression;
+      return (ColumnReferenceExp) subExpression;
     }
 
-    private String getJoinFieldName(
+    private ColumnName getJoinFieldName(
         final ComparisonExpression comparisonExpression,
-        final String sourceAlias,
+        final SourceName sourceAlias,
         final LogicalSchema sourceSchema
     ) {
-      final QualifiedNameReference left =
+      final ColumnReferenceExp left =
           checkExpressionType(comparisonExpression, comparisonExpression.getLeft());
 
-      Optional<String> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
+      Optional<ColumnName> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
 
       if (!joinFieldName.isPresent()) {
-        final QualifiedNameReference right =
+        final ColumnReferenceExp right =
             checkExpressionType(comparisonExpression, comparisonExpression.getRight());
 
         joinFieldName = getJoinFieldNameFromExpr(right, sourceAlias);
@@ -445,9 +451,9 @@ class Analyzer {
         }
       }
 
-      final String fieldName = joinFieldName.get();
+      final ColumnName fieldName = joinFieldName.get();
 
-      final Optional<String> joinField =
+      final Optional<ColumnName> joinField =
           getJoinFieldNameFromSource(fieldName, sourceAlias, sourceSchema);
 
       return joinField
@@ -456,37 +462,38 @@ class Analyzer {
                   "%s : Invalid join criteria %s. Column %s.%s does not exist.",
                   comparisonExpression.getLocation().map(Objects::toString).orElse(""),
                   comparisonExpression,
-                  sourceAlias,
-                  fieldName
+                  sourceAlias.name(),
+                  fieldName.name()
               )
           ));
     }
 
-    private Optional<String> getJoinFieldNameFromExpr(
-        final QualifiedNameReference nameRef,
-        final String sourceAlias
+    private Optional<ColumnName> getJoinFieldNameFromExpr(
+        final ColumnReferenceExp nameRef,
+        final SourceName sourceAlias
     ) {
-      if (nameRef.getName().qualifier().isPresent()
-          && !nameRef.getName().qualifier().get().equalsIgnoreCase(sourceAlias)) {
+      if (nameRef.getReference().qualifier().isPresent()
+          && !nameRef.getReference().qualifier().get().equalsIgnoreCase(sourceAlias)) {
         return Optional.empty();
       }
 
-      final String fieldName = nameRef.getName().name();
+      final ColumnName fieldName = nameRef.getReference().name();
       return Optional.of(fieldName);
     }
 
-    private Optional<String> getJoinFieldNameFromSource(
-        final String fieldName,
-        final String sourceAlias,
+    private Optional<ColumnName> getJoinFieldNameFromSource(
+        final ColumnName fieldName,
+        final SourceName sourceAlias,
         final LogicalSchema sourceSchema
     ) {
       return sourceSchema.findColumn(fieldName)
-          .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias, field.name()));
+          .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias.name(), field.name().name()))
+          .map(ColumnName::of);
     }
 
     @Override
     protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
-      final String structuredDataSourceName = ((Table) node.getRelation()).getName().name();
+      final SourceName structuredDataSourceName = ((Table) node.getRelation()).getName();
 
       final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
       if (source == null) {
@@ -543,28 +550,26 @@ class Analyzer {
 
       final Optional<NodeLocation> location = allColumns.getLocation();
 
-      final String prefix = allColumns.getPrefix()
-          .map(QualifiedName::toString)
-          .orElse("");
+      final Optional<SourceName> prefix = allColumns.getSource();
 
       for (final AliasedDataSource source : analysis.getFromDataSources()) {
 
-        if (!prefix.isEmpty() && !prefix.equals(source.getAlias())) {
+        if (prefix.isPresent() && !prefix.get().equals(source.getAlias())) {
           continue;
         }
 
         final String aliasPrefix = analysis.isJoin()
-            ? source.getAlias() + "_"
+            ? source.getAlias().name() + "_"
             : "";
 
         for (final Column column : source.getDataSource().getSchema().columns()) {
 
-          final QualifiedNameReference selectItem = new QualifiedNameReference(location,
-              QualifiedName.of(source.getAlias(), column.name()));
+          final ColumnReferenceExp selectItem = new ColumnReferenceExp(location,
+              ColumnRef.of(source.getAlias(), column.name()));
 
-          final String alias = aliasPrefix + column.name();
+          final String alias = aliasPrefix + column.name().name();
 
-          analysis.addSelectItem(selectItem, alias);
+          analysis.addSelectItem(selectItem, ColumnName.of(alias));
         }
       }
     }
@@ -574,6 +579,7 @@ class Analyzer {
           .filter(s -> s.getDataSource().getKsqlTopic().getValueFormat().getFormat()
               == Format.KAFKA)
           .map(AliasedDataSource::getAlias)
+          .map(SourceName::name)
           .collect(Collectors.joining(", "));
 
       if (kafkaSources.isEmpty()) {
@@ -598,7 +604,7 @@ class Analyzer {
   interface SerdeOptionsSupplier {
 
     Set<SerdeOption> build(
-        List<String> valueColumnNames,
+        List<ColumnName> valueColumnNames,
         Format valueFormat,
         Optional<Boolean> wrapSingleValues,
         Set<SerdeOption> singleFieldDefaults

@@ -21,24 +21,28 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -46,23 +50,30 @@ import java.util.stream.Collectors;
 
 public class Analysis {
 
+  private final ResultMaterialization resultMaterialization;
   private Optional<Into> into = Optional.empty();
   private final List<AliasedDataSource> fromDataSources = new ArrayList<>();
   private Optional<JoinInfo> joinInfo = Optional.empty();
-  private Expression whereExpression = null;
-  private final List<Expression> selectExpressions = new ArrayList<>();
-  private final List<String> selectExpressionAlias = new ArrayList<>();
+  private Optional<Expression> whereExpression = Optional.empty();
+  private final List<SelectExpression> selectExpressions = new ArrayList<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
-  private WindowExpression windowExpression = null;
-  private Optional<String> partitionBy = Optional.empty();
+  private Optional<WindowExpression> windowExpression = Optional.empty();
+  private Optional<ColumnName> partitionBy = Optional.empty();
   private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
-  private Expression havingExpression = null;
+  private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
 
-  void addSelectItem(final Expression expression, final String alias) {
-    selectExpressions.add(expression);
-    selectExpressionAlias.add(alias);
+  public Analysis(final ResultMaterialization resultMaterialization) {
+    this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
+  }
+
+  ResultMaterialization getResultMaterialization() {
+    return resultMaterialization;
+  }
+
+  void addSelectItem(final Expression expression, final ColumnName alias) {
+    selectExpressions.add(SelectExpression.of(alias, expression));
   }
 
   public Optional<Into> getInto() {
@@ -73,20 +84,16 @@ public class Analysis {
     this.into = Optional.of(into);
   }
 
-  public Expression getWhereExpression() {
+  public Optional<Expression> getWhereExpression() {
     return whereExpression;
   }
 
   void setWhereExpression(final Expression whereExpression) {
-    this.whereExpression = whereExpression;
+    this.whereExpression = Optional.of(whereExpression);
   }
 
-  public List<Expression> getSelectExpressions() {
-    return selectExpressions;
-  }
-
-  public List<String> getSelectExpressionAlias() {
-    return selectExpressionAlias;
+  public List<SelectExpression> getSelectExpressions() {
+    return Collections.unmodifiableList(selectExpressions);
   }
 
   public List<Expression> getGroupByExpressions() {
@@ -97,27 +104,27 @@ public class Analysis {
     groupByExpressions.addAll(expressions);
   }
 
-  public WindowExpression getWindowExpression() {
+  public Optional<WindowExpression> getWindowExpression() {
     return windowExpression;
   }
 
   void setWindowExpression(final WindowExpression windowExpression) {
-    this.windowExpression = windowExpression;
+    this.windowExpression = Optional.of(windowExpression);
   }
 
-  Expression getHavingExpression() {
+  Optional<Expression> getHavingExpression() {
     return havingExpression;
   }
 
   void setHavingExpression(final Expression havingExpression) {
-    this.havingExpression = havingExpression;
+    this.havingExpression = Optional.of(havingExpression);
   }
 
-  public Optional<String> getPartitionBy() {
+  public Optional<ColumnName> getPartitionBy() {
     return partitionBy;
   }
 
-  void setPartitionBy(final String partitionBy) {
+  void setPartitionBy(final ColumnName partitionBy) {
     this.partitionBy = Optional.of(partitionBy);
   }
 
@@ -150,7 +157,7 @@ public class Analysis {
   }
 
   public SourceSchemas getFromSourceSchemas() {
-    final Map<String, LogicalSchema> schemaBySource = fromDataSources.stream()
+    final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,
             s -> s.getDataSource().getSchema()
@@ -159,7 +166,7 @@ public class Analysis {
     return new SourceSchemas(schemaBySource);
   }
 
-  void addDataSource(final String alias, final DataSource<?> dataSource) {
+  void addDataSource(final SourceName alias, final DataSource<?> dataSource) {
     if (!(dataSource instanceof KsqlStream) && !(dataSource instanceof KsqlTable)) {
       throw new IllegalArgumentException("Data source type not supported yet: " + dataSource);
     }
@@ -167,9 +174,9 @@ public class Analysis {
     fromDataSources.add(new AliasedDataSource(alias, dataSource));
   }
 
-  QualifiedNameReference getDefaultArgument() {
-    final String alias = fromDataSources.get(0).getAlias();
-    return new QualifiedNameReference(QualifiedName.of(alias, SchemaUtil.ROWTIME_NAME));
+  ColumnReferenceExp getDefaultArgument() {
+    final SourceName alias = fromDataSources.get(0).getAlias();
+    return new ColumnReferenceExp(ColumnRef.of(alias, SchemaUtil.ROWTIME_NAME));
   }
 
   void setSerdeOptions(final Set<SerdeOption> serdeOptions) {
@@ -181,7 +188,7 @@ public class Analysis {
   }
 
   void setProperties(final CreateSourceAsProperties properties) {
-    withProperties = Objects.requireNonNull(properties, "properties");
+    withProperties = requireNonNull(properties, "properties");
   }
 
   public CreateSourceAsProperties getProperties() {
@@ -191,12 +198,12 @@ public class Analysis {
   @Immutable
   public static final class Into {
 
-    private final String name;
+    private final SourceName name;
     private final KsqlTopic topic;
     private final boolean create;
 
     public static <K> Into of(
-        final String name,
+        final SourceName name,
         final boolean create,
         final KsqlTopic topic
     ) {
@@ -204,7 +211,7 @@ public class Analysis {
     }
 
     private Into(
-        final String name,
+        final SourceName name,
         final boolean create,
         final KsqlTopic topic
     ) {
@@ -213,7 +220,7 @@ public class Analysis {
       this.topic = requireNonNull(topic, "topic");
     }
 
-    public String getName() {
+    public SourceName getName() {
       return name;
     }
 
@@ -229,22 +236,18 @@ public class Analysis {
   @Immutable
   public static final class AliasedDataSource {
 
-    private final String alias;
+    private final SourceName alias;
     private final DataSource<?> dataSource;
 
     AliasedDataSource(
-        final String alias,
+        final SourceName alias,
         final DataSource<?> dataSource
     ) {
-      this.alias = Objects.requireNonNull(alias, "alias");
-      this.dataSource = Objects.requireNonNull(dataSource, "dataSource");
-
-      if (alias.trim().isEmpty()) {
-        throw new IllegalArgumentException("Alias or name can not be empty: '" + alias + "'");
-      }
+      this.alias = requireNonNull(alias, "alias");
+      this.dataSource = requireNonNull(dataSource, "dataSource");
     }
 
-    public String getAlias() {
+    public SourceName getAlias() {
       return alias;
     }
 
@@ -256,37 +259,29 @@ public class Analysis {
   @Immutable
   public static final class JoinInfo {
 
-    private final String leftJoinField;
-    private final String rightJoinField;
+    private final ColumnName leftJoinField;
+    private final ColumnName rightJoinField;
     private final JoinNode.JoinType type;
     private final Optional<WithinExpression> withinExpression;
 
     JoinInfo(
-        final String leftJoinField,
-        final String rightJoinField,
+        final ColumnName leftJoinField,
+        final ColumnName rightJoinField,
         final JoinType type,
         final Optional<WithinExpression> withinExpression
 
     ) {
-      this.leftJoinField =  Objects.requireNonNull(leftJoinField, "leftJoinField");
-      this.rightJoinField =  Objects.requireNonNull(rightJoinField, "rightJoinField");
-      this.type = Objects.requireNonNull(type, "type");
-      this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
-
-      if (leftJoinField.trim().isEmpty()) {
-        throw new IllegalArgumentException("left join field name can not be empty");
-      }
-
-      if (rightJoinField.trim().isEmpty()) {
-        throw new IllegalArgumentException("right join field name can not be empty");
-      }
+      this.leftJoinField =  requireNonNull(leftJoinField, "leftJoinField");
+      this.rightJoinField =  requireNonNull(rightJoinField, "rightJoinField");
+      this.type = requireNonNull(type, "type");
+      this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
-    public String getLeftJoinField() {
+    public ColumnName getLeftJoinField() {
       return leftJoinField;
     }
 
-    public String getRightJoinField() {
+    public ColumnName getRightJoinField() {
       return rightJoinField;
     }
 

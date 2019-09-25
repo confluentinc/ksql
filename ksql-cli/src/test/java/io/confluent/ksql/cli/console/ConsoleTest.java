@@ -36,6 +36,7 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -135,6 +136,8 @@ public class ConsoleTest {
     this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
 
     when(cliCommand.getName()).thenReturn(CLI_CMD_NAME);
+    when(cliCommand.matches(any()))
+        .thenAnswer(i -> ((String) i.getArgument(0)).toLowerCase().startsWith(CLI_CMD_NAME.toLowerCase()));
     console.registerCliSpecificCommand(cliCommand);
   }
 
@@ -1388,11 +1391,31 @@ public class ConsoleTest {
     assertThat(result, is("not a CLI command;"));
   }
 
+  @Test
+  public void shouldThrowOnInvalidCliProperty() {
+    // When:
+    console.setCliProperty("FOO", "BAR");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Undefined property: FOO. Valid properties are"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliPropertyValue() {
+    // When:
+    console.setCliProperty(CliConfig.WRAP_CONFIG, "BURRITO");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
+  }
+
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
     final Builder schemaBuilder = LogicalSchema.builder();
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
-      schemaBuilder.valueColumn("f_" + idx, fieldTypes[idx]);
+      schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);
     }
 
     final LogicalSchema schema = schemaBuilder.build();

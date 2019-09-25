@@ -19,7 +19,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
-
 import org.apache.http.HttpStatus;
 
 public final class AvroUtil {
@@ -37,7 +36,7 @@ public final class AvroUtil {
 
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
         queryMetadata.getPhysicalSchema().valueSchema(),
-        queryMetadata.getSinkName()
+        queryMetadata.getSinkName().name()
     );
 
     final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();

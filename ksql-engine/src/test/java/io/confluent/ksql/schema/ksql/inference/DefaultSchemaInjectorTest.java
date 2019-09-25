@@ -32,9 +32,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -71,7 +72,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class DefaultSchemaInjectorTest {
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
   private static final String KAFKA_TOPIC = "some-topic";
   private static final Map<String, Literal> UNSUPPORTED_PROPS = ImmutableMap.of(
       "VALUE_FORMAT", new StringLiteral("json"),
@@ -107,18 +108,18 @@ public class DefaultSchemaInjectorTest {
       .build();
 
   private static final TableElements EXPECTED_KSQL_SCHEMA = TableElements.of(
-      new TableElement(Namespace.VALUE, "INTFIELD", new Type(SqlTypes.INTEGER)),
-      new TableElement(Namespace.VALUE, "BIGINTFIELD", new Type(SqlTypes.BIGINT)),
-      new TableElement(Namespace.VALUE, "DOUBLEFIELD", new Type(SqlTypes.DOUBLE)),
-      new TableElement(Namespace.VALUE, "STRINGFIELD", new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, "BOOLEANFIELD", new Type(SqlTypes.BOOLEAN)),
-      new TableElement(Namespace.VALUE, "ARRAYFIELD", new Type(SqlTypes.array(SqlTypes.INTEGER))),
-      new TableElement(Namespace.VALUE, "MAPFIELD", new Type(SqlTypes.map(SqlTypes.BIGINT))),
-      new TableElement(Namespace.VALUE, "STRUCTFIELD", new Type(SqlStruct.builder()
+      new TableElement(Namespace.VALUE, ColumnName.of("INTFIELD"), new Type(SqlTypes.INTEGER)),
+      new TableElement(Namespace.VALUE, ColumnName.of("BIGINTFIELD"), new Type(SqlTypes.BIGINT)),
+      new TableElement(Namespace.VALUE, ColumnName.of("DOUBLEFIELD"), new Type(SqlTypes.DOUBLE)),
+      new TableElement(Namespace.VALUE, ColumnName.of("STRINGFIELD"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("BOOLEANFIELD"), new Type(SqlTypes.BOOLEAN)),
+      new TableElement(Namespace.VALUE, ColumnName.of("ARRAYFIELD"), new Type(SqlTypes.array(SqlTypes.INTEGER))),
+      new TableElement(Namespace.VALUE, ColumnName.of("MAPFIELD"), new Type(SqlTypes.map(SqlTypes.BIGINT))),
+      new TableElement(Namespace.VALUE, ColumnName.of("STRUCTFIELD"), new Type(SqlStruct.builder()
           .field("S0", SqlTypes.BIGINT)
           .build())),
       new TableElement(Namespace.VALUE,
-          "DECIMALFIELD", new Type(SqlTypes.decimal(4, 2))
+          ColumnName.of("DECIMALFIELD"), new Type(SqlTypes.decimal(4, 2))
   ));
 
   private static final int SCHEMA_ID = 5;
@@ -141,8 +142,8 @@ public class DefaultSchemaInjectorTest {
 
   @Before
   public void setUp() {
-    when(cs.getName()).thenReturn(QualifiedName.of("cs"));
-    when(ct.getName()).thenReturn(QualifiedName.of("ct"));
+    when(cs.getName()).thenReturn(SourceName.of("cs"));
+    when(ct.getName()).thenReturn(SourceName.of("ct"));
 
     when(cs.getProperties()).thenReturn(CreateSourceProperties.from(SUPPORTED_PROPS));
     when(ct.getProperties()).thenReturn(CreateSourceProperties.from(SUPPORTED_PROPS));
@@ -473,7 +474,7 @@ public class DefaultSchemaInjectorTest {
       final CreateSource source,
       final CreateSource mock
   ) {
-    final QualifiedName name = source.getName();
+    final SourceName name = source.getName();
     when(mock.getName()).thenReturn(name);
     when(mock.getElements()).thenReturn(inv.getArgument(0));
     when(mock.accept(any(), any())).thenCallRealMethod();

@@ -19,10 +19,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
-import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
@@ -44,13 +45,11 @@ public class StaticQueryValidatorTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private Query query;
-  @Mock
   private Analysis analysis;
   @Mock
   private WindowExpression windowExpression;
   @Mock
-  private Sink sink;
+  private Into into;
 
   private QueryValidator validator;
 
@@ -58,26 +57,29 @@ public class StaticQueryValidatorTest {
   public void setUp() {
     validator = new StaticQueryValidator();
 
-    when(query.isStatic()).thenReturn(true);
-    when(query.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
+    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
   }
 
   @Test
   public void shouldThrowOnStaticQueryThatIsNotFinal() {
     // Given:
-    when(query.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
+    when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not yet support `EMIT CHANGES`");
+    expectedException.expectMessage("Static queries don't support `EMIT CHANGES`");
 
     // When:
-    validator.preValidate(query, Optional.empty());
+    validator.validate(analysis);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = KsqlException.class)
   public void shouldThrowOnStaticQueryIfSinkSupplied() {
-    validator.preValidate(query, Optional.of(sink));
+    // Given:
+    when(analysis.getInto()).thenReturn(Optional.of(into));
+
+    // When:
+    validator.validate(analysis);
   }
 
   @Test
@@ -87,24 +89,24 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not support joins.");
+    expectedException.expectMessage("Static queries don't support JOIN clauses.");
 
     // When:
-    validator.postValidate(analysis);
+    validator.validate(analysis);
   }
 
   @Test
   public void shouldThrowOnStaticQueryThatIsWindowed() {
     // Given:
 
-    when(analysis.getWindowExpression()).thenReturn(windowExpression);
+    when(analysis.getWindowExpression()).thenReturn(Optional.of(windowExpression));
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not support WINDOW clauses.");
+    expectedException.expectMessage("Static queries don't support WINDOW clauses.");
 
     // When:
-    validator.postValidate(analysis);
+    validator.validate(analysis);
   }
 
   @Test
@@ -114,36 +116,36 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not support GROUP BY clauses.");
+    expectedException.expectMessage("Static queries don't support GROUP BY clauses.");
 
     // When:
-    validator.postValidate(analysis);
+    validator.validate(analysis);
   }
 
   @Test
   public void shouldThrowOnStaticQueryThatHasPartitionBy() {
     // Given:
-    when(analysis.getPartitionBy()).thenReturn(Optional.of("Something"));
+    when(analysis.getPartitionBy()).thenReturn(Optional.of(ColumnName.of("Something")));
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not support PARTITION BY clauses.");
+    expectedException.expectMessage("Static queries don't support PARTITION BY clauses.");
 
     // When:
-    validator.postValidate(analysis);
+    validator.validate(analysis);
   }
 
   @Test
   public void shouldThrowOnStaticQueryThatHasHavingClause() {
     // Given:
-    when(analysis.getHavingExpression()).thenReturn(AN_EXPRESSION);
+    when(analysis.getHavingExpression()).thenReturn(Optional.of(AN_EXPRESSION));
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not support HAVING clauses.");
+    expectedException.expectMessage("Static queries don't support HAVING clauses.");
 
     // When:
-    validator.postValidate(analysis);
+    validator.validate(analysis);
   }
 
   @Test
@@ -153,9 +155,9 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries do not support LIMIT clauses.");
+    expectedException.expectMessage("Static queries don't support LIMIT clauses.");
 
     // When:
-    validator.postValidate(analysis);
+    validator.validate(analysis);
   }
 }

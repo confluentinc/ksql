@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -412,7 +413,7 @@ public class StreamsSelectAndProjectIntTest {
   private PhysicalSchema getResultSchema() {
     final DataSource<?> source = ksqlContext
         .getMetaStore()
-        .getSource(resultStream.toUpperCase());
+        .getSource(SourceName.of(resultStream.toUpperCase()));
 
     return PhysicalSchema.from(
         source.getSchema().withoutMetaAndKeyColsInValue(),

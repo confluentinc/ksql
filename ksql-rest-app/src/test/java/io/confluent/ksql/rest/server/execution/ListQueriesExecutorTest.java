@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.Queries;
@@ -32,6 +33,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Rule;
@@ -75,7 +77,7 @@ public class ListQueriesExecutorTest {
     assertThat(queries.getQueries(), containsInAnyOrder(
         new RunningQuery(
             metadata.getStatementString(),
-            ImmutableSet.of(metadata.getSinkName()),
+            ImmutableSet.of(metadata.getSinkName().name()),
             new EntityQueryId(metadata.getQueryId()))));
   }
 
@@ -103,7 +105,7 @@ public class ListQueriesExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkName()).thenReturn(id);
+    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;

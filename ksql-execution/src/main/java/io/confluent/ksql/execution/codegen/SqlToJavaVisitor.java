@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -42,8 +43,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -59,6 +58,7 @@ import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -263,10 +263,10 @@ public class SqlToJavaVisitor {
 
     @Override
     public Pair<String, Schema> visitQualifiedNameReference(
-        final QualifiedNameReference node,
+        final ColumnReferenceExp node,
         final Void context
     ) {
-      final String fieldName = formatQualifiedName(node.getName());
+      final String fieldName = formatQualifiedName(node.getReference());
       final Column schemaColumn = schema.findValueColumn(fieldName)
           .orElseThrow(() ->
               new KsqlException("Field not found: " + fieldName));
@@ -284,7 +284,7 @@ public class SqlToJavaVisitor {
           "DereferenceExpression should have been resolved by now");
     }
 
-    private String formatQualifiedName(final QualifiedName name) {
+    private String formatQualifiedName(final ColumnRef name) {
       // for now, we don't escape anything in SqlToJavaVisitor
       return name.toString(FormatOptions.of(word -> false));
     }

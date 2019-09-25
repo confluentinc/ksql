@@ -17,6 +17,7 @@ package io.confluent.ksql.topic;
 
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstNode;
@@ -56,10 +57,10 @@ public class SourceTopicsExtractor extends DefaultTraversalVisitor<AstNode, Void
 
   @Override
   protected AstNode visitAliasedRelation(final AliasedRelation node, final Void context) {
-    final String structuredDataSourceName = ((Table) node.getRelation()).getName().name();
+    final SourceName structuredDataSourceName = ((Table) node.getRelation()).getName();
     final DataSource<?> source = metaStore.getSource(structuredDataSourceName);
     if (source == null) {
-      throw new KsqlException(structuredDataSourceName + " does not exist.");
+      throw new KsqlException(structuredDataSourceName.name() + " does not exist.");
     }
 
     // This method is called first with the primary kafka topic (or the node.getFrom() node)

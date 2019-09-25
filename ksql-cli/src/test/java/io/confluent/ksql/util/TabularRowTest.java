@@ -31,7 +31,7 @@ public class TabularRowTest {
     final List<String> header = ImmutableList.of("foo", "bar");
 
     // When:
-    final String formatted = new TabularRow(20, header, null).toString();
+    final String formatted = new TabularRow(20, header, null, true).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -46,7 +46,7 @@ public class TabularRowTest {
     final List<String> header = ImmutableList.of("foo", "bar is a long string");
 
     // When:
-    final String formatted = new TabularRow(20, header, null).toString();
+    final String formatted = new TabularRow(20, header, null, true).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -63,7 +63,7 @@ public class TabularRowTest {
     final List<String> header = ImmutableList.of("foo", "bar");
 
     // When:
-    final String formatted = new TabularRow(20, header, header).toString();
+    final String formatted = new TabularRow(20, header, header, true).toString();
 
     // Then:
     assertThat(formatted, is("|foo     |bar     |"));
@@ -75,7 +75,7 @@ public class TabularRowTest {
     final List<String> header = ImmutableList.of("foo", "bar is a long string");
 
     // When:
-    final String formatted = new TabularRow(20, header, header).toString();
+    final String formatted = new TabularRow(20, header, header, true).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -85,12 +85,56 @@ public class TabularRowTest {
   }
 
   @Test
+  public void shouldClipMultilineFormatRow() {
+    // Given:
+    final List<String> header = ImmutableList.of("foo", "bar is a long string");
+
+    // When:
+    final String formatted = new TabularRow(20, header, header, false).toString();
+
+    // Then:
+    assertThat(formatted, is(""
+        + "|foo     |bar i...|"));
+  }
+
+  @Test
+  public void shouldClipMultilineFormatRowWithLotsOfWhitespace() {
+    // Given:
+    final List<String> header = ImmutableList.of(
+        "foo",
+        "bar                                                                               foo");
+
+    // When:
+    final String formatted = new TabularRow(20, header, header, false).toString();
+
+    // Then:
+    assertThat(formatted, is(""
+        + "|foo     |bar  ...|"));
+  }
+
+  @Test
+  public void shouldNotAddEllipsesMultilineFormatRowWithLotsOfWhitespace() {
+    // Given:
+    final List<String> header = ImmutableList.of(
+        "foo",
+        "bar                                                                                  ");
+
+    // When:
+    final String formatted = new TabularRow(20, header, header, false).toString();
+
+    // Then:
+    assertThat(formatted, is(""
+        + "|foo     |bar     |"));
+  }
+
+
+  @Test
   public void shouldFormatNoColumns() {
     // Given:
     final List<String> header = ImmutableList.of();
 
     // When:
-    final String formatted = new TabularRow(20, header, null).toString();
+    final String formatted = new TabularRow(20, header, null, true).toString();
 
     // Then:
     assertThat(formatted, isEmptyString());
@@ -102,7 +146,7 @@ public class TabularRowTest {
     final List<String> header = ImmutableList.of("foo", "bar", "baz");
 
     // When:
-    final String formatted = new TabularRow(3, header, null).toString();
+    final String formatted = new TabularRow(3, header, null, true).toString();
 
     // Then:
     assertThat(formatted,

@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -79,7 +80,7 @@ public final class SerdeOptions {
    * @return the set of serde options the statement defines.
    */
   public static Set<SerdeOption> buildForCreateAsStatement(
-      final List<String> valueColumnNames,
+      final List<ColumnName> valueColumnNames,
       final Format valueFormat,
       final Optional<Boolean> wrapSingleValues,
       final Set<SerdeOption> singleFieldDefaults

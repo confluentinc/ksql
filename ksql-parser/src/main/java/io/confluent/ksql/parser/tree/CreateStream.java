@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import java.util.Optional;
@@ -27,7 +27,7 @@ import java.util.Optional;
 public class CreateStream extends CreateSource implements ExecutableDdlStatement {
 
   public CreateStream(
-      final QualifiedName name,
+      final SourceName name,
       final TableElements elements,
       final boolean notExists,
       final CreateSourceProperties properties
@@ -37,7 +37,7 @@ public class CreateStream extends CreateSource implements ExecutableDdlStatement
 
   public CreateStream(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final SourceName name,
       final TableElements elements,
       final boolean notExists,
       final CreateSourceProperties properties

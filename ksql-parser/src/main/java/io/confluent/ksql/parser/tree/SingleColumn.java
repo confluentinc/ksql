@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -28,12 +29,12 @@ import java.util.Optional;
 @Immutable
 public class SingleColumn extends SelectItem {
 
-  private final String alias;
+  private final ColumnName alias;
   private final Expression expression;
 
   public SingleColumn(
       final Expression expression,
-      final String alias
+      final ColumnName alias
   ) {
     this(Optional.empty(), expression, alias);
   }
@@ -41,7 +42,7 @@ public class SingleColumn extends SelectItem {
   public SingleColumn(
       final Optional<NodeLocation> location,
       final Expression expression,
-      final String alias
+      final ColumnName alias
   ) {
     super(location);
 
@@ -58,19 +59,20 @@ public class SingleColumn extends SelectItem {
 
   private static void checkForReservedToken(
       final Expression expression,
-      final String alias,
-      final String reservedToken
+      final ColumnName alias,
+      final ColumnName reservedToken
   ) {
-    if (alias.equalsIgnoreCase(reservedToken)) {
+    if (alias.name().equalsIgnoreCase(reservedToken.name())) {
       final String text = expression.toString();
-      if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken)) {
-        throw new ParseFailedException(reservedToken + " is a reserved token for implicit column. "
-                        + "You cannot use it as an alias for a column.");
+      if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken.name())) {
+        throw new ParseFailedException(reservedToken.name()
+            + " is a reserved token for implicit column. "
+            + "You cannot use it as an alias for a column.");
       }
     }
   }
 
-  public String getAlias() {
+  public ColumnName getAlias() {
     return alias;
   }
 

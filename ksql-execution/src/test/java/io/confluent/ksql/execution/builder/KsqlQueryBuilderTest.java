@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -63,7 +64,7 @@ public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .valueColumn("f0", SqlTypes.BOOLEAN)
+          .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),
       SerdeOption.none()
   );

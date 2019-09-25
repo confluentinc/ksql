@@ -19,7 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
@@ -28,7 +28,7 @@ public class DropStreamTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
+  private static final SourceName SOME_NAME = SourceName.of("bob");
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
@@ -41,7 +41,7 @@ public class DropStreamTest {
             new DropStream(Optional.of(OTHER_LOCATION), SOME_NAME, true, true)
         )
         .addEqualityGroup(
-            new DropStream(QualifiedName.of("jim"), true, true)
+            new DropStream(SourceName.of("jim"), true, true)
         )
         .addEqualityGroup(
             new DropStream(SOME_NAME, false, true)

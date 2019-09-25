@@ -21,12 +21,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
@@ -39,20 +40,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class QueryAnalyzer {
-
-  static final String NEW_QUERY_SYNTAX_HELP = System.lineSeparator()
-      + "'EMIT CHANGES' is used to indicate a query is continuous and outputs all changes."
-      + System.lineSeparator()
-      + "'Bare queries, e.g. those in the format 'SELECT * FROM X ...' are now, by default, "
-      + "static queries, i.e. they query the current state of the system and return a final "
-      + "result."
-      + System.lineSeparator()
-      + "To turn a static query into a streaming query, as was the default in older versions "
-      + "of KSQL, add `EMIT CHANGES` to the end of the statement, before any limit clause."
-      + System.lineSeparator()
-      + "Persistent queries, e.g. `CREATE STREAM AS ...`, currently have an implicit "
-      + "`EMIT CHANGES`. However, it is recommended to add `EMIT CHANGES` to such statements "
-      + "as a this will be required in a future release.";
 
   private final Analyzer analyzer;
   private final MetaStore metaStore;
@@ -89,18 +76,12 @@ public class QueryAnalyzer {
       final Query query,
       final Optional<Sink> sink
   ) {
-    if (query.isStatic()) {
-      staticValidator.preValidate(query, sink);
-    } else {
-      continuousValidator.preValidate(query, sink);
-    }
-
     final Analysis analysis = analyzer.analyze(query, sink);
 
     if (query.isStatic()) {
-      staticValidator.postValidate(analysis);
+      staticValidator.validate(analysis);
     } else {
-      continuousValidator.postValidate(analysis);
+      continuousValidator.validate(analysis);
     }
 
     return analysis;
@@ -108,7 +89,7 @@ public class QueryAnalyzer {
 
   public AggregateAnalysis analyzeAggregate(final Query query, final Analysis analysis) {
     final MutableAggregateAnalysis aggregateAnalysis = new MutableAggregateAnalysis();
-    final QualifiedNameReference defaultArgument = analysis.getDefaultArgument();
+    final ColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
     final AggregateAnalyzer aggregateAnalyzer =
         new AggregateAnalyzer(aggregateAnalysis, defaultArgument, metaStore);
     final AggregateExpressionRewriter aggregateExpressionRewriter =
@@ -125,7 +106,7 @@ public class QueryAnalyzer {
         && analysis.getGroupByExpressions().isEmpty()) {
       final String aggFuncs = aggregateAnalysis.getAggregateFunctions().stream()
           .map(FunctionCall::getName)
-          .map(QualifiedName::name)
+          .map(FunctionName::name)
           .collect(Collectors.joining(", "));
       throw new KsqlException("Use of aggregate functions requires a GROUP BY clause. "
           + "Aggregate function(s): " + aggFuncs);
@@ -136,31 +117,29 @@ public class QueryAnalyzer {
         aggregateAnalyzer
     );
 
-    if (analysis.getHavingExpression() != null) {
-      processHavingExpression(
-          analysis,
-          aggregateAnalysis,
-          aggregateAnalyzer,
-          aggregateExpressionRewriter
-      );
-    }
+    analysis.getHavingExpression().ifPresent(having ->
+        processHavingExpression(
+            having,
+            aggregateAnalysis,
+            aggregateAnalyzer,
+            aggregateExpressionRewriter
+        )
+    );
 
     enforceAggregateRules(query, analysis, aggregateAnalysis);
     return aggregateAnalysis;
   }
 
   private static void processHavingExpression(
-      final Analysis analysis,
+      final Expression having,
       final MutableAggregateAnalysis aggregateAnalysis,
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    final Expression exp = analysis.getHavingExpression();
-
-    aggregateAnalyzer.processHaving(exp);
+    aggregateAnalyzer.processHaving(having);
 
     aggregateAnalysis.setHavingExpression(
-        ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
+        ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, having));
   }
 
   private static void processGroupByExpression(
@@ -178,7 +157,8 @@ public class QueryAnalyzer {
       final AggregateAnalyzer aggregateAnalyzer,
       final AggregateExpressionRewriter aggregateExpressionRewriter
   ) {
-    for (final Expression exp : analysis.getSelectExpressions()) {
+    for (final SelectExpression select : analysis.getSelectExpressions()) {
+      final Expression exp = select.getExpression();
       aggregateAnalyzer.processSelect(exp);
 
       aggregateAnalysis.addFinalSelectExpression(
@@ -220,7 +200,7 @@ public class QueryAnalyzer {
           "Non-aggregate SELECT expression(s) not part of GROUP BY: " + unmatchedSelects);
     }
 
-    final SetView<QualifiedNameReference> unmatchedSelectsAgg = Sets
+    final SetView<ColumnReferenceExp> unmatchedSelectsAgg = Sets
         .difference(aggregateAnalysis.getAggregateSelectFields(), groupByExprs);
     if (!unmatchedSelectsAgg.isEmpty()) {
       throw new KsqlException(
@@ -228,10 +208,10 @@ public class QueryAnalyzer {
               + "outside of aggregate functions not part of GROUP BY: " + unmatchedSelectsAgg);
     }
 
-    final Set<QualifiedNameReference> havingColumns = aggregateAnalysis
+    final Set<ColumnReferenceExp> havingColumns = aggregateAnalysis
         .getNonAggregateHavingFields();
 
-    final Set<QualifiedNameReference> havingOnly = Sets.difference(havingColumns, groupByExprs);
+    final Set<ColumnReferenceExp> havingOnly = Sets.difference(havingColumns, groupByExprs);
     if (!havingOnly.isEmpty()) {
       throw new KsqlException(
           "Non-aggregate HAVING expression not part of GROUP BY: " + havingOnly);

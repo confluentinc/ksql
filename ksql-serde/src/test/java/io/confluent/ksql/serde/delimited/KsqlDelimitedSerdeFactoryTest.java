@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.serde.delimited;
 
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -85,8 +86,8 @@ public class KsqlDelimitedSerdeFactoryTest {
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn("k0", fieldSchema)
-        .valueColumn("v0", fieldSchema)
+        .keyColumn(ColumnName.of("k0"), fieldSchema)
+        .valueColumn(ColumnName.of("v0"), fieldSchema)
         .build();
 
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, SerdeOption.none());

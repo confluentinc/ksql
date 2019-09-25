@@ -43,6 +43,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
@@ -94,17 +96,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class JoinNodeTest {
 
   private static final LogicalSchema LEFT_SOURCE_SCHEMA = LogicalSchema.builder()
-      .valueColumn("C0", SqlTypes.BIGINT)
-      .valueColumn("L1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("C0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("L1"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema RIGHT_SOURCE_SCHEMA = LogicalSchema.builder()
-      .valueColumn("C0", SqlTypes.BIGINT)
-      .valueColumn("R1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("C0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("R1"), SqlTypes.STRING)
       .build();
 
-  private static final String LEFT_ALIAS = "left";
-  private static final String RIGHT_ALIAS = "right";
+  private static final SourceName LEFT_ALIAS = SourceName.of("left");
+  private static final SourceName RIGHT_ALIAS = SourceName.of("right");
 
   private static final LogicalSchema LEFT_NODE_SCHEMA = LEFT_SOURCE_SCHEMA
       .withMetaAndKeyColsInValue()
@@ -123,8 +125,8 @@ public class JoinNodeTest {
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
-  private static final String LEFT_JOIN_FIELD_NAME = LEFT_ALIAS + ".C0";
-  private static final String RIGHT_JOIN_FIELD_NAME = RIGHT_ALIAS + ".R1";
+  private static final ColumnName LEFT_JOIN_FIELD_NAME = ColumnName.of(LEFT_ALIAS.name() + ".C0");
+  private static final ColumnName RIGHT_JOIN_FIELD_NAME = ColumnName.of(RIGHT_ALIAS.name() + ".R1");
 
   private static final KeyField leftJoinField = KeyField
       .of(LEFT_JOIN_FIELD_NAME, Column.of(LEFT_JOIN_FIELD_NAME, SqlTypes.STRING));
@@ -223,7 +225,7 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        "won't find me",
+        ColumnName.of("won't find me"),
         RIGHT_JOIN_FIELD_NAME,
         Optional.empty()
     );
@@ -242,7 +244,7 @@ public class JoinNodeTest {
         left,
         right,
         LEFT_JOIN_FIELD_NAME,
-        "won't find me",
+        ColumnName.of("won't find me"),
         Optional.empty()
     );
   }
@@ -485,7 +487,7 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final String rightCriteriaColumn =
+    final ColumnName rightCriteriaColumn =
         getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
@@ -503,9 +505,9 @@ public class JoinNodeTest {
     expectedException.expectMessage(String.format(
         "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        RIGHT_ALIAS,
-        RIGHT_JOIN_FIELD_NAME,
-        rightCriteriaColumn
+        RIGHT_ALIAS.name(),
+        RIGHT_JOIN_FIELD_NAME.name(),
+        rightCriteriaColumn.name()
     ));
 
     // When:
@@ -531,7 +533,7 @@ public class JoinNodeTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Source table (" + RIGHT_ALIAS + ") has no key column defined. "
+        "Source table (" + RIGHT_ALIAS.name() + ") has no key column defined. "
             + "Only 'ROWKEY' is supported in the join criteria."
     );
 
@@ -551,7 +553,7 @@ public class JoinNodeTest {
         left,
         right,
         LEFT_JOIN_FIELD_NAME,
-        "right.ROWKEY",
+        ColumnName.of("right.ROWKEY"),
         Optional.empty()
     );
 
@@ -689,7 +691,7 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final String leftCriteriaColumn = getNonKeyColumn(LEFT_SOURCE_SCHEMA, LEFT_ALIAS,
+    final ColumnName leftCriteriaColumn = getNonKeyColumn(LEFT_SOURCE_SCHEMA, LEFT_ALIAS,
         LEFT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
@@ -707,9 +709,9 @@ public class JoinNodeTest {
     expectedException.expectMessage(String.format(
         "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        LEFT_ALIAS,
-        LEFT_JOIN_FIELD_NAME,
-        leftCriteriaColumn
+        LEFT_ALIAS.name(),
+        LEFT_JOIN_FIELD_NAME.name(),
+        leftCriteriaColumn.name()
     ));
 
     // When:
@@ -722,7 +724,7 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final String rightCriteriaColumn =
+    final ColumnName rightCriteriaColumn =
         getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
 
     final JoinNode joinNode = new JoinNode(
@@ -740,9 +742,9 @@ public class JoinNodeTest {
     expectedException.expectMessage(String.format(
         "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        RIGHT_ALIAS,
-        RIGHT_JOIN_FIELD_NAME,
-        rightCriteriaColumn
+        RIGHT_ALIAS.name(),
+        RIGHT_JOIN_FIELD_NAME.name(),
+        rightCriteriaColumn.name()
     ));
 
     // When:
@@ -873,14 +875,14 @@ public class JoinNodeTest {
 
     // When:
     assertThat(joinNode.getSchema(), is(LogicalSchema.builder()
-        .valueColumn(LEFT_ALIAS, "ROWTIME", SqlTypes.BIGINT)
-        .valueColumn(LEFT_ALIAS, "ROWKEY", SqlTypes.STRING)
-        .valueColumn(LEFT_ALIAS, "C0", SqlTypes.BIGINT)
-        .valueColumn(LEFT_ALIAS, "L1", SqlTypes.STRING)
-        .valueColumn(RIGHT_ALIAS, "ROWTIME", SqlTypes.BIGINT)
-        .valueColumn(RIGHT_ALIAS, "ROWKEY", SqlTypes.STRING)
-        .valueColumn(RIGHT_ALIAS, "C0", SqlTypes.BIGINT)
-        .valueColumn(RIGHT_ALIAS, "R1", SqlTypes.STRING)
+        .valueColumn(LEFT_ALIAS, ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(LEFT_ALIAS, ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(LEFT_ALIAS, ColumnName.of("C0"), SqlTypes.BIGINT)
+        .valueColumn(LEFT_ALIAS, ColumnName.of("L1"), SqlTypes.STRING)
+        .valueColumn(RIGHT_ALIAS, ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(RIGHT_ALIAS, ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(RIGHT_ALIAS, ColumnName.of("C0"), SqlTypes.BIGINT)
+        .valueColumn(RIGHT_ALIAS, ColumnName.of("R1"), SqlTypes.STRING)
         .build()
     ));
   }
@@ -958,9 +960,9 @@ public class JoinNodeTest {
 
     final Optional<LegacyField> keyField = keyFieldName
         .map(key -> schema.findValueColumn(key).orElseThrow(AssertionError::new))
-        .map(field -> LegacyField.of(field.fullName(), field.type()));
+        .map(field -> LegacyField.of(ColumnName.of(field.fullName()), field.type()));
 
-    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
+    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName.map(ColumnName::of), keyField));
   }
 
   @SuppressWarnings("unchecked")
@@ -1029,30 +1031,30 @@ public class JoinNodeTest {
         .thenReturn(new TopicDescription("test2", false, tablePartitionInfoList));
   }
 
-  private static Optional<String> getColumn(final LogicalSchema schema, final Predicate<String> filter) {
+  private static Optional<ColumnName> getColumn(final LogicalSchema schema, final Predicate<ColumnName> filter) {
     return schema.value().stream()
         .map(Column::name)
         .filter(filter)
         .findFirst();
   }
 
-  private static String getNonKeyColumn(
+  private static ColumnName getNonKeyColumn(
       final LogicalSchema schema,
-      final String alias,
-      final String keyName
+      final SourceName alias,
+      final ColumnName keyName
   ) {
-    final ImmutableList<String> blackList = ImmutableList.of(
+    final ImmutableList<ColumnName> blackList = ImmutableList.of(
         SchemaUtil.ROWKEY_NAME,
         SchemaUtil.ROWTIME_NAME,
-        SchemaUtil.getFieldNameWithNoAlias(keyName)
+        ColumnName.of(SchemaUtil.getFieldNameWithNoAlias(keyName.name()))
     );
 
-    final String column =
+    final ColumnName column =
         getColumn(schema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
     final Column field = schema.findValueColumn(column).get();
-    return SchemaUtil.buildAliasedFieldName(alias, field.name());
+    return ColumnName.of(SchemaUtil.buildAliasedFieldName(alias.name(), field.name().name()));
   }
 
   @SuppressWarnings("unchecked")
@@ -1062,7 +1064,7 @@ public class JoinNodeTest {
       final DataSource<?> dataSource,
       final String name
   ) {
-    when(dataSource.getName()).thenReturn(name);
+    when(dataSource.getName()).thenReturn(SourceName.of(name));
     when(node.getDataSource()).thenReturn((DataSource)dataSource);
 
     final KsqlTopic ksqlTopic = mock(KsqlTopic.class);

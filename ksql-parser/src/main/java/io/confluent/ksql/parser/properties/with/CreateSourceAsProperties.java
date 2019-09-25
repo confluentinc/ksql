@@ -26,6 +26,7 @@ import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.config.ConfigException;
 
@@ -33,7 +34,9 @@ import org.apache.kafka.common.config.ConfigException;
  * Performs validation of a CREATE AS statement's WITH clause.
  */
 @Immutable
-public final class CreateSourceAsProperties extends WithClauseProperties {
+public final class CreateSourceAsProperties {
+
+  private final PropertiesConfig props;
 
   public static CreateSourceAsProperties none() {
     return new CreateSourceAsProperties(ImmutableMap.of());
@@ -53,44 +56,44 @@ public final class CreateSourceAsProperties extends WithClauseProperties {
   }
 
   private CreateSourceAsProperties(final Map<String, Literal> originals) {
-    super(CreateAsConfigs.CONFIG_METADATA, originals);
+    this.props = new PropertiesConfig(CreateAsConfigs.CONFIG_METADATA, originals);
 
-    validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
+    props.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }
 
   public Optional<Format> getValueFormat() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_FORMAT_PROPERTY))
         .map(String::toUpperCase)
         .map(Format::valueOf);
   }
 
   public Optional<String> getKafkaTopic() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY));
   }
 
   public Optional<Integer> getPartitions() {
-    return Optional.ofNullable(getInt(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS));
+    return Optional.ofNullable(props.getInt(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS));
   }
 
   public Optional<Short> getReplicas() {
-    return Optional.ofNullable(getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
+    return Optional.ofNullable(props.getShort(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS));
   }
 
 
   public Optional<String> getTimestampColumnName() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
   }
 
   public Optional<String> getTimestampFormat() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY));
   }
 
   public Optional<String> getValueAvroSchemaName() {
-    return Optional.ofNullable(getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME));
   }
 
   public Optional<Boolean> getWrapSingleValues() {
-    return Optional.ofNullable(getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+    return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
   }
 
   public Optional<Delimiter> getValueDelimiter() {
@@ -103,11 +106,33 @@ public final class CreateSourceAsProperties extends WithClauseProperties {
       final int partitions,
       final short replicas
   ) {
-    final Map<String, Literal> originals = copyOfOriginalLiterals();
+    final Map<String, Literal> originals = props.copyOfOriginalLiterals();
     originals.put(CommonCreateConfigs.KAFKA_TOPIC_NAME_PROPERTY, new StringLiteral(name));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_PARTITIONS, new IntegerLiteral(partitions));
     originals.put(CommonCreateConfigs.SOURCE_NUMBER_OF_REPLICAS, new IntegerLiteral(replicas));
 
     return new CreateSourceAsProperties(originals);
+  }
+
+  @Override
+  public String toString() {
+    return props.toString();
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final CreateSourceAsProperties that = (CreateSourceAsProperties) o;
+    return Objects.equals(props, that.props);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(props);
   }
 }

@@ -24,6 +24,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Set;
@@ -51,11 +52,11 @@ public class SinkSchemaUtilTest {
   public void shouldComputeIndexesToRemoveImplicitsAndRowKey() {
     // Given:
     givenStepWithSchema(LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.STRING)
-        .valueColumn("field2", SqlTypes.STRING)
-        .valueColumn("field3", SqlTypes.STRING)
-        .valueColumn("timestamp", SqlTypes.BIGINT)
-        .valueColumn("key", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
         .build()
         .withMetaAndKeyColsInValue()
     );
@@ -71,13 +72,13 @@ public class SinkSchemaUtilTest {
   public void shouldComputeIndexesToRemoveImplicitsAndRowKeyRegardlessOfLocation() {
     // Given:
     givenStepWithSchema(LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.STRING)
-        .valueColumn("field2", SqlTypes.STRING)
-        .valueColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("field3", SqlTypes.STRING)
-        .valueColumn("timestamp", SqlTypes.BIGINT)
-        .valueColumn("ROWTIME", SqlTypes.BIGINT)
-        .valueColumn("key", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
         .build()
     );
 

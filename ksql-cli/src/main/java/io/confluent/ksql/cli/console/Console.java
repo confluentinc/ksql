@@ -19,6 +19,7 @@ import static io.confluent.ksql.util.CmdLineUtil.splitByUnquotedWhitespace;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.cli.console.KsqlTerminal.HistoryEntry;
@@ -36,9 +37,9 @@ import io.confluent.ksql.cli.console.table.builder.FunctionNameListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.KafkaTopicsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.PropertiesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.QueriesTableBuilder;
-import io.confluent.ksql.cli.console.table.builder.QueryResultTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.StreamsListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TableBuilder;
+import io.confluent.ksql.cli.console.table.builder.TableRowsTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TablesListTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TopicDescriptionTableBuilder;
 import io.confluent.ksql.cli.console.table.builder.TypeListTableBuilder;
@@ -67,13 +68,13 @@ import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescription;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
-import io.confluent.ksql.rest.entity.QueryResultEntity;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.entity.SourceDescription;
 import io.confluent.ksql.rest.entity.SourceDescriptionEntity;
 import io.confluent.ksql.rest.entity.SourceDescriptionList;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.StreamsList;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
@@ -105,6 +106,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
 import org.eclipse.jetty.io.RuntimeIOException;
 import org.jline.terminal.Terminal.Signal;
@@ -164,8 +166,8 @@ public class Console implements Closeable {
               tablePrinter(TypeList.class, TypeListTableBuilder::new))
           .put(ErrorEntity.class,
               tablePrinter(ErrorEntity.class, ErrorEntityTableBuilder::new))
-          .put(QueryResultEntity.class,
-              tablePrinter(QueryResultEntity.class, QueryResultTableBuilder::new))
+          .put(TableRowsEntity.class,
+              tablePrinter(TableRowsEntity.class, TableRowsTableBuilder::new))
           .build();
 
   private static <T extends KsqlEntity> Handler1<KsqlEntity, Console> tablePrinter(
@@ -190,7 +192,7 @@ public class Console implements Closeable {
   private final RowCaptor rowCaptor;
   private OutputFormat outputFormat;
   private Optional<File> spoolFile = Optional.empty();
-
+  private CliConfig config;
 
   public interface RowCaptor {
     void addRow(GenericRow row);
@@ -230,6 +232,7 @@ public class Console implements Closeable {
     this.rowCaptor = Objects.requireNonNull(rowCaptor, "rowCaptor");
     this.cliSpecificCommands = Maps.newLinkedHashMap();
     this.objectMapper = JsonMapper.INSTANCE.mapper;
+    this.config = new CliConfig(ImmutableMap.of());
   }
 
   public PrintWriter writer() {
@@ -271,6 +274,14 @@ public class Console implements Closeable {
 
   public void handle(final Signal signal, final SignalHandler signalHandler) {
     terminal.handle(signal, signalHandler);
+  }
+
+  public void setCliProperty(final String name, final Object value) {
+    try {
+      config = config.with(name, value);
+    } catch (final ConfigException e) {
+      terminal.writer().println(e.getMessage());
+    }
   }
 
   @Override
@@ -407,14 +418,11 @@ public class Console implements Closeable {
       return Optional.empty();
     }
 
-    final String reconstructed = parts.stream()
-        .collect(Collectors.joining(" "));
+    final String command = String.join(" ", parts);
 
-    final String asLowerCase = reconstructed.toLowerCase();
-
-    return cliSpecificCommands.entrySet().stream()
-        .filter(e -> asLowerCase.startsWith(e.getKey()))
-        .map(e -> CliCmdExecutor.of(e.getValue(), parts))
+    return cliSpecificCommands.values().stream()
+        .filter(cliSpecificCommand -> cliSpecificCommand.matches(command))
+        .map(cliSpecificCommand -> CliCmdExecutor.of(cliSpecificCommand, parts))
         .findFirst();
   }
 
@@ -423,7 +431,7 @@ public class Console implements Closeable {
       final List<FieldInfo> fields
   ) {
     rowCaptor.addRow(row);
-    writer().println(TabularRow.createRow(getWidth(), fields, row));
+    writer().println(TabularRow.createRow(getWidth(), fields, row, config));
     flush();
   }
 

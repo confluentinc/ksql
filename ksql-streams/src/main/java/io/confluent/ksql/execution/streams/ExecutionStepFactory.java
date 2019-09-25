@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.time.Duration;
@@ -219,7 +220,7 @@ public final class ExecutionStepFactory {
   public static <K> StreamSelectKey<K> streamSelectKey(
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStream<K, GenericRow>> source,
-      final String fieldName,
+      final ColumnName fieldName,
       final boolean updateRowKey
   ) {
     final QueryContext queryContext = stacker.getQueryContext();

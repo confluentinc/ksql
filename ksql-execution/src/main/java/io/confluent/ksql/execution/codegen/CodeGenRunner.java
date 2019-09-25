@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -28,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
@@ -297,7 +297,7 @@ public class CodeGenRunner {
         final SubscriptExpression node,
         final Object context
     ) {
-      if (node.getBase() instanceof QualifiedNameReference) {
+      if (node.getBase() instanceof ColumnReferenceExp) {
         final String arrayBaseName = node.getBase().toString();
         addParameter(getRequiredColumn(arrayBaseName));
       } else {
@@ -309,10 +309,10 @@ public class CodeGenRunner {
 
     @Override
     public Object visitQualifiedNameReference(
-        final QualifiedNameReference node,
+        final ColumnReferenceExp node,
         final Object context
     ) {
-      addParameter(getRequiredColumn(node.getName().toString()));
+      addParameter(getRequiredColumn(node.getReference().toString()));
       return null;
     }
 

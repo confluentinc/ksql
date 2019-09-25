@@ -22,6 +22,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +71,7 @@ public class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
       final String errorMsg = String.format(
           "Error computing expression %s for column %s with index %d: %s",
           select.evaluator.getExpression(),
-          select.fieldName,
+          select.fieldName.toString(FormatOptions.noEscape()),
           column,
           e.getMessage()
       );
@@ -87,19 +89,19 @@ public class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
 
   static final class SelectInfo {
 
-    final String fieldName;
+    final ColumnName fieldName;
     final ExpressionMetadata evaluator;
 
-    static SelectInfo of(final String fieldName, final ExpressionMetadata evaluator) {
+    static SelectInfo of(final ColumnName fieldName, final ExpressionMetadata evaluator) {
       return new SelectInfo(fieldName, evaluator);
     }
 
-    private SelectInfo(final String fieldName, final ExpressionMetadata evaluator) {
+    private SelectInfo(final ColumnName fieldName, final ExpressionMetadata evaluator) {
       this.fieldName = requireNonNull(fieldName, "fieldName");
       this.evaluator = requireNonNull(evaluator, "evaluator");
     }
 
-    String getFieldName() {
+    ColumnName getFieldName() {
       return fieldName;
     }
 

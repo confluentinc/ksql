@@ -10,8 +10,10 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -33,22 +35,24 @@ import org.mockito.junit.MockitoRule;
 
 public class SelectionTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("GIRAFFE", SqlTypes.STRING)
-      .valueColumn("MANATEE", SqlTypes.INTEGER)
-      .valueColumn("RACCOON", SqlTypes.BIGINT)
-      .build().withAlias("TEST").withMetaAndKeyColsInValue();
+      .valueColumn(ColumnName.of("GIRAFFE"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("MANATEE"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("RACCOON"), SqlTypes.BIGINT)
+      .build().withAlias(SourceName.of("TEST")).withMetaAndKeyColsInValue();
+
+  private static final SourceName TEST = SourceName.of("TEST");
 
   private static final Expression EXPRESSION1 =
-      new QualifiedNameReference(QualifiedName.of("TEST", "GIRAFFE"));
+      new ColumnReferenceExp(ColumnRef.of(TEST, ColumnName.of("GIRAFFE")));
 
   private static final Expression EXPRESSION2 = new ArithmeticBinaryExpression(
       Operator.ADD,
-      new QualifiedNameReference(QualifiedName.of("TEST", "MANATEE")),
-      new QualifiedNameReference(QualifiedName.of("TEST", "RACCOON"))
+      new ColumnReferenceExp(ColumnRef.of(TEST, ColumnName.of("MANATEE"))),
+      new ColumnReferenceExp(ColumnRef.of(TEST, ColumnName.of("RACCOON")))
   );
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
-      SelectExpression.of("FOO", EXPRESSION1),
-      SelectExpression.of("BAR", EXPRESSION2)
+      SelectExpression.of(ColumnName.of("FOO"), EXPRESSION1),
+      SelectExpression.of(ColumnName.of("BAR"), EXPRESSION2)
   );
 
   @Mock
@@ -105,9 +109,9 @@ public class SelectionTest {
 
     // Then:
     final LogicalSchema expected = new LogicalSchema.Builder()
-        .keyColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("FOO", SqlTypes.STRING)
-        .valueColumn("BAR", SqlTypes.BIGINT)
+        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
         .build();
     assertThat(resultSchema, equalTo(expected));
   }

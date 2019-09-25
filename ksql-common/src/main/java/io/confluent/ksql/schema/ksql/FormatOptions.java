@@ -28,6 +28,10 @@ public final class FormatOptions {
     return new FormatOptions(word -> true);
   }
 
+  public static FormatOptions noEscape() {
+    return new FormatOptions(word -> false);
+  }
+
   /**
    * Construct instance.
    *

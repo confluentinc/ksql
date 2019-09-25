@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 
@@ -25,7 +26,7 @@ public final class LogicalSchemaWithMetaAndKeyFields {
   }
 
   public static LogicalSchemaWithMetaAndKeyFields fromOriginal(
-      final String alias,
+      final SourceName alias,
       final LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(
         schema.withAlias(alias).withMetaAndKeyColsInValue());

@@ -22,7 +22,6 @@ import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseParser;
@@ -42,7 +41,7 @@ public final class ParserUtil {
     return getIdentifierText(false, context);
   }
 
-  private static String getIdentifierText(
+  public static String getIdentifierText(
       final boolean caseSensitive,
       final SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
@@ -54,41 +53,9 @@ public final class ParserUtil {
     }
   }
 
-  public static String getIdentifierTextCaseSensitive(
-      final SqlBaseParser.IdentifierContext context) {
-    return getIdentifierText(true, context);
-  }
-
   public static String unquote(final String value, final String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
-  }
-
-  public static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-    return getQualifiedName(false, context);
-  }
-
-  private static QualifiedName getQualifiedName(
-      final boolean caseSensitive,
-      final SqlBaseParser.QualifiedNameContext context) {
-
-    final Optional<String> qualifier;
-    final String name;
-
-    if (context.identifier(1) == null) {
-      qualifier = Optional.empty();
-      name = ParserUtil.getIdentifierText(caseSensitive, context.identifier(0));
-    } else {
-      qualifier = Optional.of(ParserUtil.getIdentifierText(context.identifier(0)));
-      name = ParserUtil.getIdentifierText(caseSensitive, context.identifier(1));
-    }
-
-    return QualifiedName.of(qualifier, name);
-  }
-
-  public static QualifiedName getQualifiedNameCaseSensitive(
-      final SqlBaseParser.QualifiedNameContext context) {
-    return getQualifiedName(true, context);
   }
 
   public static int processIntegerNumber(final NumberContext number, final String context) {

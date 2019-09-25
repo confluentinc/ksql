@@ -20,6 +20,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlReferentialIntegrityException;
@@ -39,7 +41,7 @@ import org.apache.kafka.connect.data.Schema;
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
 
-  private final Map<String, SourceInfo> dataSources = new ConcurrentHashMap<>();
+  private final Map<SourceName, SourceInfo> dataSources = new ConcurrentHashMap<>();
   private final Object referentialIntegrityLock = new Object();
   private final FunctionRegistry functionRegistry;
   private final TypeRegistry typeRegistry;
@@ -50,7 +52,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   private MetaStoreImpl(
-      final Map<String, SourceInfo> dataSources,
+      final Map<SourceName, SourceInfo> dataSources,
       final FunctionRegistry functionRegistry,
       final TypeRegistry typeRegistry
   ) {
@@ -63,7 +65,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public DataSource<?> getSource(final String sourceName) {
+  public DataSource<?> getSource(final SourceName sourceName) {
     final SourceInfo source = dataSources.get(sourceName);
     if (source == null) {
       return null;
@@ -77,22 +79,23 @@ public final class MetaStoreImpl implements MutableMetaStore {
         .putIfAbsent(dataSource.getName(), new SourceInfo(dataSource));
 
     if (existing != null) {
-      final String name = dataSource.getName();
+      final SourceName name = dataSource.getName();
       final String newType = dataSource.getDataSourceType().getKsqlType().toLowerCase();
       final String existingType = existing.source.getDataSourceType().getKsqlType().toLowerCase();
 
       throw new KsqlException(String.format(
           "Cannot add %s '%s': A %s with the same name already exists",
-          newType, name, existingType));
+          newType, name.name(), existingType));
     }
   }
 
   @Override
-  public void deleteSource(final String sourceName) {
+  public void deleteSource(final SourceName sourceName) {
     synchronized (referentialIntegrityLock) {
       dataSources.compute(sourceName, (ignored, source) -> {
         if (source == null) {
-          throw new KsqlException(String.format("No data source with name %s exists.", sourceName));
+          throw new KsqlException(String.format("No data source with name %s exists.",
+              sourceName.name()));
         }
 
         final String sourceForQueriesMessage = source.referentialIntegrity
@@ -111,7 +114,10 @@ public final class MetaStoreImpl implements MutableMetaStore {
                       + "The following queries read from this source: [%s].%n"
                       + "The following queries write into this source: [%s].%n"
                       + "You need to terminate them before dropping %s.",
-                  sourceName, sourceForQueriesMessage, sinkForQueriesMessage, sourceName));
+                  sourceName.toString(FormatOptions.noEscape()),
+                  sourceForQueriesMessage,
+                  sinkForQueriesMessage,
+                  sourceName.toString(FormatOptions.noEscape())));
         }
 
         return null;
@@ -120,7 +126,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Map<String, DataSource<?>> getAllDataSources() {
+  public Map<SourceName, DataSource<?>> getAllDataSources() {
     return dataSources
         .entrySet()
         .stream()
@@ -130,18 +136,20 @@ public final class MetaStoreImpl implements MutableMetaStore {
   @Override
   public void updateForPersistentQuery(
       final String queryId,
-      final Set<String> sourceNames,
-      final Set<String> sinkNames
+      final Set<SourceName> sourceNames,
+      final Set<SourceName> sinkNames
   ) {
     synchronized (referentialIntegrityLock) {
       final String sourceAlreadyRegistered = streamSources(sourceNames)
           .filter(source -> source.referentialIntegrity.getSourceForQueries().contains(queryId))
           .map(source -> source.source.getName())
+          .map(Object::toString)
           .collect(Collectors.joining(","));
 
       final String sinkAlreadyRegistered = streamSources(sinkNames)
           .filter(source -> source.referentialIntegrity.getSinkForQueries().contains(queryId))
           .map(source -> source.source.getName())
+          .map(Object::toString)
           .collect(Collectors.joining(","));
 
       if (!sourceAlreadyRegistered.isEmpty() || !sinkAlreadyRegistered.isEmpty()) {
@@ -168,7 +176,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Set<String> getQueriesWithSource(final String sourceName) {
+  public Set<String> getQueriesWithSource(final SourceName sourceName) {
     final SourceInfo sourceInfo = dataSources.get(sourceName);
     if (sourceInfo == null) {
       return Collections.emptySet();
@@ -177,7 +185,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public Set<String> getQueriesWithSink(final String sourceName) {
+  public Set<String> getQueriesWithSink(final SourceName sourceName) {
     final SourceInfo sourceInfo = dataSources.get(sourceName);
     if (sourceInfo == null) {
       return Collections.emptySet();
@@ -223,12 +231,12 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return functionRegistry.listAggregateFunctions();
   }
 
-  private Stream<SourceInfo> streamSources(final Set<String> sourceNames) {
+  private Stream<SourceInfo> streamSources(final Set<SourceName> sourceNames) {
     return sourceNames.stream()
         .map(sourceName -> {
           final SourceInfo sourceInfo = dataSources.get(sourceName);
           if (sourceInfo == null) {
-            throw new KsqlException("Unknown source: " + sourceName);
+            throw new KsqlException("Unknown source: " + sourceName.name());
           }
 
           return sourceInfo;

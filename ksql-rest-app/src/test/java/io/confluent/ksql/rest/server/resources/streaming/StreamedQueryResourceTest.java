@@ -42,6 +42,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
@@ -104,7 +105,7 @@ public class StreamedQueryResourceTest {
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
   private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueColumn("f1", SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
       .build();
 
   private static final KsqlConfig VALID_CONFIG = new KsqlConfig(ImmutableMap.of(

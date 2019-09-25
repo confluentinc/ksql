@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 
@@ -26,7 +26,7 @@ import java.util.Optional;
 public class DropStream extends DropStatement implements ExecutableDdlStatement {
 
   public DropStream(
-      final QualifiedName streamName,
+      final SourceName streamName,
       final boolean ifExists,
       final boolean deleteTopic
   ) {
@@ -35,7 +35,7 @@ public class DropStream extends DropStatement implements ExecutableDdlStatement 
 
   public DropStream(
       final Optional<NodeLocation> location,
-      final QualifiedName streamName,
+      final SourceName streamName,
       final boolean ifExists,
       final boolean deleteTopic
   ) {

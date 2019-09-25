@@ -23,6 +23,8 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
@@ -39,10 +41,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
-  private final Optional<String> partitionByField;
+  private final Optional<ColumnName> partitionByField;
   private final boolean doCreateInto;
   private final Set<SerdeOption> serdeOptions;
+  private final SourceName intoSourceName;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -50,11 +54,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final Optional<String> partitionByField,
+      final Optional<ColumnName> partitionByField,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final Set<SerdeOption> serdeOptions
-  ) {
+      final Set<SerdeOption> serdeOptions,
+      final SourceName intoSourceName) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         id,
         source,
@@ -73,6 +78,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.partitionByField = Objects.requireNonNull(partitionByField, "partitionByField");
     this.doCreateInto = doCreateInto;
+    this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
 
     validatePartitionByField();
   }
@@ -87,6 +93,10 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   public Set<SerdeOption> getSerdeOptions() {
     return serdeOptions;
+  }
+
+  public SourceName getIntoSourceName() {
+    return intoSourceName;
   }
 
   @Override
@@ -157,7 +167,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return;
     }
 
-    final String fieldName = partitionByField.get();
+    final ColumnName fieldName = partitionByField.get();
 
     if (getSchema().isMetaColumn(fieldName) || getSchema().isKeyColumn(fieldName)) {
       return;

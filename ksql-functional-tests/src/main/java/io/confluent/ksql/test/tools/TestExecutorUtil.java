@@ -30,6 +30,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.SqlFormatInjector;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -39,6 +40,7 @@ import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
+import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.serde.Format;
@@ -352,17 +354,21 @@ public final class TestExecutorUtil {
       final Join join = (Join) from;
       final AliasedRelation left = (AliasedRelation) join.getLeft();
       final AliasedRelation right = (AliasedRelation) join.getRight();
-      if (metaStore.getSource(left.getRelation().toString()) == null) {
+
+      final SourceName leftName = ((Table) left.getRelation()).getName();
+      final SourceName rightName = ((Table) right.getRelation()).getName();
+
+      if (metaStore.getSource(leftName) == null) {
         throw new KsqlException("Source does not exist: " + left.getRelation().toString());
       }
-      if (metaStore.getSource(right.getRelation().toString()) == null) {
+      if (metaStore.getSource(rightName) == null) {
         throw new KsqlException("Source does not exist: " + right.getRelation().toString());
       }
       return ImmutableList.of(
-          metaStore.getSource(left.getRelation().toString()),
-          metaStore.getSource(right.getRelation().toString()));
+          metaStore.getSource(leftName),
+          metaStore.getSource(rightName));
     } else {
-      final String fromName = ((AliasedRelation) from).getRelation().toString();
+      final SourceName fromName = ((Table) ((AliasedRelation) from).getRelation()).getName();
       if (metaStore.getSource(fromName) == null) {
         throw new KsqlException("Source does not exist: " + fromName);
       }

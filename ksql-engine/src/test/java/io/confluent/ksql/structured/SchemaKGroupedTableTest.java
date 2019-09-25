@@ -16,7 +16,6 @@
 package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -36,8 +35,10 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -108,8 +109,8 @@ public class SchemaKGroupedTableTest {
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
   private final LogicalSchema schema = LogicalSchema.builder()
-      .valueColumn("GROUPING_COLUMN", SqlTypes.STRING)
-      .valueColumn("AGG_VALUE", SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("GROUPING_COLUMN"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("AGG_VALUE"), SqlTypes.INTEGER)
       .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -146,10 +147,11 @@ public class SchemaKGroupedTableTest {
 
   private KTable kTable;
   private KsqlTable<?> ksqlTable;
+  private Map<Integer, KsqlAggregateFunction> someUdfs;
 
   @Before
   public void init() {
-    ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
+    ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     final StreamsBuilder builder = new StreamsBuilder();
 
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
@@ -169,13 +171,15 @@ public class SchemaKGroupedTableTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
 
-    when(aggregateSchema.findValueColumn("GROUPING_COLUMN"))
-        .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
+    when(aggregateSchema.findValueColumn(ColumnName.of("GROUPING_COLUMN")))
+        .thenReturn(Optional.of(Column.of(ColumnName.of("GROUPING_COLUMN"), SqlTypes.STRING)));
 
-    when(aggregateSchema.value()).thenReturn(mock(List.class));
+    when(aggregateSchema.value()).thenReturn(ImmutableList.of(mock(Column.class)));
 
     when(mockKGroupedTable.aggregate(any(), any(), any(), any())).thenReturn(table);
     when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
+
+    someUdfs = ImmutableMap.of(0, tableFunc);
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
@@ -208,7 +212,7 @@ public class SchemaKGroupedTableTest {
 
     final List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
-            .map(c -> new QualifiedNameReference(QualifiedName.of("TEST1", c)))
+            .map(c -> new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of(c))))
             .collect(Collectors.toList());
 
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
@@ -235,8 +239,8 @@ public class SchemaKGroupedTableTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -263,7 +267,7 @@ public class SchemaKGroupedTableTest {
           1,
           ImmutableList.of(aggCall1, aggCall2),
           aggValToFunctionMap,
-          null,
+          Optional.empty(),
           valueFormat,
           GenericRowSerDe.from(
               FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
@@ -322,8 +326,8 @@ public class SchemaKGroupedTableTest {
         () -> null,
         0,
         emptyList(),
-        Collections.emptyMap(),
-        null,
+        someUdfs,
+        Optional.empty(),
         valueFormat,
         valueSerde,
         queryContext);
@@ -359,7 +363,7 @@ public class SchemaKGroupedTableTest {
         1,
         ImmutableList.of(aggCall1),
         functions,
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -393,8 +397,8 @@ public class SchemaKGroupedTableTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        null,
+        someUdfs,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -423,7 +427,7 @@ public class SchemaKGroupedTableTest {
         2,
         ImmutableList.of(aggCall1),
         aggColumns,
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext

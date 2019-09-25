@@ -27,6 +27,8 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -55,7 +57,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlAuthorizationValidatorImplTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("F1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
   private static final String STREAM_TOPIC_1 = "s1";
@@ -446,7 +448,7 @@ public class KsqlAuthorizationValidatorImplTest {
 
     final KsqlStream<?> streamSource = new KsqlStream<>(
         "",
-        streamName.toUpperCase(),
+        SourceName.of(streamName.toUpperCase()),
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),

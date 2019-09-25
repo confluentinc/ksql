@@ -15,6 +15,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -32,9 +33,9 @@ public class PageViewDataProvider extends TestDataProvider {
   private static final String key = "VIEWTIME";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueColumn("VIEWTIME", SqlTypes.BIGINT)
-      .valueColumn("USERID", SqlTypes.STRING)
-      .valueColumn("PAGEID", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("VIEWTIME"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("USERID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("PAGEID"), SqlTypes.STRING)
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

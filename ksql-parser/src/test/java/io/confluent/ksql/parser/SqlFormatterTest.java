@@ -26,7 +26,6 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -34,6 +33,8 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
@@ -66,7 +67,6 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
-import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.junit.Before;
@@ -85,6 +85,9 @@ public class SqlFormatterTest {
   private JoinCriteria criteria;
 
   private MutableMetaStore metaStore;
+
+  private static final SourceName TEST = SourceName.of("TEST");
+  private static final SourceName SOMETHING = SourceName.of("SOMETHING");
 
   private static final SqlType addressSchema = SqlTypes.struct()
       .field("NUMBER", SqlTypes.BIGINT)
@@ -106,25 +109,25 @@ public class SqlFormatterTest {
       .build();
 
   private static final LogicalSchema ITEM_INFO_SCHEMA = LogicalSchema.builder()
-      .valueColumn("ITEMID", SqlTypes.BIGINT)
-      .valueColumn("NAME", SqlTypes.STRING)
-      .valueColumn("CATEGORY", categorySchema)
+      .valueColumn(ColumnName.of("ITEMID"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("NAME"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("CATEGORY"), categorySchema)
       .build();
 
   private static final LogicalSchema tableSchema = LogicalSchema.builder()
-      .valueColumn("TABLE", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("TABLE"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema ORDERS_SCHEMA = LogicalSchema.builder()
-      .valueColumn("ORDERTIME", SqlTypes.BIGINT)
-      .valueColumn("ORDERID", SqlTypes.BIGINT)
-      .valueColumn("ITEMID", SqlTypes.STRING)
-      .valueColumn("ITEMINFO", ITEM_INFO_STRUCT)
-      .valueColumn("ORDERUNITS", SqlTypes.INTEGER)
-      .valueColumn("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
-      .valueColumn("ADDRESS", addressSchema)
-      .valueColumn("SIZE", SqlTypes.INTEGER) // Reserved word
+      .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ITEMINFO"), ITEM_INFO_STRUCT)
+      .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
+      .valueColumn(ColumnName.of("SIZE"), SqlTypes.INTEGER) // Reserved word
       .build();
 
   private static final CreateSourceProperties SOME_WITH_PROPS = CreateSourceProperties.from(
@@ -135,21 +138,21 @@ public class SqlFormatterTest {
   );
 
   private static final TableElements ELEMENTS_WITH_KEY = TableElements.of(
-      new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, "Foo", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.KEY, ColumnName.of("ROWKEY"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING))
   );
 
   private static final TableElements ELEMENTS_WITHOUT_KEY = TableElements.of(
-      new TableElement(Namespace.VALUE, "Foo", new Type(SqlTypes.STRING)),
-      new TableElement(Namespace.VALUE, "Bar", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, ColumnName.of("Foo"), new Type(SqlTypes.STRING)),
+      new TableElement(Namespace.VALUE, ColumnName.of("Bar"), new Type(SqlTypes.STRING))
   );
 
   @Before
   public void setUp() {
-    final Table left = new Table(QualifiedName.of("left"));
-    final Table right = new Table(QualifiedName.of("right"));
-    leftAlias = new AliasedRelation(left, "l");
-    rightAlias = new AliasedRelation(right, "r");
+    final Table left = new Table(SourceName.of("left"));
+    final Table right = new Table(SourceName.of("right"));
+    leftAlias = new AliasedRelation(left, SourceName.of("L"));
+    rightAlias = new AliasedRelation(right, SourceName.of("R"));
 
     criteria = new JoinOn(new ComparisonExpression(ComparisonExpression.Type.EQUAL,
                                                    new StringLiteral("left.col0"),
@@ -166,10 +169,10 @@ public class SqlFormatterTest {
 
     final KsqlStream ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
-        "ADDRESS",
+        SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", ORDERS_SCHEMA.findValueColumn("ORDERTIME").get()),
+        KeyField.of(ColumnName.of("ORDERTIME"), ORDERS_SCHEMA.findValueColumn("ORDERTIME").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders
     );
@@ -184,10 +187,10 @@ public class SqlFormatterTest {
     );
     final KsqlTable<String> ksqlTableOrders = new KsqlTable<>(
         "sqlexpression",
-        "ITEMID",
+        SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of("ITEMID", ITEM_INFO_SCHEMA.findValueColumn("ITEMID").get()),
+        KeyField.of(ColumnName.of("ITEMID"), ITEM_INFO_SCHEMA.findValueColumn("ITEMID").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );
@@ -196,10 +199,10 @@ public class SqlFormatterTest {
 
     final KsqlTable<String> ksqlTableTable = new KsqlTable<>(
         "sqlexpression",
-        "TABLE",
+        SourceName.of("TABLE"),
         tableSchema,
         SerdeOption.none(),
-        KeyField.of("TABLE", tableSchema.findValueColumn("TABLE").get()),
+        KeyField.of(ColumnName.of("TABLE"), tableSchema.findValueColumn("TABLE").get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );
@@ -211,7 +214,7 @@ public class SqlFormatterTest {
   public void shouldFormatCreateStreamStatementWithExplicitKey() {
     // Given:
     final CreateStream createStream = new CreateStream(
-        QualifiedName.of("TEST"),
+        TEST,
         ELEMENTS_WITH_KEY,
         false,
         SOME_WITH_PROPS);
@@ -228,7 +231,7 @@ public class SqlFormatterTest {
   public void shouldFormatCreateStreamStatementWithImplicitKey() {
     // Given:
     final CreateStream createStream = new CreateStream(
-        QualifiedName.of("TEST"),
+        TEST,
         ELEMENTS_WITHOUT_KEY,
         false,
         SOME_WITH_PROPS);
@@ -245,7 +248,7 @@ public class SqlFormatterTest {
   public void shouldFormatCreateTableStatementWithExplicitKey() {
     // Given:
     final CreateTable createTable = new CreateTable(
-        QualifiedName.of("TEST"),
+        TEST,
         ELEMENTS_WITH_KEY,
         false,
         SOME_WITH_PROPS);
@@ -262,7 +265,7 @@ public class SqlFormatterTest {
   public void shouldFormatCreateTableStatementWithImplicitKey() {
     // Given:
     final CreateTable createTable = new CreateTable(
-        QualifiedName.of("TEST"),
+        TEST,
         ELEMENTS_WITHOUT_KEY,
         false,
         SOME_WITH_PROPS);
@@ -279,12 +282,12 @@ public class SqlFormatterTest {
   public void shouldFormatTableElementsNamedAfterReservedWords() {
     // Given:
     final TableElements tableElements = TableElements.of(
-        new TableElement(Namespace.VALUE, "GROUP", new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, "Having", new Type(SqlTypes.STRING))
+        new TableElement(Namespace.VALUE, ColumnName.of("GROUP"), new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, ColumnName.of("Having"), new Type(SqlTypes.STRING))
     );
 
     final CreateStream createStream = new CreateStream(
-        QualifiedName.of("TEST"),
+        TEST,
         tableElements,
         false,
         SOME_WITH_PROPS);
@@ -369,7 +372,7 @@ public class SqlFormatterTest {
     final String statementString =
         "CREATE STREAM S AS SELECT a.address->city FROM address a;";
     final Statement statement = parseSingle(statementString);
-    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT FETCH_FIELD_FROM_STRUCT(A.ADDRESS, 'CITY') \"ADDRESS__CITY\"\n"
+    assertThat(SqlFormatter.formatSql(statement), equalTo("CREATE STREAM S AS SELECT A.ADDRESS->CITY \"ADDRESS__CITY\"\n"
         + "FROM ADDRESS A\nEMIT CHANGES"));
   }
 
@@ -513,7 +516,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatDropStreamStatementIfExistsDeleteTopic() {
     // Given:
-    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), true, true);
+    final DropStream dropStream = new DropStream(SOMETHING, true, true);
 
     // When:
     final String formatted = SqlFormatter.formatSql(dropStream);
@@ -525,7 +528,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatDropStreamStatementIfExists() {
     // Given:
-    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), true, false);
+    final DropStream dropStream = new DropStream(SOMETHING, true, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(dropStream);
@@ -537,7 +540,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatDropStreamStatement() {
     // Given:
-    final DropStream dropStream = new DropStream(QualifiedName.of("SOMETHING"), false, false);
+    final DropStream dropStream = new DropStream(SOMETHING, false, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(dropStream);
@@ -549,7 +552,7 @@ public class SqlFormatterTest {
   @Test
   public void shouldFormatDropTableStatement() {
     // Given:
-    final DropTable dropStream = new DropTable(QualifiedName.of("SOMETHING"), false, false);
+    final DropTable dropStream = new DropTable(SOMETHING, false, false);
 
     // When:
     final String formatted = SqlFormatter.formatSql(dropStream);

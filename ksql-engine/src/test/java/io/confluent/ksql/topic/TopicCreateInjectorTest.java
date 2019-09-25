@@ -32,6 +32,8 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -71,7 +73,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class TopicCreateInjectorTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("F1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
   @Rule
@@ -109,7 +111,7 @@ public class TopicCreateInjectorTest {
 
     final KsqlStream source = new KsqlStream<>(
         "",
-        "SOURCE",
+        SourceName.of("SOURCE"),
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),
@@ -127,7 +129,7 @@ public class TopicCreateInjectorTest {
 
     final KsqlStream joinSource = new KsqlStream<>(
         "",
-        "J_SOURCE",
+        SourceName.of("J_SOURCE"),
         SCHEMA,
         SerdeOption.none(),
         KeyField.none(),

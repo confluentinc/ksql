@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
@@ -25,19 +26,19 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class SelectExpression {
 
-  private final String name;
+  private final ColumnName name;
   private final Expression expression;
 
-  private SelectExpression(final String name, final Expression expression) {
+  private SelectExpression(final ColumnName name, final Expression expression) {
     this.name = Objects.requireNonNull(name, "name");
     this.expression = Objects.requireNonNull(expression, "expression");
   }
 
-  public static SelectExpression of(final String name, final Expression expression) {
+  public static SelectExpression of(final ColumnName name, final Expression expression) {
     return new SelectExpression(name, expression);
   }
 
-  public String getName() {
+  public ColumnName getName() {
     return name;
   }
 

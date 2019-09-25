@@ -25,6 +25,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
@@ -106,6 +107,25 @@ public class ExplainExecutorTest {
   }
 
   @Test
+  public void shouldExplainStatementWithStructFieldDereference() {
+    // Given:
+    engine.givenSource(DataSourceType.KSTREAM, "Y");
+    final String statementText = "SELECT address->street FROM Y EMIT CHANGES;";
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
+
+    // When:
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
+        explain,
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
+    assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
+  }
+
+  @Test
   public void shouldFailOnNonQueryExplain() {
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -123,7 +143,7 @@ public class ExplainExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkName()).thenReturn(id);
+    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;

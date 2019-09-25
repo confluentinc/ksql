@@ -39,8 +39,9 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -114,7 +115,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatQualifiedNameReference() {
-    assertThat(ExpressionFormatter.formatExpression(new QualifiedNameReference(QualifiedName.of("name"))), equalTo("name"));
+    assertThat(ExpressionFormatter.formatExpression(new ColumnReferenceExp(ColumnRef.of("name"))), equalTo("name"));
   }
 
   @Test
@@ -135,24 +136,24 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionCallWithCount() {
-    final FunctionCall functionCall = new FunctionCall(QualifiedName.of("function", "COUNT"),
+    final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
 
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT('name')"));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
   }
 
   @Test
   public void shouldFormatFunctionCountStar() {
-    final FunctionCall functionCall = new FunctionCall(QualifiedName.of("function", "COUNT"), Collections.emptyList());
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT(*)"));
+    final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"), Collections.emptyList());
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT(*)"));
   }
 
   @Test
   public void shouldFormatFunctionWithDistinct() {
     final FunctionCall functionCall = new FunctionCall(
-        QualifiedName.of("function", "COUNT"),
+        FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
-    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("function.COUNT('name')"));
+    assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
   }
 
   @Test

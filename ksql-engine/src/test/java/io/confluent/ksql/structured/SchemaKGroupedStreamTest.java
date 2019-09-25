@@ -16,7 +16,6 @@
 package io.confluent.ksql.structured;
 
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -82,6 +81,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKGroupedStreamTest {
+
   @Mock
   private LogicalSchema aggregateSchema;
   @Mock
@@ -133,6 +133,7 @@ public class SchemaKGroupedStreamTest {
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
   private SchemaKGroupedStream schemaGroupedStream;
+  private Map<Integer, KsqlAggregateFunction> someUdfs;
 
   @Before
   public void setUp() {
@@ -160,17 +161,19 @@ public class SchemaKGroupedStreamTest {
 
     when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
 
-    when(aggregateSchema.value()).thenReturn(mock(List.class));
+    when(aggregateSchema.value()).thenReturn(ImmutableList.of(mock(Column.class)));
 
     when(ksqlWindowExp.applyAggregate(any(), any(), any(), any())).thenReturn(table);
     when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
+
+    someUdfs = ImmutableMap.of(0, otherFunc);
   }
 
   @Test
   public void shouldNoUseSelectMapperForNonWindowed() {
     // Given:
     final Map<Integer, KsqlAggregateFunction> invalidWindowFuncs = ImmutableMap.of(
-        2, windowStartFunc, 4, windowEndFunc);
+        0, windowStartFunc, 1, windowEndFunc);
 
     // When:
     assertDoesNotInstallWindowSelectMapper(null, invalidWindowFuncs);
@@ -179,7 +182,7 @@ public class SchemaKGroupedStreamTest {
   @Test
   public void shouldNotUseSelectMapperForWindowedWithoutWindowSelects() {
     // Given:
-    final Map<Integer, KsqlAggregateFunction> nonWindowFuncs = ImmutableMap.of(2, otherFunc);
+    final Map<Integer, KsqlAggregateFunction> nonWindowFuncs = ImmutableMap.of(0, otherFunc);
 
     // When:
     assertDoesNotInstallWindowSelectMapper(windowExp, nonWindowFuncs);
@@ -217,8 +220,8 @@ public class SchemaKGroupedStreamTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -242,8 +245,8 @@ public class SchemaKGroupedStreamTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -267,8 +270,8 @@ public class SchemaKGroupedStreamTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -291,8 +294,8 @@ public class SchemaKGroupedStreamTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -325,7 +328,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         funcMap,
-        windowExp,
+        Optional.ofNullable(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -350,7 +353,7 @@ public class SchemaKGroupedStreamTest {
         0,
         emptyList(),
         funcMap,
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -382,8 +385,8 @@ public class SchemaKGroupedStreamTest {
         () -> null,
         0,
         emptyList(),
-        Collections.emptyMap(),
-        null,
+        someUdfs,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -412,8 +415,8 @@ public class SchemaKGroupedStreamTest {
         () -> null,
         0,
         emptyList(),
-        Collections.emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext);
@@ -435,8 +438,8 @@ public class SchemaKGroupedStreamTest {
         initializer,
         0,
         emptyList(),
-        emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -462,7 +465,7 @@ public class SchemaKGroupedStreamTest {
         1,
         ImmutableList.of(aggCall),
         functions,
-        null,
+        Optional.empty(),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -492,8 +495,8 @@ public class SchemaKGroupedStreamTest {
         initializer,
         0,
         emptyList(),
-        Collections.emptyMap(),
-        windowExp,
+        someUdfs,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext
@@ -535,7 +538,7 @@ public class SchemaKGroupedStreamTest {
         2,
         ImmutableList.of(aggCall),
         aggColumns,
-        windowExp,
+        Optional.of(windowExp),
         valueFormat,
         topicValueSerDe,
         queryContext

@@ -45,6 +45,8 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -75,22 +77,22 @@ import org.junit.rules.ExpectedException;
 public class CodeGenRunnerTest {
 
     private static final LogicalSchema META_STORE_SCHEMA = LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
-        .valueColumn("COL1", SqlTypes.STRING)
-        .valueColumn("COL2", SqlTypes.STRING)
-        .valueColumn("COL3", SqlTypes.DOUBLE)
-        .valueColumn("COL4", SqlTypes.DOUBLE)
-        .valueColumn("COL5", SqlTypes.INTEGER)
-        .valueColumn("COL6", SqlTypes.BOOLEAN)
-        .valueColumn("COL7", SqlTypes.BOOLEAN)
-        .valueColumn("COL8", SqlTypes.BIGINT)
-        .valueColumn("COL9", SqlTypes.array(SqlTypes.INTEGER))
-        .valueColumn("COL10", SqlTypes.array(SqlTypes.INTEGER))
-        .valueColumn("COL11", SqlTypes.map(SqlTypes.STRING))
-        .valueColumn("COL12", SqlTypes.map(SqlTypes.INTEGER))
-        .valueColumn("COL13", SqlTypes.array(SqlTypes.STRING))
-        .valueColumn("COL14", SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
-        .valueColumn("COL15", SqlTypes
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL5"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("COL6"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("COL7"), SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("COL8"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL9"), SqlTypes.array(SqlTypes.INTEGER))
+        .valueColumn(ColumnName.of("COL10"), SqlTypes.array(SqlTypes.INTEGER))
+        .valueColumn(ColumnName.of("COL11"), SqlTypes.map(SqlTypes.STRING))
+        .valueColumn(ColumnName.of("COL12"), SqlTypes.map(SqlTypes.INTEGER))
+        .valueColumn(ColumnName.of("COL13"), SqlTypes.array(SqlTypes.STRING))
+        .valueColumn(ColumnName.of("COL14"), SqlTypes.array(SqlTypes.array(SqlTypes.STRING)))
+        .valueColumn(ColumnName.of("COL15"), SqlTypes
             .struct()
             .field("A", SqlTypes.STRING)
             .build())
@@ -164,17 +166,17 @@ public class CodeGenRunnerTest {
 
         final KsqlStream ksqlStream = new KsqlStream<>(
             "sqlexpression",
-            "CODEGEN_TEST",
+            SourceName.of("CODEGEN_TEST"),
             META_STORE_SCHEMA,
             SerdeOption.none(),
-            KeyField.of("COL0", META_STORE_SCHEMA.findValueColumn("COL0").get()),
+            KeyField.of(ColumnName.of("COL0"), META_STORE_SCHEMA.findValueColumn("COL0").get()),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic
         );
 
         metaStore.putSource(ksqlStream);
 
-        final LogicalSchema schema = META_STORE_SCHEMA.withAlias("CODEGEN_TEST");
+        final LogicalSchema schema = META_STORE_SCHEMA.withAlias(SourceName.of("CODEGEN_TEST"));
 
         codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     }
@@ -199,7 +201,7 @@ public class CodeGenRunnerTest {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Select");
+            (analysis.getSelectExpressions().get(0).getExpression(), "Select");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
@@ -218,7 +220,7 @@ public class CodeGenRunnerTest {
 
         // When:
         final Object result = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Select")
+            (analysis.getSelectExpressions().get(0).getExpression(), "Select")
             .evaluate(genericRow(ONE_ROW));
 
         // Then:
@@ -231,7 +233,7 @@ public class CodeGenRunnerTest {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Filter");
+            (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
 
@@ -642,7 +644,8 @@ public class CodeGenRunnerTest {
         final Expression expression = analyzeQuery(
             "SELECT col11['key1'] as Address FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -664,7 +667,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -686,7 +690,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -708,7 +713,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -729,7 +735,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -749,7 +756,8 @@ public class CodeGenRunnerTest {
                 + "END "
                 + "FROM codegen_test EMIT CHANGES;", metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -768,7 +776,8 @@ public class CodeGenRunnerTest {
             "SELECT EXTRACTJSONFIELD(col11['address'], '$.city') FROM codegen_test EMIT CHANGES;",
             metaStore)
             .getSelectExpressions()
-            .get(0);
+            .get(0)
+            .getExpression();
 
         // When:
         final Object result = codeGenRunner
@@ -832,7 +841,7 @@ public class CodeGenRunnerTest {
         final GenericRow input = buildRow(inputValues);
 
         return analysis.getSelectExpressions().stream()
-            .map(exp -> codeGenRunner.buildCodeGenFromParseTree(exp, "Select"))
+            .map(exp -> codeGenRunner.buildCodeGenFromParseTree(exp.getExpression(), "Select"))
             .map(md -> md.evaluate(input))
             .collect(Collectors.toList());
     }
@@ -875,7 +884,7 @@ public class CodeGenRunnerTest {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getSelectExpressions().get(0), "Filter");
+            (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), containsInAnyOrder(cola, colb));
         assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(2));
 
@@ -916,8 +925,8 @@ public class CodeGenRunnerTest {
     private boolean evalBetweenClause(final String simpleQuery, final int col, final Object val) {
         final Analysis analysis = analyzeQuery(simpleQuery, metaStore);
 
-        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
-            (analysis.getWhereExpression(), "Filter");
+        final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner
+            .buildCodeGenFromParseTree(analysis.getWhereExpression().get(), "Filter");
 
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         columns.set(col, val);

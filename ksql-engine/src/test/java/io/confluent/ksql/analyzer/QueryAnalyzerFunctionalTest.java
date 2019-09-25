@@ -31,8 +31,11 @@ import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
@@ -66,14 +69,20 @@ import org.junit.rules.ExpectedException;
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class QueryAnalyzerFunctionalTest {
 
-  private static final QualifiedNameReference ITEM_ID =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", "ITEMID"));
+  private static final SourceName ORDERS = SourceName.of("ORDERS");
+  private static final SourceName TEST1 = SourceName.of("TEST1");
 
-  private static final QualifiedNameReference ORDER_ID =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", "ORDERID"));
+  private static final ColumnReferenceExp ITEM_ID =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("ITEMID")));
 
-  private static final QualifiedNameReference ORDER_UNITS =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", "ORDERUNITS"));
+  private static final ColumnReferenceExp ORDER_ID =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("ORDERID")));
+
+  private static final ColumnReferenceExp ORDER_UNITS =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("ORDERUNITS")));
+
+  private static final ColumnReferenceExp TEST_COL1 =
+      new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL1")));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -92,10 +101,13 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     final AliasedDataSource fromDataSource = analysis.getFromDataSources().get(0);
-    assertThat(analysis.getSelectExpressions(), equalTo(Collections.singletonList(ORDER_ID)));
+    assertThat(
+        analysis.getSelectExpressions(),
+        contains(SelectExpression.of(ColumnName.of("ORDERID"), ORDER_ID))
+    );
     assertThat(analysis.getFromDataSources(), hasSize(1));
     assertThat(fromDataSource.getDataSource(), instanceOf(KsqlStream.class));
-    assertThat(fromDataSource.getAlias(), equalTo("ORDERS"));
+    assertThat(fromDataSource.getAlias(), equalTo(SourceName.of("ORDERS")));
   }
 
   @Test
@@ -110,15 +122,17 @@ public class QueryAnalyzerFunctionalTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getSelectExpressions(), contains(
-        new QualifiedNameReference(QualifiedName.of("TEST1", "COL1"))));
+    assertThat(
+        analysis.getSelectExpressions(),
+        contains(SelectExpression.of(ColumnName.of("COL1"), TEST_COL1))
+    );
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
     final AliasedDataSource fromDataSource = analysis.getFromDataSources().get(0);
     assertThat(fromDataSource.getDataSource(), instanceOf(KsqlStream.class));
-    assertThat(fromDataSource.getAlias(), equalTo("TEST1"));
-    assertThat(analysis.getInto().get().getName(), is("S"));
+    assertThat(fromDataSource.getAlias(), equalTo(SourceName.of("TEST1")));
+    assertThat(analysis.getInto().get().getName(), is(SourceName.of("S")));
   }
 
   @Test
@@ -133,15 +147,20 @@ public class QueryAnalyzerFunctionalTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getSelectExpressions(), contains(
-        new QualifiedNameReference(QualifiedName.of("TEST2", "COL1"))));
+    assertThat(
+        analysis.getSelectExpressions(),
+        contains(SelectExpression.of(
+            ColumnName.of("COL1"),
+            new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")))
+        ))
+    );
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
     final AliasedDataSource fromDataSource = analysis.getFromDataSources().get(0);
     assertThat(fromDataSource.getDataSource(), instanceOf(KsqlTable.class));
-    assertThat(fromDataSource.getAlias(), equalTo("TEST2"));
-    assertThat(analysis.getInto().get().getName(), is("T"));
+    assertThat(fromDataSource.getAlias(), equalTo(SourceName.of("TEST2")));
+    assertThat(analysis.getInto().get().getName(), is(SourceName.of("T")));
   }
 
   @Test
@@ -156,17 +175,19 @@ public class QueryAnalyzerFunctionalTest {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
 
     // Then:
-    assertThat(analysis.getSelectExpressions(), contains(
-        new QualifiedNameReference(QualifiedName.of("TEST1", "COL1"))));
+    assertThat(
+        analysis.getSelectExpressions(),
+        contains(SelectExpression.of(ColumnName.of("COL1"), TEST_COL1))
+    );
 
     assertThat(analysis.getFromDataSources(), hasSize(1));
 
     final AliasedDataSource fromDataSource = analysis.getFromDataSources().get(0);
     assertThat(fromDataSource.getDataSource(), instanceOf(KsqlStream.class));
-    assertThat(fromDataSource.getAlias(), equalTo("TEST1"));
+    assertThat(fromDataSource.getAlias(), equalTo(SourceName.of("TEST1")));
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     final Into into = analysis.getInto().get();
-    final DataSource<?> test0 = metaStore.getSource("TEST0");
+    final DataSource<?> test0 = metaStore.getSource(SourceName.of("TEST0"));
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
   }
@@ -184,7 +205,8 @@ public class QueryAnalyzerFunctionalTest {
 
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().get(ITEM_ID), contains(ITEM_ID));
-    assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_0")))));
+    assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new ColumnReferenceExp(
+        ColumnRef.of("KSQL_AGG_VARIABLE_0")))));
     assertThat(aggregateAnalysis.getAggregateFunctionArguments(), equalTo(Collections.singletonList(ORDER_UNITS)));
     assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
   }
@@ -328,7 +350,7 @@ public class QueryAnalyzerFunctionalTest {
     final Expression havingExpression = aggregateAnalysis.getHavingExpression();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
-        new QualifiedNameReference(QualifiedName.of("KSQL_AGG_VARIABLE_1")),
+        new ColumnReferenceExp(ColumnRef.of("KSQL_AGG_VARIABLE_1")),
         new IntegerLiteral(10))));
   }
 
@@ -398,7 +420,7 @@ public class QueryAnalyzerFunctionalTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Non-aggregate SELECT expression(s) not part of GROUP BY: "
-            + "[(ORDERS.ITEMID + FETCH_FIELD_FROM_STRUCT(ORDERS.ADDRESS, 'STREET'))]"
+            + "[(ORDERS.ITEMID + ORDERS.ADDRESS->STREET)]"
     );
 
     // When:

@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.Streams;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
@@ -47,6 +48,7 @@ public final class SinkSchemaUtil {
 
     return cols
         .map(Column::name)
+        .map(ColumnName::name)
         .map(valueSchema::field)
         .filter(Objects::nonNull)
         .map(org.apache.kafka.connect.data.Field::index)

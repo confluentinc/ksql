@@ -88,7 +88,7 @@ public class UdfCompiler {
   private final SqlTypeParser typeParser;
 
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-  public UdfCompiler(final Optional<Metrics> metrics) {
+  UdfCompiler(final Optional<Metrics> metrics) {
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
   }
@@ -195,13 +195,13 @@ public class UdfCompiler {
     }
 
     private void validateTypes(final Type t) {
-      if (!isTypeSupported((Class<?>)getRawType(t), SUPPORTED_TYPES)) {
+      if (isUnsupportedType((Class<?>) getRawType(t))) {
         throw new KsqlException(String.format(invalidClassErrorMsg, t));
       }
     }
 
     Schema getInputSchema(final String inSchema) {
-      validateStructAnnotation(inputType, inSchema, "");
+      validateStructAnnotation(inputType, inSchema, "paramSchema");
       final Schema inputSchema = getSchemaFromType(inputType, inSchema);
       //Currently, aggregate functions cannot have reified types as input parameters.
       if (!GenericsUtil.constituentGenerics(inputSchema).isEmpty()) {
@@ -212,19 +212,18 @@ public class UdfCompiler {
     }
 
     Schema getAggregateSchema(final String aggSchema) {
-      validateStructAnnotation(aggregateType, aggSchema, "");
+      validateStructAnnotation(aggregateType, aggSchema, "aggregateSchema");
       return getSchemaFromType(aggregateType, aggSchema);
     }
 
     Schema getOutputSchema(final String outSchema) {
-      validateStructAnnotation(outputType, outSchema, "");
+      validateStructAnnotation(outputType, outSchema, "returnSchema");
       return getSchemaFromType(outputType, outSchema);
     }
 
     private void validateStructAnnotation(final Type type, final String schema, final String msg) {
       if (type.equals(Struct.class) && schema.isEmpty()) {
-        throw new KsqlException(String.format("Must specify '%s' for STRUCT parameter in "
-                                                  + "@UdafFactory.", msg));
+        throw new KsqlException("Must specify '" + msg + "' for STRUCT parameter in @UdafFactory.");
       }
     }
 
@@ -283,7 +282,7 @@ public class UdfCompiler {
   ) {
     validateMethodSignature(method);
     Arrays.stream(method.getParameterTypes())
-        .filter(type -> !UdfCompiler.isTypeSupported(type, SUPPORTED_TYPES))
+        .filter(UdfCompiler::isUnsupportedType)
         .findFirst()
         .ifPresent(type -> {
           throw new KsqlException(
@@ -319,7 +318,7 @@ public class UdfCompiler {
         continue;
       }
 
-      if (!UdfCompiler.isTypeSupported(type, SUPPORTED_TYPES)) {
+      if (isUnsupportedType(type)) {
         throw new KsqlException(
             String.format(
                 "Type %s is not supported by UDF methods. "
@@ -347,11 +346,10 @@ public class UdfCompiler {
     }
   }
 
-  @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-  private static boolean isTypeSupported(final Class<?> type, final Set<Class<?>> supportedTypes) {
-    return supportedTypes.contains(type)
-        || type.isArray() && supportedTypes.contains(type.getComponentType())
-        || supportedTypes.stream().anyMatch(supported -> supported.isAssignableFrom(type));
+  private static boolean isUnsupportedType(final Class<?> type) {
+    return !SUPPORTED_TYPES.contains(type)
+        && (!type.isArray() || !SUPPORTED_TYPES.contains(type.getComponentType()))
+        && SUPPORTED_TYPES.stream().noneMatch(supported -> supported.isAssignableFrom(type));
   }
 
   private static IScriptEvaluator createScriptEvaluator(

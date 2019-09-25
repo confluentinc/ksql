@@ -36,6 +36,7 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.materialization.KsqlMaterialization.KsqlMaterializedTable;
 import io.confluent.ksql.materialization.KsqlMaterialization.KsqlMaterializedWindowedTable;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.SchemaUtil;
@@ -57,8 +58,8 @@ public class KsqlMaterializationTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-      .valueColumn("v0", SqlTypes.STRING)
-      .valueColumn("v1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.asStructKey("k");

@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,13 +24,13 @@ import java.util.Optional;
 @Immutable
 public abstract class DropStatement extends Statement {
 
-  private final QualifiedName name;
+  private final SourceName name;
   private final boolean ifExists;
   private final boolean deleteTopic;
 
   DropStatement(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final SourceName name,
       final boolean ifExists,
       final boolean deleteTopic
   ) {
@@ -44,7 +44,7 @@ public abstract class DropStatement extends Statement {
     return ifExists;
   }
 
-  public QualifiedName getName() {
+  public SourceName getName() {
     return name;
   }
 

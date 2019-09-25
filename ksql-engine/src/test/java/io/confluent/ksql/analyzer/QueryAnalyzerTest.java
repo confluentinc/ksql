@@ -16,6 +16,7 @@
 package io.confluent.ksql.analyzer;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
@@ -28,9 +29,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -76,9 +75,7 @@ public class QueryAnalyzerTest {
     queryAnalyzer.analyze(query, Optional.of(sink));
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(continuousValidator);
-    inOrder.verify(continuousValidator).preValidate(query, Optional.of(sink));
-    inOrder.verify(continuousValidator).postValidate(analysis);
+    verify(continuousValidator).validate(analysis);
     verifyNoMoreInteractions(staticValidator);
   }
 
@@ -91,9 +88,7 @@ public class QueryAnalyzerTest {
     queryAnalyzer.analyze(query, Optional.of(sink));
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(staticValidator);
-    inOrder.verify(staticValidator).preValidate(query, Optional.of(sink));
-    inOrder.verify(staticValidator).postValidate(analysis);
+    verify(staticValidator).validate(analysis);
     verifyNoMoreInteractions(continuousValidator);
   }
 }

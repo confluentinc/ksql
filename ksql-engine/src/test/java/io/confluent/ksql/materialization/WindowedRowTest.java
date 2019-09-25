@@ -25,6 +25,7 @@ import com.google.common.testing.NullPointerTester.Visibility;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.TableRowValidation.Validator;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
@@ -43,10 +44,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class WindowedRowTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.STRING)
-      .keyColumn("k1", SqlTypes.INTEGER)
-      .valueColumn("v0", SqlTypes.STRING)
-      .valueColumn("v1", SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.DOUBLE)
       .build();
 
   private static final Schema KEY_STRUCT_SCHEMA = SchemaBuilder.struct()
@@ -81,10 +82,10 @@ public class WindowedRowTest {
   @Test
   public void shouldImplementEquals() {
     final LogicalSchema differentSchema = LogicalSchema.builder()
-        .keyColumn("k0", SqlTypes.STRING)
-        .keyColumn("k1", SqlTypes.INTEGER)
-        .valueColumn("diff0", SqlTypes.STRING)
-        .valueColumn("diff1", SqlTypes.DOUBLE)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("diff0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("diff1"), SqlTypes.DOUBLE)
         .build();
 
     new EqualsTester()

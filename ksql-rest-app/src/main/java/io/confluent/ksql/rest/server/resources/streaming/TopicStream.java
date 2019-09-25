@@ -177,8 +177,8 @@ public final class TopicStream {
             final ObjectNode objectNode = objectMapper.createObjectNode();
             final String key = (record.key() != null) ? record.key() : "null";
 
-            objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
-            objectNode.put(SchemaUtil.ROWKEY_NAME, key);
+            objectNode.put(SchemaUtil.ROWTIME_NAME.name(), record.timestamp());
+            objectNode.put(SchemaUtil.ROWKEY_NAME.name(), key);
             objectNode.setAll((ObjectNode) jsonNode);
 
             final StringWriter stringWriter = new StringWriter();

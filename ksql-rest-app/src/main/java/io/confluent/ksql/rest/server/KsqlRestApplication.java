@@ -34,6 +34,7 @@ import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -118,7 +119,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
-  public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  public static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
   private final KsqlConfig ksqlConfigNoPort;
   private final KsqlEngine ksqlEngine;
@@ -138,7 +139,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
-  public static String getCommandsStreamName() {
+  public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 

@@ -22,6 +22,7 @@ import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientExcept
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.SqlFormatter;
 import io.confluent.ksql.parser.tree.DropStatement;
 import io.confluent.ksql.parser.tree.Statement;
@@ -92,7 +93,7 @@ public class TopicDeleteInjector implements Injector {
       return statement;
     }
 
-    final String sourceName = dropStatement.getName().name();
+    final SourceName sourceName = dropStatement.getName();
     final DataSource<?> source = metastore.getSource(sourceName);
 
     if (source != null) {
@@ -135,12 +136,14 @@ public class TopicDeleteInjector implements Injector {
 
   private void checkTopicRefs(final DataSource<?> source) {
     final String topicName = source.getKafkaTopicName();
-    final String sourceName = source.getName();
-    final Map<String, DataSource<?>> sources = metastore.getAllDataSources();
+    final SourceName sourceName = source.getName();
+    final Map<SourceName, DataSource<?>> sources = metastore.getAllDataSources();
     final String using = sources.values().stream()
         .filter(s -> s.getKafkaTopicName().equals(topicName))
         .map(DataSource::getName)
         .filter(name -> !sourceName.equals(name))
+        .map(SourceName::name)
+        .sorted()
         .collect(Collectors.joining(", "));
     if (!using.isEmpty()) {
       throw new RuntimeException(

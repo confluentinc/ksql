@@ -17,18 +17,19 @@ package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import java.util.Map;
 import java.util.Set;
 
 public interface MetaStore extends FunctionRegistry, TypeRegistry {
 
-  DataSource<?> getSource(String sourceName);
+  DataSource<?> getSource(SourceName sourceName);
 
-  Map<String, DataSource<?>> getAllDataSources();
+  Map<SourceName, DataSource<?>> getAllDataSources();
 
-  Set<String> getQueriesWithSource(String sourceName);
+  Set<String> getQueriesWithSource(SourceName sourceName);
 
-  Set<String> getQueriesWithSink(String sourceName);
+  Set<String> getQueriesWithSink(SourceName sourceName);
 
   MetaStore copy();
 }

@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.materialization.TableRow;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -30,26 +31,26 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 
 /**
- * Factory class for {@link QueryResultEntity}
+ * Factory class for {@link TableRowsEntity}
  */
-public final class QueryResultEntityFactory {
+public final class TableRowsEntityFactory {
 
   private static final List<Column> TIME_WINDOW_COLUMNS = ImmutableList
-      .of(Column.of("WINDOWSTART", SqlTypes.BIGINT));
+      .of(Column.of(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT));
 
   private static final List<Column> SESSION_WINDOW_COLUMNS = ImmutableList.<Column>builder()
       .addAll(TIME_WINDOW_COLUMNS)
-      .add(Column.of("WINDOWEND", SqlTypes.BIGINT))
+      .add(Column.of(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT))
       .build();
 
-  private QueryResultEntityFactory() {
+  private TableRowsEntityFactory() {
   }
 
   public static List<List<?>> createRows(
       final List<? extends TableRow> result
   ) {
     return result.stream()
-        .map(QueryResultEntityFactory::createRow)
+        .map(TableRowsEntityFactory::createRow)
         .collect(Collectors.toList());
   }
 

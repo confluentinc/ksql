@@ -1,6 +1,20 @@
-package io.confluent.ksql.parser.rewrite;
+/*
+ * Copyright 2019 Confluent Inc.
+ *
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
+ *
+ * http://www.confluent.io/confluent-community-license
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 
-import static io.confluent.ksql.parser.KsqlParserTestUtil.parseExpression;
+package io.confluent.ksql.engine.rewrite;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -12,6 +26,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -33,8 +48,8 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -45,21 +60,26 @@ import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.KsqlParserTestUtil;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.SelectItem;
+import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class ExpressionTreeRewriterTest {
+
   private static final List<Expression> LITERALS = ImmutableList.of(
       new IntegerLiteral(1),
       new LongLiteral(1),
@@ -98,9 +118,6 @@ public class ExpressionTreeRewriterTest {
   private ExpressionTreeRewriter<Object> expressionRewriter;
   private ExpressionTreeRewriter<Object> expressionRewriterWithPlugin;
 
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
   @Before
   public void init() {
     metaStore = MetaStoreFixture.getNewMetaStore(mock(FunctionRegistry.class));
@@ -126,8 +143,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteArithmeticBinary() {
     // Given:
-    final ArithmeticBinaryExpression parsed
-        = (ArithmeticBinaryExpression) parseExpression("1 + 2", metaStore);
+    final ArithmeticBinaryExpression parsed = parseExpression("1 + 2");
     when(processor.apply(parsed.getLeft(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getRight(), context)).thenReturn(expr2);
 
@@ -151,7 +167,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteArithmeticBinaryUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("1 + 2", metaStore);
+    final Expression parsed = parseExpression("1 + 2");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -160,8 +176,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteBetweenPredicate() {
     // Given:
-    final BetweenPredicate parsed =
-        (BetweenPredicate) parseExpression("1 BETWEEN 0 AND 2", metaStore);
+    final BetweenPredicate parsed = parseExpression("1 BETWEEN 0 AND 2");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getMin(), context)).thenReturn(expr2);
     when(processor.apply(parsed.getMax(), context)).thenReturn(expr3);
@@ -179,7 +194,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteBetweenPredicateUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("1 BETWEEN 0 AND 2", metaStore);
+    final Expression parsed = parseExpression("1 BETWEEN 0 AND 2");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -188,8 +203,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteComparisonExpression() {
     // Given:
-    final ComparisonExpression parsed =
-        (ComparisonExpression) parseExpression("1 < 2", metaStore);
+    final ComparisonExpression parsed = parseExpression("1 < 2");
     when(processor.apply(parsed.getLeft(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getRight(), context)).thenReturn(expr2);
 
@@ -206,7 +220,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteComparisonExpressionUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("1 < 2", metaStore);
+    final Expression parsed = parseExpression("1 < 2");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -215,8 +229,8 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteInListExpression() {
     // Given:
-    final InListExpression parsed
-        = ((InPredicate) parseExpression("1 IN (1, 2, 3)", metaStore)).getValueList();
+    final InPredicate inPredicate = parseExpression("1 IN (1, 2, 3)");
+    final InListExpression parsed = inPredicate.getValueList();
     when(processor.apply(parsed.getValues().get(0), context)).thenReturn(expr1);
     when(processor.apply(parsed.getValues().get(1), context)).thenReturn(expr2);
     when(processor.apply(parsed.getValues().get(2), context)).thenReturn(expr3);
@@ -234,8 +248,8 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteInListUsingPlugin() {
     // Given:
-    final InListExpression parsed
-        = ((InPredicate) parseExpression("1 IN (1, 2, 3)", metaStore)).getValueList();
+    final InPredicate inPredicate = parseExpression("1 IN (1, 2, 3)");
+    final InListExpression parsed = inPredicate.getValueList();
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -244,7 +258,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteFunctionCall() {
     // Given:
-    final FunctionCall parsed = (FunctionCall) parseExpression("STRLEN('foo')", metaStore);
+    final FunctionCall parsed = parseExpression("STRLEN('foo')");
     when(processor.apply(parsed.getArguments().get(0), context)).thenReturn(expr1);
 
     // When:
@@ -260,7 +274,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteFunctionCallUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("STRLEN('foo')", metaStore);
+    final Expression parsed = parseExpression("STRLEN('foo')");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -269,9 +283,8 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteSimpleCaseExpression() {
     // Given:
-    final SimpleCaseExpression parsed = (SimpleCaseExpression) parseExpression(
-        "CASE COL0 WHEN 1 THEN 'ONE' WHEN 2 THEN 'TWO' ELSE 'THREE' END",
-        metaStore);
+    final SimpleCaseExpression parsed = parseExpression(
+        "CASE COL0 WHEN 1 THEN 'ONE' WHEN 2 THEN 'TWO' ELSE 'THREE' END");
     when(processor.apply(parsed.getOperand(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getWhenClauses().get(0), context)).thenReturn(when1);
     when(processor.apply(parsed.getWhenClauses().get(1), context)).thenReturn(when2);
@@ -298,8 +311,7 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteSimpleCaseExpressionUsingPlugin() {
     // Given:
     final Expression parsed = parseExpression(
-        "CASE COL0 WHEN 1 THEN 'ONE' WHEN 2 THEN 'TWO' ELSE 'THREE' END",
-        metaStore
+        "CASE COL0 WHEN 1 THEN 'ONE' WHEN 2 THEN 'TWO' ELSE 'THREE' END"
     );
 
     // When/Then:
@@ -309,7 +321,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteInPredicate() {
     // Given:
-    final InPredicate parsed = (InPredicate) parseExpression("1 IN (1, 2, 3)", metaStore);
+    final InPredicate parsed = parseExpression("1 IN (1, 2, 3)");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getValueList(), context)).thenReturn(inList);
 
@@ -323,7 +335,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteInPredicateUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("1 IN (1, 2, 3)", metaStore);
+    final Expression parsed = parseExpression("1 IN (1, 2, 3)");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -332,8 +344,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteDereferenceExpression() {
     // Given:
-    final DereferenceExpression parsed
-        = (DereferenceExpression) parseExpression("col0->foo", metaStore);
+    final DereferenceExpression parsed = parseExpression("col0->foo");
     when(processor.apply(parsed.getBase(), context)).thenReturn(expr1);
 
     // When:
@@ -349,7 +360,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteDereferenceExpressionUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("col0->foo", metaStore);
+    final Expression parsed = parseExpression("col0->foo");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -358,8 +369,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteArithmeticUnary() {
     // Given:
-    final ArithmeticUnaryExpression parsed
-        = (ArithmeticUnaryExpression) parseExpression("-1", metaStore);
+    final ArithmeticUnaryExpression parsed = parseExpression("-1");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
 
     // When:
@@ -375,7 +385,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteArithmeticUnaryUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("-1", metaStore);
+    final Expression parsed = parseExpression("-1");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -384,7 +394,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteNotExpression() {
     // Given:
-    final NotExpression parsed = (NotExpression) parseExpression("NOT 1 < 2", metaStore);
+    final NotExpression parsed = parseExpression("NOT 1 < 2");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
 
     // When:
@@ -397,7 +407,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteNotExpressionUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("NOT 1 < 2", metaStore);
+    final Expression parsed = parseExpression("NOT 1 < 2");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -406,8 +416,8 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteSearchedCaseExpression() {
     // Given:
-    final SearchedCaseExpression parsed = (SearchedCaseExpression) parseExpression(
-        "CASE WHEN col0=1 THEN 'one' WHEN col0=2 THEN 'two' ELSE 'three' END", metaStore);
+    final SearchedCaseExpression parsed = parseExpression(
+        "CASE WHEN col0=1 THEN 'one' WHEN col0=2 THEN 'two' ELSE 'three' END");
     when(processor.apply(parsed.getWhenClauses().get(0), context)).thenReturn(when1);
     when(processor.apply(parsed.getWhenClauses().get(1), context)).thenReturn(when2);
     when(processor.apply(any(StringLiteral.class), any())).thenReturn(expr1);
@@ -432,7 +442,7 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteSearchedCaseExpressionUsingPlugin() {
     // Given:
     final Expression parsed = parseExpression(
-        "CASE WHEN col0=1 THEN 'one' WHEN col0=2 THEN 'two' ELSE 'three' END", metaStore);
+        "CASE WHEN col0=1 THEN 'one' WHEN col0=2 THEN 'two' ELSE 'three' END");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -441,8 +451,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteLikePredicate() {
     // Given:
-    final LikePredicate parsed
-        = (LikePredicate) parseExpression("col1 LIKE '%foo%'", metaStore);
+    final LikePredicate parsed = parseExpression("col1 LIKE '%foo%'");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getPattern(), context)).thenReturn(expr2);
 
@@ -456,7 +465,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteLikePredicateUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("col1 LIKE '%foo%'", metaStore);
+    final Expression parsed = parseExpression("col1 LIKE '%foo%'");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -465,8 +474,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteIsNotNullPredicate() {
     // Given:
-    final IsNotNullPredicate parsed
-        = (IsNotNullPredicate) parseExpression("col0 IS NOT NULL", metaStore);
+    final IsNotNullPredicate parsed = parseExpression("col0 IS NOT NULL");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
 
     // When:
@@ -479,7 +487,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteIsNotNullPredicateUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("col0 IS NOT NULL", metaStore);
+    final Expression parsed = parseExpression("col0 IS NOT NULL");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -488,8 +496,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteIsNullPredicate() {
     // Given:
-    final IsNullPredicate parsed
-        = (IsNullPredicate) parseExpression("col0 IS NULL", metaStore);
+    final IsNullPredicate parsed = parseExpression("col0 IS NULL");
     when(processor.apply(parsed.getValue(), context)).thenReturn(expr1);
 
     // When:
@@ -502,7 +509,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteIsNullPredicateUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("col0 IS NULL", metaStore);
+    final Expression parsed = parseExpression("col0 IS NULL");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -511,8 +518,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteSubscriptExpression() {
     // Given:
-    final SubscriptExpression parsed
-        = (SubscriptExpression) parseExpression("col4[1]", metaStore);
+    final SubscriptExpression parsed = parseExpression("col4[1]");
     when(processor.apply(parsed.getBase(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getIndex(), context)).thenReturn(expr2);
 
@@ -526,7 +532,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteSubscriptExpressionUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("col4[1]", metaStore);
+    final Expression parsed = parseExpression("col4[1]");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -535,8 +541,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteLogicalBinaryExpression() {
     // Given:
-    final LogicalBinaryExpression parsed
-        = (LogicalBinaryExpression) parseExpression("true OR false", metaStore);
+    final LogicalBinaryExpression parsed = parseExpression("true OR false");
     when(processor.apply(parsed.getLeft(), context)).thenReturn(expr1);
     when(processor.apply(parsed.getRight(), context)).thenReturn(expr2);
 
@@ -554,7 +559,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteLogicalBinaryExpressionUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("true OR false", metaStore);
+    final Expression parsed = parseExpression("true OR false");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -563,7 +568,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteCast() {
     // Given:
-    final Cast parsed = (Cast) parseExpression("CAST(col0 AS INTEGER)", metaStore);
+    final Cast parsed = parseExpression("CAST(col0 AS INTEGER)");
     when(processor.apply(parsed.getType(), context)).thenReturn(type);
     when(processor.apply(parsed.getExpression(), context)).thenReturn(expr1);
 
@@ -577,7 +582,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteCastUsingPlugin() {
     // Given:
-    final Expression parsed = parseExpression("CAST(col0 AS INTEGER)", metaStore);
+    final Expression parsed = parseExpression("CAST(col0 AS INTEGER)");
 
     // When/Then:
     shouldRewriteUsingPlugin(parsed);
@@ -586,7 +591,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteQualifiedNameReference() {
     // Given:
-    final QualifiedNameReference expression = new QualifiedNameReference(QualifiedName.of("foo"));
+    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.of("foo"));
 
     // When:
     final Expression rewritten = expressionRewriter.rewrite(expression, context);
@@ -598,7 +603,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteQualifiedNameReferenceUsingPlugin() {
     // Given:
-    final QualifiedNameReference expression = new QualifiedNameReference(QualifiedName.of("foo"));
+    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.of("foo"));
 
     // When/Then:
     shouldRewriteUsingPlugin(expression);
@@ -640,5 +645,14 @@ public class ExpressionTreeRewriterTest {
   public void shouldRewriteTypeUsingPlugin() {
     final Type type = new Type(SqlPrimitiveType.of("INTEGER"));
     shouldRewriteUsingPlugin(type);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Expression> T parseExpression(final String asText) {
+    final String ksql = String.format("SELECT %s FROM test1;", asText);
+
+    final PreparedStatement<Query> stmt = KsqlParserTestUtil.buildSingleAst(ksql, metaStore);
+    final SelectItem selectItem = stmt.getStatement().getSelect().getSelectItems().get(0);
+    return (T) ((SingleColumn) selectItem).getExpression();
   }
 }

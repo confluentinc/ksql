@@ -28,6 +28,8 @@ import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateSource;
@@ -126,10 +128,10 @@ public class CommandFactories implements DdlCommandFactory {
       final CallInfo callInfo,
       final CreateStream statement
   ) {
-    final String sourceName = statement.getName().name();
+    final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
-    final Optional<String> keyFieldName = buildKeyFieldName(statement, schema);
+    final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
     final TimestampExtractionPolicy timestampExtractionPolicy = buildTimestampExtractor(
         callInfo.ksqlConfig,
         statement.getProperties(),
@@ -163,10 +165,10 @@ public class CommandFactories implements DdlCommandFactory {
       final CallInfo callInfo,
       final CreateTable statement
   ) {
-    final String sourceName = statement.getName().name();
+    final SourceName sourceName = statement.getName();
     final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
     final LogicalSchema schema = buildSchema(statement.getElements());
-    final Optional<String> keyFieldName = buildKeyFieldName(statement, schema);
+    final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
     final TimestampExtractionPolicy timestampExtractionPolicy = buildTimestampExtractor(
         callInfo.ksqlConfig,
         statement.getProperties(),
@@ -199,7 +201,7 @@ public class CommandFactories implements DdlCommandFactory {
   @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropStream(final DropStream statement) {
     return handleDropSource(
-        statement.getName().name(),
+        statement.getName(),
         statement.getIfExists(),
         DataSourceType.KSTREAM
     );
@@ -208,7 +210,7 @@ public class CommandFactories implements DdlCommandFactory {
   @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropTable(final DropTable statement) {
     return handleDropSource(
-        statement.getName().name(),
+        statement.getName(),
         statement.getIfExists(),
         DataSourceType.KTABLE
     );
@@ -227,13 +229,13 @@ public class CommandFactories implements DdlCommandFactory {
   }
 
   private DropSourceCommand handleDropSource(
-      final String sourceName,
+      final SourceName sourceName,
       final boolean ifExists,
       final DataSourceType dataSourceType) {
     final DataSource<?> dataSource = metaStore.getSource(sourceName);
     if (dataSource == null) {
       if (ifExists) {
-        throw new KsqlException("Source " + sourceName + " does not exist.");
+        throw new KsqlException("Source " + sourceName.name() + " does not exist.");
       }
     } else if (dataSource.getDataSourceType() != dataSourceType) {
       throw new KsqlException(String.format(
@@ -245,7 +247,7 @@ public class CommandFactories implements DdlCommandFactory {
     return new DropSourceCommand(sourceName);
   }
 
-  private static Optional<String> buildKeyFieldName(
+  private static Optional<ColumnName> buildKeyFieldName(
       final CreateSource statement,
       final LogicalSchema schema) {
     if (statement.getProperties().getKeyField().isPresent()) {
@@ -257,7 +259,7 @@ public class CommandFactories implements DdlCommandFactory {
                   + cleanName + "'"
           )
       );
-      return Optional.of(cleanName);
+      return Optional.of(ColumnName.of(cleanName));
     } else {
       return Optional.empty();
     }
@@ -270,23 +272,24 @@ public class CommandFactories implements DdlCommandFactory {
 
     tableElements.forEach(e -> {
       if (e.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
-        throw new KsqlException("'" + e.getName() + "' is a reserved column name.");
+        throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
       }
 
       final boolean isRowKey = e.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME);
 
       if (e.getNamespace() == Namespace.KEY) {
         if (!isRowKey) {
-          throw new KsqlException("'" + e.getName() + "' is an invalid KEY column name. "
+          throw new KsqlException("'" + e.getName().name() + "' is an invalid KEY column name. "
               + "KSQL currently only supports KEY columns named ROWKEY.");
         }
 
         if (e.getType().getSqlType().baseType() != SqlBaseType.STRING) {
-          throw new KsqlException("'" + e.getName() + "' is a KEY column with an unsupported type. "
+          throw new KsqlException("'" + e.getName().name()
+              + "' is a KEY column with an unsupported type. "
               + "KSQL currently only supports KEY columns of type " + SqlBaseType.STRING + ".");
         }
       } else if (isRowKey) {
-        throw new KsqlException("'" + e.getName() + "' is a reserved column name. "
+        throw new KsqlException("'" + e.getName().name() + "' is a reserved column name. "
             + "It can only be used for KEY columns.");
       }
     });

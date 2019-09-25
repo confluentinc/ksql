@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.plan;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
@@ -38,7 +39,7 @@ public class StreamSource<S> implements ExecutionStep<S> {
   private final BiFunction<KsqlQueryBuilder, StreamSource<S>, S> builder;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
-      final String alias,
+      final SourceName alias,
       final LogicalSchema schema) {
     return LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, schema);
   }

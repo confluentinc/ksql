@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.plan;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -27,13 +28,13 @@ import org.apache.kafka.streams.kstream.KStream;
 public class StreamSelectKey<K> implements ExecutionStep<KStream<Struct, GenericRow>> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStream<K, GenericRow>> source;
-  private final String fieldName;
+  private final ColumnName fieldName;
   private final boolean updateRowKey;
 
   public StreamSelectKey(
       final ExecutionStepProperties properties,
       final ExecutionStep<KStream<K, GenericRow>> source,
-      final String fieldName,
+      final ColumnName fieldName,
       final boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -55,7 +56,7 @@ public class StreamSelectKey<K> implements ExecutionStep<KStream<Struct, Generic
     return updateRowKey;
   }
 
-  public String getFieldName() {
+  public ColumnName getFieldName() {
     return fieldName;
   }
 

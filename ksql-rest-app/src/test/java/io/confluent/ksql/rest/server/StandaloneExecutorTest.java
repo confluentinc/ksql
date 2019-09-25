@@ -37,11 +37,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -114,9 +115,9 @@ public class StandaloneExecutorTest {
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
 
-  private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
+  private static final SourceName SOME_NAME = SourceName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";
 
   private static final CreateSourceProperties JSON_PROPS = CreateSourceProperties.from(
@@ -136,11 +137,11 @@ public class StandaloneExecutorTest {
       SOME_NAME, SOME_ELEMENTS, true, JSON_PROPS);
 
   private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
-      QualifiedName.of("stream"),
+      SourceName.of("stream"),
       new Query(
           Optional.empty(),
           new Select(ImmutableList.of(new AllColumns(Optional.empty()))),
-          new Table(QualifiedName.of("sink")),
+          new Table(SourceName.of("sink")),
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
@@ -178,7 +179,7 @@ public class StandaloneExecutorTest {
 
   private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
       .of("sql 0", new CreateStream(
-          QualifiedName.of("CS 0"),
+          SourceName.of("CS 0"),
           SOME_ELEMENTS,
           true,
           JSON_PROPS
@@ -189,7 +190,7 @@ public class StandaloneExecutorTest {
 
   private final static PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement
       .of("sql 1", new CreateStream(
-          QualifiedName.of("CS 1"),
+          SourceName.of("CS 1"),
           SOME_ELEMENTS,
           true,
           JSON_PROPS

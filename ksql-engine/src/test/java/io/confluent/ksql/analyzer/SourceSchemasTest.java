@@ -22,6 +22,8 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Before;
@@ -29,18 +31,18 @@ import org.junit.Test;
 
 public class SourceSchemasTest {
 
-  private static final String ALIAS_1 = "S1";
-  private static final String ALIAS_2 = "S2";
-  private static final String COMMON_FIELD_NAME = "F0";
+  private static final SourceName ALIAS_1 = SourceName.of("S1");
+  private static final SourceName ALIAS_2 = SourceName.of("S2");
+  private static final ColumnName COMMON_FIELD_NAME = ColumnName.of("F0");
 
   private static final LogicalSchema SCHEMA_1 = LogicalSchema.builder()
       .valueColumn(COMMON_FIELD_NAME, SqlTypes.STRING)
-      .valueColumn("F1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA_2 = LogicalSchema.builder()
       .valueColumn(COMMON_FIELD_NAME, SqlTypes.STRING)
-      .valueColumn("F2", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .build();
 
   private SourceSchemas sourceSchemas;
@@ -75,22 +77,22 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldFindNoField() {
-    assertThat(sourceSchemas.sourcesWithField("unknown"), is(empty()));
+    assertThat(sourceSchemas.sourcesWithField(ColumnName.of("unknown")), is(empty()));
   }
 
   @Test
   public void shouldFindNoQualifiedField() {
-    assertThat(sourceSchemas.sourcesWithField(ALIAS_1 + ".F2"), is(empty()));
+    assertThat(sourceSchemas.sourcesWithField(ColumnName.of(ALIAS_1.name() + ".F2")), is(empty()));
   }
 
   @Test
   public void shouldFindUnqualifiedUniqueField() {
-    assertThat(sourceSchemas.sourcesWithField("F1"), contains(ALIAS_1));
+    assertThat(sourceSchemas.sourcesWithField(ColumnName.of("F1")), contains(ALIAS_1));
   }
 
   @Test
   public void shouldFindQualifiedUniqueField() {
-    assertThat(sourceSchemas.sourcesWithField(ALIAS_2 + ".F2"), contains(ALIAS_2));
+    assertThat(sourceSchemas.sourcesWithField(ColumnName.of(ALIAS_2.name() + ".F2")), contains(ALIAS_2));
   }
 
   @Test
@@ -101,7 +103,7 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldFindQualifiedFieldOnlyInThatSource() {
-    assertThat(sourceSchemas.sourcesWithField(ALIAS_1 + "." + COMMON_FIELD_NAME),
+    assertThat(sourceSchemas.sourcesWithField(ColumnName.of(ALIAS_1.name() + "." + COMMON_FIELD_NAME.name())),
         contains(ALIAS_1));
   }
 
@@ -112,7 +114,7 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldMatchNonValueFieldNameIfAliaasedMetaField() {
-    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".ROWTIME"), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2.name() + ".ROWTIME"), is(true));
   }
 
   @Test
@@ -122,7 +124,7 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldMatchNonValueFieldNameIfAliasedKeyField() {
-    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".ROWKEY"), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2.name() + ".ROWKEY"), is(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -132,7 +134,7 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldNotMatchOtherFields() {
-    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".F2"), is(false));
+    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2.name() + ".F2"), is(false));
   }
 
   @Test

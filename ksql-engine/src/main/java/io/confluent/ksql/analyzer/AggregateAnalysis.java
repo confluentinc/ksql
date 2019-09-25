@@ -15,8 +15,8 @@
 
 package io.confluent.ksql.analyzer;
 
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import java.util.Map;
 import java.util.Set;
 
@@ -28,7 +28,7 @@ interface AggregateAnalysis extends AggregateAnalysisResult {
    *
    * @return the map of select expression to the set of source schema fields.
    */
-  Map<Expression, Set<QualifiedNameReference>> getNonAggregateSelectExpressions();
+  Map<Expression, Set<ColumnReferenceExp>> getNonAggregateSelectExpressions();
 
   /**
    * Get the set of select fields that are involved in aggregate columns, but not as parameters
@@ -36,7 +36,7 @@ interface AggregateAnalysis extends AggregateAnalysisResult {
    *
    * @return the set of fields used in aggregate columns outside of aggregate function parameters.
    */
-  Set<QualifiedNameReference> getAggregateSelectFields();
+  Set<ColumnReferenceExp> getAggregateSelectFields();
 
   /**
    * Get the set of columns from the source schema that are used in the HAVING clause outside
@@ -44,5 +44,5 @@ interface AggregateAnalysis extends AggregateAnalysisResult {
    *
    * @return the set of non-aggregate columns used in the HAVING clause.
    */
-  Set<QualifiedNameReference> getNonAggregateHavingFields();
+  Set<ColumnReferenceExp> getNonAggregateHavingFields();
 }

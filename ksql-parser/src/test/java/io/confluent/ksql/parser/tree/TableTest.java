@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
@@ -25,7 +25,7 @@ public class TableTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
+  private static final SourceName SOME_NAME = SourceName.of("bob");
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
@@ -37,7 +37,7 @@ public class TableTest {
             new Table(Optional.of(OTHER_LOCATION), SOME_NAME)
         )
         .addEqualityGroup(
-            new Table(QualifiedName.of("different"))
+            new Table(SourceName.of("different"))
         )
         .testEquals();
   }

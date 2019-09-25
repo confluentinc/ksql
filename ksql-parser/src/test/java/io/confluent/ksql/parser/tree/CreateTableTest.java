@@ -17,9 +17,10 @@ package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
@@ -32,9 +33,9 @@ public class CreateTableTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
+  private static final SourceName SOME_NAME = SourceName.of("bob");
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "Bob", new Type(SqlTypes.STRING))
+      new TableElement(Namespace.VALUE, ColumnName.of("Bob"), new Type(SqlTypes.STRING))
   );
   private static final CreateSourceProperties SOME_PROPS = CreateSourceProperties.from(
       ImmutableMap.of(
@@ -59,7 +60,7 @@ public class CreateTableTest {
             new CreateTable(Optional.of(OTHER_LOCATION), SOME_NAME, SOME_ELEMENTS, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTable(QualifiedName.of("jim"), SOME_ELEMENTS, true, SOME_PROPS)
+            new CreateTable(SourceName.of("jim"), SOME_ELEMENTS, true, SOME_PROPS)
         )
         .addEqualityGroup(
             new CreateTable(SOME_NAME, TableElements.of(), true, SOME_PROPS)

@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -39,7 +40,7 @@ import org.junit.rules.ExpectedException;
 public class TimestampExtractionPolicyFactoryTest {
 
   private final LogicalSchema.Builder schemaBuilder2 = LogicalSchema.builder()
-      .valueColumn("id", SqlTypes.BIGINT);
+      .valueColumn(ColumnName.of("id"), SqlTypes.BIGINT);
 
   private final SchemaBuilder schemaBuilder = SchemaBuilder.struct()
       .field("id", Schema.OPTIONAL_INT64_SCHEMA);
@@ -136,7 +137,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String timestamp = "timestamp";
     final LogicalSchema schema = schemaBuilder2
-        .valueColumn(timestamp.toUpperCase(), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(timestamp.toUpperCase()), SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -168,7 +169,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String field = "my_string_field";
     final LogicalSchema schema = schemaBuilder2
-        .valueColumn(field.toUpperCase(), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(field.toUpperCase()), SqlTypes.STRING)
         .build();
 
     // When:
@@ -185,7 +186,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String field = "my_string_field";
     final LogicalSchema schema = schemaBuilder2
-        .valueColumn(field.toUpperCase(), SqlTypes.STRING)
+        .valueColumn(ColumnName.of(field.toUpperCase()), SqlTypes.STRING)
         .build();
 
     // Then:
@@ -201,7 +202,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String timestamp = "timestamp";
     final LogicalSchema schema = schemaBuilder2
-        .valueColumn(timestamp.toUpperCase(), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of(timestamp.toUpperCase()), SqlTypes.BIGINT)
         .build();
 
     // Then:
@@ -217,7 +218,7 @@ public class TimestampExtractionPolicyFactoryTest {
     // Given:
     final String field = "blah";
     final LogicalSchema schema = schemaBuilder2
-        .valueColumn(field.toUpperCase(), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of(field.toUpperCase()), SqlTypes.DOUBLE)
         .build();
 
     // Then:

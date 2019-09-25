@@ -34,6 +34,8 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.PlanSourceExtractorVisitor;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -244,7 +246,7 @@ public class PhysicalPlanBuilder {
     if (sourceType == DataSourceType.KTABLE) {
       sinkDataSource = new KsqlTable<>(
           sqlExpression,
-          outputNode.getId().toString(),
+          outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           outputNode.getSerdeOptions(),
           schemaKStream.getKeyField(),
@@ -254,7 +256,7 @@ public class PhysicalPlanBuilder {
     } else {
       sinkDataSource = new KsqlStream<>(
           sqlExpression,
-          outputNode.getId().toString(),
+          outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           outputNode.getSerdeOptions(),
           schemaKStream.getKeyField(),
@@ -381,7 +383,7 @@ public class PhysicalPlanBuilder {
     if (existing.getDataSourceType() != sinkDataSource.getDataSourceType()) {
       throw new KsqlException(String.format("Incompatible data sink and query result. Data sink"
               + " (%s) type is %s but select query result is %s.",
-          sinkDataSource.getName(),
+          sinkDataSource.getName().name(),
           sinkDataSource.getDataSourceType(),
           existing.getDataSourceType()));
     }
@@ -492,9 +494,9 @@ public class PhysicalPlanBuilder {
         "Incompatible key fields for sink and results. Sink"
             + " key field is %s (type: %s) while result key "
             + "field is %s (type: %s)",
-        sinkKeyCol.map(Column::name).orElse(null),
+        sinkKeyCol.map(Column::name).map(ColumnName::name).orElse(null),
         sinkKeyCol.map(Column::type).orElse(null),
-        resultKeyCol.map(Column::name).orElse(null),
+        resultKeyCol.map(Column::name).map(ColumnName::name).orElse(null),
         resultKeyCol.map(Column::type).orElse(null)));
   }
 
@@ -504,7 +506,7 @@ public class PhysicalPlanBuilder {
            + ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
   }
 
-  private static Set<String> getSourceNames(final PlanNode outputNode) {
+  private static Set<SourceName> getSourceNames(final PlanNode outputNode) {
     final PlanSourceExtractorVisitor<?, ?> visitor = new PlanSourceExtractorVisitor<>();
     visitor.process(outputNode, null);
     return visitor.getSourceNames();

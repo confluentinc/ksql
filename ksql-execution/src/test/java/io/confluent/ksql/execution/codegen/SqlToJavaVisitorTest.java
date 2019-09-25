@@ -44,8 +44,9 @@ import io.confluent.ksql.execution.expression.tree.InListExpression;
 import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -179,8 +180,8 @@ public class SqlToJavaVisitorTest {
     final KsqlFunction catFunction = mock(KsqlFunction.class);
     givenUdf("SUBSTRING", Schema.OPTIONAL_STRING_SCHEMA, ssFactory, ssFunction);
     givenUdf("CONCAT", Schema.OPTIONAL_STRING_SCHEMA, catFactory, catFunction);
-    final QualifiedName ssName = QualifiedName.of("SUBSTRING");
-    final QualifiedName catName = QualifiedName.of("CONCAT");
+    final FunctionName ssName = FunctionName.of("SUBSTRING");
+    final FunctionName catName = FunctionName.of("CONCAT");
     final FunctionCall substring1 = new FunctionCall(
         ssName,
         ImmutableList.of(COL1, new IntegerLiteral(1), new IntegerLiteral(3))
@@ -348,8 +349,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.ADD,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -364,8 +365,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.ADD,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL0"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL0"))
     );
 
     // When:
@@ -380,8 +381,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.ADD,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL3"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL3"))
     );
 
     // When:
@@ -396,8 +397,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.SUBTRACT,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -412,8 +413,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.MULTIPLY,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -428,8 +429,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.DIVIDE,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -444,8 +445,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.MODULUS,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -460,8 +461,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.EQUAL,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL9"))
     );
 
     // When:
@@ -476,8 +477,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL9"))
     );
 
     // When:
@@ -492,8 +493,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL9"))
     );
 
     // When:
@@ -508,8 +509,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.LESS_THAN,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL9"))
     );
 
     // When:
@@ -524,8 +525,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL9"))
     );
 
     // When:
@@ -540,8 +541,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.IS_DISTINCT_FROM,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL9"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL9"))
     );
 
     // When:
@@ -556,8 +557,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.EQUAL,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL3"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL3"))
     );
 
     // When:
@@ -572,8 +573,8 @@ public class SqlToJavaVisitorTest {
     // Given:
     final ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.EQUAL,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL3")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -589,7 +590,7 @@ public class SqlToJavaVisitorTest {
     final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
         Optional.empty(),
         Sign.MINUS,
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8"))
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8"))
     );
 
     // When:
@@ -605,7 +606,7 @@ public class SqlToJavaVisitorTest {
     final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
         Optional.empty(),
         Sign.PLUS,
-    new QualifiedNameReference(QualifiedName.of("TEST1.COL8")));
+    new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")));
 
       // When:
     final String java = sqlToJavaVisitor.process(binExp);
@@ -618,7 +619,7 @@ public class SqlToJavaVisitorTest {
   public void shouldGenerateCorrectCodeForDecimalCast() {
     // Given:
     final Cast cast = new Cast(
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL3")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL3")),
         new Type(SqlDecimal.of(2, 1))
     );
 
@@ -633,7 +634,7 @@ public class SqlToJavaVisitorTest {
   public void shouldGenerateCorrectCodeForDecimalCastNoOp() {
     // Given:
     final Cast cast = new Cast(
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
         new Type(SqlDecimal.of(2, 1))
     );
 
@@ -648,7 +649,7 @@ public class SqlToJavaVisitorTest {
   public void shouldGenerateCorrectCodeForDecimalToIntCast() {
     // Given:
     final Cast cast = new Cast(
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
         new Type(SqlTypes.INTEGER)
     );
 
@@ -663,7 +664,7 @@ public class SqlToJavaVisitorTest {
   public void shouldGenerateCorrectCodeForDecimalToLongCast() {
     // Given:
     final Cast cast = new Cast(
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
         new Type(SqlTypes.BIGINT)
     );
 
@@ -678,7 +679,7 @@ public class SqlToJavaVisitorTest {
   public void shouldGenerateCorrectCodeForDecimalToDoubleCast() {
     // Given:
     final Cast cast = new Cast(
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
         new Type(SqlTypes.DOUBLE)
     );
 
@@ -693,7 +694,7 @@ public class SqlToJavaVisitorTest {
   public void shouldGenerateCorrectCodeForDecimalToStringCast() {
     // Given:
     final Cast cast = new Cast(
-        new QualifiedNameReference(QualifiedName.of("TEST1.COL8")),
+        new ColumnReferenceExp(ColumnRef.of("TEST1.COL8")),
         new Type(SqlTypes.STRING)
     );
 

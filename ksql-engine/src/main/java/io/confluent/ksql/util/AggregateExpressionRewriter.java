@@ -15,14 +15,15 @@
 
 package io.confluent.ksql.util;
 
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
+import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter;
-import io.confluent.ksql.parser.rewrite.ExpressionTreeRewriter.Context;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,7 +31,6 @@ import java.util.Optional;
 public class AggregateExpressionRewriter
     extends VisitParentExpressionVisitor<Optional<Expression>, Context<Void>> {
 
-  public static final String AGGREGATE_FUNCTION_VARIABLE_PREFIX = "KSQL_AGG_VARIABLE_";
   private int aggVariableIndex = 0;
   private final FunctionRegistry functionRegistry;
 
@@ -45,10 +45,10 @@ public class AggregateExpressionRewriter
       final ExpressionTreeRewriter.Context<Void> context) {
     final String functionName = node.getName().name();
     if (functionRegistry.isAggregate(functionName)) {
-      final String aggVarName = AGGREGATE_FUNCTION_VARIABLE_PREFIX + aggVariableIndex;
+      final ColumnName aggVarName = ColumnName.aggregate(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
-          new QualifiedNameReference(node.getLocation(), QualifiedName.of(aggVarName)));
+          new ColumnReferenceExp(node.getLocation(), ColumnRef.of(aggVarName)));
     } else {
       final List<Expression> arguments = new ArrayList<>();
       for (final Expression argExpression: node.getArguments()) {

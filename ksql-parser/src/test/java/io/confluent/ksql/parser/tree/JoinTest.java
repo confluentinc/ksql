@@ -19,8 +19,8 @@ import static io.confluent.ksql.parser.tree.Join.Type.INNER;
 import static io.confluent.ksql.parser.tree.Join.Type.OUTER;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -30,8 +30,8 @@ public class JoinTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final Relation RELATION_0 = new Table(QualifiedName.of("bob"));
-  private static final Relation RELATION_1 = new Table(QualifiedName.of("pete"));
+  private static final Relation RELATION_0 = new Table(SourceName.of("bob"));
+  private static final Relation RELATION_1 = new Table(SourceName.of("pete"));
   private static final JoinCriteria SOME_CRITERIA = new JoinOn(new StringLiteral("j"));
   private static final JoinCriteria OTHER_CRITERIA = new JoinOn(new StringLiteral("p"));
   private static final Optional<WithinExpression> SOME_WITHIN =

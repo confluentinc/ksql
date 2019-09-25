@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -196,8 +197,8 @@ public class TableElementsTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .keyColumn("k0", SqlTypes.STRING)
-        .valueColumn("v0", SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build()
     ));
   }
@@ -208,7 +209,7 @@ public class TableElementsTest {
       final Type type
   ) {
     final TableElement te = mock(TableElement.class, name);
-    when(te.getName()).thenReturn(name);
+    when(te.getName()).thenReturn(ColumnName.of(name));
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
     return te;

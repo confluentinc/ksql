@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -27,18 +29,18 @@ import java.util.Set;
  */
 abstract class CreateSourceCommand implements DdlCommand {
   private final String sqlExpression;
-  private final String sourceName;
+  private final SourceName sourceName;
   private final LogicalSchema schema;
-  private final Optional<String> keyField;
+  private final Optional<ColumnName> keyField;
   private final TimestampExtractionPolicy timestampExtractionPolicy;
   private final Set<SerdeOption> serdeOptions;
   private final KsqlTopic topic;
 
   CreateSourceCommand(
       final String sqlExpression,
-      final String sourceName,
+      final SourceName sourceName,
       final LogicalSchema schema,
-      final Optional<String> keyField,
+      final Optional<ColumnName> keyField,
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final Set<SerdeOption> serdeOptions,
       final KsqlTopic ksqlTopic
@@ -65,7 +67,7 @@ abstract class CreateSourceCommand implements DdlCommand {
     return sqlExpression;
   }
 
-  public String getSourceName() {
+  public SourceName getSourceName() {
     return sourceName;
   }
 
@@ -77,7 +79,7 @@ abstract class CreateSourceCommand implements DdlCommand {
     return timestampExtractionPolicy;
   }
 
-  public Optional<String> getKeyField() {
+  public Optional<ColumnName> getKeyField() {
     return keyField;
   }
 }

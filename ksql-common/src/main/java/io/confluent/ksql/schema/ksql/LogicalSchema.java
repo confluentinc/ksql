@@ -17,8 +17,11 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -123,6 +126,11 @@ public final class LogicalSchema {
    * @param columnName the column name, where any alias is ignored.
    * @return the column if found, else {@code Optional.empty()}.
    */
+  public Optional<Column> findColumn(final ColumnName columnName) {
+    return findColumn(columnName.name());
+  }
+
+  @VisibleForTesting
   public Optional<Column> findColumn(final String columnName) {
     Optional<Column> found = doFindColumn(columnName, metadata);
     if (found.isPresent()) {
@@ -148,6 +156,13 @@ public final class LogicalSchema {
    * @param columnName the column name, where any alias is ignored.
    * @return the value column if found, else {@code Optional.empty()}.
    */
+  public Optional<Column> findValueColumn(final ColumnName columnName) {
+    return doFindColumn(columnName.name(), value);
+  }
+
+  /**
+   * @see #findValueColumn(ColumnName)
+   */
   public Optional<Column> findValueColumn(final String columnName) {
     return doFindColumn(columnName, value);
   }
@@ -158,6 +173,11 @@ public final class LogicalSchema {
    * @param fullColumnName the exact name of the column to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
+  public OptionalInt valueColumnIndex(final ColumnName fullColumnName) {
+    return valueColumnIndex(fullColumnName.name());
+  }
+
+  @VisibleForTesting
   public OptionalInt valueColumnIndex(final String fullColumnName) {
     int idx = 0;
     for (final Column column : value) {
@@ -180,7 +200,7 @@ public final class LogicalSchema {
    * @param alias the alias to add.
    * @return the schema with the alias applied.
    */
-  public LogicalSchema withAlias(final String alias) {
+  public LogicalSchema withAlias(final SourceName alias) {
     if (isAliased()) {
       throw new IllegalStateException("Already aliased");
     }
@@ -234,7 +254,7 @@ public final class LogicalSchema {
     newValueColumns.addAll(key);
 
     value.forEach(f -> {
-      if (!doFindColumn(f.name(), newValueColumns).isPresent()) {
+      if (!doFindColumn(f.name().name(), newValueColumns).isPresent()) {
         newValueColumns.add(f);
       }
     });
@@ -257,7 +277,7 @@ public final class LogicalSchema {
   public LogicalSchema withoutMetaAndKeyColsInValue() {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
-    final Set<String> excluded = metaAndKeyColumnNames();
+    final Set<ColumnName> excluded = metaAndKeyColumnNames();
 
     value.stream()
         .filter(f -> !excluded.contains(f.name()))
@@ -274,7 +294,7 @@ public final class LogicalSchema {
    * @param columnName the column name to check
    * @return {@code true} if the column matches the name of any metadata column.
    */
-  public boolean isMetaColumn(final String columnName) {
+  public boolean isMetaColumn(final ColumnName columnName) {
     return metaColumnNames().contains(columnName);
   }
 
@@ -282,7 +302,7 @@ public final class LogicalSchema {
    * @param columnName the column name to check
    * @return {@code true} if the column matches the name of any key column.
    */
-  public boolean isKeyColumn(final String columnName) {
+  public boolean isKeyColumn(final ColumnName columnName) {
     return keyColumnNames().contains(columnName);
   }
 
@@ -328,27 +348,27 @@ public final class LogicalSchema {
     return "[" + keys + join + values + "]";
   }
 
-  private Set<String> metaColumnNames() {
+  private Set<ColumnName> metaColumnNames() {
     return columnNames(metadata);
   }
 
-  private Set<String> keyColumnNames() {
+  private Set<ColumnName> keyColumnNames() {
     return columnNames(key);
   }
 
-  private Set<String> metaAndKeyColumnNames() {
-    final Set<String> names = metaColumnNames();
+  private Set<ColumnName> metaAndKeyColumnNames() {
+    final Set<ColumnName> names = metaColumnNames();
     names.addAll(keyColumnNames());
     return names;
   }
 
-  private static Set<String> columnNames(final List<Column> struct) {
+  private static Set<ColumnName> columnNames(final List<Column> struct) {
     return struct.stream()
         .map(Column::name)
         .collect(Collectors.toSet());
   }
 
-  private static List<Column> addAlias(final String alias, final List<Column> columns) {
+  private static List<Column> addAlias(final SourceName alias, final List<Column> columns) {
     final ImmutableList.Builder<Column> builder = ImmutableList.builder();
 
     for (final Column col : columns) {
@@ -395,7 +415,7 @@ public final class LogicalSchema {
     private final Set<String> seenKeys = new HashSet<>();
     private final Set<String> seenValues = new HashSet<>();
 
-    public Builder keyColumn(final String columnName, final SqlType type) {
+    public Builder keyColumn(final ColumnName columnName, final SqlType type) {
       keyColumn(Column.of(columnName, type));
       return this;
     }
@@ -413,12 +433,12 @@ public final class LogicalSchema {
       return this;
     }
 
-    public Builder valueColumn(final String columnName, final SqlType type) {
+    public Builder valueColumn(final ColumnName columnName, final SqlType type) {
       valueColumn(Column.of(columnName, type));
       return this;
     }
 
-    public Builder valueColumn(final String source, final String name, final SqlType type) {
+    public Builder valueColumn(final SourceName source, final ColumnName name, final SqlType type) {
       valueColumn(Column.of(source, name, type));
       return this;
     }

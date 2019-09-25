@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -50,15 +51,15 @@ public class ProjectNodeTest {
   private static final PlanNodeId NODE_ID = new PlanNodeId("1");
   private static final BooleanLiteral TRUE_EXPRESSION = new BooleanLiteral("true");
   private static final BooleanLiteral FALSE_EXPRESSION = new BooleanLiteral("false");
-  private static final SelectExpression SELECT_0 = SelectExpression.of("col0", TRUE_EXPRESSION);
-  private static final SelectExpression SELECT_1 = SelectExpression.of("col1", FALSE_EXPRESSION);
+  private static final SelectExpression SELECT_0 = SelectExpression.of(ColumnName.of("col0"), TRUE_EXPRESSION);
+  private static final SelectExpression SELECT_1 = SelectExpression.of(ColumnName.of("col1"), FALSE_EXPRESSION);
   private static final String KEY_FIELD_NAME = "col0";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("col0", SqlTypes.STRING)
-      .valueColumn("col1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("col0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
-      .of("source-key", Column.of("legacy-source-key", SqlTypes.STRING));
+      .of(ColumnName.of("source-key"), Column.of(ColumnName.of("legacy-source-key"), SqlTypes.STRING));
 
   @Mock
   private PlanNode source;
@@ -84,7 +85,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(KEY_FIELD_NAME),
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
         ImmutableList.of(SELECT_0, SELECT_1));
   }
 
@@ -94,7 +95,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of("col0"),
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
         ImmutableList.of(SELECT_0)); // <-- not enough expressions
   }
 
@@ -104,9 +105,9 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(KEY_FIELD_NAME),
+        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
         ImmutableList.of(
-            SelectExpression.of("wrongName", TRUE_EXPRESSION),
+            SelectExpression.of(ColumnName.of("wrongName"), TRUE_EXPRESSION),
             SELECT_1
         )
     );
@@ -140,7 +141,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of("Unknown Key Field"),
+        Optional.of(ColumnName.of("Unknown Key Field")),
         ImmutableList.of(SELECT_0, SELECT_1));
   }
 
@@ -150,7 +151,7 @@ public class ProjectNodeTest {
     final KeyField keyField = projectNode.getKeyField();
 
     // Then:
-    assertThat(keyField.name(), is(Optional.of(KEY_FIELD_NAME)));
+    assertThat(keyField.name(), is(Optional.of(ColumnName.of(KEY_FIELD_NAME))));
     assertThat(keyField.legacy(), is(SOURCE_KEY_FIELD.legacy()));
   }
 }

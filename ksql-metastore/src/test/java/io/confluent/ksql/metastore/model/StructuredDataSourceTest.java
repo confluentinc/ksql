@@ -19,6 +19,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
@@ -33,7 +35,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StructuredDataSourceTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueColumn("f0", SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
 
   @Mock
@@ -56,7 +58,7 @@ public class StructuredDataSourceTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT)
-        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -71,7 +73,7 @@ public class StructuredDataSourceTest {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
-        .valueColumn("f0", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -92,7 +94,7 @@ public class StructuredDataSourceTest {
     ) {
       super(
           "some SQL",
-          "some name",
+          SourceName.of("some name"),
           schema,
           SerdeOption.none(), keyField,
           mock(TimestampExtractionPolicy.class),

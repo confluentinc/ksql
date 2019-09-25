@@ -15,9 +15,9 @@
 package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,11 +28,11 @@ import java.util.Set;
 
 public class MutableAggregateAnalysis implements AggregateAnalysis {
 
-  private final List<QualifiedNameReference> requiredColumns = new ArrayList<>();
-  private final Map<Expression, Set<QualifiedNameReference>> nonAggSelectExpressions
+  private final List<ColumnReferenceExp> requiredColumns = new ArrayList<>();
+  private final Map<Expression, Set<ColumnReferenceExp>> nonAggSelectExpressions
       = new HashMap<>();
-  private final Set<QualifiedNameReference> nonAggHavingFields = new HashSet<>();
-  private final Set<QualifiedNameReference> aggSelectFields = new HashSet<>();
+  private final Set<ColumnReferenceExp> nonAggHavingFields = new HashSet<>();
+  private final Set<ColumnReferenceExp> aggSelectFields = new HashSet<>();
   private final List<Expression> finalSelectExpressions = new ArrayList<>();
   private final List<Expression> aggregateFunctionArguments = new ArrayList<>();
   private final List<FunctionCall> aggFunctions = new ArrayList<>();
@@ -45,22 +45,22 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   @Override
-  public List<QualifiedNameReference> getRequiredColumns() {
+  public List<ColumnReferenceExp> getRequiredColumns() {
     return Collections.unmodifiableList(requiredColumns);
   }
 
   @Override
-  public Map<Expression, Set<QualifiedNameReference>> getNonAggregateSelectExpressions() {
+  public Map<Expression, Set<ColumnReferenceExp>> getNonAggregateSelectExpressions() {
     return Collections.unmodifiableMap(nonAggSelectExpressions);
   }
 
   @Override
-  public Set<QualifiedNameReference> getAggregateSelectFields() {
+  public Set<ColumnReferenceExp> getAggregateSelectFields() {
     return Collections.unmodifiableSet(aggSelectFields);
   }
 
   @Override
-  public Set<QualifiedNameReference> getNonAggregateHavingFields() {
+  public Set<ColumnReferenceExp> getNonAggregateHavingFields() {
     return Collections.unmodifiableSet(nonAggHavingFields);
   }
 
@@ -92,23 +92,23 @@ public class MutableAggregateAnalysis implements AggregateAnalysis {
   }
 
   void addAggregateSelectField(
-      final Set<QualifiedNameReference> fields
+      final Set<ColumnReferenceExp> fields
   ) {
     aggSelectFields.addAll(fields);
   }
 
   void addNonAggregateSelectExpression(
       final Expression selectExpression,
-      final Set<QualifiedNameReference> referencedFields
+      final Set<ColumnReferenceExp> referencedFields
   ) {
     nonAggSelectExpressions.put(selectExpression, ImmutableSet.copyOf(referencedFields));
   }
 
-  void addNonAggregateHavingField(final QualifiedNameReference node) {
+  void addNonAggregateHavingField(final ColumnReferenceExp node) {
     nonAggHavingFields.add(node);
   }
 
-  void addRequiredColumn(final QualifiedNameReference node) {
+  void addRequiredColumn(final ColumnReferenceExp node) {
     if (!requiredColumns.contains(node)) {
       requiredColumns.add(node);
     }

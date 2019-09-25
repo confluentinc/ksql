@@ -20,13 +20,14 @@ import static io.confluent.ksql.util.KsqlConstants.TIME_PATTERN;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.StringToTimestampParser;
 import java.time.ZoneId;
 import java.util.Optional;
@@ -97,8 +98,8 @@ public class StatementRewriteForRowtime {
   }
 
   private static boolean expressionIsRowtime(final Expression node) {
-    return (node instanceof QualifiedNameReference)
-        && ((QualifiedNameReference) node).getName().name().equals("ROWTIME");
+    return (node instanceof ColumnReferenceExp)
+        && ((ColumnReferenceExp) node).getReference().name().equals(SchemaUtil.ROWTIME_NAME);
   }
 
   private static LongLiteral rewriteTimestamp(final String timestamp) {

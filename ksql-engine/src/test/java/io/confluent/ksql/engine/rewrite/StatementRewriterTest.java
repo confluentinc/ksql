@@ -24,7 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
@@ -76,6 +77,8 @@ public class StatementRewriterTest {
   @Mock
   private Object context;
   @Mock
+  private SourceName sourceName;
+  @Mock
   private Select select;
   @Mock
   private Select rewrittenSelect;
@@ -95,8 +98,6 @@ public class StatementRewriterTest {
   private Relation rewrittenRightRelation;
   @Mock
   private JoinCriteria joinCriteria;
-  @Mock
-  private QualifiedName qualifiedName;
   @Mock
   private CreateSourceProperties sourceProperties;
   @Mock
@@ -293,20 +294,20 @@ public class StatementRewriterTest {
   @Test
   public void shouldRewriteSingleColumn() {
     // Given:
-    final SingleColumn singleColumn = new SingleColumn(location, expression, "foo");
+    final SingleColumn singleColumn = new SingleColumn(location, expression, ColumnName.of("foo"));
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
     // When:
     final AstNode rewritten = rewriter.rewrite(singleColumn, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new SingleColumn(location, rewrittenExpression, "foo")));
+    assertThat(rewritten, equalTo(new SingleColumn(location, rewrittenExpression, ColumnName.of("foo"))));
   }
 
   @Test
   public void shouldRewriteAliasedRelation() {
     // Given:
-    final AliasedRelation aliasedRelation = new AliasedRelation(location, relation, "alias");
+    final AliasedRelation aliasedRelation = new AliasedRelation(location, relation, SourceName.of("alias"));
     when(mockRewriter.apply(relation, context)).thenReturn(rewrittenRelation);
 
     // When:
@@ -315,7 +316,7 @@ public class StatementRewriterTest {
     // Then:
     assertThat(
         rewritten,
-        equalTo(new AliasedRelation(location, rewrittenRelation, "alias")));
+        equalTo(new AliasedRelation(location, rewrittenRelation, SourceName.of("alias"))));
   }
 
   private Join givenJoin(final Optional<WithinExpression> within) {
@@ -393,7 +394,7 @@ public class StatementRewriterTest {
 
   private TableElement givenTableElement(final String name) {
     final TableElement element = mock(TableElement.class);
-    when(element.getName()).thenReturn(name);
+    when(element.getName()).thenReturn(ColumnName.of(name));
     when(element.getNamespace()).thenReturn(Namespace.VALUE);
     return element;
   }
@@ -407,7 +408,7 @@ public class StatementRewriterTest {
     final TableElement rewrittenTableElement2 = givenTableElement("boz");
     final CreateStream cs = new CreateStream(
         location,
-        qualifiedName,
+        sourceName,
         TableElements.of(tableElement1, tableElement2),
         false,
         sourceProperties
@@ -424,7 +425,7 @@ public class StatementRewriterTest {
         equalTo(
             new CreateStream(
                 location,
-                qualifiedName,
+                sourceName,
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
                 false,
                 sourceProperties
@@ -437,7 +438,7 @@ public class StatementRewriterTest {
   public void shouldRewriteCSAS() {
     final CreateStreamAsSelect csas = new CreateStreamAsSelect(
         location,
-        qualifiedName,
+        sourceName,
         query,
         false,
         csasProperties,
@@ -452,7 +453,7 @@ public class StatementRewriterTest {
         equalTo(
             new CreateStreamAsSelect(
                 location,
-                qualifiedName,
+                sourceName,
                 rewrittenQuery,
                 false,
                 csasProperties,
@@ -466,7 +467,7 @@ public class StatementRewriterTest {
   public void shouldRewriteCSASWithPartitionBy() {
     final CreateStreamAsSelect csas = new CreateStreamAsSelect(
         location,
-        qualifiedName,
+        sourceName,
         query,
         false,
         csasProperties,
@@ -482,7 +483,7 @@ public class StatementRewriterTest {
         equalTo(
             new CreateStreamAsSelect(
                 location,
-                qualifiedName,
+                sourceName,
                 rewrittenQuery,
                 false,
                 csasProperties,
@@ -501,7 +502,7 @@ public class StatementRewriterTest {
     final TableElement rewrittenTableElement2 = givenTableElement("boz");
     final CreateTable ct = new CreateTable(
         location,
-        qualifiedName,
+        sourceName,
         TableElements.of(tableElement1, tableElement2),
         false,
         sourceProperties
@@ -518,7 +519,7 @@ public class StatementRewriterTest {
         equalTo(
             new CreateTable(
                 location,
-                qualifiedName,
+                sourceName,
                 TableElements.of(rewrittenTableElement1, rewrittenTableElement2),
                 false,
                 sourceProperties
@@ -532,7 +533,7 @@ public class StatementRewriterTest {
     // Given:
     final CreateTableAsSelect ctas = new CreateTableAsSelect(
         location,
-        qualifiedName,
+        sourceName,
         query,
         false,
         csasProperties
@@ -548,7 +549,7 @@ public class StatementRewriterTest {
         equalTo(
             new CreateTableAsSelect(
                 location,
-                qualifiedName,
+                sourceName,
                 rewrittenQuery,
                 false,
                 csasProperties
@@ -560,7 +561,7 @@ public class StatementRewriterTest {
   @Test
   public void shouldRewriteInsertInto() {
     // Given:
-    final InsertInto ii = new InsertInto(location, qualifiedName, query, Optional.empty());
+    final InsertInto ii = new InsertInto(location, sourceName, query, Optional.empty());
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
 
     // When:
@@ -569,14 +570,14 @@ public class StatementRewriterTest {
     // Then:
     assertThat(
         rewritten,
-        equalTo(new InsertInto(location, qualifiedName, rewrittenQuery, Optional.empty()))
+        equalTo(new InsertInto(location, sourceName, rewrittenQuery, Optional.empty()))
     );
   }
 
   @Test
   public void shouldRewriteInsertIntoWithPartitionBy() {
     // Given:
-    final InsertInto ii = new InsertInto(location, qualifiedName, query, Optional.of(expression));
+    final InsertInto ii = new InsertInto(location, sourceName, query, Optional.of(expression));
     when(mockRewriter.apply(query, context)).thenReturn(rewrittenQuery);
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
@@ -589,7 +590,7 @@ public class StatementRewriterTest {
         equalTo(
             new InsertInto(
                 location,
-                qualifiedName,
+                sourceName,
                 rewrittenQuery,
                 Optional.of(rewrittenExpression)
             )

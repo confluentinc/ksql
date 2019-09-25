@@ -28,6 +28,8 @@ import io.confluent.connect.avro.AvroDataConfig;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -53,7 +55,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class AvroUtilTest {
 
-  private static final String STREAM_NAME = "some-stream";
+  private static final SourceName STREAM_NAME = SourceName.of("some-stream");
 
   private static final String AVRO_SCHEMA_STRING = "{"
       + "\"namespace\": \"some.namespace\","
@@ -127,7 +129,7 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME.name());
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     // When:
@@ -147,7 +149,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME.name());
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
@@ -166,7 +168,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = SchemaUtil
-        .buildAvroSchema(schema.valueSchema(), STREAM_NAME);
+        .buildAvroSchema(schema.valueSchema(), STREAM_NAME.name());
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(persistentQuery, srClient);
@@ -265,7 +267,7 @@ public class AvroUtilTest {
 
     final Builder builder = LogicalSchema.builder();
     connectSchema.fields()
-        .forEach(f -> builder.valueColumn(f.name(), converter.toSqlType(f.schema())));
+        .forEach(f -> builder.valueColumn(ColumnName.of(f.name()), converter.toSqlType(f.schema())));
 
     return builder.build();
   }

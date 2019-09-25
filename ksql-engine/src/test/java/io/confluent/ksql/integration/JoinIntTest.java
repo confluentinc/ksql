@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.TopicTestUtil;
@@ -106,7 +107,7 @@ public class JoinIntTest {
     ksqlContext.sql(queryString);
 
     final DataSource<?> source = ksqlContext.getMetaStore()
-        .getSource(testStreamName);
+        .getSource(SourceName.of(testStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
@@ -174,7 +175,7 @@ public class JoinIntTest {
     ksqlContext.sql(insertQueryString);
 
     final DataSource<?> source = ksqlContext.getMetaStore()
-        .getSource(testStreamName);
+        .getSource(SourceName.of(testStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),
@@ -247,7 +248,7 @@ public class JoinIntTest {
     final String outputStream = "OUTPUT";
 
     final DataSource<?> source = ksqlContext.getMetaStore()
-        .getSource(outputStream);
+        .getSource(SourceName.of(outputStream));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),

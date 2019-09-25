@@ -16,18 +16,19 @@
 package io.confluent.ksql.metastore;
 
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import java.util.Set;
 
 public interface MutableMetaStore extends MetaStore {
 
   void putSource(DataSource<?> dataSource);
 
-  void deleteSource(String sourceName);
+  void deleteSource(SourceName sourceName);
 
   void updateForPersistentQuery(
       String queryId,
-      Set<String> sourceNames,
-      Set<String> sinkNames);
+      Set<SourceName> sourceNames,
+      Set<SourceName> sinkNames);
 
   void removePersistentQuery(String queryId);
 

@@ -16,6 +16,8 @@
 package io.confluent.ksql.metastore.model;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -52,7 +54,7 @@ public final class KeyField {
 
   private static final KeyField NONE = KeyField.of(Optional.empty(), Optional.empty());
 
-  private final Optional<String> keyField;
+  private final Optional<ColumnName> keyField;
   private final Optional<LegacyField> legacyKeyField;
 
   public static KeyField none() {
@@ -60,28 +62,33 @@ public final class KeyField {
   }
 
   public static KeyField of(
-      final String keyField,
+      final ColumnName keyField,
       final Column legacyKeyCol
   ) {
-    final LegacyField legacy = LegacyField.of(legacyKeyCol.fullName(), legacyKeyCol.type());
+    final LegacyField legacy = LegacyField.of(
+        ColumnName.of(legacyKeyCol.fullName()),
+        legacyKeyCol.type());
     return new KeyField(Optional.of(keyField), Optional.of(legacy));
   }
 
   public static KeyField of(
-      final String keyField,
+      final ColumnName keyField,
       final LegacyField legacyKeyCol
   ) {
     return new KeyField(Optional.of(keyField), Optional.of(legacyKeyCol));
   }
 
   public static KeyField of(
-      final Optional<String> keyField,
+      final Optional<ColumnName> keyField,
       final Optional<LegacyField> legacyKeyField
   ) {
     return new KeyField(keyField, legacyKeyField);
   }
 
-  private KeyField(final Optional<String> keyField, final Optional<LegacyField> legacyKeyField) {
+  private KeyField(
+      final Optional<ColumnName> keyField,
+      final Optional<LegacyField> legacyKeyField
+  ) {
     this.keyField = Objects.requireNonNull(keyField, "keyField");
     this.legacyKeyField = Objects.requireNonNull(legacyKeyField, "legacyKeyField");
   }
@@ -98,7 +105,7 @@ public final class KeyField {
     return this;
   }
 
-  public Optional<String> name() {
+  public Optional<ColumnName> name() {
     return keyField;
   }
 
@@ -145,7 +152,7 @@ public final class KeyField {
    * @param ksqlConfig the config to use to determine if new or legacy key fields are required.
    * @return the resolved key field name, or {@link Optional#empty()} if no key field is set.
    */
-  public Optional<String> resolveName(final KsqlConfig ksqlConfig) {
+  public Optional<ColumnName> resolveName(final KsqlConfig ksqlConfig) {
     if (shouldUseLegacy(ksqlConfig)) {
       return legacyKeyField.map(LegacyField::name);
     }
@@ -166,7 +173,7 @@ public final class KeyField {
     return keyField
         .map(fieldName -> schema.findValueColumn(fieldName)
             .orElseThrow(() -> new IllegalArgumentException(
-                "Invalid key field, not found in schema: " + fieldName)));
+                "Invalid key field, not found in schema: " + fieldName.name())));
   }
 
   /**
@@ -175,11 +182,11 @@ public final class KeyField {
    * @param newName the new name.
    * @return the new instance.
    */
-  public KeyField withName(final Optional<String> newName) {
+  public KeyField withName(final Optional<ColumnName> newName) {
     return KeyField.of(newName, legacyKeyField);
   }
 
-  public KeyField withName(final String newName) {
+  public KeyField withName(final ColumnName newName) {
     return withName(Optional.of(newName));
   }
 
@@ -203,9 +210,10 @@ public final class KeyField {
    * @param alias the field alias to apply.
    * @return the new instance.
    */
-  public KeyField withAlias(final String alias) {
+  public KeyField withAlias(final SourceName alias) {
     return KeyField.of(
-        keyField.map(fieldName -> SchemaUtil.buildAliasedFieldName(alias, fieldName)),
+        keyField.map(fieldName -> ColumnName.of(
+            SchemaUtil.buildAliasedFieldName(alias.name(), fieldName.name()))),
         legacyKeyField.map(field -> field.withSource(alias))
     );
   }
@@ -244,7 +252,7 @@ public final class KeyField {
   @Immutable
   public static final class LegacyField {
 
-    public final String name;
+    public final ColumnName name;
     public final SqlType type;
 
     /**
@@ -253,21 +261,21 @@ public final class KeyField {
      */
     private final boolean notInSchema;
 
-    public static LegacyField of(final String name, final SqlType type) {
+    public static LegacyField of(final ColumnName name, final SqlType type) {
       return new LegacyField(name, type, false);
     }
 
-    public static LegacyField notInSchema(final String name, final SqlType type) {
+    public static LegacyField notInSchema(final ColumnName name, final SqlType type) {
       return new LegacyField(name, type, true);
     }
 
-    private LegacyField(final String name, final SqlType type, final boolean notInSchema) {
+    private LegacyField(final ColumnName name, final SqlType type, final boolean notInSchema) {
       this.name = Objects.requireNonNull(name, "name");
       this.type = Objects.requireNonNull(type, "type");
       this.notInSchema = notInSchema;
     }
 
-    public String name() {
+    public ColumnName name() {
       return name;
     }
 
@@ -279,9 +287,9 @@ public final class KeyField {
       return notInSchema;
     }
 
-    public LegacyField withSource(final String source) {
+    public LegacyField withSource(final SourceName source) {
       return new LegacyField(
-          SchemaUtil.buildAliasedFieldName(source, name),
+          ColumnName.of(SchemaUtil.buildAliasedFieldName(source.name(), name.name())),
           type,
           notInSchema
       );

@@ -26,6 +26,8 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -45,7 +47,7 @@ public class DataSourceNode extends PlanNode {
   private static final String REDUCE_OP_NAME = "reduce";
 
   private final DataSource<?> dataSource;
-  private final String alias;
+  private final SourceName alias;
   private final LogicalSchemaWithMetaAndKeyFields schema;
   private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
@@ -53,7 +55,7 @@ public class DataSourceNode extends PlanNode {
   public DataSourceNode(
       final PlanNodeId id,
       final DataSource<?> dataSource,
-      final String alias
+      final SourceName alias
   ) {
     this(id, dataSource, alias, SchemaKStream::forSource);
   }
@@ -61,7 +63,7 @@ public class DataSourceNode extends PlanNode {
   DataSourceNode(
       final PlanNodeId id,
       final DataSource<?> dataSource,
-      final String alias,
+      final SourceName alias,
       final SchemaKStreamFactory schemaKStreamFactory
   ) {
     super(id, dataSource.getDataSourceType());
@@ -73,7 +75,7 @@ public class DataSourceNode extends PlanNode {
     // and a KS transformValues to add the implicit fields
     this.schema = StreamSource.getSchemaWithMetaAndKeyFields(alias, dataSource.getSchema());
 
-    final Optional<String> keyFieldName = dataSource.getKeyField()
+    final Optional<ColumnName> keyFieldName = dataSource.getKeyField()
         .withAlias(alias)
         .name();
 
@@ -97,7 +99,7 @@ public class DataSourceNode extends PlanNode {
     return dataSource;
   }
 
-  String getAlias() {
+  SourceName getAlias() {
     return alias;
   }
 

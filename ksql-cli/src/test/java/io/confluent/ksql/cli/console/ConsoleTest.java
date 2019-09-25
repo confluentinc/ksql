@@ -36,6 +36,7 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -1414,7 +1415,7 @@ public class ConsoleTest {
     final Builder schemaBuilder = LogicalSchema.builder();
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
-      schemaBuilder.valueColumn("f_" + idx, fieldTypes[idx]);
+      schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);
     }
 
     final LogicalSchema schema = schemaBuilder.build();

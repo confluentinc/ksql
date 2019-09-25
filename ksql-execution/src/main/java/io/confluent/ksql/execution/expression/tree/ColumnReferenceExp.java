@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.NodeLocation;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -26,20 +27,20 @@ import java.util.Optional;
  * Expression representing a column name, e.g. {@code col0} or {@code src.col1}.
  */
 @Immutable
-public class QualifiedNameReference extends Expression {
+public class ColumnReferenceExp extends Expression {
 
-  private final QualifiedName name;
+  private final ColumnRef name;
 
-  public QualifiedNameReference(final QualifiedName name) {
+  public ColumnReferenceExp(final ColumnRef name) {
     this(Optional.empty(), name);
   }
 
-  public QualifiedNameReference(final Optional<NodeLocation> location, final QualifiedName name) {
+  public ColumnReferenceExp(final Optional<NodeLocation> location, final ColumnRef name) {
     super(location);
     this.name = requireNonNull(name, "name");
   }
 
-  public QualifiedName getName() {
+  public ColumnRef getReference() {
     return name;
   }
 
@@ -57,7 +58,7 @@ public class QualifiedNameReference extends Expression {
       return false;
     }
 
-    final QualifiedNameReference that = (QualifiedNameReference) o;
+    final ColumnReferenceExp that = (ColumnReferenceExp) o;
     return Objects.equals(name, that.name);
   }
 

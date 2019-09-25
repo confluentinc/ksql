@@ -39,6 +39,7 @@ import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.materialization.KsqlMaterializationFactory.MaterializationFactory;
 import io.confluent.ksql.materialization.KsqlMaterializationFactory.SqlPredicateFactory;
 import io.confluent.ksql.materialization.KsqlMaterializationFactory.ValueMapperFactory;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -60,13 +61,13 @@ public class KsqlMaterializationFactoryTest {
   private static final Expression HAVING_EXP = mock(Expression.class);
 
   private static final LogicalSchema AGGREGATE_SCHEMA = LogicalSchema.builder()
-      .keyColumn("ROWKEY", SqlTypes.STRING)
-      .valueColumn("KSQL_INTERNAL_COL_0", SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("KSQL_INTERNAL_COL_0"), SqlTypes.DOUBLE)
       .build();
 
   private static final LogicalSchema TABLE_SCHEMA = LogicalSchema.builder()
-      .keyColumn("ROWKEY", SqlTypes.STRING)
-      .valueColumn("SUM", SqlTypes.DOUBLE)
+      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("SUM"), SqlTypes.DOUBLE)
       .build();
 
   private static final List<SelectExpression> SELECTS = ImmutableList.of(

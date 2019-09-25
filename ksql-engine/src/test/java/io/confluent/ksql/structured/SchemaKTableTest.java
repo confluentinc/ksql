@@ -43,8 +43,10 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -124,11 +126,11 @@ public class SchemaKTableTest {
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
   private final KeyField validKeyField = KeyField.of(
-      Optional.of("left.COL1"),
-      metaStore.getSource("TEST2")
+      Optional.of(ColumnName.of("left.COL1")),
+      metaStore.getSource(SourceName.of("TEST2"))
           .getKeyField()
           .legacy()
-          .map(field -> field.withSource("left")));
+          .map(field -> field.withSource(SourceName.of("left"))));
 
   private SchemaKTable initialSchemaKTable;
   private KTable kTable;
@@ -143,9 +145,9 @@ public class SchemaKTableTest {
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private static final Expression TEST_2_COL_1 =
-      new QualifiedNameReference(QualifiedName.of("TEST2", "COL1"));
+      new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")));
   private static final Expression TEST_2_COL_2 =
-      new QualifiedNameReference(QualifiedName.of("TEST2", "COL2"));
+      new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL2")));
   private static final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
   private static final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -159,7 +161,7 @@ public class SchemaKTableTest {
   @Before
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
-    ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
+    ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     final StreamsBuilder builder = new StreamsBuilder();
     kTable = builder.table(
         ksqlTable.getKsqlTopic().getKafkaTopicName(),
@@ -168,7 +170,7 @@ public class SchemaKTableTest {
             getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema())
         ));
 
-    final KsqlTable secondKsqlTable = (KsqlTable) metaStore.getSource("TEST3");
+    final KsqlTable secondKsqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST3"));
     final KTable secondKTable = builder.table(
         secondKsqlTable.getKsqlTopic().getKafkaTopicName(),
         Consumed.with(
@@ -239,9 +241,9 @@ public class SchemaKTableTest {
     final LogicalSchema schema = ksqlTable.getSchema().withAlias(ksqlTable.getName());
 
     final Optional<String> newKeyName = ksqlTable.getKeyField().name()
-        .map(name -> SchemaUtil.buildAliasedFieldName(ksqlTable.getName(), name));
+        .map(name -> SchemaUtil.buildAliasedFieldName(ksqlTable.getName().name(), name.name()));
 
-    final KeyField keyFieldWithAlias = KeyField.of(newKeyName, ksqlTable.getKeyField().legacy());
+    final KeyField keyFieldWithAlias = KeyField.of(newKeyName.map(ColumnName::of), ksqlTable.getKeyField().legacy());
 
     return buildSchemaKTable(
         schema,
@@ -282,9 +284,9 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        Column.of("COL0", SqlTypes.BIGINT),
-        Column.of("COL2", SqlTypes.STRING),
-        Column.of("COL3", SqlTypes.DOUBLE)
+        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        Column.of(ColumnName.of("COL2"), SqlTypes.STRING),
+        Column.of(ColumnName.of("COL3"), SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKTable));
@@ -336,9 +338,9 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(projectedSchemaKStream.getSchema().value(), contains(
-        Column.of("COL0", SqlTypes.BIGINT),
-        Column.of("KSQL_COL_1", SqlTypes.INTEGER),
-        Column.of("KSQL_COL_2", SqlTypes.DOUBLE)
+        Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT),
+        Column.of(ColumnName.of("KSQL_COL_1"), SqlTypes.INTEGER),
+        Column.of(ColumnName.of("KSQL_COL_2"), SqlTypes.DOUBLE)
     ));
 
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKTable));
@@ -360,14 +362,15 @@ public class SchemaKTableTest {
     );
 
     // Then:
+    final SourceName test2 = SourceName.of("TEST2");
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
-        Column.of("TEST2", "ROWTIME", SqlTypes.BIGINT),
-        Column.of("TEST2", "ROWKEY", SqlTypes.STRING),
-        Column.of("TEST2", "COL0", SqlTypes.BIGINT),
-        Column.of("TEST2", "COL1", SqlTypes.STRING),
-        Column.of("TEST2", "COL2", SqlTypes.STRING),
-        Column.of("TEST2", "COL3", SqlTypes.DOUBLE),
-        Column.of("TEST2", "COL4", SqlTypes.BOOLEAN)
+        Column.of(test2, ColumnName.of("ROWTIME"), SqlTypes.BIGINT),
+        Column.of(test2, ColumnName.of("ROWKEY"), SqlTypes.STRING),
+        Column.of(test2, ColumnName.of("COL0"), SqlTypes.BIGINT),
+        Column.of(test2, ColumnName.of("COL1"), SqlTypes.STRING),
+        Column.of(test2, ColumnName.of("COL2"), SqlTypes.STRING),
+        Column.of(test2, ColumnName.of("COL3"), SqlTypes.DOUBLE),
+        Column.of(test2, ColumnName.of("COL4"), SqlTypes.BOOLEAN)
     ));
 
     assertThat(filteredSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKTable));
@@ -396,7 +399,8 @@ public class SchemaKTableTest {
         Matchers.equalTo(
             new ComparisonExpression(
                 ComparisonExpression.Type.EQUAL,
-                new QualifiedNameReference(QualifiedName.of("TEST2", "ROWTIME")),
+                new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST2"),
+                    ColumnName.of("ROWTIME"))),
                 new LongLiteral(441763200000L)
             )
         )
@@ -450,7 +454,7 @@ public class SchemaKTableTest {
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     assertThat(groupedSchemaKTable.getKeyField().name(), is(Optional.empty()));
     assertThat(groupedSchemaKTable.getKeyField().legacy().map(LegacyField::name),
-        is(Optional.of("TEST2.COL2|+|TEST2.COL1")));
+        is(Optional.of(ColumnName.of("TEST2.COL2|+|TEST2.COL1"))));
   }
 
   @Test
@@ -686,7 +690,7 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
+        is(KeyField.of(ColumnName.of("NEWKEY"), Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -701,7 +705,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
+        is(KeyField.of(ColumnName.of("NEWKEY"), Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -716,7 +720,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("NEWKEY", Column.of("NEWKEY", SqlTypes.BIGINT))));
+        is(KeyField.of(ColumnName.of("NEWKEY"), Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -731,7 +735,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
-    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKTable.keyField.legacy().map(LegacyField::name)));
+    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKTable.keyField.legacy().map(lf -> lf.name().name())));
     assertThat(result.getKeyField(), hasLegacyType(initialSchemaKTable.keyField.legacy().map(LegacyField::type)));
   }
 
@@ -747,7 +751,8 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        Matchers.equalTo(KeyField.of("COL0", Column.of("COL0", SqlTypes.BIGINT))));
+        Matchers.equalTo(KeyField.of(
+            ColumnName.of("COL0"), Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -790,7 +795,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of("TEST2.COL1", LegacyField.notInSchema("TEST2.COL1", SqlTypes.STRING))));
+        is(KeyField.of(ColumnName.of("TEST2.COL1"), LegacyField.notInSchema(ColumnName.of("TEST2.COL1"), SqlTypes.STRING))));
   }
 
   private static LogicalSchema getJoinSchema(
@@ -798,8 +803,8 @@ public class SchemaKTableTest {
       final LogicalSchema rightSchema
   ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final String leftAlias = "left";
-    final String rightAlias = "right";
+    final SourceName leftAlias = SourceName.of("left");
+    final SourceName rightAlias = SourceName.of("right");
     for (final Column field : leftSchema.value()) {
       schemaBuilder.valueColumn(Column.of(leftAlias, field.name(), field.type()));
     }

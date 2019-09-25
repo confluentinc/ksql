@@ -50,7 +50,6 @@ import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -58,6 +57,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DropType;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -105,8 +106,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandFactoriesTest {
 
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
-  private static final QualifiedName TABLE_NAME = QualifiedName.of("tablename");
+  private static final SourceName SOME_NAME = SourceName.of("bob");
+  private static final SourceName TABLE_NAME = SourceName.of("tablename");
   private static final Map<String, Object> NO_PROPS = Collections.emptyMap();
   private static final String sqlExpression = "sqlExpression";
   private static final TableElement ELEMENT1 =
@@ -156,8 +157,8 @@ public class CommandFactoriesTest {
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
-    when(metaStore.getSource(SOME_NAME.name())).thenReturn(ksqlStream);
-    when(metaStore.getSource(TABLE_NAME.name())).thenReturn(ksqlTable);
+    when(metaStore.getSource(SOME_NAME)).thenReturn(ksqlStream);
+    when(metaStore.getSource(TABLE_NAME)).thenReturn(ksqlTable);
     when(ksqlStream.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
     when(ksqlTable.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(serdeFactory.create(any(), any(), any(), any(), any(), any())).thenReturn(serde);
@@ -578,7 +579,7 @@ public class CommandFactoriesTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, ONE_ELEMENT, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("bob", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
         .build();
     when(serdeOptionsSupplier.build(any(), any(), any(), any())).thenReturn(SOME_SERDE_OPTIONS);
 
@@ -615,9 +616,9 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("bob", SqlTypes.STRING)
-        .valueColumn("hojjat", SqlTypes.STRING)
+        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("hojjat"), SqlTypes.STRING)
         .build()
     ));
   }
@@ -646,9 +647,9 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result.getSchema(), is(LogicalSchema.builder()
-        .keyColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("bob", SqlTypes.STRING)
-        .valueColumn("hojjat", SqlTypes.STRING)
+        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("hojjat"), SqlTypes.STRING)
         .build()
     ));
   }
@@ -659,8 +660,8 @@ public class CommandFactoriesTest {
     givenCommandFactoriesWithMocks();
     final CreateStream statement = new CreateStream(SOME_NAME, TWO_ELEMENTS, true, withProperties);
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("bob", SqlTypes.STRING)
-        .valueColumn("hojjat", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("bob"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("hojjat"), SqlTypes.STRING)
         .build();
 
     // When:
@@ -787,7 +788,7 @@ public class CommandFactoriesTest {
   public void shouldCreateDropSourceOnMissingSourceWithIfExistsForStream() {
     // Given:
     final DropStream dropStream = new DropStream(SOME_NAME, false, true);
-    when(metaStore.getSource(SOME_NAME.name())).thenReturn(null);
+    when(metaStore.getSource(SOME_NAME)).thenReturn(null);
 
     // When:
     final DropSourceCommand cmd = (DropSourceCommand) commandFactories.create(
@@ -798,14 +799,14 @@ public class CommandFactoriesTest {
     );
 
     // Then:
-    assertThat(cmd.getSourceName(), equalTo("bob"));
+    assertThat(cmd.getSourceName(), equalTo(SourceName.of("bob")));
   }
 
   @Test
   public void shouldFailDropSourceOnMissingSourceWithNoIfExistsForStream() {
     // Given:
     final DropStream dropStream = new DropStream(SOME_NAME, true, true);
-    when(metaStore.getSource("bob")).thenReturn(null);
+    when(metaStore.getSource(SOME_NAME)).thenReturn(null);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -820,7 +821,7 @@ public class CommandFactoriesTest {
   public void shouldFailDropSourceOnDropIncompatibleSourceForStream() {
     // Given:
     final DropStream dropStream = new DropStream(SOME_NAME, false, true);
-    when(metaStore.getSource(SOME_NAME.name())).thenReturn(ksqlTable);
+    when(metaStore.getSource(SOME_NAME)).thenReturn(ksqlTable);
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -835,7 +836,7 @@ public class CommandFactoriesTest {
     // Given:
     final DdlStatement statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(Namespace.VALUE, ROWTIME_NAME, new Type(SqlTypes.BIGINT))),
+        TableElements.of(tableElement(Namespace.VALUE, ROWTIME_NAME.name(), new Type(SqlTypes.BIGINT))),
         true,
         withProperties
     );
@@ -853,7 +854,7 @@ public class CommandFactoriesTest {
     // Given:
     final DdlStatement statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(Namespace.KEY, ROWTIME_NAME, new Type(SqlTypes.BIGINT))),
+        TableElements.of(tableElement(Namespace.KEY, ROWTIME_NAME.name(), new Type(SqlTypes.BIGINT))),
         true,
         withProperties
     );
@@ -871,7 +872,7 @@ public class CommandFactoriesTest {
     // Given:
     final DdlStatement statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(VALUE, ROWKEY_NAME, new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement(VALUE, ROWKEY_NAME.name(), new Type(SqlTypes.STRING))),
         true,
         withProperties
     );
@@ -890,7 +891,7 @@ public class CommandFactoriesTest {
     // Given:
     final DdlStatement statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, ROWKEY_NAME, new Type(SqlTypes.STRING))),
+        TableElements.of(tableElement(KEY, ROWKEY_NAME.name(), new Type(SqlTypes.STRING))),
         true,
         withProperties
     );
@@ -906,7 +907,7 @@ public class CommandFactoriesTest {
     // Given:
     final DdlStatement statement = new CreateStream(
         SOME_NAME,
-        TableElements.of(tableElement(KEY, ROWKEY_NAME, new Type(SqlTypes.INTEGER))),
+        TableElements.of(tableElement(KEY, ROWKEY_NAME.name(), new Type(SqlTypes.INTEGER))),
         true,
         withProperties
     );
@@ -955,7 +956,7 @@ public class CommandFactoriesTest {
       final Type type
   ) {
     final TableElement te = mock(TableElement.class, name);
-    when(te.getName()).thenReturn(name);
+    when(te.getName()).thenReturn(ColumnName.of(name));
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
     return te;

@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -158,7 +159,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
     );
@@ -199,7 +200,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
     );
@@ -298,10 +299,10 @@ public class StandaloneExecutorFunctionalTest {
 
   private static void givenIncompatibleSchemaExists(final String topicName) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .valueColumn("ORDERID", SqlTypes.struct()
+        .valueColumn(ColumnName.of("ORDERID"), SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)
             .build())
-        .valueColumn("Other", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("Other"), SqlTypes.BIGINT)
         .build();
 
     final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(

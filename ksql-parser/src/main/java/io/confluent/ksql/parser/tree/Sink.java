@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Objects;
 import java.util.Optional;
@@ -29,10 +31,10 @@ import java.util.Optional;
 @Immutable
 public final class Sink {
 
-  private final String name;
+  private final SourceName name;
   private final boolean createSink;
   private final CreateSourceAsProperties properties;
-  private final Optional<String> partitionBy;
+  private final Optional<ColumnName> partitionBy;
 
   /**
    * Info about the sink of a query.
@@ -44,23 +46,24 @@ public final class Sink {
    * @return the pojo.
    */
   public static Sink of(
-      final String name,
+      final SourceName name,
       final boolean createSink,
       final CreateSourceAsProperties properties,
       final Optional<Expression> partitionBy
   ) {
-    final Optional<String> partitionByExp = partitionBy
+    final Optional<ColumnName> partitionByExp = partitionBy
         .map(Object::toString)
-        .map(String::toUpperCase);
+        .map(String::toUpperCase)
+        .map(ColumnName::of);
 
     return new Sink(name, createSink, properties, partitionByExp);
   }
 
   private Sink(
-      final String name,
+      final SourceName name,
       final boolean createSink,
       final CreateSourceAsProperties properties,
-      final Optional<String> partitionBy
+      final Optional<ColumnName> partitionBy
   ) {
     this.name = requireNonNull(name, "name");
     this.properties = requireNonNull(properties, "properties");
@@ -68,7 +71,7 @@ public final class Sink {
     this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
   }
 
-  public String getName() {
+  public SourceName getName() {
     return name;
   }
 
@@ -80,7 +83,7 @@ public final class Sink {
     return properties;
   }
 
-  public Optional<String> getPartitionBy() {
+  public Optional<ColumnName> getPartitionBy() {
     return partitionBy;
   }
 }

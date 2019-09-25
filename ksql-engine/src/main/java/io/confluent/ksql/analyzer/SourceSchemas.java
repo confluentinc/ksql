@@ -19,6 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.SchemaUtil;
@@ -33,9 +35,9 @@ import java.util.stream.Collectors;
  */
 final class SourceSchemas {
 
-  private final Map<String, LogicalSchema> sourceSchemas;
+  private final ImmutableMap<SourceName, LogicalSchema> sourceSchemas;
 
-  SourceSchemas(final Map<String, LogicalSchema> sourceSchemas) {
+  SourceSchemas(final Map<SourceName, LogicalSchema> sourceSchemas) {
     this.sourceSchemas = ImmutableMap.copyOf(requireNonNull(sourceSchemas, "sourceSchemas"));
 
     if (sourceSchemas.isEmpty()) {
@@ -51,26 +53,26 @@ final class SourceSchemas {
   }
 
   /**
-   * Find the name of any sources containing the supplied {@code fieldName}.
+   * Find the name of any sources containing the supplied {@code columnName}.
    *
    * <p>The supplied name can be prefixed with a source name. In which case, only that specific
    * source is checked. If not prefix is present, all sources are checked.
    *
-   * @param fieldName the field name to search for. Can be prefixed by source name.
-   * @return the set of source names or aliases which contain the supplied {@code fieldName}.
+   * @param columnName the field name to search for. Can be prefixed by source name.
+   * @return the set of source names or aliases which contain the supplied {@code columnName}.
    */
-  Set<String> sourcesWithField(final String fieldName) {
+  Set<SourceName> sourcesWithField(final ColumnName columnName) {
 
-    final Optional<String> maybeSourceName = SchemaUtil.getFieldNameAlias(fieldName);
+    final Optional<String> maybeSourceName = SchemaUtil.getFieldNameAlias(columnName.name());
     if (!maybeSourceName.isPresent()) {
       return sourceSchemas.entrySet().stream()
-          .filter(e -> e.getValue().findColumn(fieldName).isPresent())
+          .filter(e -> e.getValue().findColumn(columnName).isPresent())
           .map(Entry::getKey)
           .collect(Collectors.toSet());
     }
 
-    final String sourceName = maybeSourceName.get();
-    final String baseColumnName = SchemaUtil.getFieldNameWithNoAlias(fieldName);
+    final SourceName sourceName = SourceName.of(maybeSourceName.get());
+    final String baseColumnName = SchemaUtil.getFieldNameWithNoAlias(columnName.name());
 
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {
@@ -92,13 +94,14 @@ final class SourceSchemas {
    * @return true if this the supplied {@code fieldName} matches a non-value field
    */
   boolean matchesNonValueField(final String fieldName) {
-    final Optional<String> maybeSourceName = SchemaUtil.getFieldNameAlias(fieldName);
+    final Optional<SourceName> maybeSourceName = SchemaUtil.getFieldNameAlias(fieldName)
+        .map(SourceName::of);
     if (!maybeSourceName.isPresent()) {
       return sourceSchemas.values().stream()
           .anyMatch(schema -> nonValueFieldNames(schema).contains(fieldName));
     }
 
-    final String sourceName = maybeSourceName.get();
+    final SourceName sourceName = maybeSourceName.get();
     final String baseFieldName = SchemaUtil.getFieldNameWithNoAlias(fieldName);
 
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);

@@ -28,7 +28,8 @@ import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -60,12 +61,12 @@ public class ParserModelTest {
 
   private static final Select DEFAULT_SELECT =
       new Select(ImmutableList.of(new AllColumns(Optional.empty())));
-  private static final Table DEFAULT_RELATION = new Table(QualifiedName.of("vic"));
+  private static final Table DEFAULT_RELATION = new Table(SourceName.of("vic"));
   private static final Type DEFAULT_TYPE = new Type(SqlTypes.STRING);
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
       .<Class<?>, Object>builder()
-      .put(QualifiedName.class, QualifiedName.of("bob"))
+      .put(ColumnRef.class, ColumnRef.of("bob"))
       .put(Expression.class, DEFAULT_TYPE)
       .put(KsqlWindowExpression.class, new TumblingWindowExpression(1, TimeUnit.SECONDS))
       .put(Relation.class, DEFAULT_RELATION)

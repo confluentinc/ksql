@@ -48,8 +48,8 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -591,7 +591,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteQualifiedNameReference() {
     // Given:
-    final QualifiedNameReference expression = new QualifiedNameReference(QualifiedName.of("foo"));
+    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.of("foo"));
 
     // When:
     final Expression rewritten = expressionRewriter.rewrite(expression, context);
@@ -603,7 +603,7 @@ public class ExpressionTreeRewriterTest {
   @Test
   public void shouldRewriteQualifiedNameReferenceUsingPlugin() {
     // Given:
-    final QualifiedNameReference expression = new QualifiedNameReference(QualifiedName.of("foo"));
+    final ColumnReferenceExp expression = new ColumnReferenceExp(ColumnRef.of("foo"));
 
     // When/Then:
     shouldRewriteUsingPlugin(expression);

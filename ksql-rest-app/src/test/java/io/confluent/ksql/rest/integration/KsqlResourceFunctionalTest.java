@@ -27,6 +27,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -150,8 +151,8 @@ public class KsqlResourceFunctionalTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("AUTHOR", SqlTypes.STRING)
-            .valueColumn("TITLE", SqlTypes.STRING)
+            .valueColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
         SerdeOption.none()
     );

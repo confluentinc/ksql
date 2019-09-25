@@ -36,6 +36,8 @@ import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -81,15 +83,15 @@ import org.mockito.junit.MockitoRule;
 public class StreamSourceBuilderTest {
 
   private static final LogicalSchema SOURCE_SCHEMA = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.STRING)
-      .valueColumn("field2", SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
       .build();
   private static final Schema KEY_SCHEMA = SchemaBuilder.struct()
       .field("k1", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   private static final Struct KEY = new Struct(KEY_SCHEMA).put("k1", "foo");
   private static final LogicalSchema SCHEMA
-      = LogicalSchemaWithMetaAndKeyFields.fromOriginal("alias", SOURCE_SCHEMA).getSchema();
+      = LogicalSchemaWithMetaAndKeyFields.fromOriginal(SourceName.of("alias"), SOURCE_SCHEMA).getSchema();
   private final Set<SerdeOption> SERDE_OPTIONS = new HashSet<>();
   private final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema.from(SOURCE_SCHEMA, SERDE_OPTIONS);
   private static final String TOPIC_NAME = "topic";
@@ -321,8 +323,8 @@ public class StreamSourceBuilderTest {
         TIMESTAMP_IDX,
         offsetReset,
         LogicalSchema.builder()
-            .keyColumn("f1", SqlTypes.INTEGER)
-            .keyColumn("f2", SqlTypes.BIGINT)
+            .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
+            .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
             .valueColumns(SCHEMA.value())
             .build(),
         StreamSourceBuilder::buildUnwindowed

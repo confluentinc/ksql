@@ -40,6 +40,8 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -59,18 +61,18 @@ import org.mockito.junit.MockitoRule;
 
 public class StreamMapValuesBuilderTest {
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueColumn("foo", SqlTypes.STRING)
-      .valueColumn("bar", SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()
       .withMetaAndKeyColsInValue()
-      .withAlias("alias");
+      .withAlias(SourceName.of("alias"));
 
   private static final Expression EXPRESSION1 = new StringLiteral("baz");
   private static final Expression EXPRESSION2 = new IntegerLiteral(123);
 
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
-    SelectExpression.of("expr1", EXPRESSION1),
-    SelectExpression.of("expr2", EXPRESSION2)
+    SelectExpression.of(ColumnName.of("expr1"), EXPRESSION1),
+    SelectExpression.of(ColumnName.of("expr2"), EXPRESSION2)
   );
 
   @Mock
@@ -135,9 +137,9 @@ public class StreamMapValuesBuilderTest {
     assertThat(captor.getValue(), instanceOf(SelectValueMapper.class));
     final SelectValueMapper mapper = (SelectValueMapper) captor.getValue();
     assertThat(mapper.getSelects(), hasSize(2));
-    assertThat(mapper.getSelects().get(0).fieldName, equalTo("expr1"));
+    assertThat(mapper.getSelects().get(0).fieldName, equalTo(ColumnName.of("expr1")));
     assertThat(mapper.getSelects().get(0).evaluator.getExpression(), equalTo(EXPRESSION1));
-    assertThat(mapper.getSelects().get(1).fieldName, equalTo("expr2"));
+    assertThat(mapper.getSelects().get(1).fieldName, equalTo(ColumnName.of("expr2")));
     assertThat(mapper.getSelects().get(1).evaluator.getExpression(), equalTo(EXPRESSION2));
   }
 

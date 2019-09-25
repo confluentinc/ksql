@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
@@ -33,6 +34,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
@@ -270,7 +272,7 @@ public class RecoveryTest {
       extends TypeSafeDiagnosingMatcher<DataSource<?>> {
     final DataSource<?> source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
-    final Matcher<String> nameMatcher;
+    final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
     final Matcher<String> sqlMatcher;
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
@@ -352,12 +354,14 @@ public class RecoveryTest {
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<String, Matcher<DataSource<?>>> sourceMatchers;
+    final Map<SourceName, Matcher<DataSource<?>>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
           .collect(
-              Collectors.toMap(Entry::getKey, e -> sameSource(e.getValue())));
+              Collectors.toMap(
+                  Entry::getKey,
+                  e -> sameSource(e.getValue())));
     }
 
     @Override
@@ -380,8 +384,8 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<String, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
-        final String name = e.getKey();
+      for (final Entry<SourceName, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
+        final SourceName name = e.getKey();
         if (!test(
             e.getValue(),
             other.getSource(name),
@@ -401,8 +405,8 @@ public class RecoveryTest {
 
   private static class PersistentQueryMetadataMatcher
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
-    private final Matcher<Set<String>> sourcesNamesMatcher;
-    private final Matcher<String> sinkNamesMatcher;
+    private final Matcher<Set<SourceName>> sourcesNamesMatcher;
+    private final Matcher<SourceName> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
@@ -658,7 +662,7 @@ public class RecoveryTest {
     server.recover();
     assertThat(
         server.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
-        contains("A", "B"));
+        containsInAnyOrder(SourceName.of("A"), SourceName.of("B")));
     commands.add(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
@@ -669,6 +673,6 @@ public class RecoveryTest {
     recovered.recover();
     assertThat(
         recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
-        contains("A"));
+        contains(SourceName.of("A")));
   }
 }

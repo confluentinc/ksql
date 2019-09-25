@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;
@@ -26,9 +26,7 @@ public class AllColumnsTest {
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
 
-  private static final Optional<QualifiedName> SOME_PREFIX = Optional.of(
-      QualifiedName.of("Bob")
-  );
+  private static final Optional<SourceName> SOME_PREFIX = Optional.of(SourceName.of("Bob"));
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {

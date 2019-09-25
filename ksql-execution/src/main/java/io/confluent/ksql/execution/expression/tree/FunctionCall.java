@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.List;
 import java.util.Objects;
@@ -27,11 +28,11 @@ import java.util.Optional;
 @Immutable
 public class FunctionCall extends Expression {
 
-  private final QualifiedName name;
+  private final FunctionName name;
   private final ImmutableList<Expression> arguments;
 
   public FunctionCall(
-      final QualifiedName name,
+      final FunctionName name,
       final List<Expression> arguments
   ) {
     this(Optional.empty(), name,  arguments);
@@ -39,7 +40,7 @@ public class FunctionCall extends Expression {
 
   public FunctionCall(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final FunctionName name,
       final List<Expression> arguments
   ) {
     super(location);
@@ -47,7 +48,7 @@ public class FunctionCall extends Expression {
     this.arguments = ImmutableList.copyOf(requireNonNull(arguments, "arguments"));
   }
 
-  public QualifiedName getName() {
+  public FunctionName getName() {
     return name;
   }
 

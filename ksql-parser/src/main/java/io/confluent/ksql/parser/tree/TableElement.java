@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,7 +36,7 @@ public final class TableElement extends AstNode {
   }
 
   private final Namespace namespace;
-  private final String name;
+  private final ColumnName name;
   private final Type type;
 
   /**
@@ -45,7 +46,7 @@ public final class TableElement extends AstNode {
    */
   public TableElement(
       final Namespace namespace,
-      final String name,
+      final ColumnName name,
       final Type type
   ) {
     this(Optional.empty(), namespace, name, type);
@@ -60,7 +61,7 @@ public final class TableElement extends AstNode {
   public TableElement(
       final Optional<NodeLocation> location,
       final Namespace namespace,
-      final String name,
+      final ColumnName name,
       final Type type
   ) {
     super(location);
@@ -69,7 +70,7 @@ public final class TableElement extends AstNode {
     this.type = requireNonNull(type, "type");
   }
 
-  public String getName() {
+  public ColumnName getName() {
     return name;
   }
 

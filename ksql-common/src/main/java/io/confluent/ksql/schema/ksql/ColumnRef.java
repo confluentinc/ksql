@@ -13,24 +13,28 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.expression.tree;
+package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * A name, optionally disambiguated by a qualifier.
+ * A reference to a column, optionally disambiguated by a qualifier indicating
+ * the source of the column.
  */
 @Immutable
-public final class QualifiedName {
+public final class ColumnRef {
 
-  private final Optional<String> qualifier;
-  private final String name;
+  private final Optional<SourceName> qualifier;
+  private final ColumnName name;
 
   /**
    * Creates a {@code QualifiedName} with the following qualifier and name. A qualified name
@@ -44,34 +48,42 @@ public final class QualifiedName {
    * @param name      the name
    * @return a {@code QualifiedName} wrapping the {@code qualifier} and the {@code name}.
    */
-  public static QualifiedName of(final Optional<String> qualifier, final String name) {
-    return new QualifiedName(qualifier, name);
+  public static ColumnRef of(final Optional<SourceName> qualifier, final ColumnName name) {
+    return new ColumnRef(qualifier, name);
   }
 
   /**
-   * @see #of(Optional, String)
+   * @see #of(Optional, ColumnName)
    */
-  public static QualifiedName of(final String qualifier, final String name) {
-    return new QualifiedName(Optional.of(qualifier), name);
+  public static ColumnRef of(final SourceName qualifier, final ColumnName name) {
+    return of(Optional.of(qualifier), name);
   }
 
   /**
-   * @see #of(Optional, String)
+   * @see #of(Optional, ColumnName)
    */
-  public static QualifiedName of(final String name) {
-    return new QualifiedName(Optional.empty(), name);
+  public static ColumnRef of(final ColumnName name) {
+    return new ColumnRef(Optional.empty(), name);
   }
 
-  private QualifiedName(final Optional<String> qualifier, final String name) {
+  /**
+   * @see #of(Optional, ColumnName)
+   */
+  @VisibleForTesting
+  public static ColumnRef of(final String name) {
+    return new ColumnRef(Optional.empty(), ColumnName.of(name));
+  }
+
+  private ColumnRef(final Optional<SourceName> qualifier, final ColumnName name) {
     this.qualifier = requireNonNull(qualifier, "qualifier");
     this.name = requireNonNull(name, "name");
   }
 
-  public Optional<String> qualifier() {
+  public Optional<SourceName> qualifier() {
     return qualifier;
   }
 
-  public String name() {
+  public ColumnName name() {
     return name;
   }
 
@@ -82,10 +94,17 @@ public final class QualifiedName {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final String escaped = formatOptions.escape(name);
     return qualifier
-        .map(q -> formatOptions.escape(q) + KsqlConstants.DOT + escaped)
-        .orElse(escaped);
+        .map(q -> q.toString(formatOptions) + KsqlConstants.DOT + name.toString(formatOptions))
+        .orElse(name.toString(formatOptions));
+  }
+
+  public String aliasedFieldName() {
+    if (qualifier.isPresent()) {
+      return SchemaUtil.buildAliasedFieldName(qualifier.get().name(), name.name());
+    }
+
+    return name.name();
   }
 
   @Override
@@ -96,7 +115,7 @@ public final class QualifiedName {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final QualifiedName that = (QualifiedName) o;
+    final ColumnRef that = (ColumnRef) o;
     return Objects.equals(qualifier, that.qualifier)
         && Objects.equals(name, that.name);
   }
@@ -104,5 +123,9 @@ public final class QualifiedName {
   @Override
   public int hashCode() {
     return Objects.hash(qualifier, name);
+  }
+
+  public ColumnRef withSource(final SourceName source) {
+    return of(source, name);
   }
 }

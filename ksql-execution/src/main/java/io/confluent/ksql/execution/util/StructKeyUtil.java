@@ -29,7 +29,7 @@ public final class StructKeyUtil {
 
   private static final Schema ROWKEY_STRUCT_SCHEMA = SchemaBuilder
       .struct()
-      .field(SchemaUtil.ROWKEY_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+      .field(SchemaUtil.ROWKEY_NAME.name(), Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
   private static final org.apache.kafka.connect.data.Field ROWKEY_FIELD =

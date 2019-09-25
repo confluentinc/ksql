@@ -18,15 +18,17 @@ package io.confluent.ksql.execution.plan;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
 
 public class LogicalSchemaWithMetaAndKeyFieldsTest {
-  private static final String ALIAS = "alias";
+  private static final SourceName ALIAS = SourceName.of("alias");
   private static final LogicalSchema ORIGINAL = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.STRING)
-      .valueColumn("field2", SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
       .build();
 
   private final LogicalSchemaWithMetaAndKeyFields schema

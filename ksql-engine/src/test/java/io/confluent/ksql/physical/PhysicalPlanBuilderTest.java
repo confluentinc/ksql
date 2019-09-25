@@ -49,6 +49,8 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.plan.OutputNode;
@@ -255,9 +257,9 @@ public class PhysicalPlanBuilderTest {
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
-        .valueColumn("COL2", SqlTypes.STRING)
-        .valueColumn("COL3", SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .build()
     ));
   }
@@ -271,9 +273,9 @@ public class PhysicalPlanBuilderTest {
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
 
-        .valueColumn("COL0", SqlTypes.BIGINT)
-        .valueColumn("COL2", SqlTypes.STRING)
-        .valueColumn("COL3", SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
         .build()
     ));
   }
@@ -741,9 +743,9 @@ public class PhysicalPlanBuilderTest {
     final String ctasQuery = "CREATE TABLE t1 AS SELECT col0, COUNT(*) FROM test1 GROUP BY col0;";
     givenKafkaTopicsExist("test1");
     execute(CREATE_STREAM_TEST1 + csasQuery + ctasQuery);
-    assertThat(ksqlEngine.getMetaStore().getSource("TEST1").getKsqlTopic().isKsqlSink(), equalTo(false));
-    assertThat(ksqlEngine.getMetaStore().getSource("S1").getKsqlTopic().isKsqlSink(), equalTo(true));
-    assertThat(ksqlEngine.getMetaStore().getSource("T1").getKsqlTopic().isKsqlSink(), equalTo(true));
+    assertThat(ksqlEngine.getMetaStore().getSource(SourceName.of("TEST1")).getKsqlTopic().isKsqlSink(), equalTo(false));
+    assertThat(ksqlEngine.getMetaStore().getSource(SourceName.of("S1")).getKsqlTopic().isKsqlSink(), equalTo(true));
+    assertThat(ksqlEngine.getMetaStore().getSource(SourceName.of("T1")).getKsqlTopic().isKsqlSink(), equalTo(true));
   }
 
   @Test
@@ -1045,7 +1047,7 @@ public class PhysicalPlanBuilderTest {
     execute("CREATE STREAM TEST2 WITH(WRAP_SINGLE_VALUE=false) AS SELECT COL0 FROM TEST1;");
 
     // Then:
-    assertThat(engineMetastore.getSource("TEST2"),
+    assertThat(engineMetastore.getSource(SourceName.of("TEST2")),
         hasSerdeOptions(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
@@ -1060,7 +1062,7 @@ public class PhysicalPlanBuilderTest {
     execute("CREATE TABLE TEST5 AS SELECT COL0 FROM TEST4;");
 
     // Then:
-    assertThat(engineMetastore.getSource("TEST5"),
+    assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
         hasSerdeOptions(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES)));
   }
 
@@ -1074,7 +1076,7 @@ public class PhysicalPlanBuilderTest {
     execute("CREATE TABLE TEST5 AS SELECT COL0 FROM TEST4;");
 
     // Then:
-    assertThat(engineMetastore.getSource("TEST5"),
+    assertThat(engineMetastore.getSource(SourceName.of("TEST5")),
         hasSerdeOptions(not(hasItem(SerdeOption.UNWRAP_SINGLE_VALUES))));
   }
 

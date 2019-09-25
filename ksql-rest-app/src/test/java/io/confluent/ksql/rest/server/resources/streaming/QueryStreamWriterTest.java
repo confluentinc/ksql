@@ -31,6 +31,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.physical.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -92,7 +93,7 @@ public class QueryStreamWriterTest {
     limitHandlerCapture = newCapture();
 
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("col1", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
         .build();
 
     final KafkaStreams kStreams = niceMock(KafkaStreams.class);

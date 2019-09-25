@@ -26,8 +26,11 @@ import static org.mockito.Mockito.mock;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -39,22 +42,24 @@ import org.junit.rules.ExpectedException;
 
 public class AggregateAnalyzerTest {
 
-  private static final QualifiedNameReference DEFAULT_ARGUMENT =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", SchemaUtil.ROWTIME_NAME));
+  private static final SourceName ORDERS = SourceName.of("ORDERS");
 
-  private static final QualifiedNameReference COL0 =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", "COL0"));
+  private static final ColumnReferenceExp DEFAULT_ARGUMENT =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, SchemaUtil.ROWTIME_NAME));
 
-  private static final QualifiedNameReference COL1 =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", "COL1"));
+  private static final ColumnReferenceExp COL0 =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("COL0")));
 
-  private static final QualifiedNameReference COL2 =
-      new QualifiedNameReference(QualifiedName.of("ORDERS", "COL2"));
+  private static final ColumnReferenceExp COL1 =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("COL1")));
 
-  private static final FunctionCall FUNCTION_CALL = new FunctionCall(QualifiedName.of("UCASE"),
+  private static final ColumnReferenceExp COL2 =
+      new ColumnReferenceExp(ColumnRef.of(ORDERS, ColumnName.of("COL2")));
+
+  private static final FunctionCall FUNCTION_CALL = new FunctionCall(FunctionName.of("UCASE"),
       ImmutableList.of(COL0));
 
-  private static final FunctionCall AGG_FUNCTION_CALL = new FunctionCall(QualifiedName.of("MAX"),
+  private static final FunctionCall AGG_FUNCTION_CALL = new FunctionCall(FunctionName.of("MAX"),
       ImmutableList.of(COL0, COL1));
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
@@ -208,7 +213,7 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldThrowOnNestedSelectAggFunctions() {
     // Given:
-    final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
+    final FunctionCall nestedCall = new FunctionCall(FunctionName.of("MIN"),
         ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
     // Then:
@@ -222,7 +227,7 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldThrowOnNestedHavingAggFunctions() {
     // Given:
-    final FunctionCall nestedCall = new FunctionCall(QualifiedName.of("MIN"),
+    final FunctionCall nestedCall = new FunctionCall(FunctionName.of("MIN"),
         ImmutableList.of(AGG_FUNCTION_CALL, COL2));
 
     // Then:
@@ -236,7 +241,7 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldCaptureNonAggregateFunctionArgumentsWithNestedAggFunction() {
     // Given:
-    final FunctionCall nonAggWithNestedAggFunc = new FunctionCall(QualifiedName.of("SUBSTRING"),
+    final FunctionCall nonAggWithNestedAggFunc = new FunctionCall(FunctionName.of("SUBSTRING"),
         ImmutableList.of(COL2, AGG_FUNCTION_CALL, COL1));
 
     // When:
@@ -249,10 +254,10 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldNotCaptureNonAggregateFunctionArgumentsWhenNestedInsideAggFunction() {
     // Given:
-    final FunctionCall nonAggFunc = new FunctionCall(QualifiedName.of("ROUND"),
+    final FunctionCall nonAggFunc = new FunctionCall(FunctionName.of("ROUND"),
         ImmutableList.of(COL0));
 
-    final FunctionCall aggFuncWithNestedNonAgg = new FunctionCall(QualifiedName.of("MAX"),
+    final FunctionCall aggFuncWithNestedNonAgg = new FunctionCall(FunctionName.of("MAX"),
         ImmutableList.of(COL1, nonAggFunc));
 
     // When:
@@ -265,7 +270,7 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldCaptureDefaultFunctionArguments() {
     // Given:
-    final FunctionCall emptyFunc = new FunctionCall(QualifiedName.of("COUNT"), new ArrayList<>());
+    final FunctionCall emptyFunc = new FunctionCall(FunctionName.of("COUNT"), new ArrayList<>());
 
     // When:
     analyzer.processSelect(emptyFunc);
@@ -278,7 +283,7 @@ public class AggregateAnalyzerTest {
   @Test
   public void shouldAddDefaultArgToFunctionCallWithNoArgs() {
     // Given:
-    final FunctionCall emptyFunc = new FunctionCall(QualifiedName.of("COUNT"), new ArrayList<>());
+    final FunctionCall emptyFunc = new FunctionCall(FunctionName.of("COUNT"), new ArrayList<>());
 
     // When:
     analyzer.processSelect(emptyFunc);

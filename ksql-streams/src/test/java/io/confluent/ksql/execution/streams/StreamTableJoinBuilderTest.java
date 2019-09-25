@@ -17,6 +17,8 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -42,26 +44,26 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class StreamTableJoinBuilderTest {
-  private static final String LEFT = "LEFT";
-  private static final String RIGHT = "RIGHT";
-  private static final String ALIAS = "ALIAS";
+  private static final SourceName LEFT = SourceName.of("LEFT");
+  private static final SourceName RIGHT = SourceName.of("RIGHT");
+  private static final SourceName ALIAS = SourceName.of("ALIAS");
   private static final LogicalSchema LEFT_SCHEMA = LogicalSchema.builder()
-      .valueColumn("BLUE", SqlTypes.STRING)
-      .valueColumn("GREEN", SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("GREEN"), SqlTypes.INTEGER)
       .build()
       .withAlias(LEFT)
       .withMetaAndKeyColsInValue();
   private static final LogicalSchema RIGHT_SCHEMA = LogicalSchema.builder()
-      .valueColumn("RED", SqlTypes.BIGINT)
-      .valueColumn("ORANGE", SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
       .withAlias(RIGHT)
       .withMetaAndKeyColsInValue();
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("BLUE", SqlTypes.STRING)
-      .valueColumn("GREEN", SqlTypes.STRING)
-      .valueColumn("RED", SqlTypes.BIGINT)
-      .valueColumn("ORANGE", SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("BLUE"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("RED"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("ORANGE"), SqlTypes.DOUBLE)
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();

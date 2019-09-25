@@ -22,6 +22,7 @@ import static org.mockito.Mockito.mock;
 
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -32,6 +33,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 public class DataSourceExtractorTest {
+
+  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final SourceName TEST2 = SourceName.of("TEST2");
+
+  private static final SourceName T1 = SourceName.of("T1");
+  private static final SourceName T2 = SourceName.of("T2");
 
   private static final MetaStore META_STORE = MetaStoreFixture
       .getNewMetaStore(mock(FunctionRegistry.class));
@@ -55,8 +62,8 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getFromName(), is("TEST1"));
-    assertThat(extractor.getFromAlias(), is("TEST1"));
+    assertThat(extractor.getFromName(), is(TEST1));
+    assertThat(extractor.getFromAlias(), is(TEST1));
   }
 
   @Test
@@ -68,8 +75,8 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getFromName(), is("TEST1"));
-    assertThat(extractor.getFromAlias(), is("T"));
+    assertThat(extractor.getFromName(), is(TEST1));
+    assertThat(extractor.getFromAlias(), is(SourceName.of("T")));
   }
 
   @Test
@@ -81,8 +88,8 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getFromName(), is("TEST1"));
-    assertThat(extractor.getFromAlias(), is("T"));
+    assertThat(extractor.getFromName(), is(TEST1));
+    assertThat(extractor.getFromAlias(), is(SourceName.of("T")));
   }
 
   @Test
@@ -108,10 +115,10 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getLeftName(), is("TEST1"));
-    assertThat(extractor.getLeftAlias(), is("TEST1"));
-    assertThat(extractor.getRightName(), is("TEST2"));
-    assertThat(extractor.getRightAlias(), is("TEST2"));
+    assertThat(extractor.getLeftName(), is(TEST1));
+    assertThat(extractor.getLeftAlias(), is(TEST1));
+    assertThat(extractor.getRightName(), is(TEST2));
+    assertThat(extractor.getRightAlias(), is(TEST2));
   }
 
   @Test
@@ -124,10 +131,10 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getLeftName(), is("TEST1"));
-    assertThat(extractor.getLeftAlias(), is("T1"));
-    assertThat(extractor.getRightName(), is("TEST2"));
-    assertThat(extractor.getRightAlias(), is("T2"));
+    assertThat(extractor.getLeftName(), is(TEST1));
+    assertThat(extractor.getLeftAlias(), is(T1));
+    assertThat(extractor.getRightName(), is(TEST2));
+    assertThat(extractor.getRightAlias(), is(T2));
   }
 
   @Test
@@ -140,10 +147,10 @@ public class DataSourceExtractorTest {
     extractor.extractDataSources(stmt);
 
     // Then:
-    assertThat(extractor.getLeftName(), is("TEST1"));
-    assertThat(extractor.getLeftAlias(), is("T1"));
-    assertThat(extractor.getRightName(), is("TEST2"));
-    assertThat(extractor.getRightAlias(), is("T2"));
+    assertThat(extractor.getLeftName(), is(TEST1));
+    assertThat(extractor.getLeftAlias(), is(T1));
+    assertThat(extractor.getRightName(), is(TEST2));
+    assertThat(extractor.getRightAlias(), is(T2));
   }
 
   @Test

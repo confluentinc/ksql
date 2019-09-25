@@ -37,12 +37,12 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -425,7 +425,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private CreateStreamAsSelect mockCSAS(final String name) {
     final CreateStreamAsSelect mockStatement = mock(CreateStreamAsSelect.class);
-    expect(mockStatement.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockStatement.getName()).andStubReturn(SourceName.of(name));
     expect(mockStatement.getQuery()).andStubReturn(mockCSASQuery());
     expect(mockStatement.getProperties()).andStubReturn(CreateSourceAsProperties.none());
     expect(mockStatement.getPartitionByColumn()).andStubReturn(Optional.empty());
@@ -434,7 +434,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private DropStream mockDropStream(final String name) {
     final DropStream mockDropStream = mock(DropStream.class);
-    expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockDropStream.getName()).andStubReturn(SourceName.of(name));
     expect(mockParser.parseSingleStatement("DROP"))
         .andReturn(PreparedStatement.of("DROP", mockDropStream));
     return mockDropStream;
@@ -450,7 +450,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final PreparedStatement<Statement> csas = PreparedStatement.of("CSAS", mockCSAS);
     expect(mockParser.parseSingleStatement(statement))
         .andReturn(csas);
-    expect(mockMetaStore.getSource(name)).andStubReturn(null);
+    expect(mockMetaStore.getSource(SourceName.of(name))).andStubReturn(null);
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     expect(mockEngine.execute(eqConfigured(csas)))
         .andReturn(ExecuteResult.of(mockQuery));
@@ -505,9 +505,9 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldCascade4Dot1DropStreamCommand() {
     // Given:
     final DropStream mockDropStream = mockDropStream("foo");
-    expect(mockMetaStore.getSource("foo"))
+    expect(mockMetaStore.getSource(SourceName.of("foo")))
         .andStubReturn(mock(DataSource.class));
-    expect(mockMetaStore.getQueriesWithSink("foo"))
+    expect(mockMetaStore.getQueriesWithSink(SourceName.of("foo")))
         .andStubReturn(ImmutableSet.of("query-id"));
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
     expect(mockEngine.getPersistentQuery(new QueryId("query-id"))).andReturn(Optional.of(mockQueryMetadata));

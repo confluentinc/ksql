@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.BeforeClass;
@@ -44,8 +45,8 @@ public class LogicalSchemaDeserializerTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .keyColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("v0", SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build()));
   }
 

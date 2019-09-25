@@ -33,6 +33,8 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -69,10 +71,10 @@ import org.mockito.junit.MockitoRule;
 
 public class StreamToTableBuilderTest {
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("PING", SqlTypes.STRING)
-      .valueColumn("PONG", SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("PING"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("PONG"), SqlTypes.INTEGER)
       .build()
-      .withAlias("PADDLE")
+      .withAlias(SourceName.of("PADDLE"))
       .withMetaAndKeyColsInValue();
 
   @Mock

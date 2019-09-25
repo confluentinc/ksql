@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -47,9 +48,9 @@ public class PlanSourceExtractorVisitorTest {
     final PlanNode planNode = buildLogicalPlan("select col0 from TEST2 EMIT CHANGES limit 5;");
     final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
-    final Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
+    final Set<SourceName> sourceNames = planSourceExtractorVisitor.getSourceNames();
     assertThat(sourceNames.size(), equalTo(1));
-    assertThat(sourceNames, equalTo(Utils.mkSet("TEST2")));
+    assertThat(sourceNames, equalTo(Utils.mkSet(SourceName.of("TEST2"))));
   }
 
   @Test
@@ -60,8 +61,8 @@ public class PlanSourceExtractorVisitorTest {
                           + "test2 t2 ON t1.col1 = t2.col1 EMIT CHANGES;");
     final PlanSourceExtractorVisitor planSourceExtractorVisitor = new PlanSourceExtractorVisitor();
     planSourceExtractorVisitor.process(planNode, null);
-    final Set<String> sourceNames = planSourceExtractorVisitor.getSourceNames();
-    assertThat(sourceNames, equalTo(Utils.mkSet("TEST1", "TEST2")));
+    final Set<SourceName> sourceNames = planSourceExtractorVisitor.getSourceNames();
+    assertThat(sourceNames, equalTo(Utils.mkSet(SourceName.of("TEST1"), SourceName.of("TEST2"))));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

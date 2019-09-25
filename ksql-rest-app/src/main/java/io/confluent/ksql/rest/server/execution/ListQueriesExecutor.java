@@ -53,7 +53,7 @@ public final class ListQueriesExecutor {
             .map(
                 q -> new RunningQuery(
                     q.getStatementString(),
-                    ImmutableSet.of(q.getSinkName()),
+                    ImmutableSet.of(q.getSinkName().name()),
                     new EntityQueryId(q.getQueryId())))
             .collect(Collectors.toList())));
   }

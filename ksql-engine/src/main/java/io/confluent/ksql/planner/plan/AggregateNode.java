@@ -24,11 +24,10 @@ import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -38,8 +37,10 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.KudafInitializer;
 import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -51,7 +52,6 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -88,7 +88,7 @@ public class AggregateNode extends PlanNode {
   private final Optional<WindowExpression> windowExpression;
   private final List<Expression> aggregateFunctionArguments;
   private final List<FunctionCall> functionList;
-  private final List<QualifiedNameReference> requiredColumns;
+  private final List<ColumnReferenceExp> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
   private Optional<MaterializationInfo> materializationInfo = Optional.empty();
@@ -98,12 +98,12 @@ public class AggregateNode extends PlanNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<String> keyFieldName,
+      final Optional<ColumnName> keyFieldName,
       final List<Expression> groupByExpressions,
       final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
       final List<FunctionCall> functionList,
-      final List<QualifiedNameReference> requiredColumns,
+      final List<ColumnReferenceExp> requiredColumns,
       final List<Expression> finalSelectExpressions,
       final Expression havingExpressions
   ) {
@@ -161,7 +161,7 @@ public class AggregateNode extends PlanNode {
     return functionList;
   }
 
-  public List<QualifiedNameReference> getRequiredColumns() {
+  public List<ColumnReferenceExp> getRequiredColumns() {
     return requiredColumns;
   }
 
@@ -351,7 +351,7 @@ public class AggregateNode extends PlanNode {
           functionCall.getArguments());
       final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
       final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry
-          .getAggregate(functionCall.getName().toString(), expressionType);
+          .getAggregate(functionCall.getName().name(), expressionType);
 
       final List<String> args = functionArgs.stream()
           .map(Expression::toString)
@@ -387,7 +387,7 @@ public class AggregateNode extends PlanNode {
       final KsqlAggregateFunction aggregateFunction = aggregateFunctions
           .get(requiredColumns.size() + idx);
 
-      final String colName = AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX + idx;
+      final ColumnName colName = ColumnName.aggregate(idx);
       SqlType fieldType = null;
       if (useAggregate) {
         fieldType = converter.toSqlType(aggregateFunction.getAggregateType());
@@ -406,7 +406,7 @@ public class AggregateNode extends PlanNode {
     private final Map<String, String> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
-        final List<QualifiedNameReference> requiredColumns,
+        final List<ColumnReferenceExp> requiredColumns,
         final List<Expression> aggregateFunctionArguments) {
       final Set<String> seen = new HashSet<>();
       collectAggregateArgExpressions(requiredColumns, seen);
@@ -426,7 +426,7 @@ public class AggregateNode extends PlanNode {
 
         final String internalName = INTERNAL_COLUMN_NAME_PREFIX + aggArgExpansions.size();
 
-        aggArgExpansions.add(SelectExpression.of(internalName, expression));
+        aggArgExpansions.add(SelectExpression.of(ColumnName.of(internalName), expression));
         expressionToInternalColumnName
             .putIfAbsent(expression.toString(), internalName);
       }
@@ -441,17 +441,17 @@ public class AggregateNode extends PlanNode {
           && !ksqlConfig.getBoolean(KsqlConfig.KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY);
 
       final Function<Expression, Expression> mapper = e -> {
-        final boolean rowKey = e instanceof QualifiedNameReference
-            && ((QualifiedNameReference) e).getName().name().equals(SchemaUtil.ROWKEY_NAME);
+        final boolean rowKey = e instanceof ColumnReferenceExp
+            && ((ColumnReferenceExp) e).getReference().name().equals(SchemaUtil.ROWKEY_NAME);
 
         if (!rowKey || !specialRowTimeHandling) {
           return resolveToInternal(e);
         }
 
-        final QualifiedNameReference nameRef = (QualifiedNameReference) e;
-        return new QualifiedNameReference(
+        final ColumnReferenceExp nameRef = (ColumnReferenceExp) e;
+        return new ColumnReferenceExp(
             nameRef.getLocation(),
-            QualifiedName.of(nameRef.getName().name())
+            ColumnRef.of(nameRef.getReference().name())
         );
       };
 
@@ -505,7 +505,7 @@ public class AggregateNode extends PlanNode {
     private Expression resolveToInternal(final Expression exp) {
       final String name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
-        return new QualifiedNameReference(exp.getLocation(), QualifiedName.of(name));
+        return new ColumnReferenceExp(exp.getLocation(), ColumnRef.of(name));
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
@@ -519,19 +519,18 @@ public class AggregateNode extends PlanNode {
 
       @Override
       public Optional<Expression> visitQualifiedNameReference(
-          final QualifiedNameReference node,
+          final ColumnReferenceExp node,
           final Context<Void> context
       ) {
         final String name = expressionToInternalColumnName.get(node.toString());
         if (name != null) {
           return Optional.of(
-              new QualifiedNameReference(node.getLocation(), QualifiedName.of(name)));
+              new ColumnReferenceExp(node.getLocation(), ColumnRef.of(name)));
         }
 
-        final boolean isAggregate = node.getName().name()
-            .startsWith(AggregateExpressionRewriter.AGGREGATE_FUNCTION_VARIABLE_PREFIX);
+        final boolean isAggregate = node.getReference().name().isAggregate();
 
-        if (!isAggregate || node.getName().qualifier().isPresent()) {
+        if (!isAggregate || node.getReference().qualifier().isPresent()) {
           throw new KsqlException("Unknown source column: " + node.toString());
         }
 

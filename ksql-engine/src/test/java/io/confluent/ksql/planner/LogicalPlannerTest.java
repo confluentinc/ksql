@@ -26,6 +26,8 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
@@ -67,7 +69,7 @@ public class LogicalPlannerTest {
     assertThat(dataSource
             .getDataSourceType(),
         equalTo(DataSourceType.KTABLE));
-    assertThat(dataSource.getName(), equalTo("TEST2"));
+    assertThat(dataSource.getName(), equalTo(SourceName.of("TEST2")));
   }
 
   @Test
@@ -111,7 +113,7 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    assertThat(projectNode.getKeyField().name(), is(Optional.of("T1_COL1")));
+    assertThat(projectNode.getKeyField().name(), is(Optional.of(ColumnName.of("T1_COL1"))));
     assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("T1.COL1")));
     assertThat(projectNode.getSchema().value().size(), equalTo(5));
 
@@ -243,11 +245,11 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     // Then:
-    assertThat(logicalPlan.getKeyField().name(), is(Optional.of("NEW_KEY")));
+    assertThat(logicalPlan.getKeyField().name(), is(Optional.of(ColumnName.of("NEW_KEY"))));
     assertThat(logicalPlan.getKeyField().legacy(), is(Optional.empty()));
 
     final PlanNode source = logicalPlan.getSources().get(0);
-    assertThat(source.getKeyField().name(), is(Optional.of("NEW_KEY")));
+    assertThat(source.getKeyField().name(), is(Optional.of(ColumnName.of("NEW_KEY"))));
     assertThat(source.getKeyField().legacy(), is(OptionalMatchers.of(hasName("COL0"))));
   }
 

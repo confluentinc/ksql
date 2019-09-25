@@ -30,6 +30,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.materialization.NotRunningException;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.support.metrics.common.time.Clock;
@@ -59,8 +60,8 @@ public class KsStateStoreTest {
   private static final String STORE_NAME = "someStore";
   private static final Duration TIMEOUT = Duration.ofMillis(10);
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .keyColumn("k0", SqlTypes.STRING)
-      .keyColumn("v0", SqlTypes.BIGINT)
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .keyColumn(ColumnName.of("v0"), SqlTypes.BIGINT)
       .build();
 
   @Rule

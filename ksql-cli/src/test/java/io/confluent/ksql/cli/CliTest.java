@@ -44,6 +44,7 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
@@ -536,9 +537,9 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ITEMID", SqlTypes.STRING)
-            .valueColumn("ORDERUNITS", SqlTypes.DOUBLE)
-            .valueColumn("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
+            .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
             .build(),
         SerdeOption.none()
     );
@@ -670,11 +671,11 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ITEMID", SqlTypes.STRING)
-            .valueColumn("COL1", SqlTypes.DOUBLE)
-            .valueColumn("COL2", SqlTypes.DOUBLE)
-            .valueColumn("COL3", SqlTypes.DOUBLE)
-            .valueColumn("COL4", SqlTypes.BOOLEAN)
+            .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
             .build(),
         SerdeOption.none()
     );

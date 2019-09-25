@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Objects;
@@ -26,7 +26,7 @@ import java.util.Optional;
 
 public abstract class CreateAsSelect extends Statement implements QueryContainer {
 
-  private final QualifiedName name;
+  private final SourceName name;
   private final Query query;
   private final boolean notExists;
   private final CreateSourceAsProperties properties;
@@ -34,7 +34,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   CreateAsSelect(
       final Optional<NodeLocation> location,
-      final QualifiedName name,
+      final SourceName name,
       final Query query,
       final boolean notExists,
       final CreateSourceAsProperties properties,
@@ -63,7 +63,7 @@ public abstract class CreateAsSelect extends Statement implements QueryContainer
 
   public abstract CreateAsSelect copyWith(CreateSourceAsProperties properties);
 
-  public QualifiedName getName() {
+  public SourceName getName() {
     return name;
   }
 

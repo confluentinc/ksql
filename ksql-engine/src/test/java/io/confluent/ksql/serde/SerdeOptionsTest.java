@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -40,16 +41,16 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class SerdeOptionsTest {
 
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueColumn("f0", SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema MULTI_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueColumn("f0", SqlTypes.BIGINT)
-      .valueColumn("f1", SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("f1"), SqlTypes.DOUBLE)
       .build();
 
-  private static final List<String> SINGLE_COLUMN_NAME = ImmutableList.of("bob");
-  private static final List<String> MULTI_FIELD_NAMES = ImmutableList.of("bob", "vic");
+  private static final List<ColumnName> SINGLE_COLUMN_NAME = ImmutableList.of(ColumnName.of("bob"));
+  private static final List<ColumnName> MULTI_FIELD_NAMES = ImmutableList.of(ColumnName.of("bob"), ColumnName.of("vic"));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

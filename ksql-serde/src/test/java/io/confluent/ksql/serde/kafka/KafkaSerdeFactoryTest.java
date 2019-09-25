@@ -19,6 +19,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -59,8 +60,8 @@ public class KafkaSerdeFactoryTest {
   public void shouldThrowOnValidateIfMultipleFields() {
     // Given:
     final PersistenceSchema schema = getPersistenceSchema(LogicalSchema.builder()
-        .valueColumn("f0", SqlTypes.INTEGER)
-        .valueColumn("f1", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("f0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("f1"), SqlTypes.BIGINT)
         .build());
 
     // Then:
@@ -196,7 +197,7 @@ public class KafkaSerdeFactoryTest {
 
   private static PersistenceSchema schemaWithFieldOfType(final SqlType fieldSchema) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .valueColumn("f0", fieldSchema)
+        .valueColumn(ColumnName.of("f0"), fieldSchema)
         .build();
 
     return getPersistenceSchema(logical);

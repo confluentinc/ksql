@@ -19,8 +19,8 @@ import static org.mockito.Mockito.mock;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
 import java.util.Optional;
@@ -30,7 +30,7 @@ public class CreateTableAsSelectTest {
 
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
-  private static final QualifiedName SOME_NAME = QualifiedName.of("bob");
+  private static final SourceName SOME_NAME = SourceName.of("bob");
   private static final CreateSourceAsProperties SOME_PROPS = CreateSourceAsProperties.from(
       ImmutableMap.of("KAFKA_TOPIC", new StringLiteral("value"))
   );
@@ -45,7 +45,7 @@ public class CreateTableAsSelectTest {
             new CreateTableAsSelect(Optional.of(SOME_LOCATION), SOME_NAME, SOME_QUERY, true, SOME_PROPS)
         )
         .addEqualityGroup(
-            new CreateTableAsSelect(QualifiedName.of("diff"), SOME_QUERY, true, SOME_PROPS)
+            new CreateTableAsSelect(SourceName.of("diff"), SOME_QUERY, true, SOME_PROPS)
         )
         .addEqualityGroup(
             new CreateTableAsSelect(SOME_NAME, mock(Query.class), true, SOME_PROPS)

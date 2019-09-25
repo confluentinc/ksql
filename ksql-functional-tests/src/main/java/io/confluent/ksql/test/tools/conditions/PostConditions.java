@@ -65,8 +65,8 @@ public class PostConditions {
         .values();
 
     final String text = values.stream()
-        .map(s -> s.getDataSourceType() + ":" + s.getName()
-            + ", key:" + s.getKeyField()
+        .map(s -> s.getDataSourceType() + ":" + s.getName().name()
+            + ", key:" + s.getKeyField().name()
             + ", value:" + s.getSchema())
         .collect(Collectors.joining(System.lineSeparator()));
 

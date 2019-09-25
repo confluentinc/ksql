@@ -177,7 +177,7 @@ public final class TestCaseBuilderUtil {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
-            e.getName(),
+            e.getName().name(),
             SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
         );
         avroSchema = Optional.of(new AvroData(1)

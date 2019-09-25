@@ -36,8 +36,10 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -108,8 +110,8 @@ public class SchemaKGroupedTableTest {
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
   private final LogicalSchema schema = LogicalSchema.builder()
-      .valueColumn("GROUPING_COLUMN", SqlTypes.STRING)
-      .valueColumn("AGG_VALUE", SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("GROUPING_COLUMN"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("AGG_VALUE"), SqlTypes.INTEGER)
       .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -149,7 +151,7 @@ public class SchemaKGroupedTableTest {
 
   @Before
   public void init() {
-    ksqlTable = (KsqlTable) metaStore.getSource("TEST2");
+    ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
     final StreamsBuilder builder = new StreamsBuilder();
 
     final Serde<GenericRow> rowSerde = GenericRowSerDe.from(
@@ -169,8 +171,8 @@ public class SchemaKGroupedTableTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
 
-    when(aggregateSchema.findValueColumn("GROUPING_COLUMN"))
-        .thenReturn(Optional.of(Column.of("GROUPING_COLUMN", SqlTypes.STRING)));
+    when(aggregateSchema.findValueColumn(ColumnName.of("GROUPING_COLUMN")))
+        .thenReturn(Optional.of(Column.of(ColumnName.of("GROUPING_COLUMN"), SqlTypes.STRING)));
 
     when(aggregateSchema.value()).thenReturn(mock(List.class));
 
@@ -208,7 +210,7 @@ public class SchemaKGroupedTableTest {
 
     final List<Expression> groupByExpressions =
         Arrays.stream(groupByColumns)
-            .map(c -> new QualifiedNameReference(QualifiedName.of("TEST1", c)))
+            .map(c -> new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of(c))))
             .collect(Collectors.toList());
 
     final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(

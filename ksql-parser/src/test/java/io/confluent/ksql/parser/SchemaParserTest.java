@@ -23,11 +23,13 @@ import static org.hamcrest.Matchers.hasItem;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -38,6 +40,9 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaParserTest {
+
+  private static final ColumnName FOO = ColumnName.of("FOO");
+  private static final ColumnName BAR = ColumnName.of("BAR");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -61,8 +66,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.VALUE, "FOO", new Type(SqlTypes.INTEGER)),
-        new TableElement(Namespace.VALUE, "BAR", new Type(SqlTypes.map(SqlTypes.STRING)))
+        new TableElement(Namespace.VALUE, FOO, new Type(SqlTypes.INTEGER)),
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.map(SqlTypes.STRING)))
     ));
   }
 
@@ -76,8 +81,8 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, contains(
-        new TableElement(Namespace.KEY, "ROWKEY", new Type(SqlTypes.STRING)),
-        new TableElement(Namespace.VALUE, "BAR", new Type(SqlTypes.INTEGER))
+        new TableElement(Namespace.KEY, SchemaUtil.ROWKEY_NAME, new Type(SqlTypes.STRING)),
+        new TableElement(Namespace.VALUE, BAR, new Type(SqlTypes.INTEGER))
     ));
   }
 
@@ -91,7 +96,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, hasItem(
-        new TableElement(Namespace.VALUE, "END", new Type(SqlTypes.STRING))
+        new TableElement(Namespace.VALUE, ColumnName.of("END"), new Type(SqlTypes.STRING))
     ));
   }
 
@@ -105,7 +110,7 @@ public class SchemaParserTest {
 
     // Then:
     assertThat(elements, hasItem(
-        new TableElement(Namespace.VALUE, "End", new Type(SqlTypes.STRING))
+        new TableElement(Namespace.VALUE, ColumnName.of("End"), new Type(SqlTypes.STRING))
     ));
   }
 

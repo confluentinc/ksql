@@ -16,7 +16,7 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,21 +24,21 @@ import java.util.Optional;
 @Immutable
 public class Table extends Relation {
 
-  private final QualifiedName name;
+  private final SourceName name;
 
-  public Table(final QualifiedName name) {
+  public Table(final SourceName name) {
     this(Optional.empty(), name);
   }
 
   public Table(
       final Optional<NodeLocation> location,
-      final QualifiedName name
+      final SourceName name
   ) {
     super(location);
     this.name = Objects.requireNonNull(name, "name");
   }
 
-  public QualifiedName getName() {
+  public SourceName getName() {
     return name;
   }
 

@@ -43,6 +43,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -140,8 +141,8 @@ public class KsqlEngineTest {
     assertThat(queries, hasSize(2));
     assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
     assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is("BAR"));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is("FOO"));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is(SourceName.of("BAR")));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is(SourceName.of("FOO")));
   }
 
   @Test
@@ -262,10 +263,10 @@ public class KsqlEngineTest {
         "create table foo as select * from test2;", KSQL_CONFIG, Collections
         .emptyMap());
 
-    assertThat(metaStore.getQueriesWithSource("TEST2"),
+    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")),
         equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
-    assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR_0")));
-    assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO_1")));
+    assertThat(metaStore.getQueriesWithSink(SourceName.of("BAR")), equalTo(Utils.mkSet("CTAS_BAR_0")));
+    assertThat(metaStore.getQueriesWithSink(SourceName.of("FOO")), equalTo(Utils.mkSet("CTAS_FOO_1")));
   }
 
   @Test
@@ -318,7 +319,7 @@ public class KsqlEngineTest {
     KsqlEngineTestUtil.execute(ksqlEngine, "drop table foo;", KSQL_CONFIG, Collections.emptyMap());
 
     // Then:
-    assertThat(metaStore.getSource("foo"), nullValue());
+    assertThat(metaStore.getSource(SourceName.of("foo")), nullValue());
   }
 
   @Test
@@ -448,7 +449,7 @@ public class KsqlEngineTest {
         Collections.emptyMap());
 
     // Then:
-    assertThat(metaStore.getSource("T"), is(notNullValue()));
+    assertThat(metaStore.getSource(SourceName.of("T")), is(notNullValue()));
   }
 
   @Test
@@ -824,10 +825,10 @@ public class KsqlEngineTest {
             ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     // Then:
-    assertThat(metaStore.getSource("TEST3"), is(notNullValue()));
-    assertThat(metaStore.getQueriesWithSource("TEST2"), is(empty()));
-    assertThat(metaStore.getSource("BAR"), is(nullValue()));
-    assertThat(metaStore.getSource("FOO"), is(nullValue()));
+    assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
+    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")), is(empty()));
+    assertThat(metaStore.getSource(SourceName.of("BAR")), is(nullValue()));
+    assertThat(metaStore.getSource(SourceName.of("FOO")), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));
     assertThat("peristent", ksqlEngine.getPersistentQueries().size(), is(numPersistentQueries));
   }

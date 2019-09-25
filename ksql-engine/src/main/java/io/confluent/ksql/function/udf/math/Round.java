@@ -134,7 +134,8 @@ public class Round {
   mean worse performance in the areas where we currently use java.lang.Math.round().
   */
   private BigDecimal roundBigDecimal(final BigDecimal val, final int decimalPlaces) {
-    return val.setScale(decimalPlaces,
-        val.compareTo(BigDecimal.ZERO) > 0 ? RoundingMode.HALF_UP : RoundingMode.HALF_DOWN);
+    final RoundingMode roundingMode =
+      val.compareTo(BigDecimal.ZERO) > 0 ? RoundingMode.HALF_UP : RoundingMode.HALF_DOWN;
+    return val.setScale(decimalPlaces, roundingMode);
   }
 }

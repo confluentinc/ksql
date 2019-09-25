@@ -40,13 +40,10 @@ public final class ConfigValidators {
    */
   public static Validator parses(final Function<String, ?> parser) {
     return (name, val) -> {
+      if (val != null && !(val instanceof String)) {
+        throw new IllegalArgumentException("validator should only be used with STRING defs");
+      }
       try {
-        if (val == null) {
-          return;
-        }
-        if (!(val instanceof String)) {
-          throw new ConfigException(name, val, "Must be String");
-        }
         parser.apply((String)val);
       } catch (Exception e) {
         throw new ConfigException("Configuration " + name + " is invalid: " + e.getMessage());

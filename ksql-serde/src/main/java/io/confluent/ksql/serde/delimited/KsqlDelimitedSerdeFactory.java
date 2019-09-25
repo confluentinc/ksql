@@ -38,7 +38,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 @Immutable
 public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
 
-  private static final Delimiter DEFAULT_DELIMITER = Delimiter.of(',');
+  private static final Delimiter DEFAULT_DELIMITER = Delimiter.parse(',');
 
   private final CSVFormat csvFormat;
 

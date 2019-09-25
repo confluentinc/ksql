@@ -26,43 +26,39 @@ public final class Delimiter {
 
   public final char delimiter;
 
-  public static Delimiter of(final char ch) {
+  public static Delimiter parse(final char ch) {
     return new Delimiter(ch);
-  }
-
-  public static Delimiter of(final String str) {
-    return new Delimiter(parse(str));
   }
 
   private Delimiter(final char delimiter) {
     this.delimiter = delimiter;
   }
 
-  public static Character parse(final String providedValueDelimiter) {
-    if (providedValueDelimiter == null) {
-      return null;
+  public static Delimiter parse(final String str) {
+    if (str == null) {
+      throw new NullPointerException();
     }
-    if (providedValueDelimiter.trim().isEmpty()) {
+    if (str.trim().isEmpty()) {
       throw new IllegalArgumentException(
-          "Delimiter cannot be empty"
-              + System.lineSeparator()
-              + "Example valid value: ';'"
-      );
-    }
-    if (providedValueDelimiter.length() == 1) {
-      return providedValueDelimiter.charAt(0);
-    } else {
-      final Character delim = NAMED_DELIMITERS.get(providedValueDelimiter);
-      if (delim != null) {
-        return delim;
-      }
-      throw new IllegalArgumentException(
-          "Delimiter must be a single character or "
-          + NAMED_DELIMITERS_STRING
+          "Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please "
+          + "use the special values 'TAB' or 'SPACE'"
           + System.lineSeparator()
           + "Example valid value: ';'"
       );
     }
+    if (str.length() == 1) {
+      return new Delimiter(str.charAt(0));
+    }
+    final Character delim = NAMED_DELIMITERS.get(str);
+    if (delim != null) {
+      return new Delimiter(delim);
+    }
+    throw new IllegalArgumentException(
+        "Delimiter must be a single character or "
+        + NAMED_DELIMITERS_STRING
+        + System.lineSeparator()
+        + "Example valid value: ';'"
+    );
   }
 
   private static final Map<String, Character> NAMED_DELIMITERS = ImmutableMap

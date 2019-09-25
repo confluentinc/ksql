@@ -283,16 +283,15 @@ class Analyzer {
     private Optional<Delimiter> getValueDelimiter(final Sink sink) {
       if (sink.getProperties().getValueDelimiter().isPresent()) {
         return sink.getProperties().getValueDelimiter();
-      } else {
-        return analysis
-            .getFromDataSources()
-            .get(0)
-            .getDataSource()
-            .getKsqlTopic()
-            .getValueFormat()
-            .getFormatInfo()
-            .getDelimiter();
       }
+      return analysis
+          .getFromDataSources()
+          .get(0)
+          .getDataSource()
+          .getKsqlTopic()
+          .getValueFormat()
+          .getFormatInfo()
+          .getDelimiter();
     }
 
 

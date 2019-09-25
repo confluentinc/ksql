@@ -126,7 +126,7 @@ public final class CommonCreateConfigs {
             VALUE_DELIMITER_PROPERTY,
             ConfigDef.Type.STRING,
             null,
-            (name, val) -> ConfigValidators.parses(name, val, Delimiter::parse),
+            ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::parse)),
             Importance.LOW,
             "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
               + "character to be a delimiter, defaults to ','. For space and tab delimited values "

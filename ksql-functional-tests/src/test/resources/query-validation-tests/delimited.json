@@ -9,12 +9,6 @@
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED');",
         "CREATE STREAM S2 as SELECT id, name, value FROM test;"
       ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
-      ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,zero,0", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "0,100,100", "timestamp": 0},
@@ -32,12 +26,6 @@
       "name": "validate value_delimiter to be single character",
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='<~>');"
-      ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -59,7 +47,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []
@@ -69,15 +57,9 @@
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter=' ');"
       ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
-      ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []
@@ -87,15 +69,9 @@
       "statements": [
         "CREATE STREAM TEST WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='\t');"
       ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
-      ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty\nExample valid value: ';'"
+        "message": "Failed to prepare statement: Invalid value  for property VALUE_DELIMITER: Delimiter cannot be empty, if you meant to have a tab or space for delimiter, please use the special values 'TAB' or 'SPACE'\nExample valid value: ';'"
       },
       "inputs": [],
       "outputs": []
@@ -105,12 +81,6 @@
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='|');",
         "CREATE STREAM S2 as SELECT id, name, value FROM test;"
-      ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0|zero|0", "timestamp": 0},
@@ -131,12 +101,6 @@
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='|');",
         "CREATE STREAM S2 WITH(value_delimiter='$') AS SELECT * FROM test;"
       ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
-      ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0|zero|0", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "0|100|100", "timestamp": 0},
@@ -156,12 +120,6 @@
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='SPACE');",
         "CREATE STREAM S2 as SELECT id, name, value FROM test;"
       ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
-      ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0 zero 0", "timestamp": 0},
         {"topic": "test_topic", "key": 0, "value": "0 100 100", "timestamp": 0},
@@ -180,12 +138,6 @@
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE integer) WITH (kafka_topic='test_topic', value_format='DELIMITED', value_delimiter='TAB');",
         "CREATE STREAM S2 as SELECT id, name, value FROM test;"
-      ],
-      "topics": [
-        {
-          "name": "test_topic",
-          "format": "DELIMITED"
-        }
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0\tzero\t0", "timestamp": 0},

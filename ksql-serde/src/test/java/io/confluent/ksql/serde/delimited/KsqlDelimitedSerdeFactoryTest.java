@@ -38,7 +38,7 @@ public class KsqlDelimitedSerdeFactoryTest {
 
   @Before
   public void setUp() {
-    factory = new KsqlDelimitedSerdeFactory(Optional.of(Delimiter.of(',')));
+    factory = new KsqlDelimitedSerdeFactory(Optional.of(Delimiter.parse(',')));
   }
 
   @Test

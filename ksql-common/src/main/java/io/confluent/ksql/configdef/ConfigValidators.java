@@ -33,21 +33,40 @@ public final class ConfigValidators {
   private ConfigValidators() {
   }
 
-  public static void parses(
-      final String name,
-      final Object val,
-      final Function<String, ?> parser) {
-    try {
-      if (val == null) {
+  /**
+   * Validator that tests the STRING property can be parsed by the supplied {@code parser}.
+   * @param parser the parser.
+   * @return the validator
+   */
+  public static Validator parses(final Function<String, ?> parser) {
+    return (name, val) -> {
+      try {
+        if (val == null) {
+          return;
+        }
+        if (!(val instanceof String)) {
+          throw new ConfigException(name, val, "Must be String");
+        }
+        parser.apply((String)val);
+      } catch (Exception e) {
+        throw new ConfigException(name, val, e.getMessage());
+      }
+    };
+  }
+
+  /**
+   * Validator that allows null values and calls the {@code delegate} for any non-null values.
+   * @param delegate the delegate to call for non-null values.
+   * @return the validator.
+   */
+  public static Validator nullsAllowed(final Validator delegate) {
+    return (name, value) -> {
+      if (value == null) {
         return;
       }
-      if (!(val instanceof String)) {
-        throw new ConfigException(name, val, "Must be String");
-      }
-      parser.apply((String)val);
-    } catch (Exception e) {
-      throw new ConfigException(name, val, e.getMessage());
-    }
+
+      delegate.ensureValid(name, value);
+    };
   }
 
   public static <T extends Enum<T>> Validator enumValues(final Class<T> enumClass) {

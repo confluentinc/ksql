@@ -45,8 +45,8 @@ public class FormatInfoTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            FormatInfo.of(Format.DELIMITED, Optional.empty(), Optional.of(Delimiter.of('x'))),
-            FormatInfo.of(Format.DELIMITED, Optional.empty(), Optional.of(Delimiter.of('x')))
+            FormatInfo.of(Format.DELIMITED, Optional.empty(), Optional.of(Delimiter.parse('x'))),
+            FormatInfo.of(Format.DELIMITED, Optional.empty(), Optional.of(Delimiter.parse('x')))
         )
         .addEqualityGroup(
             FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.empty()),
@@ -79,7 +79,7 @@ public class FormatInfoTest {
   @Test
   public void shouldImplementToStringDelimited() {
     // Given:
-    final FormatInfo info = FormatInfo.of(DELIMITED, Optional.empty(), Optional.of(Delimiter.of("~")));
+    final FormatInfo info = FormatInfo.of(DELIMITED, Optional.empty(), Optional.of(Delimiter.parse("~")));
 
     // When:
     final String result = info.toString();
@@ -130,7 +130,7 @@ public class FormatInfoTest {
     expectedException.expectMessage("Delimeter only supported with DELIMITED format");
 
     // When:
-    FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.of(Delimiter.of('x')));
+    FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.of(Delimiter.parse('x')));
   }
 
   @Test
@@ -140,6 +140,6 @@ public class FormatInfoTest {
     expectedException.expectMessage("Delimeter only supported with DELIMITED format");
 
     // When:
-    FormatInfo.of(Format.JSON, Optional.empty(), Optional.of(Delimiter.of('x')));
+    FormatInfo.of(Format.JSON, Optional.empty(), Optional.of(Delimiter.parse('x')));
   }
 }

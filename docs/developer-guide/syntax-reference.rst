@@ -1656,12 +1656,14 @@ Scalar functions
 |                        |                                                                           | will return ``My Test -nnn``.                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------|
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
 |                        |                                                                           | with a new string.                                |
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------|
-| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                                | Round a value to the nearest value at the given   |
-|                        |                                                                           | number of decimal places.                         |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                                | Round a value to the number of decimal places     |
+|                        |                                                                           | as specified by scale to the right of the decimal |
+|                        |                                                                           | point. If scale is negative then value is rounded |
+|                        |                                                                           | to the right of the decimal point.                |
 |                        |                                                                           | Numbers equidistant to the nearest value are      |
 |                        |                                                                           | rounded up (in the positive direction).           |
 |                        |                                                                           | If the number of decimal places is not provided   |

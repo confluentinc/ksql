@@ -34,7 +34,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundSimpleDoublePositive() {
+  public void shouldRoundSimpleDoublePositive() {
     assertThat(udf.round(0.0d), is(0L));
     assertThat(udf.round(1.23d), is(1L));
     assertThat(udf.round(1.0d), is(1L));
@@ -50,7 +50,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundSimpleDoubleNegative() {
+  public void shouldRoundSimpleDoubleNegative() {
     assertThat(udf.round(-1.23d), is(-1L));
     assertThat(udf.round(-1.0d), is(-1L));
     assertThat(udf.round(-1.5d), is(-1L));
@@ -65,7 +65,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundSimpleBigDecimalPositive() {
+  public void shouldRoundSimpleBigDecimalPositive() {
     assertThat(udf.round(new BigDecimal("0.0")), is(new BigDecimal("0")));
     assertThat(udf.round(new BigDecimal("1.23")), is(new BigDecimal("1")));
     assertThat(udf.round(new BigDecimal("1.0")), is(new BigDecimal("1")));
@@ -81,7 +81,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundSimpleBigDecimalNegative() {
+  public void shouldRoundSimpleBigDecimalNegative() {
     assertThat(udf.round(new BigDecimal("-1.23")), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.0")), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.5")), is(new BigDecimal("-1")));
@@ -95,7 +95,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundDoubleWithDecimalPlacesPositive() {
+  public void shouldRoundDoubleWithDecimalPlacesPositive() {
     assertThat(udf.round(0d, 0), is(0d));
     assertThat(udf.round(1.0d, 0), is(1.0d));
     assertThat(udf.round(1.1d, 0), is(1.0d));
@@ -124,7 +124,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundDoubleWithDecimalPlacesNegative() {
+  public void shouldRoundDoubleWithDecimalPlacesNegative() {
     assertThat(udf.round(-1.0d, 0), is(-1.0d));
     assertThat(udf.round(-1.1d, 0), is(-1.0d));
     assertThat(udf.round(-1.5d, 0), is(-1.0d));
@@ -152,7 +152,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundBigDecimalWithDecimalPlacesPositive() {
+  public void shouldRoundBigDecimalWithDecimalPlacesPositive() {
     assertThat(udf.round(new BigDecimal("0"), 0), is(new BigDecimal("0")));
     assertThat(udf.round(new BigDecimal("1.0"), 0), is(new BigDecimal("1")));
     assertThat(udf.round(new BigDecimal("1.1"), 0), is(new BigDecimal("1")));
@@ -181,7 +181,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundBigDecimalWithDecimalPlacesNegative() {
+  public void shouldRoundBigDecimalWithDecimalPlacesNegative() {
     assertThat(udf.round(new BigDecimal("-1.0"), 0), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.1"), 0), is(new BigDecimal("-1")));
     assertThat(udf.round(new BigDecimal("-1.5"), 0), is(new BigDecimal("-1")));
@@ -207,13 +207,9 @@ public class RoundTest {
     assertThat(udf.round(new BigDecimal("-12345.67"), -4), is(new BigDecimal("-1E4")));
     assertThat(udf.round(new BigDecimal("-12345.67"), -5), is(new BigDecimal("-0E5")));
   }
-
-  /*
-  These test some numbers which can't be represented exactly as doubles and end with 5
-  This really verifies the BigDecimal(double) constructor isn't being used
-   */
+  
   @Test
-  public void testPathologicalDoublesEndingWith5() {
+  public void shouldHandleDoubleLiteralsEndingWith5ThatCannotBeRepresentedExactylyAsDoubles() {
     assertThat(udf.round(new BigDecimal("265.335"), 2), is(new BigDecimal("265.34")));
     assertThat(udf.round(new BigDecimal("-265.335"), 2), is(new BigDecimal("-265.33")));
 
@@ -222,7 +218,7 @@ public class RoundTest {
   }
 
   @Test
-  public void testNullValues() {
+  public void shoulldHandleNullValues() {
     assertThat(udf.round((Double)null), is((Long)null));
     assertThat(udf.round((BigDecimal) null), is((BigDecimal) null));
     assertThat(udf.round((Double)null, 2), is((Long)null));
@@ -230,12 +226,12 @@ public class RoundTest {
   }
 
   @Test
-  public void testRoundInt() {
+  public void shouldRoundInt() {
     assertThat(udf.round(123), is(123L));
   }
 
   @Test
-  public void testRoundLong() {
+  public void shouldRoundLong() {
     assertThat(udf.round(123L), is(123L));
   }
 

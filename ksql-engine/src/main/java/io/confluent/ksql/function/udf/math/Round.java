@@ -44,11 +44,10 @@ ROUND(-1.9) -> -2
 public class Round {
 
   static final String DESCRIPTION =
-      "Returns the value rounded to the specified number of decimal places. "
-      + "If the number of decimal places is omitted it defaults to zero."
-      + "Numbers are rounded to the nearest digit at the last required decimal place. "
-      + "If the digit to the right of the last required decimal place is equidistant (i.e. a 5) "
-      + "then it is rounded up.";
+      "Round a value to the number of decimal places as specified by scale to the right of the "
+        + "decimal point. If scale is negative then value is rounded to the right of the decimal "
+        + "point. Numbers equidistant to the nearest value are rounded up (in the positive"
+        + " direction). If the number of decimal places is not provided it defaults to zero.";
 
   @Udf
   public Long round(@UdfParameter final long val) {
@@ -70,29 +69,25 @@ public class Round {
     // Note that we MUST BigDecimal.valueOf(double) to create the BD to ensure correctness
     // as this methods initialises via the string representation
     return val == null
-        ?
-        null : roundBigDecimal(BigDecimal.valueOf(val), decimalPlaces).doubleValue();
+        ? null
+        : roundBigDecimal(BigDecimal.valueOf(val), decimalPlaces).doubleValue();
   }
 
   @Udf(schemaProvider = "provideDecimalSchema")
   public BigDecimal round(@UdfParameter final BigDecimal val) {
-    return val == null ? null : round(val, 0);
+    return round(val, 0);
   }
 
   @Udf(schemaProvider = "provideDecimalSchemaWithDecimalPlaces")
   public BigDecimal round(
       @UdfParameter final BigDecimal val,
-      @UdfParameter
-      final Integer decimalPlaces
+      @UdfParameter final Integer decimalPlaces
   ) {
     return val == null ? null : roundBigDecimal(val, decimalPlaces);
   }
 
   @UdfSchemaProvider
   public SqlType provideDecimalSchemaWithDecimalPlaces(final List<SqlType> params) {
-    if (params.size() != 2) {
-      throw new KsqlException("Round udf with decimal places accepts two parameters");
-    }
     final SqlType s0 = params.get(0);
     if (s0.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"
@@ -108,9 +103,6 @@ public class Round {
 
   @UdfSchemaProvider
   public SqlType provideDecimalSchema(final List<SqlType> params) {
-    if (params.size() != 1) {
-      throw new KsqlException("Round udf accepts one parameter");
-    }
     final SqlType s0 = params.get(0);
     if (s0.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for round expects a BigDecimal parameter"

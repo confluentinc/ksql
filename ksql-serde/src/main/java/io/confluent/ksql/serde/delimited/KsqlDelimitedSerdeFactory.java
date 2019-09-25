@@ -43,7 +43,8 @@ public class KsqlDelimitedSerdeFactory implements KsqlSerdeFactory {
   private final CSVFormat csvFormat;
 
   public KsqlDelimitedSerdeFactory(final Optional<Delimiter> delimiter) {
-    this.csvFormat = CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER).delimiter);
+    this.csvFormat =
+        CSVFormat.DEFAULT.withDelimiter(delimiter.orElse(DEFAULT_DELIMITER).getDelimiter());
   }
 
   @Override

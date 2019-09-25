@@ -24,7 +24,7 @@ import java.util.Objects;
 @Immutable
 public final class Delimiter {
 
-  public final char delimiter;
+  private final char delimiter;
 
   public static Delimiter parse(final char ch) {
     return new Delimiter(ch);
@@ -101,5 +101,9 @@ public final class Delimiter {
   @Override
   public String toString() {
     return String.valueOf(delimiter);
+  }
+
+  public char getDelimiter() {
+    return delimiter;
   }
 }

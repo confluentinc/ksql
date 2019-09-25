@@ -34,12 +34,12 @@ import org.apache.kafka.common.config.AbstractConfig;
  * Helper for handling 'with clause' properties.
  */
 @Immutable
-final class WithClauseDef extends AbstractConfig {
+final class WithPropertiesDef extends AbstractConfig {
 
   private final ConfigMetaData configDetails;
   private final ImmutableMap<String, Literal> originalLiterals;
 
-  WithClauseDef(final ConfigMetaData configDetails, final Map<String, Literal> originals) {
+  WithPropertiesDef(final ConfigMetaData configDetails, final Map<String, Literal> originals) {
     super(
         configDetails.getConfigDef(),
         toValues(

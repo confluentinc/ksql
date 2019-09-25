@@ -38,7 +38,7 @@ import org.apache.kafka.common.config.ConfigException;
 @Immutable
 public final class CreateSourceProperties {
 
-  private final WithClauseDef def;
+  private final WithPropertiesDef def;
   private final Function<String, Duration> durationParser;
 
   public static CreateSourceProperties from(final Map<String, Literal> literals) {
@@ -59,7 +59,7 @@ public final class CreateSourceProperties {
       final Map<String, Literal> originals,
       final Function<String, Duration> durationParser
   ) {
-    this.def = new WithClauseDef(CreateConfigs.CONFIG_METADATA, originals);
+    this.def = new WithPropertiesDef(CreateConfigs.CONFIG_METADATA, originals);
     this.durationParser = Objects.requireNonNull(durationParser, "durationParser");
 
     def.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);

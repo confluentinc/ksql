@@ -34,7 +34,7 @@ import org.apache.kafka.common.config.ConfigException;
 @Immutable
 public final class CreateSourceAsProperties {
 
-  private final WithClauseDef def;
+  private final WithPropertiesDef def;
 
   public static CreateSourceAsProperties none() {
     return new CreateSourceAsProperties(ImmutableMap.of());
@@ -54,7 +54,7 @@ public final class CreateSourceAsProperties {
   }
 
   private CreateSourceAsProperties(final Map<String, Literal> originals) {
-    this.def = new WithClauseDef(CreateAsConfigs.CONFIG_METADATA, originals);
+    this.def = new WithPropertiesDef(CreateAsConfigs.CONFIG_METADATA, originals);
 
     def.validateDateTimeFormat(CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY);
   }

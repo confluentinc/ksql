@@ -34,7 +34,7 @@ public class DefaultServiceContext implements ServiceContext, AutoCloseable {
   private final SchemaRegistryClient srClient;
   private final ConnectClient connectClient;
 
-  DefaultServiceContext(
+  public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final Admin adminClient,
       final KafkaTopicClient topicClient,

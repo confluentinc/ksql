@@ -29,13 +29,13 @@ import org.apache.kafka.common.utils.Utils;
  * <p>It adds the {@code authorizedOperations} variable. The {@code TopicDescription} does not
  * have a public constructor to add this information.
  */
-final class SandboxedTopicDescription extends TopicDescription {
+public final class SandboxedTopicDescription extends TopicDescription {
   private final String name;
   private final boolean internal;
   private final List<TopicPartitionInfo> partitions;
   private final Set<AclOperation> authorizedOperations;
 
-  SandboxedTopicDescription(
+  public SandboxedTopicDescription(
       final String name,
       final boolean internal,
       final List<TopicPartitionInfo> partitions,

@@ -18,7 +18,6 @@ package io.confluent.ksql.test.tools;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;

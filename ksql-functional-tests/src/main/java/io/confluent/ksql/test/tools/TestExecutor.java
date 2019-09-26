@@ -28,12 +28,13 @@ import io.confluent.common.utils.TestUtils;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.function.TestFunctionRegistry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
+import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.services.DefaultConnectClient;
+import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
 import io.confluent.ksql.util.KsqlConfig;
@@ -398,12 +399,24 @@ public class TestExecutor implements Closeable {
 
   static ServiceContext getServiceContext() {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
-    return TestServiceContext.create(() -> schemaRegistryClient);
+    return new DefaultServiceContext(
+        new FakeKafkaClientSupplier(),
+        new FakeKafkaClientSupplier().getAdmin(Collections.emptyMap()),
+        new FakeKafkaTopicClient(),
+        () -> schemaRegistryClient,
+        new DefaultConnectClient("http://localhost:8083")
+    );
   }
 
   static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
     final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
-    return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
+    return new KsqlEngine(
+        serviceContext,
+        ProcessingLogContext.create(),
+        "test_instance_",
+        metaStore,
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty())
+    );
   }
 
   static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {

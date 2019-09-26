@@ -19,13 +19,13 @@ import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.topic.TopicProperties;
 import org.apache.kafka.clients.admin.TopicDescription;
 
-final class TopicValidationUtil {
+public final class TopicValidationUtil {
 
   private TopicValidationUtil() {
 
   }
 
-  static void validateTopicProperties(
+  public static void validateTopicProperties(
       final int requiredNumPartition,
       final int requiredNumReplicas,
       final TopicDescription existingTopic
@@ -42,7 +42,7 @@ final class TopicValidationUtil {
         actualNumReplicas);
   }
 
-  static void validateTopicProperties(
+  public static void validateTopicProperties(
       final String topicName,
       final int requiredNumPartition,
       final int requiredNumReplicas,

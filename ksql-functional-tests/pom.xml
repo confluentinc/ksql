@@ -41,23 +41,7 @@
 
     <dependency>
       <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-engine</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-    </dependency>
-
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-common</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-    </dependency>
-
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-metastore</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
+      <artifactId>ksql-function</artifactId>
     </dependency>
 
     <dependency>
@@ -88,6 +72,30 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-streams-test-utils</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-engine</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-common</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-metastore</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

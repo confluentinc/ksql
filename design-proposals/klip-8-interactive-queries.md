@@ -1,4 +1,4 @@
-# KLIP 8 - Interactive Queries
+# KLIP 8 - Queryable State Stores
 
 **Author**: derekjn | 
 **Release Target**: 5.4+ | 
@@ -7,13 +7,15 @@
 
 ## Motivation and background
 
-Let’s begin by explicitly defining what is meant by the term “interactive query”:
+KSQL currently supports one fundamental query form: streaming queries that "push" ongoing query results out to clients that are subscribed to their output or to tables that persist the results. A table persisting the output of a streaming query is thus a materialized view that is perpetually updated by the incremental output of the streaming query it's defined by. And since KSQL currently only supports streaming queries, the state of a materialized view may only be retrieved by consuming its changelog, which is not always an ideal access pattern.
 
-> An interactive query in KSQL is a SELECT query issued against a KSQL table that runs until completion, returning a finite set of rows as a result. In other words, an interactive query is identical to a SQL query run against a traditional database.
+This KLIP proposes adding a fundamentally new query form that is complementary to KSQL's push-based query results: ***pull queries***. In direct contrast to a streaming query that continuously produces output over a *span* of time, a pull query *pulls* data from a table for a specific *point* in time:
 
-Interactive queries are thus not currently possible in KSQL--all KSQL queries are streaming queries. This can often be surprising to users who have familiarity with other SQL-based systems.
+> A pull query in KSQL is a SELECT query issued against a KSQL table that runs until completion, returning a finite set of rows as a result. In other words, a pull query is identical to a SQL query run against a traditional database.
 
-Before exploring what the addition of interactive queries could look like in KSQL, it is important to first understand the existing ways in which users are able to consume query results from KSQL, and why these access patterns may not be sufficient for many use cases. There are currently two ways in which KSQL users may consume the results of their continuous queries, and interactive queries would introduce a third:
+Pull queries are thus not currently possible in KSQL--all KSQL queries are streaming queries. This can often be surprising to users who have familiarity with other SQL-based systems.
+
+Before exploring what the addition of pull queries could look like in KSQL, it is important to first understand the existing ways in which users are able to consume query results from KSQL, and why these access patterns may not be sufficient for many use cases. There are currently two ways in which KSQL users may consume the results of their continuous queries, and interactive queries would introduce a third:
 
 ## Consuming output topics
 
@@ -135,16 +137,16 @@ Additionally:
 
 # Syntax changes
 
-All KSQL query syntax currently yields streaming results because KSQL only supports streaming queries. As a result, adding support for point-in-time queries necessitates a means to unambiguously differentiate between streaming and finite query results. The most straightforward approach to this is to use syntax to indicate streaming versus PIT queries. And since there are only two fundamental query forms, it is only necessary to add KSQL syntax to represent one of them.
+All KSQL query syntax currently yields streaming results because KSQL only supports streaming queries. As a result, adding support for pull queries necessitates a means to unambiguously differentiate between streaming and finite query results. The most straightforward approach to this is to use syntax to indicate streaming versus pull queries. And since there are only two fundamental query forms, it is only necessary to add KSQL syntax to represent one of them.
 
-We therefore propose making minimal syntax changes to represent *streaming* queries. The principal reason for using new syntax for streaming queries is that PIT queries can then use syntax that is as close to the SQL standard as possible, making KSQL interoperable with tooling that integrates with SQL-based systems (i.e. dashboarding frontends).
+We therefore propose making minimal syntax changes to represent *streaming* queries. The principal reason for using new syntax for streaming queries is that pull queries can then use syntax that is as close to the SQL standard as possible, making KSQL interoperable with tooling that integrates with SQL-based systems (i.e. dashboarding frontends).
 
 After introducing any syntax changes, KSQL's syntax must make sense in each of the following contexts:
 
 * Streaming query on a stream
 * Streaming query on a table
-* Point-in-time query on a stream
-* Point-in-time query on a table
+* Pull query on a stream
+* Pull query on a table
 * CTAS/CSAS defined by any of the above
 
 *Note that not all of these query forms need to be supported (initially, or ever), but a sensible design should allow for all of them with minimal ambiguity.*
@@ -170,16 +172,16 @@ Inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://arxiv.org/p
 The following are canonical example queries within each of the aforementioned fundamental query contexts:
 
 ```sql
--- Streaming query on a stream
+-- Streaming query (push) on a stream
 SELECT x, count(*) FROM stream GROUP BY x EMIT CHANGES;
 
--- Streaming query on a table
+-- Streaming (push) query on a table
 SELECT x, y FROM table WHERE x < 10 EMIT CHANGES;
 
--- Point-in-time query on a table
+-- Point-in-time (pull) query on a table
 SELECT ROWKEY, count FROM table WHERE ROWKEY = 'key';
 
--- Point-in-time query on a stream (semantics unclear, illustrative example only)
+-- Point-in-time (pull) query on a stream (semantics unclear, illustrative example only)
 SELECT * FROM stream WHERE column = 42;
 ```
 
@@ -189,11 +191,11 @@ Finally, `EMIT CHANGES` may be preferrable over `EMIT STREAM` for KSQL specifica
 
 ## Proposed behavioral changes
 
-As we add this fundamentally new capability to KSQL, it is worth considering any modifications we can make to KSQL's existing behavior to ensure query behavior is as intuitive as possible after the addition of PIT queries. There is one potential behavioral change that is worth considering in this respect: **streaming queries against a table should return the table's entire materialized state (possibly filtered by a `WHERE` clause) followed by changes.**
+As we add this fundamentally new capability to KSQL, it is worth considering any modifications we can make to KSQL's existing behavior to ensure query behavior is as intuitive as possible after the addition of pull queries. There is one potential behavioral change that is worth considering in this respect: **streaming queries against a table should return the table's entire materialized state (possibly filtered by a `WHERE` clause) followed by changes.**
 
 Currently, a streaming query against a table in KSQL will only return rows from the table's changelog produced *after* the query begins (assuming a default start offset of `latest`).
 
-However, streaming queries returning a table's entire materialized state *then* followed by changes is more consistent with the behavior of PIT queries on a table. This behavior is also likely what users want when issuing a streaming query against a table, and it is currently not straightforward to achieve.
+However, streaming queries returning a table's entire materialized state *then* followed by changes is more consistent with the behavior of pull queries on a table. This behavior is also likely what users want when issuing a streaming query against a table, and it is currently not straightforward to achieve.
 
 To get KSQL's current behavior with a streaming query against a table, users would simply use an intuitive `WHERE` clause:
 
@@ -203,27 +205,50 @@ SELECT * FROM table WHERE ROWTIME >= NOW EMIT CHANGES;
 
 ## Limitations
 
-The following are proposed intentional limitations of the initial implementation of PIT queries:
+The following are proposed intentional limitations of the initial implementation of pull queries:
 
-**PIT queries on streams probably do not need to be initially supported.** The semantics and use cases around these are unclear and require further analysis. However, the proposed syntax leaves open the possibility of supporting PIT queries on streams without further modifications.
+**Pull queries on streams probably do not need to be initially supported.** The semantics and use cases around these are unclear and require further analysis. However, the proposed syntax leaves open the possibility of supporting pull queries on streams without further modifications.
 
-**CTAS/CSAS defined by PIT queries do not initially need to be supported.** For example, the following CTAS would create a table, `t0`, and initially populate it with the result of the `SELECT` query:
+**CTAS/CSAS defined by pull queries do not initially need to be supported.** For example, the following CTAS would create a table, `t0`, and initially populate it with the result of the `SELECT` query:
 
 ```sql
 CREATE TABLE t0 AS SELECT x, count(*) FROM t1 GROUP BY x;
 ```
 
-**PIT queries against tables created directly over a topic (leaf tables) do not need to be initially supported.** Leaf tables are not materialized until another query reads from them. As a result, a PIT query against such a table would (potentially) not return the expected result. Rather than leave open the possibility of confusing query results in this scenario, we should simply disallow PIT queries against leaf tables until we decide to support them.
+**Pull queries against tables created directly over a topic (leaf tables) do not need to be initially supported.** Leaf tables are not materialized until another query reads from them. As a result, a pull query against such a table would (potentially) not return the expected result. Rather than leave open the possibility of confusing query results in this scenario, we should simply disallow pull queries against leaf tables until we decide to support them.
+
+## Backward compatibility
+
+The proposed syntax changes for streaming queries is backward incompatible with previous KSQL releases. However, we may mitigate the impact of this backward incompatibility substantially by making the `EMIT CHANGES` clause implicit for all existing *persistent queries*. That is, with the initial release containing support for queryable state stores, the following two persistent query definitions will be equivalent:
+
+```sql
+CREATE STREAM s0 AS SELECT * FROM s1;
+CREATE STREAM s0 AS SELECT * FROM s1 EMIT CHANGES;
+```
+
+This implicit behavior can then be deprecated in a future release, giving users time to adjust their workloads to use the `EMIT CHANGES` clause wherever necessary. Note that *transient* queries will not implicitly include an `EMIT CHANGES` clause. By their nature, transient queries are generally not part of a deployable workload and therefore are unlikely to be problematic in terms of backward incompatibility.
+
+## Costs
+
+Beyond the engineering work required to support queryable state stores, another significant cost of changing the syntax for streaming queries is that we will need to update all documentation, tutorials, etc. to reflect the `EMIT CHANGES` syntax.
+
+## Future work
+
+The initial implementation of queryable state stores will add the ability to execute pull queries on materialized views. However, there are other query forms that we may consider supporting in the future that our minimal syntax addition leaves room for:
+
+* Pull queries on streams
+* Terminating queries that include incremental changes
+* Continuous queries that only output final results without incremental changes (e.g. suppressed output for windowed aggregations)
 
 ---
 
 ## Other considered approaches
 
-The following are other approaches that have been considered for identifying PIT versus streaming queries:
+The following are other approaches that have been considered for identifying point-in-time versus streaming queries:
 
-### **Interpret any query against a table as PIT**
+### **Interpret any query against a table as pull**
 
-The table-based approach would consider any SQL query against a KSQL table as a PIT query. Any query against a stream would then be a streaming query. The primary issue with this approach is that it complicates the capability of running a streaming query on a table, which is a highly valuable use case. Also, since PIT queries would be identified somewhat implicitly, this approach may not be particularly intuitive to users. It would also make it relatively easy to write a "correct" query that does the wrong thing.
+The table-based approach would consider any SQL query against a KSQL table as a pull query. Any query against a stream would then be a streaming query. The primary issue with this approach is that it complicates the capability of running a streaming query on a table, which is a highly valuable use case. Also, since pull queries would be identified somewhat implicitly, this approach may not be particularly intuitive to users. It would also make it relatively easy to write a "correct" query that does the wrong thing.
 
 ### **`SELECT STREAM[ING]`**
 
@@ -237,7 +262,7 @@ This approach also doesn't facilitate de-emphasizing the stream abstraction shou
 
 ### **`WHERE` clause based**
 
-With this approach, streaming versus PIT behavior would be identified using a query's `WHERE` clause. For example,
+With this approach, streaming versus pull behavior would be identified using a query's `WHERE` clause. For example,
 
 ```sql
 SELECT * FROM  rel WHERE ROWTIME >= BEGINNING()
@@ -250,10 +275,10 @@ SELECT * FROM  rel0 JOIN rel1 ON rel0.x = rel1.x
   WHERE rel0.ROWTIME >= BEGINNING() AND rel1.ROWTIME >= BEGINNING();
 ```
 
-Furthermore, specifying streaming versus PIT behavior in this way is somewhat implicit and thus may not be totally intuitive to users. The above query could potentially be interpreted by a user to mean, "give me all the rows from the join of these tables and return the final result when the query is complete." In other words, it can reasonably be interpreted as a PIT query.
+Furthermore, specifying streaming versus pull behavior in this way is somewhat implicit and thus may not be totally intuitive to users. The above query could potentially be interpreted by a user to mean, "give me all the rows from the join of these tables and return the final result when the query is complete." In other words, it can reasonably be interpreted as a pull query.
 
 ### **Separate streaming and interactive interaction modes**
 
-The interaction mode approach would use a configuration parameter (`ksql.client.mode`), settable within the session, KSQL server configuration file, JDBC connection properties, CLI etc. Any query run with `ksql.client.mode` set to `streaming` would yield streaming results. Any query run with `ksql.client.mode` set to `interactive` would yield PIT results. The reasoning behind this approach was that any KSQL connection/session that is already running a streaming query can't be used for anything else anyways. Interleaving streaming and PIT queries from an application would require separate sessions/connections/requests, so explicitly setting the interaction mode in these cases would solve the problem of streaming versus PIT differentiation.
+The interaction mode approach would use a configuration parameter (`ksql.client.mode`), settable within the session, KSQL server configuration file, JDBC connection properties, CLI etc. Any query run with `ksql.client.mode` set to `streaming` would yield streaming results. Any query run with `ksql.client.mode` set to `interactive` would yield point-in-time results. The reasoning behind this approach was that any KSQL connection/session that is already running a streaming query can't be used for anything else anyways. Interleaving streaming and pull queries from an application would require separate sessions/connections/requests, so explicitly setting the interaction mode in these cases would solve the problem of streaming versus point-in-time differentiation.
 
 However, this approach really breaks down in the context of the CLI experience. Making it as easy as possible for users to rapidly prototype and experiment with different queries is of critical importance to us. Requiring users to repeatedly set the client interaction mode before running different kinds of queries would just be too burdensome, on a critical usability path.

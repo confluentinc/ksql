@@ -172,7 +172,6 @@ public class JoinNodeTest {
   @Mock
   private KeySerde<Struct> reboundKeySerde;
 
-  @SuppressWarnings("unchecked")
   @Before
   public void setUp() {
     builder = new StreamsBuilder();
@@ -979,10 +978,11 @@ public class JoinNodeTest {
 
   @SuppressWarnings("Duplicates")
   private static LogicalSchema joinSchema() {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    schemaBuilder.valueColumns(LEFT_NODE_SCHEMA.value());
-    schemaBuilder.valueColumns(RIGHT_NODE_SCHEMA.value());
-    return schemaBuilder.build();
+    return LogicalSchema.builder()
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumns(LEFT_NODE_SCHEMA.value())
+        .valueColumns(RIGHT_NODE_SCHEMA.value())
+        .build();
   }
 
   private void buildJoin() {

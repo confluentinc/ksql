@@ -261,7 +261,7 @@ The default is no limit.
 When setting up KSQL servers, it may be desirable to configure this limit to prevent users from overloading the server
 with too many queries, since throughput suffers as more queries are run simultaneously,
 and also because there is some small CPU overhead associated with starting each new query.
-See :ref:`KSQL Sizing Recommendations <important-sizing-factors>` for more details.
+See :ref:`KSQL Sizing Recommendations <ksql_sizing_best>` for more details.
 
 .. _ksql-queries-file:
 
@@ -357,7 +357,7 @@ ksql.logging.processing.topic.partitions
 If automatic processing log topic creation is enabled, KSQL creates the topic with number of partitions set
 to the value of this property. By default, this property has the value ``1``.
 
-.. _ksql-processing-log-replication-factor:
+.. _ksql-processing-log-topic-replication-factor:
 
 ------------------------------------------------
 ksql.logging.processing.topic.replication.factor

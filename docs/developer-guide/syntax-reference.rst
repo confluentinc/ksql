@@ -1680,7 +1680,14 @@ Scalar functions
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
 |                        |                                                                           | with a new string.                                |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
+| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                                | Round a value to the number of decimal places     |
+|                        |                                                                           | as specified by scale to the right of the decimal |
+|                        |                                                                           | point. If scale is negative then value is rounded |
+|                        |                                                                           | to the right of the decimal point.                |
+|                        |                                                                           | Numbers equidistant to the nearest value are      |
+|                        |                                                                           | rounded up (in the positive direction).           |
+|                        |                                                                           | If the number of decimal places is not provided   |
+|                        |                                                                           | it defaults to zero.                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SIGN                   |  ``SIGN(col1)``                                                           | The sign of a numeric value as an INTEGER:        |
 |                        |                                                                           | * -1 if the argument is negative                  |

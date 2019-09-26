@@ -317,7 +317,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 For more information on timestamp formats, see
@@ -423,7 +423,7 @@ The WITH clause supports the following properties:
 | WINDOW_TYPE             | By default, the topic is assumed to contain non-windowed data. If the data is windowed,    |
 |                         | i.e. was created using KSQL using a query that contains a ``WINDOW`` clause, then the      |
 |                         | ``WINDOW_TYPE`` property can be used to provide the window type. Valid values are          |
-|                         | ``SESSION``, ``HOPPING`, and ``TUMBLING``.                                                 |
+|                         | ``SESSION``, ``HOPPING``, and ``TUMBLING``.                                                |
 +-------------------------+--------------------------------------------------------------------------------------------+
 
 .. include:: ../includes/ksql-includes.rst
@@ -883,7 +883,7 @@ The PRINT statement supports the following properties:
 +=========================+==================================================================================================================+
 | FROM BEGINNING          | Print starting with the first message in the topic. If not specified, PRINT starts with the most recent message. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
-| INTERVAL interval       | Print every ``interval``th message. The default is 1, meaning that every message is printed.                     |
+| INTERVAL interval       | Print every ``interval`` th message. The default is 1, meaning that every message is printed.                    |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+
 | LIMIT limit             | Stop printing after ``limit`` messages. The default value is unlimited, requiring Ctrl+C to terminate the query. |
 +-------------------------+------------------------------------------------------------------------------------------------------------------+

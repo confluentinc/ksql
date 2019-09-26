@@ -172,7 +172,7 @@ Inspired by `EMIT STREAM` from this excellent [SIGMOD paper](https://arxiv.org/p
 The following are canonical example queries within each of the aforementioned fundamental query contexts:
 
 ```sql
--- Streaming query (push) on a stream
+-- Streaming (push) query on a stream
 SELECT x, count(*) FROM stream GROUP BY x EMIT CHANGES;
 
 -- Streaming (push) query on a table

@@ -107,20 +107,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   private final Map<String, FakeTopic> topicMap = new HashMap<>();
   private final Map<String, FakeTopic> createdTopics = new HashMap<>();
 
-  public void preconditionTopicExists(
-      final String topic
-  ) {
-    preconditionTopicExists(topic, 1, 1, Collections.emptyMap());
-  }
-
-  public void preconditionTopicExists(
-      final String topic,
-      final int numPartitions,
-      final int replicationFactor,
-      final Map<String, ?> configs) {
-    topicMap.put(topic, createFakeTopic(topic, numPartitions, replicationFactor, configs));
-  }
-
   @Override
   public void createTopic(
       final String topic,
@@ -142,10 +128,6 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
-  }
-
-  public Map<String, FakeTopic> createdTopics() {
-    return createdTopics;
   }
 
   @Override

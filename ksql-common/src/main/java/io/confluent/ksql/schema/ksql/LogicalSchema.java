@@ -131,7 +131,7 @@ public final class LogicalSchema {
   }
 
   @VisibleForTesting
-  public Optional<Column> findColumn(final String columnName) {
+  private Optional<Column> findColumn(final String columnName) {
     Optional<Column> found = doFindColumn(columnName, metadata);
     if (found.isPresent()) {
       return found;

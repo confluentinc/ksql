@@ -268,7 +268,7 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldGetMetaFields() {
-    assertThat(SOME_SCHEMA.findColumn("ROWTIME"), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(ROWTIME_NAME), is(Optional.of(
         Column.of(ROWTIME_NAME, SqlTypes.BIGINT)
     )));
   }

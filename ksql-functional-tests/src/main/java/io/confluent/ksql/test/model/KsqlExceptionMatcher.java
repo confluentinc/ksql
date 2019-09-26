@@ -45,26 +45,4 @@ public final class KsqlExceptionMatcher {
       }
     };
   }
-
-  public static Matcher<?  super KsqlStatementException> rawMessage(
-      final Matcher<String> messageMatcher
-  ) {
-    return new TypeSafeDiagnosingMatcher<KsqlStatementException>() {
-      @Override
-      protected boolean matchesSafely(
-          final KsqlStatementException actual,
-          final Description mismatchDescription) {
-        if (!messageMatcher.matches(actual.getRawMessage())) {
-          messageMatcher.describeMismatch(actual.getRawMessage(), mismatchDescription);
-          return false;
-        }
-        return true;
-      }
-
-      @Override
-      public void describeTo(final Description description) {
-        description.appendText("raw message ").appendDescriptionOf(messageMatcher);
-      }
-    };
-  }
 }

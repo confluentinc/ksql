@@ -21,7 +21,6 @@ import io.confluent.ksql.function.UdfLoaderUtil;
 
 /**
  * A singleton, initialized, function registry.
- *
  * (Speeds up tests by avoiding loading UDFs in many tests).
  */
 public enum TestFunctionRegistry {

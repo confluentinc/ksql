@@ -22,17 +22,12 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.SerdeOption;
 import java.util.Optional;
-import java.util.Set;
 import org.apache.kafka.connect.data.Schema;
-import org.hamcrest.Description;
 import org.hamcrest.FeatureMatcher;
 import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
 
 public final class MetaStoreMatchers {
 
@@ -82,20 +77,6 @@ public final class MetaStoreMatchers {
     };
   }
 
-  public static Matcher<DataSource<?>> hasSerdeOptions(
-      final Matcher<Iterable<? super SerdeOption>> expected
-  ) {
-    return new FeatureMatcher<DataSource<?>, Set<SerdeOption>>(
-        expected,
-        "source with serde options",
-        "serde options") {
-      @Override
-      protected Set<SerdeOption> featureValueOf(final DataSource<?> actual) {
-        return actual.getSerdeOptions();
-      }
-    };
-  }
-
   public static Matcher<DataSource<?>> hasKeyFormat(
       final Matcher<? super KeyFormat> matcher
   ) {
@@ -115,10 +96,6 @@ public final class MetaStoreMatchers {
     private KeyFieldMatchers() {
     }
 
-    public static Matcher<KeyField> hasName(final String name) {
-      return hasName(Optional.of(name));
-    }
-
     public static Matcher<KeyField> hasName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<ColumnName>>(
           is(name.map(ColumnName::of)),
@@ -132,10 +109,6 @@ public final class MetaStoreMatchers {
       };
     }
 
-    public static Matcher<KeyField> hasLegacyName(final String name) {
-      return hasLegacyName(Optional.of(name));
-    }
-
     public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<ColumnName>>(
           is(name.map(ColumnName::of)),
@@ -146,10 +119,6 @@ public final class MetaStoreMatchers {
           return actual.legacy().map(LegacyField::name);
         }
       };
-    }
-
-    public static Matcher<KeyField> hasLegacyType(final SqlType schema) {
-      return hasLegacyType(Optional.of(schema));
     }
 
     public static Matcher<KeyField> hasLegacyType(final Optional<? extends SqlType> schema) {
@@ -166,109 +135,4 @@ public final class MetaStoreMatchers {
     }
   }
 
-  public static final class LegacyFieldMatchers {
-
-    private LegacyFieldMatchers() {
-    }
-
-    public static Matcher<LegacyField> hasName(final String name) {
-      return new FeatureMatcher<LegacyField, ColumnName>(
-          is(ColumnName.of(name)),
-          "field with name",
-          "name"
-      ) {
-        @Override
-        protected ColumnName featureValueOf(final LegacyField actual) {
-          return actual.name();
-        }
-      };
-    }
-
-    public static Matcher<LegacyField> hasType(final SqlType type) {
-      return new FeatureMatcher<LegacyField, SqlType>(is(type), "field with type", "type") {
-        @Override
-        protected SqlType featureValueOf(final LegacyField actual) {
-          return actual.type();
-        }
-      };
-    }
-  }
-
-  public static final class FieldMatchers {
-
-    private FieldMatchers() {
-    }
-
-    public static Matcher<Column> hasFullName(final String name) {
-      return new FeatureMatcher<Column, String>(
-          is(name),
-          "field with name",
-          "name"
-      ) {
-        @Override
-        protected String featureValueOf(final Column actual) {
-          return actual.fullName();
-        }
-      };
-    }
-
-    public static Matcher<Column> hasFullName(final ColumnName name) {
-      return new FeatureMatcher<Column, String>(
-          is(name),
-          "field with name",
-          "name"
-      ) {
-        @Override
-        protected String featureValueOf(final Column actual) {
-          return actual.fullName();
-        }
-      };
-    }
-
-    public static Matcher<Column> hasType(final SqlType type) {
-      return new FeatureMatcher<Column, SqlType>(
-          is(type),
-          "field with type",
-          "type"
-      ) {
-        @Override
-        protected SqlType featureValueOf(final Column actual) {
-          return actual.type();
-        }
-      };
-    }
-  }
-
-  public static final class OptionalMatchers {
-
-    private OptionalMatchers() {
-    }
-
-    public static <T> Matcher<Optional<T>> of(final Matcher<T> valueMatcher) {
-      return new TypeSafeDiagnosingMatcher<Optional<T>>() {
-        @Override
-        protected boolean matchesSafely(
-            final Optional<T> item,
-            final Description mismatchDescription
-        ) {
-          if (!item.isPresent()) {
-            mismatchDescription.appendText("not present");
-            return false;
-          }
-
-          if (!valueMatcher.matches(item.get())) {
-            valueMatcher.describeMismatch(item.get(), mismatchDescription);
-            return false;
-          }
-
-          return true;
-        }
-
-        @Override
-        public void describeTo(final Description description) {
-          description.appendText("optional ").appendDescriptionOf(valueMatcher);
-        }
-      };
-    }
-  }
 }

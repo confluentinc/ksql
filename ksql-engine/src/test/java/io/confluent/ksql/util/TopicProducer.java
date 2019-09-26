@@ -68,7 +68,7 @@ public class TopicProducer {
   ) throws InterruptedException, TimeoutException, ExecutionException {
 
     final Serializer<GenericRow> serializer = GenericRowSerDe.from(
-        FormatInfo.of(Format.JSON, Optional.empty()),
+        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
         schema.valueSchema(),
         new KsqlConfig(ImmutableMap.of()),
         () -> null,

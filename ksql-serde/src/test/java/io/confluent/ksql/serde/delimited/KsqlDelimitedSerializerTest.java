@@ -28,6 +28,7 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.commons.csv.CSVFormat;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,7 +51,7 @@ public class KsqlDelimitedSerializerTest {
 
   @Before
   public void setUp() {
-    serializer = new KsqlDelimitedSerializer();
+    serializer = new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(','));
   }
 
   @Test
@@ -104,8 +105,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", Schema.OPTIONAL_INT64_SCHEMA)
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", 10L);
 
@@ -122,8 +121,6 @@ public class KsqlDelimitedSerializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
-
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("11.12"));
@@ -142,8 +139,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("1.12"));
 
@@ -160,8 +155,6 @@ public class KsqlDelimitedSerializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
-
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", BigDecimal.ZERO);
@@ -180,8 +173,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal(0.5));
 
@@ -198,8 +189,6 @@ public class KsqlDelimitedSerializerTest {
     final Schema schema = SchemaBuilder.struct()
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
-
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
 
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal(-0.5));
@@ -218,8 +207,6 @@ public class KsqlDelimitedSerializerTest {
         .field("id", DecimalUtil.builder(4, 2).build())
         .build();
 
-    final Serializer<Object> serializer = new KsqlDelimitedSerializer();
-
     final Struct value = new Struct(schema)
         .put("id", new BigDecimal("-1.12"));
 
@@ -228,6 +215,36 @@ public class KsqlDelimitedSerializerTest {
 
     // Then:
     assertThat(new String(bytes, StandardCharsets.UTF_8), is("\"-01.12\""));
+  }
+
+  @Test
+  public void shouldSerializeRowCorrectlyWithTabDelimeter() {
+    shouldSerializeRowCorrectlyWithNonDefaultDelimeter('\t');
+  }
+
+  @Test
+  public void shouldSerializeRowCorrectlyWithBarDelimeter() {
+    shouldSerializeRowCorrectlyWithNonDefaultDelimeter('|');
+  }
+
+  private void shouldSerializeRowCorrectlyWithNonDefaultDelimeter(final char delimiter) {
+    // Given:
+    final Struct data = new Struct(SCHEMA)
+        .put("ORDERTIME", 1511897796092L)
+        .put("ORDERID", 1L)
+        .put("ITEMID", "item_1")
+        .put("ORDERUNITS", 10.0);
+
+    final KsqlDelimitedSerializer serializer =
+        new KsqlDelimitedSerializer(CSVFormat.DEFAULT.withDelimiter(delimiter));
+
+    // When:
+    final byte[] bytes = serializer.serialize("t1", data);
+
+    // Then:
+    final String delimitedString = new String(bytes, StandardCharsets.UTF_8);
+    assertThat(delimitedString, equalTo(
+        "1511897796092" + delimiter +"1" + delimiter + "item_1" + delimiter + "10.0"));
   }
 
   @Test
@@ -296,4 +313,5 @@ public class KsqlDelimitedSerializerTest {
     // When:
     serializer.serialize("t1", data);
   }
+
 }

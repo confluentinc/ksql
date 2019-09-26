@@ -75,6 +75,7 @@ public class DataGenTest {
         null,
         null,
         null,
+        null,
         "topic",
         "key",
         0,
@@ -88,5 +89,15 @@ public class DataGenTest {
 
     final Properties props = DataGen.getProperties(args);
     assertThat(props.getProperty(KsqlConfig.SCHEMA_REGISTRY_URL_PROPERTY), equalTo("srUrl"));
+  }
+
+  @Test(expected = DataGen.Arguments.ArgumentParseException.class)
+  public void valueDelimiterCanOnlyBeSingleCharacter() throws Throwable {
+    DataGen.run(
+        "schema=./src/main/resources/purchase.avro",
+        "key=id",
+        "format=delimited",
+        "value_delimiter=@@",
+        "topic=foo");
   }
 }

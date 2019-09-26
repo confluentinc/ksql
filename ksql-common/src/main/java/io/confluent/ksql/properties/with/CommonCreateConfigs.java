@@ -16,6 +16,7 @@
 package io.confluent.ksql.properties.with;
 
 import io.confluent.ksql.configdef.ConfigValidators;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.Importance;
@@ -39,6 +40,8 @@ public final class CommonCreateConfigs {
   public static final String VALUE_AVRO_SCHEMA_FULL_NAME = "VALUE_AVRO_SCHEMA_FULL_NAME";
   public static final String VALUE_FORMAT_PROPERTY = "VALUE_FORMAT";
   public static final String WRAP_SINGLE_VALUE = "WRAP_SINGLE_VALUE";
+
+  public static final String VALUE_DELIMITER_PROPERTY = "VALUE_DELIMITER";
 
   static void addToConfigDef(
       final ConfigDef configDef,
@@ -117,7 +120,18 @@ public final class CommonCreateConfigs {
             ConfigDef.Type.STRING,
             null,
             Importance.LOW,
-            "The fully qualified name of the Avro schema to use");
+            "The fully qualified name of the Avro schema to use"
+        )
+        .define(
+            VALUE_DELIMITER_PROPERTY,
+            ConfigDef.Type.STRING,
+            null,
+            ConfigValidators.nullsAllowed(ConfigValidators.parses(Delimiter::of)),
+            Importance.LOW,
+            "The delimiter to use when VALUE_FORMAT='DELIMITED'. Supports single "
+              + "character to be a delimiter, defaults to ','. For space and tab delimited values "
+              + "you must use the special values 'SPACE' or 'TAB', not an actual space or tab "
+              + "character.");
   }
 
   private CommonCreateConfigs() {

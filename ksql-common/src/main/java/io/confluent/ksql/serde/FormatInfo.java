@@ -28,21 +28,23 @@ public final class FormatInfo {
 
   private final Format format;
   private final Optional<String> avroFullSchemaName;
+  private final Optional<Delimiter> delimiter;
 
   public static FormatInfo of(final Format format) {
-    return FormatInfo.of(format, Optional.empty());
+    return FormatInfo.of(format, Optional.empty(), Optional.empty());
   }
 
   public static FormatInfo of(
       final Format format,
-      final Optional<String> avroFullSchemaName
-  ) {
-    return new FormatInfo(format, avroFullSchemaName);
+      final Optional<String> avroFullSchemaName,
+      final Optional<Delimiter> valueDelimiter) {
+    return new FormatInfo(format, avroFullSchemaName, valueDelimiter);
   }
 
   private FormatInfo(
       final Format format,
-      final Optional<String> avroFullSchemaName
+      final Optional<String> avroFullSchemaName,
+      final Optional<Delimiter> delimiter
   ) {
     this.format = Objects.requireNonNull(format, "format");
     this.avroFullSchemaName = Objects.requireNonNull(avroFullSchemaName, "avroFullSchemaName");
@@ -51,9 +53,17 @@ public final class FormatInfo {
       throw new KsqlException("Full schema name only supported with AVRO format");
     }
 
-    if (avroFullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
-      throw new KsqlException("Schema name can not be empty");
+    if (format == Format.AVRO
+        && avroFullSchemaName.map(name -> name.trim().isEmpty()).orElse(false)) {
+      throw new KsqlException("Schema name cannot be empty");
     }
+
+    this.delimiter = Objects.requireNonNull(delimiter, "delimiter");
+
+    if (format != Format.DELIMITED && delimiter.isPresent()) {
+      throw new KsqlException("Delimeter only supported with DELIMITED format");
+    }
+
   }
 
   public Format getFormat() {
@@ -62,6 +72,10 @@ public final class FormatInfo {
 
   public Optional<String> getAvroFullSchemaName() {
     return avroFullSchemaName;
+  }
+
+  public Optional<Delimiter> getDelimiter() {
+    return delimiter;
   }
 
   @Override
@@ -74,12 +88,13 @@ public final class FormatInfo {
     }
     final FormatInfo that = (FormatInfo) o;
     return format == that.format
-        && Objects.equals(avroFullSchemaName, that.avroFullSchemaName);
+        && Objects.equals(avroFullSchemaName, that.avroFullSchemaName)
+        && Objects.equals(delimiter, that.delimiter);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(format, avroFullSchemaName);
+    return Objects.hash(format, avroFullSchemaName, delimiter);
   }
 
   @Override
@@ -87,6 +102,7 @@ public final class FormatInfo {
     return "FormatInfo{"
         + "format=" + format
         + ", avroFullSchemaName=" + avroFullSchemaName
+        + ", delimiter=" + delimiter
         + '}';
   }
 }

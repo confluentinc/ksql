@@ -245,7 +245,7 @@ public class TopicDeleteInjectorTest {
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
     when(topic.getValueFormat())
-        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("foo"))));
+        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("foo"), Optional.empty())));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))
             .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);

@@ -53,6 +53,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -186,7 +187,8 @@ class Analyzer {
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           getValueFormat(sink),
-          sink.getProperties().getValueAvroSchemaName()
+          sink.getProperties().getValueAvroSchemaName(),
+          getValueDelimiter(sink)
       ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
@@ -283,6 +285,20 @@ class Analyzer {
               .getKsqlTopic()
               .getValueFormat()
               .getFormat());
+    }
+
+    private Optional<Delimiter> getValueDelimiter(final Sink sink) {
+      if (sink.getProperties().getValueDelimiter().isPresent()) {
+        return sink.getProperties().getValueDelimiter();
+      }
+      return analysis
+          .getFromDataSources()
+          .get(0)
+          .getDataSource()
+          .getKsqlTopic()
+          .getValueFormat()
+          .getFormatInfo()
+          .getDelimiter();
     }
 
 

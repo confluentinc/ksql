@@ -360,6 +360,11 @@ The WITH clause supports the following properties:
 |                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
 |                         | new topic.                                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
+|                         | defaults to ','.                                                                           |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not   |
+|                         | an actual space or tab character.                                                          |
++-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
@@ -469,6 +474,11 @@ The WITH clause supports the following properties:
 | REPLICAS                | The number of replicas in the backing topic. If this property is not set but PARTITIONS is |
 |                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
 |                         | new topic.                                                                                 |
++-------------------------+--------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
+|                         | defaults to ','.                                                                           |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not   |
+|                         | an actual space or tab character.                                                          |
 +-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
@@ -587,6 +597,11 @@ The WITH clause for the result supports the following properties:
 |                         | If this property is not set, then the format of the input stream/table is used.                      |
 |                         | For more information, see :ref:`ksql_formats`.                                                       |
 +-------------------------+------------------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,                     |
+|                         | defaults to ','.                                                                                     |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not             |
+|                         | an actual space or tab character.                                                                    |
++-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
 |                         | from the left-side stream or table.                                                                  |
@@ -693,6 +708,11 @@ The WITH clause supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
 |                         | If this property is not set, then the format of the input stream/table is used.                      |
 |                         | For more information, see :ref:`ksql_formats`.                                                       |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,                     |
+|                         | defaults to ','.                                                                                     |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not             |
+|                         | an actual space or tab character.                                                                    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |

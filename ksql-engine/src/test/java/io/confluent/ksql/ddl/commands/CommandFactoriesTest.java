@@ -669,7 +669,7 @@ public class CommandFactoriesTest {
 
     // Then:
     verify(serdeFactory).create(
-        FormatInfo.of(JSON, Optional.empty()),
+        FormatInfo.of(JSON, Optional.empty(), Optional.empty()),
         PersistenceSchema.from(schema.valueConnectSchema(), false),
         ksqlConfig,
         serviceContext.getSchemaRegistryClientFactory(),
@@ -712,7 +712,7 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(cmd.getTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(AVRO, Optional.of("full.schema.name")))));
+        is(ValueFormat.of(FormatInfo.of(AVRO, Optional.of("full.schema.name"), Optional.empty()))));
   }
 
   @Test

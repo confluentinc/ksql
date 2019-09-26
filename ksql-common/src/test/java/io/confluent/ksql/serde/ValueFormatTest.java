@@ -28,7 +28,12 @@ import org.junit.Test;
 
 public class ValueFormatTest {
 
-  private static final FormatInfo FORMAT_INFO = FormatInfo.of(AVRO, Optional.of("something"));
+  private static final FormatInfo FORMAT_INFO =
+      FormatInfo.of(
+          AVRO,
+          Optional.of("something"),
+          Optional.empty()
+      );
 
   @Test
   public void shouldThrowNPEs() {
@@ -44,7 +49,7 @@ public class ValueFormatTest {
             ValueFormat.of(FORMAT_INFO)
         )
         .addEqualityGroup(
-            ValueFormat.of(FormatInfo.of(JSON, Optional.empty()))
+            ValueFormat.of(FormatInfo.of(JSON, Optional.empty(), Optional.empty()))
         )
         .testEquals();
   }

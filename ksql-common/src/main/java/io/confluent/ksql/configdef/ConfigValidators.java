@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigDef.Validator;
 import org.apache.kafka.common.config.ConfigException;
@@ -30,6 +31,39 @@ import org.apache.kafka.common.config.ConfigException;
 public final class ConfigValidators {
 
   private ConfigValidators() {
+  }
+
+  /**
+   * Validator that tests the STRING property can be parsed by the supplied {@code parser}.
+   * @param parser the parser.
+   * @return the validator
+   */
+  public static Validator parses(final Function<String, ?> parser) {
+    return (name, val) -> {
+      if (val != null && !(val instanceof String)) {
+        throw new IllegalArgumentException("validator should only be used with STRING defs");
+      }
+      try {
+        parser.apply((String)val);
+      } catch (Exception e) {
+        throw new ConfigException("Configuration " + name + " is invalid: " + e.getMessage());
+      }
+    };
+  }
+
+  /**
+   * Validator that allows null values and calls the {@code delegate} for any non-null values.
+   * @param delegate the delegate to call for non-null values.
+   * @return the validator.
+   */
+  public static Validator nullsAllowed(final Validator delegate) {
+    return (name, value) -> {
+      if (value == null) {
+        return;
+      }
+
+      delegate.ensureValid(name, value);
+    };
   }
 
   public static <T extends Enum<T>> Validator enumValues(final Class<T> enumClass) {

@@ -21,8 +21,10 @@ import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,7 +39,7 @@ public class KsqlDelimitedSerdeFactoryTest {
 
   @Before
   public void setUp() {
-    factory = new KsqlDelimitedSerdeFactory();
+    factory = new KsqlDelimitedSerdeFactory(Optional.of(Delimiter.of(',')));
   }
 
   @Test

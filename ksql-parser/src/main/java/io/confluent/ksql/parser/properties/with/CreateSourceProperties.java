@@ -23,6 +23,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -128,6 +129,11 @@ public final class CreateSourceProperties {
 
   public Optional<Boolean> getWrapSingleValues() {
     return Optional.ofNullable(props.getBoolean(CommonCreateConfigs.WRAP_SINGLE_VALUE));
+  }
+
+  public Optional<Delimiter> getValueDelimiter() {
+    final String val = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
+    return val == null ? Optional.empty() : Optional.of(Delimiter.of(val));
   }
 
   public CreateSourceProperties withSchemaId(final int id) {

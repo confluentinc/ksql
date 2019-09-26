@@ -277,7 +277,7 @@ SELECT * FROM  rel0 JOIN rel1 ON rel0.x = rel1.x
 
 Furthermore, specifying streaming versus pull behavior in this way is somewhat implicit and thus may not be totally intuitive to users. The above query could potentially be interpreted by a user to mean, "give me all the rows from the join of these tables and return the final result when the query is complete." In other words, it can reasonably be interpreted as a pull query.
 
-### **Separate streaming and interactive interaction modes**
+### **Separate streaming and point-in-time interaction modes**
 
 The interaction mode approach would use a configuration parameter (`ksql.client.mode`), settable within the session, KSQL server configuration file, JDBC connection properties, CLI etc. Any query run with `ksql.client.mode` set to `streaming` would yield streaming results. Any query run with `ksql.client.mode` set to `interactive` would yield point-in-time results. The reasoning behind this approach was that any KSQL connection/session that is already running a streaming query can't be used for anything else anyways. Interleaving streaming and pull queries from an application would require separate sessions/connections/requests, so explicitly setting the interaction mode in these cases would solve the problem of streaming versus point-in-time differentiation.
 

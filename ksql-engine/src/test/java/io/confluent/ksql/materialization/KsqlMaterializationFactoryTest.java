@@ -18,7 +18,6 @@ package io.confluent.ksql.materialization;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -26,7 +25,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
@@ -35,7 +33,6 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
@@ -49,7 +46,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
@@ -78,11 +74,6 @@ public class KsqlMaterializationFactoryTest {
   private static final List<SelectExpression> SELECTS = ImmutableList.of(
       mock(SelectExpression.class)
   );
-  private static final int NONE_AGG_COLUMN_COUNT = 2;
-  private static final Map<Integer, KsqlAggregateFunction> AGG_FUNCTIONS = ImmutableMap.of(
-      2, mock(KsqlAggregateFunction.class),
-      3, mock(KsqlAggregateFunction.class)
-  );
 
   @Mock
   private KsqlConfig ksqlConfig;
@@ -94,6 +85,8 @@ public class KsqlMaterializationFactoryTest {
   private Materialization materialization;
   @Mock
   private MaterializationInfo info;
+  @Mock
+  private AggregatesInfo aggInfo;
   @Mock
   private SqlPredicateFactory sqlPredicateFactory;
   @Mock
@@ -138,12 +131,11 @@ public class KsqlMaterializationFactoryTest {
     when(processingLoggerFactory.getLogger("start.filter")).thenReturn(filterProcessingLogger);
     when(processingLoggerFactory.getLogger("start.project")).thenReturn(projectProcessingLogger);
 
-    when(info.nonAddFuncColumnCount()).thenReturn(NONE_AGG_COLUMN_COUNT);
-    when(info.aggregateFunctionsByIndex()).thenReturn(AGG_FUNCTIONS);
     when(info.aggregationSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(info.tableSchema()).thenReturn(TABLE_SCHEMA);
+    when(info.aggregatesInfo()).thenReturn(aggInfo);
 
-    when(aggregateMapperFactory.create(anyInt(), any())).thenReturn(aggregateMapper);
+    when(aggregateMapperFactory.create(any(), any())).thenReturn(aggregateMapper);
     when(havingSqlPredicate.getPredicate()).thenReturn((Predicate) havingPredicate);
     when(sqlPredicateFactory.create(any(), any(), any(), any(), any()))
         .thenReturn(havingSqlPredicate);
@@ -216,8 +208,8 @@ public class KsqlMaterializationFactoryTest {
 
     // Then:
     verify(aggregateMapperFactory).create(
-        NONE_AGG_COLUMN_COUNT,
-        AGG_FUNCTIONS
+        aggInfo,
+        functionRegistry
     );
   }
 

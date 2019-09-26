@@ -92,22 +92,6 @@ public abstract class AstVisitor<R, C> {
     return visitNode(node, context);
   }
 
-  protected R visitKsqlWindowExpression(final KsqlWindowExpression node, final C context) {
-    return visitNode(node, context);
-  }
-
-  protected R visitTumblingWindowExpression(final TumblingWindowExpression node, final C context) {
-    return visitKsqlWindowExpression(node, context);
-  }
-
-  protected R visitHoppingWindowExpression(final HoppingWindowExpression node, final C context) {
-    return visitKsqlWindowExpression(node, context);
-  }
-
-  protected R visitSessionWindowExpression(final SessionWindowExpression node, final C context) {
-    return visitKsqlWindowExpression(node, context);
-  }
-
   protected R visitTableElement(final TableElement node, final C context) {
     return visitNode(node, context);
   }

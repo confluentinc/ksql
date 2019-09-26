@@ -26,6 +26,7 @@ import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
+import org.apache.commons.csv.CSVFormat;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -58,8 +59,8 @@ public class KsqlDelimitedDeserializerTest {
   private KsqlDelimitedDeserializer deserializer;
 
   @Before
-  public void before() {
-    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA);
+  public void setUp() {
+    deserializer = new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT);
   }
 
   @Test
@@ -139,7 +140,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED expects all top level schemas to be STRUCTs");
 
     // When:
-    new KsqlDelimitedDeserializer(schema);
+    new KsqlDelimitedDeserializer(schema, CSVFormat.DEFAULT.withDelimiter(','));
   }
 
   @Test
@@ -151,7 +152,8 @@ public class KsqlDelimitedDeserializerTest {
         .build()
     );
 
-    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
@@ -170,7 +172,8 @@ public class KsqlDelimitedDeserializerTest {
           .field("cost", DecimalUtil.builder(4, 2))
           .build()
     );
-    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
 
     final byte[] bytes = "01.12".getBytes(StandardCharsets.UTF_8);
 
@@ -189,7 +192,8 @@ public class KsqlDelimitedDeserializerTest {
             .field("cost", DecimalUtil.builder(4, 2))
             .build()
     );
-    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
 
     final byte[] bytes = "1.12".getBytes(StandardCharsets.UTF_8);
 
@@ -198,6 +202,35 @@ public class KsqlDelimitedDeserializerTest {
 
     // Then:
     assertThat(result.get("cost"), is(new BigDecimal("01.12")));
+  }
+
+  @Test
+  public void shouldDeserializeDelimitedCorrectlyWithTabDelimiter() {
+    shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter('\t');
+  }
+
+  @Test
+  public void shouldDeserializeDelimitedCorrectlyWithBarDelimiter() {
+    shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter('|');
+  }
+
+  private void shouldDeserializeDelimitedCorrectlyWithNonDefaultDelimiter(char delimiter) {
+    // Given:
+    final byte[] bytes = "1511897796092\t1\titem_1\t10.0\t10.10\r\n".getBytes(StandardCharsets.UTF_8);
+
+    final KsqlDelimitedDeserializer deserializer =
+      new KsqlDelimitedDeserializer(ORDER_SCHEMA, CSVFormat.DEFAULT.withDelimiter('\t'));
+
+    // When:
+    final Struct struct = deserializer.deserialize("", bytes);
+
+    // Then:
+    assertThat(struct.schema(), is(ORDER_SCHEMA.serializedSchema()));
+    assertThat(struct.get("ORDERTIME"), is(1511897796092L));
+    assertThat(struct.get("ORDERID"), is(1L));
+    assertThat(struct.get("ITEMID"), is("item_1"));
+    assertThat(struct.get("ORDERUNITS"), is(10.0));
+    assertThat(struct.get("COST"), is(new BigDecimal("10.10")));
   }
 
   @Test
@@ -210,7 +243,8 @@ public class KsqlDelimitedDeserializerTest {
         .build()
     );
 
-    final KsqlDelimitedDeserializer deserializer = new KsqlDelimitedDeserializer(schema);
+    final KsqlDelimitedDeserializer deserializer =
+        createDeserializer(schema);
 
     final byte[] bytes = "10".getBytes(StandardCharsets.UTF_8);
 
@@ -241,7 +275,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED does not support type: ARRAY, field: ids");
 
     // When:
-    new KsqlDelimitedDeserializer(schema);
+    createDeserializer(schema);
   }
 
   @Test
@@ -261,7 +295,7 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED does not support type: MAP, field: ids");
 
     // When:
-    new KsqlDelimitedDeserializer(schema);
+    createDeserializer(schema);
   }
 
   @Test
@@ -282,10 +316,17 @@ public class KsqlDelimitedDeserializerTest {
     expectedException.expectMessage("DELIMITED does not support type: STRUCT, field: ids");
 
     // When:
-    new KsqlDelimitedDeserializer(schema);
+    createDeserializer(schema);
   }
+
 
   private static PersistenceSchema persistenceSchema(final Schema connectSchema) {
     return PersistenceSchema.from((ConnectSchema) connectSchema, false);
   }
+
+  private static KsqlDelimitedDeserializer createDeserializer(PersistenceSchema schema) {
+    return new KsqlDelimitedDeserializer(schema, CSVFormat.DEFAULT.withDelimiter(','));
+  }
+
+
 }

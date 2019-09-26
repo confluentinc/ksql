@@ -13,13 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
@@ -27,54 +25,76 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Initializer;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.TimeWindows;
 
 @Immutable
-public class TumblingWindowExpression extends KsqlWindowExpression {
+public class HoppingWindowExpression extends KsqlWindowExpression {
 
   private final long size;
   private final TimeUnit sizeUnit;
+  private final long advanceBy;
+  private final TimeUnit advanceByUnit;
 
-  public TumblingWindowExpression(final long size, final TimeUnit sizeUnit) {
-    this(Optional.empty(), size, sizeUnit);
+  public HoppingWindowExpression(
+      final long size,
+      final TimeUnit sizeUnit,
+      final long advanceBy,
+      final TimeUnit advanceByUnit
+  ) {
+    this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
   }
 
-  public TumblingWindowExpression(
+  public HoppingWindowExpression(
       final Optional<NodeLocation> location,
       final long size,
-      final TimeUnit sizeUnit
+      final TimeUnit sizeUnit,
+      final long advanceBy,
+      final TimeUnit advanceByUnit
   ) {
     super(location);
     this.size = size;
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
+    this.advanceBy = advanceBy;
+    this.advanceByUnit = requireNonNull(advanceByUnit, "advanceByUnit");
   }
 
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(
-        WindowType.TUMBLING,
+        WindowType.HOPPING,
         Optional.of(Duration.ofNanos(sizeUnit.toNanos(size)))
     );
   }
 
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  public long getSize() {
+    return size;
+  }
+
+  public TimeUnit getAdvanceByUnit() {
+    return advanceByUnit;
+  }
+
+  public long getAdvanceBy() {
+    return advanceBy;
+  }
+
   @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
-    return visitor.visitTumblingWindowExpression(this, context);
+  public <R, C> R accept(final WindowVisitor<R, C> visitor, final C context) {
+    return visitor.visitHoppingWindowExpression(this, context);
   }
 
   @Override
   public String toString() {
-    return " TUMBLING ( SIZE " + size + " " + sizeUnit + " ) ";
+    return " HOPPING ( SIZE " + size + " " + sizeUnit + " , ADVANCE BY "
+        + advanceBy + " " + "" + advanceByUnit + " ) ";
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(size, sizeUnit);
+    return Objects.hash(size, sizeUnit, advanceBy, advanceByUnit);
   }
 
   @Override
@@ -85,22 +105,9 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
-    return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public KTable applyAggregate(final KGroupedStream groupedStream,
-      final Initializer initializer,
-      final UdafAggregator aggregator,
-      final Materialized<Struct, GenericRow, ?> materialized) {
-
-    final TimeWindows windows = TimeWindows.of(Duration.ofMillis(sizeUnit.toMillis(size)));
-
-    return groupedStream
-        .windowedBy(windows)
-        .aggregate(initializer, aggregator, materialized);
-
+    final HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
+    return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
+        && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
+        .advanceByUnit == advanceByUnit;
   }
 }

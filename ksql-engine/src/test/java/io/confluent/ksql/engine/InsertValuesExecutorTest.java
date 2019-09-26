@@ -655,7 +655,7 @@ public class InsertValuesExecutorTest {
 
     // Then:
     verify(keySerdeFactory).create(
-        FormatInfo.of(Format.KAFKA, Optional.empty()),
+        FormatInfo.of(Format.KAFKA, Optional.empty(), Optional.empty()),
         PersistenceSchema.from(SCHEMA.keyConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -664,7 +664,7 @@ public class InsertValuesExecutorTest {
     );
 
     verify(valueSerdeFactory).create(
-        FormatInfo.of(Format.JSON, Optional.empty()),
+        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
         PersistenceSchema.from(SCHEMA.valueConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,

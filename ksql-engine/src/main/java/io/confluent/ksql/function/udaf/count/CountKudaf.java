@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.function.udaf.count;
 
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;

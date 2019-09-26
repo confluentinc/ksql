@@ -158,7 +158,7 @@ public class SerdeBenchmark {
         final org.apache.kafka.connect.data.Schema schema
     ) {
       return getGenericRowSerde(
-          FormatInfo.of(Format.JSON, Optional.empty()),
+          FormatInfo.of(Format.JSON),
           schema,
           () -> null
       );
@@ -170,7 +170,7 @@ public class SerdeBenchmark {
       final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
 
       return getGenericRowSerde(
-          FormatInfo.of(Format.AVRO, Optional.of("benchmarkSchema")),
+          FormatInfo.of(Format.AVRO, Optional.of("benchmarkSchema"), Optional.empty()),
           schema,
           () -> schemaRegistryClient
       );

@@ -21,10 +21,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -34,9 +32,8 @@ import java.util.Optional;
 public final class MaterializationInfo {
 
   private final String stateStoreName;
+  private final AggregatesInfo aggregatesInfo;
   private final LogicalSchema aggregationSchema;
-  private final int nonAddFuncColumnCount;
-  private final Map<Integer, KsqlAggregateFunction> aggregateFunctionsByIndex;
   private final Optional<Expression> havingExpression;
   private final LogicalSchema tableSchema;
   private final List<SelectExpression> tableSelects;
@@ -45,9 +42,8 @@ public final class MaterializationInfo {
    * Create instance.
    *
    * @param stateStoreName the name of the state store
-   * @param stateStoreSchema the schema of the state store
-   * @param nonAddFuncColumnCount number of non-aggregate columns.
-   * @param aggregateFunctionsByIndex the map of column index to aggregate function.
+   * @param aggregatesInfo info about the aggregate functions used.
+   * @param aggregationSchema the schema of the state store
    * @param havingExpression optional HAVING expression that should be apply to any store result.
    * @param tableSchema the schema of the table.
    * @param tableSelects SELECT expressions to convert state store schema to table schema.
@@ -55,18 +51,16 @@ public final class MaterializationInfo {
    */
   public static MaterializationInfo of(
       final String stateStoreName,
-      final LogicalSchema stateStoreSchema,
-      final int nonAddFuncColumnCount,
-      final Map<Integer, KsqlAggregateFunction> aggregateFunctionsByIndex,
+      final AggregatesInfo aggregatesInfo,
+      final LogicalSchema aggregationSchema,
       final Optional<Expression> havingExpression,
       final LogicalSchema tableSchema,
       final List<SelectExpression> tableSelects
   ) {
     return new MaterializationInfo(
         stateStoreName,
-        stateStoreSchema,
-        nonAddFuncColumnCount,
-        aggregateFunctionsByIndex,
+        aggregatesInfo,
+        aggregationSchema,
         havingExpression,
         tableSchema,
         tableSelects
@@ -77,16 +71,12 @@ public final class MaterializationInfo {
     return stateStoreName;
   }
 
+  public AggregatesInfo aggregatesInfo() {
+    return aggregatesInfo;
+  }
+
   public LogicalSchema aggregationSchema() {
     return aggregationSchema;
-  }
-
-  public int nonAddFuncColumnCount() {
-    return nonAddFuncColumnCount;
-  }
-
-  public Map<Integer, KsqlAggregateFunction> aggregateFunctionsByIndex() {
-    return aggregateFunctionsByIndex;
   }
 
   public Optional<Expression> havingExpression() {
@@ -103,18 +93,15 @@ public final class MaterializationInfo {
 
   private MaterializationInfo(
       final String stateStoreName,
+      final AggregatesInfo aggregatesInfo,
       final LogicalSchema aggregationSchema,
-      final int nonAddFuncColumnCount,
-      final Map<Integer, KsqlAggregateFunction> aggregateFunctionsByIndex,
       final Optional<Expression> havingExpression,
       final LogicalSchema tableSchema,
       final List<SelectExpression> tableSelects
   ) {
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
+    this.aggregatesInfo = requireNonNull(aggregatesInfo, "aggregatesInfo");
     this.aggregationSchema = requireNonNull(aggregationSchema, "aggregationSchema");
-    this.nonAddFuncColumnCount = nonAddFuncColumnCount;
-    this.aggregateFunctionsByIndex =
-        requireNonNull(aggregateFunctionsByIndex, "aggregateFunctionsByIndex");
     this.havingExpression = requireNonNull(havingExpression, "havingExpression");
     this.tableSchema = requireNonNull(tableSchema, "tableSchema");
     this.tableSelects = ImmutableList.copyOf(requireNonNull(tableSelects, "tableSelects"));

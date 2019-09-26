@@ -253,7 +253,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema")))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema"),
+            Optional.empty()))));
   }
 
   @Test
@@ -284,7 +285,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1")))));
+          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))));
   }
 
   @Test
@@ -296,7 +297,7 @@ public class AnalyzerFunctionalTest {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"))),
+        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty())),
         false);
 
     final LogicalSchema schema = LogicalSchema.builder()
@@ -370,7 +371,7 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name can not be empty");
+    expectedException.expectMessage("Schema name cannot be empty");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }

@@ -13,26 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.parser.tree;
+package io.confluent.ksql.execution.windows;
 
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.serde.WindowInfo;
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Initializer;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.SessionWindows;
 
 @Immutable
 public class SessionWindowExpression extends KsqlWindowExpression {
@@ -54,13 +45,21 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
   }
 
+  public TimeUnit getSizeUnit() {
+    return sizeUnit;
+  }
+
+  public long getGap() {
+    return gap;
+  }
+
   @Override
   public WindowInfo getWindowInfo() {
     return WindowInfo.of(WindowType.SESSION, Optional.empty());
   }
 
   @Override
-  public <R, C> R accept(final AstVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(final WindowVisitor<R, C> visitor, final C context) {
     return visitor.visitSessionWindowExpression(this, context);
   }
 
@@ -84,19 +83,5 @@ public class SessionWindowExpression extends KsqlWindowExpression {
     }
     final SessionWindowExpression sessionWindowExpression = (SessionWindowExpression) o;
     return sessionWindowExpression.gap == gap && sessionWindowExpression.sizeUnit == sizeUnit;
-  }
-
-  @SuppressWarnings("unchecked")
-  @Override
-  public KTable applyAggregate(final KGroupedStream groupedStream,
-                               final Initializer initializer,
-                               final UdafAggregator aggregator,
-                               final Materialized<Struct, GenericRow, ?> materialized) {
-
-    final SessionWindows windows = SessionWindows.with(Duration.ofMillis(sizeUnit.toMillis(gap)));
-
-    return groupedStream
-        .windowedBy(windows)
-        .aggregate(initializer, aggregator, aggregator.getMerger(), materialized);
   }
 }

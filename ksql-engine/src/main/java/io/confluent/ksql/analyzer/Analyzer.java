@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
@@ -40,7 +41,6 @@ import io.confluent.ksql.parser.tree.GroupBy;
 import io.confluent.ksql.parser.tree.GroupingElement;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.JoinOn;
-import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
@@ -53,6 +53,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -186,7 +187,8 @@ class Analyzer {
 
       final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(
           getValueFormat(sink),
-          sink.getProperties().getValueAvroSchemaName()
+          sink.getProperties().getValueAvroSchemaName(),
+          getValueDelimiter(sink)
       ));
 
       final KsqlTopic intoKsqlTopic = new KsqlTopic(
@@ -283,6 +285,20 @@ class Analyzer {
               .getKsqlTopic()
               .getValueFormat()
               .getFormat());
+    }
+
+    private Optional<Delimiter> getValueDelimiter(final Sink sink) {
+      if (sink.getProperties().getValueDelimiter().isPresent()) {
+        return sink.getProperties().getValueDelimiter();
+      }
+      return analysis
+          .getFromDataSources()
+          .get(0)
+          .getDataSource()
+          .getKsqlTopic()
+          .getValueFormat()
+          .getFormatInfo()
+          .getDelimiter();
     }
 
 

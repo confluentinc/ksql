@@ -72,7 +72,7 @@ public class KsqlQueryBuilderTest {
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   private static final FormatInfo FORMAT_INFO = FormatInfo
-      .of(Format.AVRO, Optional.of("io.confluent.ksql"));
+      .of(Format.AVRO, Optional.of("io.confluent.ksql"), Optional.empty());
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
       .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));

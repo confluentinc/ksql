@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf.window;
 
+import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -37,7 +38,7 @@ public final class WindowStartKudaf {
   }
 
   static String getFunctionName() {
-    return "WindowStart";
+    return WindowSelectMapper.WINDOW_START_NAME;
   }
 
   @UdafFactory(description = "Extracts the window start time")

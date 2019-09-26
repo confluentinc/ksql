@@ -306,7 +306,8 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name")));
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name"),
+        Optional.empty()));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 

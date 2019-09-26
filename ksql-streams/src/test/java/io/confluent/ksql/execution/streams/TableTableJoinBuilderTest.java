@@ -20,7 +20,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KTable;
@@ -84,7 +83,6 @@ public class TableTableJoinBuilderTest {
         new DefaultExecutionStepProperties(LEFT_SCHEMA, SRC_CTX));
     when(right.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
-    when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
   }
 
   @SuppressWarnings("unchecked")

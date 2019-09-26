@@ -36,12 +36,14 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamToTable;
+import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -302,22 +304,45 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamAggregate<KTable<K, GenericRow>, KGroupedStream<Struct, GenericRow>>
-      streamAggregate(
-          final QueryContext.Stacker stacker,
-          final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
-          final LogicalSchema resultSchema,
-          final Formats formats,
-          final int nonFuncColumnCount,
-          final List<FunctionCall> aggregations
+  public static StreamAggregate streamAggregate(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
+      final LogicalSchema resultSchema,
+      final Formats formats,
+      final int nonFuncColumnCount,
+      final List<FunctionCall> aggregations,
+      final LogicalSchema aggregateSchema
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamAggregate<>(
+    return new StreamAggregate(
         new DefaultExecutionStepProperties(resultSchema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
-        aggregations
+        aggregations,
+        aggregateSchema
+    );
+  }
+
+  public static StreamWindowedAggregate streamWindowedAggregate(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
+      final LogicalSchema resultSchema,
+      final Formats formats,
+      final int nonFuncColumnCount,
+      final List<FunctionCall> aggregations,
+      final LogicalSchema aggregateSchema,
+      final KsqlWindowExpression window
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new StreamWindowedAggregate(
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        sourceStep,
+        formats,
+        nonFuncColumnCount,
+        aggregations,
+        aggregateSchema,
+        window
     );
   }
 
@@ -349,22 +374,23 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static TableAggregate<KTable<Struct, GenericRow>, KGroupedTable<Struct, GenericRow>>
-      tableAggregate(
-          final QueryContext.Stacker stacker,
-          final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceStep,
-          final LogicalSchema resultSchema,
-          final Formats formats,
-          final int nonFuncColumnCount,
-          final List<FunctionCall> aggregations
+  public static TableAggregate tableAggregate(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceStep,
+      final LogicalSchema resultSchema,
+      final Formats formats,
+      final int nonFuncColumnCount,
+      final List<FunctionCall> aggregations,
+      final LogicalSchema aggregateSchema
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    return new TableAggregate<>(
+    return new TableAggregate(
         new DefaultExecutionStepProperties(resultSchema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
-        aggregations
+        aggregations,
+        aggregateSchema
     );
   }
 

@@ -24,6 +24,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
@@ -42,7 +43,6 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Join.Type;
 import io.confluent.ksql.parser.tree.JoinCriteria;
-import io.confluent.ksql.parser.tree.KsqlWindowExpression;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
@@ -376,11 +376,8 @@ public class StatementRewriterTest {
   public void shouldRewriteWindowExpression() {
     // Given:
     final KsqlWindowExpression ksqlWindowExpression = mock(KsqlWindowExpression.class);
-    final KsqlWindowExpression rewrittenKsqlWindowExpression = mock(KsqlWindowExpression.class);
     final WindowExpression windowExpression =
         new WindowExpression(location, "name", ksqlWindowExpression);
-    when(mockRewriter.apply(ksqlWindowExpression, context))
-        .thenReturn(rewrittenKsqlWindowExpression);
 
     // When:
     final AstNode rewritten = rewriter.rewrite(windowExpression, context);
@@ -388,7 +385,7 @@ public class StatementRewriterTest {
     // Then:
     assertThat(
         rewritten,
-        equalTo(new WindowExpression(location, "name", rewrittenKsqlWindowExpression))
+        equalTo(new WindowExpression(location, "name", ksqlWindowExpression))
     );
   }
 

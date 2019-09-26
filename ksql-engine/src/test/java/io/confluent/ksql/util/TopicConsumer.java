@@ -97,7 +97,7 @@ public class TopicConsumer {
       final Deserializer<K> keyDeserializer
   ) {
     final Deserializer<GenericRow> deserializer = GenericRowSerDe.from(
-        FormatInfo.of(Format.JSON, Optional.empty()),
+        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
         schema.valueSchema(),
         new KsqlConfig(ImmutableMap.of()),
         () -> null,

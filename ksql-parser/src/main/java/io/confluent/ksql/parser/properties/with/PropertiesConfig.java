@@ -31,15 +31,15 @@ import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
 
 /**
- * Base class for handling 'with clause' properties.
+ * Helper for handling 'with clause' properties.
  */
 @Immutable
-abstract class WithClauseProperties extends AbstractConfig {
+final class PropertiesConfig extends AbstractConfig {
 
   private final ConfigMetaData configDetails;
   private final ImmutableMap<String, Literal> originalLiterals;
 
-  WithClauseProperties(final ConfigMetaData configDetails, final Map<String, Literal> originals) {
+  PropertiesConfig(final ConfigMetaData configDetails, final Map<String, Literal> originals) {
     super(
         configDetails.getConfigDef(),
         toValues(
@@ -117,4 +117,5 @@ abstract class WithClauseProperties extends AbstractConfig {
           + String.join(",", onlyInProvided));
     }
   }
+
 }

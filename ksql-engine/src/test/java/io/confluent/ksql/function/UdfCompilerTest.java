@@ -23,6 +23,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.util.KsqlException;

@@ -25,16 +25,14 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.streams.AggregateParams;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.udaf.KudafAggregator;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Predicate;
@@ -117,8 +115,8 @@ public final class KsqlMaterializationFactory {
       final MaterializationInfo info
   ) {
     return aggregateMapperFactory.create(
-        info.nonAddFuncColumnCount(),
-        info.aggregateFunctionsByIndex()
+        info.aggregatesInfo(),
+        functionRegistry
     );
   }
 
@@ -165,8 +163,14 @@ public final class KsqlMaterializationFactory {
   }
 
   private static AggregateMapperFactory defaultAggregateMapperFactory() {
-    return (nonAggregateColumnCount, aggregateFunctionsByIndex) ->
-        new KudafAggregator(nonAggregateColumnCount, aggregateFunctionsByIndex)
+    return (info, functionRegistry) ->
+        new AggregateParams(
+            info.schema(),
+            info.startingColumnIndex(),
+            functionRegistry,
+            info.aggregateFunctions()
+        )
+            .getAggregator()
             .getResultMapper()::apply;
   }
 
@@ -184,8 +188,8 @@ public final class KsqlMaterializationFactory {
   interface AggregateMapperFactory {
 
     Function<GenericRow, GenericRow> create(
-        int nonAggregateColumnCount,
-        Map<Integer, KsqlAggregateFunction> aggregateFunctionsByIndex
+        AggregatesInfo info,
+        FunctionRegistry functionRegistry
     );
   }
 

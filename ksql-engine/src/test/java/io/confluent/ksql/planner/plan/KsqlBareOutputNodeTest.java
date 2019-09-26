@@ -41,7 +41,7 @@ import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
-import io.confluent.ksql.util.QueryIdGenerator;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;

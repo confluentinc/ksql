@@ -24,6 +24,7 @@ import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
@@ -112,7 +113,8 @@ public final class StandaloneExecutorFactory {
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig),
+        new SequentialQueryIdGenerator());
 
     final UdfLoader udfLoader =
         UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);

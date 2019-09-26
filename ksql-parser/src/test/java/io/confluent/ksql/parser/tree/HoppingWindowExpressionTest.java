@@ -27,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.function.UdafAggregator;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.NodeLocation;
@@ -54,27 +55,6 @@ public class HoppingWindowExpressionTest {
   public static final NodeLocation SOME_LOCATION = new NodeLocation(0, 0);
   public static final NodeLocation OTHER_LOCATION = new NodeLocation(1, 0);
 
-  @Mock
-  private KGroupedStream<Struct, GenericRow> stream;
-  @Mock
-  private TimeWindowedKStream<Struct, GenericRow> windowedKStream;
-  @Mock
-  private UdafAggregator aggregator;
-  @Mock
-  private Initializer<GenericRow> initializer;
-  @Mock
-  private Materialized<Struct, GenericRow, WindowStore<Bytes, byte[]>> store;
-  private HoppingWindowExpression windowExpression;
-
-  @Before
-  public void setUp() {
-    windowExpression = new HoppingWindowExpression(10, SECONDS, 4, TimeUnit.MILLISECONDS);
-
-    when(stream
-        .windowedBy(any(TimeWindows.class)))
-        .thenReturn(windowedKStream);
-  }
-
   @Test
   public void shouldImplementHashCodeAndEqualsProperty() {
     new EqualsTester()
@@ -98,18 +78,6 @@ public class HoppingWindowExpressionTest {
             new HoppingWindowExpression(10, SECONDS, 20, MILLISECONDS)
         )
         .testEquals();
-  }
-
-  @Test
-  public void shouldCreateHoppingWindowAggregate() {
-    // When:
-    windowExpression.applyAggregate(stream, initializer, aggregator, store);
-
-    // Then:
-    verify(stream)
-        .windowedBy(TimeWindows.of(Duration.ofSeconds(10)).advanceBy(Duration.ofMillis(4L)));
-
-    verify(windowedKStream).aggregate(initializer, aggregator, store);
   }
 
   @Test

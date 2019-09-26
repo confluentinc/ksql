@@ -13,11 +13,11 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udaf;
+package io.confluent.ksql.execution.function.udaf;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.TableAggregationFunction;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
@@ -52,5 +52,13 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
                     rowValue.getColumns().get(function.getArgIndexInValue()),
                     aggRowValue.getColumns().get(aggRowIndex))));
     return aggRowValue;
+  }
+
+  public int getNonFuncColumnCount() {
+    return nonFuncColumnCount;
+  }
+
+  public Map<Integer, TableAggregationFunction> getAggValToAggFunctionMap() {
+    return aggValToAggFunctionMap;
   }
 }

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import java.util.List;
 import java.util.Optional;

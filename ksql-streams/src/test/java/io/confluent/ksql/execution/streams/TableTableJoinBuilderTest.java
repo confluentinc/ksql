@@ -84,7 +84,6 @@ public class TableTableJoinBuilderTest {
         new DefaultExecutionStepProperties(LEFT_SCHEMA, SRC_CTX));
     when(right.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
-    when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
   }
 
   @SuppressWarnings("unchecked")

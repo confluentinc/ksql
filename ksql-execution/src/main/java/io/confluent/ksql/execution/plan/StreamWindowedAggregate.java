@@ -1,8 +1,9 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,40 +15,44 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedTable;
+import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Windowed;
 
-@Immutable
-public class TableAggregate implements ExecutionStep<KTable<Struct, GenericRow>> {
+public class StreamWindowedAggregate
+    implements ExecutionStep<KTable<Windowed<Struct>, GenericRow>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KGroupedTable<Struct, GenericRow>> source;
+  private final ExecutionStep<KGroupedStream<Struct, GenericRow>> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
   private final List<FunctionCall> aggregations;
   private final LogicalSchema aggregationSchema;
+  private final KsqlWindowExpression windowExpression;
 
-  public TableAggregate(
+  public StreamWindowedAggregate(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KGroupedTable<Struct, GenericRow>> source,
+      final ExecutionStep<KGroupedStream<Struct, GenericRow>> source,
       final Formats formats,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final LogicalSchema aggregationSchema) {
+      final LogicalSchema aggregationSchema,
+      final KsqlWindowExpression windowExpression) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = Objects.requireNonNull(aggregations, "aggValToFunctionMap");
+    this.aggregations = Objects.requireNonNull(aggregations, "aggregations");
     this.aggregationSchema = Objects.requireNonNull(aggregationSchema, "aggregationSchema");
+    this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
   }
 
   @Override
@@ -60,24 +65,28 @@ public class TableAggregate implements ExecutionStep<KTable<Struct, GenericRow>>
     return Collections.singletonList(source);
   }
 
-  public Formats getFormats() {
-    return formats;
+  public int getNonFuncColumnCount() {
+    return nonFuncColumnCount;
   }
 
   public List<FunctionCall> getAggregations() {
     return aggregations;
   }
 
-  public int getNonFuncColumnCount() {
-    return nonFuncColumnCount;
+  public Formats getFormats() {
+    return formats;
   }
 
   public LogicalSchema getAggregationSchema() {
     return aggregationSchema;
   }
 
+  public KsqlWindowExpression getWindowExpression() {
+    return windowExpression;
+  }
+
   @Override
-  public KTable<Struct, GenericRow> build(final KsqlQueryBuilder builder) {
+  public KTable<Windowed<Struct>, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
     throw new UnsupportedOperationException();
   }
 
@@ -89,18 +98,27 @@ public class TableAggregate implements ExecutionStep<KTable<Struct, GenericRow>>
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableAggregate that = (TableAggregate) o;
+    final StreamWindowedAggregate that = (StreamWindowedAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
-        && nonFuncColumnCount == that.nonFuncColumnCount
         && Objects.equals(aggregations, that.aggregations)
-        && Objects.equals(aggregationSchema, that.aggregationSchema);
+        && nonFuncColumnCount == that.nonFuncColumnCount
+        && Objects.equals(aggregationSchema, that.aggregationSchema)
+        && Objects.equals(windowExpression, that.windowExpression);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, nonFuncColumnCount, aggregations);
+    return Objects.hash(
+        properties,
+        source,
+        formats,
+        aggregations,
+        nonFuncColumnCount,
+        aggregationSchema,
+        windowExpression
+    );
   }
 }

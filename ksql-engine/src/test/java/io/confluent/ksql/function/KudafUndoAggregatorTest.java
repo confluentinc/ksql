@@ -20,7 +20,8 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.function.udaf.KudafUndoAggregator;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
+import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;

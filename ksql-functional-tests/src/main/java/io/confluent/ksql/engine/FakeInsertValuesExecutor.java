@@ -18,18 +18,18 @@ package io.confluent.ksql.engine;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaRecord;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-public final class FakeInsertValuesExecutor  {
+public final class FakeInsertValuesExecutor {
 
   private FakeInsertValuesExecutor() {
   }

@@ -25,11 +25,14 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.sql.SQLDataException;
 import java.util.List;
 
 /*
-The rounding behaviour implemented here follows that of java.lang.Math.round()
+The rounding behaviour implemented here follows that of java.lang.Math.round() - we do that
+in order to provide compatibility with the previous ROUND() implementation which used
+Math.round(). The BigDecimal HALF_UP rounding behaviour is a bit more sane and would be a better
+choice if we were starting from scratch.
+
 It's an implementation of rounding "half up". This means we round to the nearest integer value and
 in the case we are equidistant from the two nearest integers we round UP to the nearest integer.
 This means:
@@ -41,7 +44,22 @@ ROUND(1.9) -> 2
 ROUND(-1.1) -> -1
 ROUND(-1.5) -> -1    Note this is not -2! We round up and up is in a positive direction.
 ROUND(-1.9) -> -2
- */
+
+Unfortunately there is an inconsistency in the way that java.lang.Math and
+BigDecimal work with respect to rounding:
+
+Math.round(1.5) --> 2
+Math.round(-1.5) -- -1
+
+But:
+
+new BigDecimal("1.5").setScale(2, RoundingMode.HALF_UP) --> 2
+new BigDecimal("-1.5").setScale(2, RoundingMode.HALF_UP) --> -2
+
+There isn't any BigDecimal rounding mode which captures the java.lang.Math behaviour so
+we need to use different rounding modes on BigDecimal depending on whether the value
+is +ve or -ve to get consistent behaviour.
+*/
 @UdfDescription(name = "Round", description = Round.DESCRIPTION)
 public class Round {
 
@@ -68,8 +86,6 @@ public class Round {
 
   @Udf
   public Double round(@UdfParameter final Double val, @UdfParameter final Integer decimalPlaces) {
-    // Note that we MUST BigDecimal.valueOf(double) to create the BD to ensure correctness
-    // as this methods initialises via the string representation
     return val == null
         ? null
         : roundBigDecimal(BigDecimal.valueOf(val), decimalPlaces).doubleValue();
@@ -114,28 +130,9 @@ public class Round {
     return SqlDecimal.of(param.getPrecision() - param.getScale(), 0);
   }
 
-  /*
-  Unfortunately there is an inconsistency in the way that java.lang.Math and
-  BigDecimal work with respect to rounding:
-
-  Math.round(1.5) --> 2
-  Math.round(-1.5) -- -1
-
-  But:
-
-  new BigDecimal("1.5").setScale(2, RoundingMode.HALF_UP) --> 2
-  new BigDecimal("-1.5").setScale(2, RoundingMode.HALF_UP) --> -2
-
-  There isn't any BigDecimal rounding mode which captures the java.lang.Math behaviour so
-  we need to use different rounding modes on BigDecimal depending on whether the value
-  is +ve or -ve to get consistent behaviour.
-
-  The alternative would be to use the BigDecimal rounding behaviour everywhere but that would
-  mean worse performance in the areas where we currently use java.lang.Math.round().
-  */
   private BigDecimal roundBigDecimal(final BigDecimal val, final int decimalPlaces) {
-    final RoundingMode roundingMode =
-      val.compareTo(BigDecimal.ZERO) > 0 ? RoundingMode.HALF_UP : RoundingMode.HALF_DOWN;
+    final RoundingMode roundingMode = val.compareTo(BigDecimal.ZERO) > 0
+        ? RoundingMode.HALF_UP : RoundingMode.HALF_DOWN;
     return val.setScale(decimalPlaces, roundingMode);
   }
 }

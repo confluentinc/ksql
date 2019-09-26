@@ -95,12 +95,6 @@ public class RoundTest {
   }
 
   @Test
-  public void testFoo() {
-    BigDecimal rounded = udf.round(new BigDecimal("10.1"));
-    assertThat(rounded, is(new BigDecimal("10")));
-  }
-
-  @Test
   public void shouldRoundDoubleWithDecimalPlacesPositive() {
     assertThat(udf.round(0d, 0), is(0d));
     assertThat(udf.round(1.0d, 0), is(1.0d));

@@ -26,6 +26,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
+import io.confluent.ksql.test.model.matchers.MetaStoreMatchers;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;

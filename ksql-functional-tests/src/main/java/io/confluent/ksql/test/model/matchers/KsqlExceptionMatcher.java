@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.model;
+package io.confluent.ksql.test.model.matchers;
 
 import io.confluent.ksql.util.KsqlStatementException;
 import org.hamcrest.Description;

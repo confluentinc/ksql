@@ -13,12 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools;
+package io.confluent.ksql.test.tools.stubs;
 
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
+import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.Topic;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -74,7 +76,7 @@ public final class FakeKafkaRecord {
     return testRecord;
   }
 
-  ProducerRecord<?,?> getProducerRecord() {
+  public ProducerRecord<?,?> getProducerRecord() {
     return producerRecord;
   }
 }

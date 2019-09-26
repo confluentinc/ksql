@@ -19,6 +19,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
 import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;

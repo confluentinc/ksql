@@ -13,9 +13,10 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools;
+package io.confluent.ksql.test.tools.stubs;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,7 +55,7 @@ public final class FakeKafkaService {
     this.topicData.get(topicName).add(record);
   }
 
-  List<FakeKafkaRecord> readRecords(final String topicName) {
+  public List<FakeKafkaRecord> readRecords(final String topicName) {
     Objects.requireNonNull(topicName, "Topic");
     requireTopicExists(topicName);
     return ImmutableList.copyOf(topicData.get(topicName));
@@ -86,7 +87,7 @@ public final class FakeKafkaService {
   }
 
 
-  Map<String, List<FakeKafkaRecord>> getTopicData() {
+  public Map<String, List<FakeKafkaRecord>> getTopicData() {
     return topicData;
   }
 }

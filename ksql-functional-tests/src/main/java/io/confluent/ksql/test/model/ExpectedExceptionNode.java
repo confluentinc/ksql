@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.KsqlExpectedException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
+import io.confluent.ksql.test.model.matchers.KsqlExceptionMatcher;
 import io.confluent.ksql.util.KsqlStatementException;
 import java.util.Optional;
 import org.hamcrest.Matcher;

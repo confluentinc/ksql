@@ -21,7 +21,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.test.model.FormatMatchers.KeyFormatMatchers;
+import io.confluent.ksql.test.model.matchers.FormatMatchers.KeyFormatMatchers;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;

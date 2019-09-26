@@ -25,6 +25,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;

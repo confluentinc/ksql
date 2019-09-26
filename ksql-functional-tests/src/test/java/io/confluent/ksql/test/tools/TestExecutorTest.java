@@ -28,6 +28,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.Set;

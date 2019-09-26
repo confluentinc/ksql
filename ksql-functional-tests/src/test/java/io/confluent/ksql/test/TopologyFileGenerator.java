@@ -33,7 +33,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.tools.FakeKafkaService;
+import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;

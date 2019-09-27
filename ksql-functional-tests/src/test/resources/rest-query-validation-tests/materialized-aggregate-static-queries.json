@@ -269,6 +269,80 @@
       ]
     },
     {
+      "name": "tumbling windowed single key lookup with unbounded window start",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "rows": [
+            ["10", 11000, 1],
+            ["10", 12000, 1]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "hopping windowed single key lookup with unbounded window start",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW HOPPING(SIZE 4 SECOND, ADVANCE BY 1 SECONDS) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 10345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 10345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 13345, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "rows": [
+            ["10", 7000, 1],
+            ["10", 8000, 1],
+            ["10", 9000, 1],
+            ["10", 10000, 2],
+            ["10", 11000, 1],
+            ["10", 12000, 1],
+            ["10", 13000, 1]
+          ]
+        }
+      ]
+    },
+    {
+      "name": "session windowed single key lookup with unbounded window start",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(10 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12366, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "rows": [["10", 12345, 12366, 2]]
+        }
+      ]
+    },
+    {
       "name": "non-windowed projection WITH ROWTIME",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -530,19 +604,6 @@
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
         "message": "Table 'X' is not materialized. KSQL currently only supports static queries on materialized aggregate tables. i.e. those created by a 'CREATE TABLE AS SELECT <fields> FROM <sources> GROUP BY <key>' style statement.",
-        "status": 400
-      }
-    },
-    {
-      "name": "fail on windowed table if no window start bounds provided",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
-        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
-      ],
-      "expectedError": {
-        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "WHERE clause missing WINDOWSTART",
         "status": 400
       }
     },

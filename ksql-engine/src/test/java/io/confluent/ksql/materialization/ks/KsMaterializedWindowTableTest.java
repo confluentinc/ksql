@@ -282,4 +282,17 @@ public class KsMaterializedWindowTableTest {
         )
     ));
   }
+
+  @Test
+  public void shouldSupportRangeAll() {
+    // When:
+    table.get(A_KEY, Range.all());
+
+    // Then:
+    verify(tableStore).fetch(
+        A_KEY,
+        Instant.ofEpochMilli(Long.MIN_VALUE),
+        Instant.ofEpochMilli(Long.MAX_VALUE)
+    );
+  }
 }

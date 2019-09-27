@@ -53,8 +53,13 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
       final ReadOnlyWindowStore<Struct, GenericRow> store = stateStore
           .store(QueryableStoreTypes.windowStore());
 
-      final Instant lower = windowStartBounds.lowerEndpoint();
-      final Instant upper = windowStartBounds.upperEndpoint();
+      final Instant lower = windowStartBounds.hasLowerBound()
+          ? windowStartBounds.lowerEndpoint()
+          : Instant.ofEpochMilli(Long.MIN_VALUE);
+
+      final Instant upper = windowStartBounds.hasUpperBound()
+          ? windowStartBounds.upperEndpoint()
+          : Instant.ofEpochMilli(Long.MAX_VALUE);
 
       try (WindowStoreIterator<GenericRow> it = store.fetch(key, lower, upper)) {
 

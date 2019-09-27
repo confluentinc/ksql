@@ -262,15 +262,8 @@ public final class StaticQueryExecutor {
       return new WhereInfo(rowKey, Optional.empty());
     }
 
-    final List<ComparisonExpression> windowBoundsComparison =
-        comparisons.get(ComparisonTarget.WINDOWSTART);
-
-    if (windowBoundsComparison == null) {
-      throw invalidWhereClauseException(
-          "WHERE clause missing " + ComparisonTarget.WINDOWSTART,
-          true
-      );
-    }
+    final Optional<List<ComparisonExpression>> windowBoundsComparison =
+        Optional.ofNullable(comparisons.get(ComparisonTarget.WINDOWSTART));
 
     final Range<Instant> windowStart = extractWhereClauseWindowBounds(windowBoundsComparison);
 
@@ -302,8 +295,14 @@ public final class StaticQueryExecutor {
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(
-      final List<ComparisonExpression> comparisons
+      final Optional<List<ComparisonExpression>> maybeComparisons
   ) {
+    if (!maybeComparisons.isPresent()) {
+      return Range.all();
+    }
+
+    final List<ComparisonExpression> comparisons = maybeComparisons.get();
+
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
         .collect(Collectors.groupingBy(StaticQueryExecutor::getSimplifiedBoundType));
 
@@ -343,21 +342,11 @@ public final class StaticQueryExecutor {
       return Range.singleton(asInstant(getNonColumnRefSide(equals)));
     }
 
-    final ComparisonExpression upper = singles.get(Type.LESS_THAN);
-    if (upper == null) {
-      throw invalidWhereClauseException(
-          "Missing upper bound on " + ComparisonTarget.WINDOWSTART,
-          true
-      );
-    }
+    final Optional<ComparisonExpression> upper =
+        Optional.ofNullable(singles.get(Type.LESS_THAN));
 
-    final ComparisonExpression lower = singles.get(Type.GREATER_THAN);
-    if (lower == null) {
-      throw invalidWhereClauseException(
-          "Missing lower bound on " + ComparisonTarget.WINDOWSTART,
-          true
-      );
-    }
+    final Optional<ComparisonExpression> lower =
+        Optional.ofNullable(singles.get(Type.GREATER_THAN));
 
     return extractWindowBound(lower, upper);
   }
@@ -379,14 +368,30 @@ public final class StaticQueryExecutor {
   }
 
   private static Range<Instant> extractWindowBound(
-      final ComparisonExpression lowerComparison,
-      final ComparisonExpression upperComparison
+      final Optional<ComparisonExpression> lowerComparison,
+      final Optional<ComparisonExpression> upperComparison
   ) {
-    final Instant lower = asInstant(getNonColumnRefSide(lowerComparison));
-    final Instant upper = asInstant(getNonColumnRefSide(upperComparison));
+    if (!lowerComparison.isPresent() && !upperComparison.isPresent()) {
+      return Range.all();
+    }
 
-    final BoundType lowerType = getRangeBoundType(lowerComparison);
-    final BoundType upperType = getRangeBoundType(upperComparison);
+    if (!lowerComparison.isPresent()) {
+      final Instant upper = asInstant(getNonColumnRefSide(upperComparison.get()));
+      final BoundType upperType = getRangeBoundType(upperComparison.get());
+      return Range.upTo(upper, upperType);
+    }
+
+    if (!upperComparison.isPresent()) {
+      final Instant lower = asInstant(getNonColumnRefSide(lowerComparison.get()));
+      final BoundType lowerType = getRangeBoundType(lowerComparison.get());
+      return Range.downTo(lower, lowerType);
+    }
+
+    final Instant lower = asInstant(getNonColumnRefSide(lowerComparison.get()));
+    final BoundType lowerType = getRangeBoundType(lowerComparison.get());
+
+    final Instant upper = asInstant(getNonColumnRefSide(upperComparison.get()));
+    final BoundType upperType = getRangeBoundType(upperComparison.get());
 
     return Range.range(lower, lowerType, upper, upperType);
   }

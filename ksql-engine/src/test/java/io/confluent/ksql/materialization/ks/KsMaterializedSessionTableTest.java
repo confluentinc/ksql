@@ -18,6 +18,7 @@ package io.confluent.ksql.materialization.ks;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -296,8 +297,10 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnMultipleSessions() {
     // Given:
+    givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.plusSeconds(1));
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT);
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT);
+    givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusSeconds(1));
 
     // When:
     final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
@@ -307,6 +310,19 @@ public class KsMaterializedSessionTableTest {
         WindowedRow.of(SCHEMA, A_KEY, Window.of(LOWER_INSTANT, Optional.of(LOWER_INSTANT)), A_VALUE),
         WindowedRow.of(SCHEMA, A_KEY, Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT)), A_VALUE)
     ));
+  }
+
+  @Test
+  public void shouldReturnAllSessionsForRangeall() {
+    // Given:
+    givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
+    givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all());
+
+    // Then:
+    assertThat(result, hasSize(2));
   }
 
   private void givenSingleSession(

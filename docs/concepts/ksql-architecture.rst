@@ -3,7 +3,7 @@
 KSQL Architecture
 #################
 
-You can use KSQL to build event streaming applications from |ak-tm| topics by
+You can use KSQL to build event streaming applications from {{ site.ak-tm }} topics by
 using only SQL statements and queries. KSQL is built on Kafka Streams, so a
 KSQL application communicates with a Kafka cluster like any other Kafka Streams
 application.
@@ -16,7 +16,7 @@ KSQL has these main components:
 * KSQL engine – processes KSQL statements and queries 
 * REST interface – enables client access to the engine
 * KSQL CLI – console that provides a command-line interface (CLI) to the engine
-* KSQL UI – enables developing KSQL applications in |c3|
+* KSQL UI – enables developing KSQL applications in {{ site.c3 }}
 
 KSQL Server comprises the KSQL engine and the REST API. KSQL Server instances
 communicate with the Kafka cluster, and you can add more of them as necessary
@@ -49,7 +49,7 @@ KSQL CLI
 
 REST Interface
     The REST server interface enables communicating with the KSQL engine from
-    the CLI, |c3|, or from any other REST client. For more information, see
+    the CLI, {{ site.c3 }}, or from any other REST client. For more information, see
     :ref:`ksql-rest-api`.
     
     The KSQL REST server is implemented in the
@@ -144,7 +144,7 @@ Interactive Deployment
 
 Use the interactive mode to develop your KSQL applications. When you deploy a
 KSQL server in interactive mode, the REST interface is available for the KSQL
-CLI and |c3| to connect to. 
+CLI and {{ site.c3 }} to connect to. 
 
 .. image:: ../img/ksql-client-server-interactive-mode.png
    :alt: Diagram showing interactive KSQL deployment

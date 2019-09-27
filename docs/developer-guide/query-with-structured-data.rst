@@ -8,12 +8,12 @@ You use familiar syntax to declare and access structured data, like
 ``mystruct STRUCT<fieldName1 type1, fieldName2 type2>`` and
 ``mystruct->fieldName1``. 
 
-The following example shows how to create a KSQL stream from an |ak-tm| topic that
+The following example shows how to create a KSQL stream from an {{ site.ak-tm }} topic that
 has structured data. Also, it shows how to run queries to access the structured
 data.
 
 #. Set up the KSQL environment.
-#. Use the |kcat| utility to create and populate a new topic, named ``raw-topic``. 
+#. Use the {{ site.kcat }} utility to create and populate a new topic, named ``raw-topic``. 
 #. Create a stream on the topic that models the topic's data.
 #. Inspect the stream to ensure that the data model matches the topic.
 #. Query the stream to access the structured data.
@@ -31,7 +31,7 @@ or if you have git and Docker installed already, run the following commands:
     cd ksql
 
     # Step 2
-    git checkout |release|-post
+    git checkout {{ site.release }}-post
 
     # Step 3
     cd docs/tutorials/
@@ -61,7 +61,7 @@ applications.
 Create and Populate a New Topic With Structured Data
 ****************************************************
 
-Use the |kcat| utility to create and populate a new topic, named
+Use the {{ site.kcat }} utility to create and populate a new topic, named
 ``raw-topic``, with some records that have nested data. The records are 
 formatted as JSON arrays. For more information, see :ref:`kafkacat-usage`.
 
@@ -108,7 +108,7 @@ Start the KSQL CLI:
 .. codewithvars:: bash
 
   docker run --network tutorials_default --rm --interactive --tty \
-      confluentinc/cp-ksql-cli:|release| \
+      confluentinc/cp-ksql-cli:{{ site.release }} \
       http://ksql-server:8088
 
 In the KSQL CLI, ensure that ``raw-topic`` is available: 
@@ -128,7 +128,7 @@ Your output should resemble:
      raw-topic          | 1          | 1
     ------------------------------------------------------
 
-Inspect ``raw-topic`` to ensure that |kcat| populated it: 
+Inspect ``raw-topic`` to ensure that {{ site.kcat }} populated it: 
 
 ::
 
@@ -199,7 +199,7 @@ Press Ctrl+C to cancel the SELECT query.
 
 .. note::
 
-    KSQL assigns ``null`` to the fields that were omitted when |kcat|
+    KSQL assigns ``null`` to the fields that were omitted when {{ site.kcat }}
     populated ``raw-topic``, like ``field-c`` and ``field-d`` in record
     ``key1``.
 

@@ -7,7 +7,7 @@ Frequently Asked Questions
 What are the benefits of KSQL?
 ==============================
 
-KSQL allows you to query, read, write, and process data in |ak-tm|
+KSQL allows you to query, read, write, and process data in {{ site.ak-tm }}
 in real-time and at scale using intuitive SQL-like syntax. KSQL does not
 require proficiency with a programming language such as Java or Scala,
 and you don’t have to install a separate processing cluster technology.
@@ -72,7 +72,7 @@ KSQL currently supports formats:
 
 -  DELIMITED (e.g. comma-separated value)
 -  JSON
--  Avro message values are supported. Avro keys are not yet supported. Requires |sr| and ``ksql.schema.registry.url`` in the
+-  Avro message values are supported. Avro keys are not yet supported. Requires {{ site.sr }} and ``ksql.schema.registry.url`` in the
    KSQL server configuration file. For more information, see :ref:`install_ksql-avro-schema`.
 -  KAFKA (for example, a ``BIGINT`` that's serialized using Kafka's standard ``LongSerializer``).
 
@@ -118,7 +118,7 @@ command:
 
    sudo systemctl stop confluent-ksql
 
-For more information on shutting down |cp|, see
+For more information on shutting down {{ site.cp }}, see
 :ref:`installation-overview`.
 
 ============================================
@@ -148,14 +148,14 @@ You can configure your servers to run a set of predefined queries by using ``ksq
 ``--queries-file`` command line flag. For more information, see :ref:`ksql-server-config`.
 
 ====================================================
-How do I use Avro data and integrate with |sr-long|?
+How do I use Avro data and integrate with {{ site.sr-long }}?
 ====================================================
 
-Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to |sr|
+Configure the ``ksql.schema.registry.url`` property in the KSQL server configuration to point to {{ site.sr }}
 (see :ref:`install_ksql-avro-schema`).
 
 .. important::
-    - To use Avro data with KSQL you must have |sr| installed. This is included by default with |cp|.
+    - To use Avro data with KSQL you must have {{ site.sr }} installed. This is included by default with {{ site.cp }}.
     - Avro message values are supported. Avro keys are not yet supported.
 
 =========================
@@ -203,10 +203,10 @@ Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?
 Yes. For more information, see :ref:`config-security-ksql-acl`.
 
 ======================================
-Will KSQL work with a HTTPS |sr-long|?
+Will KSQL work with a HTTPS {{ site.sr-long }}?
 ======================================
 
-Yes. KSQL can be configured to communicate with |sr-long| over HTTPS. For more information, see
+Yes. KSQL can be configured to communicate with {{ site.sr-long }} over HTTPS. For more information, see
 :ref:`config-security-ksql-sr`.
 
 ================================================

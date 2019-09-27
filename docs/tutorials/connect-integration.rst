@@ -8,18 +8,18 @@ This tutorial demonstrates a simple workflow to integrate KSQL with an instance 
 **Prerequisites:**
 
 - :ref:`Confluent Platform <installation>` is installed an running. This installation includes
-  a Kafka broker, KSQL, |zk|, |sr| and |kconnect|.
-- If you installed |cp| via TAR or ZIP, navigate into the installation
+  a Kafka broker, KSQL, {{ site.zk }}, {{ site.sr }} and {{ site.kconnect }}.
+- If you installed {{ site.cp }} via TAR or ZIP, navigate into the installation
   directory. The paths and commands used throughout this tutorial assume
   that you are in this installation directory.
-- Consider :ref:`installing <cli-install>` the |confluent-cli| to start a local
-  installation of |cp|.
+- Consider :ref:`installing <cli-install>` the {{ site.confluent-cli }} to start a local
+  installation of {{ site.cp }}.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine
 
 Installing JDBC Source Connector Plugin
 ---------------------------------------
 
-If you installed |kconnect-long| via |cp|, then it comes with an installation of the JDBC source
+If you installed {{ site.kconnect-long }} via {{ site.cp }}, then it comes with an installation of the JDBC source
 connector. Otherwise, install it via Confluent Hub.
 
 Installing Postgres via Docker
@@ -53,8 +53,8 @@ Create a JDBC Source Connector
 ------------------------------
 
 Now that Postgres is up and running with a database for your user, you can connect to it via KSQL.
-If you're using the default configurations, KSQL connects automatically to your |kconnect| cluster.
-Otherwise, you must change the ``ksql.connect.url`` property to point to your |kconnect| deployment.
+If you're using the default configurations, KSQL connects automatically to your {{ site.kconnect }} cluster.
+Otherwise, you must change the ``ksql.connect.url`` property to point to your {{ site.kconnect }} deployment.
 
   ::
 

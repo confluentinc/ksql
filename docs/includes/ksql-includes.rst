@@ -14,7 +14,7 @@
 .. Avro_note_start
 
 .. note::
-    - To use Avro, you must have |sr| enabled and ``ksql.schema.registry.url`` must be set in the KSQL
+    - To use Avro, you must have {{ site.sr }} enabled and ``ksql.schema.registry.url`` must be set in the KSQL
       server configuration file. See :ref:`install_ksql-avro-schema`.
     - Avro field names are not case sensitive in KSQL. This matches the KSQL column name behavior.
 
@@ -50,7 +50,7 @@ Learn More
 
         Copyright 2018 Confluent Inc.
 
-        CLI v|release|, Server v|release| located at http://localhost:8088
+        CLI v{{ site.release }}, Server v{{ site.release }} located at http://localhost:8088
 
         Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 
@@ -65,7 +65,7 @@ Create Topics and Produce Data
 ------------------------------
 
 Create and produce data to the Kafka topics ``pageviews`` and ``users``. These steps use the KSQL datagen that is included
-|cp|.
+{{ site.cp }}.
 
 1. Create the ``pageviews`` topic and produce data using the data generator. The following example continuously generates data with a
    value in DELIMITED format.
@@ -81,7 +81,7 @@ Create and produce data to the Kafka topics ``pageviews`` and ``users``. These s
 
        $ <path-to-confluent>/bin/ksql-datagen quickstart=users format=json topic=users maxInterval=100
 
-.. tip:: You can also produce Kafka data using the ``kafka-console-producer`` CLI provided with |cp|.
+.. tip:: You can also produce Kafka data using the ``kafka-console-producer`` CLI provided with {{ site.cp }}.
 
 -------------------
 Launch the KSQL CLI
@@ -352,7 +352,7 @@ the latest offset.
 #. Create a new persistent query that counts the pageviews for each region and gender combination in a
    :ref:`tumbling window <windowing-tumbling>` of 30 seconds when the count is greater than one. Results from this query
    are written to the ``PAGEVIEWS_REGIONS`` Kafka topic in the Avro format. KSQL will register the Avro schema with the
-   configured |sr| when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
+   configured {{ site.sr }} when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 
    .. code:: sql
 
@@ -503,7 +503,7 @@ To enable JMX metrics, set ``JMX_PORT`` before starting the KSQL server:
 
 .. important:: By default KSQL attempts to store its logs in a directory called ``logs`` that is relative to the location
                of the ``ksql`` executable. For example, if ``ksql`` is installed at ``/usr/local/bin/ksql``, then it would
-               attempt to store its logs in ``/usr/local/logs``. If you are running ``ksql`` from the default |cp|
+               attempt to store its logs in ``/usr/local/logs``. If you are running ``ksql`` from the default {{ site.cp }}
                location, ``<path-to-confluent>/bin``, you must override this default behavior by using the ``LOG_DIR`` variable.
 .. log_limitations_mid
 .. log_limitations_qs_end

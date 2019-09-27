@@ -1,12 +1,12 @@
 .. _integrate-ksql-with-confluent-control-center:
 
-Integrate KSQL with |c3|
+Integrate KSQL with {{ site.c3 }}
 ########################
 
 You can develop event streaming applications by using the KSQL user interface
-provided by |c3|. In |c3-short|, you can create |ak-tm| topics and develop
-persistent queries in the KSQL query editor. When you install |cp|, KSQL Server
-is integrated with |c3-short| by default, and you can configure |c3-short| to
+provided by {{ site.c3 }}. In {{ site.c3-short }}, you can create {{ site.ak-tm }} topics and develop
+persistent queries in the KSQL query editor. When you install {{ site.cp }}, KSQL Server
+is integrated with {{ site.c3-short }} by default, and you can configure {{ site.c3-short }} to
 interact with other KSQL Server instances that run on separate hosts.
 
 .. image:: ../../../../images/ksql-interface-create-stream.png
@@ -14,22 +14,22 @@ interact with other KSQL Server instances that run on separate hosts.
      :align: center
      :alt: Screenshot of the KSQL Create Stream interface in Confluent Control Center.
 
-Configuration Settings for KSQL and |c3-short|
+Configuration Settings for KSQL and {{ site.c3-short }}
 **********************************************
 
-Set up the integration between KSQL and |c3-short| by assigning
-properties in the KSQL Server and |c3-short| configuration files.
+Set up the integration between KSQL and {{ site.c3-short }} by assigning
+properties in the KSQL Server and {{ site.c3-short }} configuration files.
 
 * By default, the KSQL Server configuration file is installed at
   ``<path-to-confluent>/etc/ksql/ksql-server.properties``.
-* By default, the |c3-short| configuration file is installed at
+* By default, the {{ site.c3-short }} configuration file is installed at
   ``<path-to-confluent>/etc/confluent-control-center/control-center.properties``.
 
 Secure Communication with KSQL Server
 =====================================
 
-When you use Basic authentication in KSQL, |c3-short| allows passing credentials
-as part of the KSQL Server URL in |c3-short| configuration.
+When you use Basic authentication in KSQL, {{ site.c3-short }} allows passing credentials
+as part of the KSQL Server URL in {{ site.c3-short }} configuration.
 
 ::
 
@@ -37,44 +37,44 @@ as part of the KSQL Server URL in |c3-short| configuration.
     confluent.controlcenter.ksql.<ksql-cluster-name>.url=http://<username>:<password>@localhost:8088
 
 You can set up KSQL Server to communicate securely with other components in
-|cp|. For more information, see :ref:`ksql-security`.
+{{ site.cp }}. For more information, see :ref:`ksql-security`.
 
-Network Configuration for KSQL and |c3-short|
+Network Configuration for KSQL and {{ site.c3-short }}
 =============================================
 
 These are the configuration settings that you assign to set up network
-connectivity between KSQL and |c3-short|.
+connectivity between KSQL and {{ site.c3-short }}.
 
 * In the KSQL Server configuration file, set the :ref:`ksql-listeners` property
   to the IP address of the REST API endpoint for KSQL Server. Typical values
   are ``http://0.0.0.0:8088`` and ``http://localhost:8088``.
-* In the |c3-short| configuration file, set the 
+* In the {{ site.c3-short }} configuration file, set the 
   ``confluent.controlcenter.ksql.<ksql-cluster-name>.url``
   property to the hostnames and listener ports for the KSQL cluster specified 
   by ``<ksql-cluster-name>``.
-  This setting specifies how |c3-short| communicates with KSQL Server for 
+  This setting specifies how {{ site.c3-short }} communicates with KSQL Server for 
   regular HTTP
   requests. For more information, see :ref:`controlcenter_ksql_settings`.
 * If KSQL Server communicates over an internal DNS that is not externally
   resolvable or routeable, set the 
   ``confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url``
-  property in the |c3-short| configuration file. This setting specifies how the
+  property in the {{ site.c3-short }} configuration file. This setting specifies how the
   browser communicates with KSQL Server for websocket requests. For more 
   information,
   see :ref:`controlcenter_ksql_settings`.
 
-When KSQL Server and |c3| run on the same host, you can use the default
-configuration defined by |cp| setup.
+When KSQL Server and {{ site.c3 }} run on the same host, you can use the default
+configuration defined by {{ site.cp }} setup.
 
-When KSQL and |c3-short| run on different hosts
+When KSQL and {{ site.c3-short }} run on different hosts
 ***********************************************
 
-If KSQL Server and |c3-short| run on different hosts, you must specify a
-configuration that ensures KSQL Server and |c3-short| can communicate. This
-is necessary when KSQL Server and |c3-short| are deployed in the following
+If KSQL Server and {{ site.c3-short }} run on different hosts, you must specify a
+configuration that ensures KSQL Server and {{ site.c3-short }} can communicate. This
+is necessary when KSQL Server and {{ site.c3-short }} are deployed in the following
 situations:
 
-* KSQL Server and |c3-short| run in separate containers.
+* KSQL Server and {{ site.c3-short }} run in separate containers.
 * They run in separate virtual machines.
 * They communicate over a virtual private network (VPN).
 * The KSQL Server host publishes a public URL that's different from the
@@ -82,14 +82,14 @@ situations:
 
 .. note::
 
-   When KSQL and |c3-short| communicate over a virtual private network (VPN),
-   |c3-short| proxies your queries, but query results stream directly
+   When KSQL and {{ site.c3-short }} communicate over a virtual private network (VPN),
+   {{ site.c3-short }} proxies your queries, but query results stream directly
    from KSQL Server back to your browser without going through
-   |c3-short|. Over a VPN, the advertised URL isn't ``localhost``. Instead,
+   {{ site.c3-short }}. Over a VPN, the advertised URL isn't ``localhost``. Instead,
    it's the hostname of the remote server.
 
 Assign the following configuration properties to integrate KSQL Server with
-|c3-short| when they run on separate hosts.
+{{ site.c3-short }} when they run on separate hosts.
 
 KSQL Server Configuration
 =========================
@@ -101,14 +101,14 @@ interfaces:
 
     listeners=http://0.0.0.0:8088
 
-|c3-short| Configuration
+{{ site.c3-short }} Configuration
 ========================
 
-In the |c3-short| configuration file, set 
+In the {{ site.c3-short }} configuration file, set 
 ``confluent.controlcenter.ksql.<ksql-cluster-name>.url``
 to a list of URLs for the KSQL Server hosts, which must be reachable from the host
-that |c3-short| is installed on. Replace ``<ksql-cluster-name>`` with the name
-that |c3-short| uses to identify the KSQL cluster.
+that {{ site.c3-short }} is installed on. Replace ``<ksql-cluster-name>`` with the name
+that {{ site.c3-short }} uses to identify the KSQL cluster.
 
 ::
 
@@ -122,12 +122,12 @@ list of URLs that the browser can resolve through externally available DNS.
 
     confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url=<externally-resolvable-hostname1>, <externally-resolvable-hostname2>, ...
 
-The |c3-short| configuration must match the KSQL Server ``listeners`` values.
+The {{ site.c3-short }} configuration must match the KSQL Server ``listeners`` values.
 
 Use the ``curl`` command to check whether these URLs are reachable. Depending
 on your deployment, you may need to check from two different hosts: 
 
-* Check from the host where |c3-short| is running, which is relevant 
+* Check from the host where {{ site.c3-short }} is running, which is relevant 
   for the ``confluent.controlcenter.ksql.<ksql-cluster-name>.url`` setting.
 * Check from the host where the browser is running, which is relevant for the
   ``confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url`` setting.
@@ -141,16 +141,16 @@ configuration settings.
 .. codewithvars:: bash
 
    curl http://<hostname>:8088/info \
-   {"KsqlServerInfo":{"version":"|release|","kafkaClusterId":"<ksql-cluster-name>","ksqlServiceId":"default_"}}%
+   {"KsqlServerInfo":{"version":"{{ site.release }}","kafkaClusterId":"<ksql-cluster-name>","ksqlServiceId":"default_"}}%
 
 .. note::
 
    You must specify the ports in the KSQL URL settings. For example, if the
    public URL is ``http://ksql-server-677739697.us-east-1.elb.amazonaws.com:80``,
-   be sure to include port ``80``, or the |c3-short| connection to KSQL Server
+   be sure to include port ``80``, or the {{ site.c3-short }} connection to KSQL Server
    will fail.
 
-Check Network Connectivity Between KSQL and |c3|-short
+Check Network Connectivity Between KSQL and {{ site.c3 }}-short
 ======================================================
 
 Use a web browser to check the configuration of an advertised URL. Make sure
@@ -162,7 +162,7 @@ KSQL Server host, you'll receive an error:
 Check KSQL Server Network Binding
 =================================
 
-If |c3-short| doesn't connect with your KSQL Server instance, check the network
+If {{ site.c3-short }} doesn't connect with your KSQL Server instance, check the network
 binding on the KSQL Server host:
 
 .. code:: bash

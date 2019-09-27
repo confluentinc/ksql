@@ -186,7 +186,7 @@ dependency:
 
 .. codewithvars:: bash
 
-    compile 'io.confluent.ksql:ksql-udf:|release|'
+    compile 'io.confluent.ksql:ksql-udf:{{ site.release }}'
 
 To compile with the latest version of ``ksql-udf``:
 
@@ -212,7 +212,7 @@ dependency in your POM file:
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-udf</artifactId>
-            <version>|release|</version>
+            <version>{{ site.release }}</version>
         </dependency>
     </dependencies>
 

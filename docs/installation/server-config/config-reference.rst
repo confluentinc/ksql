@@ -31,7 +31,7 @@ These configurations control how Kafka Streams executes queries. These configura
 ksql.streams.auto.offset.reset
 ------------------------------
 
-Determines what to do when there is no initial offset in |ak-tm| or if the current offset does not exist on the server. The
+Determines what to do when there is no initial offset in {{ site.ak-tm }} or if the current offset does not exist on the server. The
 default value in KSQL is ``latest``, which means all Kafka topics are read from the latest available offset. For example,
 to change it to earliest by using the KSQL command line:
 
@@ -181,7 +181,7 @@ The corresponding environment variable in the
 ksql.schema.registry.url
 ------------------------
 
-The |sr| URL path to connect KSQL to. To communicate with |sr| over a secure
+The {{ site.sr }} URL path to connect KSQL to. To communicate with {{ site.sr }} over a secure
 connection, see :ref:`config-security-ksql-sr`.
 
 The corresponding environment variable in the
@@ -390,18 +390,18 @@ For example, ``key1:value1,key2:value2``.
 
 .. _ksql-c3-settings:
 
-|c3| Settings
+{{ site.c3 }} Settings
 -------------
 
-You can access KSQL Server by using |c3|. For more information, see
+You can access KSQL Server by using {{ site.c3 }}. For more information, see
 :ref:`controlcenter_ksql_settings`.
 
 .. _ksql-cloud-settings:
 
-|ccloud| Settings
+{{ site.ccloud }} Settings
 -----------------
 
-You can connect KSQL Server to |ccloud|. For more information, see
+You can connect KSQL Server to {{ site.ccloud }}. For more information, see
 :ref:`install_ksql-ccloud`.
 
 .. _ksql-server-log-settings:
@@ -507,14 +507,14 @@ KSQL-Connect Settings
 ksql.connect.url
 ----------------
 
-The |kconnect| cluster URL to integrate with. If the connect cluster is running locally to the KSQL
+The {{ site.kconnect }} cluster URL to integrate with. If the connect cluster is running locally to the KSQL
 server, use localhost and the configuration port specified in the connect configuration file.
 
 ---------------------------
 ksql.connect.worker.config
 ---------------------------
 
-The connect worker configuration file, if spinning up |kconnect| alongside the KSQL server. Don't
+The connect worker configuration file, if spinning up {{ site.kconnect }} alongside the KSQL server. Don't
 set this property if you're using an external ``ksql.connect.url``.
 
 ---------------------------
@@ -527,8 +527,8 @@ Toggles whether or not to poll connect for new connectors and automatically regi
 ksql.connect.configs.topic
 --------------------------
 
-The |kconnect| configuration topic. This setting corresponds to ``config.storage.topic`` in the
-|kconnect| worker configuration.
+The {{ site.kconnect }} configuration topic. This setting corresponds to ``config.storage.topic`` in the
+{{ site.kconnect }} worker configuration.
 
 .. _ksql-production-settings:
 

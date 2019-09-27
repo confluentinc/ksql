@@ -30,11 +30,11 @@ are quite large and depending on your network connection may take
        git clone https://github.com/confluentinc/examples.git
        cd examples
 
-#. Switch to the correct |cp| release branch:
+#. Switch to the correct {{ site.cp }} release branch:
 
    .. codewithvars:: bash
    
-       git checkout |release_post_branch|
+       git checkout {{ site.release_post_branch }}
 
 #. Navigate to the correct directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.

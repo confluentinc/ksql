@@ -30,7 +30,7 @@ file and override specific properties as needed, using the ``KSQL_OPTS`` environ
 
 .. tip::
 
-   If you deploy |cp| by using Docker containers, you can specify configuration
+   If you deploy {{ site.cp }} by using Docker containers, you can specify configuration
    parameters as environment variables to the
    `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
    For more information, see :ref:`install-ksql-with-docker`.

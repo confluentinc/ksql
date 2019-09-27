@@ -17,7 +17,7 @@ KSQL Tutorials and Examples
 KSQL Basics
 ***********
 
-This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in |ak-tm|.
+This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in {{ site.ak-tm }}.
 
 Write Streaming Queries with the KSQL CLI
 -----------------------------------------
@@ -31,16 +31,16 @@ Get started with the KSQL CLI:
 - :ref:`ksql_quickstart-docker`
 - :ref:`ksql_quickstart-local`
 
-Write Streaming Queries with KSQL and |c3|
+Write Streaming Queries with KSQL and {{ site.c3 }}
 ------------------------------------------
 
 .. image:: ../../../images/ksql-interface-create-stream.png
      :width: 600px
 
-Get started with KSQL and |c3|:
+Get started with KSQL and {{ site.c3 }}:
 
-- |c3-short| :ref:`deployed with Docker <ce-docker-ksql-quickstart>` 
-- |c3-short| :ref:`deployed locally <ce-ksql-quickstart>`
+- {{ site.c3-short }} :ref:`deployed with Docker <ce-docker-ksql-quickstart>` 
+- {{ site.c3-short }} :ref:`deployed locally <ce-ksql-quickstart>`
 
 Stream Processing Cookbook
 **************************
@@ -86,7 +86,7 @@ KSQL Examples
 KSQL in a Kafka Streaming ETL
 *****************************
 
-To learn how to deploy a Kafka streaming ETL using KSQL for stream processing, you can run the :ref:`Confluent Platform demo<cp-demo>`. All components in the |cp| demo have encryption, authentication, and authorization configured end-to-end.
+To learn how to deploy a Kafka streaming ETL using KSQL for stream processing, you can run the :ref:`Confluent Platform demo<cp-demo>`. All components in the {{ site.cp }} demo have encryption, authentication, and authorization configured end-to-end.
 
 Level Up Your KSQL Videos
 *************************

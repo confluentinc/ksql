@@ -1,16 +1,16 @@
 .. _install_ksql-avro-schema:
 
-Configuring Avro and |sr| for KSQL
+Configuring Avro and {{ site.sr }} for KSQL
 ##################################
 
 KSQL can read and write messages in Avro format by integrating with :ref:`Confluent Schema Registry <schemaregistry_intro>`.
 KSQL automatically retrieves (read) and registers (write) Avro schemas as needed and thus saves you from both having to
-manually define columns and data types in KSQL and from manual interaction with |sr|.
+manually define columns and data types in KSQL and from manual interaction with {{ site.sr }}.
 
 Supported functionality
 ***********************
 
-KSQL currently supports Avro data in the |ak-tm| message values.
+KSQL currently supports Avro data in the {{ site.ak-tm }} message values.
 
 Avro schemas with nested fields are supported. In KSQL 5.0 and higher, you can read nested data, in Avro and JSON
 formats, by using the STRUCT type. You can’t create new nested STRUCT data as the result of a query, but you can copy existing
@@ -24,7 +24,7 @@ The following functionality is not supported:
 Configuring KSQL for Avro
 *************************
 
-You must configure the REST endpoint of |sr| by setting ``ksql.schema.registry.url`` (default: ``http://localhost:8081``)
+You must configure the REST endpoint of {{ site.sr }} by setting ``ksql.schema.registry.url`` (default: ``http://localhost:8081``)
 in the KSQL server configuration file (``<path-to-confluent>/etc/ksql/ksql-server.properties``). For more information,
 see :ref:`install_ksql-server`.
 
@@ -33,9 +33,9 @@ see :ref:`install_ksql-server`.
 Using Avro in KSQL
 ******************
 
-Before using Avro in KSQL, make sure that |sr| is up and running and that ``ksql.schema.registry.url`` is set correctly
-in the KSQL properties file (defaults to ``http://localhost:8081``). |sr| is :ref:`included by default <quickstart>` with
-|cp|.
+Before using Avro in KSQL, make sure that {{ site.sr }} is up and running and that ``ksql.schema.registry.url`` is set correctly
+in the KSQL properties file (defaults to ``http://localhost:8081``). {{ site.sr }} is :ref:`included by default <quickstart>` with
+{{ site.cp }}.
 
 .. important:: By default, KSQL registered avro schemas have the same name (``KsqlDataSourceSchema``) and the same namespace
                (``io.confluent.ksql.avro_schemas``). You can override this behaviour by providing an ``VALUE_AVRO_SCHEMA_FULL_NAME``
@@ -112,7 +112,7 @@ easily mix and match streams and tables with different data formats and also con
 example, you can join a stream backed by Avro data with a table backed by JSON data.
 
 In this example, only the ``VALUE_FORMAT`` is required for Avro to achieve the data conversion. KSQL automatically
-generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and it registers the schema with |sr|.
+generates an appropriate Avro schema for the new ``pageviews_avro`` stream, and it registers the schema with {{ site.sr }}.
 
 .. code:: sql
 

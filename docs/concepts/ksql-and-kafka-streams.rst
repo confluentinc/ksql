@@ -3,10 +3,10 @@
 KSQL and Kafka Streams
 ######################
 
-KSQL is the streaming SQL engine for |ak-tm|. With KSQL, you can write
+KSQL is the streaming SQL engine for {{ site.ak-tm }}. With KSQL, you can write
 real-time streaming applications by using a SQL-like query language.
 
-Kafka Streams is the |ak-tm| library for writing streaming applications
+Kafka Streams is the {{ site.ak-tm }} library for writing streaming applications
 and microservices in Java and Scala.
 
 KSQL is built on Kafka Streams, a robust stream processing framework that is
@@ -67,8 +67,8 @@ Streams.
 +===================+======================+============================================+
 | You write:        | KSQL statements      | JVM applications                           |
 +-------------------+----------------------+--------------------------------------------+
-| Graphical UI      | Yes, in |c3| and     | No                                         |
-|                   | |ccloud|             |                                            |
+| Graphical UI      | Yes, in {{ site.c3 }} and     | No                                         |
+|                   | {{ site.ccloud }}             |                                            |
 +-------------------+----------------------+--------------------------------------------+
 | Console           | Yes                  | No                                         |
 +-------------------+----------------------+--------------------------------------------+
@@ -90,7 +90,7 @@ streaming applications.
 
 KSQL
   You write KSQL queries interactively and view the results in real-time,
-  either in the KSQL CLI or in |c3|. You can save a .sql file and deploy it to
+  either in the KSQL CLI or in {{ site.c3 }}. You can save a .sql file and deploy it to
   production as a "headless" application, which runs without a GUI, CLI, or REST
   interface on KSQL servers.
 

@@ -86,7 +86,7 @@ Your output should resemble:
 
    {
      "KsqlServerInfo": {
-       "version": "|release|",
+       "version": "{{ site.release }}",
        "kafkaClusterId": "j3tOi6E_RtO_TMH3gBmK7A",
        "ksqlServiceId": "default_"
      }

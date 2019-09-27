@@ -4,7 +4,7 @@ Configuring Security for KSQL
 =============================
 
 KSQL supports authentication on its HTTP endpoints and also supports many of the security features
-of the other services it communicates with, like |ak-tm| and |sr|.
+of the other services it communicates with, like {{ site.ak-tm }} and {{ site.sr }}.
 
 - KSQL supports Basic HTTP authentication on its RESTful and WebSocket endpoints, which means
   that the endpoints can be protected by a username and password.
@@ -12,7 +12,7 @@ of the other services it communicates with, like |ak-tm| and |sr|.
   :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
 - KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
   and mutual authentication for authorization.
-- Starting in |cp| 5.2, KSQL supports SSL on all network traffic.
+- Starting in {{ site.cp }} 5.2, KSQL supports SSL on all network traffic.
 
 To configure security for KSQL, add your configuration settings to the ``<path-to-confluent>/etc/ksql/ksql-server.properties``
 file and then :ref:`start the KSQL server <start_ksql-server>` with your configuration file specified.
@@ -197,46 +197,46 @@ the ``--user`` and ``--password`` command-line arguments, for example:
 
     <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 
-Configuring KSQL for |ccloud|
+Configuring KSQL for {{ site.ccloud }}
 -----------------------------
 
-You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
+You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more information, see :ref:`install_ksql-ccloud`.
 
-Configuring KSQL for |c3|
+Configuring KSQL for {{ site.c3 }}
 -----------------------------
 
-You can use KSQL with a Kafka cluster in |c3|. For more information, see
+You can use KSQL with a Kafka cluster in {{ site.c3 }}. For more information, see
 :ref:`integrate-ksql-with-confluent-control-center`.
 
 .. _config-security-ksql-sr:
 
-Configuring KSQL for Secured |sr-long|
+Configuring KSQL for Secured {{ site.sr-long }}
 --------------------------------------
 
-You can configure KSQL to connect to |sr| over HTTP by setting the
-``ksql.schema.registry.url`` to the HTTPS endpoint of |sr|.
+You can configure KSQL to connect to {{ site.sr }} over HTTP by setting the
+``ksql.schema.registry.url`` to the HTTPS endpoint of {{ site.sr }}.
 Depending on your security setup, you might also need to supply additional SSL configuration.
-For example, a trustStore is required if the |sr| SSL certificates are not trusted by
-the JVM by default; a keyStore is required if |sr| requires mutual authentication.
+For example, a trustStore is required if the {{ site.sr }} SSL certificates are not trusted by
+the JVM by default; a keyStore is required if {{ site.sr }} requires mutual authentication.
 
-You can configure SSL for communication with |sr| by using non-prefixed names,
+You can configure SSL for communication with {{ site.sr }} by using non-prefixed names,
 like ``ssl.truststore.location``, or prefixed names like ``ksql.schema.registry.ssl.truststore.location``.
 Non-prefixed names are used for settings that are shared with other communication
 channels, i.e. where the same settings are required to configure SSL communication
-with both Kafka and |sr|. Prefixed names only affect communication with |sr|
+with both Kafka and {{ site.sr }}. Prefixed names only affect communication with {{ site.sr }}
 and override any non-prefixed setting of the same name.
 
-Use the following to configure KSQL to communicate with |sr| over HTTPS,
-where mutual authentication is not required and |sr| SSL certificates are trusted
+Use the following to configure KSQL to communicate with {{ site.sr }} over HTTPS,
+where mutual authentication is not required and {{ site.sr }} SSL certificates are trusted
 by the JVM:
 
 ::
 
     ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 
-Use the following to configure KSQL to communicate with |sr| over HTTPS, with
+Use the following to configure KSQL to communicate with {{ site.sr }} over HTTPS, with
 mutual authentication, with an explicit trustStore, and where the SSL configuration is shared
-between Kafka and |sr|:
+between Kafka and {{ site.sr }}:
 
 ::
 
@@ -247,9 +247,9 @@ between Kafka and |sr|:
     ksql.schema.registry.ssl.keystore.password=<your-secure-password>
     ksql.schema.registry.ssl.key.password=<your-secure-password>
 
-Use the following to configure KSQL to communicate with |sr| over HTTP, without
+Use the following to configure KSQL to communicate with {{ site.sr }} over HTTP, without
 mutual authentication and with an explicit trustStore. These settings explicitly configure only
-KSQL to |sr| SSL communication.
+KSQL to {{ site.sr }} SSL communication.
 
 ::
 
@@ -258,9 +258,9 @@ KSQL to |sr| SSL communication.
     ksql.schema.registry.ssl.truststore.password=<your-secure-password>
 
 The exact settings will vary depending on the encryption and authentication mechanisms 
-|sr| is using, and how your SSL certificates are signed.
+{{ site.sr }} is using, and how your SSL certificates are signed.
 
-You can pass authentication settings to the |sr| client used by KSQL
+You can pass authentication settings to the {{ site.sr }} client used by KSQL
 by adding the following to your KSQL server config.
 
 ::
@@ -328,13 +328,13 @@ and certain ACLs must be defined in the Kafka cluster to allow the user KSQL is 
 The list of ACLs that must be defined depends on the version of the Kafka cluster.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-|cp| v5.0 (Apache Kafka v2.0) and above
+{{ site.cp }} v5.0 (Apache Kafka v2.0) and above
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-|cp| 5.0 simplifies the ACLs required to run KSQL against a Kafka cluster secured with ACLs,
+{{ site.cp }} 5.0 simplifies the ACLs required to run KSQL against a Kafka cluster secured with ACLs,
 (see `KIP-277 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-277+-+Fine+Grained+ACL+for+CreateTopics+API>`__ and
 `KIP-290 <https://cwiki.apache.org/confluence/display/KAFKA/KIP-290%3A+Support+for+Prefixed+ACLs>`__ for details).
-It is highly recommended to use |cp| 5.0 or above for deploying secure installations of Kafka and KSQL.
+It is highly recommended to use {{ site.cp }} 5.0 or above for deploying secure installations of Kafka and KSQL.
 
 ACL definition
 ^^^^^^^^^^^^^^
@@ -549,10 +549,10 @@ ALLOW      DESCRIBE_CONFIGS     GROUP     ``*``                                L
 ========== ==================== ========= ==================================== =========
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-|cp| versions below v5.0 (Apache Kafka < v2.0)
+{{ site.cp }} versions below v5.0 (Apache Kafka < v2.0)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Versions of the |cp| below v5.0, (which use Apache Kafka versions below v2.0), do not benefit from the enhancements
+Versions of the {{ site.cp }} below v5.0, (which use Apache Kafka versions below v2.0), do not benefit from the enhancements
 found in later versions of Kafka, which simplify the ACLs required to run KSQL against a Kafka cluster secured with ACLs.
 This means a much larger, or wider range, set of ACLs must be defined.
 The set of ACLs that must be defined depends on whether the KSQL cluster is configured for
@@ -687,11 +687,11 @@ Consumer groups
 .. tip:: For more information about interactive and non-interactive queries, see :ref:`restrict-ksql-interactive`.
 
 ----------------------------------------------
-Configuring |c3-short| Monitoring Interceptors
+Configuring {{ site.c3-short }} Monitoring Interceptors
 ----------------------------------------------
 
 This configuration enables SASL and SSL for the :ref:`monitoring interceptors <controlcenter_clients>` that integrate KSQL
-with |c3-short|.
+with {{ site.c3-short }}.
 
 ::
 

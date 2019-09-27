@@ -1,20 +1,20 @@
 .. _ksql_quickstart-c3:
 
-Writing Streaming Queries Against |ak-tm| Using KSQL and |c3|
+Writing Streaming Queries Against {{ site.ak-tm }} Using KSQL and {{ site.c3 }}
 #############################################################
 
-You can use KSQL in |c3| to write streaming queries against messages in |ak|.
+You can use KSQL in {{ site.c3 }} to write streaming queries against messages in {{ site.ak }}.
 
 **Prerequisites:**
 
 - :ref:`Confluent Platform <installation>` is installed and running. This
-  installation includes a Kafka broker, KSQL, |c3-short|, |zk|, |sr|, |crest|,
-  and |kconnect|.
-- If you installed |cp| via TAR or ZIP, navigate into the installation
+  installation includes a Kafka broker, KSQL, {{ site.c3-short }}, {{ site.zk }}, {{ site.sr }}, {{ site.crest }},
+  and {{ site.kconnect }}.
+- If you installed {{ site.cp }} via TAR or ZIP, navigate into the installation
   directory. The paths and commands used throughout this tutorial assume that
   you are in this installation directory.
-- Consider :ref:`installing <cli-install>` the |confluent-cli| to start a local
-  installation of |cp|.
+- Consider :ref:`installing <cli-install>` the {{ site.confluent-cli }} to start a local
+  installation of {{ site.cp }}.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your
   local machine
 
@@ -24,10 +24,10 @@ You can use KSQL in |c3| to write streaming queries against messages in |ak|.
 
 .. _ksql_quickstart-c3-inspect-topics:
 
-Inspect Topics By Using |c3-short|
+Inspect Topics By Using {{ site.c3-short }}
 **********************************
 
-#. Open your browser to ``http://localhost:9021``. |c3| opens, showing the
+#. Open your browser to ``http://localhost:9021``. {{ site.c3 }} opens, showing the
    **Home** page for your clusters. In the navigation bar, click the cluster
    that you want to use with KSQL.
 
@@ -38,7 +38,7 @@ Inspect Topics By Using |c3-short|
       :alt: Screenshot of Confluent Control Center showing the Topics page
       :align: center
 
-Inspect Topics By Using KSQL in |c3-short|
+Inspect Topics By Using KSQL in {{ site.c3-short }}
 ******************************************
 
 #. In the cluster submenu, click **KSQL** to open the KSQL clusters page,
@@ -109,7 +109,7 @@ Create a Stream and Table
 To write streaming queries against the ``pageviews`` and ``users`` topics,
 register the the topics with KSQL as a stream and a table. You can use the
 CREATE STREAM and CREATE TABLE statements in the KSQL Editor, or you can use
-the |c3-short| UI . 
+the {{ site.c3-short }} UI . 
 
 These examples query records from the ``pageviews`` and ``users`` topics using
 the following schema.
@@ -160,10 +160,10 @@ statements in KSQL Editor, just like you use them in the KSQL CLI.
    The ``"registered": true`` indicator means that you have registered the topic
    and you can write streaming queries against it.
 
-Create a Table in the |c3-short| UI
+Create a Table in the {{ site.c3-short }} UI
 ===================================
 
-|c3| guides you through the process of registering a topic as a stream or a table. 
+{{ site.c3 }} guides you through the process of registering a topic as a stream or a table. 
 
 #. In the KSQL Editor, navigate to **Tables** and click **Add a table**. The
    **Create a KSQL Table** dialog opens.
@@ -233,7 +233,7 @@ end them with the TERMINATE statement.
 Monitor Persistent Queries
 ==========================
 
-You can monitor your persistent queries visually by using |C3|.
+You can monitor your persistent queries visually by using {{ site.c3 }}.
 
 #. In the cluster submenu, click **Consumers** and find the consumer group
    for the ``pageviews_enriched`` query, which is named

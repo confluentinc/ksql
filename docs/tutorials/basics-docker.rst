@@ -1,13 +1,13 @@
 .. _ksql_quickstart-docker:
 
-Writing Streaming Queries Against |ak-tm| Using KSQL (Docker)
+Writing Streaming Queries Against {{ site.ak-tm }} Using KSQL (Docker)
 =============================================================
 
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka in a Docker
 environment.
 
-To get started, you must start a Kafka cluster, including |zk| and a Kafka broker. KSQL will then query messages from
-this Kafka cluster. KSQL is installed in the |cp| by default.
+To get started, you must start a Kafka cluster, including {{ site.zk }} and a Kafka broker. KSQL will then query messages from
+this Kafka cluster. KSQL is installed in the {{ site.cp }} by default.
 
 .. include:: ../../../quickstart/includes/docker-prereqs.rst
 
@@ -22,11 +22,11 @@ Download the Tutorial and Start KSQL
        git clone https://github.com/confluentinc/ksql.git
        cd ksql
 
-#. Switch to the correct |cp| release branch:
+#. Switch to the correct {{ site.cp }} release branch:
 
    .. codewithvars:: bash
    
-       git checkout |release_post_branch|
+       git checkout {{ site.release_post_branch }}
 
 #. Navigate to the KSQL repository ``docs/tutorials/`` directory and launch the tutorial in
    Docker. Depending on your network speed, this may take up to 5-10 minutes.
@@ -41,7 +41,7 @@ Download the Tutorial and Start KSQL
    .. codewithvars:: bash
 
       docker run --network tutorials_default --rm --name datagen-pageviews \
-        confluentinc/ksql-examples:|release| \
+        confluentinc/ksql-examples:{{ site.release }} \
         ksql-datagen \
             bootstrap-server=kafka:39092 \
             quickstart=pageviews \
@@ -52,7 +52,7 @@ Download the Tutorial and Start KSQL
    .. codewithvars:: bash
 
       docker run --network tutorials_default --rm --name datagen-users \
-        confluentinc/ksql-examples:|release| \
+        confluentinc/ksql-examples:{{ site.release }} \
         ksql-datagen \
             bootstrap-server=kafka:39092 \
             quickstart=users \
@@ -65,7 +65,7 @@ Download the Tutorial and Start KSQL
    .. codewithvars:: bash
 
        docker run --network tutorials_default --rm --interactive --tty \
-          confluentinc/cp-ksql-cli:|release| \
+          confluentinc/cp-ksql-cli:{{ site.release }} \
           http://ksql-server:8088
 
    .. include:: ../includes/ksql-includes.rst
@@ -89,7 +89,7 @@ Download the Tutorial and Start KSQL
 .. codewithvars:: bash
 
     docker run --network tutorials_default --rm  \
-      confluentinc/ksql-examples:|release| \
+      confluentinc/ksql-examples:{{ site.release }} \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -181,7 +181,7 @@ Download the Tutorial and Start KSQL
 .. codewithvars:: bash
 
     docker run --network tutorials_default --rm  --name datagen-orders-local \
-      confluentinc/ksql-examples:|release| \
+      confluentinc/ksql-examples:{{ site.release }} \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -192,7 +192,7 @@ Download the Tutorial and Start KSQL
 .. codewithvars:: bash
 
     docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
-      confluentinc/ksql-examples:|release| \
+      confluentinc/ksql-examples:{{ site.release }} \
       ksql-datagen \
           quickstart=orders \
           format=avro \
@@ -219,7 +219,7 @@ To stop all Data Generator containers, run the following:
 
     docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
 
-If you are running |cp| using Docker Compose, you can stop it and remove 
+If you are running {{ site.cp }} using Docker Compose, you can stop it and remove 
 the containers and their data with this command.
 
 .. code:: bash

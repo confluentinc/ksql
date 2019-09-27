@@ -15,15 +15,15 @@ Also, you can generate data from a few simple, predefined schemas.
 **Prerequisites:** 
 
 - :ref:`Confluent Platform <installation>` is installed and running.
-  This installation includes an |ak-tm| broker, KSQL, |c3-short|, |zk|,
-  |sr|, REST Proxy, and Kafka Connect.
-- If you installed |cp| via TAR or ZIP, navigate to the installation
+  This installation includes an {{ site.ak-tm }} broker, KSQL, {{ site.c3-short }}, {{ site.zk }},
+  {{ site.sr }}, REST Proxy, and Kafka Connect.
+- If you installed {{ site.cp }} via TAR or ZIP, navigate to the installation
   directory. The paths and commands used throughout this tutorial assume
   that you're in this installation directory.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your
   local machine.
 
-The ``ksql-datagen`` tool is installed with |cp| by default.
+The ``ksql-datagen`` tool is installed with {{ site.cp }} by default.
 
 .. note::
 
@@ -78,7 +78,7 @@ Name                                          Default                           
 ``iterations=<number of records>``            1,000,000                                            The maximum number of records to generate.
 ``maxInterval=<max time between records>``    500                                                  Longest time to wait before generating a new record, in milliseconds. 
 ``propertiesFile=<path-to-properties-file>``  ``<path-to-confluent>/etc/ksql/datagen.properties``  Path to the ``ksql-datagen`` properties file. 
-``schemaRegistryUrl``                         http://localhost:8081                                URL of |sr| when ``format`` is ``avro``.
+``schemaRegistryUrl``                         http://localhost:8081                                URL of {{ site.sr }} when ``format`` is ``avro``.
 ============================================  ===================================================  =========================================================================================
 
 Records are generated at random intervals, with the longest interval specified
@@ -106,7 +106,7 @@ The following command generates example order records to a Kafka topic named
 
    <path-to-confluent>/ksql-datagen quickstart=orders topic=orders_topic
 
-In the KSQL CLI or in |c3-short|, register a stream on ``orders_topic``:
+In the KSQL CLI or in {{ site.c3-short }}, register a stream on ``orders_topic``:
 
 .. code:: sql
 
@@ -162,7 +162,7 @@ The following command generates example user records:
 In this example, no topic name is specified, so ``ksql-datagen`` creates a
 topic named ``users_kafka_topic_json``.
 
-In the KSQL CLI or in |c3-short|, register a table on ``users_kafka_topic_json``:
+In the KSQL CLI or in {{ site.c3-short }}, register a table on ``users_kafka_topic_json``:
 
 .. code:: sql
 
@@ -215,7 +215,7 @@ The following command generates example user records that have complex data:
 
    <path-to-confluent>/bin/ksql-datagen quickstart=users_ topic=users_extended
 
-In the KSQL CLI or in |c3-short|, register a table on ``users_extended``:
+In the KSQL CLI or in {{ site.c3-short }}, register a table on ``users_extended``:
 
 .. code:: sql
 
@@ -271,7 +271,7 @@ named ``pageviews``:
 
    <path-to-confluent>/bin/ksql-datagen quickstart=pageviews topic=pageviews
 
-In the KSQL CLI or in |c3-short|, register a stream on ``pageviews``:
+In the KSQL CLI or in {{ site.c3-short }}, register a stream on ``pageviews``:
 
 .. code:: sql
 
@@ -352,7 +352,7 @@ After a few startup messages, your output should resemble:
 Consume the Test Data Stream
 ----------------------------
 
-In the KSQL CLI or in |c3-short|, register the ``impressions`` stream:
+In the KSQL CLI or in {{ site.c3-short }}, register the ``impressions`` stream:
 
 .. code:: sql
 

@@ -3,7 +3,7 @@
 KSQL Concepts
 #############
 
-These topics describe KSQL concepts in |cp|.
+These topics describe KSQL concepts in {{ site.cp }}.
 
 .. toctree::
     :maxdepth: 1

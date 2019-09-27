@@ -22,7 +22,7 @@ If a KSQL query returns no results and the CLI hangs, use ``Ctrl-C`` to stop the
 Verify that the query is based on the correct source topic
 ==========================================================
 
-Use the ``DESCRIBE EXTENDED`` statement to view the |ak-tm| source topic for the stream. For example, if you have a ``pageviews`` stream on a Kafka topic named ``pageviews``, enter the following statement in the CLI:
+Use the ``DESCRIBE EXTENDED`` statement to view the {{ site.ak-tm }} source topic for the stream. For example, if you have a ``pageviews`` stream on a Kafka topic named ``pageviews``, enter the following statement in the CLI:
 
 .. code:: sql
 
@@ -40,7 +40,7 @@ Example output showing the source topic:
 Verify that the source topic is populated with data
 ===================================================
 
-Your query results may be empty because the Kafka source topic is not populated with data. Use the |kcat| to consume messages and print a summary.
+Your query results may be empty because the Kafka source topic is not populated with data. Use the {{ site.kcat }} to consume messages and print a summary.
 
 .. code:: bash
 
@@ -60,7 +60,7 @@ Example output showing an empty source topic:
 Verify that new messages are arriving at the source topic
 =========================================================
 
-The topic is populated if the |kcat| prints messages. However, it may not be receiving *new* messages. By default, KSQL reads from the end of a topic. A query does not return results if no new messages are being written to the topic.
+The topic is populated if the {{ site.kcat }} prints messages. However, it may not be receiving *new* messages. By default, KSQL reads from the end of a topic. A query does not return results if no new messages are being written to the topic.
 
 To check your query, you can set KSQL to read from the beginning of a topic by assigning the ``auto.offset.reset`` property to ``earliest`` using following statement:
 
@@ -88,7 +88,7 @@ If the previous solutions do not resolve the issue, your query may be filtering 
 Verify that there are no deserialization errors
 ===============================================
 
-KSQL will not write query results if it is not able to deserialize message data. Use the ``DESCRIBE EXTENDED`` statement to check that the ``VALUE_FORMAT`` of the stream matches the format of the records that |kcat| prints for your topic. Enter the following statement in the CLI:
+KSQL will not write query results if it is not able to deserialize message data. Use the ``DESCRIBE EXTENDED`` statement to check that the ``VALUE_FORMAT`` of the stream matches the format of the records that {{ site.kcat }} prints for your topic. Enter the following statement in the CLI:
 
 .. code:: sql
 
@@ -102,7 +102,7 @@ Example output:
     [...]
     Value format         : DELIMITED
 
-Example output from |kcat| for a DELIMITED topic:
+Example output from {{ site.kcat }} for a DELIMITED topic:
 
 .. code:: text
 

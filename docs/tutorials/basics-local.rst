@@ -1,25 +1,25 @@
 .. _ksql_quickstart-local:
 
-Writing Streaming Queries Against |ak-tm| Using KSQL (Local)
+Writing Streaming Queries Against {{ site.ak-tm }} Using KSQL (Local)
 ============================================================
 
 This tutorial demonstrates a simple workflow using KSQL to write streaming queries against messages in Kafka.
 
-To get started, you must start a Kafka cluster, including |zk| and a Kafka broker. KSQL will then query messages from
-this Kafka cluster. KSQL is installed in the |cp| by default.
+To get started, you must start a Kafka cluster, including {{ site.zk }} and a Kafka broker. KSQL will then query messages from
+this Kafka cluster. KSQL is installed in the {{ site.cp }} by default.
 
 Watch the `screencast of Reading Kafka Data from KSQL <https://www.youtube.com/embed/EzVZOUt9JsU>`_ on YouTube.
 
 **Prerequisites:**
 
 - :ref:`Confluent Platform <installation>` is installed and running. This
-  installation includes a Kafka broker, KSQL, |c3-short|, |zk|, |sr|, |crest|,
-  and |kconnect|.
-- If you installed |cp| via TAR or ZIP, navigate into the installation
+  installation includes a Kafka broker, KSQL, {{ site.c3-short }}, {{ site.zk }}, {{ site.sr }}, {{ site.crest }},
+  and {{ site.kconnect }}.
+- If you installed {{ site.cp }} via TAR or ZIP, navigate into the installation
   directory. The paths and commands used throughout this tutorial assume
   that you are in this installation directory.
-- Consider :ref:`installing <cli-install>` the |confluent-cli| to start a local
-  installation of |cp|.
+- Consider :ref:`installing <cli-install>` the {{ site.confluent-cli }} to start a local
+  installation of {{ site.cp }}.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine
 
 .. include:: ../includes/ksql-includes.rst
@@ -177,7 +177,7 @@ Your output should resemble:
 Confluent CLI
 --------------
 
-If you are running |cp| using the CLI, you can stop it with this
+If you are running {{ site.cp }} using the CLI, you can stop it with this
 command.
 
 .. code:: bash

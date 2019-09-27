@@ -5,13 +5,13 @@
 Installing KSQL
 ===============
 
-KSQL is a component of |cp| and the KSQL binaries are located at `https://www.confluent.io/download/ <https://www.confluent.io/download/>`_
-as a part of the |cp| bundle.
+KSQL is a component of {{ site.cp }} and the KSQL binaries are located at `https://www.confluent.io/download/ <https://www.confluent.io/download/>`_
+as a part of the {{ site.cp }} bundle.
 
-KSQL must have access to a running |ak-tm| cluster, which can be in your data center, in a public cloud, |ccloud|, etc.
+KSQL must have access to a running {{ site.ak-tm }} cluster, which can be in your data center, in a public cloud, {{ site.ccloud }}, etc.
 
 Docker support
-    You can deploy KSQL by using :ref:`Docker containers <install-ksql-with-docker>`. Starting with |cp| 4.1.2,
+    You can deploy KSQL by using :ref:`Docker containers <install-ksql-with-docker>`. Starting with {{ site.cp }} 4.1.2,
     Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
     To start KSQL containers in configurations like "KSQL Headless Server" and
     "Interactive Server with Interceptors", see
@@ -198,7 +198,7 @@ After KSQL is started, your terminal should resemble this.
                             
                             
 -----------------------------
-Configuring KSQL for |ccloud|
+Configuring KSQL for {{ site.ccloud }}
 -----------------------------
 
-You can use KSQL with a Kafka cluster in |ccloud|. For more information, see :ref:`install_ksql-ccloud`.
+You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more information, see :ref:`install_ksql-ccloud`.

@@ -35,10 +35,10 @@ KSQL provides start and stop scripts.
 
 ksql-server-start
     This script starts the KSQL server. It requires a server configuration file as an argument and is located in the ``/bin`` directory
-    of your |cp| installation. For more information, see :ref:`start_ksql-server`.
+    of your {{ site.cp }} installation. For more information, see :ref:`start_ksql-server`.
 
 ksql-server-stop
-    This script stops the KSQL server. It is located in the ``/bin`` directory of your |cp| installation.
+    This script stops the KSQL server. It is located in the ``/bin`` directory of your {{ site.cp }} installation.
 
 ============
 Healthchecks
@@ -121,7 +121,7 @@ windowed aggregate.
 ------------------------------------------
 KSQL doesn’t clean up its internal topics?
 ------------------------------------------
-Make sure that your |ak-tm| cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
+Make sure that your {{ site.ak-tm }} cluster is configured with ``delete.topic.enable=true``. For more information, see :cp-javadoc:`deleteTopics|clients/javadocs/org/apache/kafka/clients/admin/AdminClient.html`.
 
 ----------------------------------------
 KSQL CLI doesn’t connect to KSQL server? 
@@ -225,7 +225,7 @@ associated Avro schemas, they aren't automatically matched with the renamed
 topics.
 
 In the KSQL CLI, the ``PRINT`` statement for a replicated topic works, which shows
-that the Avro schema ID exists in |sr|, and KSQL can deserialize
+that the Avro schema ID exists in {{ site.sr }}, and KSQL can deserialize
 the Avro message. But ``CREATE STREAM`` fails with a deserialization error:
 
 .. code:: bash

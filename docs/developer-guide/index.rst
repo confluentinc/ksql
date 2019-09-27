@@ -4,7 +4,7 @@
 KSQL Developer Guide
 ====================
 
-These topics show how to develop KSQL applications for |cp|.
+These topics show how to develop KSQL applications for {{ site.cp }}.
 
 .. toctree::
     :maxdepth: 1

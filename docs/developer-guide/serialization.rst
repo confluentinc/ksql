@@ -307,7 +307,7 @@ Avro
 The ``AVRO`` format supports Avro binary serialization of all KSQL ref:`data types <data-types>`,
 including records and top-level primitives, arrays, and maps.
 
-The format requires KSQL to be configured to store and retrieve the Avro schemas from the |sr-long|.
+The format requires KSQL to be configured to store and retrieve the Avro schemas from the {{ site.sr-long }}.
 For more information, see :ref:`install_ksql-avro-schema`.
 
 Avro Records

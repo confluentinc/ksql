@@ -5,7 +5,7 @@ Implement a User-defined Function (UDF and UDAF)
 
 Prerequisites
      - `Apache Maven <https://maven.apache.org/download.cgi>`__
-     - |cp| :ref:`installed <installation>` locally
+     - {{ site.cp }} :ref:`installed <installation>` locally
      - Internet connectivity for downloading Confluent POM files
 
 Create a user-defined function (UDF) or a user-defined aggregation function
@@ -35,7 +35,7 @@ Create the KSQL extensions directory, ``<path-to-confluent>/etc/ksql/ext``:
 
 .. codewithvars:: bash
 
-    mkdir confluent-|release|/etc/ksql/ext
+    mkdir confluent-{{ site.release }}/etc/ksql/ext
 
 Edit the ``ksql-server.properties`` configuration file in
 ``<path-to-confluent>/etc/ksql`` to add the fully qualified path to the
@@ -43,7 +43,7 @@ Edit the ``ksql-server.properties`` configuration file in
 
 .. codewithvars:: text
 
-    ksql.extension.dir=/home/my-home-dir/confluent-|release|/etc/ksql/ext
+    ksql.extension.dir=/home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext
 
 .. note::
 
@@ -171,10 +171,10 @@ Object Model (POM) file for the Maven build, and name it ``pom.xml``:
         <properties>
             <exec.mainClass>my.company.ksql.udfdemo.thisisignored</exec.mainClass>
             <java.version>1.8</java.version>
-            <kafka.version>|kafka_release|</kafka.version>
-            <kafka.scala.version>|scala_version|</kafka.scala.version>
+            <kafka.version>{{ site.kafka_release }}</kafka.version>
+            <kafka.scala.version>{{ site.scala_version }}</kafka.scala.version>
             <scala.version>${kafka.scala.version}.8</scala.version>
-            <confluent.version>|release|</confluent.version>
+            <confluent.version>{{ site.release }}</confluent.version>
             <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         </properties>
 
@@ -268,8 +268,8 @@ After a great deal of build info, your output should resemble:
 The Maven build creates a directory named ``target`` and saves the build output
 there. Copy the JAR file, ``ksql-udf-demo-1.0-jar-with-dependencies.jar``, from
 the ``target`` directory to the ``ext`` directory of your KSQL installation. 
-For example, if your |cp| installation is at :litwithvars:`/home/my-home-dir/confluent-|release|`,
-copy the JAR to :litwithvars:`/home/my-home-dir/confluent-|release|/etc/ksql/ext`.
+For example, if your {{ site.cp }} installation is at :litwithvars:`/home/my-home-dir/confluent-{{ site.release }}`,
+copy the JAR to :litwithvars:`/home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext`.
 
 .. code:: bash
 
@@ -292,7 +292,7 @@ other KSQL functions.
     UDF code and re-deploy the JAR, you must restart KSQL Server to get the
     latest version of your UDF. 
 
-Start |cp| and KSQL Server:
+Start {{ site.cp }} and KSQL Server:
 
 .. code:: bash
 
@@ -340,7 +340,7 @@ Your output should resemble:
     Name        : MULTIPLY
     Overview    : multiplies 2 numbers
     Type        : scalar
-    Jar         : /home/my-home-dir/confluent-|release||/etc/ksql/ext/ksql-udf-demo-1.0-jar-with-dependencies.jar
+    Jar         : /home/my-home-dir/confluent-{{ site.release }}|/etc/ksql/ext/ksql-udf-demo-1.0-jar-with-dependencies.jar
     Variations  : 
 
     	Variation   : MULTIPLY(BIGINT, BIGINT)

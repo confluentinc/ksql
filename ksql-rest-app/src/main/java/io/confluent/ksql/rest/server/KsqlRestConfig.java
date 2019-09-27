@@ -65,7 +65,7 @@ public class KsqlRestConfig extends RestConfig {
       + "requests will return a 503 error";
 
   static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
-      KSQL_CONFIG_PREFIX + "server.uncaught.exception.handler.enable";
+      KSQL_CONFIG_PREFIX + "server.exception.uncaught.handler.enable";
 
   private static final String KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC =
       "Whether or not to set KsqlUncaughtExceptionHandler as the UncaughtExceptionHandler "

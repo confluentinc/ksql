@@ -23,7 +23,6 @@ import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metrics.MetricCollectors;
@@ -43,8 +42,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -55,7 +52,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
@@ -204,10 +200,7 @@ public class UdfLoader {
               return Optional.of(compiler.compileAggregate(method,
                   loader,
                   udafAnnotation.name(),
-                  annotation.description(),
-                  annotation.paramSchema(),
-                  annotation.aggregateSchema(),
-                  annotation.returnSchema()
+                  annotation.description()
               ));
             } catch (final Exception e) {
               LOGGER.warn("Failed to create UDAF name={}, method={}, class={}, path={}",
@@ -298,37 +291,9 @@ public class UdfLoader {
             path,
             false)));
 
-    final List<Schema> parameters = IntStream.range(0, method.getParameterCount()).mapToObj(idx -> {
-      final Type type = method.getGenericParameterTypes()[idx];
-      final Optional<UdfParameter> annotation = Arrays.stream(method.getParameterAnnotations()[idx])
-          .filter(UdfParameter.class::isInstance)
-          .map(UdfParameter.class::cast)
-          .findAny();
-
-      final Parameter param = method.getParameters()[idx];
-      final String name = annotation.map(UdfParameter::value)
-          .filter(val -> !val.isEmpty())
-          .orElse(param.isNamePresent() ? param.getName() : "");
-
-      if (name.trim().isEmpty()) {
-        throw new KsqlFunctionException(
-            String.format("Cannot resolve parameter name for param at index %d for UDF %s:%s. "
-                    + "Please specify a name in @UdfParameter or compile your JAR with -parameters "
-                    + "to infer the name from the parameter name.",
-                idx, classLevelAnnotation.name(), method.getName()));
-      }
-
-      final String doc = annotation.map(UdfParameter::description).orElse("");
-      if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return SchemaConverters.sqlToConnectConverter()
-            .toConnectSchema(
-                typeParser.parse(annotation.get().schema()).getSqlType(),
-                name,
-                doc);
-      }
-
-      return UdfUtil.getSchemaFromType(type, name, doc);
-    }).collect(Collectors.toList());
+    final List<Schema> parameters = UdfCompiler.parseUdfInputParameters(
+        method,
+        classLevelAnnotation);
 
     final Schema javaReturnSchema = getReturnType(method, udfAnnotation);
 

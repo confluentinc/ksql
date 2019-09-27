@@ -72,7 +72,8 @@ final class SourceSchemas {
     }
 
     final SourceName sourceName = SourceName.of(maybeSourceName.get());
-    final String baseColumnName = SchemaUtil.getFieldNameWithNoAlias(columnName.name());
+    final ColumnName baseColumnName = ColumnName
+        .of(SchemaUtil.getFieldNameWithNoAlias(columnName.name()));
 
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {

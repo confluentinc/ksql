@@ -79,7 +79,7 @@ public class FormatInfoTest {
   @Test
   public void shouldImplementToStringDelimited() {
     // Given:
-    final FormatInfo info = FormatInfo.of(DELIMITED, Optional.empty(), Optional.of(Delimiter.of("~")));
+    final FormatInfo info = FormatInfo.of(DELIMITED, Optional.empty(), Optional.of(Delimiter.parse("~")));
 
     // When:
     final String result = info.toString();

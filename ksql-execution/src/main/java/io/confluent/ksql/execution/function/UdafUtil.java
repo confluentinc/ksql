@@ -32,7 +32,7 @@ public final class UdafUtil {
   }
 
   @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
-  public static KsqlAggregateFunction resolveAggregateFunction(
+  public static KsqlAggregateFunction<?, ?, ?> resolveAggregateFunction(
       final FunctionRegistry functionRegistry,
       final FunctionCall functionCall,
       final LogicalSchema schema

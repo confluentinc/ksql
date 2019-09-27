@@ -1,18 +1,13 @@
 {
   "comments": [
-    "You can specify multiple statements per test case, i.e., to set up the various streams needed",
-    "for joins etc, but currently only the final topology will be verified. This should be enough",
-    "for most tests as we can simulate the outputs from previous stages into the final stage. If we",
-    "take a modular approach to testing we can still verify that it all works correctly, i.e, if we",
-    "verify the output of a select or aggregate is correct, we can use simulated output to feed into",
-    "a join or another aggregate."
+    "Tests for the COUNT UDF"
   ],
   "tests": [
     {
       "name": "count",
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE S2 as SELECT id, count(*) FROM test group by id;"
+        "CREATE TABLE S2 as SELECT id, count() FROM test group by id;"
       ],
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
@@ -24,25 +19,61 @@
         {"topic": "S2", "key": 0, "value": "0,2"},
         {"topic": "S2", "key": 100, "value": "100,1"}
       ]
-    },
-    {
-      "name": "count group by value",
+    },{
+      "name": "count star",
       "statements": [
-        "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE double) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID');",
-        "CREATE TABLE S2 as SELECT name, count(*) FROM test group by name;"
+        "CREATE STREAM INPUT (ignored STRING) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT as SELECT count(*) FROM input group by ROWKEY;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
-        {"topic": "test_topic", "key": 0, "value": "0,zero,0.0"},
-        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"},
-        {"topic": "test_topic", "key": 100, "value": null},
-        {"topic": "test_topic", "key": 100, "value": "100,100,0.0"}
+        {"topic": "input_topic", "key": 0, "value": "-"},
+        {"topic": "input_topic", "key": 0, "value": "-"},
+        {"topic": "input_topic", "key": 100, "value": "-"}
       ],
       "outputs": [
-        {"topic": "S2", "key": "zero", "value": "zero,1"},
-        {"topic": "S2", "key": "zero", "value": "zero,2"},
-        {"topic": "S2", "key": 100, "value": "100,1"},
-        {"topic": "S2", "key": 100, "value": "100,2"}
+        {"topic": "OUTPUT", "key": "0", "value": "1"},
+        {"topic": "OUTPUT", "key": "0", "value": "2"},
+        {"topic": "OUTPUT", "key": "100", "value": "1"}
+      ]
+    },
+    {
+      "name": "count literal",
+      "statements": [
+        "CREATE STREAM INPUT (ignored STRING) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT as SELECT count(1) FROM input group by ROWKEY;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": "-"},
+        {"topic": "input_topic", "key": 0, "value": "-"},
+        {"topic": "input_topic", "key": 100, "value": "-"},
+        {"topic": "input_topic", "key": 100, "value": null},
+        {"topic": "input_topic", "key": 100, "value": "-"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": "1"},
+        {"topic": "OUTPUT", "key": "0", "value": "2"},
+        {"topic": "OUTPUT", "key": "100", "value": "1"},
+        {"topic": "OUTPUT", "key": "100", "value": "2"}
+      ]
+    },
+    {
+      "name": "count table",
+      "statements": [
+        "CREATE TABLE INPUT (name STRING) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT as SELECT count(1) FROM input group by name;"
+      ],
+      "inputs": [
+        {"topic": "input_topic", "key": 0, "value": "bob"},
+        {"topic": "input_topic", "key": 0, "value": "john"},
+        {"topic": "input_topic", "key": 100, "value": "john"},
+        {"topic": "input_topic", "key": 100, "value": null}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "bob", "value": "1"},
+        {"topic": "OUTPUT", "key": "bob", "value": "0"},
+        {"topic": "OUTPUT", "key": "john", "value": "1"},
+        {"topic": "OUTPUT", "key": "john", "value": "2"},
+        {"topic": "OUTPUT", "key": "john", "value": "1"}
       ]
     }
   ]

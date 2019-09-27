@@ -116,7 +116,7 @@ class ExpressionAnalyzer {
     }
 
     @Override
-    public Object visitQualifiedNameReference(
+    public Object visitColumnReference(
         final ColumnReferenceExp node,
         final Object context
     ) {

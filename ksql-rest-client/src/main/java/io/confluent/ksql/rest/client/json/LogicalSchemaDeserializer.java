@@ -36,6 +36,6 @@ final class LogicalSchemaDeserializer extends JsonDeserializer<LogicalSchema> {
 
     final TableElements tableElements = SchemaParser.parse(text, TypeRegistry.EMPTY);
 
-    return tableElements.toLogicalSchema();
+    return tableElements.toLogicalSchema(false);
   }
 }

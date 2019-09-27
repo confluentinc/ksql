@@ -133,7 +133,7 @@ public final class CreateSourceProperties {
 
   public Optional<Delimiter> getValueDelimiter() {
     final String val = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    return val == null ? Optional.empty() : Optional.of(Delimiter.of(val));
+    return val == null ? Optional.empty() : Optional.of(Delimiter.parse(val));
   }
 
   public CreateSourceProperties withSchemaId(final int id) {

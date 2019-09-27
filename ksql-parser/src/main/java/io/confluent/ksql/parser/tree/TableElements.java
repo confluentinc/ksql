@@ -16,7 +16,6 @@
 package io.confluent.ksql.parser.tree;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
@@ -25,11 +24,8 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -42,11 +38,11 @@ public final class TableElements implements Iterable<TableElement> {
   private final ImmutableList<TableElement> elements;
 
   public static TableElements of(final TableElement... elements) {
-    return build(Arrays.stream(elements));
+    return new TableElements(ImmutableList.copyOf(elements));
   }
 
   public static TableElements of(final List<TableElement> elements) {
-    return build(elements.stream());
+    return new TableElements(ImmutableList.copyOf(elements));
   }
 
   @Override
@@ -80,12 +76,18 @@ public final class TableElements implements Iterable<TableElement> {
     return elements.toString();
   }
 
-  public LogicalSchema toLogicalSchema() {
+  /**
+   * @param withImplicitColumns controls if schema has implicit columns such as ROWTIME or ROWKEY.
+   * @return the logical schema.
+   */
+  public LogicalSchema toLogicalSchema(final boolean withImplicitColumns) {
     if (Iterables.isEmpty(this)) {
       throw new KsqlException("No columns supplied.");
     }
 
-    final Builder builder = LogicalSchema.builder();
+    final Builder builder = withImplicitColumns
+        ? LogicalSchema.builder()
+        : LogicalSchema.builder().noImplicitColumns();
 
     for (final TableElement tableElement : this) {
       final ColumnName fieldName = tableElement.getName();
@@ -103,58 +105,12 @@ public final class TableElements implements Iterable<TableElement> {
 
   private TableElements(final ImmutableList<TableElement> elements) {
     this.elements = Objects.requireNonNull(elements, "elements");
+
+    throwOnDuplicateNames();
   }
 
-  private static TableElements build(final Stream<TableElement> elements) {
-    final Map<Boolean, List<TableElement>> split = splitByElementType(elements);
-
-    final List<TableElement> keyColumns = split.getOrDefault(Boolean.TRUE, ImmutableList.of());
-    final List<TableElement> valueColumns = split.getOrDefault(Boolean.FALSE, ImmutableList.of());
-
-    throwOnDuplicateNames(keyColumns, "KEY");
-    throwOnDuplicateNames(valueColumns, "non-KEY");
-
-    final ImmutableList.Builder<TableElement> builder = ImmutableList.builder();
-
-    builder.addAll(keyColumns);
-    builder.addAll(valueColumns);
-
-    return new TableElements(builder.build());
-  }
-
-  private static Map<Boolean, List<TableElement>> splitByElementType(
-      final Stream<TableElement> elements
-  ) {
-    final List<TableElement> keyFields = new ArrayList<>();
-    final List<TableElement> valueFields = new ArrayList<>();
-
-    elements.forEach(element -> {
-      if (element.getNamespace() == Namespace.VALUE) {
-        valueFields.add(element);
-        return;
-      }
-
-      if (!valueFields.isEmpty()) {
-        throw new KsqlException("KEY column declared after VALUE column: "
-            + element.getName().name()
-            + System.lineSeparator()
-            + "All KEY columns must be declared before any VALUE column(s).");
-      }
-
-      keyFields.add(element);
-    });
-
-    return ImmutableMap.of(
-        Boolean.TRUE, keyFields,
-        Boolean.FALSE, valueFields
-    );
-  }
-
-  private static void throwOnDuplicateNames(
-      final List<TableElement> columns,
-      final String type
-  ) {
-    final String duplicates = columns.stream()
+  private void throwOnDuplicateNames() {
+    final String duplicates = elements.stream()
         .collect(Collectors.groupingBy(TableElement::getName, Collectors.counting()))
         .entrySet()
         .stream()
@@ -164,7 +120,7 @@ public final class TableElements implements Iterable<TableElement> {
         .collect(Collectors.joining(", "));
 
     if (!duplicates.isEmpty()) {
-      throw new KsqlException("Duplicate " + type + " column names: " + duplicates);
+      throw new KsqlException("Duplicate column names: " + duplicates);
     }
   }
 }

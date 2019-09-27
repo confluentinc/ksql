@@ -32,11 +32,11 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.registry.SchemaRegistryUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.Closeable;
 import java.util.List;
@@ -65,7 +65,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final FunctionRegistry functionRegistry,
-      final ServiceInfo serviceInfo
+      final ServiceInfo serviceInfo,
+      final QueryIdGenerator queryIdGenerator
   ) {
     this(
         serviceContext,
@@ -77,7 +78,8 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
             engine,
             serviceInfo.customMetricsTags(),
             serviceInfo.metricsExtension()
-        ));
+        ),
+        queryIdGenerator);
   }
 
   public KsqlEngine(
@@ -85,13 +87,14 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
       final ProcessingLogContext processingLogContext,
       final String serviceId,
       final MutableMetaStore metaStore,
-      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory
+      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
+      final QueryIdGenerator queryIdGenerator
   ) {
     this.primaryContext = EngineContext.create(
         serviceContext,
         processingLogContext,
         metaStore,
-        new QueryIdGenerator(),
+        queryIdGenerator,
         this::unregisterQuery);
     this.serviceId = Objects.requireNonNull(serviceId, "serviceId");
     this.engineMetrics = engineMetricsFactory.apply(this);

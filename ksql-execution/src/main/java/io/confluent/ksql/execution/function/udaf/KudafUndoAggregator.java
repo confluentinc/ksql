@@ -30,7 +30,7 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
 
   public KudafUndoAggregator(
       final int nonFuncColumnCount,
-      final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap
+      final Map<Integer, TableAggregationFunction<?, ?, ?>> aggValToAggFunctionMap
   ) {
     Objects.requireNonNull(aggValToAggFunctionMap);
     this.aggValToAggFunctionMap = ImmutableMap.copyOf(aggValToAggFunctionMap);

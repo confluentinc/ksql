@@ -503,12 +503,12 @@ public class JoinNode extends PlanNode {
 
     final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
 
+    // Hard-wire for now, until we support custom type/name of key fields:
+    joinSchema.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
+
     joinSchema.valueColumns(leftSchema.value());
 
     joinSchema.valueColumns(rightSchema.value());
-
-    // Hard-wire for now, until we support custom type/name of key fields:
-    joinSchema.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
 
     return joinSchema.build();
   }

@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
@@ -64,7 +65,8 @@ public final class KsqlContextTestUtil {
         serviceContext,
         ProcessingLogContext.create(),
         functionRegistry,
-        ServiceInfo.create(ksqlConfig, metricsPrefix)
+        ServiceInfo.create(ksqlConfig, metricsPrefix),
+        new SequentialQueryIdGenerator()
     );
 
     return new KsqlContext(

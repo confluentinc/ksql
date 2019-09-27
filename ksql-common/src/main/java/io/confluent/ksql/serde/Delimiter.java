@@ -35,15 +35,15 @@ public final class Delimiter {
 
   private final char delimiter;
 
-  public static Delimiter of(final char ch) {
-    return new Delimiter(ch);
-  }
-
   private Delimiter(final char delimiter) {
     this.delimiter = delimiter;
   }
 
-  public static Delimiter of(final String str) {
+  public static Delimiter of(final char ch) {
+    return new Delimiter(ch);
+  }
+  
+  public static Delimiter parse(final String str) {
     if (str == null) {
       throw new NullPointerException();
     }

@@ -37,6 +37,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -444,11 +445,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
+    final HybridQueryIdGenerator hybridQueryIdGenerator =
+        new HybridQueryIdGenerator();
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ServiceInfo.create(ksqlConfig, metricsPrefix)
+        ServiceInfo.create(ksqlConfig, metricsPrefix),
+        hybridQueryIdGenerator
     );
 
     UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
@@ -461,7 +465,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());
 
-    final StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine);
+    final StatementExecutor statementExecutor =
+        new StatementExecutor(ksqlEngine, hybridQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 

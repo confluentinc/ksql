@@ -764,7 +764,7 @@ public class SchemaUtilTest {
   public void shouldFailINonCompatibleSchemas() {
     assertThat(SchemaUtil.areCompatible(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA), is(false));
 
-    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(1,1).build(),
+    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(1, 1).build(),
                                         Schema.BYTES_SCHEMA), is(false));
 
     assertThat(SchemaUtil.areCompatible(GenericsUtil.generic("a").build(),
@@ -772,6 +772,35 @@ public class SchemaUtilTest {
 
     assertThat(SchemaUtil.areCompatible(GenericsUtil.array("a").build(),
                                         GenericsUtil.array("b").build()), is(false));
+
+    assertThat(SchemaUtil.areCompatible(SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
+                                        SchemaBuilder.array(Schema.STRING_SCHEMA).build()),
+               is(false));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.struct().field("a", DecimalUtil.builder(1,1)).build(),
+        SchemaBuilder.struct().field("a", Schema.FLOAT64_SCHEMA).build()),
+               is(false));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.struct().field("a", GenericsUtil.generic("a").build()),
+        SchemaBuilder.struct().field("a", GenericsUtil.generic("b").build())),
+               is(false));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.map(DecimalUtil.builder(1, 1).build(),
+                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build())),
+        SchemaBuilder.map(Schema.FLOAT64_SCHEMA,
+                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build()))),
+               is(false));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.map(DecimalUtil.builder(1, 1).build(),
+                          SchemaBuilder.array(Schema.FLOAT64_SCHEMA)),
+        SchemaBuilder.map(DecimalUtil.builder(1, 1).build(),
+                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build()))),
+               is(false));
+
   }
 
   @Test
@@ -779,11 +808,37 @@ public class SchemaUtilTest {
     assertThat(SchemaUtil.areCompatible(Schema.STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
                is(true));
 
-    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(2,2),
-                                        DecimalUtil.builder(1,1)), is(true));
+    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(2, 2),
+                                        DecimalUtil.builder(1, 1)), is(true));
 
-    assertThat(SchemaUtil.areCompatible(GenericsUtil.generic("a").build(),
-                                        GenericsUtil.generic("a").build()), is(false));
+    assertThat(SchemaUtil.areCompatible(GenericsUtil.array("a").build(),
+                                        GenericsUtil.array("a").build()), is(true));
+
+    assertThat(SchemaUtil.areCompatible(SchemaBuilder.array(DecimalUtil.builder(2, 2)).build(),
+                                        SchemaBuilder.array(DecimalUtil.builder(2, 2)).build()),
+               is(true));
+
+    assertThat(SchemaUtil.areCompatible(SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
+                                        SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).build()),
+               is(true));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.struct().field("a", DecimalUtil.builder(2, 2)).build(),
+        SchemaBuilder.struct().field("a", DecimalUtil.builder(2, 2)).build()),
+               is(true));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.struct().field("a", GenericsUtil.generic("a").build()),
+        SchemaBuilder.struct().field("a", GenericsUtil.generic("a").build())),
+               is(true));
+
+    assertThat(SchemaUtil.areCompatible(
+        SchemaBuilder.map(DecimalUtil.builder(2, 2).build(),
+                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build())),
+        SchemaBuilder.map(DecimalUtil.builder(2, 2).build(),
+                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build()))),
+               is(true));
+
   }
 
   @Test

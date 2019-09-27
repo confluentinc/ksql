@@ -33,7 +33,7 @@ public class KudafUndoAggregatorTest {
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
     final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap = new HashMap<>();
+    final Map<Integer, TableAggregationFunction<?, ?, ?>> aggValToAggFunctionMap = new HashMap<>();
     final KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
         "SUM", Schema.OPTIONAL_INT32_SCHEMA);
     assertThat(functionInfo, instanceOf(TableAggregationFunction.class));

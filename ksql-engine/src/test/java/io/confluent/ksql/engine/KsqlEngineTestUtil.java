@@ -23,6 +23,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
@@ -34,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class KsqlEngineTestUtil {
@@ -50,21 +53,24 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty())
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator()
     );
   }
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
       final MutableMetaStore metaStore,
-      final KsqlEngineMetrics engineMetrics
+      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
+      final QueryIdGenerator queryIdGenerator
   ) {
     return new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        ignored -> engineMetrics
+        engineMetricsFactory,
+        queryIdGenerator
     );
   }
 

@@ -1,11 +1,11 @@
 package io.confluent.ksql.execution.testutil;
 
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -23,16 +23,16 @@ public final class TestExpressions {
       .build();
 
   public final static LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("TEST1.COL0"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("TEST1.COL1"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("TEST1.COL2"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("TEST1.COL3"), SqlTypes.DOUBLE)
-      .valueColumn(ColumnName.of("TEST1.COL4"), SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("TEST1.COL5"), SqlTypes.map(SqlTypes.DOUBLE))
-      .valueColumn(ColumnName.of("TEST1.COL6"), ADDRESS_SCHEMA)
-      .valueColumn(ColumnName.of("TEST1.COL7"), SqlTypes.INTEGER)
-      .valueColumn(ColumnName.of("TEST1.COL8"), SqlTypes.decimal(2, 1))
-      .valueColumn(ColumnName.of("TEST1.COL9"), SqlTypes.decimal(2, 1))
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL0"), SqlTypes.BIGINT)
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL1"), SqlTypes.STRING)
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL2"), SqlTypes.STRING)
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL3"), SqlTypes.DOUBLE)
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL6"), ADDRESS_SCHEMA)
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL7"), SqlTypes.INTEGER)
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL8"), SqlTypes.decimal(2, 1))
+      .valueColumn(SourceName.of("TEST1"), ColumnName.of("COL9"), SqlTypes.decimal(2, 1))
       .build();
 
   private static final String TEST1 = "TEST1";

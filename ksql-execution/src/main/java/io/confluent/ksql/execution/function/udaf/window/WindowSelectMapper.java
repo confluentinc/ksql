@@ -42,7 +42,8 @@ public final class WindowSelectMapper
   private final Map<Integer, Type> windowSelects;
 
   public WindowSelectMapper(
-      final Map<Integer, KsqlAggregateFunction> aggFunctionsByIndex) {
+      final Map<Integer, KsqlAggregateFunction<?, ?, ?>> aggFunctionsByIndex
+  ) {
     this.windowSelects = aggFunctionsByIndex.entrySet().stream()
         .filter(e ->
             WINDOW_FUNCTION_NAMES.containsKey(e.getValue().getFunctionName().toUpperCase()))

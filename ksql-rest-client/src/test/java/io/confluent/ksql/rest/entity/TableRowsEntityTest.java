@@ -37,6 +37,7 @@ public class TableRowsEntityTest {
   private static final String SOME_SQL = "some SQL";
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
       .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
       .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)

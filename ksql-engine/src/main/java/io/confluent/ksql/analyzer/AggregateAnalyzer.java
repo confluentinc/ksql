@@ -126,7 +126,7 @@ class AggregateAnalyzer {
     }
 
     @Override
-    public Void visitQualifiedNameReference(
+    public Void visitColumnReference(
         final ColumnReferenceExp node,
         final Void context
     ) {

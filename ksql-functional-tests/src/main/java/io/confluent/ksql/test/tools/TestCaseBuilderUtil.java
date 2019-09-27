@@ -166,7 +166,7 @@ public final class TestCaseBuilderUtil {
       final KeyFormat keyFormat = ksqlTopic.getKeyFormat();
 
       final Supplier<LogicalSchema> logicalSchemaSupplier =
-          statement.getElements()::toLogicalSchema;
+          () -> statement.getElements().toLogicalSchema(true);
 
       final SerdeSupplier<?> keySerdeSupplier =
           SerdeUtil.getKeySerdeSupplier(keyFormat, logicalSchemaSupplier);

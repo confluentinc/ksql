@@ -308,7 +308,7 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Object visitQualifiedNameReference(
+    public Object visitColumnReference(
         final ColumnReferenceExp node,
         final Object context
     ) {

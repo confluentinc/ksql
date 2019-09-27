@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.test.util.TestMethods;
 import io.confluent.ksql.test.util.TestMethods.TestCase;
@@ -44,6 +45,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.admin.TopicDescriptionFactory;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
@@ -132,6 +134,7 @@ public class SandboxedKafkaTopicClientTest {
       assertThat(sandboxedClient.isTopicExists("some topic"), is(true));
     }
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
     @Test
     public void shouldNotCallDelegateOnIsTopicExistsIfTopicCreatedInScope() {
       // given:
@@ -145,6 +148,7 @@ public class SandboxedKafkaTopicClientTest {
       verify(delegate, never()).isTopicExists("some topic");
     }
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
     @Test
     public void shouldDelegateOnIsTopicExistsIfTopicNotCreatedInScope() {
       // When:
@@ -164,7 +168,7 @@ public class SandboxedKafkaTopicClientTest {
           .describeTopic("some topic");
 
       // Then:
-      assertThat(result, is(new SandboxedTopicDescription(
+      assertThat(result, is(TopicDescriptionFactory.create(
           "some topic",
           false,
           topicPartitions(2, 3),
@@ -182,7 +186,7 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(result.keySet(), contains("some topic"));
-      assertThat(result.get("some topic"), is(new SandboxedTopicDescription(
+      assertThat(result.get("some topic"), is(TopicDescriptionFactory.create(
           "some topic",
           false,
           topicPartitions(2, 3),

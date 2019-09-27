@@ -96,7 +96,7 @@ public class StaticQueryValidator implements QueryValidator {
           analysis -> analysis.getSelectColumnRefs().stream()
                   .map(ColumnRef::name)
                   .noneMatch(n -> n.equals(SchemaUtil.ROWTIME_NAME)),
-          "Static queries don't support ROWTIME in the projection."
+          "Static queries don't support ROWTIME in select columns."
       )
   );
 

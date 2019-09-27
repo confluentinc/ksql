@@ -244,7 +244,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support ROWTIME in the projection.",
+        "message": "Static queries don't support ROWTIME in select columns.",
         "status": 400
       }
     },
@@ -257,7 +257,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support ROWTIME in the projection.",
+        "message": "Static queries don't support ROWTIME in select columns.",
         "status": 400
       }
     },

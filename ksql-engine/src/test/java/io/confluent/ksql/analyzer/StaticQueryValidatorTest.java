@@ -171,7 +171,7 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support ROWTIME in the projection.");
+    expectedException.expectMessage("Static queries don't support ROWTIME in select columns.");
 
     // When:
     validator.validate(analysis);

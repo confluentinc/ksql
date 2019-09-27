@@ -16,8 +16,11 @@
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -35,6 +38,7 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -53,6 +57,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -90,6 +95,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AnalyzerFunctionalTest {
 
   private static final Set<SerdeOption> DEFAULT_SERDE_OPTIONS = SerdeOption.none();
+  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final ColumnName COL0 = ColumnName.of("COL0");
+  private static final ColumnName COL1 = ColumnName.of("COL1");
+  private static final ColumnName COL2 = ColumnName.of("COL2");
+  private static final ColumnName COL3 = ColumnName.of("COL3");
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
@@ -136,7 +146,7 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
     assertEquals("FROM was not analyzed correctly.",
         analysis.getFromDataSources().get(0).getDataSource().getName(),
-        SourceName.of("TEST1"));
+        TEST1);
     assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 100)"));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
@@ -144,9 +154,9 @@ public class AnalyzerFunctionalTest {
     assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
     assertThat(selects.get(2).getExpression().toString(), is("TEST1.COL3"));
 
-    assertThat(selects.get(0).getName(), is(ColumnName.of("COL0")));
-    assertThat(selects.get(1).getName(), is(ColumnName.of("COL2")));
-    assertThat(selects.get(2).getName(), is(ColumnName.of("COL3")));
+    assertThat(selects.get(0).getName(), is(COL0));
+    assertThat(selects.get(1).getName(), is(COL2));
+    assertThat(selects.get(2).getName(), is(COL3));
   }
 
   @Test
@@ -202,7 +212,7 @@ public class AnalyzerFunctionalTest {
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
     assertEquals("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName(), SourceName.of("TEST1"));
+        analysis.getFromDataSources().get(0).getDataSource().getName(), TEST1);
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
     assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
@@ -215,7 +225,7 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    assertThat(analysis.getFromDataSources().get(0).getDataSource().getName(), is(SourceName.of("TEST1")));
+    assertThat(analysis.getFromDataSources().get(0).getDataSource().getName(), is(TEST1));
 
     final List<SelectExpression> selects = analysis.getSelectExpressions();
     assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
@@ -450,6 +460,50 @@ public class AnalyzerFunctionalTest {
     analyzer.analyze(query, Optional.of(sink));
   }
 
+  @Test
+  public void shouldCaptureProjectionColumnRefs() {
+    // Given:
+    query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;");
+
+    // When:
+    final Analysis analysis = analyzer.analyze(query, Optional.empty());
+
+    // Then:
+    assertThat(analysis.getSelectColumnRefs(), containsInAnyOrder(
+        ColumnRef.of(TEST1, COL0),
+        ColumnRef.of(TEST1, COL1),
+        ColumnRef.of(TEST1, COL2)
+    ));
+  }
+
+  @Test
+  public void shouldIncludeMetaColumnsForSelectStarOnContinuousQueries() {
+    // Given:
+    query = parseSingle("Select * from TEST1 EMIT CHANGES;");
+
+    // When:
+    final Analysis analysis = analyzer.analyze(query, Optional.empty());
+
+    // Then:
+    assertThat(analysis.getSelectExpressions(), hasItem(
+        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+    ));
+  }
+
+  @Test
+  public void shouldNotIncludeMetaColumnsForSelectStartOnStaticQueries() {
+    // Given:
+    query = parseSingle("Select * from TEST1;");
+
+    // When:
+    final Analysis analysis = analyzer.analyze(query, Optional.empty());
+
+    // Then:
+    assertThat(analysis.getSelectExpressions(), not(hasItem(
+        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+    )));
+  }
+
   @SuppressWarnings("unchecked")
   private <T extends Statement> T parseSingle(final String simpleQuery) {
     return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
@@ -478,7 +532,7 @@ public class AnalyzerFunctionalTest {
 
   private void registerKafkaSource() {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.BIGINT)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(

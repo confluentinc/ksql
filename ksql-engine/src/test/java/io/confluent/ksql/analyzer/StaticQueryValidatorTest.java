@@ -19,12 +19,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.WindowExpression;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.Optional;
 import java.util.OptionalInt;
 import org.junit.Before;
@@ -109,7 +112,7 @@ public class StaticQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatHasGroupBy() {
+  public void shouldThrowOnGroupBy() {
     // Given:
     when(analysis.getGroupByExpressions()).thenReturn(ImmutableList.of(AN_EXPRESSION));
 
@@ -122,7 +125,7 @@ public class StaticQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatHasPartitionBy() {
+  public void shouldThrowOnPartitionBy() {
     // Given:
     when(analysis.getPartitionBy()).thenReturn(Optional.of(ColumnName.of("Something")));
 
@@ -135,7 +138,7 @@ public class StaticQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatHasHavingClause() {
+  public void shouldThrowOnHavingClause() {
     // Given:
     when(analysis.getHavingExpression()).thenReturn(Optional.of(AN_EXPRESSION));
 
@@ -148,13 +151,27 @@ public class StaticQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatHasLimitClause() {
+  public void shouldThrowOnLimitClause() {
     // Given:
     when(analysis.getLimitClause()).thenReturn(OptionalInt.of(1));
 
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Static queries don't support LIMIT clauses.");
+
+    // When:
+    validator.validate(analysis);
+  }
+
+  @Test
+  public void shouldThrowOnRowTimeInProjection() {
+    // Given:
+    when(analysis.getSelectColumnRefs())
+        .thenReturn(ImmutableSet.of(ColumnRef.of(SchemaUtil.ROWTIME_NAME)));
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Static queries don't support ROWTIME in the projection.");
 
     // When:
     validator.validate(analysis);

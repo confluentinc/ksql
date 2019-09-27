@@ -17,7 +17,9 @@ package io.confluent.ksql.analyzer;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -89,6 +91,12 @@ public class StaticQueryValidator implements QueryValidator {
       Rule.of(
           analysis -> !analysis.getLimitClause().isPresent(),
           "Static queries don't support LIMIT clauses."
+      ),
+      Rule.of(
+          analysis -> analysis.getSelectColumnRefs().stream()
+                  .map(ColumnRef::name)
+                  .noneMatch(n -> n.equals(SchemaUtil.ROWTIME_NAME)),
+          "Static queries don't support ROWTIME in the projection."
       )
   );
 

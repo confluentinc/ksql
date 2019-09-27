@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.metastore.MetaStore;
@@ -62,6 +63,7 @@ import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -511,7 +513,7 @@ class Analyzer {
           visitSelectStar((AllColumns) selectItem);
         } else if (selectItem instanceof SingleColumn) {
           final SingleColumn column = (SingleColumn) selectItem;
-          analysis.addSelectItem(column.getExpression(), column.getAlias());
+          addSelectItem(column.getExpression(), column.getAlias());
         } else {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -562,14 +564,19 @@ class Analyzer {
             ? source.getAlias().name() + "_"
             : "";
 
-        for (final Column column : source.getDataSource().getSchema().columns()) {
+        final LogicalSchema schema = source.getDataSource().getSchema();
+        for (final Column column : schema.columns()) {
+
+          if (staticQuery && schema.isMetaColumn(column.name())) {
+            continue;
+          }
 
           final ColumnReferenceExp selectItem = new ColumnReferenceExp(location,
               ColumnRef.of(source.getAlias(), column.name()));
 
           final String alias = aliasPrefix + column.name().name();
 
-          analysis.addSelectItem(selectItem, ColumnName.of(alias));
+          addSelectItem(selectItem, ColumnName.of(alias));
         }
       }
     }
@@ -597,6 +604,25 @@ class Analyzer {
             + " This format does not yet support GROUP BY."
             + System.lineSeparator() + KAFKA_VALUE_FORMAT_LIMITATION_DETAILS);
       }
+    }
+
+    private void addSelectItem(final Expression exp, final ColumnName columnName) {
+      final Set<ColumnRef> columnRefs = new HashSet<>();
+      final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
+        @Override
+        public Void visitQualifiedNameReference(
+            final ColumnReferenceExp node,
+            final Void context
+        ) {
+          columnRefs.add(node.getReference());
+          return null;
+        }
+      };
+
+      visitor.process(exp, null);
+
+      analysis.addSelectItem(exp, columnName);
+      analysis.addSelectColumnRefs(columnRefs);
     }
   }
 

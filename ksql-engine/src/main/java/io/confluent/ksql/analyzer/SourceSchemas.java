@@ -80,7 +80,7 @@ final class SourceSchemas {
       return ImmutableSet.of();
     }
 
-    return sourceSchema.findColumn(baseColumnName).isPresent()
+    return sourceSchema.findColumn(ColumnName.of(baseColumnName)).isPresent()
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
   }

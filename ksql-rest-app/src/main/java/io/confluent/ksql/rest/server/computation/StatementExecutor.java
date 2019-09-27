@@ -30,6 +30,7 @@ import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -65,6 +66,7 @@ public class StatementExecutor implements KsqlConfigurable {
 
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
+  private final HybridQueryIdGenerator queryIdGenerator;
   private final Map<CommandId, CommandStatus> statusStore;
   private KsqlConfig ksqlConfig;
 
@@ -73,22 +75,27 @@ public class StatementExecutor implements KsqlConfigurable {
     EXECUTE
   }
 
-  public StatementExecutor(final KsqlEngine ksqlEngine) {
+  public StatementExecutor(
+      final KsqlEngine ksqlEngine,
+      final HybridQueryIdGenerator hybridQueryIdGenerator
+  ) {
     this(
         ksqlEngine,
-        new StatementParser(ksqlEngine)
+        new StatementParser(ksqlEngine),
+        hybridQueryIdGenerator
     );
   }
 
   @VisibleForTesting
   StatementExecutor(
       final KsqlEngine ksqlEngine,
-      final StatementParser statementParser
+      final StatementParser statementParser,
+      final HybridQueryIdGenerator hybridQueryIdGenerator
   ) {
-    Objects.requireNonNull(ksqlEngine, "ksqlEngine cannot be null.");
-
-    this.ksqlEngine = ksqlEngine;
-    this.statementParser = statementParser;
+    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
+    this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
+    this.queryIdGenerator =
+        Objects.requireNonNull(hybridQueryIdGenerator, "hybridQueryIdGenerator");
     this.statusStore = new ConcurrentHashMap<>();
   }
 
@@ -117,7 +124,9 @@ public class StatementExecutor implements KsqlConfigurable {
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
         queuedCommand.getStatus(),
-        Mode.EXECUTE);
+        Mode.EXECUTE,
+        queuedCommand.getOffset()
+    );
   }
 
   void handleRestore(final QueuedCommand queuedCommand) {
@@ -127,7 +136,8 @@ public class StatementExecutor implements KsqlConfigurable {
         queuedCommand.getCommand(),
         queuedCommand.getCommandId(),
         queuedCommand.getStatus(),
-        Mode.RESTORE
+        Mode.RESTORE,
+        queuedCommand.getOffset()
     );
   }
 
@@ -180,7 +190,8 @@ public class StatementExecutor implements KsqlConfigurable {
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     try {
       final String statementString = command.getStatement();
@@ -196,7 +207,7 @@ public class StatementExecutor implements KsqlConfigurable {
           new CommandStatus(CommandStatus.Status.EXECUTING, "Executing statement")
       );
       executeStatement(
-          statement, command, commandId, commandStatusFuture, mode);
+          statement, command, commandId, commandStatusFuture, mode, offset);
     } catch (final KsqlException exception) {
       log.error("Failed to handle: " + command, exception);
       final CommandStatus errorStatus = new CommandStatus(
@@ -213,19 +224,20 @@ public class StatementExecutor implements KsqlConfigurable {
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatusFuture,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     String successMessage = "";
     if (statement.getStatement() instanceof ExecutableDdlStatement) {
       successMessage = executeDdlStatement(statement, command);
     } else if (statement.getStatement() instanceof CreateAsSelect) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode);
+      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
       final String name = ((CreateAsSelect)statement.getStatement()).getName().name();
       successMessage = statement.getStatement() instanceof CreateTableAsSelect
           ? "Table " + name + " created and running" : "Stream " + name + " created and running";
       successMessage += ". Created by query with query ID: " + query.getQueryId();
     } else if (statement.getStatement() instanceof InsertInto) {
-      final PersistentQueryMetadata query = startQuery(statement, command, mode);
+      final PersistentQueryMetadata query = startQuery(statement, command, mode, offset);
       successMessage = "Insert Into query is running with query ID: " + query.getQueryId();
     } else if (statement.getStatement() instanceof TerminateQuery) {
       terminateQuery((PreparedStatement<TerminateQuery>) statement);
@@ -305,7 +317,8 @@ public class StatementExecutor implements KsqlConfigurable {
   private PersistentQueryMetadata startQuery(
       final PreparedStatement<?> statement,
       final Command command,
-      final Mode mode
+      final Mode mode,
+      final long offset
   ) {
     final KsqlConfig mergedConfig = buildMergedConfig(command);
 
@@ -316,6 +329,11 @@ public class StatementExecutor implements KsqlConfigurable {
 
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
         statement, command.getOverwriteProperties(), mergedConfig);
+
+    if (command.getUseOffsetAsQueryID()) {
+      queryIdGenerator.activateNewGenerator(offset);
+    }
+
     final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
         .getQuery()
         .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));

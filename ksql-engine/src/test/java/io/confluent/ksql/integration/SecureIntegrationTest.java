@@ -43,6 +43,7 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -270,7 +271,8 @@ public class SecureIntegrationTest {
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig),
+        new SequentialQueryIdGenerator());
 
     execInitCreateStreamQueries();
   }

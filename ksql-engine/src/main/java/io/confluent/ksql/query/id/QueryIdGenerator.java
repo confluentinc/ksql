@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,18 +13,25 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function.udf.math;
+package io.confluent.ksql.query.id;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+/**
+ * Generator used to provide query ids.
+ */
+public interface QueryIdGenerator {
 
-public class RoundKudf implements Kudf {
+  /**
+   * Returns the next query id identifier.
+   *
+   * @return a string query id identifier
+   */
+  String getNext();
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Len udf should have one input argument.");
-    }
-    return Math.round((Double) args[0]);
-  }
+  /**
+   * Create an generator that can be used to create new ids without affecting the state
+   * of the real generator.
+   *
+   * @return a new generator initialized at what the next id would be
+   */
+  QueryIdGenerator createSandbox();
 }

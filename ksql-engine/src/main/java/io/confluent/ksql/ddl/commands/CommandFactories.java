@@ -271,11 +271,11 @@ public class CommandFactories implements DdlCommandFactory {
     }
 
     tableElements.forEach(e -> {
-      if (e.getName().equalsIgnoreCase(SchemaUtil.ROWTIME_NAME)) {
+      if (e.getName().equals(SchemaUtil.ROWTIME_NAME)) {
         throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
       }
 
-      final boolean isRowKey = e.getName().equalsIgnoreCase(SchemaUtil.ROWKEY_NAME);
+      final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
 
       if (e.getNamespace() == Namespace.KEY) {
         if (!isRowKey) {

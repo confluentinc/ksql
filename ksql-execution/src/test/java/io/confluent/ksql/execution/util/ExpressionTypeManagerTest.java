@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.util;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.ADDRESS;
-import static io.confluent.ksql.execution.testutil.TestExpressions.COL0;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL2;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -54,6 +53,7 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
+import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -79,6 +79,10 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ExpressionTypeManagerTest {
+
+  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final ColumnName COL0 = ColumnName.of("COL0");
+
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -116,7 +120,8 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldResolveTypeForAddBigIntDouble() {
-    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, COL0, COL3);
+    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, TestExpressions.COL0,
+        COL3);
 
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -134,7 +139,8 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldResolveTypeForAddBigintIntegerLiteral() {
-    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, COL0, literal(10));
+    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, TestExpressions.COL0,
+        literal(10));
 
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -144,7 +150,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldResolveTypeForMultiplyBigintIntegerLiteral() {
     final Expression expression =
-        new ArithmeticBinaryExpression(Operator.MULTIPLY, COL0, literal(10));
+        new ArithmeticBinaryExpression(Operator.MULTIPLY, TestExpressions.COL0, literal(10));
 
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -153,7 +159,8 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void testComparisonExpr() {
-    final Expression expression = new ComparisonExpression(Type.GREATER_THAN, COL0, COL3);
+    final Expression expression = new ComparisonExpression(Type.GREATER_THAN, TestExpressions.COL0,
+        COL3);
 
     final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -163,7 +170,8 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldFailIfComparisonOperandsAreIncompatible() {
     // Given:
-    final ComparisonExpression expr = new ComparisonExpression(Type.GREATER_THAN, COL0, COL1);
+    final ComparisonExpression expr = new ComparisonExpression(Type.GREATER_THAN,
+        TestExpressions.COL0, COL1);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BIGINT and STRING");
 
@@ -283,7 +291,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
-        new ColumnReferenceExp(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL6"))),
+        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL6"))),
         "STREET"
     );
 
@@ -322,10 +330,11 @@ public class ExpressionTypeManagerTest {
     // Given:
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("TEST1.COL0"), SqlTypes.array(inner))
+        .valueColumn(TEST1, COL0, SqlTypes.array(inner))
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
-    final Expression arrayRef = new SubscriptExpression(COL0, new IntegerLiteral(1));
+    final Expression arrayRef = new SubscriptExpression(TestExpressions.COL0,
+        new IntegerLiteral(1));
     final Expression expression = new FunctionCall(
         FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
         ImmutableList.of(arrayRef, new StringLiteral("IN0"))
@@ -343,12 +352,12 @@ public class ExpressionTypeManagerTest {
         .field("IN0", SqlTypes.array(SqlTypes.INTEGER))
         .build();
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("TEST1.COL0"), inner)
+        .valueColumn(TEST1, COL0, inner)
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     final Expression structRef = new FunctionCall(
         FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
-        ImmutableList.of(COL0, new StringLiteral("IN0"))
+        ImmutableList.of(TestExpressions.COL0, new StringLiteral("IN0"))
     );
     final Expression expression = new SubscriptExpression(structRef, new IntegerLiteral(1));
 
@@ -387,7 +396,7 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(10)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(10)),
                 ADDRESS)
         ),
         Optional.empty()
@@ -407,7 +416,8 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ArithmeticBinaryExpression(Operator.ADD, COL0, new IntegerLiteral(10)),
+                new ArithmeticBinaryExpression(Operator.ADD, TestExpressions.COL0,
+                    new IntegerLiteral(10)),
                 new StringLiteral("foo"))
         ),
         Optional.empty()
@@ -425,10 +435,10 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(100)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(100)),
                 new StringLiteral("one-hundred")),
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(10)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(10)),
                 new IntegerLiteral(10))
         ),
         Optional.empty()
@@ -447,7 +457,7 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(10)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(10)),
                 new StringLiteral("good"))
         ),
         Optional.of(new BooleanLiteral("true"))
@@ -481,7 +491,7 @@ public class ExpressionTypeManagerTest {
   public void shouldThrowOnIn() {
     // Given:
     final Expression expression = new InPredicate(
-        COL0,
+        TestExpressions.COL0,
         new InListExpression(ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))
     );
 
@@ -495,7 +505,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldThrowOnSimpleCase() {
     final Expression expression = new SimpleCaseExpression(
-        COL0,
+        TestExpressions.COL0,
         ImmutableList.of(new WhenClause(new IntegerLiteral(10), new StringLiteral("ten"))),
         Optional.empty()
     );

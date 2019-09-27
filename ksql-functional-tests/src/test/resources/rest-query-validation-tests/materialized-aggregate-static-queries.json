@@ -236,6 +236,32 @@
       ]
     },
     {
+      "name": "non-windowed projection WITH ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT ROWTIME + 10, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Static queries don't support ROWTIME in select columns.",
+        "status": 400
+      }
+    },
+    {
+      "name": "windowed with projection with ROWTIME",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT COUNT, ROWTIME + 10 FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
+      ],
+      "expectedError": {
+        "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
+        "message": "Static queries don't support ROWTIME in select columns.",
+        "status": 400
+      }
+    },
+    {
       "name": "text datetime window bounds",
       "enabled": false,
       "statements": [

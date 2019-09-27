@@ -226,7 +226,7 @@ ksql.sink.partitions (Deprecated)
 ---------------------------------
 
 The default number of partitions for the topics created by KSQL. The default is four.
-This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>`, :ref:`CREATE TABLE AS SELECT <create-table-as-select>`, :ref:`CREATE STREAM <create-stream>`, and :ref:`CREATE TABLE <create-table>`.
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -239,7 +239,7 @@ ksql.sink.replicas (Deprecated)
 -------------------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
-This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>`, :ref:`CREATE TABLE AS SELECT <create-table-as-select>`, :ref:`CREATE STREAM <create-stream>`, and :ref:`CREATE TABLE <create-table>`.
 
 ------------------------------------
 ksql.functions.substring.legacy.args

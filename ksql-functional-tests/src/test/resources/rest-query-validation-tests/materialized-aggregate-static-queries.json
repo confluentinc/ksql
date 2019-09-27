@@ -237,7 +237,6 @@
     },
     {
       "name": "text datetime window bounds",
-      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -252,6 +251,48 @@
         {"@type": "currentStatus"},
         {"@type": "rows", "rows": [
           ["10", 1582501512000, 1]
+        ]}
+      ]
+    },
+    {
+      "name": "text datetime + timezone window bounds",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart='2020-02-23T22:45:12.000-0100';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {"@type": "rows", "rows": [
+          ["10", 1582501512000, 1]
+        ]}
+      ]
+    },
+    {
+      "name": "partial text datetime window bounds",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE '2020-02-23T23:45' <= WindowStart AND WindowStart < '2020-02-23T24' AND ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501512456, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 1582501552456, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "rows": [
+            ["10", 1582501512000, 1],
+            ["10", 1582501552000, 1]
         ]}
       ]
     },

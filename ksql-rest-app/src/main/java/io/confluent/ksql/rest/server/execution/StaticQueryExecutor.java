@@ -77,7 +77,7 @@ import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.timestamp.StringToTimestampParser;
+import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -424,7 +424,7 @@ public final class StaticQueryExecutor {
     if (other instanceof StringLiteral) {
       final String text = ((StringLiteral) other).getValue();
       try {
-        final long timestamp = new StringToTimestampParser(KsqlConstants.DATE_TIME_PATTERN)
+        final long timestamp = new PartialStringToTimestampParser()
             .parse(text);
 
         return Instant.ofEpochMilli(timestamp);

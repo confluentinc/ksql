@@ -32,6 +32,7 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -419,7 +420,12 @@ public class TestExecutor implements Closeable {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty())
+        (engine) -> new KsqlEngineMetrics(
+            "",
+            engine,
+            Collections.emptyMap(),
+            Optional.empty()),
+        new SequentialQueryIdGenerator()
     );
   }
 

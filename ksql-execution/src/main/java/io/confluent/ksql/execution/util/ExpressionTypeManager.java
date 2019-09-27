@@ -206,7 +206,7 @@ public class ExpressionTypeManager {
     }
 
     @Override
-    public Void visitQualifiedNameReference(
+    public Void visitColumnReference(
         final ColumnReferenceExp node,
         final ExpressionTypeContext expressionTypeContext
     ) {

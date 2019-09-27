@@ -32,6 +32,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
+import org.apache.kafka.clients.admin.TopicDescriptionFactory;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
@@ -102,7 +103,7 @@ final class SandboxedKafkaTopicClient {
     // This is useful to validate permissions to create the topic
     delegate.validateCreateTopic(topic, numPartitions, replicationFactor, configs);
 
-    createdTopics.put(topic, new SandboxedTopicDescription(
+    createdTopics.put(topic, TopicDescriptionFactory.create(
         topic,
         false,
         partitions,

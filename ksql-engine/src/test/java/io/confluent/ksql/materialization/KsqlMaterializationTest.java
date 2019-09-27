@@ -325,7 +325,7 @@ public class KsqlMaterializationTest {
     when(aggregateTransform.apply(any())).thenReturn(TRANSFORMED);
 
     // When:
-    table.get(A_KEY, AN_INSTANT, AN_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(havingPredicate).test(A_KEY, TRANSFORMED);

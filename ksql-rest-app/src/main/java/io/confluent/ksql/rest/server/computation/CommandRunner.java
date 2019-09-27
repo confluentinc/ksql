@@ -98,7 +98,7 @@ public class CommandRunner implements Closeable {
    * {@link WakeupException} is thrown or the {@link #close()} method is called.
    */
   public void start() {
-    executor.submit(new Runner());
+    executor.execute(new Runner());
     executor.shutdown();
   }
 

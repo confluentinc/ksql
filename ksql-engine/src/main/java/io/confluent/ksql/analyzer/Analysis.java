@@ -40,9 +40,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +56,6 @@ public class Analysis {
   private Optional<JoinInfo> joinInfo = Optional.empty();
   private Optional<Expression> whereExpression = Optional.empty();
   private final List<SelectExpression> selectExpressions = new ArrayList<>();
-  private final Set<ColumnRef> selectColumnRefs = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
   private Optional<ColumnName> partitionBy = Optional.empty();
@@ -79,10 +76,6 @@ public class Analysis {
     selectExpressions.add(SelectExpression.of(alias, expression));
   }
 
-  void addSelectColumnRefs(final Collection<ColumnRef> columnRefs) {
-    selectColumnRefs.addAll(columnRefs);
-  }
-
   public Optional<Into> getInto() {
     return into;
   }
@@ -101,10 +94,6 @@ public class Analysis {
 
   public List<SelectExpression> getSelectExpressions() {
     return Collections.unmodifiableList(selectExpressions);
-  }
-
-  Set<ColumnRef> getSelectColumnRefs() {
-    return Collections.unmodifiableSet(selectColumnRefs);
   }
 
   public List<Expression> getGroupByExpressions() {
@@ -167,7 +156,7 @@ public class Analysis {
     return ImmutableList.copyOf(fromDataSources);
   }
 
-  SourceSchemas getFromSourceSchemas() {
+  public SourceSchemas getFromSourceSchemas() {
     final Map<SourceName, LogicalSchema> schemaBySource = fromDataSources.stream()
         .collect(Collectors.toMap(
             AliasedDataSource::getAlias,

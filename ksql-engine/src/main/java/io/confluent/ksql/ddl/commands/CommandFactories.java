@@ -90,7 +90,7 @@ public class CommandFactories implements DdlCommandFactory {
     this(serviceContext, metaStore, SerdeOptions::buildForCreateStatement, new GenericRowSerDe());
   }
 
-  public CommandFactories(
+  CommandFactories(
       final ServiceContext serviceContext,
       final MetaStore metaStore,
       final SerdeOptionsSupplier serdeOptionsSupplier,
@@ -198,7 +198,6 @@ public class CommandFactories implements DdlCommandFactory {
     );
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropStream(final DropStream statement) {
     return handleDropSource(
         statement.getName(),
@@ -207,7 +206,6 @@ public class CommandFactories implements DdlCommandFactory {
     );
   }
 
-  @SuppressWarnings("MethodMayBeStatic")
   private DropSourceCommand handleDropTable(final DropTable statement) {
     return handleDropSource(
         statement.getName(),
@@ -224,6 +222,7 @@ public class CommandFactories implements DdlCommandFactory {
     );
   }
 
+  @SuppressWarnings("MethodMayBeStatic")
   private DropTypeCommand handleDropType(final DropType statement) {
     return new DropTypeCommand(statement.getTypeName());
   }
@@ -294,7 +293,7 @@ public class CommandFactories implements DdlCommandFactory {
       }
     });
 
-    return tableElements.toLogicalSchema();
+    return tableElements.toLogicalSchema(true);
   }
 
   private static KsqlTopic buildTopic(

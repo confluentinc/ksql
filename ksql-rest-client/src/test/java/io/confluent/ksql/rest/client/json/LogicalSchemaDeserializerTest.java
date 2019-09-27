@@ -36,7 +36,7 @@ public class LogicalSchemaDeserializerTest {
   }
 
   @Test
-  public void shouldDeserializeSchema() throws Exception {
+  public void shouldDeserializeSchemaWithImplicitColumns() throws Exception {
     // Given:
     final String json = "\"`ROWKEY` STRING KEY, `v0` INTEGER\"";
 
@@ -45,8 +45,41 @@ public class LogicalSchemaDeserializerTest {
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
         .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build()));
+  }
+
+  @Test
+  public void shouldDeserializeSchemaWithOutImplicitColumns() throws Exception {
+    // Given:
+    final String json = "\"`key` STRING KEY, `v0` INTEGER\"";
+
+    // When:
+    final LogicalSchema schema = MAPPER.readValue(json, LogicalSchema.class);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("key"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build()));
+  }
+
+  @Test
+  public void shouldDeserializeSchemaWithKeyAfterValue() throws Exception {
+    // Given:
+    final String json = "\"`v0` INTEGER, `key0` STRING KEY\"";
+
+    // When:
+    final LogicalSchema schema = MAPPER.readValue(json, LogicalSchema.class);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("key0"), SqlTypes.STRING)
         .build()));
   }
 

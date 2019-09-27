@@ -610,7 +610,7 @@ class Analyzer {
       final Set<ColumnRef> columnRefs = new HashSet<>();
       final TraversalExpressionVisitor<Void> visitor = new TraversalExpressionVisitor<Void>() {
         @Override
-        public Void visitQualifiedNameReference(
+        public Void visitColumnReference(
             final ColumnReferenceExp node,
             final Void context
         ) {

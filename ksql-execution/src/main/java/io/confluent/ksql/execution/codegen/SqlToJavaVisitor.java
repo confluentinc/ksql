@@ -262,7 +262,7 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, Schema> visitQualifiedNameReference(
+    public Pair<String, Schema> visitColumnReference(
         final ColumnReferenceExp node,
         final Void context
     ) {

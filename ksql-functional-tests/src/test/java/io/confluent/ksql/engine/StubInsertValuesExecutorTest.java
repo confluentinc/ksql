@@ -23,11 +23,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.engine.FakeInsertValuesExecutor.FakeProduer;
+import io.confluent.ksql.engine.StubInsertValuesExecutor.StubProducer;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.FakeKafkaRecord;
-import io.confluent.ksql.test.tools.FakeKafkaService;
+import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import java.nio.charset.StandardCharsets;
@@ -42,20 +42,20 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public final class FakeInsertValuesExecutorTest {
+public final class StubInsertValuesExecutorTest {
 
   private static final byte[] KEY_BYTES = "the-key".getBytes(StandardCharsets.UTF_8);
   private static final String SOME_TOPIC = "topic-name";
 
   @Mock
-  private FakeKafkaService fakeKafkaService;
+  private StubKafkaService stubKafkaService;
   @Captor
-  private ArgumentCaptor<FakeKafkaRecord> recordCaptor;
-  private FakeProduer fakeProducer;
+  private ArgumentCaptor<StubKafkaRecord> recordCaptor;
+  private StubProducer stubProducer;
 
   @Before
   public void setUp() {
-    when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
+    when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
         Optional.empty(),
         new StringSerdeSupplier(),
@@ -64,7 +64,7 @@ public final class FakeInsertValuesExecutorTest {
         1,
         Optional.empty()));
 
-    fakeProducer = new FakeProduer(fakeKafkaService);
+    stubProducer = new StubProducer(stubKafkaService);
   }
 
   @Test
@@ -80,10 +80,10 @@ public final class FakeInsertValuesExecutorTest {
     );
 
     // When:
-    fakeProducer.sendRecord(record);
+    stubProducer.sendRecord(record);
 
     // Then:
-    verify(fakeKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
+    verify(stubKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
 
     final Record actual = recordCaptor.getValue().getTestRecord();
     assertThat(actual.timestamp(), is(Optional.of(timestamp)));
@@ -106,10 +106,10 @@ public final class FakeInsertValuesExecutorTest {
     );
 
     // When:
-    fakeProducer.sendRecord(record);
+    stubProducer.sendRecord(record);
 
     // Then:
-    verify(fakeKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
+    verify(stubKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
 
     final Record actual = recordCaptor.getValue().getTestRecord();
     assertThat(actual.value(), is("the-value"));
@@ -120,7 +120,7 @@ public final class FakeInsertValuesExecutorTest {
     // Given:
     final byte[] value = "{\"this\": 1}".getBytes(StandardCharsets.UTF_8);
 
-    when(fakeKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
+    when(stubKafkaService.getTopic(SOME_TOPIC)).thenReturn(new Topic(
         SOME_TOPIC,
         Optional.empty(),
         new StringSerdeSupplier(),
@@ -139,10 +139,10 @@ public final class FakeInsertValuesExecutorTest {
     );
 
     // When:
-    fakeProducer.sendRecord(record);
+    stubProducer.sendRecord(record);
 
     // Then:
-    verify(fakeKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
+    verify(stubKafkaService).writeRecord(eq(SOME_TOPIC), recordCaptor.capture());
 
     final Record actual = recordCaptor.getValue().getTestRecord();
     assertThat(actual.value(), is(ImmutableMap.of("this", 1)));

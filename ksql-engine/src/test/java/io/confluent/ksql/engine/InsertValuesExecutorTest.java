@@ -145,7 +145,7 @@ public class InsertValuesExecutorTest {
   private KeySerdeFactory keySerdeFactory;
   @Mock
   private Supplier<SchemaRegistryClient> srClientFactory;
-  private InsertValuesExecutor executor;
+  private StubValuesExecutor executor;
 
   @Before
   public void setup() {
@@ -173,7 +173,7 @@ public class InsertValuesExecutorTest {
 
     when(clock.getAsLong()).thenReturn(1L);
 
-    executor = new InsertValuesExecutor(clock, keySerdeFactory, valueSerdeFactory);
+    executor = new StubValuesExecutor(clock, keySerdeFactory, valueSerdeFactory);
   }
 
   @Test

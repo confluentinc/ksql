@@ -28,6 +28,8 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.tools.TestExecutor.TopologyBuilder;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
+import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
 import java.util.Set;
@@ -53,7 +55,7 @@ public class TestExecutorTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private FakeKafkaService kafkaService;
+  private StubKafkaService kafkaService;
   @Mock
   private ServiceContext serviceContext;
   @Mock
@@ -189,7 +191,7 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTwoLittleOutput() {
     // Given:
-    final FakeKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
+    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", 1L, null);
@@ -209,8 +211,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnTwoMuchOutput() {
     // Given:
-    final FakeKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    final FakeKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
+    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
+    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", 1L, null);
@@ -230,8 +232,8 @@ public class TestExecutorTest {
   @Test
   public void shouldFailOnUnexpectedOutput() {
     // Given:
-    final FakeKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    final FakeKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
+    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
+    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", 123456719L, null);
@@ -250,8 +252,8 @@ public class TestExecutorTest {
   @Test
   public void shouldPassOnExpectedOutput() {
     // Given:
-    final FakeKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
-    final FakeKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
+    final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
+    final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
     final Record expected_0 = new Record(sinkTopic, "k1", "v1", 123456719L, null);
@@ -292,7 +294,7 @@ public class TestExecutorTest {
     when(testCase.getGeneratedSchemas()).thenReturn(ImmutableList.of(schemas));
   }
 
-  private static FakeKafkaRecord kafkaRecord(
+  private static StubKafkaRecord kafkaRecord(
       final Topic topic,
       final long rowTime,
       final String key,
@@ -306,6 +308,6 @@ public class TestExecutorTest {
         value
     );
 
-    return FakeKafkaRecord.of(topic, record);
+    return StubKafkaRecord.of(topic, record);
   }
 }

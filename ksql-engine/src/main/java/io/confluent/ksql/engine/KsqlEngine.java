@@ -82,7 +82,7 @@ public class KsqlEngine implements KsqlExecutionContext, Closeable {
         queryIdGenerator);
   }
 
-  KsqlEngine(
+  public KsqlEngine(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final String serviceId,

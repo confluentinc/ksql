@@ -33,7 +33,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.tools.FakeKafkaService;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;
@@ -80,7 +80,7 @@ import org.w3c.dom.NodeList;
 @Category(IntegrationTest.class)
 public final class TopologyFileGenerator {
 
-    private static final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
+    private static final StubKafkaService stubKafkaService = StubKafkaService.create();
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
     private TopologyFileGenerator() {
@@ -204,7 +204,7 @@ public final class TopologyFileGenerator {
         final KsqlConfig ksqlConfig
     ) {
         final List<PersistentQueryMetadata> queries = TestExecutorUtil
-            .buildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, fakeKafkaService);
+            .buildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService);
 
         final MetaStore metaStore = ksqlEngine.getMetaStore();
         for (QueryMetadata queryMetadata: queries) {
@@ -234,7 +234,7 @@ public final class TopologyFileGenerator {
                 Optional.empty()
             );
 
-            fakeKafkaService.createTopic(sinkTopic);
+            stubKafkaService.createTopic(sinkTopic);
         }
 
         assertThat("test did not generate any queries.", queries.isEmpty(), is(false));

@@ -13,36 +13,38 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.test.tools;
+package io.confluent.ksql.test.tools.stubs;
 
 import io.confluent.ksql.test.model.WindowData;
 import io.confluent.ksql.test.serde.SerdeSupplier;
 import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
+import io.confluent.ksql.test.tools.Record;
+import io.confluent.ksql.test.tools.Topic;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.streams.kstream.Windowed;
 
-public final class FakeKafkaRecord {
+public final class StubKafkaRecord {
 
   private final Record testRecord;
   private final ProducerRecord<?,?> producerRecord;
 
-  private FakeKafkaRecord(final Record testRecord, final ProducerRecord<?,?> producerRecord) {
+  private StubKafkaRecord(final Record testRecord, final ProducerRecord<?,?> producerRecord) {
     this.testRecord = testRecord;
     this.producerRecord = producerRecord;
   }
 
-  public static FakeKafkaRecord of(
+  public static StubKafkaRecord of(
       final Record testRecord,
       final ProducerRecord<?,?> producerRecord
   ) {
     Objects.requireNonNull(testRecord, "testRecord");
-    return new FakeKafkaRecord(testRecord, producerRecord);
+    return new StubKafkaRecord(testRecord, producerRecord);
   }
 
-  public static FakeKafkaRecord of(
+  public static StubKafkaRecord of(
       final Topic topic,
       final ProducerRecord<?,?> producerRecord) {
     Objects.requireNonNull(producerRecord);
@@ -57,7 +59,7 @@ public final class FakeKafkaRecord {
         Optional.of(producerRecord.timestamp()),
         getWindowData(producerRecord)
     );
-    return new FakeKafkaRecord(testRecord, producerRecord);
+    return new StubKafkaRecord(testRecord, producerRecord);
   }
 
   @SuppressWarnings("unchecked")
@@ -74,7 +76,7 @@ public final class FakeKafkaRecord {
     return testRecord;
   }
 
-  ProducerRecord<?,?> getProducerRecord() {
+  public ProducerRecord<?,?> getProducerRecord() {
     return producerRecord;
   }
 }

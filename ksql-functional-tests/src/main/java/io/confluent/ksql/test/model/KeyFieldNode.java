@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.allOf;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.test.model.matchers.MetaStoreMatchers.KeyFieldMatchers;
 import io.confluent.ksql.test.serde.KeyFieldDeserializer;
 import java.util.Objects;
 import java.util.Optional;

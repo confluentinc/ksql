@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
-import io.confluent.ksql.engine.InsertValuesExecutor;
+import io.confluent.ksql.engine.StubValuesExecutor;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.DescribeConnector;
 import io.confluent.ksql.parser.tree.DescribeFunction;
@@ -113,7 +113,7 @@ public enum CustomExecutors {
   }
 
   private static StatementExecutor insertValuesExecutor() {
-    final InsertValuesExecutor executor = new InsertValuesExecutor();
+    final StubValuesExecutor executor = new StubValuesExecutor();
 
     return (statement, executionContext, serviceContext) -> {
       executor.execute(statement, executionContext, serviceContext);

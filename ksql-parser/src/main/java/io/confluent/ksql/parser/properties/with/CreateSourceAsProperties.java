@@ -98,7 +98,7 @@ public final class CreateSourceAsProperties {
 
   public Optional<Delimiter> getValueDelimiter() {
     final String val = props.getString(CommonCreateConfigs.VALUE_DELIMITER_PROPERTY);
-    return val == null ? Optional.empty() : Optional.of(Delimiter.of(val));
+    return val == null ? Optional.empty() : Optional.of(Delimiter.parse(val));
   }
 
   public CreateSourceAsProperties withTopic(

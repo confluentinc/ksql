@@ -81,15 +81,6 @@ public final class SchemaUtil {
 
   private static final char FIELD_NAME_DELIMITER = '.';
 
-  private static final ImmutableMap<Schema.Type, String> SCHEMA_TYPE_TO_CAST_STRING =
-      new ImmutableMap.Builder<Schema.Type, String>()
-          .put(Schema.Type.INT32, "(Integer)")
-          .put(Schema.Type.INT64, "(Long)")
-          .put(Schema.Type.FLOAT64, "(Double)")
-          .put(Schema.Type.STRING, "(String)")
-          .put(Schema.Type.BOOLEAN, "(Boolean)")
-          .build();
-
   private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
       ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
           .put(Type.MAP, SchemaUtil::mapCompatible)

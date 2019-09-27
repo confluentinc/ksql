@@ -27,13 +27,16 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
@@ -45,72 +48,65 @@ import org.apache.kafka.connect.data.SchemaBuilder;
 @Immutable
 public final class LogicalSchema {
 
-  private static final String KEY_KEYWORD = "KEY";
+  private static final NamespacedColumn IMPLICIT_TIME_COLUMN = NamespacedColumn.of(
+      Column.of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT),
+      Namespace.META
+  );
 
-  private static final List<Column> METADATA_SCHEMA = ImmutableList.<Column>builder()
-      .add(Column.of(SchemaUtil.ROWTIME_NAME, SqlTypes.BIGINT))
-      .build();
+  private static final NamespacedColumn IMPLICIT_KEY_COLUMN = NamespacedColumn.of(
+      Column.of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING),
+      Namespace.KEY
+  );
 
-  private static final List<Column> IMPLICIT_KEY_SCHEMA = ImmutableList.<Column>builder()
-      .add(Column.of(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING))
-      .build();
-
-  private final List<Column> metadata;
-  private final List<Column> key;
-  private final List<Column> value;
+  private final ImmutableList<NamespacedColumn> columns;
 
   public static Builder builder() {
     return new Builder();
   }
 
-  private LogicalSchema(
-      final List<Column> metadata,
-      final List<Column> key,
-      final List<Column> value
-  ) {
-    this.metadata = requireNonNull(metadata, "metadata");
-    this.key = requireNonNull(key, "key");
-    this.value = requireNonNull(value, "value");
+  private LogicalSchema(final ImmutableList<NamespacedColumn> columns) {
+    this.columns = Objects.requireNonNull(columns, "columns");
   }
 
   public ConnectSchema keyConnectSchema() {
-    return toConnectSchema(key);
+    return toConnectSchema(key());
   }
 
   public ConnectSchema valueConnectSchema() {
-    return toConnectSchema(value);
+    return toConnectSchema(value());
   }
 
   /**
    * @return the schema of the metadata.
    */
   public List<Column> metadata() {
-    return metadata;
+    return byNamespace(NamespacedColumn::column)
+        .get(Namespace.META);
   }
 
   /**
    * @return the schema of the key.
    */
   public List<Column> key() {
-    return key;
+    return byNamespace(NamespacedColumn::column)
+        .get(Namespace.KEY);
   }
 
   /**
    * @return the schema of the value.
    */
   public List<Column> value() {
-    return value;
+    return byNamespace(NamespacedColumn::column)
+        .get(Namespace.VALUE);
   }
 
   /**
    * @return all columns in the schema.
    */
   public List<Column> columns() {
-    return ImmutableList.<Column>builder()
-        .addAll(metadata)
-        .addAll(key)
-        .addAll(value)
-        .build();
+    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
+    columns.forEach(c -> builder.add(c.column()));
+    return builder.build();
   }
 
   /**
@@ -127,22 +123,8 @@ public final class LogicalSchema {
    * @return the column if found, else {@code Optional.empty()}.
    */
   public Optional<Column> findColumn(final ColumnName columnName) {
-    return findColumn(columnName.name());
-  }
-
-  @VisibleForTesting
-  private Optional<Column> findColumn(final String columnName) {
-    Optional<Column> found = doFindColumn(columnName, metadata);
-    if (found.isPresent()) {
-      return found;
-    }
-
-    found = doFindColumn(columnName, key);
-    if (found.isPresent()) {
-      return found;
-    }
-
-    return doFindColumn(columnName, value);
+    return findNamespacedColumn(withName(columnName))
+        .map(NamespacedColumn::column);
   }
 
   /**
@@ -157,14 +139,15 @@ public final class LogicalSchema {
    * @return the value column if found, else {@code Optional.empty()}.
    */
   public Optional<Column> findValueColumn(final ColumnName columnName) {
-    return doFindColumn(columnName.name(), value);
+    return findValueColumn(columnName.name());
   }
 
   /**
    * @see #findValueColumn(ColumnName)
    */
   public Optional<Column> findValueColumn(final String columnName) {
-    return doFindColumn(columnName, value);
+    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(withLaxName(columnName)))
+        .map(NamespacedColumn::column);
   }
 
   /**
@@ -180,7 +163,7 @@ public final class LogicalSchema {
   @VisibleForTesting
   public OptionalInt valueColumnIndex(final String fullColumnName) {
     int idx = 0;
-    for (final Column column : value) {
+    for (final Column column : value()) {
       if (column.fullName().equals(fullColumnName)) {
         return OptionalInt.of(idx);
       }
@@ -205,11 +188,12 @@ public final class LogicalSchema {
       throw new IllegalStateException("Already aliased");
     }
 
-    return new LogicalSchema(
-        addAlias(alias, metadata),
-        addAlias(alias, key),
-        addAlias(alias, value)
-    );
+    final ImmutableList.Builder<NamespacedColumn> builder = ImmutableList.builder();
+    columns.stream()
+        .map(c -> c.withSource(alias))
+        .forEach(builder::add);
+
+    return new LogicalSchema(builder.build());
   }
 
   /**
@@ -222,11 +206,12 @@ public final class LogicalSchema {
       throw new IllegalStateException("Not aliased");
     }
 
-    return new LogicalSchema(
-        removeAlias(metadata),
-        removeAlias(key),
-        removeAlias(value)
-    );
+    final ImmutableList.Builder<NamespacedColumn> builder = ImmutableList.builder();
+    columns.stream()
+        .map(NamespacedColumn::noSource)
+        .forEach(builder::add);
+
+    return new LogicalSchema(builder.build());
   }
 
   /**
@@ -234,7 +219,7 @@ public final class LogicalSchema {
    */
   public boolean isAliased() {
     // Either all columns are aliased, or none:
-    return metadata.get(0).source().isPresent();
+    return columns.get(0).column().source().isPresent();
   }
 
   /**
@@ -245,28 +230,7 @@ public final class LogicalSchema {
    * @return the new schema.
    */
   public LogicalSchema withMetaAndKeyColsInValue() {
-    final List<Column> newValueColumns = new ArrayList<>(
-        metadata.size()
-            + key.size()
-            + value.size());
-
-    newValueColumns.addAll(metadata);
-    newValueColumns.addAll(key);
-
-    value.forEach(f -> {
-      if (!doFindColumn(f.name().name(), newValueColumns).isPresent()) {
-        newValueColumns.add(f);
-      }
-    });
-
-    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-    newValueColumns.forEach(builder::add);
-
-    return new LogicalSchema(
-        metadata,
-        key,
-        builder.build()
-    );
+    return rebuild(true);
   }
 
   /**
@@ -275,19 +239,7 @@ public final class LogicalSchema {
    * @return the new schema with the columns removed.
    */
   public LogicalSchema withoutMetaAndKeyColsInValue() {
-    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
-    final Set<ColumnName> excluded = metaAndKeyColumnNames();
-
-    value.stream()
-        .filter(f -> !excluded.contains(f.name()))
-        .forEach(builder::add);
-
-    return new LogicalSchema(
-        metadata,
-        key,
-        builder.build()
-    );
+    return rebuild(false);
   }
 
   /**
@@ -295,7 +247,8 @@ public final class LogicalSchema {
    * @return {@code true} if the column matches the name of any metadata column.
    */
   public boolean isMetaColumn(final ColumnName columnName) {
-    return metaColumnNames().contains(columnName);
+    return findNamespacedColumn(withNamespace(Namespace.META).and(withName(columnName)))
+        .isPresent();
   }
 
   /**
@@ -303,7 +256,8 @@ public final class LogicalSchema {
    * @return {@code true} if the column matches the name of any key column.
    */
   public boolean isKeyColumn(final ColumnName columnName) {
-    return keyColumnNames().contains(columnName);
+    return findNamespacedColumn(withNamespace(Namespace.KEY).and(withName(columnName)))
+        .isPresent();
   }
 
   @Override
@@ -315,14 +269,12 @@ public final class LogicalSchema {
       return false;
     }
     final LogicalSchema that = (LogicalSchema) o;
-    // Meta Columns deliberately excluded.
-    return Objects.equals(key, that.key)
-        && Objects.equals(value, that.value);
+    return Objects.equals(columns, that.columns);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(key, value);
+    return Objects.hash(columns);
   }
 
   @Override
@@ -333,64 +285,75 @@ public final class LogicalSchema {
   public String toString(final FormatOptions formatOptions) {
     // Meta columns deliberately excluded.
 
-    final String keys = key.stream()
-        .map(f -> f.toString(formatOptions) + " " + KEY_KEYWORD)
-        .collect(Collectors.joining(", "));
-
-    final String values = value.stream()
-        .map(f -> f.toString(formatOptions))
-        .collect(Collectors.joining(", "));
-
-    final String join = keys.isEmpty() || values.isEmpty()
-        ? ""
-        : ", ";
-
-    return "[" + keys + join + values + "]";
+    return columns.stream()
+        .filter(withNamespace(Namespace.META).negate())
+        .map(c -> c.toString(formatOptions))
+        .collect(Collectors.joining(", ", "[", "]"));
   }
 
-  private Set<ColumnName> metaColumnNames() {
-    return columnNames(metadata);
-  }
-
-  private Set<ColumnName> keyColumnNames() {
-    return columnNames(key);
-  }
-
-  private Set<ColumnName> metaAndKeyColumnNames() {
-    final Set<ColumnName> names = metaColumnNames();
-    names.addAll(keyColumnNames());
-    return names;
-  }
-
-  private static Set<ColumnName> columnNames(final List<Column> struct) {
-    return struct.stream()
-        .map(Column::name)
-        .collect(Collectors.toSet());
-  }
-
-  private static List<Column> addAlias(final SourceName alias, final List<Column> columns) {
-    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
-    for (final Column col : columns) {
-      builder.add(col.withSource(alias));
-    }
-    return builder.build();
-  }
-
-  private static List<Column> removeAlias(final List<Column> columns) {
-    final ImmutableList.Builder<Column> builder = ImmutableList.builder();
-
-    for (final Column col : columns) {
-      builder.add(Column.of(col.name(), col.type()));
-    }
-    return builder.build();
-  }
-
-  private static Optional<Column> doFindColumn(final String column, final List<Column> columns) {
-    return columns
-        .stream()
-        .filter(f -> SchemaUtil.isFieldName(column, f.fullName()))
+  private Optional<NamespacedColumn> findNamespacedColumn(
+      final Predicate<NamespacedColumn> predicate
+  ) {
+    return columns.stream()
+        .filter(predicate)
         .findFirst();
+  }
+
+  private <T> Map<Namespace, List<T>> byNamespace(final Function<NamespacedColumn, T> mapper) {
+    final Map<Namespace, List<T>> byNamespace = columns.stream()
+        .collect(Collectors.groupingBy(
+            NamespacedColumn::namespace,
+            Collectors.mapping(mapper, Collectors.toList())
+        ));
+
+    Arrays.stream(Namespace.values())
+        .forEach(ns -> byNamespace.putIfAbsent(ns, ImmutableList.of()));
+
+    return byNamespace;
+  }
+
+  private LogicalSchema rebuild(final boolean withMetaAndKeyColsInValue) {
+    final Map<Namespace, List<NamespacedColumn>> byNamespace = byNamespace(Function.identity());
+
+    final List<NamespacedColumn> metadata = byNamespace.get(Namespace.META);
+    final List<NamespacedColumn> key = byNamespace.get(Namespace.KEY);
+    final List<NamespacedColumn> value = byNamespace.get(Namespace.VALUE);
+
+    final ImmutableList.Builder<NamespacedColumn> builder = ImmutableList.builder();
+
+    builder.addAll(metadata);
+    builder.addAll(key);
+
+    if (withMetaAndKeyColsInValue) {
+      metadata.stream()
+          .map(c -> NamespacedColumn.of(c.column(), Namespace.VALUE))
+          .forEach(builder::add);
+
+      key.stream()
+          .map(c -> NamespacedColumn.of(c.column(), Namespace.VALUE))
+          .forEach(builder::add);
+    }
+
+    value.stream()
+        .filter(c -> !findNamespacedColumn(
+            (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
+                .and(withName(c.column().name()))
+            )).isPresent())
+        .forEach(builder::add);
+
+    return new LogicalSchema(builder.build());
+  }
+
+  private static Predicate<NamespacedColumn> withName(final ColumnName name) {
+    return c -> c.column().name().equals(name);
+  }
+
+  private static Predicate<NamespacedColumn> withNamespace(final Namespace ns) {
+    return c -> c.namespace() == ns;
+  }
+
+  private static Predicate<NamespacedColumn> withLaxName(final String name) {
+    return c -> SchemaUtil.isFieldName(name, c.column().fullName());
   }
 
   private static ConnectSchema toConnectSchema(
@@ -409,11 +372,19 @@ public final class LogicalSchema {
 
   public static class Builder {
 
-    private final ImmutableList.Builder<Column> keyBuilder = ImmutableList.builder();
-    private final ImmutableList.Builder<Column> valueBuilder = ImmutableList.builder();
+    private final ImmutableList.Builder<NamespacedColumn> explicitColumns = ImmutableList.builder();
 
     private final Set<String> seenKeys = new HashSet<>();
     private final Set<String> seenValues = new HashSet<>();
+
+    private boolean addImplicitRowKey = true;
+    private boolean addImplicitRowTime = true;
+
+    public Builder noImplicitColumns() {
+      addImplicitRowKey = false;
+      addImplicitRowTime = false;
+      return this;
+    }
 
     public Builder keyColumn(final ColumnName columnName, final SqlType type) {
       keyColumn(Column.of(columnName, type));
@@ -424,7 +395,8 @@ public final class LogicalSchema {
       if (!seenKeys.add(column.fullName())) {
         throw new KsqlException("Duplicate keys found in schema: " + column);
       }
-      keyBuilder.add(column);
+      explicitColumns.add(NamespacedColumn.of(column, Namespace.KEY));
+      addImplicitRowKey = false;
       return this;
     }
 
@@ -447,7 +419,7 @@ public final class LogicalSchema {
       if (!seenValues.add(column.fullName())) {
         throw new KsqlException("Duplicate values found in schema: " + column);
       }
-      valueBuilder.add(column);
+      explicitColumns.add(NamespacedColumn.of(column, Namespace.VALUE));
       return this;
     }
 
@@ -457,17 +429,94 @@ public final class LogicalSchema {
     }
 
     public LogicalSchema build() {
-      final List<Column> suppliedKey = keyBuilder.build();
+      final ImmutableList.Builder<NamespacedColumn> allColumns = ImmutableList.builder();
 
-      final List<Column> key = suppliedKey.isEmpty()
-          ? IMPLICIT_KEY_SCHEMA
-          : suppliedKey;
+      if (addImplicitRowTime) {
+        allColumns.add(IMPLICIT_TIME_COLUMN);
+      }
 
-      return new LogicalSchema(
-          METADATA_SCHEMA,
-          key,
-          valueBuilder.build()
-      );
+      if (addImplicitRowKey) {
+        allColumns.add(IMPLICIT_KEY_COLUMN);
+      }
+
+      allColumns.addAll(explicitColumns.build());
+
+      return new LogicalSchema(allColumns.build());
+    }
+  }
+
+  private enum Namespace {
+    META,
+    KEY,
+    VALUE
+  }
+
+  @Immutable
+  private static final class NamespacedColumn {
+
+    private final Column column;
+    private final Namespace namespace;
+
+    static NamespacedColumn of(
+        final Column column,
+        final Namespace namespace
+    ) {
+      return new NamespacedColumn(column, namespace);
+    }
+
+    private NamespacedColumn(
+        final Column column,
+        final Namespace namespace
+    ) {
+      this.column = requireNonNull(column, "column");
+      this.namespace = requireNonNull(namespace, "namespace");
+    }
+
+    Column column() {
+      return column;
+    }
+
+    Namespace namespace() {
+      return namespace;
+    }
+
+    NamespacedColumn withSource(final SourceName sourceName) {
+      return NamespacedColumn.of(column.withSource(sourceName), namespace);
+    }
+
+    NamespacedColumn noSource() {
+      return NamespacedColumn.of(Column.of(column.name(), column.type()), namespace);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final NamespacedColumn that = (NamespacedColumn) o;
+      return Objects.equals(column, that.column)
+          && namespace == that.namespace;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(column, namespace);
+    }
+
+    @Override
+    public String toString() {
+      return toString(FormatOptions.none());
+    }
+
+    public String toString(final FormatOptions formatOptions) {
+      final String postFix = namespace == Namespace.VALUE
+          ? ""
+          : " " + namespace;
+
+      return column.toString(formatOptions) + postFix;
     }
   }
 }

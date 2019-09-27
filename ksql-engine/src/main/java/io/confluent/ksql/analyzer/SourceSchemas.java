@@ -72,14 +72,15 @@ final class SourceSchemas {
     }
 
     final SourceName sourceName = SourceName.of(maybeSourceName.get());
-    final String baseColumnName = SchemaUtil.getFieldNameWithNoAlias(columnName.name());
+    final ColumnName baseColumnName = ColumnName
+        .of(SchemaUtil.getFieldNameWithNoAlias(columnName.name()));
 
     final LogicalSchema sourceSchema = sourceSchemas.get(sourceName);
     if (sourceSchema == null) {
       return ImmutableSet.of();
     }
 
-    return sourceSchema.findColumn(ColumnName.of(baseColumnName)).isPresent()
+    return sourceSchema.findColumn(baseColumnName).isPresent()
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
   }

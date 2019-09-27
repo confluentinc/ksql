@@ -16,7 +16,6 @@
 package io.confluent.ksql.query.id;
 
 import io.confluent.ksql.util.KsqlServerException;
-
 import javax.annotation.concurrent.NotThreadSafe;
 
 /**

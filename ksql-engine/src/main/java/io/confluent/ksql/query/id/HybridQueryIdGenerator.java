@@ -16,7 +16,6 @@
 package io.confluent.ksql.query.id;
 
 import com.google.common.annotations.VisibleForTesting;
-
 import java.util.concurrent.atomic.AtomicReference;
 
 /**

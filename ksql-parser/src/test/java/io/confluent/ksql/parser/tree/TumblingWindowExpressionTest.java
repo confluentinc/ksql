@@ -18,6 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.serde.WindowInfo;

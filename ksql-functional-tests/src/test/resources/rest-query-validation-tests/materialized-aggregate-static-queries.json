@@ -263,7 +263,6 @@
     },
     {
       "name": "text datetime window bounds",
-      "enabled": false,
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -338,6 +337,51 @@
         {"@type": "currentStatus"},
         {"@type": "rows", "rows": [["10", 9]]},
         {"@type": "rows", "rows": []}
+      ]
+    },
+    {
+      "name": "non-windowed with UDAF with different intermediate type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT, AVG(VAL) AS AVG FROM INPUT GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "11", "value": {"val": 1}},
+        {"topic": "test_topic", "key": "10", "value": {"val": 2}},
+        {"topic": "test_topic", "key": "10", "value": {"val": 4}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT, `AVG` DOUBLE",
+          "rows": [["10", 2, 3.0]]
+        }
+      ]
+    },
+    {
+      "name": "windowed with UDAF with different intermediate type",
+      "statements": [
+        "CREATE STREAM INPUT (VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT, AVG(VAL) AS AVG FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=11000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {"VAL": 1}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {"VAL": 6}},
+        {"topic": "test_topic", "timestamp": 11346, "key": "10", "value": {"VAL": 4}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "schema": "`ROWKEY` STRING KEY, `WINDOWSTART` BIGINT KEY, `COUNT` BIGINT, `AVG` DOUBLE",
+          "rows": [
+          ["10", 11000, 2, 5.0]
+        ]}
       ]
     },
     {

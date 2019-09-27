@@ -41,7 +41,7 @@ public final class AggregateParams {
   private final List<KsqlAggregateFunction<?, ?, ?>> functions;
   private final KudafAggregatorFactory aggregatorFactory;
 
-  AggregateParams(
+  public AggregateParams(
       final LogicalSchema internalSchema,
       final int initialUdafIndex,
       final FunctionRegistry functionRegistry,

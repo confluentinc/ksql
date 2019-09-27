@@ -88,6 +88,8 @@ public class KsqlMaterializationTest {
   @Mock
   private Materialization inner;
   @Mock
+  private Function<GenericRow, GenericRow> aggregateTransform;
+  @Mock
   private Predicate<Struct, GenericRow> havingPredicate;
   @Mock
   private Function<GenericRow, GenericRow> storeToTableTransform;
@@ -103,6 +105,7 @@ public class KsqlMaterializationTest {
   public void setUp() {
     materialization = new KsqlMaterialization(
         inner,
+        aggregateTransform,
         havingPredicate,
         storeToTableTransform,
         SCHEMA
@@ -113,6 +116,8 @@ public class KsqlMaterializationTest {
 
     when(innerNonWindowed.get(any())).thenReturn(Optional.of(ROW));
     when(innerWindowed.get(any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
+
+    when(aggregateTransform.apply(any())).thenAnswer(inv -> inv.getArgument(0));
 
     when(havingPredicate.test(any(), any())).thenReturn(true);
 
@@ -271,7 +276,7 @@ public class KsqlMaterializationTest {
   }
 
   @Test
-  public void shouldTransformRowAfterFilterNonWindowed() {
+  public void shouldAggregateMapThenTransformRowThenFilterNonWindowed() {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
 
@@ -279,13 +284,14 @@ public class KsqlMaterializationTest {
     table.get(A_KEY);
 
     // Then:
-    final InOrder inOrder = inOrder(havingPredicate, storeToTableTransform);
+    final InOrder inOrder = inOrder(aggregateTransform, havingPredicate, storeToTableTransform);
+    inOrder.verify(aggregateTransform).apply(any());
     inOrder.verify(havingPredicate).test(any(), any());
     inOrder.verify(storeToTableTransform).apply(any());
   }
 
   @Test
-  public void shouldTransformRowAfterFilterWindowed() {
+  public void shouldAggregateMapThenTransformRowThenFilterWindowed() {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
 
@@ -293,9 +299,36 @@ public class KsqlMaterializationTest {
     table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    final InOrder inOrder = inOrder(havingPredicate, storeToTableTransform);
+    final InOrder inOrder = inOrder(aggregateTransform, havingPredicate, storeToTableTransform);
+    inOrder.verify(aggregateTransform).apply(any());
     inOrder.verify(havingPredicate).test(any(), any());
     inOrder.verify(storeToTableTransform).apply(any());
+  }
+
+  @Test
+  public void shouldUseAggregateTransformedFromNonWindowed() {
+    // Given:
+    final MaterializedTable table = materialization.nonWindowed();
+    when(aggregateTransform.apply(any())).thenReturn(TRANSFORMED);
+
+    // When:
+    table.get(A_KEY);
+
+    // Then:
+    verify(havingPredicate).test(A_KEY, TRANSFORMED);
+  }
+
+  @Test
+  public void shouldUseAggregateTransformedFromWindowed() {
+    // Given:
+    final MaterializedWindowedTable table = materialization.windowed();
+    when(aggregateTransform.apply(any())).thenReturn(TRANSFORMED);
+
+    // When:
+    table.get(A_KEY, AN_INSTANT, AN_INSTANT);
+
+    // Then:
+    verify(havingPredicate).test(A_KEY, TRANSFORMED);
   }
 
   @Test
@@ -324,7 +357,7 @@ public class KsqlMaterializationTest {
 
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Test
-  public void shouldReturnTransformedFromNonWindowed() {
+  public void shouldReturnSelectTransformedFromNonWindowed() {
     // Given:
     final MaterializedTable table = materialization.nonWindowed();
     when(storeToTableTransform.apply(any())).thenReturn(TRANSFORMED);
@@ -340,7 +373,7 @@ public class KsqlMaterializationTest {
   }
 
   @Test
-  public void shouldReturnTransformedFromWindowed() {
+  public void shouldReturnSelectTransformedFromWindowed() {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
     when(storeToTableTransform.apply(any())).thenReturn(TRANSFORMED);

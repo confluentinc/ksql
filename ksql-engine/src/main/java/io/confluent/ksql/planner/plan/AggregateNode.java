@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.materialization.AggregatesInfo;
 import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
@@ -248,6 +249,8 @@ public class AggregateNode extends PlanNode {
 
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
+    // This is the schema post any {@link Udaf#map} steps to reduce intermediate aggregate state
+    // to the final output state
     final LogicalSchema outputSchema = buildLogicalSchema(
         prepareSchema,
         functionsWithInternalIdentifiers,
@@ -280,8 +283,15 @@ public class AggregateNode extends PlanNode {
     final List<SelectExpression> finalSelects = internalSchema
         .updateFinalSelectExpressions(getFinalSelectExpressions());
 
+    final AggregatesInfo aggregatesInfo = AggregatesInfo.of(
+        requiredColumns.size(),
+        functionsWithInternalIdentifiers,
+        prepareSchema
+    );
+
     materializationInfo = Optional.of(MaterializationInfo.of(
         AGGREGATE_STATE_STORE_NAME,
+        aggregatesInfo,
         outputSchema,
         havingExpression,
         schema,

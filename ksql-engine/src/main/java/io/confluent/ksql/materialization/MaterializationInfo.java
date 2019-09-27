@@ -32,6 +32,7 @@ import java.util.Optional;
 public final class MaterializationInfo {
 
   private final String stateStoreName;
+  private final AggregatesInfo aggregatesInfo;
   private final LogicalSchema aggregationSchema;
   private final Optional<Expression> havingExpression;
   private final LogicalSchema tableSchema;
@@ -41,7 +42,8 @@ public final class MaterializationInfo {
    * Create instance.
    *
    * @param stateStoreName the name of the state store
-   * @param stateStoreSchema the schema of the state store
+   * @param aggregatesInfo info about the aggregate functions used.
+   * @param aggregationSchema the schema of the state store
    * @param havingExpression optional HAVING expression that should be apply to any store result.
    * @param tableSchema the schema of the table.
    * @param tableSelects SELECT expressions to convert state store schema to table schema.
@@ -49,14 +51,16 @@ public final class MaterializationInfo {
    */
   public static MaterializationInfo of(
       final String stateStoreName,
-      final LogicalSchema stateStoreSchema,
+      final AggregatesInfo aggregatesInfo,
+      final LogicalSchema aggregationSchema,
       final Optional<Expression> havingExpression,
       final LogicalSchema tableSchema,
       final List<SelectExpression> tableSelects
   ) {
     return new MaterializationInfo(
         stateStoreName,
-        stateStoreSchema,
+        aggregatesInfo,
+        aggregationSchema,
         havingExpression,
         tableSchema,
         tableSelects
@@ -65,6 +69,10 @@ public final class MaterializationInfo {
 
   public String stateStoreName() {
     return stateStoreName;
+  }
+
+  public AggregatesInfo aggregatesInfo() {
+    return aggregatesInfo;
   }
 
   public LogicalSchema aggregationSchema() {
@@ -85,12 +93,14 @@ public final class MaterializationInfo {
 
   private MaterializationInfo(
       final String stateStoreName,
+      final AggregatesInfo aggregatesInfo,
       final LogicalSchema aggregationSchema,
       final Optional<Expression> havingExpression,
       final LogicalSchema tableSchema,
       final List<SelectExpression> tableSelects
   ) {
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
+    this.aggregatesInfo = requireNonNull(aggregatesInfo, "aggregatesInfo");
     this.aggregationSchema = requireNonNull(aggregationSchema, "aggregationSchema");
     this.havingExpression = requireNonNull(havingExpression, "havingExpression");
     this.tableSchema = requireNonNull(tableSchema, "tableSchema");

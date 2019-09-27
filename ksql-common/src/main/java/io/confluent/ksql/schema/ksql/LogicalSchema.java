@@ -146,7 +146,7 @@ public final class LogicalSchema {
    * @see #findValueColumn(ColumnName)
    */
   public Optional<Column> findValueColumn(final String columnName) {
-    return findNamespacedColumn(withLaxName(columnName).and(withNamespace(Namespace.VALUE)))
+    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(withLaxName(columnName)))
         .map(NamespacedColumn::column);
   }
 
@@ -336,9 +336,9 @@ public final class LogicalSchema {
 
     value.stream()
         .filter(c -> !findNamespacedColumn(
-            withName(c.column().name())
-                .and(withNamespace(Namespace.META)
-                    .or(withNamespace(Namespace.KEY)))).isPresent())
+            (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
+                .and(withName(c.column().name()))
+            )).isPresent())
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());

@@ -76,7 +76,7 @@ public class TableRowsEntity extends KsqlEntity {
     final int actualSize = row.size();
 
     if (expectedSize != actualSize) {
-      throw new IllegalArgumentException("field count mismatch."
+      throw new IllegalArgumentException("column count mismatch."
           + " expected: " + expectedSize
           + ", got: " + actualSize
       );

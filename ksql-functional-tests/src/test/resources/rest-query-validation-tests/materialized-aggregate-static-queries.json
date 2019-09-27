@@ -27,45 +27,6 @@
       ]
     },
     {
-      "name": "non-windowed with projection",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
-        "SELECT COUNT, CONCAT(ID, 'x') AS ID, COUNT * 2 FROM AGGREGATE WHERE ROWKEY='10';"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": "11", "value": {}},
-        {"topic": "test_topic", "key": "10", "value": {}}
-      ],
-      "responses": [
-        {"@type": "currentStatus"},
-        {"@type": "currentStatus"},
-        {"@type": "rows", "rows": [
-          ["10", 1, "10x", 2]
-        ]}
-      ]
-    },
-    {
-      "name": "windowed with projection",
-      "statements": [
-        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
-        "SELECT COUNT, CONCAT(ID, 'x') AS ID, COUNT * 2 FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
-        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}},
-        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}}
-      ],
-      "responses": [
-        {"@type": "currentStatus"},
-        {"@type": "currentStatus"},
-        {"@type": "rows", "rows": [
-          ["10", 12000, 1, "10x", 2]
-        ]}
-      ]
-    },
-    {
       "name": "tumbling windowed single key lookup with exact window start",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
@@ -232,6 +193,92 @@
             ["10", 12345, 13456, 2],
             ["10", 24456, 24456, 1]
           ]
+        }
+      ]
+    },
+    {
+      "name": "non-windowed with projection",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT COUNT, CONCAT(ID, 'x') AS ID, COUNT * 2 FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "11", "value": {}},
+        {"topic": "test_topic", "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "schema": "`COUNT` BIGINT, `ID` STRING, `KSQL_COL_2` BIGINT",
+          "rows": [[1, "10x", 2]]
+        }
+      ]
+    },
+    {
+      "name": "windowed with projection",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT COUNT, CONCAT(ID, 'x') AS ID, COUNT * 2 FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "schema": "`COUNT` BIGINT, `ID` STRING, `KSQL_COL_2` BIGINT",
+          "rows": [[1, "10x", 2]]
+        }
+      ]
+    },
+    {
+      "name": "non-windowed projection WITH ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
+        "SELECT ROWKEY, COUNT FROM AGGREGATE WHERE ROWKEY='10';"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": "11", "value": {}},
+        {"topic": "test_topic", "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "schema": "`ROWKEY` STRING KEY, `COUNT` BIGINT",
+          "rows": [["10", 1]]
+        }
+      ]
+    },
+    {
+      "name": "windowed with projection with ROWKEY",
+      "statements": [
+        "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
+        "SELECT COUNT, ROWKEY FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart=12000;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "timestamp": 12345, "key": "11", "value": {}},
+        {"topic": "test_topic", "timestamp": 11345, "key": "10", "value": {}},
+        {"topic": "test_topic", "timestamp": 12345, "key": "10", "value": {}}
+      ],
+      "responses": [
+        {"@type": "currentStatus"},
+        {"@type": "currentStatus"},
+        {
+          "@type": "rows",
+          "schema": "`COUNT` BIGINT, `ROWKEY` STRING KEY",
+          "rows": [[1, "10"]]
         }
       ]
     },

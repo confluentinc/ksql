@@ -140,7 +140,7 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitQualifiedNameReference(final ColumnReferenceExp node,
+    public String visitColumnReference(final ColumnReferenceExp node,
         final Context context) {
       return node.getReference().toString(context.formatOptions);
     }

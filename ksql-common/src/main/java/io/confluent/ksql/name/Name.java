@@ -42,20 +42,6 @@ public abstract class Name<T extends Name<?>> {
     return name;
   }
 
-  /**
-   * @see String#equalsIgnoreCase(String)
-   */
-  public boolean equalsIgnoreCase(final T o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-
-    return name.equalsIgnoreCase(o.name());
-  }
-
   public boolean startsWith(final T o) {
     if (this == o) {
       return true;

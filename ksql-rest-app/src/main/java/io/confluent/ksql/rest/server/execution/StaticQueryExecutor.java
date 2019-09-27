@@ -634,7 +634,7 @@ public final class StaticQueryExecutor {
             + System.lineSeparator()
             + "    + a single window lower bound, e.g. `WHERE WINDOWSTART = z`, or"
             + System.lineSeparator()
-            + "    + a range, e.g. `WHERE a < WINDOWSTART AND WINDOWSTART < b"
+            + "    + a range, e.g. `WHERE a <= WINDOWSTART AND WINDOWSTART < b"
             + System.lineSeparator()
             + "WINDOWSTART currently supports operators: " + VALID_WINDOW_BOUNDS_TYPES_STRING
             + System.lineSeparator()

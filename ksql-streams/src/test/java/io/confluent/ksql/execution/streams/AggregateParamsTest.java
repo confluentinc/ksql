@@ -4,7 +4,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -17,6 +19,7 @@ import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.execution.streams.AggregateParams.KudafAggregatorFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -75,6 +78,10 @@ public class AggregateParamsTest {
   private TableAggregationFunction tableAgg;
   @Mock
   private KsqlAggregateFunction windowStart;
+  @Mock
+  private KudafAggregatorFactory udafFactory;
+  @Mock
+  private KudafAggregator aggregator;
 
   private AggregateParams aggregateParams;
 
@@ -98,11 +105,28 @@ public class AggregateParamsTest {
     when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(windowStart.getInstance(any())).thenReturn(windowStart);
     when(windowStart.getFunctionName()).thenReturn(WINDOW_START.getName().name());
+
+    when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
+
     aggregateParams = new AggregateParams(
         INPUT_SCHEMA,
         2,
         functionRegistry,
-        FUNCTIONS
+        FUNCTIONS,
+        udafFactory
+    );
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldCreateAggregatorWithCorrectParams() {
+    // When:
+    aggregateParams.getAggregator();
+
+    // Then:
+    verify(udafFactory).create(
+        2,
+         ImmutableList.of(agg0Resolved, agg1Resolved)
     );
   }
 
@@ -112,11 +136,7 @@ public class AggregateParamsTest {
     final KudafAggregator aggregator = aggregateParams.getAggregator();
 
     // Then:
-    assertThat(aggregator.getNonFuncColumnCount(), equalTo(2));
-    assertThat(
-        aggregator.getAggValToAggFunctionMap(),
-        equalTo(ImmutableList.of(agg0Resolved, agg1Resolved))
-    );
+    assertThat(aggregator, is(aggregator));
   }
 
   @Test

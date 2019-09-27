@@ -389,7 +389,7 @@ public final class ExpressionTreeRewriter<C> {
     }
 
     @Override
-    public Expression visitQualifiedNameReference(
+    public Expression visitColumnReference(
         final ColumnReferenceExp node,
         final C context) {
       return plugin.apply(node, new Context<>(context, this)).orElse(node);

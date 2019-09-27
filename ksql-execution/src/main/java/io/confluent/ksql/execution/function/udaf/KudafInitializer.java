@@ -29,7 +29,7 @@ public class KudafInitializer implements Initializer<GenericRow> {
   private final List<Supplier> initialValueSuppliers;
   private final int nonAggValSize;
 
-  public KudafInitializer(final int nonAggValSize, final List<Supplier> initialValueSuppliers) {
+  public KudafInitializer(final int nonAggValSize, final List<Supplier<?>> initialValueSuppliers) {
     this.nonAggValSize = nonAggValSize;
     this.initialValueSuppliers = ImmutableList.copyOf(
         Objects.requireNonNull(initialValueSuppliers, "initialValueSuppliers")

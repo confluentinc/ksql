@@ -31,6 +31,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -79,7 +80,8 @@ public class KsqlContext implements AutoCloseable {
         serviceContext,
         processingLogContext,
         functionRegistry,
-        serviceInfo);
+        serviceInfo,
+        new SequentialQueryIdGenerator());
 
     return new KsqlContext(
         serviceContext,

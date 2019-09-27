@@ -28,6 +28,12 @@ public final class FormatOptions {
     return new FormatOptions(word -> true);
   }
 
+  /**
+   * @return options that escape nothing
+   * @apiNote this is <i>dangerous</i> and could cause reserved identifiers
+   *          to be mangled. Use this API sparingly (e.g. in logging error
+   *          messages)
+   */
   public static FormatOptions noEscape() {
     return new FormatOptions(word -> false);
   }

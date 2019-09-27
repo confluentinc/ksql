@@ -92,9 +92,9 @@ public final class SchemaUtil {
 
   private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
       ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
-          .put(Type.MAP, SchemaUtil::mapEquals)
-          .put(Type.ARRAY, SchemaUtil::arrayEquals)
-          .put(Type.STRUCT, SchemaUtil::structEquals)
+          .put(Type.MAP, SchemaUtil::mapCompatible)
+          .put(Type.ARRAY, SchemaUtil::arrayCompatible)
+          .put(Type.STRUCT, SchemaUtil::structCompatible)
           .put(Type.BYTES, SchemaUtil::bytesEquals)
           .build();
 
@@ -350,16 +350,16 @@ public final class SchemaUtil {
         && Objects.deepEquals(arg1.defaultValue(), arg2.defaultValue());
   }
 
-  private static boolean mapEquals(final Schema mapA, final Schema mapB) {
+  private static boolean mapCompatible(final Schema mapA, final Schema mapB) {
     return areCompatible(mapA.keySchema(), mapB.keySchema())
         && areCompatible(mapA.valueSchema(), mapB.valueSchema());
   }
 
-  private static boolean arrayEquals(final Schema arrayA, final Schema arrayB) {
+  private static boolean arrayCompatible(final Schema arrayA, final Schema arrayB) {
     return areCompatible(arrayA.valueSchema(), arrayB.valueSchema());
   }
 
-  private static boolean structEquals(final Schema structA, final Schema structB) {
+  private static boolean structCompatible(final Schema structA, final Schema structB) {
     return structA.fields().isEmpty()
         || structB.fields().isEmpty()
         || compareFieldsOfStructs(structA, structB);

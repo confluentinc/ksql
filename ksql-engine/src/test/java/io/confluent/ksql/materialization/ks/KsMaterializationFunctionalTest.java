@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.integration.IntegrationTestHarness;
@@ -291,19 +292,19 @@ public class KsMaterializationFunctionalTest {
 
       assertThat(
           "at exact window start",
-          table.get(key, w.start(), w.start()),
+          table.get(key, Range.singleton(w.start())),
           contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "range including window start",
-          table.get(key, w.start().minusMillis(1), w.start().plusMillis(1)),
+          table.get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))),
           contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "past start",
-          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)),
+          table.get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))),
           is(empty())
       );
     });
@@ -339,19 +340,19 @@ public class KsMaterializationFunctionalTest {
 
       assertThat(
           "at exact window start",
-          table.get(key, w.start(), w.start()),
+          table.get(key, Range.singleton(w.start())),
           contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "range including window start",
-          table.get(key, w.start().minusMillis(1), w.start().plusMillis(1)),
+          table.get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))),
           contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "past start",
-          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)),
+          table.get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))),
           is(empty())
       );
     });
@@ -386,19 +387,19 @@ public class KsMaterializationFunctionalTest {
 
       assertThat(
           "at exact window start",
-          table.get(key, w.start(), w.start()),
+          table.get(key, Range.singleton(w.start())),
           contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "range including window start",
-          table.get(key, w.start().minusMillis(1), w.start().plusMillis(1)),
+          table.get(key, Range.closed(w.start().minusMillis(1), w.start().plusMillis(1))),
           contains(WindowedRow.of(schema, key, w, v))
       );
 
       assertThat(
           "past start",
-          table.get(key, w.start().plusMillis(1), w.start().plusMillis(1)),
+          table.get(key, Range.closed(w.start().plusMillis(1), w.start().plusMillis(1))),
           is(empty())
       );
     });

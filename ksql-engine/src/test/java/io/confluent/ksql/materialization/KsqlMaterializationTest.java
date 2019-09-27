@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
@@ -63,8 +64,10 @@ public class KsqlMaterializationTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.asStructKey("k");
-  private static final Instant AN_INSTANT = Instant.now();
-  private static final Instant LATER_INSTANT = AN_INSTANT.plusSeconds(10);
+  private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
+      Instant.now(),
+      Instant.now().plusSeconds(10)
+  );
   private static final GenericRow A_VALUE = new GenericRow("a", "b");
   private static final GenericRow TRANSFORMED = new GenericRow("x", "y");
   private static final Window A_WINDOW = Window.of(Instant.now(), Optional.empty());
@@ -109,7 +112,7 @@ public class KsqlMaterializationTest {
     when(inner.windowed()).thenReturn(innerWindowed);
 
     when(innerNonWindowed.get(any())).thenReturn(Optional.of(ROW));
-    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
+    when(innerWindowed.get(any(), any())).thenReturn(ImmutableList.of(WINDOWED_ROW));
 
     when(havingPredicate.test(any(), any())).thenReturn(true);
 
@@ -185,10 +188,10 @@ public class KsqlMaterializationTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(innerWindowed).get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    verify(innerWindowed).get(A_KEY, WINDOW_START_BOUNDS);
   }
 
   @Test
@@ -209,7 +212,7 @@ public class KsqlMaterializationTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(havingPredicate).test(A_KEY, A_VALUE);
@@ -232,10 +235,10 @@ public class KsqlMaterializationTest {
   public void shouldReturnEmptyIfInnerWindowedReturnsEmpty() {
     // Given:
     final MaterializedWindowedTable table = materialization.windowed();
-    when(innerWindowed.get(any(), any(), any())).thenReturn(ImmutableList.of());
+    when(innerWindowed.get(any(), any())).thenReturn(ImmutableList.of());
 
     // When:
-    final List<?> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -261,7 +264,7 @@ public class KsqlMaterializationTest {
     when(havingPredicate.test(any(), any())).thenReturn(false);
 
     // When:
-    final List<?> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -287,7 +290,7 @@ public class KsqlMaterializationTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     final InOrder inOrder = inOrder(havingPredicate, storeToTableTransform);
@@ -313,7 +316,7 @@ public class KsqlMaterializationTest {
     final MaterializedWindowedTable table = materialization.windowed();
 
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(storeToTableTransform).apply(A_VALUE);
@@ -343,7 +346,7 @@ public class KsqlMaterializationTest {
     when(storeToTableTransform.apply(any())).thenReturn(TRANSFORMED);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, AN_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, hasSize(1));
@@ -367,10 +370,10 @@ public class KsqlMaterializationTest {
         WindowedRow.of(SCHEMA, A_KEY, window3, A_VALUE)
     );
 
-    when(innerWindowed.get(any(), any(), any())).thenReturn(rows);
+    when(innerWindowed.get(any(), any())).thenReturn(rows);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, hasSize(rows.size()));

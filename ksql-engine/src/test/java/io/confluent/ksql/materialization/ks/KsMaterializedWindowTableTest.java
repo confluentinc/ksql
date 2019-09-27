@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
@@ -60,8 +61,11 @@ public class KsMaterializedWindowTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
-  private static final Instant AN_INSTANT = Instant.now();
-  private static final Instant LATER_INSTANT = AN_INSTANT.plusSeconds(10);
+
+  private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
+      Instant.now(),
+      Instant.now().plusSeconds(10)
+  );
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -102,7 +106,7 @@ public class KsMaterializedWindowTableTest {
     expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
 
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
   }
 
   @Test
@@ -117,14 +121,14 @@ public class KsMaterializedWindowTableTest {
     expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
 
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(stateStore).store(any(WindowStoreType.class));
@@ -133,16 +137,20 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldFetchWithCorrectParams() {
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
-    verify(tableStore).fetch(A_KEY, AN_INSTANT, LATER_INSTANT);
+    verify(tableStore).fetch(
+        A_KEY,
+        WINDOW_START_BOUNDS.lowerEndpoint(),
+        WINDOW_START_BOUNDS.upperEndpoint()
+    );
   }
 
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -151,7 +159,7 @@ public class KsMaterializedWindowTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -176,7 +184,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, contains(
@@ -203,7 +211,7 @@ public class KsMaterializedWindowTableTest {
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, AN_INSTANT, LATER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, contains(

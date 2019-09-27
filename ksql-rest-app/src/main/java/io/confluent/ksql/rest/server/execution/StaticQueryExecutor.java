@@ -15,12 +15,11 @@
 
 package io.confluent.ksql.rest.server.execution;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.GenericRow;
@@ -156,16 +155,16 @@ public final class StaticQueryExecutor {
       }
 
       Result result;
-      if (whereInfo.windowBounds.isPresent()) {
-        final WindowBounds windowBounds = whereInfo.windowBounds.get();
+      if (whereInfo.windowStartBounds.isPresent()) {
+        final Range<Instant> windowStart = whereInfo.windowStartBounds.get();
 
         final List<? extends TableRow> rows = mat.windowed()
-            .get(rowKey, windowBounds.lower, windowBounds.upper);
+            .get(rowKey, windowStart);
 
         result = new Result(mat.schema(), rows);
       } else {
-        final List<? extends TableRow> rows = mat
-            .nonWindowed().get(rowKey)
+        final List<? extends TableRow> rows = mat.nonWindowed()
+            .get(rowKey)
             .map(ImmutableList::of)
             .orElse(ImmutableList.of());
 
@@ -203,32 +202,17 @@ public final class StaticQueryExecutor {
     return queryAnalyzer.analyze(statement.getStatement(), Optional.empty());
   }
 
-  private static final class WindowBounds {
-
-    private final Instant lower;
-    private final Instant upper;
-
-    private WindowBounds(final Instant lower, final Instant upper) {
-      this.lower = requireNonNull(lower, "lower");
-      this.upper = requireNonNull(upper, "upper'");
-
-      if (lower.isAfter(upper)) {
-        throw new KsqlException("Lower window bound must be less than upper bound");
-      }
-    }
-  }
-
   private static final class WhereInfo {
 
     private final Object rowkey;
-    private final Optional<WindowBounds> windowBounds;
+    private final Optional<Range<Instant>> windowStartBounds;
 
     private WhereInfo(
         final Object rowkey,
-        final Optional<WindowBounds> windowBounds
+        final Optional<Range<Instant>> windowStartBounds
     ) {
       this.rowkey = rowkey;
-      this.windowBounds = windowBounds;
+      this.windowStartBounds = windowStartBounds;
     }
   }
 
@@ -282,9 +266,9 @@ public final class StaticQueryExecutor {
       );
     }
 
-    final WindowBounds windowBounds = extractWhereClauseWindowBounds(windowBoundsComparison);
+    final Range<Instant> windowStart = extractWhereClauseWindowBounds(windowBoundsComparison);
 
-    return new WhereInfo(rowKey, Optional.of(windowBounds));
+    return new WhereInfo(rowKey, Optional.of(windowStart));
   }
 
   private static Object extractRowKeyWhereClause(
@@ -313,7 +297,7 @@ public final class StaticQueryExecutor {
     return right.getValue();
   }
 
-  private static WindowBounds extractWhereClauseWindowBounds(
+  private static Range<Instant> extractWhereClauseWindowBounds(
       final List<ComparisonExpression> comparisons
   ) {
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
@@ -353,7 +337,7 @@ public final class StaticQueryExecutor {
       }
 
       final Instant windowStart = extractWindowBound(equals);
-      return new WindowBounds(windowStart, windowStart);
+      return Range.singleton(windowStart);
     }
 
     final ComparisonExpression upper = singles.get(Type.LESS_THAN);
@@ -374,7 +358,7 @@ public final class StaticQueryExecutor {
 
     final Instant upperBound = extractWindowBound(upper);
     final Instant lowerBound = extractWindowBound(lower);
-    return new WindowBounds(lowerBound, upperBound);
+    return Range.closed(lowerBound, upperBound);
   }
 
   private static Type getBoundType(final ComparisonExpression comparison) {

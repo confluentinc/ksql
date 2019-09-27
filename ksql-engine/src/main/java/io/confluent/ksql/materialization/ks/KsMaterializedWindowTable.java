@@ -17,6 +17,7 @@ package io.confluent.ksql.materialization.ks;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializedWindowedTable;
@@ -46,12 +47,14 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
   @Override
   public List<WindowedRow> get(
       final Struct key,
-      final Instant lower,
-      final Instant upper
+      final Range<Instant> windowStart
   ) {
     try {
       final ReadOnlyWindowStore<Struct, GenericRow> store = stateStore
           .store(QueryableStoreTypes.windowStore());
+
+      final Instant lower = windowStart.lowerEndpoint();
+      final Instant upper = windowStart.upperEndpoint();
 
       try (WindowStoreIterator<GenericRow> it = store.fetch(key, lower, upper)) {
 

@@ -24,6 +24,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.Range;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.GenericRow;
@@ -66,6 +67,10 @@ public class KsMaterializedSessionTableTest {
 
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
+  private static final Range<Instant> WINDOW_START_BOUNDS = Range.closed(
+    LOWER_INSTANT,
+    UPPER_INSTANT
+  );
   private static final GenericRow A_VALUE = new GenericRow("c0l");
 
   @Rule
@@ -115,7 +120,7 @@ public class KsMaterializedSessionTableTest {
     expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
 
     // When:
-    table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
   }
 
   @Test
@@ -129,14 +134,14 @@ public class KsMaterializedSessionTableTest {
     expectedException.expectCause(instanceOf(MaterializationTimeOutException.class));
 
     // When:
-    table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldGetStoreWithCorrectParams() {
     // When:
-    table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(stateStore).store(any(SessionStoreType.class));
@@ -145,7 +150,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldFetchWithCorrectParams() {
     // When:
-    table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(sessionStore).fetch(A_KEY);
@@ -154,7 +159,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldCloseIterator() {
     // When:
-    table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     verify(fetchIterator).close();
@@ -163,7 +168,7 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnEmptyIfKeyNotPresent() {
     // When:
-    final List<?> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -175,7 +180,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.minusMillis(1));
 
     // When:
-    final List<?> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -187,7 +192,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<?> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<?> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, is(empty()));
@@ -199,7 +204,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -216,7 +221,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -233,7 +238,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(LOWER_INSTANT.plusMillis(1), UPPER_INSTANT.plusMillis(5));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -251,7 +256,7 @@ public class KsMaterializedSessionTableTest {
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, LOWER_INSTANT, UPPER_INSTANT);
+    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
 
     // Then:
     assertThat(result, contains(

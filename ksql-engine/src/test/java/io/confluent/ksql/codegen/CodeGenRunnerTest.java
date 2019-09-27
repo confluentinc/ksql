@@ -76,6 +76,8 @@ import org.junit.rules.ExpectedException;
 @SuppressWarnings({"SameParameterValue", "OptionalGetWithoutIsPresent"})
 public class CodeGenRunnerTest {
 
+    private static final String COL_INVALID_JAVA = "col!Invalid:(";
+
     private static final LogicalSchema META_STORE_SCHEMA = LogicalSchema.builder()
         .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
@@ -96,6 +98,7 @@ public class CodeGenRunnerTest {
             .struct()
             .field("A", SqlTypes.STRING)
             .build())
+        .valueColumn(ColumnName.of(COL_INVALID_JAVA), SqlTypes.BIGINT)
         .build();
 
     private static final int INT64_INDEX1 = 0;
@@ -112,6 +115,7 @@ public class CodeGenRunnerTest {
     private static final int MAP_INDEX1 = 11;
     private static final int MAP_INDEX2 = 12;
     private static final int STRUCT_INDEX = 15;
+    private static final int INVALID_JAVA_IDENTIFIER_INDEX = 16;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
         .toConnectSchema(META_STORE_SCHEMA.findValueColumn("COL15").get().type());
@@ -123,7 +127,8 @@ public class CodeGenRunnerTest {
         ImmutableMap.of("k1", 4),
         ImmutableList.of("one", "two"),
         ImmutableList.of(ImmutableList.of("1", "2"), ImmutableList.of("3")),
-        new Struct(STRUCT_SCHEMA).put("A", "VALUE"));
+        new Struct(STRUCT_SCHEMA).put("A", "VALUE"),
+        (long) INVALID_JAVA_IDENTIFIER_INDEX);
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();
@@ -654,6 +659,25 @@ public class CodeGenRunnerTest {
 
         // Then:
         assertThat(result, is("value1"));
+    }
+
+    @Test
+    public void shouldHandleInvalidJavaIdentifiers() {
+        // Given:
+        final Expression expression = analyzeQuery(
+            "SELECT `" + COL_INVALID_JAVA + "` FROM codegen_test EMIT CHANGES;",
+            metaStore)
+            .getSelectExpressions()
+            .get(0)
+            .getExpression();
+
+        // When:
+        final Object result = codeGenRunner
+            .buildCodeGenFromParseTree(expression, "math")
+            .evaluate(genericRow(ONE_ROW));
+
+        // Then:
+        assertThat(result, is((long) INVALID_JAVA_IDENTIFIER_INDEX));
     }
 
     @Test

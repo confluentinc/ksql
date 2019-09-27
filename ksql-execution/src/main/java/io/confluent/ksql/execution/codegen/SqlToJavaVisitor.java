@@ -77,6 +77,7 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -128,12 +129,18 @@ public class SqlToJavaVisitor {
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
+  private final Function<String, String> fieldToParamName;
 
-  public SqlToJavaVisitor(final LogicalSchema schema, final FunctionRegistry functionRegistry) {
+  public SqlToJavaVisitor(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final Function<String, String> fieldToParamName
+  ) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
+    this.fieldToParamName = Objects.requireNonNull(fieldToParamName, "fieldToParamName");
   }
 
   public String process(final Expression expression) {
@@ -272,7 +279,7 @@ public class SqlToJavaVisitor {
               new KsqlException("Field not found: " + fieldName));
 
       final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
-      return new Pair<>(fieldName.replace(".", "_"), schema);
+      return new Pair<>(fieldToParamName.apply(fieldName), schema);
     }
 
     @Override
@@ -310,7 +317,10 @@ public class SqlToJavaVisitor {
         final Void context) {
       final String functionName = node.getName().name();
 
-      final String instanceName = functionName + "_" + functionCounter++;
+      final String instanceName = fieldToParamName.apply(
+          CodeGenUtil.functionName(functionName, functionCounter++)
+      );
+
       final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
       final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
       final String arguments = node.getArguments().stream()

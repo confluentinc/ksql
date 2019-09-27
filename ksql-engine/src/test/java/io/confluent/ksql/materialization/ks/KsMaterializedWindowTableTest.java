@@ -166,8 +166,13 @@ public class KsMaterializedWindowTableTest {
   }
 
   @Test
-  public void shouldReturnValueIfKeyPresent() {
+  public void shouldReturnValuesForClosedBounds() {
     // Given:
+    final Range<Instant> bounds = Range.closed(
+        Instant.now(),
+        Instant.now().plusSeconds(10)
+    );
+
     final GenericRow value1 = new GenericRow("col0");
     final GenericRow value2 = new GenericRow("col1");
 
@@ -177,19 +182,59 @@ public class KsMaterializedWindowTableTest {
         .thenReturn(false);
 
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(1L, value1))
-        .thenReturn(new KeyValue<>(2L, value2))
+        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), value1))
+        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), value2))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, bounds);
 
     // Then:
     assertThat(result, contains(
-        WindowedRow.of(SCHEMA, A_KEY, Window.of(Instant.ofEpochMilli(1), Optional.empty()), value1),
-        WindowedRow.of(SCHEMA, A_KEY, Window.of(Instant.ofEpochMilli(2), Optional.empty()), value2)
+        WindowedRow.of(SCHEMA, A_KEY, Window.of(bounds.lowerEndpoint(), Optional.empty()), value1),
+        WindowedRow.of(SCHEMA, A_KEY, Window.of(bounds.upperEndpoint(), Optional.empty()), value2)
+    ));
+  }
+
+  @Test
+  public void shouldReturnValuesForOpenBounds() {
+    // Given:
+    final Range<Instant> bounds = Range.open(
+        Instant.now(),
+        Instant.now().plusSeconds(10)
+    );
+
+    final GenericRow value1 = new GenericRow("col0");
+    final GenericRow value2 = new GenericRow("col1");
+    final GenericRow value3 = new GenericRow("col2");
+
+    when(fetchIterator.hasNext())
+        .thenReturn(true)
+        .thenReturn(true)
+        .thenReturn(true)
+        .thenReturn(false);
+
+    when(fetchIterator.next())
+        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().toEpochMilli(), value1))
+        .thenReturn(new KeyValue<>(bounds.lowerEndpoint().plusMillis(1).toEpochMilli(), value2))
+        .thenReturn(new KeyValue<>(bounds.upperEndpoint().toEpochMilli(), value3))
+        .thenThrow(new AssertionError());
+
+    when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, bounds);
+
+    // Then:
+    assertThat(result, contains(
+        WindowedRow.of(
+            SCHEMA,
+            A_KEY,
+            Window.of(bounds.lowerEndpoint().plusMillis(1), Optional.empty()),
+            value2
+        )
     ));
   }
 
@@ -202,10 +247,12 @@ public class KsMaterializedWindowTableTest {
         .thenReturn(true)
         .thenReturn(false);
 
+    final Instant start = WINDOW_START_BOUNDS.lowerEndpoint();
+
     when(fetchIterator.next())
-        .thenReturn(new KeyValue<>(1L, new GenericRow("a")))
-        .thenReturn(new KeyValue<>(3L, new GenericRow("b")))
-        .thenReturn(new KeyValue<>(2L, new GenericRow("c")))
+        .thenReturn(new KeyValue<>(start.toEpochMilli(), new GenericRow("a")))
+        .thenReturn(new KeyValue<>(start.plusMillis(1).toEpochMilli(), new GenericRow("b")))
+        .thenReturn(new KeyValue<>(start.plusMillis(2).toEpochMilli(), new GenericRow("c")))
         .thenThrow(new AssertionError());
 
     when(tableStore.fetch(any(), any(), any())).thenReturn(fetchIterator);
@@ -218,19 +265,19 @@ public class KsMaterializedWindowTableTest {
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(Instant.ofEpochMilli(1), Optional.empty()),
+            Window.of(start, Optional.empty()),
             new GenericRow("a")
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(Instant.ofEpochMilli(3), Optional.empty()),
+            Window.of(start.plusMillis(1), Optional.empty()),
             new GenericRow("b")
         ),
         WindowedRow.of(
             SCHEMA,
             A_KEY,
-            Window.of(Instant.ofEpochMilli(2), Optional.empty()),
+            Window.of(start.plusMillis(2), Optional.empty()),
             new GenericRow("c")
         )
     ));

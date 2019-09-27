@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -119,8 +120,8 @@ class KsqlMaterialization implements Materialization {
     }
 
     @Override
-    public List<WindowedRow> get(final Struct key, final Instant lower, final Instant upper) {
-      final List<WindowedRow> result = table.get(key, lower, upper);
+    public List<WindowedRow> get(final Struct key, final Range<Instant> windowStart) {
+      final List<WindowedRow> result = table.get(key, windowStart);
 
       final Builder<WindowedRow> builder = ImmutableList.builder();
 

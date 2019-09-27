@@ -17,6 +17,7 @@ package io.confluent.ksql.materialization.ks;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.google.common.collect.Range;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.materialization.MaterializationException;
 import io.confluent.ksql.materialization.MaterializedWindowedTable;
@@ -47,14 +48,13 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   @Override
   public List<WindowedRow> get(
       final Struct key,
-      final Instant lower,
-      final Instant upper
+      final Range<Instant> windowStart
   ) {
     try {
       final ReadOnlySessionStore<Struct, GenericRow> store = stateStore
           .store(QueryableStoreTypes.sessionStore());
 
-      return findSession(store, key, lower, upper);
+      return findSession(store, key, windowStart);
     } catch (final Exception e) {
       throw new MaterializationException("Failed to get value from materialized table", e);
     }
@@ -63,8 +63,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
   private List<WindowedRow> findSession(
       final ReadOnlySessionStore<Struct, GenericRow> store,
       final Struct key,
-      final Instant lower,
-      final Instant upper
+      final Range<Instant> windowStart
   ) {
     try (KeyValueIterator<Windowed<Struct>, GenericRow> it = store.fetch(key)) {
 
@@ -73,7 +72,7 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
       while (it.hasNext()) {
         final KeyValue<Windowed<Struct>, GenericRow> next = it.next();
 
-        if (intersects(next.key.window().startTime(), lower, upper)) {
+        if (windowStart.contains(next.key.window().startTime())) {
 
           final Window window = Window.of(
               next.key.window().startTime(),
@@ -86,15 +85,5 @@ class KsMaterializedSessionTable implements MaterializedWindowedTable {
 
       return builder.build();
     }
-  }
-
-  private static boolean intersects(
-      final Instant wndStart,
-      final Instant lower,
-      final Instant upper
-  ) {
-    return wndStart.equals(lower) // lower inclusive
-        || wndStart.equals(upper) // upper inclusive
-        || (lower.isBefore(wndStart) && wndStart.isBefore(upper));
   }
 }

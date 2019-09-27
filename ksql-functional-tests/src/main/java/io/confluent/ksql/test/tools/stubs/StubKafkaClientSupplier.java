@@ -27,7 +27,7 @@ import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.streams.KafkaClientSupplier;
 
-public class FakeKafkaClientSupplier implements KafkaClientSupplier {
+public class StubKafkaClientSupplier implements KafkaClientSupplier {
 
   @Override
   public Admin getAdmin(final Map<String, Object> config) {

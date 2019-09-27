@@ -19,8 +19,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaRecord;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
+import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import java.util.List;
 import java.util.Optional;
 import org.apache.avro.Schema;
@@ -33,7 +33,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class FakeKafkaServiceTest {
+public class StubKafkaServiceTest {
 
   @Mock
   private Schema avroSchema;
@@ -41,15 +41,15 @@ public class FakeKafkaServiceTest {
   private ProducerRecord<?, ?> producerRecord;
   @Mock
   private Record record;
-  private FakeKafkaRecord fakeKafkaRecord;
+  private StubKafkaRecord stubKafkaRecord;
 
-  private FakeKafkaService fakeKafkaService;
+  private StubKafkaService stubKafkaService;
   private Topic topic;
 
   @Before
   public void setUp() {
-    fakeKafkaRecord = FakeKafkaRecord.of(record, producerRecord);
-    fakeKafkaService = FakeKafkaService.create();
+    stubKafkaRecord = StubKafkaRecord.of(record, producerRecord);
+    stubKafkaService = StubKafkaService.create();
     topic = new Topic(
         "foo",
         Optional.of(avroSchema),
@@ -65,36 +65,36 @@ public class FakeKafkaServiceTest {
   public void shouldCreateTopicCorrectly() {
 
     // When:
-    fakeKafkaService.createTopic(topic);
+    stubKafkaService.createTopic(topic);
 
     // Then:
-    fakeKafkaService.requireTopicExists(topic.getName());
+    stubKafkaService.requireTopicExists(topic.getName());
   }
 
   @Test
   public void shouldWriteSingleRecordToTopic() {
     // Givien:
-    fakeKafkaService.createTopic(topic);
+    stubKafkaService.createTopic(topic);
 
     // When:
-    fakeKafkaService.writeRecord("foo", fakeKafkaRecord);
+    stubKafkaService.writeRecord("foo", stubKafkaRecord);
 
     // Then:
-    assertThat(fakeKafkaService.getTopicData().get("foo").get(0), is(fakeKafkaRecord));
+    assertThat(stubKafkaService.getTopicData().get("foo").get(0), is(stubKafkaRecord));
   }
 
 
   public void shouldReadRecordFromTopic() {
     // Givien:
-    fakeKafkaService.createTopic(topic);
-    fakeKafkaService.writeRecord("foo", fakeKafkaRecord);
+    stubKafkaService.createTopic(topic);
+    stubKafkaService.writeRecord("foo", stubKafkaRecord);
 
     // When:
-    final List<FakeKafkaRecord> records = fakeKafkaService.readRecords(topic.getName());
+    final List<StubKafkaRecord> records = stubKafkaService.readRecords(topic.getName());
 
     // Then:
     assertThat(records.size(), CoreMatchers.equalTo(1));
-    assertThat(records.get(0), is(fakeKafkaRecord));
+    assertThat(records.get(0), is(stubKafkaRecord));
 
   }
 

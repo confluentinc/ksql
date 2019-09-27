@@ -19,7 +19,7 @@ import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.topic.TopicProperties;
 import org.apache.kafka.clients.admin.TopicDescription;
 
-public final class TopicValidationUtil {
+final class TopicValidationUtil {
 
   private TopicValidationUtil() {
 

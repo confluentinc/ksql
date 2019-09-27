@@ -25,9 +25,9 @@ import io.confluent.kafka.schemaregistry.client.SchemaMetadata;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.engine.FakeInsertValuesExecutor;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.SqlFormatInjector;
+import io.confluent.ksql.engine.StubInsertValuesExecutor;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -48,7 +48,7 @@ import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -78,9 +78,9 @@ public final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final FakeKafkaService fakeKafkaService
+      final StubKafkaService stubKafkaService
   ) {
-    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, fakeKafkaService)
+    return doBuildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService)
         .stream()
         .map(q -> q.persistentQueryMetadata)
         .collect(Collectors.toList());
@@ -91,7 +91,7 @@ public final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final FakeKafkaService fakeKafkaService) {
+      final StubKafkaService stubKafkaService) {
     final Map<String, String> persistedConfigs = testCase.persistedProperties();
     final KsqlConfig maybeUpdatedConfigs = persistedConfigs.isEmpty() ? ksqlConfig :
         ksqlConfig.overrideBreakingConfigsWithOriginalValues(persistedConfigs);
@@ -101,9 +101,10 @@ public final class TestExecutorUtil {
         serviceContext,
         ksqlEngine,
         maybeUpdatedConfigs,
-        fakeKafkaService);
+        stubKafkaService);
     final List<TopologyTestDriverContainer> topologyTestDrivers = new ArrayList<>();
-    for (final PersistentQueryAndSortedSources persistentQueryAndSortedSources: queryMetadataList) {
+    for (final PersistentQueryAndSortedSources persistentQueryAndSortedSources:
+        queryMetadataList) {
       final PersistentQueryMetadata persistentQueryMetadata = persistentQueryAndSortedSources
           .getPersistentQueryMetadata();
       final Properties streamsProperties = new Properties();
@@ -116,15 +117,15 @@ public final class TestExecutorUtil {
       final List<Topic> sourceTopics = persistentQueryAndSortedSources.getSources()
           .stream()
           .map(dataSource -> {
-            fakeKafkaService.requireTopicExists(dataSource.getKafkaTopicName());
-            return fakeKafkaService.getTopic(dataSource.getKafkaTopicName());
+            stubKafkaService.requireTopicExists(dataSource.getKafkaTopicName());
+            return stubKafkaService.getTopic(dataSource.getKafkaTopicName());
           })
           .collect(Collectors.toList());
 
       final Topic sinkTopic = buildSinkTopic(
           ksqlEngine.getMetaStore().getSource(persistentQueryMetadata.getSinkName()),
           persistentQueryAndSortedSources.getWindowSize(),
-          fakeKafkaService,
+          stubKafkaService,
           serviceContext.getSchemaRegistryClient());
       testCase.setGeneratedTopologies(
           ImmutableList.of(persistentQueryMetadata.getTopologyDescription()));
@@ -142,7 +143,7 @@ public final class TestExecutorUtil {
   private static Topic buildSinkTopic(
       final DataSource<?> sinkDataSource,
       final Optional<Long> windowSize,
-      final FakeKafkaService fakeKafkaService,
+      final StubKafkaService stubKafkaService,
       final SchemaRegistryClient schemaRegistryClient
   ) {
     final String kafkaTopicName = sinkDataSource.getKafkaTopicName();
@@ -170,10 +171,10 @@ public final class TestExecutorUtil {
         windowSize
     );
 
-    if (fakeKafkaService.topicExists(sinkTopic)) {
-      fakeKafkaService.updateTopic(sinkTopic);
+    if (stubKafkaService.topicExists(sinkTopic)) {
+      stubKafkaService.updateTopic(sinkTopic);
     } else {
-      fakeKafkaService.createTopic(sinkTopic);
+      stubKafkaService.createTopic(sinkTopic);
     }
     return sinkTopic;
   }
@@ -198,9 +199,9 @@ public final class TestExecutorUtil {
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final KsqlConfig ksqlConfig,
-      final FakeKafkaService fakeKafkaService
+      final StubKafkaService stubKafkaService
   ) {
-    initializeTopics(testCase, serviceContext, fakeKafkaService);
+    initializeTopics(testCase, serviceContext, stubKafkaService);
 
     final String sql = testCase.statements().stream()
         .collect(Collectors.joining(System.lineSeparator()));
@@ -211,7 +212,7 @@ public final class TestExecutorUtil {
         ksqlConfig,
         testCase.properties(),
         Optional.of(serviceContext.getSchemaRegistryClient()),
-        fakeKafkaService
+        stubKafkaService
     );
 
     assertThat("test did not generate any queries.", queries, is(not(empty())));
@@ -221,13 +222,13 @@ public final class TestExecutorUtil {
   private static void initializeTopics(
       final TestCase testCase,
       final ServiceContext serviceContext,
-      final FakeKafkaService fakeKafkaService
+      final StubKafkaService stubKafkaService
   ) {
     final KafkaTopicClient topicClient = serviceContext.getTopicClient();
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
 
     for (final Topic topic : testCase.getTopics()) {
-      fakeKafkaService.createTopic(topic);
+      stubKafkaService.createTopic(topic);
       topicClient.createTopic(
           topic.getName(),
           topic.getNumPartitions(),
@@ -253,7 +254,7 @@ public final class TestExecutorUtil {
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final Optional<SchemaRegistryClient> srClient,
-      final FakeKafkaService fakeKafkaService
+      final StubKafkaService stubKafkaService
   ) {
     final List<ParsedStatement> statements = engine.parse(sql);
 
@@ -263,9 +264,9 @@ public final class TestExecutorUtil {
 
     return statements.stream()
         .map(stmt -> execute(
-                engine, stmt, ksqlConfig, overriddenProperties, schemaInjector, fakeKafkaService))
+            engine, stmt, ksqlConfig, overriddenProperties, schemaInjector, stubKafkaService))
         .filter(executeResultAndSortedSources ->
-                executeResultAndSortedSources.getSources() != null)
+            executeResultAndSortedSources.getSources() != null)
         .map(
             executeResultAndSortedSources -> new PersistentQueryAndSortedSources(
                 (PersistentQueryMetadata) executeResultAndSortedSources
@@ -277,24 +278,24 @@ public final class TestExecutorUtil {
   }
 
 
-  @SuppressWarnings({"rawtypes","unchecked"})
+  @SuppressWarnings({"rawtypes", "unchecked"})
   private static ExecuteResultAndSortedSources execute(
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
       final Optional<DefaultSchemaInjector> schemaInjector,
-      final FakeKafkaService fakeKafkaService
+      final StubKafkaService stubKafkaService
   ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-            prepared, overriddenProperties, ksqlConfig);
+        prepared, overriddenProperties, ksqlConfig);
 
     if (prepared.getStatement() instanceof InsertValues) {
-      FakeInsertValuesExecutor.of(fakeKafkaService).execute(
-              (ConfiguredStatement<InsertValues>) configured,
-              executionContext,
-              executionContext.getServiceContext()
+      StubInsertValuesExecutor.of(stubKafkaService).execute(
+          (ConfiguredStatement<InsertValues>) configured,
+          executionContext,
+          executionContext.getServiceContext()
       );
       return new ExecuteResultAndSortedSources(null, null, null);
     }
@@ -321,7 +322,7 @@ public final class TestExecutorUtil {
       return new ExecuteResultAndSortedSources(
           executeResult,
           getSortedSources(
-              ((CreateAsSelect)prepared.getStatement()).getQuery(),
+              ((CreateAsSelect) prepared.getStatement()).getQuery(),
               executionContext.getMetaStore()),
           getWindowSize(((CreateAsSelect) prepared.getStatement()).getQuery()));
     }
@@ -378,6 +379,7 @@ public final class TestExecutorUtil {
   }
 
   private static final class ExecuteResultAndSortedSources {
+
     private final ExecuteResult executeResult;
     private final List<DataSource<?>> sources;
     private final Optional<Long> windowSize;
@@ -405,6 +407,7 @@ public final class TestExecutorUtil {
   }
 
   private static final class PersistentQueryAndSortedSources {
+
     private final PersistentQueryMetadata persistentQueryMetadata;
     private final List<DataSource<?>> sources;
     private final Optional<Long> windowSize;

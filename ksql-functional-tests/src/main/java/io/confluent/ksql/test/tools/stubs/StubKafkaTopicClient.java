@@ -19,9 +19,9 @@ import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_COMPACT;
 import static org.apache.kafka.common.config.TopicConfig.CLEANUP_POLICY_CONFIG;
 
 import com.google.common.collect.Sets;
+import io.confluent.ksql.exception.KafkaTopicExistsException;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.SandboxedTopicDescription;
-import io.confluent.ksql.services.TopicValidationUtil;
 import io.confluent.ksql.topic.TopicProperties;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.Collection;
@@ -42,18 +42,18 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 
 /**
- * Fake Kafka Client is for test only, none of its methods should be called.
+ * Stub Kafka Client is for test only, none of its methods should be called.
  */
-public class FakeKafkaTopicClient implements KafkaTopicClient {
+public class StubKafkaTopicClient implements KafkaTopicClient {
 
-  public static class FakeTopic {
+  public static class StubTopic {
 
     private final String topicName;
     private final int numPartitions;
     private final int replicatonFactor;
     private final TopicCleanupPolicy cleanupPolicy;
 
-    public FakeTopic(final String topicName,
+    public StubTopic(final String topicName,
         final int numPartitions,
         final int replicatonFactor,
         final TopicCleanupPolicy cleanupPolicy) {
@@ -91,11 +91,11 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
       if (o == null || getClass() != o.getClass()) {
         return false;
       }
-      final FakeTopic fakeTopic = (FakeTopic) o;
-      return numPartitions == fakeTopic.numPartitions
-          && replicatonFactor == fakeTopic.replicatonFactor
-          && Objects.equals(topicName, fakeTopic.topicName)
-          && cleanupPolicy == fakeTopic.cleanupPolicy;
+      final StubTopic stubTopic = (StubTopic) o;
+      return numPartitions == stubTopic.numPartitions
+          && replicatonFactor == stubTopic.replicatonFactor
+          && Objects.equals(topicName, stubTopic.topicName)
+          && cleanupPolicy == stubTopic.cleanupPolicy;
     }
 
     @Override
@@ -104,8 +104,8 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
     }
   }
 
-  private final Map<String, FakeTopic> topicMap = new HashMap<>();
-  private final Map<String, FakeTopic> createdTopics = new HashMap<>();
+  private final Map<String, StubTopic> topicMap = new HashMap<>();
+  private final Map<String, StubTopic> createdTopics = new HashMap<>();
 
   @Override
   public void createTopic(
@@ -119,13 +119,13 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
         ? 1
         : replicationFactor;
 
-    final FakeTopic existing = topicMap.get(topic);
+    final StubTopic existing = topicMap.get(topic);
     if (existing != null) {
       validateTopicProperties(numPartitions, replicas, existing);
       return;
     }
 
-    final FakeTopic info = createFakeTopic(topic, numPartitions, replicas, configs);
+    final StubTopic info = createStubTopic(topic, numPartitions, replicas, configs);
     topicMap.put(topic, info);
     createdTopics.put(topic, info);
   }
@@ -156,12 +156,12 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
 
   @Override
   public TopicDescription describeTopic(final String topicName) {
-    final FakeTopic fakeTopic = topicMap.get(topicName);
-    if (fakeTopic == null) {
+    final StubTopic stubTopic = topicMap.get(topicName);
+    if (stubTopic == null) {
       throw new UnknownTopicOrPartitionException("unknown topic: " + topicName);
     }
 
-    return fakeTopic.getDescription();
+    return stubTopic.getDescription();
   }
 
   @Override
@@ -190,7 +190,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
   public void deleteInternalTopics(final String applicationId) {
   }
 
-  private static FakeTopic createFakeTopic(
+  private static StubTopic createStubTopic(
       final String topic,
       final int numPartitions,
       final int replicationFactor,
@@ -201,19 +201,27 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
             ? TopicCleanupPolicy.COMPACT
             : TopicCleanupPolicy.DELETE;
 
-    return new FakeTopic(topic, numPartitions, replicationFactor, cleanUpPolicy);
+    return new StubTopic(topic, numPartitions, replicationFactor, cleanUpPolicy);
   }
 
   private static void validateTopicProperties(
       final int requiredNumPartition,
       final int requiredNumReplicas,
-      final FakeTopic existing
+      final StubTopic existing
   ) {
-    TopicValidationUtil.validateTopicProperties(
-        existing.topicName,
-        requiredNumPartition,
-        requiredNumReplicas,
-        existing.numPartitions,
-        existing.replicatonFactor);
+    if (existing.numPartitions != requiredNumPartition
+        || (requiredNumReplicas != TopicProperties.DEFAULT_REPLICAS
+        && existing.replicatonFactor < requiredNumReplicas)) {
+      throw new KafkaTopicExistsException(String.format(
+          "A Kafka topic with the name '%s' already exists, with different partition/replica "
+              + "configuration than required. KSQL expects %d partitions (topic has %d), and %d "
+              + "replication factor (topic has %d).",
+          existing.topicName,
+          requiredNumPartition,
+          existing.numPartitions,
+          requiredNumReplicas,
+          existing.replicatonFactor
+      ));
+    }
   }
 }

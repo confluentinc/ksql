@@ -21,43 +21,43 @@ import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaRecord;
-import io.confluent.ksql.test.tools.stubs.FakeKafkaService;
+import io.confluent.ksql.test.tools.stubs.StubKafkaRecord;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
-public final class FakeInsertValuesExecutor {
+public final class StubInsertValuesExecutor {
 
-  private FakeInsertValuesExecutor() {
+  private StubInsertValuesExecutor() {
   }
 
-  public static InsertValuesExecutor of(final FakeKafkaService fakeKafkaService) {
-    final FakeProduer fakeProduer = new FakeProduer(fakeKafkaService);
+  public static StubValuesExecutor of(final StubKafkaService stubKafkaService) {
+    final StubProducer stubProducer = new StubProducer(stubKafkaService);
 
-    return new InsertValuesExecutor(
+    return new StubValuesExecutor(
         false,
-        (record, ignored1, ingnored2) -> fakeProduer.sendRecord(record));
+        (record, ignored1, ingnored2) -> stubProducer.sendRecord(record));
   }
 
   @VisibleForTesting
-  static class FakeProduer {
+  static class StubProducer {
 
-    private final FakeKafkaService fakeKafkaService;
+    private final StubKafkaService stubKafkaService;
 
-    FakeProduer(final FakeKafkaService fakeKafkaService) {
-      this.fakeKafkaService = Objects.requireNonNull(fakeKafkaService, "fakeKafkaService");
+    StubProducer(final StubKafkaService stubKafkaService) {
+      this.stubKafkaService = Objects.requireNonNull(stubKafkaService, "stubKafkaService");
     }
 
     void sendRecord(final ProducerRecord<byte[], byte[]> record) {
       final Object value = getValue(record);
 
-      this.fakeKafkaService.writeRecord(record.topic(),
-          FakeKafkaRecord.of(
+      this.stubKafkaService.writeRecord(record.topic(),
+          StubKafkaRecord.of(
               new Record(
-                  fakeKafkaService.getTopic(record.topic()),
+                  stubKafkaService.getTopic(record.topic()),
                   new String(record.key(), StandardCharsets.UTF_8),
                   value,
                   Optional.of(record.timestamp()),
@@ -68,7 +68,7 @@ public final class FakeInsertValuesExecutor {
     }
 
     private Object getValue(final ProducerRecord<byte[], byte[]> record) {
-      final Topic topic = fakeKafkaService.getTopic(record.topic());
+      final Topic topic = stubKafkaService.getTopic(record.topic());
 
       final Object value;
       if (topic.getValueSerdeSupplier() instanceof StringSerdeSupplier) {

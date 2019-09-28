@@ -63,6 +63,7 @@ import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
@@ -87,7 +88,11 @@ public class SqlToJavaVisitorTest {
 
   @Before
   public void init() {
-    sqlToJavaVisitor = new SqlToJavaVisitor(SCHEMA, functionRegistry);
+    sqlToJavaVisitor = new SqlToJavaVisitor(
+        SCHEMA,
+        functionRegistry,
+        fn -> fn.replace(".", "_")
+    );
   }
 
   @Test

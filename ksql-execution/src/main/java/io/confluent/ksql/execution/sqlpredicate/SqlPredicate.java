@@ -17,8 +17,11 @@ package io.confluent.ksql.execution.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.CodeGenUtil;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -68,8 +71,12 @@ public final class SqlPredicate {
     final Class[] parameterTypes = new Class[parameters.size()];
     columnIndexes = new int[parameters.size()];
     int index = 0;
+
+    final Builder<String, String> fieldToParamName = ImmutableMap.<String, String>builder();
     for (final CodeGenRunner.ParameterType param : parameters) {
-      parameterNames[index] = param.getParamName();
+      final String paramName = CodeGenUtil.paramName(index);
+      fieldToParamName.put(param.getFieldName(), paramName);
+      parameterNames[index] = paramName;
       parameterTypes[index] = param.getType();
       columnIndexes[index] = schema.valueColumnIndex(param.getFieldName()).orElse(-1);
       index++;
@@ -84,7 +91,8 @@ public final class SqlPredicate {
 
       final String expressionStr = new SqlToJavaVisitor(
           schema,
-          functionRegistry
+          functionRegistry,
+          fieldToParamName.build()::get
       ).process(this.filterExpression);
 
       ee.cook(expressionStr);

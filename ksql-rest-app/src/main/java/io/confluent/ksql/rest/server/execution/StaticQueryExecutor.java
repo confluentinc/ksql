@@ -185,7 +185,7 @@ public final class StaticQueryExecutor {
 
         outputSchema = schemaBuilder.build();
 
-        rows = handleSelects(result, statement, executionContext, analysis, schemaBuilder);
+        rows = handleSelects(result, statement, executionContext, analysis, outputSchema);
       }
 
       final TableRowsEntity entity = new TableRowsEntity(
@@ -503,10 +503,8 @@ public final class StaticQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final Analysis analysis,
-      final Builder schemaBuilder
+      final LogicalSchema outputSchema
   ) {
-    final LogicalSchema outputSchema = schemaBuilder.build();
-
     final LogicalSchema intermediateSchema;
     final BiFunction<Struct, GenericRow, GenericRow> preSelectTransform;
     if (outputSchema.key().isEmpty()) {
@@ -514,8 +512,11 @@ public final class StaticQueryExecutor {
       preSelectTransform = (key, value) -> value;
     } else {
       // SelectValueMapper requires the key fields in the value schema :(
-      schemaBuilder.valueColumns(outputSchema.key());
-      intermediateSchema = schemaBuilder.build();
+      intermediateSchema = LogicalSchema.builder()
+          .keyColumns(input.schema.key())
+          .valueColumns(input.schema.value())
+          .valueColumns(input.schema.key())
+          .build();
 
       preSelectTransform = (key, value) -> {
         key.schema().fields().forEach(f -> {
@@ -544,7 +545,7 @@ public final class StaticQueryExecutor {
       final GenericRow intermediate = preSelectTransform.apply(r.key(), r.value());
       final GenericRow mapped = select.apply(intermediate);
       validateProjection(mapped, outputSchema);
-      output.add(ImmutableList.copyOf(mapped.getColumns()));
+      output.add(mapped.getColumns());
     });
 
     return output.build();

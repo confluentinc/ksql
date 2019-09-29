@@ -42,11 +42,11 @@ public class KsqlRestClient implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Client client;
-  private final KsqlTarget target;
 
   private List<URI> serverAddresses;
 
   private final LocalProperties localProperties;
+  private final KsqlClient ksqlClient;
 
   public KsqlRestClient(final String serverAddress) {
     this(serverAddress, Collections.emptyMap(), Collections.emptyMap());
@@ -78,7 +78,7 @@ public class KsqlRestClient implements Closeable {
     this.client = requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
     this.localProperties = new LocalProperties(localProps);
-    this.target = new KsqlClient(client, localProperties).target(serverAddresses.get(0));
+    ksqlClient = new KsqlClient(client, localProperties);
   }
 
   public void setupAuthenticationCredentials(final String userName, final String password) {
@@ -98,34 +98,34 @@ public class KsqlRestClient implements Closeable {
   }
 
   public RestResponse<ServerInfo> getServerInfo() {
-    return target.getServerInfo();
+    return target().getServerInfo();
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {
-    return target.postKsqlRequest(ksql, Optional.empty());
+    return target().postKsqlRequest(ksql, Optional.empty());
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql, final Long commandSeqNum) {
-    return target.postKsqlRequest(ksql, Optional.ofNullable(commandSeqNum));
+    return target().postKsqlRequest(ksql, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<CommandStatuses> makeStatusRequest() {
-    return target.getStatuses();
+    return target().getStatuses();
   }
 
   public RestResponse<CommandStatus> makeStatusRequest(final String commandId) {
-    return target.getStatus(commandId);
+    return target().getStatus(commandId);
   }
 
   public RestResponse<QueryStream> makeQueryRequest(final String ksql, final Long commandSeqNum) {
-    return target.postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
+    return target().postQueryRequest(ksql, Optional.ofNullable(commandSeqNum));
   }
 
   public RestResponse<InputStream> makePrintTopicRequest(
       final String ksql,
       final Long commandSeqNum
   ) {
-    return target.postPrintTopicRequest(ksql, Optional.ofNullable(commandSeqNum));
+    return target().postPrintTopicRequest(ksql, Optional.ofNullable(commandSeqNum));
   }
 
   @Override
@@ -139,6 +139,10 @@ public class KsqlRestClient implements Closeable {
 
   public Object unsetProperty(final String property) {
     return localProperties.unset(property);
+  }
+
+  private KsqlTarget target() {
+    return ksqlClient.target(serverAddresses.get(0));
   }
 
   private static List<URI> parseServerAddresses(final String serverAddresses) {

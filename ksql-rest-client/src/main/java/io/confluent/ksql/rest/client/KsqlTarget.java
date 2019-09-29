@@ -208,11 +208,6 @@ public final class KsqlTarget {
       final Response response
   ) {
     final Code statusCode = HttpStatus.getCode(response.getStatus());
-    final KsqlErrorMessage errorMessage = response.readEntity(KsqlErrorMessage.class);
-    if (errorMessage != null) {
-      return RestResponse.erroneous(statusCode, errorMessage);
-    }
-
     if (statusCode == Code.NOT_FOUND) {
       return RestResponse.erroneous(statusCode,
           "Path not found. Path='" + path + "'. "
@@ -226,6 +221,11 @@ public final class KsqlTarget {
 
     if (statusCode == Code.FORBIDDEN) {
       return RestResponse.erroneous(statusCode, forbiddenErrorMsg());
+    }
+
+    final KsqlErrorMessage errorMessage = response.readEntity(KsqlErrorMessage.class);
+    if (errorMessage != null) {
+      return RestResponse.erroneous(statusCode, errorMessage);
     }
 
     return RestResponse.erroneous(

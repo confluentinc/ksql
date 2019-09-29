@@ -23,12 +23,10 @@ import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.rest.client.ssl.SslClientConfigurer;
 import io.confluent.rest.RestConfig;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,8 +49,6 @@ public class KsqlRestClientTest {
   private SslClientConfigurer sslClientConfigurer;
   @Mock
   private Client client;
-  @Mock
-  private WebTarget target;
   private Map<String, String> clientProps;
   private Map<String, String> localProps;
 
@@ -62,7 +58,6 @@ public class KsqlRestClientTest {
     localProps = new HashMap<>();
 
     when(clientBuilder.build()).thenReturn(client);
-    when(client.target(any(URI.class))).thenReturn(target);
   }
 
   @Test

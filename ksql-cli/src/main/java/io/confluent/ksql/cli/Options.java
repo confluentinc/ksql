@@ -26,7 +26,7 @@ import com.github.rvesse.airline.annotations.restrictions.ranges.LongRange;
 import com.github.rvesse.airline.help.Help;
 import com.github.rvesse.airline.parser.errors.ParseException;
 import io.confluent.ksql.cli.console.OutputFormat;
-import io.confluent.ksql.util.Pair;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import java.io.IOException;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -158,7 +158,7 @@ public class Options {
     return OutputFormat.valueOf(outputFormat);
   }
 
-  public Optional<Pair<String, String>> getUserNameAndPassword() {
+  public Optional<BasicCredentials> getUserNameAndPassword() {
     if ((userName == null && password != null) || (password == null && userName != null)) {
       throw new ConfigException(
           "You must specify both a username and a password. If you don't want to use an "
@@ -173,6 +173,6 @@ public class Options {
       return Optional.empty();
     }
 
-    return Optional.of(new Pair<>(userName, password));
+    return Optional.of(BasicCredentials.of(userName, password));
   }
 }

@@ -18,16 +18,19 @@ package io.confluent.ksql.rest.client;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.WebTarget;
+import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 @SuppressWarnings("WeakerAccess") // Public API
-public final class KsqlClient {
+public final class KsqlClient implements AutoCloseable {
 
   static {
     JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -35,19 +38,37 @@ public final class KsqlClient {
     JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule());
   }
 
-  private final Client sharedClient;
+  private final Client httpClient;
   private final LocalProperties localProperties;
 
   public KsqlClient(
-      final Client sharedClient,
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> credentials,
       final LocalProperties localProperties
   ) {
-    this.sharedClient = requireNonNull(sharedClient, "sharedClient");
+    this(HttpClientBuilder.buildClient(clientProps), credentials, localProperties);
+  }
+
+  @VisibleForTesting
+  KsqlClient(
+      final Client httpClient,
+      final Optional<BasicCredentials> credentials,
+      final LocalProperties localProperties
+  ) {
+    this.httpClient = requireNonNull(httpClient, "httpClient");
     this.localProperties = requireNonNull(localProperties, "localProperties");
+
+    credentials.ifPresent(creds -> {
+      httpClient.register(HttpAuthenticationFeature.basic(creds.username(), creds.password()));
+    });
   }
 
   public KsqlTarget target(final URI server) {
-    final WebTarget target = sharedClient.target(server);
+    final WebTarget target = httpClient.target(server);
     return new KsqlTarget(target, localProperties, Optional.empty());
+  }
+
+  public void close() {
+    httpClient.close();
   }
 }

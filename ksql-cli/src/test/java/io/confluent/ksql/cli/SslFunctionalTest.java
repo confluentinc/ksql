@@ -42,6 +42,7 @@ import java.io.EOFException;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -177,8 +178,12 @@ public class SslFunctionalTest {
   private Code canMakeCliRequest() {
     final String serverAddress = REST_APP.getHttpsListener().toString();
 
-    try (KsqlRestClient restClient = new KsqlRestClient(serverAddress, emptyMap(), clientProps)) {
-
+    try (KsqlRestClient restClient = KsqlRestClient.create(
+        serverAddress,
+        emptyMap(),
+        clientProps,
+        Optional.empty()
+    )) {
       final RestResponse<?> response = restClient.makeKsqlRequest("show topics;");
       if (response.isSuccessful()) {
         return Code.OK;

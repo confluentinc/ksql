@@ -29,64 +29,44 @@ import java.io.InputStream;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import javax.ws.rs.client.Client;
-import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlRestClient implements Closeable {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private final Client client;
+  private final KsqlClient client;
+  private final LocalProperties localProperties;
 
   private List<URI> serverAddresses;
-
-  private final LocalProperties localProperties;
-  private final KsqlClient ksqlClient;
-
-  public KsqlRestClient(final String serverAddress) {
-    this(serverAddress, Collections.emptyMap(), Collections.emptyMap());
-  }
 
   /**
    * @param serverAddress the address of the KSQL server to connect to.
    * @param localProps initial set of local properties.
    * @param clientProps properties used to build the client.
+   * @param creds optional credentials
    */
-  public KsqlRestClient(
+  public static KsqlRestClient create(
       final String serverAddress,
       final Map<String, ?> localProps,
-      final Map<String, String> clientProps
+      final Map<String, String> clientProps,
+      final Optional<BasicCredentials> creds
   ) {
-    this(
-        HttpClientBuilder.buildClient(clientProps),
-        serverAddress,
-        localProps
-    );
+    final LocalProperties localProperties = new LocalProperties(localProps);
+    final KsqlClient client = new KsqlClient(clientProps, creds, localProperties);
+    return new KsqlRestClient(client, serverAddress, localProperties);
   }
 
   @VisibleForTesting
   KsqlRestClient(
-      final Client client,
+      final KsqlClient client,
       final String serverAddress,
-      final Map<String, ?> localProps
+      final LocalProperties localProps
   ) {
     this.client = requireNonNull(client, "client");
     this.serverAddresses = parseServerAddresses(serverAddress);
-    this.localProperties = new LocalProperties(localProps);
-    ksqlClient = new KsqlClient(client, localProperties);
-  }
-
-  public void setupAuthenticationCredentials(final String userName, final String password) {
-    final HttpAuthenticationFeature feature = HttpAuthenticationFeature.basic(
-        requireNonNull(userName),
-        requireNonNull(password)
-    );
-    client.register(feature);
+    this.localProperties = requireNonNull(localProps, "localProps");
   }
 
   public URI getServerAddress() {
@@ -142,7 +122,7 @@ public class KsqlRestClient implements Closeable {
   }
 
   private KsqlTarget target() {
-    return ksqlClient.target(serverAddresses.get(0));
+    return client.target(getServerAddress());
   }
 
   private static List<URI> parseServerAddresses(final String serverAddresses) {

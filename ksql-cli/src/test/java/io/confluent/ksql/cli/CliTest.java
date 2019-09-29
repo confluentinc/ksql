@@ -35,6 +35,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
@@ -78,6 +79,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -167,7 +169,12 @@ public class CliTest {
 
   @BeforeClass
   public static void classSetUp() throws Exception {
-    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
+    restClient = KsqlRestClient.create(
+        REST_APP.getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    );
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.integration;
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.net.UrlEscapers;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
@@ -54,12 +55,9 @@ final class RestIntegrationTestUtil {
   static List<KsqlEntity> makeKsqlRequest(
       final TestKsqlRestApp restApp,
       final String sql,
-      Optional<Credentials> userCreds
+      final Optional<BasicCredentials> userCreds
   ) {
-    try (final KsqlRestClient restClient = restApp.buildKsqlClient()) {
-      userCreds.ifPresent(
-        creds -> restClient.setupAuthenticationCredentials(creds.username, creds.password)
-      );
+    try (final KsqlRestClient restClient = restApp.buildKsqlClient(userCreds)) {
 
       final RestResponse<KsqlEntityList> res = restClient.makeKsqlRequest(sql);
 
@@ -91,7 +89,10 @@ final class RestIntegrationTestUtil {
     return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
   }
 
-  private static List<KsqlEntity> awaitResults(final TestKsqlRestApp restApp, final List<KsqlEntity> pending) {
+  private static List<KsqlEntity> awaitResults(
+      final TestKsqlRestApp restApp,
+      final List<KsqlEntity> pending
+  ) {
     try (final KsqlRestClient ksqlRestClient = restApp.buildKsqlClient()) {
       return pending.stream()
           .map(e -> awaitResult(e, ksqlRestClient))

@@ -15,10 +15,7 @@
 
 package io.confluent.ksql.rest.client;
 
-import java.util.HashMap;
-import java.util.Map;
-import javax.ws.rs.client.Client;
-import org.junit.Before;
+import io.confluent.ksql.properties.LocalProperties;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -33,14 +30,9 @@ public class KsqlRestClientTest {
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private Client client;
-
-  private Map<String, String> localProps;
-
-  @Before
-  public void setUp() {
-    localProps = new HashMap<>();
-  }
+  private KsqlClient client;
+  @Mock
+  private LocalProperties localProps;
 
   @Test
   public void shouldThrowOnInvalidServerAddress() {

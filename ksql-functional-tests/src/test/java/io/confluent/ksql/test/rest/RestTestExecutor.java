@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -73,7 +74,12 @@ public class RestTestExecutor implements Closeable {
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final ServiceContext serviceContext
   ) {
-    this.restClient = new KsqlRestClient(url.toString());
+    this.restClient = KsqlRestClient.create(
+        url.toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    );
     this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
   }

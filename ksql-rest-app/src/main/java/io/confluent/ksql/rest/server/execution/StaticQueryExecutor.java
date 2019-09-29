@@ -581,7 +581,12 @@ public final class StaticQueryExecutor {
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement
   ) {
-    try (KsqlRestClient client = new KsqlRestClient(owner.location().toString())) {
+    try (KsqlRestClient client = KsqlRestClient.create(
+        owner.location().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    )) {
 
       final RestResponse<KsqlEntityList> response = client
           .makeKsqlRequest(statement.getStatementText());

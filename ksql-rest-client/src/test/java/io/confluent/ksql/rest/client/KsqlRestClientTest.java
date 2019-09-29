@@ -15,20 +15,9 @@
 
 package io.confluent.ksql.rest.client;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.internal.matchers.ThrowableMessageMatcher.hasMessage;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import io.confluent.ksql.rest.client.ssl.SslClientConfigurer;
-import io.confluent.rest.RestConfig;
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,55 +29,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlRestClientTest {
 
-  private static final String SERVER_ADDRESS = "http://timbuktu";
-
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Mock
-  private ClientBuilder clientBuilder;
-  @Mock
-  private SslClientConfigurer sslClientConfigurer;
-  @Mock
   private Client client;
-  @Mock
-  private WebTarget target;
-  private Map<String, String> clientProps;
+
   private Map<String, String> localProps;
 
   @Before
   public void setUp() {
-    clientProps = new HashMap<>();
     localProps = new HashMap<>();
-
-    when(clientBuilder.build()).thenReturn(client);
-    when(client.target(any(URI.class))).thenReturn(target);
-  }
-
-  @Test
-  public void shouldConfigureSslOnTheClient() {
-    // Given:
-    clientProps.put(RestConfig.SSL_TRUSTSTORE_LOCATION_CONFIG, "/trust/store/path");
-
-    // When:
-    new KsqlRestClient(SERVER_ADDRESS, localProps, clientProps, clientBuilder, sslClientConfigurer);
-
-    // Then:
-    verify(sslClientConfigurer).configureSsl(clientBuilder, clientProps);
-  }
-
-  @Test
-  public void shouldThrowIfFailedToConfigureClient() {
-    // Given:
-    when(clientBuilder.register(any(Object.class))).thenThrow(new RuntimeException("boom"));
-
-    // Then:
-    expectedException.expect(KsqlRestClientException.class);
-    expectedException.expectMessage("Failed to configure rest client");
-    expectedException.expectCause(hasMessage(is("boom")));
-
-    // When:
-    new KsqlRestClient(SERVER_ADDRESS, localProps, clientProps, clientBuilder, sslClientConfigurer);
   }
 
   @Test
@@ -98,6 +49,6 @@ public class KsqlRestClientTest {
     expectedException.expectMessage("The supplied serverAddress is invalid: timbuktu");
 
     // When:
-    new KsqlRestClient("timbuktu", localProps, clientProps, clientBuilder, sslClientConfigurer);
+    new KsqlRestClient(client, "timbuktu", localProps);
   }
 }

@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.client;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
@@ -29,6 +30,8 @@ import javax.ws.rs.client.WebTarget;
 public final class KsqlClient {
 
   static {
+    JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    JsonMapper.INSTANCE.mapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
     JsonMapper.INSTANCE.mapper.registerModule(new KsqlTypesDeserializationModule());
   }
 

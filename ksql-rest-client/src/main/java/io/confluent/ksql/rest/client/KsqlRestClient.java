@@ -17,19 +17,13 @@ package io.confluent.ksql.rest.client;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.client.ssl.DefaultSslClientConfigurer;
-import io.confluent.ksql.rest.client.ssl.SslClientConfigurer;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.ServerInfo;
-import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Closeable;
 import java.io.InputStream;
 import java.net.URI;
@@ -41,7 +35,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -70,24 +63,7 @@ public class KsqlRestClient implements Closeable {
       final Map<String, String> clientProps
   ) {
     this(
-        serverAddress,
-        localProps,
-        clientProps,
-        ClientBuilder.newBuilder(),
-        new DefaultSslClientConfigurer()
-    );
-  }
-
-  @VisibleForTesting
-  KsqlRestClient(
-      final String serverAddress,
-      final Map<String, ?> localProps,
-      final Map<String, String> clientProps,
-      final ClientBuilder clientBuilder,
-      final SslClientConfigurer sslClientConfigurer
-  ) {
-    this(
-        buildClient(clientBuilder, sslClientConfigurer, clientProps),
+        HttpClientBuilder.buildClient(clientProps),
         serverAddress,
         localProps
     );
@@ -180,27 +156,6 @@ public class KsqlRestClient implements Closeable {
     } catch (final Exception e) {
       throw new KsqlRestClientException(
           "The supplied serverAddress is invalid: " + serverAddress, e);
-    }
-  }
-
-  private static Client buildClient(
-      final ClientBuilder clientBuilder,
-      final SslClientConfigurer sslClientConfigurer,
-      final Map<String, String> props
-  ) {
-    final ObjectMapper objectMapper = JsonMapper.INSTANCE.mapper;
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-    objectMapper.configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, false);
-    final JacksonMessageBodyProvider jsonProvider = new JacksonMessageBodyProvider(objectMapper);
-
-    try {
-      clientBuilder.register(jsonProvider);
-
-      sslClientConfigurer.configureSsl(clientBuilder, props);
-
-      return clientBuilder.build();
-    } catch (final Exception e) {
-      throw new KsqlRestClientException("Failed to configure rest client", e);
     }
   }
 }

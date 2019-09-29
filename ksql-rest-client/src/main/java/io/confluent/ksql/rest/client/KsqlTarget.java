@@ -208,6 +208,11 @@ public final class KsqlTarget {
       final Response response
   ) {
     final Code statusCode = HttpStatus.getCode(response.getStatus());
+    final Optional<KsqlErrorMessage> errorMessage = tryReadErrorMessage(response);
+    if (errorMessage.isPresent()) {
+      return RestResponse.erroneous(statusCode, errorMessage.get());
+    }
+
     if (statusCode == Code.NOT_FOUND) {
       return RestResponse.erroneous(statusCode,
           "Path not found. Path='" + path + "'. "
@@ -223,15 +228,18 @@ public final class KsqlTarget {
       return RestResponse.erroneous(statusCode, forbiddenErrorMsg());
     }
 
-    final KsqlErrorMessage errorMessage = response.readEntity(KsqlErrorMessage.class);
-    if (errorMessage != null) {
-      return RestResponse.erroneous(statusCode, errorMessage);
-    }
-
     return RestResponse.erroneous(
         statusCode,
         "The server returned an unexpected error: "
             + response.getStatusInfo().getReasonPhrase());
+  }
+
+  private static Optional<KsqlErrorMessage> tryReadErrorMessage(final Response response) {
+    try {
+      return Optional.ofNullable(response.readEntity(KsqlErrorMessage.class));
+    } catch (final Exception e) {
+      return Optional.empty();
+    }
   }
 
   private static KsqlErrorMessage unauthorizedErrorMsg() {

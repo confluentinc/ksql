@@ -42,7 +42,6 @@ import org.apache.kafka.connect.data.Schema;
 public final class MetaStoreImpl implements MutableMetaStore {
 
   private final Map<SourceName, SourceInfo> dataSources = new ConcurrentHashMap<>();
-  private final Object referentialIntegrityLock = new Object();
   private final FunctionRegistry functionRegistry;
   private final TypeRegistry typeRegistry;
 
@@ -90,39 +89,37 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void deleteSource(final SourceName sourceName) {
-    synchronized (referentialIntegrityLock) {
-      dataSources.compute(sourceName, (ignored, source) -> {
-        if (source == null) {
-          throw new KsqlException(String.format("No data source with name %s exists.",
-              sourceName.name()));
-        }
+  public synchronized void deleteSource(final SourceName sourceName) {
+    dataSources.compute(sourceName, (ignored, source) -> {
+      if (source == null) {
+        throw new KsqlException(String.format("No data source with name %s exists.",
+            sourceName.name()));
+      }
 
-        final String sourceForQueriesMessage = source.referentialIntegrity
-            .getSourceForQueries()
-            .stream()
-            .collect(Collectors.joining(", "));
+      final String sourceForQueriesMessage = source.referentialIntegrity
+          .getSourceForQueries()
+          .stream()
+          .collect(Collectors.joining(", "));
 
-        final String sinkForQueriesMessage = source.referentialIntegrity
-            .getSinkForQueries()
-            .stream()
-            .collect(Collectors.joining(", "));
+      final String sinkForQueriesMessage = source.referentialIntegrity
+          .getSinkForQueries()
+          .stream()
+          .collect(Collectors.joining(", "));
 
-        if (!sourceForQueriesMessage.isEmpty() || !sinkForQueriesMessage.isEmpty()) {
-          throw new KsqlReferentialIntegrityException(
-              String.format("Cannot drop %s.%n"
-                      + "The following queries read from this source: [%s].%n"
-                      + "The following queries write into this source: [%s].%n"
-                      + "You need to terminate them before dropping %s.",
-                  sourceName.toString(FormatOptions.noEscape()),
-                  sourceForQueriesMessage,
-                  sinkForQueriesMessage,
-                  sourceName.toString(FormatOptions.noEscape())));
-        }
+      if (!sourceForQueriesMessage.isEmpty() || !sinkForQueriesMessage.isEmpty()) {
+        throw new KsqlReferentialIntegrityException(
+            String.format("Cannot drop %s.%n"
+                    + "The following queries read from this source: [%s].%n"
+                    + "The following queries write into this source: [%s].%n"
+                    + "You need to terminate them before dropping %s.",
+                sourceName.toString(FormatOptions.noEscape()),
+                sourceForQueriesMessage,
+                sinkForQueriesMessage,
+                sourceName.toString(FormatOptions.noEscape())));
+      }
 
-        return null;
-      });
-    }
+      return null;
+    });
   }
 
   @Override
@@ -134,44 +131,40 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public void updateForPersistentQuery(
+  public synchronized void updateForPersistentQuery(
       final String queryId,
       final Set<SourceName> sourceNames,
       final Set<SourceName> sinkNames
   ) {
-    synchronized (referentialIntegrityLock) {
-      final String sourceAlreadyRegistered = streamSources(sourceNames)
-          .filter(source -> source.referentialIntegrity.getSourceForQueries().contains(queryId))
-          .map(source -> source.source.getName())
-          .map(Object::toString)
-          .collect(Collectors.joining(","));
+    final String sourceAlreadyRegistered = streamSources(sourceNames)
+        .filter(source -> source.referentialIntegrity.getSourceForQueries().contains(queryId))
+        .map(source -> source.source.getName())
+        .map(Object::toString)
+        .collect(Collectors.joining(","));
 
-      final String sinkAlreadyRegistered = streamSources(sinkNames)
-          .filter(source -> source.referentialIntegrity.getSinkForQueries().contains(queryId))
-          .map(source -> source.source.getName())
-          .map(Object::toString)
-          .collect(Collectors.joining(","));
+    final String sinkAlreadyRegistered = streamSources(sinkNames)
+        .filter(source -> source.referentialIntegrity.getSinkForQueries().contains(queryId))
+        .map(source -> source.source.getName())
+        .map(Object::toString)
+        .collect(Collectors.joining(","));
 
-      if (!sourceAlreadyRegistered.isEmpty() || !sinkAlreadyRegistered.isEmpty()) {
-        throw new KsqlException("query already registered."
-            + " queryId: " + queryId
-            + ", registeredAgainstSource: " + sourceAlreadyRegistered
-            + ", registeredAgainstSink: " + sinkAlreadyRegistered);
-      }
-
-      streamSources(sourceNames)
-          .forEach(source -> source.referentialIntegrity.addSourceForQueries(queryId));
-      streamSources(sinkNames)
-          .forEach(source -> source.referentialIntegrity.addSinkForQueries(queryId));
+    if (!sourceAlreadyRegistered.isEmpty() || !sinkAlreadyRegistered.isEmpty()) {
+      throw new KsqlException("query already registered."
+          + " queryId: " + queryId
+          + ", registeredAgainstSource: " + sourceAlreadyRegistered
+          + ", registeredAgainstSink: " + sinkAlreadyRegistered);
     }
+
+    streamSources(sourceNames)
+        .forEach(source -> source.referentialIntegrity.addSourceForQueries(queryId));
+    streamSources(sinkNames)
+        .forEach(source -> source.referentialIntegrity.addSinkForQueries(queryId));
   }
 
   @Override
-  public void removePersistentQuery(final String queryId) {
-    synchronized (referentialIntegrityLock) {
-      for (final SourceInfo sourceInfo : dataSources.values()) {
-        sourceInfo.referentialIntegrity.removeQuery(queryId);
-      }
+  public synchronized void removePersistentQuery(final String queryId) {
+    for (final SourceInfo sourceInfo : dataSources.values()) {
+      sourceInfo.referentialIntegrity.removeQuery(queryId);
     }
   }
 
@@ -194,10 +187,8 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
-  public MutableMetaStore copy() {
-    synchronized (referentialIntegrityLock) {
-      return new MetaStoreImpl(dataSources, functionRegistry, typeRegistry);
-    }
+  public synchronized MutableMetaStore copy() {
+    return new MetaStoreImpl(dataSources, functionRegistry, typeRegistry);
   }
 
   @Override

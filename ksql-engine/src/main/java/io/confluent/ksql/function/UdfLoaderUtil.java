@@ -20,14 +20,19 @@ import java.io.File;
 import java.util.Optional;
 
 public final class UdfLoaderUtil {
-  private UdfLoaderUtil() {}
+  private UdfLoaderUtil() {
+
+  }
 
   public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry) {
     new UdfLoader(functionRegistry,
         new File("src/test/resources/udf-example.jar"),
         UdfLoaderUtil.class.getClassLoader(),
-        value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true
-    )
+        value -> false,
+                  new UdfCompiler(Optional.empty()),
+                  new UdafCompiler(Optional.empty()),
+                  Optional.empty(),
+                  true)
         .load();
 
     return functionRegistry;

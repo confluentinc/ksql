@@ -52,14 +52,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
-import org.apache.kafka.common.utils.Time;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +73,8 @@ public class UdfLoader {
   private final File pluginDir;
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
-  private final UdfCompiler compiler;
+  private final UdfCompiler udfCompiler;
+  private final UdafCompiler udafCompiler;
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private final Optional<Metrics> metrics;
   private final boolean loadCustomerUdfs;
@@ -88,7 +87,8 @@ public class UdfLoader {
       final File pluginDir,
       final ClassLoader parentClassLoader,
       final Predicate<String> blacklist,
-      final UdfCompiler compiler,
+      final UdfCompiler udfCompiler,
+      final UdafCompiler udafCompiler,
       final Optional<Metrics> metrics,
       final boolean loadCustomerUdfs
   ) {
@@ -98,7 +98,8 @@ public class UdfLoader {
     this.parentClassLoader = Objects.requireNonNull(parentClassLoader,
         "parentClassLoader can't be null");
     this.blacklist = Objects.requireNonNull(blacklist, "blacklist can't be null");
-    this.compiler = Objects.requireNonNull(compiler, "compiler can't be null");
+    this.udfCompiler = Objects.requireNonNull(udfCompiler, "compiler can't be null");
+    this.udafCompiler = Objects.requireNonNull(udafCompiler, "compiler can't be null");
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
     this.typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
@@ -197,7 +198,7 @@ public class UdfLoader {
                   udafAnnotation.name(),
                   path,
                   method.getDeclaringClass());
-              return Optional.of(compiler.compileAggregate(method,
+              return Optional.of(udafCompiler.compileAggregate(method,
                   loader,
                   udafAnnotation.name(),
                   annotation.description()
@@ -254,22 +255,13 @@ public class UdfLoader {
   }
 
   private void handleUdfAnnotation(final Class<?> theClass,
-                                   final UdfDescription annotation,
+                                   final UdfDescription classLevelAnnotation,
                                    final Method method,
                                    final ClassLoader classLoader,
                                    final String path) {
 
-    LOGGER.info("Adding UDF name='{}' from class={}", annotation.name(), theClass);
-    final UdfInvoker udf = UdfCompiler.compile(method, classLoader);
-    addFunction(theClass, annotation, method, udf, path);
-  }
+    LOGGER.info("Adding UDF name='{}' from class={}", classLevelAnnotation.name(), theClass);
 
-
-  private void addFunction(final Class theClass,
-                           final UdfDescription classLevelAnnotation,
-                           final Method method,
-                           final UdfInvoker udf,
-                           final String path) {
     // sanity check
     instantiateUdfClass(method, classLevelAnnotation);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
@@ -280,47 +272,36 @@ public class UdfLoader {
     final Class<? extends Kudf> udfClass = metrics
         .map(m -> (Class)UdfMetricProducer.class)
         .orElse(PluggableUdf.class);
+
     addSensor(sensorName, functionName);
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
-    functionRegistry.ensureFunctionFactory(new UdfFactory(udfClass,
+    functionRegistry.ensureFunctionFactory(new UdfFactory(
+        udfClass,
         new UdfMetadata(functionName,
-            classLevelAnnotation.description(),
-            classLevelAnnotation.author(),
-            classLevelAnnotation.version(),
-            path,
-            false)));
-
-    final List<Schema> parameters = UdfCompiler.parseUdfInputParameters(
-        method,
-        classLevelAnnotation);
+                        classLevelAnnotation.description(),
+                        classLevelAnnotation.author(),
+                        classLevelAnnotation.version(),
+                        path,
+                        false)));
 
     final Schema javaReturnSchema = getReturnType(method, udfAnnotation);
 
-    functionRegistry.addFunction(KsqlFunction.create(
-        handleUdfReturnSchema(theClass,
-                              javaReturnSchema,
-                              udfAnnotation,
-                              classLevelAnnotation),
+    final Function<List<Schema>, Schema> returnSchema = handleUdfReturnSchema(
+        theClass,
         javaReturnSchema,
-        parameters,
-        functionName,
-        udfClass,
-        ksqlConfig -> {
-          final Object actualUdf = instantiateUdfClass(method, classLevelAnnotation);
-          if (actualUdf instanceof Configurable) {
-            ((Configurable)actualUdf)
-                .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
-          }
-          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf, method);
-          return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
-              theUdf,
-              Time.SYSTEM)).orElse(theUdf);
-        }, udfAnnotation.description(),
-        path,
-        method.isVarArgs()));
-  }
+        udfAnnotation,
+        classLevelAnnotation);
 
+    functionRegistry.addFunction(udfCompiler.compileFunction(
+        method,
+        classLevelAnnotation.name(),
+        classLoader,
+        udfClass,
+        path,
+        sensorName,
+        returnSchema));
+  }
 
   private static Object instantiateUdfClass(final Method method,
                                             final UdfDescription annotation) {
@@ -454,13 +435,13 @@ public class UdfLoader {
       System.setSecurityManager(ExtensionSecurityManager.INSTANCE);
     }
     return new UdfLoader(metaStore,
-        pluginDir,
-        Thread.currentThread().getContextClassLoader(),
-        new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
-        new UdfCompiler(metrics),
-        metrics,
-        loadCustomerUdfs
-    );
+                         pluginDir,
+                         Thread.currentThread().getContextClassLoader(),
+                         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
+                         new UdfCompiler(metrics),
+                         new UdafCompiler(metrics),
+                         metrics,
+                         loadCustomerUdfs);
   }
 
   private Schema getReturnType(final Method method, final Udf udfAnnotation) {

@@ -22,7 +22,11 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.QueryContainer;
+import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.planner.LogicalPlanNode;
+import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.AvroUtil;
@@ -30,9 +34,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
-
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Executor of {@code PreparedStatement} within a specific {@code EngineContext} and using a
@@ -40,8 +44,8 @@ import java.util.Objects;
  * </p>
  * All statements are executed using a {@code ServiceContext} specified in the constructor. This
  * {@code ServiceContext} might have been initialized with limited permissions to access Kafka
- * resources. The {@code EngineContext} has an internal {@code ServiceContext} that might have
- * more or less permissions than the one specified. This approach is useful when KSQL needs to
+ * resources. The {@code EngineContext} has an internal {@code ServiceContext} that might have more
+ * or less permissions than the one specified. This approach is useful when KSQL needs to
  * impersonate the current REST user executing the statements.
  */
 final class EngineExecutor {
@@ -79,41 +83,63 @@ final class EngineExecutor {
     try {
       throwOnNonExecutableStatement(statement);
 
-      final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
-
-      final LogicalPlanNode logicalPlan = queryEngine.buildLogicalPlan(
-          engineContext.getMetaStore(),
-          statement.withConfig(ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties))
-      );
-
-      if (!logicalPlan.getNode().isPresent()) {
-        final String msg = engineContext.executeDdlStatement(
-            statement.getStatementText(),
-            (ExecutableDdlStatement) statement.getStatement(),
-            ksqlConfig,
-            overriddenProperties
-        );
-
-        return ExecuteResult.of(msg);
+      if (statement.getStatement() instanceof Query) {
+        return executeQuery(statement, (Query)statement.getStatement(), Optional.empty());
       }
-
-      final QueryMetadata query = queryEngine.buildPhysicalPlan(
-          logicalPlan,
-          ksqlConfig,
-          overriddenProperties,
-          engineContext.getMetaStore()
-      );
-
-      validateQuery(query, statement);
-
-      engineContext.registerQuery(query);
-
-      return ExecuteResult.of(query);
+      if (statement.getStatement() instanceof QueryContainer) {
+        return executeQuery(
+            statement,
+            ((QueryContainer)statement.getStatement()).getQuery(),
+            Optional.of(((QueryContainer)statement.getStatement()).getSink())
+        );
+      }
+      return executeDdl(statement);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
       throw new KsqlStatementException(e.getMessage(), statement.getStatementText(), e);
     }
+  }
+
+  private ExecuteResult executeQuery(final ConfiguredStatement<?> statement,
+      final Query query,
+      final Optional<Sink> sink) {
+
+    final QueryEngine queryEngine = engineContext.createQueryEngine(serviceContext);
+
+    final OutputNode outputNode = QueryEngine.buildQueryLogicalPlan(
+        query,
+        sink,
+        engineContext.getMetaStore(),
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties)
+    );
+
+    final LogicalPlanNode logicalPlan =
+        new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));
+
+    final QueryMetadata queryMetadata = queryEngine.buildPhysicalPlan(
+        logicalPlan,
+        ksqlConfig,
+        overriddenProperties,
+        engineContext.getMetaStore()
+    );
+
+    validateQuery(queryMetadata, statement);
+
+    engineContext.registerQuery(queryMetadata);
+
+    return ExecuteResult.of(queryMetadata);
+  }
+
+  private ExecuteResult executeDdl(final ConfiguredStatement<?> statement) {
+    final String msg = engineContext.executeDdlStatement(
+        statement.getStatementText(),
+        (ExecutableDdlStatement) statement.getStatement(),
+        ksqlConfig,
+        overriddenProperties
+    );
+
+    return ExecuteResult.of(msg);
   }
 
   private void validateQuery(

@@ -58,6 +58,7 @@ import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -107,6 +108,7 @@ import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
@@ -445,8 +447,14 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER)) {
+      Thread.setDefaultUncaughtExceptionHandler(
+          new KsqlUncaughtExceptionHandler(LogManager::shutdown));
+    }
+    
     final HybridQueryIdGenerator hybridQueryIdGenerator =
         new HybridQueryIdGenerator();
+
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,

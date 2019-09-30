@@ -5,7 +5,7 @@ KSQL Quick Start
 
 
 {{ site.cp }} Quick Start
-    The :ref:`quickstart` is the easiest way to get you up and running with {{ site.cp }} and KSQL. It will demonstrate a simple
+    The `Confluent Platform Quick Start <https://docs.confluent.io/current/quickstart/index.html>`__ is the easiest way to get you up and running with {{ site.cp }} and KSQL. It will demonstrate a simple
     workflow with topic management, monitoring, and using KSQL to write streaming queries against data in {{ site.ak-tm }}.
 
 KSQL Tutorials and Examples

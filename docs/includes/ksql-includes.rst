@@ -350,7 +350,7 @@ the latest offset.
         ----------------------------
 
 #. Create a new persistent query that counts the pageviews for each region and gender combination in a
-   :ref:`tumbling window <windowing-tumbling>` of 30 seconds when the count is greater than one. Results from this query
+   `tumbling window <https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#tumbling-time-windows>`__ of 30 seconds when the count is greater than one. Results from this query
    are written to the ``PAGEVIEWS_REGIONS`` Kafka topic in the Avro format. KSQL will register the Avro schema with the
    configured {{ site.sr }} when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 

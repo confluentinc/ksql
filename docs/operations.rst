@@ -10,7 +10,7 @@ Local Development and Testing with Confluent CLI
 ================================================
 
 For development and testing purposes, you can use Confluent CLI to spin up services on a single host. For more information,
-see the :ref:`quickstart`.
+see the `Confluent Platform Quick Start <https://docs.confluent.io/current/quickstart/index.html>`__.
 
 .. include:: ../../includes/cli.rst
     :start-after: cli_limitations_start
@@ -83,7 +83,8 @@ Your output should resemble:
     num-idle-queries: 0.0
     messages-consumed-max: 103397.81191436431
 
-For more information about Kafka Streams metrics, see :ref:`streams_monitoring`.
+For more information about Kafka Streams metrics, see `Monitoring Streams Applications
+ <https://docs.confluent.io/current/streams/monitoring.html>`__.
 
 =================
 Capacity Planning

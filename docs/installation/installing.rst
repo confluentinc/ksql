@@ -15,7 +15,7 @@ Docker support
     Confluent maintains images at `Docker Hub <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__.
     To start KSQL containers in configurations like "KSQL Headless Server" and
     "Interactive Server with Interceptors", see
-    :ref:`Docker Configuration Parameters <config_reference>`.
+    `Docker Configuration Parameters <https://docs.confluent.io/current/installation/docker/config-reference.html>`__.
 
 Watch the `screencast of Installing and Running KSQL <https://www.youtube.com/embed/icwHpPm-TCA>`_ on YouTube.
 
@@ -32,11 +32,11 @@ Supported Versions and Interoperability
 Installation Instructions
 -------------------------
 
-Follow the instructions at :ref:`ce-quickstart`.
+Follow the instructions at `Confluent Platform Quick Start (Local) <https://docs.confluent.io/current/quickstart/ce-quickstart.html>`__.
 
 Also, you can install KSQL individually by using the
-:ref:`confluent-ksql package <confluent-ksql-package>`.
-For more information, see :ref:`available_packages`.
+`confluent-ksql package <https://docs.confluent.io/current/installation/available_packages.html#confluent-ksql>`__.
+For more information, see `Confluent Platform Packages <https://docs.confluent.io/current/installation/available_packages.html>`__.
 
 ---------------------------------
 Scale Your KSQL Server Deployment
@@ -201,4 +201,4 @@ After KSQL is started, your terminal should resemble this.
 Configuring KSQL for {{ site.ccloud }}
 -----------------------------
 
-You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more information, see :ref:`install_ksql-ccloud`.
+You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more information, see `Connecting KSQL to Confluent Cloud <https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html>`__.

@@ -394,7 +394,7 @@ For example, ``key1:value1,key2:value2``.
 -------------
 
 You can access KSQL Server by using {{ site.c3 }}. For more information, see
-:ref:`controlcenter_ksql_settings`.
+`Control Center Configuration Reference <https://docs.confluent.io/current/control-center/installation/configuration.html#ksql-settings>`__.
 
 .. _ksql-cloud-settings:
 

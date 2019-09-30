@@ -8,9 +8,9 @@ of the other services it communicates with, like {{ site.ak-tm }} and {{ site.sr
 
 - KSQL supports Basic HTTP authentication on its RESTful and WebSocket endpoints, which means
   that the endpoints can be protected by a username and password.
-- KSQL supports Apache Kafka security features such as :ref:`SSL for encryption <kafka_ssl_encryption>`,
-  :ref:`SASL for authentication <kafka_sasl_auth>`, and :ref:`authorization with ACLs <kafka_authorization>`.
-- KSQL supports :ref:`Schema Registry security features <schemaregistry_security>` such SSL for encryption
+- KSQL supports Apache Kafka security features such as `SSL for encryption <https://docs.confluent.io/current/kafka/encryption.html>`__,
+  `SASL for authentication <https://docs.confluent.io/current/kafka/authentication_sasl/index.html>`__, and `authorization with ACLs <https://docs.confluent.io/current/kafka/authorization.html>`__.
+- KSQL supports `Schema Registry security features <https://docs.confluent.io/current/schema-registry/security/index.html>`__ such SSL for encryption
   and mutual authentication for authorization.
 - Starting in {{ site.cp }} 5.2, KSQL supports SSL on all network traffic.
 
@@ -29,7 +29,7 @@ Configuring KSQL for HTTPS
 --------------------------
 KSQL can be configured to use HTTPS rather than the default HTTP for all communication.
 
-If you haven't already, you will need to :ref:`create SSL key and trust stores <generating_keys_certs>`.
+If you haven't already, you will need to `create SSL key and trust stores <https://docs.confluent.io/current/security/security_tutorial.html#creating-ssl-keys-and-certificates>`__.
 
 Use the following settings to configure the KSQL server to use HTTPS:
 
@@ -54,7 +54,7 @@ settings:
 Additional settings are available for configuring KSQL for HTTPS. For example,
 if you need to restrict the default configuration for
 `Jetty <https://www.eclipse.org/jetty/>`__, there are settings like
-``ssl.enabled.protocols``. For more information, see :ref:`kafka-rest-https-config`.
+``ssl.enabled.protocols``. For more information, see `Configuration Options for HTTPS <https://docs.confluent.io/current/kafka-rest/config.html#configuration-options-for-https>`__.
 
 .. _configuring-cli-for-https:
 
@@ -67,7 +67,7 @@ suitable key and trust stores.
 If the server's SSL certificate is not signed by a recognised public Certificate Authority,
 the CLI will need to be configured with a trust store that trusts the servers SSL certificate.
 
-If you haven't already, you will need to :ref:`create SSL key and trust stores <generating_keys_certs>`.
+If you haven't already, you will need to `create SSL key and trust stores <https://docs.confluent.io/current/security/security_tutorial.html#creating-ssl-keys-and-certificates>`__.
 
 Use the following settings to configure the CLI server:
 
@@ -200,7 +200,7 @@ the ``--user`` and ``--password`` command-line arguments, for example:
 Configuring KSQL for {{ site.ccloud }}
 -----------------------------
 
-You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more information, see :ref:`install_ksql-ccloud`.
+You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more information, see `Connecting KSQL to Confluent Cloud <https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html>`__.
 
 Configuring KSQL for {{ site.c3 }}
 -----------------------------
@@ -268,7 +268,7 @@ by adding the following to your KSQL server config.
     ksql.schema.registry.basic.auth.credentials.source=USER_INFO
     ksql.schema.registry.basic.auth.user.info=username:password
 
-For more information, see :ref:`schemaregistry_security`.
+For more information, see `Schema Registry Security Overview <https://docs.confluent.io/current/schema-registry/security/index.html>`__.
 
 .. _config-security-kafka:
 
@@ -293,7 +293,7 @@ This configuration enables KSQL to connect to a Kafka cluster over SSL, with a u
 
 The exact settings will vary depending on the security settings of the Kafka brokers,
 and how your SSL certificates are signed. For full details, and instructions on how to create
-suitable trust stores, please refer to the :ref:`Security Guide <security>`.
+suitable trust stores, please refer to the `Security Guide <https://docs.confluent.io/current/security/index.html>`__.
 
 .. _config-security-ssl-sasl:
 
@@ -314,7 +314,7 @@ signed by a CA trusted by the default JVM trust store.
         password="<password>";
 
 The exact settings will vary depending on what SASL mechanism your Kafka cluster is using and how your SSL certificates are
-signed. For more information, see the :ref:`Security Guide <security>`.
+signed. For more information, see the `Security Guide <https://docs.confluent.io/current/security/index.html>`__.
 
 .. _config-security-ksql-acl:
 
@@ -372,7 +372,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, ``PATTERN_TYPE
 All ACLs described are ``ALLOW`` ACLs, where the principal is the user the KSQL server has authenticated as,
 with the Apache Kafka cluster, or an appropriate group that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
+.. tip:: For more information about ACLs, see `Authorization using ACLs <https://docs.confluent.io/current/kafka/authorization.html>`__.
 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ACLs on Literal Resource Pattern
@@ -589,7 +589,7 @@ The ACLs described below list a ``RESOURCE_TYPE``, resource name, and ``OPERATIO
 the principal is the user the KSQL server has authenticated as, with the Apache Kafka cluster, or an appropriate group
 that includes the authenticated KSQL user.
 
-.. tip:: For more information about ACLs, see :ref:`kafka_authorization`.
+.. tip:: For more information about ACLs, see `Authorization using ACLs <https://docs.confluent.io/current/kafka/authorization.html>`__.
 
 .. _config-security-ksql-acl-interactive_pre_ak_2_0:
 
@@ -690,7 +690,7 @@ Consumer groups
 Configuring {{ site.c3-short }} Monitoring Interceptors
 ----------------------------------------------
 
-This configuration enables SASL and SSL for the :ref:`monitoring interceptors <controlcenter_clients>` that integrate KSQL
+This configuration enables SASL and SSL for the `monitoring interceptors <https://docs.confluent.io/current/control-center/installation/clients.html>`__ that integrate KSQL
 with {{ site.c3-short }}.
 
 ::
@@ -711,4 +711,4 @@ with {{ site.c3-short }}.
 
 Learn More
     See the blog post `Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL <https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/>`__
-    and try out the :ref:`Monitoring Kafka streaming ETL deployments <cp-demo>` tutorial.
+    and try out the `Kafka Event Streaming Application <https://docs.confluent.io/current/tutorials/cp-demo/docs/index.html>`__ tutorial.

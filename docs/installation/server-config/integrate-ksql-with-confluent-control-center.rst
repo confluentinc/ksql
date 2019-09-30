@@ -54,14 +54,14 @@ connectivity between KSQL and {{ site.c3-short }}.
   by ``<ksql-cluster-name>``.
   This setting specifies how {{ site.c3-short }} communicates with KSQL Server for 
   regular HTTP
-  requests. For more information, see :ref:`controlcenter_ksql_settings`.
+  requests. For more information, see `Control Center Configuration Reference <https://docs.confluent.io/current/control-center/installation/configuration.html#ksql-settings>`__.
 * If KSQL Server communicates over an internal DNS that is not externally
   resolvable or routeable, set the 
   ``confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url``
   property in the {{ site.c3-short }} configuration file. This setting specifies how the
   browser communicates with KSQL Server for websocket requests. For more 
   information,
-  see :ref:`controlcenter_ksql_settings`.
+  see `Control Center Configuration Reference <https://docs.confluent.io/current/control-center/installation/configuration.html#ksql-settings>`__.
 
 When KSQL Server and {{ site.c3 }} run on the same host, you can use the default
 configuration defined by {{ site.cp }} setup.
@@ -184,5 +184,5 @@ connections. In the ``ksql-server.properties`` file, set
 Next Steps
 **********
 
-* :ref:`install_ksql-ccloud`
+* `Connecting KSQL to Confluent Cloud <https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html>`__
 * :ref:`ksql-security`

@@ -33,7 +33,7 @@ import io.confluent.ksql.parser.SqlBaseParser.StatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.UnsetPropertyContext;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
-import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
+import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -328,7 +328,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     final List<FieldInfo> fields = description.getQueryDescription().getFields();
     terminal.printRowHeader(fields);
 
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         makeKsqlRequest(query, restClient::makeQueryRequest);
 
     LOGGER.debug("Handling streamed query");
@@ -336,7 +336,7 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     if (!queryResponse.isSuccessful()) {
       terminal.printErrorMessage(queryResponse.getErrorMessage());
     } else {
-      try (KsqlRestClient.QueryStream queryStream = queryResponse.getResponse();
+      try (QueryStream queryStream = queryResponse.getResponse();
           StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
         streamResults(queryStream, fields);
       }

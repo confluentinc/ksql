@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -103,7 +102,7 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void testStreamRowFromServer() throws InterruptedException {
     // Given:
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         ksqlRestClient.makeQueryRequest("Select *", null);
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
@@ -128,7 +127,7 @@ public class KsqlRestClientFunctionalTest {
     // Given:
     givenResponsesDelayedBy(Duration.ofSeconds(3));
 
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         ksqlRestClient.makeQueryRequest("Select *", null);
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
@@ -151,7 +150,7 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void shouldReturnFalseFromHasNextIfClosedAsynchronously() throws Exception {
     // Given:
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         ksqlRestClient.makeQueryRequest("Select *", null);
 
     final QueryStream stream = queryResponse.getResponse();
@@ -253,7 +252,7 @@ public class KsqlRestClientFunctionalTest {
     assertThat(response.getStatusCode().getCode(), is(HttpStatus.SC_NOT_FOUND));
     assertThat(response.getErrorMessage().getErrorCode(), is(40400));
     assertThat(response.getErrorMessage().getMessage(),
-        containsString("Path not found. Path='ksql'. "
+        containsString("Path not found. Path='/ksql'. "
             + "Check your ksql http url to make sure you are connecting to a ksql server."));
   }
 
@@ -421,6 +420,8 @@ public class KsqlRestClientFunctionalTest {
     entity.ifPresent(e -> when(response.readEntity((Class<T>) e.getClass())).thenReturn(e));
 
     final Invocation.Builder builder = mock(Invocation.Builder.class);
+    when(builder.headers(any())).thenReturn(builder);
+    when(builder.property(any(), any())).thenReturn(builder);
     when(builder.get()).thenReturn(response);
     when(builder.post(any())).thenReturn(response);
 
@@ -461,12 +462,12 @@ public class KsqlRestClientFunctionalTest {
 
   private static final class ReceiverThread {
 
-    private final KsqlRestClient.QueryStream queryStream;
+    private final QueryStream queryStream;
     private final List<StreamedRow> rows = new CopyOnWriteArrayList<>();
     private final AtomicReference<Exception> exception = new AtomicReference<>();
     private final Thread thread;
 
-    private ReceiverThread(final RestResponse<KsqlRestClient.QueryStream> queryResponse) {
+    private ReceiverThread(final RestResponse<QueryStream> queryResponse) {
       assertThat("not successful", queryResponse.isSuccessful(), is(true));
       this.queryStream = queryResponse.getResponse();
       this.thread = new Thread(() -> {

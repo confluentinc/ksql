@@ -16,40 +16,48 @@
 package io.confluent.ksql.function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import org.apache.kafka.connect.data.Schema;
+import org.junit.Before;
 import org.junit.Test;
 
 public class KudafUndoAggregatorTest {
+  private static final InternalFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
+  private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregate(
+      "SUM",
+      Schema.OPTIONAL_INT32_SCHEMA
+  );
+
+  private KudafUndoAggregator aggregator;
+
+  @Before
+  public void init() {
+    final List<TableAggregationFunction<?, ?, ?>> functions = ImmutableList.of(
+        (TableAggregationFunction<?, ?, ?>) SUM_INFO.getInstance(
+            new AggregateFunctionArguments(2, Collections.singletonList("baz"))
+        )
+    );
+    aggregator = new KudafUndoAggregator(2, functions);
+  }
+
   @Test
   public void shouldApplyUndoableAggregateFunctions() {
-    final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final Map<Integer, TableAggregationFunction<?, ?, ?>> aggValToAggFunctionMap = new HashMap<>();
-    final KsqlAggregateFunction functionInfo = functionRegistry.getAggregate(
-        "SUM", Schema.OPTIONAL_INT32_SCHEMA);
-    assertThat(functionInfo, instanceOf(TableAggregationFunction.class));
-    aggValToAggFunctionMap.put(
-        2, (TableAggregationFunction)functionInfo.getInstance(
-            new AggregateFunctionArguments(2, Collections.singletonList("baz"))
-        ));
-
+    // Given:
     final GenericRow row = new GenericRow(Arrays.asList("snow", "jon", 3));
     final GenericRow aggRow = new GenericRow(Arrays.asList("snow", "jon", 5));
 
-    final KudafUndoAggregator aggregator = new KudafUndoAggregator(
-        2, aggValToAggFunctionMap);
-
+    // When:
     final GenericRow resultRow = aggregator.apply(null, row, aggRow);
 
+    // Then:
     assertThat(resultRow, equalTo(new GenericRow(Arrays.asList("snow", "jon", 2))));
   }
 }

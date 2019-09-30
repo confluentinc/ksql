@@ -218,7 +218,7 @@ public class SchemaKGroupedStreamTest {
   public void shouldBuildStepForWindowedAggregate() {
     // Given:
     when(groupedStream.windowedBy(any(SessionWindows.class))).thenReturn(sessionWindowedStream);
-    when(sessionWindowedStream.aggregate(any(), any(), any(), any())).thenReturn(table);
+    when(sessionWindowedStream.aggregate(any(), any(), any(), any(Materialized.class))).thenReturn(table);
     when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
 
     // When:

@@ -53,6 +53,7 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KTable;
+import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Before;
 import org.junit.Rule;
@@ -110,7 +111,7 @@ public class SchemaKGroupedTableTest {
   @Before
   public void init() {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(mockKGroupedTable.aggregate(any(), any(), any(), any())).thenReturn(table);
+    when(mockKGroupedTable.aggregate(any(), any(), any(), (Materialized)any())).thenReturn(table);
     when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
   }
 

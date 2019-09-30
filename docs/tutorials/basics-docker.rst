@@ -24,7 +24,7 @@ Download the Tutorial and Start KSQL
 
 #. Switch to the correct {{ site.cp }} release branch:
 
-   .. codewithvars:: bash
+   .. code:: bash
    
        git checkout {{ site.release_post_branch }}
 
@@ -38,7 +38,7 @@ Download the Tutorial and Start KSQL
 
 #. From two separate terminal windows, run the data generator tool to simulate "user" and "pageview" data: 
 
-   .. codewithvars:: bash
+   .. code:: bash
 
       docker run --network tutorials_default --rm --name datagen-pageviews \
         confluentinc/ksql-examples:{{ site.release }} \
@@ -49,7 +49,7 @@ Download the Tutorial and Start KSQL
             topic=pageviews \
             maxInterval=500 
 
-   .. codewithvars:: bash
+   .. code:: bash
 
       docker run --network tutorials_default --rm --name datagen-users \
         confluentinc/ksql-examples:{{ site.release }} \
@@ -62,7 +62,7 @@ Download the Tutorial and Start KSQL
 
 #. From the host machine, start KSQL CLI
 
-   .. codewithvars:: bash
+   .. code:: bash
 
        docker run --network tutorials_default --rm --interactive --tty \
           confluentinc/cp-ksql-cli:{{ site.release }} \
@@ -86,7 +86,7 @@ Download the Tutorial and Start KSQL
     :start-after: struct_support_01_start
     :end-before: struct_support_01_end
 
-.. codewithvars:: bash
+.. code:: bash
 
     docker run --network tutorials_default --rm  \
       confluentinc/ksql-examples:{{ site.release }} \
@@ -178,7 +178,7 @@ Download the Tutorial and Start KSQL
     :start-after: insert-into-01-start
     :end-before: insert-into-01-end
 
-.. codewithvars:: bash
+.. code:: bash
 
     docker run --network tutorials_default --rm  --name datagen-orders-local \
       confluentinc/ksql-examples:{{ site.release }} \
@@ -189,7 +189,7 @@ Download the Tutorial and Start KSQL
           bootstrap-server=kafka:39092 \
           schemaRegistryUrl=http://schema-registry:8081
 
-.. codewithvars:: bash
+.. code:: bash
 
     docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
       confluentinc/ksql-examples:{{ site.release }} \

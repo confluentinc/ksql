@@ -91,7 +91,7 @@ you configure KSQL Server with a predefined ``.sql`` file and the
 Use the following command to run a headless, standalone KSQL Server instance in
 a container:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -d \
     -v /path/on/host:/path/in/container/ \
@@ -125,7 +125,7 @@ settings. For more info on interceptor classes, see
 Use the following command to run a headless, standalone KSQL Server with
 the specified interceptor classes in a container:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -d \
     -v /path/on/host:/path/in/container/ \
@@ -163,7 +163,7 @@ or the graphical interface in {{ site.c3 }}, or both together.
 
 Run a KSQL Server that enables manual interaction by using the KSQL CLI:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -d \
     -p 127.0.0.1:8088:8088 \
@@ -195,7 +195,7 @@ KSQL Interactive Server with Interceptors Settings (Development)
 Run a KSQL Server with interceptors that enables manual interaction by using
 the KSQL CLI:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -d \
     -p 127.0.0.1:8088:8088 \
@@ -240,7 +240,7 @@ container environment how KSQL Server connects with a Kafka cluster.
 
 Run a KSQL Server that uses a secure connection to a Kafka cluster:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -d \
     -p 127.0.0.1:8088:8088 \
@@ -301,7 +301,7 @@ use:
 
 Run a KSQL Server with a configuration that's defined by Java properties:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -d \
     -v /path/on/host:/path/in/container/ \
@@ -378,7 +378,7 @@ Connect KSQL CLI to a Dockerized KSQL Server
 Run a KSQL CLI instance in a container and connect to a KSQL Server that's
 running in a different container.
 
-.. codewithvars:: bash
+.. code:: bash
 
   # Run KSQL Server.
   docker run -d -p 10.0.0.11:8088:8088 \
@@ -408,7 +408,7 @@ Start KSQL CLI With a Provided Configuration File
 Set up a a KSQL CLI instance by using a configuration file, and run it in a
 container:
 
-.. codewithvars:: bash
+.. code:: bash
 
   # Assume KSQL Server is running.
   # Ensure that the configuration file exists.
@@ -427,14 +427,14 @@ Connect KSQL CLI to a KSQL Server Running on Another Host (Cloud)
 Run a KSQL CLI instance in a container and connect to a remote KSQL Server
 host:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run -it confluentinc/cp-ksql-cli:{{ site.release }} \
     http://ec2-blah.us-blah.compute.amazonaws.com:8080
 
 Your output should resemble:
 
-.. codewithvars:: text
+.. code:: text
 
   ... 
   Copyright 2017-2018 Confluent Inc.
@@ -527,7 +527,7 @@ Get the Container's Default Command
 Discover the default command that the container runs when it launches, which is
 either ``Entrypoint`` or ``Cmd``:
 
-.. codewithvars:: bash
+.. code:: bash
 
    docker inspect --format='{{.Config.Entrypoint}}' confluentinc/cp-ksql-server:{{ site.release }}
    docker inspect --format='{{.Config.Cmd}}' confluentinc/cp-ksql-server:{{ site.release }}
@@ -549,7 +549,7 @@ process starts. Use the ``command`` option to override the default command. In
 the following example, the ``command`` option creates a directory and downloads
 a tar archive into it.
 
-.. codewithvars:: yaml
+.. code:: yaml
 
    ksql-server:
      image: confluentinc/cp-ksql-server:{{ site.release }}
@@ -590,7 +590,7 @@ compared with running KSQL Server headless with a queries file, is that you can
 still interact with KSQL, and you can pre-build the environment to a desired
 state.
 
-.. codewithvars:: yaml
+.. code:: yaml
 
    ksql-cli:
      image: confluentinc/cp-ksql-cli:{{ site.release }}

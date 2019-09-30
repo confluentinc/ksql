@@ -9,7 +9,7 @@ These steps will guide you through how to setup your environment and run the cli
 
 - If you are using Linux as your host, for the Elasticsearch container to start successfully you must first run: 
 
-.. codewithvars:: bash
+.. code:: bash
 
       sudo sysctl -w vm.max_map_count=262144
       
@@ -32,7 +32,7 @@ are quite large and depending on your network connection may take
 
 #. Switch to the correct {{ site.cp }} release branch:
 
-   .. codewithvars:: bash
+   .. code:: bash
    
        git checkout {{ site.release_post_branch }}
 
@@ -104,7 +104,7 @@ populated. They hold information about the HTTP status codes, and users.
 
 #.  View the status codes data
 
-    .. codewithvars:: bash
+    .. code:: bash
 
         docker-compose exec kafkacat \
             kafkacat -b kafka:29092 -C -c 3 -K: \
@@ -123,7 +123,7 @@ populated. They hold information about the HTTP status codes, and users.
 
 #.  View the user data
 
-    .. codewithvars:: bash
+    .. code:: bash
 
         docker-compose exec kafkacat \
           kafkacat -b kafka:29092 -C -c 3 -K: \

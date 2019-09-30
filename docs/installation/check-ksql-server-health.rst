@@ -18,7 +18,7 @@ Use the ``ps`` command to check whether the KSQL server process is running:
 
 Your output should resemble:
 
-.. codewithvars:: bash
+.. code:: bash
 
     jim       2540  5.2  2.3 8923244 387388 tty2   Sl   07:48   0:33 /usr/lib/jvm/java-8-oracle/bin/java -cp /home/jim/confluent-{{ site.release }}/share/java/monitoring-interceptors/* ...
 
@@ -48,7 +48,7 @@ For more information, see :ref:`ksql-rest-api`.
 
 Your output should resemble:
 
-.. codewithvars:: json
+.. code:: json
 
   {
       "KsqlServerInfo":{

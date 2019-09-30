@@ -35,7 +35,7 @@ Learn More
 
 .. CLI_welcome_start
 
-.. codewithvars:: text
+.. code:: text
 
                           ===========================================
                           =        _  __ _____  ____  _             =

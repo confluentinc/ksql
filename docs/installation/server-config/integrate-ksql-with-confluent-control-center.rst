@@ -138,7 +138,7 @@ listed in the ``confluent.controlcenter.ksql.<ksql-cluster-name>.url`` and
 ``confluent.controlcenter.ksql.<ksql-cluster-name>.advertised.url`` 
 configuration settings.
 
-.. codewithvars:: bash
+.. code:: bash
 
    curl http://<hostname>:8088/info \
    {"KsqlServerInfo":{"version":"{{ site.release }}","kafkaClusterId":"<ksql-cluster-name>","ksqlServiceId":"default_"}}%

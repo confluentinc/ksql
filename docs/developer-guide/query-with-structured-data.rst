@@ -24,7 +24,7 @@ Set up the KSQL Environment
 To set up KSQL, follow the first three steps in :ref:`ksql_quickstart-docker`,
 or if you have git and Docker installed already, run the following commands: 
 
-.. codewithvars:: bash
+.. code:: bash
 
     # Step 1
     git clone https://github.com/confluentinc/ksql.git
@@ -105,7 +105,7 @@ Create a Stream With Structured Data
 
 Start the KSQL CLI:
 
-.. codewithvars:: bash
+.. code:: bash
 
   docker run --network tutorials_default --rm --interactive --tty \
       confluentinc/cp-ksql-cli:{{ site.release }} \

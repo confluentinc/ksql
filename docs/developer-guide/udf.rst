@@ -184,20 +184,20 @@ used to call the UDF. As can be seen this UDF can be invoked in different ways:
 If you're using Gradle to build your UDF or UDAF, specify the ``ksql-udf``
 dependency: 
 
-.. codewithvars:: bash
+.. code:: bash
 
     compile 'io.confluent.ksql:ksql-udf:{{ site.release }}'
 
 To compile with the latest version of ``ksql-udf``:
 
-.. codewithvars:: bash
+.. code:: bash
 
     compile 'io.confluent.ksql:ksql-udf:+'
 
 If you're using Maven to build your UDF or UDAF, specify the ``ksql-udf``
 dependency in your POM file:
 
-.. codewithvars:: xml
+.. code:: xml
 
     <!-- Specify the repository for Confluent dependencies -->
         <repositories>

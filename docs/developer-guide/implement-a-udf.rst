@@ -33,7 +33,7 @@ Server configuration properties.
 
 Create the KSQL extensions directory, ``<path-to-confluent>/etc/ksql/ext``:
 
-.. codewithvars:: bash
+.. code:: bash
 
     mkdir confluent-{{ site.release }}/etc/ksql/ext
 
@@ -41,7 +41,7 @@ Edit the ``ksql-server.properties`` configuration file in
 ``<path-to-confluent>/etc/ksql`` to add the fully qualified path to the
 ``ext`` directory:
 
-.. codewithvars:: text
+.. code:: text
 
     ksql.extension.dir=/home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext
 
@@ -145,7 +145,7 @@ Create the POM File
 In the root directory for your custom UDF implementation, create the Project
 Object Model (POM) file for the Maven build, and name it ``pom.xml``:
 
-.. codewithvars:: xml
+.. code:: xml
 
     <?xml version="1.0" encoding="UTF-8"?>
 
@@ -335,7 +335,7 @@ Inspect the details of the MULTIPLY function:
 
 Your output should resemble:
 
-.. codewithvars:: text
+.. code:: text
 
     Name        : MULTIPLY
     Overview    : multiplies 2 numbers

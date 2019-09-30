@@ -82,7 +82,7 @@ use the ``curl`` command to query the ``/info`` endpoint:
 
 Your output should resemble:
 
-.. codewithvars:: bash
+```bash
 
    {
      "KsqlServerInfo": {
@@ -91,6 +91,7 @@ Your output should resemble:
        "ksqlServiceId": "default_"
      }
    }
+```
 
 Run a KSQL Statement
 --------------------

@@ -39,7 +39,7 @@ to change it to earliest by using the KSQL command line:
 
     SET 'auto.offset.reset'='earliest';
 
-For more information, see :ref:`kafka_consumer` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
+For more information, see `Kafka Consumer <https://docs.confluent.io/current/clients/consumer.html>`__ and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#AUTO_OFFSET_RESET_CONFIG`.
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -59,7 +59,7 @@ by using the KSQL command line:
 
     SET 'bootstrap.servers'='localhost:9095';
 
-For more information, see :ref:`Streams parameter reference <streams_developer-guide_required-configs>` and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
+For more information, see `Streams parameter reference <https://docs.confluent.io/current/streams/developer-guide/config-streams.html#configuration-parameter-reference>`__ and the :cp-javadoc:`Javadoc|clients/javadocs/org/apache/kafka/clients/consumer/ConsumerConfig.html#BOOTSTRAP_SERVERS_CONFIG`.
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -79,7 +79,7 @@ the value to ``5000`` by using the KSQL command line:
 
     SET 'commit.interval.ms'='5000';
 
-For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
+For more information, see the `Streams parameter reference <https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters>`__ and the :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#COMMIT_INTERVAL_MS_CONFIG`,
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -98,7 +98,7 @@ Here is an example to change the value to ``20000000`` by using the KSQL command
 
     SET 'cache.max.bytes.buffering'='20000000';
 
-For more information, see the :ref:`Streams parameter reference <streams_developer-guide_optional-configs>` and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
+For more information, see the `Streams parameter reference <https://docs.confluent.io/current/streams/developer-guide/config-streams.html#optional-configuration-parameters>`__ and :cp-javadoc:`Javadoc|streams/javadocs/org/apache/kafka/streams/StreamsConfig.html#CACHE_MAX_BYTES_BUFFERING_CONFIG`.
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -111,7 +111,7 @@ ksql.streams.num.stream.threads
 -------------------------------
 
 This number of stream threads in an instance of the Kafka Streams application. The stream processing code runs in these
-threads. For more information about Kafka Streams threading model, see :ref:`streams_architecture_threads`.
+threads. For more information about Kafka Streams threading model, see `Threading Model <https://docs.confluent.io/current/streams/architecture.html#threading-model>`__.
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -402,7 +402,7 @@ You can access KSQL Server by using {{ site.c3 }}. For more information, see
 -----------------
 
 You can connect KSQL Server to {{ site.ccloud }}. For more information, see
-:ref:`install_ksql-ccloud`.
+`Connecting KSQL to Confluent Cloud <https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html>`__.
 
 .. _ksql-server-log-settings:
 

@@ -128,11 +128,11 @@ because it's a continuous query system on data streams.
 
 To get started with KSQL, try the :ref:`ksql_tutorials`.
 
-To get started with Kafka Streams, try the :ref:`streams_quickstart`.  
+To get started with Kafka Streams, try the `Streams Quick Start <https://docs.confluent.io/current/streams/quickstart.html>`__.  
 
 Next Steps
 **********
 
 * :ref:`ksql_quickstart-docker`
 * :ref:`ksql-dev-guide`
-* :ref:`streams_developer-guide`
+* `Streams Developer Guide <https://docs.confluent.io/current/streams/developer-guide/index.html>`__

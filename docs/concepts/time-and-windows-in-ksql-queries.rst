@@ -150,7 +150,7 @@ time of processing to implement processing-time semantics.
 
 By creating a custom timestamp extractor class, you can enforce different notions
 or semantics of time, depending on the requirements of your business logic. For
-more information see :ref:`streams_developer-guide_timestamp-extractor`.
+more information see `default.timestamp.extractor <https://docs.confluent.io/current/streams/developer-guide/config-streams.html#default-timestamp-extractor>`__.
 
 .. _windows_in_ksql_queries:
 

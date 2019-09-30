@@ -14,7 +14,7 @@ Also, you can generate data from a few simple, predefined schemas.
 
 **Prerequisites:** 
 
-- :ref:`Confluent Platform <installation>` is installed and running.
+- `Confluent Platform <https://docs.confluent.io/current/installation/installing_cp/index.html>`__ is installed and running.
   This installation includes an {{ site.ak-tm }} broker, KSQL, {{ site.c3-short }}, {{ site.zk }},
   {{ site.sr }}, REST Proxy, and Kafka Connect.
 - If you installed {{ site.cp }} via TAR or ZIP, navigate to the installation

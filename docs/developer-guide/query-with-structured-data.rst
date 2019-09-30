@@ -63,7 +63,7 @@ Create and Populate a New Topic With Structured Data
 
 Use the {{ site.kcat }} utility to create and populate a new topic, named
 ``raw-topic``, with some records that have nested data. The records are 
-formatted as JSON arrays. For more information, see :ref:`kafkacat-usage`.
+formatted as JSON arrays. For more information, see `kafkacat Utility <https://docs.confluent.io/current/app-development/kafkacat-usage.html>`__.
 
 .. code:: bash
 

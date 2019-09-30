@@ -7,12 +7,12 @@ This tutorial demonstrates a simple workflow to integrate KSQL with an instance 
 
 **Prerequisites:**
 
-- :ref:`Confluent Platform <installation>` is installed an running. This installation includes
+- `Confluent Platform <https://docs.confluent.io/current/installation/installing_cp/index.html>`__ is installed an running. This installation includes
   a Kafka broker, KSQL, {{ site.zk }}, {{ site.sr }} and {{ site.kconnect }}.
 - If you installed {{ site.cp }} via TAR or ZIP, navigate into the installation
   directory. The paths and commands used throughout this tutorial assume
   that you are in this installation directory.
-- Consider :ref:`installing <cli-install>` the {{ site.confluent-cli }} to start a local
+- Consider `installing <https://docs.confluent.io/current/cli/installing.html>`__ the {{ site.confluent-cli }} to start a local
   installation of {{ site.cp }}.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your local machine
 
@@ -108,4 +108,4 @@ and select everything from the topic to see how it gets auto populated:
 
 Note that users are repeated multiple times. This is ``bulk`` mode is specified, which re-imports
 the entire database every time. Obviously, this isn't appropriate for production. For more information
-on changelog capture, see :ref:`jdbc-source-connector-incremental-query-modes`.
+on changelog capture, see `Incremental Query Modes <https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/index.html#incremental-query-modes>`__.

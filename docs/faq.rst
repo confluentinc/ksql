@@ -46,7 +46,7 @@ KSQL is complementary to the Kafka Streams API, and indeed executes queries thro
 
 One of the key benefits of KSQL is that it does not require the user to develop any code in Java or Scala. This enables users to leverage a SQL-like interface alone to construct streaming ETL pipelines, to respond to real-time, continuous business requests, to spot anomalies, and more. KSQL is a great fit when your processing logic can be naturally expressed through SQL.
 
-For full-fledged stream processing applications Kafka Streams remains a more appropriate choice. For example, implementing a finite state machine that is driven by streams of data is easier to achieve in a programming language such as Java or Scala than in SQL. In Kafka Streams you can also choose between the :ref:`DSL <streams_developer-guide_dsl>` (a functional programming API) and the :ref:`Processor API <streams_developer-guide_processor-api>` (an imperative programming API), and even combine the two.
+For full-fledged stream processing applications Kafka Streams remains a more appropriate choice. For example, implementing a finite state machine that is driven by streams of data is easier to achieve in a programming language such as Java or Scala than in SQL. In Kafka Streams you can also choose between the `DSL <https://docs.confluent.io/current/streams/developer-guide/dsl-api.html>`__ (a functional programming API) and the `Processor API <https://docs.confluent.io/current/streams/developer-guide/processor-api.html>`__ (an imperative programming API), and even combine the two.
 
 As with many technologies, each has its sweet-spot based on technical requirements, mission-criticality, and user skillset.
 
@@ -119,7 +119,7 @@ command:
    sudo systemctl stop confluent-ksql
 
 For more information on shutting down {{ site.cp }}, see
-:ref:`installation-overview`.
+`Install and Upgrade <https://docs.confluent.io/current/installation/index.html>`__.
 
 ============================================
 How do I configure the target Kafka cluster?
@@ -194,7 +194,7 @@ For more information, see :ref:`config-security-ssl-sasl`.
 Will KSQL work with Confluent Cloud?
 ====================================
 
-Yes. Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see :ref:`install_ksql-ccloud`.
+Yes. Running KSQL against an Apache Kafka cluster running in the cloud is pretty straight forward. For more information, see `Connecting KSQL to Confluent Cloud <https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html>`__.
 
 ====================================================================
 Will KSQL work with a Apache Kafka cluster secured using Kafka ACLs?

@@ -13,9 +13,9 @@ KSQL is a simple and powerful tool for building streaming applications on top of
 - How do I know whether my KSQL queries are handling the incoming message rate, and how can I tune KSQL if it’s falling behind?
 
 .. tip:: Because the underlying implementation of KSQL uses the
-         :ref:`Kafka Streams API <streams_developer-guide_dsl>` for query
+         `Kafka Streams API <https://docs.confluent.io/current/streams/developer-guide/dsl-api.html>`__ for query
          processing, the details covered in the Streams documentation apply to
-         KSQL as well. The :ref:`Kafka Streams capacity planning guide <streams_sizing>`
+         KSQL as well. The `Kafka Streams capacity planning guide <https://docs.confluent.io/current/streams/sizing.html>`__
          is another useful resource for KSQL capacity planning.
 
 Approach To Sizing
@@ -231,7 +231,7 @@ Interactive KSQL Servers vs Non-Interactive (“Headless”) Servers
 
 By default, KSQL servers are configured for interactive use, which means you can use the KSQL CLI to interact with a KSQL cluster in order to, for example, execute new queries. Interactive KSQL usage allows for easy and quick iterative development and testing of your KSQL queries via the KSQL CLI.
 
-You can also :ref:`configure the servers for headless, non-interactive operation <restrict-ksql-interactive>`, where servers collaboratively run only a predefined list of queries. The result is essentially an elastic, fault-tolerant, and distributed stream processing application that communicates to the outside world by reading from and writing to Kafka topics.  Sizing, deploying, and managing in this scenario is similar to a :ref:`Kafka Streams application <kafka_streams>`. You should integrate KSQL deployments with your own CI/CD pipeline, for example, to version-control the .sql file.
+You can also :ref:`configure the servers for headless, non-interactive operation <restrict-ksql-interactive>`, where servers collaboratively run only a predefined list of queries. The result is essentially an elastic, fault-tolerant, and distributed stream processing application that communicates to the outside world by reading from and writing to Kafka topics.  Sizing, deploying, and managing in this scenario is similar to a `Kafka Streams application <https://docs.confluent.io/current/streams/index.html>`__. You should integrate KSQL deployments with your own CI/CD pipeline, for example, to version-control the .sql file.
 
 Here are some guidelines for choosing between the configuration types:
 
@@ -262,7 +262,7 @@ long as there are more partitions than consumers.
 How to Know When to Scale
 +++++++++++++++++++++++++
 
-If KSQL cannot keep up with the production rate of your Kafka topics, it will start to fall behind in processing the incoming data. Consumer lag is the Kafka terminology for describing how much a Kafka consumer including KSQL has fallen behind. It’s important to monitor consumer lag on your topics and add resources if you observe that the lag is growing. :ref:`control_center` is the recommended tool for monitoring. You can also check out :ref:`Kafka documentation <kafka_monitoring>` for details on metrics exposed by Kafka that can be used to monitor lag.
+If KSQL cannot keep up with the production rate of your Kafka topics, it will start to fall behind in processing the incoming data. Consumer lag is the Kafka terminology for describing how much a Kafka consumer including KSQL has fallen behind. It’s important to monitor consumer lag on your topics and add resources if you observe that the lag is growing. `Confluent Control Center <https://docs.confluent.io/current/control-center/index.html>`__ is the recommended tool for monitoring. You can also check out `Kafka documentation <https://docs.confluent.io/current/kafka/monitoring.html>`__ for details on metrics exposed by Kafka that can be used to monitor lag.
 
 Mixed Workloads
 +++++++++++++++

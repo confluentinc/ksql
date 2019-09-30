@@ -103,7 +103,7 @@ Notable changes in 4.1:
       both the CLI and also a KSQL server process inside the same JVM.  In 4.1, ``ksql`` will only run the CLI.  For
       local development and testing, you can now run ``confluent start`` (which will also launch a KSQL server),
       followed by ``ksql`` to start the CLI. This setup is used for the
-      :ref:`Confluent Platform quickstart <quickstart>`.  Alternatively, you can start the KSQL server directly as
+      `Confluent Platform quickstart <https://docs.confluent.io/current/quickstart/index.html>`__.  Alternatively, you can start the KSQL server directly as
       described in :ref:`start_ksql-server`, followed by ``ksql`` to start the CLI.
 
 * KSQL server:

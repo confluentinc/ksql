@@ -7,13 +7,13 @@ You can use KSQL in {{ site.c3 }} to write streaming queries against messages in
 
 **Prerequisites:**
 
-- :ref:`Confluent Platform <installation>` is installed and running. This
+- `Confluent Platform <https://docs.confluent.io/current/installation/installing_cp/index.html>`__ is installed and running. This
   installation includes a Kafka broker, KSQL, {{ site.c3-short }}, {{ site.zk }}, {{ site.sr }}, {{ site.crest }},
   and {{ site.kconnect }}.
 - If you installed {{ site.cp }} via TAR or ZIP, navigate into the installation
   directory. The paths and commands used throughout this tutorial assume that
   you are in this installation directory.
-- Consider :ref:`installing <cli-install>` the {{ site.confluent-cli }} to start a local
+- Consider `installing <https://docs.confluent.io/current/cli/installing.html>`__ the {{ site.confluent-cli }} to start a local
   installation of {{ site.cp }}.
 - Java: Minimum version 1.8. Install Oracle Java JRE or JDK >= 1.8 on your
   local machine

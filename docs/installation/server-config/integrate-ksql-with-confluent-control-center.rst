@@ -9,7 +9,7 @@ persistent queries in the KSQL query editor. When you install {{ site.cp }}, KSQ
 is integrated with {{ site.c3-short }} by default, and you can configure {{ site.c3-short }} to
 interact with other KSQL Server instances that run on separate hosts.
 
-.. image:: ../../../../images/ksql-interface-create-stream.png
+.. image:: ../../img/ksql-interface-create-stream.png
      :width: 600px
      :align: center
      :alt: Screenshot of the KSQL Create Stream interface in Confluent Control Center.

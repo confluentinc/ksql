@@ -34,7 +34,7 @@ Get started with the KSQL CLI:
 Write Streaming Queries with KSQL and {{ site.c3 }}
 ------------------------------------------
 
-.. image:: ../../../images/ksql-interface-create-stream.png
+.. image:: ../img/ksql-interface-create-stream.png
      :width: 600px
 
 Get started with KSQL and {{ site.c3 }}:

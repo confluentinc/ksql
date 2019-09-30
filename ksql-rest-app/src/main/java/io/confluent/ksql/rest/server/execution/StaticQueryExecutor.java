@@ -628,7 +628,8 @@ public final class StaticQueryExecutor {
             + "WINDOWSTART currently supports operators: " + VALID_WINDOW_BOUNDS_TYPES_STRING
             + System.lineSeparator()
             + "WINDOWSTART currently comparison with epoch milliseconds "
-            + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN;
+            + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
+            + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
     return new KsqlException(msg
         + System.lineSeparator()

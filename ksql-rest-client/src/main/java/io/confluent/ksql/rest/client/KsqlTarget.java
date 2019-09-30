@@ -186,7 +186,7 @@ public final class KsqlTarget {
   }
 
   private MultivaluedMap<String, Object> headers() {
-    MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
+    final MultivaluedMap<String, Object> headers = new MultivaluedHashMap<>();
     authHeader.ifPresent(v -> headers.add(HttpHeaders.AUTHORIZATION, v));
     return headers;
   }

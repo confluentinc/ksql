@@ -218,8 +218,7 @@ public class AggregateNode extends PlanNode {
     final SchemaKGroupedStream schemaKGroupedStream = aggregateArgExpanded.groupBy(
         valueFormat,
         internalGroupByColumns,
-        groupByContext,
-        builder
+        groupByContext
     );
 
     final List<FunctionCall> functionsWithInternalIdentifiers = functionList.stream()
@@ -267,11 +266,7 @@ public class AggregateNode extends PlanNode {
         .map(internalSchema::resolveToInternal);
 
     if (havingExpression.isPresent()) {
-      aggregated = aggregated.filter(
-          havingExpression.get(),
-          contextStacker.push(FILTER_OP_NAME),
-          builder
-      );
+      aggregated = aggregated.filter(havingExpression.get(), contextStacker.push(FILTER_OP_NAME));
     }
 
     final List<SelectExpression> finalSelects = internalSchema

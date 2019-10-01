@@ -104,7 +104,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
-  private static final ColumnName TIMESTAMP_FIELD = ColumnName.of("timestamp");
+  private static final ColumnRef TIMESTAMP_FIELD
+      = ColumnRef.withoutSource(ColumnName.of("timestamp"));
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
@@ -119,7 +120,7 @@ public class DataSourceNodeTest {
       .valueColumn(FIELD1, SqlTypes.STRING)
       .valueColumn(FIELD2, SqlTypes.STRING)
       .valueColumn(FIELD3, SqlTypes.STRING)
-      .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
+      .valueColumn(TIMESTAMP_FIELD.name(), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
   private static final KeyField KEY_FIELD
@@ -207,7 +208,6 @@ public class DataSourceNodeTest {
 
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
         .thenReturn((KeySerde)keySerde);
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn((KeySerde)keySerde);
     when(ksqlStreamBuilder.buildValueSerde(any(), any(), any())).thenReturn(rowSerde);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
 
@@ -217,36 +217,12 @@ public class DataSourceNodeTest {
     when(dataSource.getKsqlTopic()).thenReturn(ksqlTopic);
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KTABLE);
     when(dataSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
-    when(dataSource.getSerdeOptions()).thenReturn(serdeOptions);
-    when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
     when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
     when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
-    when(timestampExtractionPolicy.timestampField()).thenReturn(ColumnRef.withoutSource(TIMESTAMP_FIELD));
-    when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
-    when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
-    when(kStream.mapValues(any(ValueMapperWithKey.class))).thenReturn(kStream);
-    when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
-    when(kStream.groupByKey()).thenReturn(kGroupedStream);
-    when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
+    when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
     when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any()))
         .thenReturn(stream);
-    when(stream.toTable(any(), any(), any(), any())).thenReturn(table);
-  }
-
-  @Test
-  public void shouldCreateLoggerForSourceSerde() {
-    // When:
-    buildStream(node);
-
-    // Then:
-    verify(ksqlStreamBuilder).buildValueSerde(
-        any(),
-        any(),
-        queryContextCaptor.capture()
-    );
-
-    assertThat(QueryLoggerUtil.queryLoggerName(queryId, queryContextCaptor.getValue()),
-        is("source-test.0.source"));
+    when(stream.toTable(any(), any(), any())).thenReturn(table);
   }
 
   @Test
@@ -311,7 +287,7 @@ public class DataSourceNodeTest {
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("field1")),
             REAL_SCHEMA.findValueColumn( ColumnRef.withoutSource(FIELD1)).get()),
-        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(TIMESTAMP_FIELD)),
+        new LongColumnTimestampExtractionPolicy(TIMESTAMP_FIELD),
         new KsqlTopic(
             "topic2",
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
@@ -330,59 +306,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  public void shouldTransformKStreamToKTableCorrectly() {
-    final KsqlTable<String> table = new KsqlTable<>("sqlExpression",
-        SourceName.of("datasource"),
-        REAL_SCHEMA,
-        SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1")),
-            REAL_SCHEMA.findValueColumn( ColumnRef.withoutSource(FIELD1)).get()),
-        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(TIMESTAMP_FIELD)),
-        new KsqlTopic(
-            "topic2",
-            KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON)),
-            false
-        )
-    );
-
-    final DataSourceNode node = new DataSourceNode(
-        PLAN_NODE_ID,
-        table,
-        table.getName());
-
-    realBuilder = new StreamsBuilder();
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
-    buildStream(node);
-    final Topology topology = realBuilder.build();
-    final TopologyDescription description = topology.describe();
-
-    final List<String> expectedPlan = Arrays.asList(
-        "SOURCE", "MAPVALUES", "TRANSFORMVALUES", "MAPVALUES", "AGGREGATE");
-
-    assertThat(description.subtopologies().size(), equalTo(1));
-    final Set<TopologyDescription.Node> nodes = description.subtopologies().iterator().next().nodes();
-    // Get the source node
-    TopologyDescription.Node streamsNode = nodes.iterator().next();
-    while (!streamsNode.predecessors().isEmpty()) {
-      streamsNode = streamsNode.predecessors().iterator().next();
-    }
-    // Walk the plan and make sure it matches
-    final ListIterator<String> expectedPlanIt = expectedPlan.listIterator();
-    assertThat(nodes.size(), equalTo(expectedPlan.size()));
-    while (true) {
-      assertThat(streamsNode.name(), startsWith("KSTREAM-" + expectedPlanIt.next()));
-      if (streamsNode.successors().isEmpty()) {
-        assertThat(expectedPlanIt.hasNext(), is(false));
-        break;
-      }
-      assertThat(expectedPlanIt.hasNext(), is(true));
-      assertThat(streamsNode.successors().size(), equalTo(1));
-      streamsNode = streamsNode.successors().iterator().next();
-    }
-  }
-
-  @Test
   public void shouldHaveFullyQualifiedSchema() {
     // Given:
     final SourceName sourceName = SOME_SOURCE.getName();
@@ -398,65 +321,9 @@ public class DataSourceNodeTest {
             .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
-            .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
+            .valueColumn(TIMESTAMP_FIELD.name(), SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
             .build().withAlias(sourceName)));
-  }
-
-  @Test
-  public void shouldBuildNonWindowedKeySerde() {
-    // Given:
-    final DataSourceNode node = nodeWithMockTableSource();
-
-    final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
-
-    // When:
-    buildStream(node);
-
-    // Then:
-    verify(ksqlStreamBuilder, times(2)).buildKeySerde(
-        eq(keyFormat.getFormatInfo()),
-        eq(PHYSICAL_SCHEMA),
-        any());
-  }
-
-  @Test
-  public void shouldBuildWindowedKeySerde() {
-    // Given:
-    final DataSourceNode node = nodeWithMockTableSource();
-
-    final KeyFormat keyFormat = KeyFormat.windowed(
-        FormatInfo.of(Format.KAFKA),
-        WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(10)))
-    );
-
-    when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
-
-    // When:
-    buildStream(node);
-
-    // Then:
-    verify(ksqlStreamBuilder, times(2)).buildKeySerde(
-        eq(keyFormat.getFormatInfo()),
-        eq(keyFormat.getWindowInfo().get()),
-        eq(PHYSICAL_SCHEMA),
-        any());
-  }
-
-  @Test
-  public void shouldBuildSourceValueSerdeWithSourceSchema() {
-    // Given:
-    final DataSourceNode node = nodeWithMockTableSource();
-
-    // When:
-    buildStream(node);
-
-    // Then:
-    verify(ksqlStreamBuilder).buildValueSerde(
-        eq(FormatInfo.of(Format.JSON)),
-        eq(PHYSICAL_SCHEMA),
-        any());
   }
 
   @Test
@@ -551,20 +418,8 @@ public class DataSourceNodeTest {
     final SchemaKStream returned = node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), any(), any(), any());
+    verify(stream).toTable(any(), any(), any());
     assertThat(returned, is(table));
-  }
-
-  @SuppressWarnings("unchecked")
-  public void shouldPassBuilderWhenBuildingTable() {
-    // Given:
-    final DataSourceNode node = buildNodeWithMockSource();
-
-    // When:
-    buildStream(node);
-
-    // Then:
-    verify(stream).toTable(any(), any(), any(), same(ksqlStreamBuilder));
   }
 
   @Test
@@ -577,7 +432,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(stream).toTable(any(), any(), stackerCaptor.capture(), any());
+    verify(stream).toTable(any(), any(), stackerCaptor.capture());
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "reduce")));

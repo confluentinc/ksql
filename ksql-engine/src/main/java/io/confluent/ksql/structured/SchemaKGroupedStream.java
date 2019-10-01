@@ -22,10 +22,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.StreamAggregate;
-import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.model.WindowType;
@@ -34,7 +31,6 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -45,58 +41,30 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.Windowed;
 
 public class SchemaKGroupedStream {
 
   final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep;
   final KeyFormat keyFormat;
-  final KeySerde<Struct> keySerde;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
   final KsqlConfig ksqlConfig;
   final FunctionRegistry functionRegistry;
-  final MaterializedFactory materializedFactory;
 
   SchemaKGroupedStream(
       final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
       final KeyFormat keyFormat,
-      final KeySerde<Struct> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
-    this(
-        sourceStep,
-        keyFormat,
-        keySerde,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry,
-        MaterializedFactory.create(ksqlConfig)
-    );
-  }
-
-  SchemaKGroupedStream(
-      final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
-      final KeyFormat keyFormat,
-      final KeySerde<Struct> keySerde,
-      final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final MaterializedFactory materializedFactory
-  ) {
     this.sourceStep = sourceStep;
     this.keyFormat = Objects.requireNonNull(keyFormat, "keyFormat");
-    this.keySerde = Objects.requireNonNull(keySerde, "keySerde");
     this.keyField = keyField;
     this.sourceSchemaKStreams = sourceSchemaKStreams;
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     this.functionRegistry = functionRegistry;
-    this.materializedFactory = materializedFactory;
   }
 
   public KeyField getKeyField() {
@@ -121,13 +89,11 @@ public class SchemaKGroupedStream {
     throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggregations);
 
     final ExecutionStep<? extends KTableHolder<?>> step;
-    final KeySerde<?> newKeySerde;
     final KeyFormat keyFormat;
 
     if (windowExpression.isPresent()) {
       keyFormat = getKeyFormat(windowExpression.get());
-      newKeySerde = getKeySerde(windowExpression.get());
-      final StreamWindowedAggregate aggregate = ExecutionStepFactory.streamWindowedAggregate(
+      step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
           outputSchema,
@@ -137,11 +103,9 @@ public class SchemaKGroupedStream {
           aggregateSchema,
           windowExpression.get().getKsqlWindowExpression()
       );
-      step = aggregate;
     } else {
       keyFormat = this.keyFormat;
-      newKeySerde = keySerde;
-      final StreamAggregate aggregate = ExecutionStepFactory.streamAggregate(
+      step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
           outputSchema,
@@ -150,13 +114,11 @@ public class SchemaKGroupedStream {
           aggregations,
           aggregateSchema
       );
-      step = aggregate;
     }
 
     return new SchemaKTable(
         step,
         keyFormat,
-        newKeySerde,
         keyField,
         sourceSchemaKStreams,
         SchemaKStream.Type.AGGREGATE,
@@ -179,17 +141,6 @@ public class SchemaKGroupedStream {
         FormatInfo.of(Format.KAFKA),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
-  }
-
-  private KeySerde<Windowed<Struct>> getKeySerde(final WindowExpression windowExpression) {
-    if (ksqlConfig.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)) {
-      return keySerde.rebind(WindowInfo.of(
-          WindowType.TUMBLING,
-          Optional.of(Duration.ofMillis(Long.MAX_VALUE))
-      ));
-    }
-
-    return keySerde.rebind(windowExpression.getKsqlWindowExpression().getWindowInfo());
   }
 
   static void throwOnValueFieldCountMismatch(

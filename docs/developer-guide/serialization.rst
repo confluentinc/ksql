@@ -373,7 +373,7 @@ Field Name Case Sensitivity
 The format is case-insensitive when matching a KSQL field name with an Avro record's field name.
 The first case-insensitive match is used.
 
-.. _kafka_format
+.. _kafka_format:
 
 -----
 KAFKA

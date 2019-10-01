@@ -153,5 +153,4 @@ SHOW CONNECTORS
 
 List all connectors in the |kconnect| cluster.
 
-.. note:: This does not differentiate connectors created by KSQL with connectors that were created
-independently using the |kconnect| API.
+.. note:: This does not differentiate connectors created by KSQL with connectors that were created independently using the |kconnect| API.

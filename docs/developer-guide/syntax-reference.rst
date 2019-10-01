@@ -398,7 +398,7 @@ The WITH clause supports the following properties:
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
-|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | single-field schemas where the value can be ``null``. For more information, see            |
 |                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example        |
@@ -513,7 +513,7 @@ The WITH clause supports the following properties:
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
-|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | single-field schemas where the value can be ``null``. For more information, see            |
 |                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example        |
@@ -648,7 +648,7 @@ The WITH clause for the result supports the following properties:
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
-|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | single-field schemas where the value can be ``null``. For more information, see                      |
 |                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
@@ -759,7 +759,7 @@ The WITH clause supports the following properties:
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
-|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | single-field schemas where the value can be ``null``. For more information, see                      |
 |                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example                  |

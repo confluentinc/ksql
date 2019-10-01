@@ -51,9 +51,9 @@ Follow these steps to create your custom functions:
 
 For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
 
-======================
+=======================
 Creating UDFs and UDAFs
-======================
+=======================
 
 KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAFs) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.

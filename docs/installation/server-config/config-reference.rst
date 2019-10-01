@@ -299,7 +299,7 @@ value is written as a named field within an Avro record or as an anonymous value
 
 This setting can be toggled using the `SET` command
 
- .. code:: sql
+.. code:: sql
 
     SET 'ksql.persistence.wrap.single.values'='false';
 

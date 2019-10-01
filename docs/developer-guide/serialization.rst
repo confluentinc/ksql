@@ -95,8 +95,6 @@ ignored when the table is part of a join.
 When you have an unwrapped single-field schema, ensure that any ``null`` key or
 value has the desired result.
 
-.. _ksql-persistence-wrap-single-values:
-
 Controlling serialization of single fields
 ==========================================
 
@@ -144,7 +142,7 @@ For example,
 
 If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
-For more information, see :ref:`ksql_single_field_wrapping`.
+For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
 .. important:: KSQL treats ``null` keys and values as a special case. We recommended avoiding
                unwrapped single-field schemas if the field can have a ``null`` value.

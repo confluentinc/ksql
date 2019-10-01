@@ -53,6 +53,7 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
+import io.confluent.ksql.util.KafkaStreamsUncaughtExceptionHandler;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
@@ -281,6 +282,7 @@ public class PhysicalPlanBuilder {
     );
 
     final KafkaStreams streams = kafkaStreamsBuilder.buildKafkaStreams(builder, streamsProperties);
+    streams.setUncaughtExceptionHandler(new KafkaStreamsUncaughtExceptionHandler());
 
     final Topology topology = builder.build();
 

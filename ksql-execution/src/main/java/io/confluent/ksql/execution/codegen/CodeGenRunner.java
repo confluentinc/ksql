@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -113,16 +115,23 @@ public class CodeGenRunner {
       final List<Integer> columnIndexes = new ArrayList<>(parameters.size());
       final List<Kudf> kudfObjects = new ArrayList<>(parameters.size());
 
+      final Builder<String, String> fieldToParamName = ImmutableMap.<String, String>builder();
       int index = 0;
       for (final ParameterType param : parameters) {
-        parameterNames[index] = param.paramName;
+        final String paramName = CodeGenUtil.paramName(index);
+        fieldToParamName.put(param.fieldName, paramName);
+        parameterNames[index] = paramName;
         parameterTypes[index] = param.type;
         columnIndexes.add(schema.valueColumnIndex(param.fieldName).orElse(-1));
         kudfObjects.add(param.getKudf());
         index++;
       }
 
-      final String javaCode = new SqlToJavaVisitor(schema, functionRegistry).process(expression);
+      final String javaCode = new SqlToJavaVisitor(
+          schema,
+          functionRegistry,
+          fieldToParamName.build()::get
+      ).process(expression);
 
       final IExpressionEvaluator ee =
           CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
@@ -180,7 +189,6 @@ public class CodeGenRunner {
       parameters.add(new ParameterType(
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaColumn.type()),
           schemaColumn.fullName(),
-          schemaColumn.fullName().replace(".", "_"),
           ksqlConfig));
     }
 
@@ -201,10 +209,9 @@ public class CodeGenRunner {
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
       final KsqlFunction function = holder.getFunction(argumentTypes);
-      final String parameterName = node.getName().name() + "_" + functionNumber;
+      final String parameterName = CodeGenUtil.functionName(node.getName().name(), functionNumber);
       parameters.add(new ParameterType(
           function,
-          parameterName,
           parameterName,
           ksqlConfig));
       return null;
@@ -329,34 +336,29 @@ public class CodeGenRunner {
 
     private final Class type;
     private final Optional<KsqlFunction> function;
-    private final String paramName;
     private final String fieldName;
     private final KsqlConfig ksqlConfig;
 
     private ParameterType(
         final Class type,
         final String fieldName,
-        final String paramName,
         final KsqlConfig ksqlConfig
     ) {
       this(
           null,
           Objects.requireNonNull(type, "type"),
           fieldName,
-          paramName,
           ksqlConfig);
     }
 
     private ParameterType(
         final KsqlFunction function,
         final String fieldName,
-        final String paramName,
         final KsqlConfig ksqlConfig) {
       this(
           Objects.requireNonNull(function, "function"),
           function.getKudfClass(),
           fieldName,
-          paramName,
           ksqlConfig);
     }
 
@@ -364,22 +366,16 @@ public class CodeGenRunner {
         final KsqlFunction function,
         final Class type,
         final String fieldName,
-        final String paramName,
         final KsqlConfig ksqlConfig
     ) {
       this.function = Optional.ofNullable(function);
       this.type = Objects.requireNonNull(type, "type");
       this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.paramName = Objects.requireNonNull(paramName, "paramName");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
     public Class getType() {
       return type;
-    }
-
-    public String getParamName() {
-      return paramName;
     }
 
     public String getFieldName() {
@@ -401,13 +397,12 @@ public class CodeGenRunner {
       final ParameterType that = (ParameterType) o;
       return Objects.equals(type, that.type)
           && Objects.equals(function, that.function)
-          && Objects.equals(paramName, that.paramName)
           && Objects.equals(fieldName, that.fieldName);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(type, function, paramName, fieldName);
+      return Objects.hash(type, function, fieldName);
     }
   }
 }

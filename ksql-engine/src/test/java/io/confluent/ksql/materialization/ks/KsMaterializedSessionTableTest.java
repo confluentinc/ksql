@@ -18,6 +18,7 @@ package io.confluent.ksql.materialization.ks;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,6 +65,7 @@ public class KsMaterializedSessionTableTest {
       .build();
 
   private static final Struct A_KEY = StructKeyUtil.asStructKey("x");
+  private static final GenericRow A_VALUE = new GenericRow("c0l");
 
   private static final Instant LOWER_INSTANT = Instant.now();
   private static final Instant UPPER_INSTANT = LOWER_INSTANT.plusSeconds(10);
@@ -71,7 +73,6 @@ public class KsMaterializedSessionTableTest {
     LOWER_INSTANT,
     UPPER_INSTANT
   );
-  private static final GenericRow A_VALUE = new GenericRow("c0l");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -199,12 +200,17 @@ public class KsMaterializedSessionTableTest {
   }
 
   @Test
-  public void shouldReturnValueIfSessionStartsAtLowerBound() {
+  public void shouldReturnValueIfSessionStartsAtLowerBoundIfLowerBoundClosed() {
     // Given:
+    final Range<Instant> startBounds = Range.closed(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, startBounds);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -216,12 +222,34 @@ public class KsMaterializedSessionTableTest {
   }
 
   @Test
-  public void shouldReturnValueIfSessionStartsAtUpperBound() {
+  public void shouldIgnoreSessionsThatStartAtLowerBoundIfLowerBoundOpen() {
     // Given:
+    final Range<Instant> startBounds = Range.openClosed(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
+    givenSingleSession(LOWER_INSTANT, LOWER_INSTANT.plusMillis(1));
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, startBounds);
+
+    // Then:
+    assertThat(result, is(empty()));
+  }
+
+  @Test
+  public void shouldReturnValueIfSessionStartsAtUpperBoundIfUpperBoundClosed() {
+    // Given:
+    final Range<Instant> startBounds = Range.closed(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
 
     // When:
-    final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
+    final List<WindowedRow> result = table.get(A_KEY, startBounds);
 
     // Then:
     assertThat(result, contains(WindowedRow.of(
@@ -230,6 +258,23 @@ public class KsMaterializedSessionTableTest {
         Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT.plusMillis(1))),
         A_VALUE
     )));
+  }
+
+  @Test
+  public void shouldIgnoreSessionsThatStartAtUpperBoundIfUpperBoundOpen() {
+    // Given:
+    final Range<Instant> startBounds = Range.closedOpen(
+        LOWER_INSTANT,
+        UPPER_INSTANT
+    );
+
+    givenSingleSession(UPPER_INSTANT, UPPER_INSTANT.plusMillis(1));
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, startBounds);
+
+    // Then:
+    assertThat(result, is(empty()));
   }
 
   @Test
@@ -252,8 +297,10 @@ public class KsMaterializedSessionTableTest {
   @Test
   public void shouldReturnMultipleSessions() {
     // Given:
+    givenSingleSession(LOWER_INSTANT.minusMillis(1), LOWER_INSTANT.plusSeconds(1));
     givenSingleSession(LOWER_INSTANT, LOWER_INSTANT);
     givenSingleSession(UPPER_INSTANT, UPPER_INSTANT);
+    givenSingleSession(UPPER_INSTANT.plusMillis(1), UPPER_INSTANT.plusSeconds(1));
 
     // When:
     final List<WindowedRow> result = table.get(A_KEY, WINDOW_START_BOUNDS);
@@ -263,6 +310,19 @@ public class KsMaterializedSessionTableTest {
         WindowedRow.of(SCHEMA, A_KEY, Window.of(LOWER_INSTANT, Optional.of(LOWER_INSTANT)), A_VALUE),
         WindowedRow.of(SCHEMA, A_KEY, Window.of(UPPER_INSTANT, Optional.of(UPPER_INSTANT)), A_VALUE)
     ));
+  }
+
+  @Test
+  public void shouldReturnAllSessionsForRangeall() {
+    // Given:
+    givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
+    givenSingleSession(Instant.now().minusSeconds(1000), Instant.now().plusSeconds(1000));
+
+    // When:
+    final List<WindowedRow> result = table.get(A_KEY, Range.all());
+
+    // Then:
+    assertThat(result, hasSize(2));
   }
 
   private void givenSingleSession(

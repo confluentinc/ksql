@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.execution;
 
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -98,8 +99,13 @@ public final class StaticQueryExecutor {
 
   private static final Duration OWNERSHIP_TIMEOUT = Duration.ofSeconds(30);
   private static final Set<Type> VALID_WINDOW_BOUNDS_TYPES = ImmutableSet.of(
-      Type.EQUAL, Type.GREATER_THAN_OR_EQUAL, Type.LESS_THAN
+      Type.EQUAL,
+      Type.GREATER_THAN,
+      Type.GREATER_THAN_OR_EQUAL,
+      Type.LESS_THAN,
+      Type.LESS_THAN_OR_EQUAL
   );
+
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
       VALID_WINDOW_BOUNDS_TYPES.toString();
 
@@ -271,15 +277,8 @@ public final class StaticQueryExecutor {
       return new WhereInfo(rowKey, Optional.empty());
     }
 
-    final List<ComparisonExpression> windowBoundsComparison =
-        comparisons.get(ComparisonTarget.WINDOWSTART);
-
-    if (windowBoundsComparison == null) {
-      throw invalidWhereClauseException(
-          "WHERE clause missing " + ComparisonTarget.WINDOWSTART,
-          true
-      );
-    }
+    final Optional<List<ComparisonExpression>> windowBoundsComparison =
+        Optional.ofNullable(comparisons.get(ComparisonTarget.WINDOWSTART));
 
     final Range<Instant> windowStart = extractWhereClauseWindowBounds(windowBoundsComparison);
 
@@ -296,9 +295,7 @@ public final class StaticQueryExecutor {
 
     final ComparisonExpression comparison = comparisons.get(0);
 
-    final Expression other = comparison.getRight() instanceof ColumnReferenceExp
-        ? comparison.getLeft()
-        : comparison.getRight();
+    final Expression other = getNonColumnRefSide(comparison);
 
     if (!(other instanceof StringLiteral)) {
       throw invalidWhereClauseException("ROWKEY must be compared to STRING literal.", false);
@@ -313,10 +310,16 @@ public final class StaticQueryExecutor {
   }
 
   private static Range<Instant> extractWhereClauseWindowBounds(
-      final List<ComparisonExpression> comparisons
+      final Optional<List<ComparisonExpression>> maybeComparisons
   ) {
+    if (!maybeComparisons.isPresent()) {
+      return Range.all();
+    }
+
+    final List<ComparisonExpression> comparisons = maybeComparisons.get();
+
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
-        .collect(Collectors.groupingBy(StaticQueryExecutor::getBoundType));
+        .collect(Collectors.groupingBy(StaticQueryExecutor::getSimplifiedBoundType));
 
     final SetView<Type> unsupported = Sets.difference(byType.keySet(), VALID_WINDOW_BOUNDS_TYPES);
     if (!unsupported.isEmpty()) {
@@ -351,64 +354,76 @@ public final class StaticQueryExecutor {
         );
       }
 
-      final Instant windowStart = extractWindowBound(equals);
-      return Range.singleton(windowStart);
+      return Range.singleton(asInstant(getNonColumnRefSide(equals)));
     }
 
-    final ComparisonExpression upper = singles.get(Type.LESS_THAN);
-    if (upper == null) {
-      throw invalidWhereClauseException(
-          "Missing upper bound on " + ComparisonTarget.WINDOWSTART,
-          true
-      );
-    }
+    final Optional<ComparisonExpression> upper =
+        Optional.ofNullable(singles.get(Type.LESS_THAN));
 
-    final ComparisonExpression lower = singles.get(Type.GREATER_THAN_OR_EQUAL);
-    if (lower == null) {
-      throw invalidWhereClauseException(
-          "Missing lower bound on " + ComparisonTarget.WINDOWSTART,
-          true
-      );
-    }
+    final Optional<ComparisonExpression> lower =
+        Optional.ofNullable(singles.get(Type.GREATER_THAN));
 
-    final Instant upperBound = extractWindowBound(upper);
-    final Instant lowerBound = extractWindowBound(lower);
-    return Range.closed(lowerBound, upperBound);
+    return extractWindowBound(lower, upper);
   }
 
-  private static Type getBoundType(final ComparisonExpression comparison) {
+  private static Type getSimplifiedBoundType(final ComparisonExpression comparison) {
     final Type type = comparison.getType();
     final boolean inverted = comparison.getRight() instanceof ColumnReferenceExp;
 
     switch (type) {
       case LESS_THAN:
-        return inverted ? Type.GREATER_THAN : type;
       case LESS_THAN_OR_EQUAL:
-        return inverted ? Type.GREATER_THAN_OR_EQUAL : type;
+        return inverted ? Type.GREATER_THAN : Type.LESS_THAN;
       case GREATER_THAN:
-        return inverted ? Type.LESS_THAN : type;
       case GREATER_THAN_OR_EQUAL:
-        return inverted ? Type.LESS_THAN_OR_EQUAL : type;
+        return inverted ? Type.LESS_THAN : Type.GREATER_THAN;
       default:
         return type;
     }
   }
 
-  private static Instant extractWindowBound(final ComparisonExpression comparison) {
-    final Expression other = comparison.getRight() instanceof ColumnReferenceExp
+  private static Range<Instant> extractWindowBound(
+      final Optional<ComparisonExpression> lowerComparison,
+      final Optional<ComparisonExpression> upperComparison
+  ) {
+    if (!lowerComparison.isPresent() && !upperComparison.isPresent()) {
+      return Range.all();
+    }
+
+    if (!lowerComparison.isPresent()) {
+      final Instant upper = asInstant(getNonColumnRefSide(upperComparison.get()));
+      final BoundType upperType = getRangeBoundType(upperComparison.get());
+      return Range.upTo(upper, upperType);
+    }
+
+    if (!upperComparison.isPresent()) {
+      final Instant lower = asInstant(getNonColumnRefSide(lowerComparison.get()));
+      final BoundType lowerType = getRangeBoundType(lowerComparison.get());
+      return Range.downTo(lower, lowerType);
+    }
+
+    final Instant lower = asInstant(getNonColumnRefSide(lowerComparison.get()));
+    final BoundType lowerType = getRangeBoundType(lowerComparison.get());
+
+    final Instant upper = asInstant(getNonColumnRefSide(upperComparison.get()));
+    final BoundType upperType = getRangeBoundType(upperComparison.get());
+
+    return Range.range(lower, lowerType, upper, upperType);
+  }
+
+  private static BoundType getRangeBoundType(final ComparisonExpression lowerComparison) {
+    final boolean openBound = lowerComparison.getType() == Type.LESS_THAN
+        || lowerComparison.getType() == Type.GREATER_THAN;
+
+    return openBound
+        ? BoundType.OPEN
+        : BoundType.CLOSED;
+  }
+
+  private static Expression getNonColumnRefSide(final ComparisonExpression comparison) {
+    return comparison.getRight() instanceof ColumnReferenceExp
         ? comparison.getLeft()
         : comparison.getRight();
-
-    final Instant bound = asInstant(other);
-
-    switch (getBoundType(comparison)) {
-      case LESS_THAN:
-        return bound.minusMillis(1);
-      case GREATER_THAN:
-        return bound.plusMillis(1);
-      default:
-        return bound;
-    }
   }
 
   private static Instant asInstant(final Expression other) {

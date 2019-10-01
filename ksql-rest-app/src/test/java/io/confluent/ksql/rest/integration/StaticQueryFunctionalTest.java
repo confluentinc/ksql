@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -35,9 +36,9 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.TestDataProvider;
 import io.confluent.ksql.util.UserDataProvider;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,6 +51,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * Test to ensure static queries route across multiple KSQL nodes correctly.
@@ -77,15 +79,27 @@ public class StaticQueryFunctionalTest {
       SerdeOption.none()
   );
 
+  private static final TemporaryFolder TMP = new TemporaryFolder();
+
+  static {
+    try {
+      TMP.create();
+    } catch (final IOException e) {
+      throw new AssertionError("Failed to init TMP", e);
+    }
+  }
+
   private static final TestKsqlRestApp REST_APP_0 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
   private static final TestKsqlRestApp REST_APP_1 = TestKsqlRestApp
       .builder(TEST_HARNESS::kafkaBootstrapServers)
-      .withProperty(KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.NUM_STREAM_THREADS_CONFIG, 1)
+      .withProperty(KSQL_STREAMS_PREFIX + StreamsConfig.STATE_DIR_CONFIG, getNewStateDir())
       .withStaticServiceContext(TEST_HARNESS::getServiceContext)
       .build();
 
@@ -216,6 +230,14 @@ public class StaticQueryFunctionalTest {
         VALUE_FORMAT,
         AGGREGATE_SCHEMA
     );
+  }
+
+  private static String getNewStateDir()  {
+    try {
+      return TMP.newFolder().getAbsolutePath();
+    } catch (final IOException e) {
+      throw new AssertionError("Failed to create new state dir", e);
+    }
   }
 }
 

@@ -22,7 +22,7 @@ For more information on the formats that KSQL supports, see :ref:`ksql_formats`.
 
 KSQL provides some additional configuration that allows serialization to be controlled:
 
-.. _ksql_single_field_wrapping
+.. _ksql_single_field_wrapping:
 
 -------------------------
 Single field (un)wrapping

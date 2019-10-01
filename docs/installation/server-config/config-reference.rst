@@ -255,7 +255,7 @@ The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
 ``KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS``.
 
-.. _ksql_persistence_wrap_single_values:
+.. _ksql-persistence-wrap-single-values:
 
 -----------------------------------
 ksql.persistence.wrap.single.values

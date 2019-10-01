@@ -15,7 +15,7 @@ Configuring KSQL Server
 KSQL configuration parameters can be set for KSQL server and queries as well as for the underlying Kafka Streams and
 Kafka Clients (producer and consumer).
 
-.. include:: ../../../../includes/installation-types-zip-tar.rst
+.. tip:: These instructions assume you are installing {{ site.cp }} by using ZIP or TAR archives. For more information, see `On-Premises Deployments <https://docs.confluent.io/current/installation/installing_cp/index.html>`__.
 
 .. _set-ksql-server-properties:
 

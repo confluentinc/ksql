@@ -21,7 +21,7 @@ file and then :ref:`start the KSQL server <start_ksql-server>` with your configu
 
     $ <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 
-.. include:: ../../../../includes/installation-types-zip-tar.rst
+.. tip:: These instructions assume you are installing {{ site.cp }} by using ZIP or TAR archives. For more information, see `On-Premises Deployments <https://docs.confluent.io/current/installation/installing_cp/index.html>`__.
 
 .. _config-ksql-for-https:
 

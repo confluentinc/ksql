@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -40,6 +41,7 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -148,7 +150,8 @@ public class StreamSourceBuilderTest {
   private final GenericRow row = new GenericRow(new LinkedList<>(ImmutableList.of("baz", 123)));
   private PlanBuilder planBuilder;
 
-  private StreamSource<KStream<?, GenericRow>> streamSource;
+  private StreamSource streamSource;
+  private WindowedStreamSource windowedStreamSource;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -187,7 +190,7 @@ public class StreamSourceBuilderTest {
   private void givenWindowedSource() {
     when(keyFormat.isWindowed()).thenReturn(true);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.of(windowInfo));
-    streamSource = new StreamSource<>(
+    windowedStreamSource = new WindowedStreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
@@ -201,7 +204,7 @@ public class StreamSourceBuilderTest {
   private void givenUnwindowedSource() {
     when(keyFormat.isWindowed()).thenReturn(false);
     when(keyFormat.getWindowInfo()).thenReturn(Optional.empty());
-    streamSource = new StreamSource<>(
+    streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
@@ -274,7 +277,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    streamSource.build(planBuilder);
+    windowedStreamSource.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -287,7 +290,7 @@ public class StreamSourceBuilderTest {
 
   @SuppressWarnings("unchecked")
   private ValueMapperWithKey<?, GenericRow, GenericRow> getMapperFromStreamSource(
-      final StreamSource<?> streamSource) {
+      final AbstractStreamSource<?> streamSource) {
     streamSource.build(planBuilder);
     verify(kStream).mapValues(mapperCaptor.capture());
     return mapperCaptor.getValue();
@@ -300,7 +303,7 @@ public class StreamSourceBuilderTest {
     when(keyFormat.isWindowed()).thenReturn(true);
     final Windowed<Struct> key = new Windowed<>(KEY, new TimeWindow(100, 200));
     givenWindowedSource();
-    final ValueMapperWithKey mapper = getMapperFromStreamSource(streamSource);
+    final ValueMapperWithKey mapper = getMapperFromStreamSource(windowedStreamSource);
 
     // When:
     final GenericRow result = (GenericRow) mapper.apply(key, row);
@@ -328,7 +331,7 @@ public class StreamSourceBuilderTest {
   @Test
   public void shouldThrowOnMultiFieldKey() {
     // Given:
-    final StreamSource<KStream<?, GenericRow>> streamSource = new StreamSource<>(
+    final StreamSource streamSource = new StreamSource(
         new DefaultExecutionStepProperties(SCHEMA, ctx),
         TOPIC_NAME,
         Formats.of(keyFormat, valueFormat, SERDE_OPTIONS),
@@ -350,7 +353,8 @@ public class StreamSourceBuilderTest {
   }
 
   @SuppressWarnings("unchecked")
-  private ValueTransformer getTransformerFromStreamSource(final StreamSource<?> streamSource) {
+  private ValueTransformer getTransformerFromStreamSource(
+      final AbstractStreamSource<?> streamSource) {
     streamSource.build(planBuilder);
     verify(kStream).transformValues(transformSupplierCaptor.capture());
     return transformSupplierCaptor.getValue().get();
@@ -378,7 +382,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    streamSource.build(planBuilder);
+    windowedStreamSource.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -428,7 +432,7 @@ public class StreamSourceBuilderTest {
     givenWindowedSource();
 
     // When:
-    final KStreamHolder<?> stream = streamSource.build(planBuilder);
+    final KStreamHolder<?> stream = windowedStreamSource.build(planBuilder);
 
     // Then:
     reset(queryBuilder);

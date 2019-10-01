@@ -160,9 +160,10 @@ Input Consumption
 
 Before processing the next input message, the testing tool processes input messages for each query one-by-one and writes
 the generated message(s) for each input message into the result topic.
-This means that for the queries running in the testing tool, we have the same behavior as
- when ``cache.max.bytes.buffering = 0``. This is especially important in aggregate queries where we may not see some of the intermediate results in
- real executions because of buffering, while during execution of the testing tool every possible intermediate result is created.
+This means that for the queries running in the testing tool, we have the same behavior as when
+``cache.max.bytes.buffering = 0``. This is especially important in aggregate queries where we may not see some of the
+intermediate results in real executions because of buffering, while during execution of the testing tool every possible
+intermediate result is created.
 
 
 Kafka Cluster

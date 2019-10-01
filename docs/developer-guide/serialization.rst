@@ -3,8 +3,6 @@
 KSQL Serialization
 ==================
 
-.. contents:: :local:
-
 =========================
 Controlling serialization
 =========================
@@ -34,7 +32,7 @@ Controlling deserializing of single fields
 ==========================================
 
 When KSQL deserializes a Kafka message into a row, the key is deserialized into the key field,
-and the message's value is deserialized into the value field(s).
+and the message's value is deserialized into the value fields.
 
 By default, KSQL expects any value with a single-field schema to have been serialized as a named
 field within a record. However, this is not always the case. KSQL also supports reading data
@@ -80,7 +78,7 @@ If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
 For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
-.. important:: KSQL treats ``null` keys and values as a special case. We recommend avoiding
+.. important:: KSQL treats ``null`` keys and values as a special case. We recommend avoiding
                unwrapped single-field schemas if the field can have a ``null`` value.
 
 A ``null`` value in a table's topic is treated as a tombstone, which indicates that a row has been
@@ -99,7 +97,7 @@ Controlling serialization of single fields
 ==========================================
 
 When KSQL serializes a row into a Kafka message, the key field is serialized
-into the message's key, and any value field(s) are serialized into the
+into the message's key, and any value fields are serialized into the
 message's value.
 
 By default, if the value has only a single field, KSQL serializes the single field as a named field
@@ -144,7 +142,7 @@ If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
 For more information, see :ref:`ksql-persistence-wrap-single-values`.
 
-.. important:: KSQL treats ``null` keys and values as a special case. We recommended avoiding
+.. important:: KSQL treats ``null`` keys and values as a special case. We recommended avoiding
                unwrapped single-field schemas if the field can have a ``null`` value.
 
 A ``null`` value in a table's topic is treated as a tombstone, which indicates that a row has been
@@ -234,7 +232,7 @@ JSON
 The ``JSON`` format supports JSON values.
 
 The JSON format supports all KSQL ref:`data types <data-types>`. As JSON doesn't itself
-support a map type, KSQL serializes ``MAP``s as JSON objects.  Because of this the JSON format can
+support a map type, KSQL serializes ``MAP`` types as JSON objects.  Because of this the JSON format can
 only support ``MAP`` objects that have ``STRING`` keys.
 
 The serialized object should be a Kafka-serialized string containing a valid JSON value. The format
@@ -375,7 +373,7 @@ Field Name Case Sensitivity
 The format is case-insensitive when matching a KSQL field name with an Avro record's field name.
 The first case-insensitive match is used.
 
-.. _kafka_format
+.. _kafka_format:
 
 -----
 KAFKA

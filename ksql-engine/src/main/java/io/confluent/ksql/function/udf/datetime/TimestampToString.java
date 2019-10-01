@@ -76,7 +76,7 @@ public class TimestampToString {
               + " java.time.format.DateTimeFormatter.") final String formatPattern,
       @UdfParameter(value = "timeZone",
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
-              + " \"America/Los_Angeles\", \"PDT\", \"Europe/London\"") final String timeZone) {
+              + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String timeZone) {
     try {
       final Timestamp timestamp = new Timestamp(epochMilli);
       final DateTimeFormatter formatter = formatters.get(formatPattern);

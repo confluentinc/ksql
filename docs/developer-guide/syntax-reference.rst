@@ -394,7 +394,7 @@ The WITH clause supports the following properties:
 |                         | If set to ``true``, KSQL expects the field to have been serialized as a named field        |
 |                         | within a record.                                                                           |
 |                         | If set to ``false``, KSQL expects the field to have been serialized as an anonymous value. |
-|                         | If not supplied, the system default, defined by :ref:`ksql_single_field_wrapping`          |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
@@ -509,7 +509,7 @@ The WITH clause supports the following properties:
 |                         | If set to ``true``, KSQL expects the field to have been serialized as named field          |
 |                         | within a record.                                                                           |
 |                         | If set to ``false``, KSQL expects the field to have been serialized as an anonymous value. |
-|                         | If not supplied, the system default, defined by :ref:`ksql_single_field_wrapping`          |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` |
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
@@ -644,7 +644,7 @@ The WITH clause for the result supports the following properties:
 |                         | The setting controls how the query will serialize values with a single-field schema.                 |
 |                         | If set to ``true``, KSQL will serialize the field as a named field within a record.                  |
 |                         | If set to ``false`` KSQL, KSQL will serialize the field as an anonymous value.                       |
-|                         | If not supplied, the system default, defined by :ref:`ksql_single_field_wrapping` and                |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
@@ -755,7 +755,7 @@ The WITH clause supports the following properties:
 |                         | The setting controls how the query will serialize values with a single-field schema.                 |
 |                         | If set to ``true``, KSQL will serialize the field as a named field within a record.                  |
 |                         | If set to ``false`` KSQL, KSQL will serialize the field as an anonymous value.                       |
-|                         | If not supplied, the system default, defined by :ref:`ksql_single_field_wrapping` and                |
+|                         | If not supplied, the system default, defined by :ref:`ksql-persistence-wrap-single-values` and       |
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |

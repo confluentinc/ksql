@@ -99,9 +99,7 @@ your current directory. By default, the CLI will look for a KSQL Server running 
 
 After KSQL is started, your terminal should resemble this.
 
-.. include:: ../includes/ksql-includes.rst
-  :start-after: CLI_welcome_start
-  :end-before: CLI_welcome_end
+INCLUDE AT LINE 102 ELIDED
 
 .. basics_tutorial_02_end
 
@@ -633,9 +631,7 @@ After both ``CREATE STREAM`` statements, your output should resemble:
 
 Query the data to confirm that it's present in the topics. 
 
-.. include:: ../includes/ksql-includes.rst
-    :start-after: offsetreset_start
-    :end-before: offsetreset_end
+INCLUDE AT LINE 634 ELIDED
 
 For the ``NEW_ORDERS`` topic, run: 
 
@@ -742,9 +738,7 @@ Check both tables that the message key (``ROWKEY``) matches the declared
 key (``WAREHOUSE_ID``) - the output should show that they are equal. If
 they are not, the join will not succeed or behave as expected.
 
-.. include:: ../includes/ksql-includes.rst
-    :start-after: offsetreset_start
-    :end-before: offsetreset_end
+INCLUDE AT LINE 741 ELIDED
 
 Inspect the WAREHOUSE_LOCATION table:
 

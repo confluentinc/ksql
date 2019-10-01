@@ -300,7 +300,8 @@ value is written as a named field within an Avro record or as an anonymous value
 This setting can be toggled using the `SET` command
 
  .. code:: sql
-     SET 'ksql.persistence.wrap.single.values'='false';
+
+    SET 'ksql.persistence.wrap.single.values'='false';
 
 For more information, refer to the :ref:`CREATE TABLE <create-table>`,
 :ref:`CREATE STREAM <create-stream>`, :ref:`CREATE TABLE <create-table-as-select>`

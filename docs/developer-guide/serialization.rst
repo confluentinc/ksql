@@ -22,7 +22,7 @@ For more information on the formats that KSQL supports, see :ref:`ksql_formats`.
 
 KSQL provides some additional configuration that allows serialization to be controlled:
 
-.. _ksql_single_field_wrapping
+.. _ksql_single_field_wrapping:
 
 -------------------------
 Single field (un)wrapping
@@ -78,7 +78,7 @@ topic have been serialized as an anonymous JSON number:
 
 If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
-For more information, see :ref:`ksql-persistence-wrap-single-values`.
+For more information, see :ref:`ksql_single_field_wrapping`.
 
 .. important:: KSQL treats ``null` keys and values as a special case. We recommend avoiding
                unwrapped single-field schemas if the field can have a ``null`` value.
@@ -142,7 +142,7 @@ For example,
 
 If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
-For more information, see :ref:`ksql-persistence-wrap-single-values`.
+For more information, see :ref:`ksql_single_field_wrapping`.
 
 .. important:: KSQL treats ``null` keys and values as a special case. We recommended avoiding
                unwrapped single-field schemas if the field can have a ``null`` value.

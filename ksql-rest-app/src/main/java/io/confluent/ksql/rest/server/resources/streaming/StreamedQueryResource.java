@@ -253,7 +253,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
       throw new KsqlRestException(
           Errors.badRequest(
               "Could not find topic '" + topicName + "', "
-                  + "or the KSQL user does not have permissions to list the topic."
+                  + "or the KSQL user does not have permissions to list the topic. "
+                  + "Topic names are case-sensitive."
                   + reverseSuggestion
           ));
     }

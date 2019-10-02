@@ -186,8 +186,8 @@ public class RestTestExecutor implements Closeable {
 
     if (!testCase.expectedError().isPresent()) {
       for (int idx = firstStatic; testCase.getExpectedResponses().size() > idx; ++idx) {
-        final String staticStatement = allStatements.get(firstStatic);
-        final Response staticResponse = testCase.getExpectedResponses().get(firstStatic);
+        final String staticStatement = allStatements.get(idx);
+        final Response staticResponse = testCase.getExpectedResponses().get(idx);
 
         waitForWarmStateStores(staticStatement, staticResponse);
       }
@@ -359,18 +359,18 @@ public class RestTestExecutor implements Closeable {
   }
 
   private void waitForWarmStateStores(
-      final String firstStaticStatement,
-      final Response firstStaticResponse
+      final String staticStatement,
+      final Response staticResponse
   ) {
     // Special handling for static queries is required, as they depend on materialized state stores
     // being warmed up.  Initial requests may return null values.
 
-    final ImmutableList<Response> expectedResponse = ImmutableList.of(firstStaticResponse);
-    final ImmutableList<String> statements = ImmutableList.of(firstStaticStatement);
+    final ImmutableList<Response> expectedResponse = ImmutableList.of(staticResponse);
+    final ImmutableList<String> statements = ImmutableList.of(staticStatement);
 
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARMUP.toMillis();
     while (System.currentTimeMillis() < threshold) {
-      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(firstStaticStatement);
+      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(staticStatement);
       if (resp.isErroneous()) {
         Thread.yield();
         LOG.info("Server responded with an error code to a static query. "

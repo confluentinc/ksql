@@ -30,7 +30,8 @@ public class PartialStringToTimestampParser {
 
   private static final String HELP_MESSAGE = System.lineSeparator()
       + "Required format is: \"" + KsqlConstants.DATE_TIME_PATTERN + "\", "
-      + "with an optional numeric timezone. "
+      + "with an optional numeric 4-digit timezone, for example: "
+      + "'2020-05-26T23.59.58.000' or with tz: '2020-05-26T23.59.58.000+0200'. "
       + "Partials are also supported, for example \"2020-05-26\"";
 
   private static final StringToTimestampParser PARSER =
@@ -57,11 +58,8 @@ public class PartialStringToTimestampParser {
     }
 
     try {
-      if (timezone.length() > 0) {
-        return PARSER.parse(date + "T" + time, ZoneId.of(timezone));
-      } else {
-        return PARSER.parse(date + "T" + time);
-      }
+      final ZoneId zoneId = parseTimezone(timezone);
+      return PARSER.parse(date + "T" + time, zoneId);
     } catch (final RuntimeException e) {
       throw new KsqlException("Failed to parse timestamp '" + text
           + "': " + e.getMessage()
@@ -81,6 +79,21 @@ public class PartialStringToTimestampParser {
     }
 
     return "";
+  }
+
+  private static ZoneId parseTimezone(final String timezone) {
+    if (timezone.trim().isEmpty()) {
+      return ZoneId.systemDefault();
+    }
+
+    try {
+      return ZoneId.of(timezone);
+    } catch (final Exception e) {
+      throw new KsqlException("Failed to parse timezone '" + timezone
+          + "': " + e.getMessage(),
+          e
+      );
+    }
   }
 
   private static String completeDate(final String date) {

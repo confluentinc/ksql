@@ -117,7 +117,7 @@ public class PartialStringToTimestampParserTest {
   public void shouldIncludeRequiredFormatInErrorMessage() {
     // Expect:
     expectedException.expectMessage("Required format is: \"yyyy-MM-dd'T'HH:mm:ss.SSS\", "
-        + "with an optional numeric timezone. Partials are also supported, for example \"2020-05-26\"");
+        + "with an optional numeric 4-digit timezone");
 
     // When:
     parser.parse("2017-01-01T00:00:00.000+foo");

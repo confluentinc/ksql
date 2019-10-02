@@ -65,7 +65,7 @@ public class KsStateStoreTest {
       .build();
 
   @Rule
-  public final Timeout timeout = Timeout.seconds(1);
+  public final Timeout timeout = Timeout.seconds(10);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();

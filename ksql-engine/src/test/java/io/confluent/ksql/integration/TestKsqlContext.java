@@ -17,8 +17,8 @@ package io.confluent.ksql.integration;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.KsqlConfigTestUtil;
-import io.confluent.ksql.KsqlContext;
-import io.confluent.ksql.KsqlContextTestUtil;
+import io.confluent.ksql.embedded.KsqlContext;
+import io.confluent.ksql.embedded.KsqlContextTestUtil;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.query.QueryId;

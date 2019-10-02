@@ -26,6 +26,7 @@ import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.materialization.Locator.KsqlNode;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
@@ -105,11 +106,11 @@ public class KsLocatorTest {
     final Optional<KsqlNode> result = locator.locate(SOME_KEY);
 
     // Then:
-    final Optional<URL> url = result.map(KsqlNode::location);
-    assertThat(url.map(URL::getProtocol), is(Optional.of(LOCAL_HOST_URL.getProtocol())));
-    assertThat(url.map(URL::getHost), is(Optional.of(hostInfo.host())));
-    assertThat(url.map(URL::getPort), is(Optional.of(hostInfo.port())));
-    assertThat(url.map(URL::getPath), is(Optional.of("/")));
+    final Optional<URI> url = result.map(KsqlNode::location);
+    assertThat(url.map(URI::getScheme), is(Optional.of(LOCAL_HOST_URL.getProtocol())));
+    assertThat(url.map(URI::getHost), is(Optional.of(hostInfo.host())));
+    assertThat(url.map(URI::getPort), is(Optional.of(hostInfo.port())));
+    assertThat(url.map(URI::getPath), is(Optional.of("/")));
   }
 
   @Test

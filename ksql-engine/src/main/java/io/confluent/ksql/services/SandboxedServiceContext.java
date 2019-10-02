@@ -97,6 +97,11 @@ public final class SandboxedServiceContext implements ServiceContext {
   }
 
   @Override
+  public SimpleKsqlClient getKsqlClient() {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public void close() {
     // No op.
   }

@@ -91,6 +91,12 @@ public final class TestServiceContext {
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient
   ) {
-    return new DefaultServiceContext(kafkaClientSupplier, adminClient, topicClient, srClientFactory, connectClient);
+    return new DefaultServiceContext(
+        kafkaClientSupplier,
+        adminClient, topicClient,
+        srClientFactory,
+        connectClient,
+        DisabledKsqlClient.instance()
+    );
   }
 }

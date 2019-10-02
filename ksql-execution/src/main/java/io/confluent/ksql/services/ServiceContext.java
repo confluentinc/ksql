@@ -93,6 +93,15 @@ public interface ServiceContext extends AutoCloseable {
    */
   ConnectClient getConnectClient();
 
+  /**
+   * Get a shared {@link SimpleKsqlClient} instance.
+   *
+   * <p>The returned instance is thread-safe.
+   *
+   * @return a shared {@link SimpleKsqlClient}.
+   */
+  SimpleKsqlClient getKsqlClient();
+
   @Override
   void close();
 }

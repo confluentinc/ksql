@@ -17,6 +17,8 @@ package io.confluent.ksql;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.embedded.KsqlContext;
+import io.confluent.ksql.embedded.KsqlContextTestUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.util.KsqlConfig;

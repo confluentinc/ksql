@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.materialization;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 
@@ -47,8 +47,8 @@ public interface Locator {
     boolean isLocal();
 
     /**
-     * @return The base URL of the node, including protocol, host and port.
+     * @return The base URI of the node, including protocol, host and port.
      */
-    URL location();
+    URI location();
   }
 }

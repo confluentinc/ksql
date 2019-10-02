@@ -57,7 +57,6 @@ import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
@@ -160,7 +159,7 @@ public final class StaticQueryExecutor {
 
       final KsqlNode owner = getOwner(rowKey, mat);
       if (!owner.isLocal()) {
-        return Optional.of(proxyTo(owner, statement));
+        return Optional.of(proxyTo(owner, statement, serviceContext));
       }
 
       final Result result;
@@ -653,29 +652,23 @@ public final class StaticQueryExecutor {
 
   private static KsqlEntity proxyTo(
       final KsqlNode owner,
-      final ConfiguredStatement<Query> statement
+      final ConfiguredStatement<Query> statement,
+      final ServiceContext serviceContext
   ) {
-    try (KsqlRestClient client = KsqlRestClient.create(
-        owner.location().toString(),
-        ImmutableMap.of(),
-        ImmutableMap.of(),
-        Optional.empty()
-    )) {
+    final RestResponse<KsqlEntityList> response = serviceContext
+        .getKsqlClient()
+        .makeKsqlRequest(owner.location(), statement.getStatementText());
 
-      final RestResponse<KsqlEntityList> response = client
-          .makeKsqlRequest(statement.getStatementText());
-
-      if (response.isErroneous()) {
-        throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
-      }
-
-      final KsqlEntityList entities = response.getResponse();
-      if (entities.size() != 1) {
-        throw new RuntimeException("Boom - expected 1 entity, got: " + entities.size());
-      }
-
-      return entities.get(0);
+    if (response.isErroneous()) {
+      throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
     }
+
+    final KsqlEntityList entities = response.getResponse();
+    if (entities.size() != 1) {
+      throw new RuntimeException("Boom - expected 1 entity, got: " + entities.size());
+    }
+
+    return entities.get(0);
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {

@@ -37,6 +37,7 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -53,7 +54,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -397,10 +397,12 @@ public class TestKsqlRestApp extends ExternalResource {
 
   private static ServiceContext defaultServiceContext(
       final Supplier<String> bootstrapServers,
-      final Map<String, ?> baseConfig) {
+      final Map<String, ?> baseConfig
+  ) {
+    final KsqlConfig config =
+        new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties());
 
-    return ServiceContextFactory.create(
-        new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties()));
+    return ServiceContextFactory.create(config, DisabledKsqlClient.instance());
   }
 
   public static final class Builder {
@@ -416,7 +418,7 @@ public class TestKsqlRestApp extends ExternalResource {
     private Optional<BasicCredentials> credentials = Optional.empty();
 
     private Builder(final Supplier<String> bootstrapServers) {
-      this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
+      this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
     }
@@ -460,7 +462,8 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     /**
-     * Set the credentials to use for any operations, e.g. listing topics etc.
+     * Set the credentials to use to build the client and used for any internal operations, e.g.
+     * {@link #dropSourcesExcept(String...)}, {@link #closePersistentQueries} etc.
      *
      * @param username the username
      * @param password the password

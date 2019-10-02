@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.materialization.Locator;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serializer;
@@ -79,15 +79,15 @@ final class KsLocator implements Locator {
         || hostInfo.host().equalsIgnoreCase("localhost");
   }
 
-  private URL buildLocation(final HostInfo remoteInfo) {
+  private URI buildLocation(final HostInfo remoteInfo) {
     try {
       return new URL(
           localHost.getProtocol(),
           remoteInfo.host(),
           remoteInfo.port(),
           "/"
-      );
-    } catch (MalformedURLException e) {
+      ).toURI();
+    } catch (final Exception e) {
       throw new IllegalStateException("Failed to convert remote host info to URL."
           + " remoteInfo: " + remoteInfo);
     }
@@ -97,11 +97,11 @@ final class KsLocator implements Locator {
   private static final class Node implements KsqlNode {
 
     private final boolean local;
-    private final URL location;
+    private final URI location;
 
-    private Node(final boolean local, final URL location) {
+    private Node(final boolean local, final URI location) {
       this.local = local;
-      this.location = location;
+      this.location = requireNonNull(location, "location");
     }
 
     @Override
@@ -110,7 +110,7 @@ final class KsLocator implements Locator {
     }
 
     @Override
-    public URL location() {
+    public URI location() {
       return location;
     }
   }

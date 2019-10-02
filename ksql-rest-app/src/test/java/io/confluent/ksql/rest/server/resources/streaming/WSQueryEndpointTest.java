@@ -49,7 +49,8 @@ import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.PrintTopicPublisher;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.QueryPublisher;
-import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint.UserServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -71,7 +72,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.websocket.CloseReason;
@@ -87,7 +87,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings({"unchecked", "SameParameterValue"})
+@SuppressWarnings({"SameParameterValue", "UnstableApiUsage"})
 @RunWith(MockitoJUnitRunner.class)
 public class WSQueryEndpointTest {
 
@@ -150,7 +150,7 @@ public class WSQueryEndpointTest {
   @Mock
   private KsqlUserContextProvider userContextProvider;
   @Mock
-  private Function<KsqlConfig, ServiceContext> defaultServiceContextProvider;
+  private DefaultServiceContextFactory defaultServiceContextProvider;
   @Captor
   private ArgumentCaptor<CloseReason> closeReasonCaptor;
   private Query query;
@@ -172,9 +172,8 @@ public class WSQueryEndpointTest {
         .thenReturn(topicClientSupplier);
     when(securityExtension.getAuthorizationProvider())
         .thenReturn(Optional.of(authorizationProvider));
-    when(serviceContextFactory.create(ksqlConfig, topicClientSupplier, schemaRegistryClientSupplier))
-        .thenReturn(serviceContext);
-    when(defaultServiceContextProvider.apply(ksqlConfig)).thenReturn(serviceContext);
+    when(serviceContextFactory.create(any(), any(), any(), any())).thenReturn(serviceContext);
+    when(defaultServiceContextProvider.create(any(), any())).thenReturn(serviceContext);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(serverState.checkReady()).thenReturn(Optional.empty());
     givenRequest(VALID_REQUEST);
@@ -399,7 +398,7 @@ public class WSQueryEndpointTest {
     wsQueryEndpoint.onOpen(session, null);
 
     // Then:
-    verify(defaultServiceContextProvider).apply(ksqlConfig);
+    verify(defaultServiceContextProvider).create(ksqlConfig, Optional.empty());
     verifyZeroInteractions(userContextProvider);
   }
 
@@ -416,9 +415,11 @@ public class WSQueryEndpointTest {
     verify(userContextProvider).getSchemaRegistryClientFactory(eq(principal));
     verify(serviceContextFactory).create(
         ksqlConfig,
+        Optional.empty(),
         topicClientSupplier,
         schemaRegistryClientSupplier
     );
+
     verifyZeroInteractions(defaultServiceContextProvider);
   }
 

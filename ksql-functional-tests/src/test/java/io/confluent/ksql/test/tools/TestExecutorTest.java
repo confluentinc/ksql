@@ -180,7 +180,7 @@ public class TestExecutorTest {
     expectedException.expect(AssertionError.class);
     expectedException.expectMessage(containsString(
         "Schemas used by topology differ from those used by previous versions of KSQL "
-            + "- this likely means there is a non-backwards compatible change.\n"
+            + "- this is likely to mean there is a non-backwards compatible change.\n"
             + "THIS IS BAD!\n"));
 
     // When:

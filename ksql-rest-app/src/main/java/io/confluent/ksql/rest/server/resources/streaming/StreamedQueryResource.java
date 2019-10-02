@@ -40,9 +40,11 @@ import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -232,24 +234,28 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<PrintTopic> statement
   ) {
     final PrintTopic printTopic = statement.getStatement();
-    final String topicName = printTopic.getTopic().toString();
+    final String topicName = printTopic.getTopic();
 
     if (!serviceContext.getTopicClient().isTopicExists(topicName)) {
-      String reverseSuggestion = "";
-      final String nameReversedCase = reverseCase(topicName);
-      if (serviceContext.getTopicClient().isTopicExists(nameReversedCase)) {
-        reverseSuggestion = "Did you mean '" + nameReversedCase + "'?" + System.lineSeparator();
-      }
+      final Collection<String> possibleAlternatives =
+          findPossibleTopicMatches(topicName, serviceContext);
+
+      final String reverseSuggestion = possibleAlternatives.isEmpty()
+          ? ""
+          : possibleAlternatives.stream()
+              .map(name -> "\tprint " + name + ";")
+              .collect(Collectors.joining(
+              System.lineSeparator(),
+              System.lineSeparator() + "Did you mean:" + System.lineSeparator(),
+              ""
+          ));
+
       throw new KsqlRestException(
-          Errors.badRequest(String.format(
-              "Could not find topic '%s', "
+          Errors.badRequest(
+              "Could not find topic '" + topicName + "', "
                   + "or the KSQL user does not have permissions to list the topic."
-                  + System.lineSeparator()
                   + reverseSuggestion
-                  + "KSQL will treat unquoted topic names as uppercase."
-                  + System.lineSeparator()
-                  + "To print a case-sensitive topic use quotes, for example: print \'Topic\';",
-              topicName)));
+          ));
     }
 
     final Map<String, Object> propertiesWithOverrides =
@@ -267,17 +273,13 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return Response.ok().entity(topicStreamWriter).build();
   }
 
-  private String reverseCase(final String str) {
-    final char[] chars = str.toCharArray();
-    for (int i = 0; i < chars.length; i++) {
-      final char c = chars[i];
-      if (Character.isUpperCase(c)) {
-        chars[i] = Character.toLowerCase(c);
-      } else {
-        chars[i] = Character.toUpperCase(c);
-      }
-    }
-    return new String(chars);
+  private static Collection<String> findPossibleTopicMatches(
+      final String topicName,
+      final ServiceContext serviceContext
+  ) {
+    return serviceContext.getTopicClient().listTopicNames().stream()
+        .filter(name -> name.equalsIgnoreCase(topicName))
+        .collect(Collectors.toSet());
   }
 }
 

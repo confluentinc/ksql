@@ -1418,7 +1418,7 @@ Scalar functions
 |                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | "America/Los_Angeles", "PST", "Europe/London". For|
 |                        |                                                                           | more information on timestamp formats, see        |
 |                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1453,7 +1453,7 @@ Scalar functions
 |                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | "America/Los_Angeles", "PST", "Europe/London". For|
 |                        |                                                                           | more information on timestamp formats, see        |
 |                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+

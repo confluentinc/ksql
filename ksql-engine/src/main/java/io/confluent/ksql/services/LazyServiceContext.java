@@ -59,6 +59,11 @@ public class LazyServiceContext implements ServiceContext {
   }
 
   @Override
+  public SimpleKsqlClient getKsqlClient() {
+    return serviceContextSupplier.get().getKsqlClient();
+  }
+
+  @Override
   public void close() {
     serviceContextSupplier.get().close();
   }

@@ -36,6 +36,7 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.DefaultServiceContext;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.serde.avro.ValueSpecAvroSerdeSupplier;
@@ -415,7 +416,8 @@ public class TestExecutor implements Closeable {
         new StubKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
-        new DefaultConnectClient("http://localhost:8083")
+        new DefaultConnectClient("http://localhost:8083"),
+        DisabledKsqlClient.instance()
     );
   }
 

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.embedded;
 
-import io.confluent.ksql.KsqlContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
@@ -43,7 +42,5 @@ public final class EmbeddedKsql {
                     + "TUMBLING ( size 30 second) group by itemid;");
 
     System.out.println("Queries are running!");
-
   }
-
 }

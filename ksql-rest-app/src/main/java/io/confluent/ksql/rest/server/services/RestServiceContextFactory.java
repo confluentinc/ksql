@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,49 +13,65 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.services;
+package io.confluent.ksql.rest.server.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
-public final class ServiceContextFactory {
-  private ServiceContextFactory() {}
+public final class RestServiceContextFactory {
 
-  public static ServiceContext create(
-      final KsqlConfig ksqlConfig,
-      final SimpleKsqlClient ksqlClient
-  ) {
-    return create(
-        ksqlConfig,
-        new DefaultKafkaClientSupplier(),
-        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get,
-        ksqlClient
+  private RestServiceContextFactory() {
+  }
+
+  public interface DefaultServiceContextFactory {
+
+    ServiceContext create(
+        KsqlConfig config,
+        Optional<String> authHeader
+    );
+  }
+
+  public interface UserServiceContextFactory {
+
+    ServiceContext create(
+        KsqlConfig ksqlConfig,
+        Optional<String> authHeader,
+        KafkaClientSupplier kafkaClientSupplier,
+        Supplier<SchemaRegistryClient> srClientFactory
     );
   }
 
   public static ServiceContext create(
       final KsqlConfig ksqlConfig,
-      final KafkaClientSupplier kafkaClientSupplier,
-      final Supplier<SchemaRegistryClient> srClientFactory,
-      final SimpleKsqlClient ksqlClient
+      final Optional<String> authHeader
   ) {
-    final Admin adminClient = kafkaClientSupplier.getAdmin(
-        ksqlConfig.getKsqlAdminClientConfigProps()
+    return create(
+        ksqlConfig,
+        authHeader,
+        new DefaultKafkaClientSupplier(),
+        new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get
     );
+  }
 
-    return new DefaultServiceContext(
+  public static ServiceContext create(
+      final KsqlConfig ksqlConfig,
+      final Optional<String> authHeader,
+      final KafkaClientSupplier kafkaClientSupplier,
+      final Supplier<SchemaRegistryClient> srClientFactory
+  ) {
+    return ServiceContextFactory.create(
+        ksqlConfig,
         kafkaClientSupplier,
-        adminClient,
-        new KafkaTopicClientImpl(adminClient),
         srClientFactory,
-        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY)),
-        ksqlClient
+        new DefaultKsqlClient(authHeader)
     );
   }
 }

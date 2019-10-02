@@ -28,6 +28,7 @@ import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.Injector;
@@ -56,7 +57,7 @@ public final class StandaloneExecutorFactory {
         properties,
         queriesFile,
         installDir,
-        ServiceContextFactory::create,
+        config -> ServiceContextFactory.create(config, DisabledKsqlClient.instance()),
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new

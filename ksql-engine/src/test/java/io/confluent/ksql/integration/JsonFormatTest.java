@@ -36,6 +36,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -94,7 +95,7 @@ public class JsonFormatTest {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
     ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
-    serviceContext = ServiceContextFactory.create(ksqlConfig);
+    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
 
     ksqlEngine = new KsqlEngine(
         serviceContext,

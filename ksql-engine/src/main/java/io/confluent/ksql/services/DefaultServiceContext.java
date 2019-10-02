@@ -15,9 +15,10 @@
 
 package io.confluent.ksql.services;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
-import java.util.Objects;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -25,7 +26,7 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 /**
  * A real service context, initialized from a {@link KsqlConfig} instance.
  */
-public class DefaultServiceContext implements ServiceContext, AutoCloseable {
+public class DefaultServiceContext implements ServiceContext {
 
   private final KafkaClientSupplier kafkaClientSupplier;
   private final Admin adminClient;
@@ -33,20 +34,23 @@ public class DefaultServiceContext implements ServiceContext, AutoCloseable {
   private final Supplier<SchemaRegistryClient> srClientFactory;
   private final SchemaRegistryClient srClient;
   private final ConnectClient connectClient;
+  private final SimpleKsqlClient ksqlClient;
 
   public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
       final Admin adminClient,
       final KafkaTopicClient topicClient,
       final Supplier<SchemaRegistryClient> srClientFactory,
-      final ConnectClient connectClient
+      final ConnectClient connectClient,
+      final SimpleKsqlClient ksqlClient
   ) {
-    this.kafkaClientSupplier = Objects.requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
-    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
-    this.topicClient = Objects.requireNonNull(topicClient, "topicClient");
-    this.srClientFactory = Objects.requireNonNull(srClientFactory, "srClientFactory");
-    this.srClient = Objects.requireNonNull(srClientFactory.get(), "srClient");
-    this.connectClient = Objects.requireNonNull(connectClient, "connectClient");
+    this.kafkaClientSupplier = requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
+    this.adminClient = requireNonNull(adminClient, "adminClient");
+    this.topicClient = requireNonNull(topicClient, "topicClient");
+    this.srClientFactory = requireNonNull(srClientFactory, "srClientFactory");
+    this.srClient = requireNonNull(srClientFactory.get(), "srClient");
+    this.connectClient = requireNonNull(connectClient, "connectClient");
+    this.ksqlClient = requireNonNull(ksqlClient, "ksqlClient");
   }
 
   @Override
@@ -77,6 +81,11 @@ public class DefaultServiceContext implements ServiceContext, AutoCloseable {
   @Override
   public ConnectClient getConnectClient() {
     return connectClient;
+  }
+
+  @Override
+  public SimpleKsqlClient getKsqlClient() {
+    return ksqlClient;
   }
 
   @Override

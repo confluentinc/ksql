@@ -89,9 +89,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final List<Credentials> ALL_VALID_USERS =
       ImmutableList.of(VALID_USER1, VALID_USER2);
 
-  public static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
+  static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
   // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
-  public static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
+  static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
 
   private final String jassConfigFile;
   private final String previousJassConfig;

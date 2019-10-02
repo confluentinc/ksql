@@ -47,6 +47,7 @@ import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
 import kafka.security.auth.PermissionType$;
 import kafka.security.auth.ResourceType$;
+import kafka.security.authorizer.AclAuthorizer;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -140,7 +141,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
-    authorizer.configure(ImmutableMap.of(KafkaConfig.ZkConnectProp(), zookeeperConnect()));
+    final ImmutableMap<String, Object> props = ImmutableMap.of(
+        KafkaConfig.ZkConnectProp(), zookeeperConnect(),
+        AclAuthorizer.ZkConnectionTimeOutProp(), (int) ZK_CONNECT_TIMEOUT.toMillis(),
+        AclAuthorizer.ZkSessionTimeOutProp(), (int) ZK_SESSION_TIMEOUT.toMillis()
+    );
+    authorizer.configure(props);
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));

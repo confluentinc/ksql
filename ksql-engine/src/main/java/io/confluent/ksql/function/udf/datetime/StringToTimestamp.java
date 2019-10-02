@@ -68,7 +68,7 @@ public class StringToTimestamp {
               + " java.time.format.DateTimeFormatter.") final String formatPattern,
       @UdfParameter(
           description =  " timeZone is a java.util.TimeZone ID format, for example: \"UTC\","
-              + " \"America/Los_Angeles\", \"PDT\", \"Europe/London\"") final String timeZone) {
+              + " \"America/Los_Angeles\", \"PST\", \"Europe/London\"") final String timeZone) {
     try {
       final StringToTimestampParser timestampParser = parsers.get(formatPattern);
       final ZoneId zoneId = ZoneId.of(timeZone);

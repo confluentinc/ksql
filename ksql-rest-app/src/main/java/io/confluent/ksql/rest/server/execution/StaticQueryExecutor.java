@@ -53,6 +53,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.AllColumns;
 import io.confluent.ksql.parser.tree.Query;
+import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SelectItem;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
@@ -65,6 +66,7 @@ import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.SerdeOption;
@@ -86,6 +88,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
@@ -160,7 +163,7 @@ public final class StaticQueryExecutor {
         return Optional.of(proxyTo(owner, statement));
       }
 
-      Result result;
+      final Result result;
       if (whereInfo.windowStartBounds.isPresent()) {
         final Range<Instant> windowStart = whereInfo.windowStartBounds.get();
 
@@ -177,12 +180,24 @@ public final class StaticQueryExecutor {
         result = new Result(mat.schema(), rows);
       }
 
-      result = handleSelects(result, statement, executionContext, analysis);
+      final LogicalSchema outputSchema;
+      final List<List<?>> rows;
+      if (isSelectStar(statement.getStatement().getSelect())) {
+        outputSchema = TableRowsEntityFactory.buildSchema(result.schema, mat.windowType());
+        rows = TableRowsEntityFactory.createRows(result.rows);
+      } else {
+        final LogicalSchema.Builder schemaBuilder =
+            selectSchemaBuilder(result, executionContext, analysis);
+
+        outputSchema = schemaBuilder.build();
+
+        rows = handleSelects(result, statement, executionContext, analysis, outputSchema);
+      }
 
       final TableRowsEntity entity = new TableRowsEntity(
           statement.getStatementText(),
-          TableRowsEntityFactory.buildSchema(result.schema, mat.windowType()),
-          TableRowsEntityFactory.createRows(result.rows)
+          outputSchema,
+          rows
       );
 
       return Optional.of(entity);
@@ -493,23 +508,85 @@ public final class StaticQueryExecutor {
     }
   }
 
-  private static boolean isSelectStar(final List<SelectItem> selects) {
+  private static boolean isSelectStar(final Select select) {
+    final List<SelectItem> selects = select.getSelectItems();
     return selects.size() == 1 && selects.get(0) instanceof AllColumns;
   }
 
-  private static Result handleSelects(
+  private static List<List<?>> handleSelects(
       final Result input,
       final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
-      final Analysis analysis
+      final Analysis analysis,
+      final LogicalSchema outputSchema
   ) {
-    final List<SelectItem> selectItems = statement.getStatement().getSelect().getSelectItems();
-    if (input.rows.isEmpty() || isSelectStar(selectItems)) {
-      return input;
+    final LogicalSchema intermediateSchema;
+    final BiFunction<Struct, GenericRow, GenericRow> preSelectTransform;
+    if (outputSchema.key().isEmpty()) {
+      intermediateSchema = input.schema;
+      preSelectTransform = (key, value) -> value;
+    } else {
+      // SelectValueMapper requires the key fields in the value schema :(
+      intermediateSchema = LogicalSchema.builder()
+          .keyColumns(input.schema.key())
+          .valueColumns(input.schema.value())
+          .valueColumns(input.schema.key())
+          .build();
+
+      preSelectTransform = (key, value) -> {
+        key.schema().fields().forEach(f -> {
+          final Object keyField = key.get(f);
+          value.getColumns().add(keyField);
+        });
+        return value;
+      };
     }
 
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    schemaBuilder.keyColumns(input.schema.key());
+    final SourceName sourceName = getSourceName(analysis);
+
+    final KsqlConfig ksqlConfig = statement.getConfig()
+        .cloneWithPropertyOverwrite(statement.getOverrides());
+
+    final SelectValueMapper select = SelectValueMapperFactory.create(
+        analysis.getSelectExpressions(),
+        intermediateSchema.withAlias(sourceName),
+        ksqlConfig,
+        executionContext.getMetaStore(),
+        NoopProcessingLogContext.INSTANCE.getLoggerFactory().getLogger("any")
+    );
+
+    final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
+    input.rows.forEach(r -> {
+      final GenericRow intermediate = preSelectTransform.apply(r.key(), r.value());
+      final GenericRow mapped = select.apply(intermediate);
+      validateProjection(mapped, outputSchema);
+      output.add(mapped.getColumns());
+    });
+
+    return output.build();
+  }
+
+  private static void validateProjection(
+      final GenericRow fullRow,
+      final LogicalSchema schema
+  ) {
+    final int actual = fullRow.getColumns().size();
+    final int expected = schema.columns().size();
+    if (actual != expected) {
+      throw new IllegalStateException("Row column count mismatch."
+          + " expected:" + expected
+          + ", got:" + actual
+      );
+    }
+  }
+
+  private static LogicalSchema.Builder selectSchemaBuilder(
+      final Result input,
+      final KsqlExecutionContext executionContext,
+      final Analysis analysis
+  ) {
+    final Builder schemaBuilder = LogicalSchema.builder()
+        .noImplicitColumns();
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         input.schema,
@@ -519,32 +596,14 @@ public final class StaticQueryExecutor {
     for (int idx = 0; idx < analysis.getSelectExpressions().size(); idx++) {
       final SelectExpression select = analysis.getSelectExpressions().get(idx);
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
-      schemaBuilder.valueColumn(select.getName(), type);
+
+      if (input.schema.isKeyColumn(select.getName())) {
+        schemaBuilder.keyColumn(select.getName(), type);
+      } else {
+        schemaBuilder.valueColumn(select.getName(), type);
+      }
     }
-
-    final LogicalSchema schema = schemaBuilder.build();
-
-    final SourceName sourceName = getSourceName(analysis);
-
-    final KsqlConfig ksqlConfig = statement.getConfig()
-        .cloneWithPropertyOverwrite(statement.getOverrides());
-
-    final SelectValueMapper mapper = SelectValueMapperFactory.create(
-        analysis.getSelectExpressions(),
-        input.schema.withAlias(sourceName),
-        ksqlConfig,
-        executionContext.getMetaStore(),
-        NoopProcessingLogContext.INSTANCE.getLoggerFactory().getLogger("any")
-    );
-
-    final ImmutableList.Builder<TableRow> output = ImmutableList.builder();
-    input.rows.forEach(r -> {
-      final GenericRow mapped = mapper.apply(r.value());
-      final TableRow tableRow = r.withValue(mapped, schema);
-      output.add(tableRow);
-    });
-
-    return new Result(schema, output.build());
+    return schemaBuilder;
   }
 
   private static PersistentQueryMetadata findMaterializingQuery(

@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -30,19 +32,22 @@ public final class ServerClusterId {
   private static final String KSQL_CLUSTER = "ksql-cluster";
 
   private static final String id = "";
-  private final Map<String, String> scope;
+  private final Map<String, Object> scope;
 
   @JsonCreator
   ServerClusterId(
-      @JsonProperty("scope") final Map<String, String> scope
+      @JsonProperty("scope") final Map<String, Object> scope
   ) {
     this.scope = ImmutableMap.copyOf(Objects.requireNonNull(scope, "scope"));
   }
 
   public static ServerClusterId of(final String kafkaClusterId, final String ksqlClusterId) {
     return new ServerClusterId(ImmutableMap.of(
-        KAFKA_CLUSTER, kafkaClusterId,
-        KSQL_CLUSTER, ksqlClusterId
+        "path", Collections.emptyList(),
+        "clusters", ImmutableMap.of(
+            KAFKA_CLUSTER, kafkaClusterId,
+            KSQL_CLUSTER, ksqlClusterId
+        )
     ));
   }
 
@@ -50,7 +55,7 @@ public final class ServerClusterId {
     return id;
   }
 
-  public Map<String, String> getScope() {
+  public Map<String, Object> getScope() {
     return scope;
   }
 

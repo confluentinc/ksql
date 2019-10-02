@@ -18,6 +18,8 @@ package io.confluent.ksql.rest.entity;
 import static org.junit.Assert.assertEquals;
 
 import com.google.common.collect.ImmutableMap;
+
+import java.util.Collections;
 import java.util.Map;
 import org.junit.Test;
 
@@ -29,14 +31,17 @@ public class ServerClusterIdTest {
 
     // When:
     final String id = serverClusterId.getId();
-    final Map<String, String> scope = serverClusterId.getScope();
+    final Map<String, Object> scope = serverClusterId.getScope();
 
     // Then:
     assertEquals("", id);
     assertEquals(
         ImmutableMap.of(
-            "kafka-cluster", "kafka1",
-            "ksql-cluster", "ksql1"),
+            "path", Collections.emptyList(),
+            "clusters", ImmutableMap.of(
+                "kafka-cluster", "kafka1",
+                "ksql-cluster", "ksql1")
+        ),
         scope
     );
   }

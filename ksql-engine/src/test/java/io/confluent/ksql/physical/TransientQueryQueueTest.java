@@ -53,8 +53,6 @@ public class TransientQueryQueueTest {
   private LimitHandler limitHandler;
   @Mock
   private KStream<String, GenericRow> kStreamsApp;
-  @Mock
-  private SchemaKStream<String> queuedKStream;
   @Captor
   private ArgumentCaptor<QueuePopulator<String>> queuePopulatorCaptor;
   private Queue<KeyValue<String, GenericRow>> queue;
@@ -62,10 +60,8 @@ public class TransientQueryQueueTest {
 
   @Before
   public void setUp() {
-    when(queuedKStream.getKstream()).thenReturn(kStreamsApp);
-
     final TransientQueryQueue<String> queuer =
-        new TransientQueryQueue<>(queuedKStream, OptionalInt.of(SOME_LIMIT));
+        new TransientQueryQueue<>(kStreamsApp, OptionalInt.of(SOME_LIMIT));
 
     queuer.setLimitHandler(limitHandler);
 

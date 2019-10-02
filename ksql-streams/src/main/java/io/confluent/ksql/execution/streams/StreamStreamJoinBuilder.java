@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -35,17 +36,16 @@ public final class StreamStreamJoinBuilder {
   private StreamStreamJoinBuilder() {
   }
 
-  public static <K> KStream<K, GenericRow> build(
-      final KStream<K, GenericRow> left,
-      final KStream<K, GenericRow> right,
+  public static <K> KStreamHolder<K> build(
+      final KStreamHolder<K> left,
+      final KStreamHolder<K> right,
       final StreamStreamJoin<K> join,
-      final KeySerdeFactory<K> keySerdeFactory,
       final KsqlQueryBuilder queryBuilder,
       final JoinedFactory joinedFactory) {
     final Formats leftFormats = join.getLeftFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
-    final LogicalSchema leftSchema = join.getLeft().getProperties().getSchema();
+    final LogicalSchema leftSchema = join.getLeft().getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
         leftSchema.withoutAlias(),
         leftFormats.getOptions()
@@ -56,7 +56,7 @@ public final class StreamStreamJoinBuilder {
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
     );
     final Formats rightFormats = join.getRightFormats();
-    final LogicalSchema rightSchema = join.getRight().getProperties().getSchema();
+    final LogicalSchema rightSchema = join.getRight().getSchema();
     final PhysicalSchema rightPhysicalSchema = PhysicalSchema.from(
         rightSchema.withoutAlias(),
         rightFormats.getOptions()
@@ -66,7 +66,7 @@ public final class StreamStreamJoinBuilder {
         rightPhysicalSchema,
         stacker.push(RIGHT_SERDE_CTX).getQueryContext()
     );
-    final KeySerde<K> keySerde = keySerdeFactory.buildKeySerde(
+    final KeySerde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext
@@ -79,15 +79,20 @@ public final class StreamStreamJoinBuilder {
     );
     final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
     final JoinWindows joinWindows = JoinWindows.of(join.getBefore()).after(join.getAfter());
+    final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        return left.leftJoin(right, joiner, joinWindows, joined);
+        result = left.getStream().leftJoin(right.getStream(), joiner, joinWindows, joined);
+        break;
       case OUTER:
-        return left.outerJoin(right, joiner, joinWindows, joined);
+        result = left.getStream().outerJoin(right.getStream(), joiner, joinWindows, joined);
+        break;
       case INNER:
-        return left.join(right, joiner, joinWindows, joined);
+        result = left.getStream().join(right.getStream(), joiner, joinWindows, joined);
+        break;
       default:
         throw new IllegalStateException("invalid join type");
     }
+    return left.withStream(result);
   }
 }

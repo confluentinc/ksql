@@ -15,28 +15,27 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import org.apache.kafka.streams.kstream.KStream;
 
 public final class StreamFilterBuilder {
   private StreamFilterBuilder() {
   }
 
-  public static <K> KStream<K, GenericRow> build(
-      final KStream<K, GenericRow> kstream,
-      final StreamFilter<KStream<K, GenericRow>> step,
+  public static <K> KStreamHolder<K> build(
+      final KStreamHolder<K> stream,
+      final StreamFilter<K> step,
       final KsqlQueryBuilder queryBuilder) {
-    return build(kstream, step, queryBuilder, SqlPredicate::new);
+    return build(stream, step, queryBuilder, SqlPredicate::new);
   }
 
-  static <K> KStream<K, GenericRow> build(
-      final KStream<K, GenericRow> kstream,
-      final StreamFilter<KStream<K, GenericRow>> step,
+  static <K> KStreamHolder<K> build(
+      final KStreamHolder<K> stream,
+      final StreamFilter<K> step,
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory predicateFactory) {
     final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
@@ -52,6 +51,8 @@ public final class StreamFilterBuilder {
                 contextStacker.push("FILTER").getQueryContext())
         )
     );
-    return kstream.filter(predicate.getPredicate());
+    return stream.withStream(
+        stream.getStream().filter(predicate.getPredicate())
+    );
   }
 }

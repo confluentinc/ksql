@@ -16,7 +16,6 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
@@ -24,10 +23,9 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class StreamAggregate implements ExecutionStep<KTable<Struct, GenericRow>> {
+public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KGroupedStream<Struct, GenericRow>> source;
   private final Formats formats;
@@ -76,9 +74,13 @@ public class StreamAggregate implements ExecutionStep<KTable<Struct, GenericRow>
     return aggregationSchema;
   }
 
+  public ExecutionStep<KGroupedStream<Struct, GenericRow>> getSource() {
+    return source;
+  }
+
   @Override
-  public KTable<Struct, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<Struct> build(final PlanBuilder builder) {
+    return builder.visitStreamAggregate(this);
   }
 
   @Override

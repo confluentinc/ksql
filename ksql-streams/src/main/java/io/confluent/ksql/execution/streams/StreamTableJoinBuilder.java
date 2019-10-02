@@ -19,6 +19,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -26,7 +28,6 @@ import io.confluent.ksql.serde.KeySerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 
 public final class StreamTableJoinBuilder {
   private static final String SERDE_CTX = "left";
@@ -34,11 +35,10 @@ public final class StreamTableJoinBuilder {
   private StreamTableJoinBuilder() {
   }
 
-  public static <K> KStream<K, GenericRow> build(
-      final KStream<K, GenericRow> left,
-      final KTable<K, GenericRow> right,
+  public static <K> KStreamHolder<K> build(
+      final KStreamHolder<K> left,
+      final KTableHolder<K> right,
       final StreamTableJoin<K> join,
-      final KeySerdeFactory<K> keySerdeFactory,
       final KsqlQueryBuilder queryBuilder,
       final JoinedFactory joinedFactory) {
     final Formats leftFormats = join.getFormats();
@@ -54,7 +54,7 @@ public final class StreamTableJoinBuilder {
         leftPhysicalSchema,
         stacker.push(SERDE_CTX).getQueryContext()
     );
-    final KeySerde<K> keySerde = keySerdeFactory.buildKeySerde(
+    final KeySerde<K> keySerde = left.getKeySerdeFactory().buildKeySerde(
         leftFormats.getKeyFormat(),
         leftPhysicalSchema,
         queryContext
@@ -67,13 +67,17 @@ public final class StreamTableJoinBuilder {
     );
     final LogicalSchema rightSchema = join.getRight().getProperties().getSchema();
     final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        return left.leftJoin(right, joiner, joined);
+        result = left.getStream().leftJoin(right.getTable(), joiner, joined);
+        break;
       case INNER:
-        return left.join(right, joiner, joined);
+        result = left.getStream().join(right.getTable(), joiner, joined);
+        break;
       default:
         throw new IllegalStateException("invalid join type");
     }
+    return left.withStream(result);
   }
 }

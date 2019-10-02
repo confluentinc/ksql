@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -31,8 +32,11 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamToTable;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -45,10 +49,9 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.serde.WindowInfo;
-import java.time.Duration;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
+import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 import org.apache.kafka.streams.kstream.Initializer;
@@ -57,7 +60,7 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.ValueMapper;
-import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.state.KeyValueStore;
 import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -78,40 +81,37 @@ public class StreamToTableBuilderTest {
       .withMetaAndKeyColsInValue();
 
   @Mock
-  private KStream kStream;
+  private KStream<Struct, GenericRow> kStream;
   @Mock
   private MaterializedFactory materializedFactory;
   @Mock
-  private Materialized materialized;
+  private Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
-  private KGroupedStream kGroupedStream;
+  private KGroupedStream<Struct, GenericRow> kGroupedStream;
   @Mock
-  private KTable kTable;
+  private KTable<Struct, GenericRow> kTable;
   @Mock
   private KsqlQueryBuilder ksqlQueryBuilder;
   @Mock
-  private KeySerde<Struct> keySerde;
+  private KeySerdeFactory<Struct> keySerdeFactory;
   @Mock
-  private KeySerde<Windowed<Struct>> windowedKeySerde;
+  private KeySerde<Struct> keySerde;
   @Mock
   private Serde<GenericRow> valueSerde;
   @Mock
-  private ExecutionStep<KStream<Object, GenericRow>> source;
+  private ExecutionStep<KStreamHolder<Struct>> source;
 
   private final QueryContext.Stacker stacker = new QueryContext.Stacker(new QueryId("qid"));
   private final QueryContext queryContext = stacker.push("s2t").getQueryContext();
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
-  private final KeyFormat windowedKeyFormat = KeyFormat.windowed(
-      FormatInfo.of(Format.KAFKA),
-      WindowInfo.of(WindowType.TUMBLING, Optional.of(Duration.ofSeconds(10)))
-  );
   private final PhysicalSchema physicalSchema = PhysicalSchema.from(
       SCHEMA,
       SerdeOption.none()
   );
 
-  private StreamToTable<KStream<Object, GenericRow>, KTable<Object, GenericRow>> step;
+  private PlanBuilder planBuilder;
+  private StreamToTable<Struct> step;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -122,21 +122,24 @@ public class StreamToTableBuilderTest {
     when(source.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(SCHEMA, stacker.push("source").getQueryContext())
     );
-    when(materializedFactory.create(any(), any(), any()))
+    when(materializedFactory.create(any(Serde.class), any(), any()))
         .thenReturn(materialized);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
-    when(kGroupedStream.aggregate(any(), any(), any())).thenReturn(kTable);
+    when(kGroupedStream.aggregate(any(), any(), any(Materialized.class))).thenReturn(kTable);
     when(ksqlQueryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
-  }
-
-  private void givenWindowed() {
-    step = new StreamToTable<>(
-        source,
-        Formats.of(windowedKeyFormat, valueFormat, SerdeOption.none()),
-        new DefaultExecutionStepProperties(SCHEMA, queryContext)
+    when(source.build(any())).thenReturn(
+        new KStreamHolder<>(kStream, keySerdeFactory));
+    planBuilder = new KSPlanBuilder(
+        ksqlQueryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        new StreamsFactories(
+            mock(GroupedFactory.class),
+            mock(JoinedFactory.class),
+            materializedFactory
+        )
     );
-    when(ksqlQueryBuilder.buildKeySerde(any(), any(), any(), any())).thenReturn(windowedKeySerde);
   }
 
   private void givenUnwindowed() {
@@ -145,7 +148,7 @@ public class StreamToTableBuilderTest {
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         new DefaultExecutionStepProperties(SCHEMA, queryContext)
     );
-    when(ksqlQueryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
+    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
   }
 
   @Test
@@ -155,52 +158,29 @@ public class StreamToTableBuilderTest {
     givenUnwindowed();
 
     // When:
-    final KTable<Object, GenericRow> result = StreamToTableBuilder.build(
-        kStream,
-        step,
-        ksqlQueryBuilder,
-        materializedFactory
-    );
+    final KTableHolder<Struct> result = step.build(planBuilder);
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(kStream);
     inOrder.verify(kStream).mapValues(any(ValueMapper.class));
     inOrder.verify(kStream).groupByKey();
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
-    assertThat(result, is(kTable));
+    assertThat(result.getTable(), is(kTable));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 
   @Test
   @SuppressWarnings("unchecked")
-  public void shouldBuildKeySerdeCorrectlyForWindowedKey() {
-    // Given:
-    givenWindowed();
-
-    // When:
-    StreamToTableBuilder.build(kStream, step, ksqlQueryBuilder, materializedFactory);
-
-    // Then:
-    verify(ksqlQueryBuilder).buildKeySerde(
-        windowedKeyFormat.getFormatInfo(),
-        windowedKeyFormat.getWindowInfo().get(),
-        physicalSchema,
-        queryContext
-    );
-    verify(materializedFactory).create(same(windowedKeySerde), any(), any());
-  }
-
-  @Test
-  @SuppressWarnings("unchecked")
-  public void shouldBuildKeySerdeCorrectlyForUnwindowedKey() {
+  public void shouldBuildKeySerdeCorrectly() {
     // Given:
     givenUnwindowed();
 
     // When:
-    StreamToTableBuilder.build(kStream, step, ksqlQueryBuilder, materializedFactory);
+    step.build(planBuilder);
 
     // Then:
-    verify(ksqlQueryBuilder).buildKeySerde(
-        keyFormat.getFormatInfo(),
+    verify(keySerdeFactory).buildKeySerde(
+        keyFormat,
         physicalSchema,
         queryContext
     );
@@ -214,7 +194,7 @@ public class StreamToTableBuilderTest {
     givenUnwindowed();
 
     // When:
-    StreamToTableBuilder.build(kStream, step, ksqlQueryBuilder, materializedFactory);
+    step.build(planBuilder);
 
     // Then:
     verify(ksqlQueryBuilder).buildValueSerde(
@@ -232,7 +212,7 @@ public class StreamToTableBuilderTest {
     givenUnwindowed();
 
     // When:
-    StreamToTableBuilder.build(kStream, step, ksqlQueryBuilder, materializedFactory);
+    step.build(planBuilder);
 
     // Then:
     verify(materializedFactory).create(any(), any(), eq(StreamsUtil.buildOpName(queryContext)));
@@ -245,7 +225,7 @@ public class StreamToTableBuilderTest {
     givenUnwindowed();
 
     // When:
-    StreamToTableBuilder.build(kStream, step, ksqlQueryBuilder, materializedFactory);
+    step.build(planBuilder);
 
     // Then:
     final ArgumentCaptor<ValueMapper> captor = ArgumentCaptor.forClass(ValueMapper.class);
@@ -262,7 +242,7 @@ public class StreamToTableBuilderTest {
     givenUnwindowed();
 
     // When:
-    StreamToTableBuilder.build(kStream, step, ksqlQueryBuilder, materializedFactory);
+    step.build(planBuilder);
 
     // Then:
     final ArgumentCaptor<Initializer> initCaptor = ArgumentCaptor.forClass(Initializer.class);

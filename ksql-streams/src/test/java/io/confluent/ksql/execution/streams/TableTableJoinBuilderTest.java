@@ -5,15 +5,20 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -21,7 +26,6 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,20 +64,19 @@ public class TableTableJoinBuilderTest {
       new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
 
   @Mock
-  private KTable<Struct, GenericRow> leftTable;
+  private KTable<Struct, GenericRow> leftKTable;
   @Mock
-  private KTable<Struct, GenericRow>  rightTable;
+  private KTable<Struct, GenericRow>  rightKTable;
   @Mock
-  private KTable<Struct, GenericRow>  resultTable;
+  private KTable<Struct, GenericRow>  resultKTable;
   @Mock
-  private ExecutionStep<KTable<Struct, GenericRow>> left;
+  private ExecutionStep<KTableHolder<Struct>> left;
   @Mock
-  private ExecutionStep<KTable<Struct, GenericRow>> right;
+  private ExecutionStep<KTableHolder<Struct>> right;
   @Mock
-  private Joined<Struct, GenericRow, GenericRow> joined;
-  @Mock
-  private JoinedFactory joinedFactory;
+  private KeySerdeFactory<Struct> keySerdeFactory;
 
+  private PlanBuilder planBuilder;
   private TableTableJoin<Struct> join;
 
   @Before
@@ -83,11 +86,21 @@ public class TableTableJoinBuilderTest {
         new DefaultExecutionStepProperties(LEFT_SCHEMA, SRC_CTX));
     when(right.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
+    when(left.build(any())).thenReturn(
+        new KTableHolder<>(leftKTable, keySerdeFactory));
+    when(right.build(any())).thenReturn(
+        new KTableHolder<>(rightKTable, keySerdeFactory));
+    planBuilder = new KSPlanBuilder(
+        mock(KsqlQueryBuilder.class),
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
+    );
   }
 
   @SuppressWarnings("unchecked")
   private void givenLeftJoin() {
-    when(leftTable.leftJoin(any(KTable.class), any())).thenReturn(resultTable);
+    when(leftKTable.leftJoin(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.LEFT,
@@ -98,7 +111,7 @@ public class TableTableJoinBuilderTest {
 
   @SuppressWarnings("unchecked")
   private void givenOuterJoin() {
-    when(leftTable.outerJoin(any(KTable.class), any())).thenReturn(resultTable);
+    when(leftKTable.outerJoin(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.OUTER,
@@ -109,7 +122,7 @@ public class TableTableJoinBuilderTest {
 
   @SuppressWarnings("unchecked")
   private void givenInnerJoin() {
-    when(leftTable.join(any(KTable.class), any())).thenReturn(resultTable);
+    when(leftKTable.join(any(KTable.class), any())).thenReturn(resultKTable);
     join = new TableTableJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.INNER,
@@ -124,15 +137,16 @@ public class TableTableJoinBuilderTest {
     givenLeftJoin();
 
     // When:
-    final KTable result = TableTableJoinBuilder.build(leftTable, rightTable, join);
+    final KTableHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    verify(leftTable).leftJoin(
-        same(rightTable),
+    verify(leftKTable).leftJoin(
+        same(rightKTable),
         eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA))
     );
-    verifyNoMoreInteractions(leftTable, rightTable, resultTable);
-    assertThat(result, is(resultTable));
+    verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    assertThat(result.getTable(), is(resultKTable));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 
   @Test
@@ -141,15 +155,16 @@ public class TableTableJoinBuilderTest {
     givenOuterJoin();
 
     // When:
-    final KTable result = TableTableJoinBuilder.build(leftTable, rightTable, join);
+    final KTableHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    verify(leftTable).outerJoin(
-        same(rightTable),
+    verify(leftKTable).outerJoin(
+        same(rightKTable),
         eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA))
     );
-    verifyNoMoreInteractions(leftTable, rightTable, resultTable);
-    assertThat(result, is(resultTable));
+    verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    assertThat(result.getTable(), is(resultKTable));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 
   @Test
@@ -158,14 +173,15 @@ public class TableTableJoinBuilderTest {
     givenInnerJoin();
 
     // When:
-    final KTable result = TableTableJoinBuilder.build(leftTable, rightTable, join);
+    final KTableHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    verify(leftTable).join(
-        same(rightTable),
+    verify(leftKTable).join(
+        same(rightKTable),
         eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA))
     );
-    verifyNoMoreInteractions(leftTable, rightTable, resultTable);
-    assertThat(result, is(resultTable));
+    verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
+    assertThat(result.getTable(), is(resultKTable));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 }

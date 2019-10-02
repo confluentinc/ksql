@@ -41,6 +41,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -223,7 +224,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldCreateLoggerForSourceSerde() {
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    buildStream(node);
 
     // Then:
     verify(ksqlStreamBuilder).buildValueSerde(
@@ -239,7 +240,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildSourceNode() {
     // When:
-    realStream = node.buildStream(ksqlStreamBuilder);
+    realStream = buildStream(node);
 
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(realBuilder.build(), PlanTestUtil.SOURCE_NODE);
@@ -252,7 +253,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildMapNode() {
     // When:
-    realStream = node.buildStream(ksqlStreamBuilder);
+    realStream = buildStream(node);
 
     // Then:
     verifyProcessorNode((TopologyDescription.Processor) getNodeByName(realBuilder.build(), PlanTestUtil.MAPVALUES_NODE),
@@ -263,7 +264,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildTransformNode() {
     // When:
-    realStream = node.buildStream(ksqlStreamBuilder);
+    realStream = buildStream(node);
 
     // Then:
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
@@ -274,7 +275,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBeOfTypeSchemaKStreamWhenDataSourceIsKsqlStream() {
     // When:
-    realStream = node.buildStream(ksqlStreamBuilder);
+    realStream = buildStream(node);
 
     // Then:
     assertThat(realStream.getClass(), equalTo(SchemaKStream.class));
@@ -283,7 +284,7 @@ public class DataSourceNodeTest {
   @Test
   public void shouldBuildStreamWithSameKeyField() {
     // When:
-    final SchemaKStream<?> stream = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream<?> stream = buildStream(node);
 
     // Then:
     assertThat(stream.getKeyField(), is(node.getKeyField()));
@@ -310,7 +311,7 @@ public class DataSourceNodeTest {
         table,
         table.getName());
 
-    final SchemaKStream result = node.buildStream(ksqlStreamBuilder);
+    final SchemaKStream result = buildStream(node);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
   }
 
@@ -337,7 +338,7 @@ public class DataSourceNodeTest {
 
     realBuilder = new StreamsBuilder();
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
-    node.buildStream(ksqlStreamBuilder);
+    buildStream(node);
     final Topology topology = realBuilder.build();
     final TopologyDescription description = topology.describe();
 
@@ -396,7 +397,7 @@ public class DataSourceNodeTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    buildStream(node);
 
     // Then:
     verify(ksqlStreamBuilder, times(2)).buildKeySerde(
@@ -418,7 +419,7 @@ public class DataSourceNodeTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(keyFormat);
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    buildStream(node);
 
     // Then:
     verify(ksqlStreamBuilder, times(2)).buildKeySerde(
@@ -434,7 +435,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = nodeWithMockTableSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    buildStream(node);
 
     // Then:
     verify(ksqlStreamBuilder).buildValueSerde(
@@ -543,7 +544,7 @@ public class DataSourceNodeTest {
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
-    node.buildStream(ksqlStreamBuilder);
+    buildStream(node);
 
     // Then:
     verify(stream).toTable(any(), any(), any(), same(ksqlStreamBuilder));
@@ -590,5 +591,16 @@ public class DataSourceNodeTest {
         SourceName.of("name"),
         schemaKStreamFactory
     );
+  }
+
+  private SchemaKStream buildStream(final DataSourceNode node) {
+    final SchemaKStream stream = node.buildStream(ksqlStreamBuilder);
+    if (stream instanceof SchemaKTable) {
+      final SchemaKTable table = (SchemaKTable) stream;
+      table.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    } else {
+      stream.getSourceStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    }
+    return stream;
   }
 }

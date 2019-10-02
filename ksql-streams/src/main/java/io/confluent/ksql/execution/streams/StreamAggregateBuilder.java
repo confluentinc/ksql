@@ -20,6 +20,8 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamWindowedAggregate;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
@@ -47,7 +49,7 @@ public final class StreamAggregateBuilder {
   private StreamAggregateBuilder() {
   }
 
-  public static KTable<Struct, GenericRow> build(
+  public static KTableHolder<Struct> build(
       final KGroupedStream<Struct, GenericRow> groupedStream,
       final StreamAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -55,7 +57,7 @@ public final class StreamAggregateBuilder {
     return build(groupedStream, aggregate, queryBuilder, materializedFactory, AggregateParams::new);
   }
 
-  static KTable<Struct, GenericRow> build(
+  static KTableHolder<Struct> build(
       final KGroupedStream<Struct, GenericRow> kgroupedStream,
       final StreamAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -82,10 +84,13 @@ public final class StreamAggregateBuilder {
         aggregateParams.getAggregator(),
         materialized
     );
-    return aggregated.mapValues(aggregateParams.getAggregator().getResultMapper());
+    return new KTableHolder<>(
+        aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
+        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+    );
   }
 
-  public static KTable<Windowed<Struct>, GenericRow> build(
+  public static KTableHolder<Windowed<Struct>> build(
       final KGroupedStream<Struct, GenericRow> groupedStream,
       final StreamWindowedAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -94,7 +99,7 @@ public final class StreamAggregateBuilder {
     return build(groupedStream, aggregate, queryBuilder, materializedFactory, AggregateParams::new);
   }
 
-  static KTable<Windowed<Struct>, GenericRow> build(
+  static KTableHolder<Windowed<Struct>> build(
       final KGroupedStream<Struct, GenericRow> groupedStream,
       final StreamWindowedAggregate aggregate,
       final KsqlQueryBuilder queryBuilder,
@@ -125,9 +130,12 @@ public final class StreamAggregateBuilder {
     );
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
     if (!windowSelectMapper.hasSelects()) {
-      return reduced;
+      return new KTableHolder<>(reduced, KeySerdeFactory.windowed(queryBuilder));
     }
-    return reduced.mapValues(windowSelectMapper);
+    return new KTableHolder<>(
+        reduced.mapValues(windowSelectMapper),
+        KeySerdeFactory.windowed(queryBuilder)
+    );
   }
 
   private static class WindowedAggregator

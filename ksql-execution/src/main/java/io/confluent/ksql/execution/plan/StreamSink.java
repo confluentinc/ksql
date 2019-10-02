@@ -15,23 +15,20 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
-public class StreamSink<K> implements ExecutionStep<KStream<K, GenericRow>> {
+public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KStream<K, GenericRow>>  source;
+  private final ExecutionStep<KStreamHolder<K>>  source;
   private final Formats formats;
   private final String topicName;
 
   public StreamSink(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KStream<K, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final Formats formats,
       final String topicName) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -58,11 +55,14 @@ public class StreamSink<K> implements ExecutionStep<KStream<K, GenericRow>> {
     return formats;
   }
 
-  @Override
-  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public ExecutionStep<KStreamHolder<K>> getSource() {
+    return source;
   }
 
+  @Override
+  public KStreamHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamSink(this);
+  }
 
   @Override
   public boolean equals(final Object o) {

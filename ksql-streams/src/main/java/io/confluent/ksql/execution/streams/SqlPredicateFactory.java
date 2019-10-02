@@ -22,7 +22,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 
-interface SqlPredicateFactory {
+public interface SqlPredicateFactory {
   SqlPredicate create(
       Expression filterExpression,
       LogicalSchema schema,

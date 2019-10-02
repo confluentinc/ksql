@@ -26,7 +26,6 @@ import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
-import io.confluent.ksql.execution.streams.TableAggregateBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -46,11 +45,9 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
-  private final KGroupedTable kgroupedTable;
   private final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep;
 
   SchemaKGroupedTable(
-      final KGroupedTable kgroupedTable,
       final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
       final KeyFormat keyFormat,
       final KeySerde<Struct> keySerde,
@@ -60,7 +57,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
       final FunctionRegistry functionRegistry
   ) {
     this(
-        kgroupedTable,
         sourceTableStep,
         keyFormat,
         keySerde,
@@ -72,7 +68,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   }
 
   SchemaKGroupedTable(
-      final KGroupedTable kgroupedTable,
       final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
       final KeyFormat keyFormat,
       final KeySerde<Struct> keySerde,
@@ -84,7 +79,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   ) {
     super(
         null,
-        null,
         keyFormat,
         keySerde,
         keyField,
@@ -94,7 +88,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         materializedFactory
     );
 
-    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
     this.sourceTableStep = Objects.requireNonNull(sourceTableStep, "sourceTableStep");
   }
 
@@ -144,12 +137,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     );
 
     return new SchemaKTable<>(
-        TableAggregateBuilder.build(
-            kgroupedTable,
-            step,
-            queryBuilder,
-            materializedFactory
-        ),
         step,
         keyFormat,
         keySerde,

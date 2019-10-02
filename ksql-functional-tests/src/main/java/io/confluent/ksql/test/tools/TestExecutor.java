@@ -16,6 +16,7 @@
 package io.confluent.ksql.test.tools;
 
 import static java.util.Objects.requireNonNull;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
@@ -45,6 +46,7 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -259,11 +261,15 @@ public class TestExecutor implements Closeable {
               + "THIS IS BAD!",
           actualTopology, is(expectedTopology));
 
-      expected.getSchemas().ifPresent(schemas -> assertThat("Schemas used by topology differ "
-              + "from those used by previous versions"
-              + " of KSQL - this likely means there is a non-backwards compatible change.\n"
-              + "THIS IS BAD!",
-          testCase.getGeneratedSchemas().get(0), is(schemas)));
+      expected.getSchemas().ifPresent(schemas -> {
+        final List<String> generated = Arrays.asList(
+            testCase.getGeneratedSchemas().get(0).split(System.lineSeparator()));
+        assertThat("Schemas used by topology differ "
+                + "from those used by previous versions"
+                + " of KSQL - this is likely to mean there is a non-backwards compatible change.\n"
+                + "THIS IS BAD!",
+            generated, hasItems(schemas.split(System.lineSeparator())));
+      });
     });
   }
 

@@ -33,6 +33,9 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
@@ -79,11 +82,11 @@ public class TableSinkBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Mock
-  private KTable<Struct, GenericRow>  table;
+  private KTable<Struct, GenericRow>  kTable;
   @Mock
-  private KStream<Struct, GenericRow>  stream;
+  private KStream<Struct, GenericRow> kStream;
   @Mock
-  private ExecutionStep<KTable<Struct, GenericRow>> source;
+  private ExecutionStep<KTableHolder<Struct>> source;
   @Mock
   private KeySerde<Struct>  keySerde;
   @Mock
@@ -94,6 +97,7 @@ public class TableSinkBuilderTest {
   private final QueryContext queryContext =
       new QueryContext.Stacker(new QueryId("qid")).push("sink").getQueryContext();
 
+  private PlanBuilder planBuilder;
   private TableSink<Struct> sink;
 
   @Before
@@ -101,16 +105,24 @@ public class TableSinkBuilderTest {
   public void setup() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-    when(table.toStream()).thenReturn(stream);
-    when(stream.mapValues(any(ValueMapper.class))).thenReturn(stream);
+    when(kTable.toStream()).thenReturn(kStream);
+    when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(source.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
     );
+    when(source.build(any())).thenReturn(
+        new KTableHolder<>(kTable, keySerdeFactory));
     sink = new TableSink<>(
         new DefaultExecutionStepProperties(SCHEMA, queryContext),
         source,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         TOPIC
+    );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
     );
   }
 
@@ -118,29 +130,29 @@ public class TableSinkBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldWriteOutTable() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(table, stream);
-    inOrder.verify(table).toStream();
-    inOrder.verify(stream).mapValues(any(ValueMapper.class));
-    inOrder.verify(stream).to(anyString(), any());
-    verifyNoMoreInteractions(stream);
+    final InOrder inOrder = Mockito.inOrder(kTable, kStream);
+    inOrder.verify(kTable).toStream();
+    inOrder.verify(kStream).mapValues(any(ValueMapper.class));
+    inOrder.verify(kStream).to(anyString(), any());
+    verifyNoMoreInteractions(kStream);
   }
 
   @Test
   public void shouldWriteOutTableToCorrectTopic() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).to(eq(TOPIC), any());
+    verify(kStream).to(eq(TOPIC), any());
   }
 
   @Test
   public void shouldBuildKeySerdeCorrectly() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
     verify(keySerdeFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
@@ -149,7 +161,7 @@ public class TableSinkBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectly() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -162,19 +174,19 @@ public class TableSinkBuilderTest {
   @Test
   public void shouldWriteOutTableWithCorrectSerdes() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
+    verify(kStream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
   }
 
   @Test
   public void shouldRemoveKeyAndTimeFieldsFromValue() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).mapValues(mapperCaptor.capture());
+    verify(kStream).mapValues(mapperCaptor.capture());
     final ValueMapper<GenericRow, GenericRow> mapper = mapperCaptor.getValue();
     assertThat(
         mapper.apply(new GenericRow(123, "456", 789, "101112")),
@@ -185,10 +197,10 @@ public class TableSinkBuilderTest {
   @Test
   public void shouldIgnoreNullRowsWhenRemovingKeyAndTimeFieldsFromValue() {
     // When:
-    TableSinkBuilder.build(table, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).mapValues(mapperCaptor.capture());
+    verify(kStream).mapValues(mapperCaptor.capture());
     final ValueMapper<GenericRow, GenericRow> mapper = mapperCaptor.getValue();
     assertThat(mapper.apply(null), is(nullValue()));
   }

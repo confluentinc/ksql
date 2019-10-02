@@ -5,6 +5,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -16,6 +17,10 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -80,15 +85,15 @@ public class StreamTableJoinBuilderTest {
       new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
 
   @Mock
-  private KStream<Struct, GenericRow> leftStream;
+  private KStream<Struct, GenericRow> leftKStream;
   @Mock
-  private KTable<Struct, GenericRow> rightTable;
+  private KTable<Struct, GenericRow> rightKTable;
   @Mock
   private KStream<Struct, GenericRow> resultStream;
   @Mock
-  private ExecutionStep<KStream<Struct, GenericRow>> left;
+  private ExecutionStep<KStreamHolder<Struct>> left;
   @Mock
-  private ExecutionStep<KTable<Struct, GenericRow>> right;
+  private ExecutionStep<KTableHolder<Struct>> right;
   @Mock
   private Joined<Struct, GenericRow, GenericRow> joined;
   @Mock
@@ -102,6 +107,7 @@ public class StreamTableJoinBuilderTest {
   @Mock
   private Serde<GenericRow> leftSerde;
 
+  private PlanBuilder planBuilder;
   private StreamTableJoin<Struct> join;
 
   @Rule
@@ -118,11 +124,25 @@ public class StreamTableJoinBuilderTest {
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
+    when(left.build(any())).thenReturn(
+        new KStreamHolder<>(leftKStream, keySerdeFactory));
+    when(right.build(any())).thenReturn(
+        new KTableHolder<>(rightKTable, keySerdeFactory));
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        new StreamsFactories(
+            mock(GroupedFactory.class),
+            joinedFactory,
+            mock(MaterializedFactory.class)
+        )
+    );
   }
 
   @SuppressWarnings("unchecked")
   private void givenLeftJoin() {
-    when(leftStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
+    when(leftKStream.leftJoin(any(KTable.class), any(), any())).thenReturn(resultStream);
     join = new StreamTableJoin(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.LEFT,
@@ -145,7 +165,7 @@ public class StreamTableJoinBuilderTest {
 
   @SuppressWarnings("unchecked")
   private void givenInnerJoin() {
-    when(leftStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
+    when(leftKStream.join(any(KTable.class), any(), any())).thenReturn(resultStream);
     join = new StreamTableJoin(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.INNER,
@@ -161,23 +181,17 @@ public class StreamTableJoinBuilderTest {
     givenLeftJoin();
 
     // When:
-    final KStream result = StreamTableJoinBuilder.build(
-        leftStream,
-        rightTable,
-        join,
-        keySerdeFactory,
-        queryBuilder,
-        joinedFactory
-    );
+    final KStreamHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    verify(leftStream).leftJoin(
-        same(rightTable),
+    verify(leftKStream).leftJoin(
+        same(rightKTable),
         eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA)),
         same(joined)
     );
-    verifyNoMoreInteractions(leftStream, rightTable, resultStream);
-    assertThat(result, is(resultStream));
+    verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
+    assertThat(result.getStream(), is(resultStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 
   @Test
@@ -189,14 +203,7 @@ public class StreamTableJoinBuilderTest {
     expectedException.expect(IllegalStateException.class);
 
     // When:
-    StreamTableJoinBuilder.build(
-        leftStream,
-        rightTable,
-        join,
-        keySerdeFactory,
-        queryBuilder,
-        joinedFactory
-    );
+    join.build(planBuilder);
   }
 
   @Test
@@ -205,23 +212,17 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin();
 
     // When:
-    final KStream result = StreamTableJoinBuilder.build(
-        leftStream,
-        rightTable,
-        join,
-        keySerdeFactory,
-        queryBuilder,
-        joinedFactory
-    );
+    final KStreamHolder<Struct> result = join.build(planBuilder);
 
     // Then:
-    verify(leftStream).join(
-        same(rightTable),
+    verify(leftKStream).join(
+        same(rightKTable),
         eq(new KsqlValueJoiner(LEFT_SCHEMA, RIGHT_SCHEMA)),
         same(joined)
     );
-    verifyNoMoreInteractions(leftStream, rightTable, resultStream);
-    assertThat(result, is(resultStream));
+    verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
+    assertThat(result.getStream(), is(resultStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 
   @Test
@@ -230,14 +231,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin();
 
     // When:
-    StreamTableJoinBuilder.build(
-        leftStream,
-        rightTable,
-        join,
-        keySerdeFactory,
-        queryBuilder,
-        joinedFactory
-    );
+    join.build(planBuilder);
 
     // Then:
     verify(joinedFactory).create(keySerde, leftSerde, null, "jo-in");
@@ -249,14 +243,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin();
 
     // When:
-    StreamTableJoinBuilder.build(
-        leftStream,
-        rightTable,
-        join,
-        keySerdeFactory,
-        queryBuilder,
-        joinedFactory
-    );
+    join.build(planBuilder);
 
     // Then:
     verify(keySerdeFactory).buildKeySerde(LEFT_FMT.getKeyFormat(), LEFT_PHYSICAL, CTX);
@@ -268,14 +255,7 @@ public class StreamTableJoinBuilderTest {
     givenInnerJoin();
 
     // When:
-    StreamTableJoinBuilder.build(
-        leftStream,
-        rightTable,
-        join,
-        keySerdeFactory,
-        queryBuilder,
-        joinedFactory
-    );
+    join.build(planBuilder);
 
     // Then:
     final QueryContext leftCtx = QueryContext.Stacker.of(CTX).push("left").getQueryContext();

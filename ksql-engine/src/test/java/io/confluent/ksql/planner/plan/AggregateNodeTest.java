@@ -43,6 +43,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -404,7 +405,9 @@ public class AggregateNodeTest {
             .push(inv.getArgument(0).toString()));
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 
-    return aggregateNode.buildStream(ksqlStreamBuilder);
+    final SchemaKTable schemaKTable = (SchemaKTable) aggregateNode.buildStream(ksqlStreamBuilder);
+    schemaKTable.getSourceTableStep().build(new KSPlanBuilder(ksqlStreamBuilder));
+    return schemaKTable;
   }
 
   private static AggregateNode buildAggregateNode(final String queryString) {

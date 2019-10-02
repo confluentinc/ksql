@@ -16,24 +16,21 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class TableTableJoin<K> implements ExecutionStep<KTable<K, GenericRow>> {
+public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
-  private final ExecutionStep<KTable<K, GenericRow>> left;
-  private final ExecutionStep<KTable<K, GenericRow>> right;
+  private final ExecutionStep<KTableHolder<K>> left;
+  private final ExecutionStep<KTableHolder<K>> right;
 
   public TableTableJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
-      final ExecutionStep<KTable<K, GenericRow>> left,
-      final ExecutionStep<KTable<K, GenericRow>> right) {
+      final ExecutionStep<KTableHolder<K>> left,
+      final ExecutionStep<KTableHolder<K>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
@@ -50,11 +47,11 @@ public class TableTableJoin<K> implements ExecutionStep<KTable<K, GenericRow>> {
     return ImmutableList.of(left, right);
   }
 
-  public ExecutionStep<KTable<K, GenericRow>> getLeft() {
+  public ExecutionStep<KTableHolder<K>> getLeft() {
     return left;
   }
 
-  public ExecutionStep<KTable<K, GenericRow>> getRight() {
+  public ExecutionStep<KTableHolder<K>> getRight() {
     return right;
   }
 
@@ -63,8 +60,8 @@ public class TableTableJoin<K> implements ExecutionStep<KTable<K, GenericRow>> {
   }
 
   @Override
-  public KTable<K, GenericRow> build(final KsqlQueryBuilder builder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<K> build(final PlanBuilder builder) {
+    return builder.visitTableTableJoin(this);
   }
 
   @Override

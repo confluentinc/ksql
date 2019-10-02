@@ -87,11 +87,6 @@ public class SchemaKGroupedTableTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final KGroupedTable mockKGroupedTable = mock(KGroupedTable.class);
-  private final LogicalSchema schema = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("GROUPING_COLUMN"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("AGG_VALUE"), SqlTypes.INTEGER)
-      .build();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
   private final QueryContext.Stacker queryContext
       = new QueryContext.Stacker(new QueryId("query")).push("node");
@@ -105,14 +100,10 @@ public class SchemaKGroupedTableTest {
   private KeySerde<Struct> keySerde;
   @Mock
   private KsqlQueryBuilder queryBuilder;
-  @Mock
-  private KTable table;
 
   @Before
   public void init() {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(mockKGroupedTable.aggregate(any(), any(), any(), (Materialized)any())).thenReturn(table);
-    when(table.mapValues(any(ValueMapper.class))).thenReturn(table);
   }
 
   private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
@@ -126,8 +117,7 @@ public class SchemaKGroupedTableTest {
     // Given:
     final WindowExpression windowExp = mock(WindowExpression.class);
 
-    final SchemaKGroupedTable groupedTable =
-        buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
+    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable(materializedFactory);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -149,8 +139,7 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldFailUnsupportedAggregateFunction() {
     // Given:
-    final SchemaKGroupedTable kGroupedTable =
-        buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
+    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable(materializedFactory);
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -171,11 +160,9 @@ public class SchemaKGroupedTableTest {
   }
 
   private SchemaKGroupedTable buildSchemaKGroupedTable(
-      final KGroupedTable kGroupedTable,
       final MaterializedFactory materializedFactory
   ) {
     return new SchemaKGroupedTable(
-        kGroupedTable,
         buildSourceTableStep(IN_SCHEMA),
         keyFormat,
         keySerde,
@@ -189,8 +176,7 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldBuildStepForAggregate() {
     // Given:
-    final SchemaKGroupedTable kGroupedTable =
-        buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
+    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable(materializedFactory);
 
     final SchemaKTable result = kGroupedTable.aggregate(
         AGG_SCHEMA,
@@ -223,8 +209,7 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldReturnKTableWithOutputSchema() {
     // Given:
-    final SchemaKGroupedTable groupedTable =
-        buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
+    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable(materializedFactory);
 
     // When:
     final SchemaKTable result = groupedTable.aggregate(
@@ -245,8 +230,7 @@ public class SchemaKGroupedTableTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnColumnCountMismatch() {
     // Given:
-    final SchemaKGroupedTable groupedTable =
-        buildSchemaKGroupedTable(mockKGroupedTable, materializedFactory);
+    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable(materializedFactory);
 
     // When:
     groupedTable.aggregate(

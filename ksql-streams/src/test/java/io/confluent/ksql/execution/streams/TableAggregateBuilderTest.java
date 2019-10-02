@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +37,8 @@ import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
@@ -133,6 +136,7 @@ public class TableAggregateBuilderTest {
   @Mock
   private ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceStep;
 
+  private PlanBuilder planBuilder;
   private TableAggregate aggregate;
 
   @Before
@@ -160,21 +164,26 @@ public class TableAggregateBuilderTest {
         FUNCTIONS,
         AGGREGATE_SCHEMA
     );
+    when(sourceStep.build(any())).thenReturn(groupedTable);
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        aggregateParamsFactory,
+        new StreamsFactories(
+            mock(GroupedFactory.class),
+            mock(JoinedFactory.class),
+            materializedFactory
+        )
+    );
   }
 
   @Test
   public void shouldBuildAggregateCorrectly() {
     // When:
-    final KTable<Struct, GenericRow> result = TableAggregateBuilder.build(
-        groupedTable,
-        aggregate,
-        queryBuilder,
-        materializedFactory,
-        aggregateParamsFactory
-    );
+    final KTableHolder<Struct> result = aggregate.build(planBuilder);
 
     // Then:
-    assertThat(result, is(aggregatedWithResults));
+    assertThat(result.getTable(), is(aggregatedWithResults));
     final InOrder inOrder = Mockito.inOrder(groupedTable, aggregated, aggregatedWithResults);
     inOrder.verify(groupedTable).aggregate(initializer, aggregator, undoAggregator, materialized);
     inOrder.verify(aggregated).mapValues(resultMapper);
@@ -184,13 +193,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializedWithCorrectSerdesForAggregate() {
     // When:
-    TableAggregateBuilder.build(
-        groupedTable,
-        aggregate,
-        queryBuilder,
-        materializedFactory,
-        aggregateParamsFactory
-    );
+    aggregate.build(planBuilder);
 
     // Then:
     verify(materializedFactory).create(same(keySerde), same(valueSerde), any());
@@ -199,13 +202,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildMaterializedWithCorrectNameForAggregate() {
     // When:
-    TableAggregateBuilder.build(
-        groupedTable,
-        aggregate,
-        queryBuilder,
-        materializedFactory,
-        aggregateParamsFactory
-    );
+    aggregate.build(planBuilder);
 
     // Then:
     verify(materializedFactory).create(any(), any(), eq("agg-regate"));
@@ -214,13 +211,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForAggregate() {
     // When:
-    TableAggregateBuilder.build(
-        groupedTable,
-        aggregate,
-        queryBuilder,
-        materializedFactory,
-        aggregateParamsFactory
-    );
+    aggregate.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(KEY_FORMAT.getFormatInfo(), PHYSICAL_AGGREGATE_SCHEMA, CTX);
@@ -229,13 +220,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForAggregate() {
     // When:
-    TableAggregateBuilder.build(
-        groupedTable,
-        aggregate,
-        queryBuilder,
-        materializedFactory,
-        aggregateParamsFactory
-    );
+    aggregate.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -248,13 +233,7 @@ public class TableAggregateBuilderTest {
   @Test
   public void shouldBuildAggregatorParamsCorrectlyForAggregate() {
     // When:
-    TableAggregateBuilder.build(
-        groupedTable,
-        aggregate,
-        queryBuilder,
-        materializedFactory,
-        aggregateParamsFactory
-    );
+    aggregate.build(planBuilder);
 
     // Then:
     verify(aggregateParamsFactory).create(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);

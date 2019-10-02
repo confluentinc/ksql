@@ -16,22 +16,19 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
-public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>> {
+public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
   private final Formats leftFormats;
   private final Formats rightFormats;
-  private final ExecutionStep<KStream<K, GenericRow>> left;
-  private final ExecutionStep<KStream<K, GenericRow>> right;
+  private final ExecutionStep<KStreamHolder<K>> left;
+  private final ExecutionStep<KStreamHolder<K>> right;
   private final Duration before;
   private final Duration after;
 
@@ -40,8 +37,8 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>
       final JoinType joinType,
       final Formats leftFormats,
       final Formats rightFormats,
-      final ExecutionStep<KStream<K, GenericRow>> left,
-      final ExecutionStep<KStream<K, GenericRow>> right,
+      final ExecutionStep<KStreamHolder<K>> left,
+      final ExecutionStep<KStreamHolder<K>> right,
       final Duration before,
       final Duration after) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -64,11 +61,6 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>
     return ImmutableList.of(left, right);
   }
 
-  @Override
-  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
-  }
-
   public Formats getLeftFormats() {
     return leftFormats;
   }
@@ -77,11 +69,11 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>
     return rightFormats;
   }
 
-  public ExecutionStep<KStream<K, GenericRow>> getLeft() {
+  public ExecutionStep<KStreamHolder<K>> getLeft() {
     return left;
   }
 
-  public ExecutionStep<KStream<K, GenericRow>> getRight() {
+  public ExecutionStep<KStreamHolder<K>> getRight() {
     return right;
   }
 
@@ -95,6 +87,11 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStream<K, GenericRow>
 
   public Duration getBefore() {
     return before;
+  }
+
+  @Override
+  public KStreamHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamStreamJoin(this);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

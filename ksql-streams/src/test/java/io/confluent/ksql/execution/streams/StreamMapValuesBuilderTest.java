@@ -34,6 +34,9 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -76,7 +79,7 @@ public class StreamMapValuesBuilderTest {
   );
 
   @Mock
-  private ExecutionStep<KStream<Struct, GenericRow>> sourceStep;
+  private ExecutionStep<KStreamHolder<Struct>> sourceStep;
   @Mock
   private ExecutionStepProperties sourceProperties;
   @Mock
@@ -93,6 +96,8 @@ public class StreamMapValuesBuilderTest {
   private ProcessingLogContext processingLogContext;
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
+  @Mock
+  private KeySerdeFactory<Struct> keySerdeFactory;
   @Captor
   private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> captor;
 
@@ -102,7 +107,8 @@ public class StreamMapValuesBuilderTest {
   private final QueryContext context =
       new QueryContext.Stacker(new QueryId("qid")).getQueryContext();
 
-  private StreamMapValues<KStream<Struct, GenericRow>> step;
+  private PlanBuilder planBuilder;
+  private StreamMapValues<Struct> step;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -116,21 +122,26 @@ public class StreamMapValuesBuilderTest {
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(sourceKStream.mapValues(any(ValueMapper.class))).thenReturn(resultKStream);
+    final KStreamHolder<Struct> sourceStream
+        = new KStreamHolder<>(sourceKStream, keySerdeFactory);
+    when(sourceStep.build(any())).thenReturn(sourceStream);
     step = new StreamMapValues<>(
         properties,
         sourceStep,
         SELECT_EXPRESSIONS
+    );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
     );
   }
 
   @Test
   public void shouldCallMapValuesWithMapperWithCorrectExpressions() {
     // When:
-    StreamMapValuesBuilder.build(
-        sourceKStream,
-        step,
-        queryBuilder
-    );
+    step.build(planBuilder);
 
     // Then:
     verify(sourceKStream).mapValues(captor.capture());
@@ -146,13 +157,10 @@ public class StreamMapValuesBuilderTest {
   @Test
   public void shouldReturnResultKStream() {
     // When:
-    final KStream<Struct, GenericRow> kstream = StreamMapValuesBuilder.build(
-        sourceKStream,
-        step,
-        queryBuilder
-    );
+    final KStreamHolder<Struct> result = step.build(planBuilder);
 
     // Then:
-    assertThat(kstream, is(resultKStream));
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 }

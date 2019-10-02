@@ -16,25 +16,23 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
 public class TableGroupBy<K> implements ExecutionStep<KGroupedTable<Struct, GenericRow>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KTable<K, GenericRow>> source;
+  private final ExecutionStep<KTableHolder<K>> source;
   private final Formats formats;
   private final List<Expression> groupByExpressions;
 
   public TableGroupBy(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KTable<K, GenericRow>> source,
+      final ExecutionStep<KTableHolder<K>> source,
       final Formats formats,
       final List<Expression> groupByExpressions
   ) {
@@ -62,13 +60,13 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTable<Struct, Gene
     return groupByExpressions;
   }
 
-  public ExecutionStep<KTable<K, GenericRow>> getSource() {
+  public ExecutionStep<KTableHolder<K>> getSource() {
     return source;
   }
 
   @Override
-  public KGroupedTable<Struct, GenericRow> build(final KsqlQueryBuilder builder) {
-    throw new UnsupportedOperationException();
+  public KGroupedTable<Struct, GenericRow> build(final PlanBuilder builder) {
+    return builder.visitTableGroupBy(this);
   }
 
   @Override

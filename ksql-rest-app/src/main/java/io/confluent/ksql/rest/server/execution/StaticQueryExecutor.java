@@ -655,7 +655,12 @@ public final class StaticQueryExecutor {
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement
   ) {
-    try (KsqlRestClient client = new KsqlRestClient(owner.location().toString())) {
+    try (KsqlRestClient client = KsqlRestClient.create(
+        owner.location().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    )) {
 
       final RestResponse<KsqlEntityList> response = client
           .makeKsqlRequest(statement.getStatementText());
@@ -697,7 +702,8 @@ public final class StaticQueryExecutor {
             + "WINDOWSTART currently supports operators: " + VALID_WINDOW_BOUNDS_TYPES_STRING
             + System.lineSeparator()
             + "WINDOWSTART currently comparison with epoch milliseconds "
-            + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN;
+            + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
+            + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
     return new KsqlException(msg
         + System.lineSeparator()

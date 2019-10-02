@@ -20,6 +20,7 @@ import io.confluent.ksql.cli.Cli;
 import io.confluent.ksql.cli.Options;
 import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.properties.PropertiesUtil;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Predicate;
 import org.apache.kafka.streams.StreamsConfig;
@@ -68,7 +70,7 @@ public final class Ksql {
     }
 
     try {
-      new Ksql(options, System.getProperties(), KsqlRestClient::new, Cli::build).run();
+      new Ksql(options, System.getProperties(), KsqlRestClient::create, Cli::build).run();
     } catch (final Exception e) {
       final String msg = ErrorMessageUtil.buildErrorMessage(e);
       LOGGER.error(msg);
@@ -82,15 +84,7 @@ public final class Ksql {
         .map(Ksql::loadProperties)
         .orElseGet(Collections::emptyMap);
 
-    final Map<String, String> localProps = stripClientSideProperties(configProps);
-    final Map<String, String> clientProps = PropertiesUtil.applyOverrides(configProps, systemProps);
-    final String server = options.getServer();
-
-    try (KsqlRestClient restClient = clientBuilder.build(server, localProps, clientProps)) {
-
-      options.getUserNameAndPassword().ifPresent(
-          creds -> restClient.setupAuthenticationCredentials(creds.left, creds.right)
-      );
+    try (KsqlRestClient restClient = buildClient(configProps)) {
 
       final KsqlVersionCheckerAgent versionChecker = new KsqlVersionCheckerAgent(() -> false);
       versionChecker.start(KsqlModuleType.CLI, PropertiesUtil.asProperties(configProps));
@@ -103,6 +97,17 @@ public final class Ksql {
         cli.runInteractively();
       }
     }
+  }
+
+  private KsqlRestClient buildClient(
+      final Map<String, String> configProps
+  ) {
+    final Map<String, String> localProps = stripClientSideProperties(configProps);
+    final Map<String, String> clientProps = PropertiesUtil.applyOverrides(configProps, systemProps);
+    final String server = options.getServer();
+    final Optional<BasicCredentials> creds = options.getUserNameAndPassword();
+
+    return clientBuilder.build(server, localProps, clientProps, creds);
   }
 
   private static Map<String, String> stripClientSideProperties(final Map<String, String> props) {
@@ -126,7 +131,9 @@ public final class Ksql {
     KsqlRestClient build(
         String serverAddress,
         Map<String, ?> localProperties,
-        Map<String, String> clientProps);
+        Map<String, String> clientProps,
+        Optional<BasicCredentials> creds
+    );
   }
 
   interface CliBuilder {

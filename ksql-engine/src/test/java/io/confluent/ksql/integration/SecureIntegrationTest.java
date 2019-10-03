@@ -75,7 +75,6 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -289,13 +288,16 @@ public class SecureIntegrationTest {
                           outputTopic, INPUT_STREAM);
   }
 
-  private void assertCanRunKsqlQuery(final String queryString,
-                                     final Object... args) throws Exception {
+  private void assertCanRunKsqlQuery(
+      final String queryString,
+      final Object... args
+  ) {
     executePersistentQuery(queryString, args);
 
-    TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists(this.outputTopic),
-        "Wait for async topic creation"
+    assertThatEventually(
+        "Wait for async topic creation",
+        () -> topicClient.isTopicExists(outputTopic),
+        is(true)
     );
 
     final TopicConsumer consumer = new TopicConsumer(SECURE_CLUSTER);

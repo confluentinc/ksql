@@ -68,6 +68,7 @@ public final class TopicStream {
           .stream(records.records(topicName).spliterator(), false)
           .filter(Objects::nonNull)
           .filter(r -> r.value() != null)
+          .filter(r -> r.value().get().length != 0)
           .map((record) -> {
             if (formatter == null) {
               formatter = getFormatter(record);
@@ -179,7 +180,9 @@ public final class TopicStream {
 
             objectNode.put(SchemaUtil.ROWTIME_NAME.name(), record.timestamp());
             objectNode.put(SchemaUtil.ROWKEY_NAME.name(), key);
-            objectNode.setAll((ObjectNode) jsonNode);
+            if (jsonNode != null) {
+              objectNode.setAll((ObjectNode) jsonNode);
+            }
 
             final StringWriter stringWriter = new StringWriter();
             objectMapper.writeValue(stringWriter, objectNode);

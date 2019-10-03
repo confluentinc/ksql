@@ -68,8 +68,8 @@ import org.junit.rules.ExpectedException;
 public class UdfLoaderTest {
 
   private static final ClassLoader PARENT_CLASS_LOADER = UdfLoaderTest.class.getClassLoader();
-  private static final UdfCompiler COMPILER = new UdfCompiler(Optional.empty());
   private static final Metrics METRICS = new Metrics();
+
 
   private static final FunctionRegistry FUNC_REG =
       initializeFunctionRegistry(true, Optional.empty());
@@ -268,7 +268,8 @@ public class UdfLoaderTest {
                                               new File("src/test/resources/udf-failing-tests.jar"),
                                               udfClassLoader,
                                               value -> false,
-                                              COMPILER,
+                                              new UdfCompiler(Optional.empty()),
+                                              new UdafCompiler(Optional.empty()),
                                               Optional.empty(),
                                               true);
 
@@ -295,7 +296,8 @@ public class UdfLoaderTest {
                                               new File("src/test/resources/udf-failing-tests.jar"),
                                               udfClassLoader,
                                               value -> false,
-                                              COMPILER,
+                                              new UdfCompiler(Optional.empty()),
+                                              new UdafCompiler(Optional.empty()),
                                               Optional.empty(),
                                               true);
 
@@ -323,7 +325,8 @@ public class UdfLoaderTest {
                                               new File("src/test/resources/udf-failing-tests.jar"),
                                               udfClassLoader,
                                               value -> false,
-                                              COMPILER,
+                                              new UdfCompiler(Optional.empty()),
+                                              new UdafCompiler(Optional.empty()),
                                               Optional.empty(),
                                               true);
 
@@ -421,7 +424,8 @@ public class UdfLoaderTest {
                                               new File("src/test/resources"),
                                               PARENT_CLASS_LOADER,
                                               value -> false,
-                                              COMPILER,
+                                              new UdfCompiler(Optional.empty()),
+                                              new UdafCompiler(Optional.empty()),
                                               Optional.empty(),
                                               false);
     udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
@@ -442,7 +446,8 @@ public class UdfLoaderTest {
                                               new File("src/test/resources"),
                                               PARENT_CLASS_LOADER,
                                               value -> false,
-                                              COMPILER,
+                                              new UdfCompiler(Optional.empty()),
+                                              new UdafCompiler(Optional.empty()),
                                               Optional.empty(),
                                               false);
     final List<Schema> args = ImmutableList.of(
@@ -591,13 +596,13 @@ public class UdfLoaderTest {
       final Optional<Metrics> metrics
   ) {
     return new UdfLoader(functionRegistry,
-        new File("src/test/resources/udf-example.jar"),
-        PARENT_CLASS_LOADER,
-        value -> false,
-        COMPILER,
-        metrics,
-        loadCustomerUdfs
-    );
+                         new File("src/test/resources/udf-example.jar"),
+                         PARENT_CLASS_LOADER,
+                         value -> false,
+                         new UdfCompiler(metrics),
+                         new UdafCompiler(metrics),
+                         metrics,
+                         loadCustomerUdfs);
   }
 
   private static ClassLoader getActualUdfClassLoader(final Kudf udf) throws Exception {

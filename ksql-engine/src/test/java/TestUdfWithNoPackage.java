@@ -36,7 +36,7 @@ public class TestUdfWithNoPackage {
     // When:
     // motivated by https://github.com/square/javapoet/pull/723
     final UdfInvoker udf = UdfCompiler
-        .compile(getClass().getMethod("udf"), this.getClass().getClassLoader());
+        .generateCode(getClass().getMethod("udf"), "test", this.getClass().getClassLoader());
 
     // Then:
     assertThat(udf.eval(this), is("udf"));

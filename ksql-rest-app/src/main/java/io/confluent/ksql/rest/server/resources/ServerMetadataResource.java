@@ -29,7 +29,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-@Path("/metadata")
+@Path("/v1/metadata")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public final class ServerMetadataResource {
   private final ServerMetadata serverMetadata;

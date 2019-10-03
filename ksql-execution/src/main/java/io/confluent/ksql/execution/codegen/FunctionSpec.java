@@ -20,6 +20,7 @@ import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Objects;
 
 @Immutable
 public final class FunctionSpec {
@@ -33,10 +34,10 @@ public final class FunctionSpec {
       final String codegenName,
       final KsqlConfig ksqlConfig
   ) {
-    this.type = function.getKudfClass();
-    this.function = function;
-    this.codegenName = codegenName;
-    this.ksqlConfig = ksqlConfig;
+    this.type = Objects.requireNonNull(function.getKudfClass(), "kudfClass");
+    this.function = Objects.requireNonNull(function, "function");
+    this.codegenName = Objects.requireNonNull(codegenName, "codegenName");
+    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
   }
 
   public Class type() {

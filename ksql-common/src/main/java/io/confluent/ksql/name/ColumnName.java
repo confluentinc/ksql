@@ -31,7 +31,7 @@ public final class ColumnName extends Name<ColumnName> {
   }
 
   public static ColumnName of(final String name) {
-    KsqlPreconditions.checkArgument(!name.contains("."), "expected no aliased fields!");
+    KsqlPreconditions.checkServerCondition(!name.contains("."), "expected no aliased fields!");
     return new ColumnName(name);
   }
 

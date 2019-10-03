@@ -62,10 +62,10 @@ public final class Sink {
             properties,
             Optional.of(((ColumnReferenceExp) partitionByExp).getReference())
         );
-      } else {
-        throw new KsqlException(
-            "Expected partition by to be a valid column but got " + partitionByExp);
       }
+
+      throw new KsqlException(
+          "Expected partition by to be a valid column but got " + partitionByExp);
     }
 
     return new Sink(name, createSink, properties, Optional.empty());

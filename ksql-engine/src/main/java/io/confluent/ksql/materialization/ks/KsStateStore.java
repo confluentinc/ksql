@@ -74,6 +74,11 @@ class KsStateStore {
     try {
       return kafkaStreams.store(stateStoreName, queryableStoreType);
     } catch (final Exception e) {
+      final State state = kafkaStreams.state();
+      if (state != State.RUNNING) {
+        throw new NotRunningException("The query was not in a running state. state: " + state);
+      }
+
       throw new MaterializationException("State store currently unavailable: " + stateStoreName, e);
     }
   }
@@ -87,11 +92,6 @@ class KsStateStore {
       }
 
       Thread.yield();
-    }
-
-    final State state = kafkaStreams.state();
-    if (state != State.RUNNING) {
-      throw new NotRunningException("The query was not in a running state. state: " + state);
     }
   }
 }

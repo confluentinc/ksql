@@ -170,12 +170,24 @@ public class TopicStreamTest {
   }
 
   @Test
+  public void shouldFilterNullBytesValues() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    // When:
+    final List<String> formatted = getFormattedRecord(new Bytes(null));
+
+    // Then:
+    assertThat(formatted, empty());
+  }
+
+  @Test
   public void shouldFilterEmptyValues() {
     // Given:
     replay(schemaRegistryClient);
 
     // When:
-    final List<String> formatted = getFormattedRecord(Bytes.EMPTY);
+    final List<String> formatted = getFormattedRecord(new Bytes(Bytes.EMPTY));
 
     // Then:
     assertThat(formatted, empty());
@@ -201,15 +213,15 @@ public class TopicStreamTest {
   }
 
   private Result getFormattedResult(final byte[] data) {
-    final List<String> formatted = getFormattedRecord(data);
+    final List<String> formatted = getFormattedRecord(new Bytes(data));
     assertThat("Only expect one line", formatted, hasSize(1));
 
     return new Result(formatter.getFormat(), formatted.get(0));
   }
 
-  private List<String> getFormattedRecord(final byte[] data) {
+  private List<String> getFormattedRecord(final Bytes data) {
     final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
-        TOPIC_NAME, 1, 1, "key", new Bytes(data));
+        TOPIC_NAME, 1, 1, "key", data);
 
     final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
         ImmutableMap.of(new TopicPartition(TOPIC_NAME, 1),

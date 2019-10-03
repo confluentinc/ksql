@@ -16,11 +16,12 @@
 package io.confluent.ksql.execution.function.udaf.window;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
@@ -42,14 +43,17 @@ public final class WindowSelectMapper
   private final Map<Integer, Type> windowSelects;
 
   public WindowSelectMapper(
-      final Map<Integer, KsqlAggregateFunction<?, ?, ?>> aggFunctionsByIndex
+      final int initialUdafIndex,
+      final List<KsqlAggregateFunction<?, ?, ?>> functions
   ) {
-    this.windowSelects = aggFunctionsByIndex.entrySet().stream()
-        .filter(e ->
-            WINDOW_FUNCTION_NAMES.containsKey(e.getValue().getFunctionName().toUpperCase()))
-        .collect(Collectors.toMap(
-            Map.Entry::getKey,
-            e -> WINDOW_FUNCTION_NAMES.get(e.getValue().getFunctionName().toUpperCase())));
+    final ImmutableMap.Builder<Integer, Type> selectsBuilder = new Builder<>();
+    for (int i = 0; i < functions.size(); i++) {
+      final String name = functions.get(i).getFunctionName().toUpperCase();
+      if (WINDOW_FUNCTION_NAMES.containsKey(name)) {
+        selectsBuilder.put(initialUdafIndex + i, WINDOW_FUNCTION_NAMES.get(name));
+      }
+    }
+    windowSelects = selectsBuilder.build();
   }
 
   public boolean hasSelects() {

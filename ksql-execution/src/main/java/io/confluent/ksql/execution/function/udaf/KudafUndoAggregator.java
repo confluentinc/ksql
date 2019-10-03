@@ -15,50 +15,51 @@
 
 package io.confluent.ksql.execution.function.udaf;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
-import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Aggregator;
 
 public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, GenericRow> {
 
-  private final int nonFuncColumnCount;
-  private final Map<Integer, TableAggregationFunction> aggValToAggFunctionMap;
+  private final int initialUdafIndex;
+  private final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions;
 
   public KudafUndoAggregator(
-      final int nonFuncColumnCount,
-      final Map<Integer, TableAggregationFunction<?, ?, ?>> aggValToAggFunctionMap
+      final int initialUdafIndex,
+      final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
   ) {
-    Objects.requireNonNull(aggValToAggFunctionMap);
-    this.aggValToAggFunctionMap = ImmutableMap.copyOf(aggValToAggFunctionMap);
-    this.nonFuncColumnCount = nonFuncColumnCount;
+    Objects.requireNonNull(aggregateFunctions, "aggregateFunctions");
+    this.aggregateFunctions = ImmutableList.copyOf(aggregateFunctions);
+    this.initialUdafIndex = initialUdafIndex;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
-    for (int idx = 0; idx < nonFuncColumnCount; idx++) {
+    int idx = 0;
+    for (; idx < initialUdafIndex; idx++) {
       aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
     }
 
-    aggValToAggFunctionMap.forEach(
-        (aggRowIndex, function) ->
-            aggRowValue.getColumns().set(
-                aggRowIndex,
-                function.undo(
-                    rowValue.getColumns().get(function.getArgIndexInValue()),
-                    aggRowValue.getColumns().get(aggRowIndex))));
+    for (final TableAggregationFunction function : aggregateFunctions) {
+      final Object argument = rowValue.getColumns().get(function.getArgIndexInValue());
+      final Object previous = aggRowValue.getColumns().get(idx);
+      aggRowValue.getColumns().set(idx, function.undo(argument, previous));
+      idx++;
+    }
+
     return aggRowValue;
   }
 
-  public int getNonFuncColumnCount() {
-    return nonFuncColumnCount;
+  public int getInitialUdafIndex() {
+    return initialUdafIndex;
   }
 
-  public Map<Integer, TableAggregationFunction> getAggValToAggFunctionMap() {
-    return aggValToAggFunctionMap;
+  public List<TableAggregationFunction<?, ?, ?>> getAggregateFunctions() {
+    return aggregateFunctions;
   }
 }

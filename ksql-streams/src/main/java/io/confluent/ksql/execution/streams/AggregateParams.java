@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
@@ -28,9 +29,8 @@ import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -83,21 +83,15 @@ public final class AggregateParams {
   }
 
   public KudafUndoAggregator getUndoAggregator() {
-    return new KudafUndoAggregator(initialUdafIndex, toIndexedMap());
+    final List<TableAggregationFunction<?, ?, ?>> tableFunctions = new LinkedList<>();
+    for (final KsqlAggregateFunction function : functions) {
+      tableFunctions.add((TableAggregationFunction<?, ?, ?>) function);
+    }
+    return new KudafUndoAggregator(initialUdafIndex, tableFunctions);
   }
 
   public WindowSelectMapper getWindowSelectMapper() {
-    return new WindowSelectMapper(toIndexedMap());
-  }
-
-  @SuppressWarnings("unchecked")
-  private <T extends KsqlAggregateFunction> Map<Integer, T> toIndexedMap() {
-    int index = initialUdafIndex;
-    final Map<Integer, T> byIndex = new HashMap<>();
-    for (final KsqlAggregateFunction aggregateFunction : functions) {
-      byIndex.put(index++, ((T) aggregateFunction));
-    }
-    return byIndex;
+    return new WindowSelectMapper(initialUdafIndex, functions);
   }
 
   public interface Factory {

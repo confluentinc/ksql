@@ -161,10 +161,10 @@ public class AggregateParamsTest {
     final KudafUndoAggregator undoAggregator = aggregateParams.getUndoAggregator();
 
     // Then:
-    assertThat(undoAggregator.getNonFuncColumnCount(), equalTo(2));
+    assertThat(undoAggregator.getInitialUdafIndex(), equalTo(2));
     assertThat(
-        undoAggregator.getAggValToAggFunctionMap(),
-        equalTo(ImmutableMap.of(2, tableAgg))
+        undoAggregator.getAggregateFunctions(),
+        equalTo(ImmutableList.of(tableAgg))
     );
   }
 

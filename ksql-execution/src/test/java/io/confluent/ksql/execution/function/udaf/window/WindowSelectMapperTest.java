@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
@@ -40,11 +39,11 @@ import org.junit.runner.RunWith;
 public class WindowSelectMapperTest {
 
   @Mock(MockType.NICE)
-  private KsqlAggregateFunction windowStartFunc;
+  private KsqlAggregateFunction<?, ?, ?> windowStartFunc;
   @Mock(MockType.NICE)
-  private KsqlAggregateFunction windowEndFunc;
+  private KsqlAggregateFunction<?, ?, ?> windowEndFunc;
   @Mock(MockType.NICE)
-  private KsqlAggregateFunction otherFunc;
+  private KsqlAggregateFunction<?, ?, ?> otherFunc;
 
   @Before
   public void setUp() {
@@ -56,27 +55,29 @@ public class WindowSelectMapperTest {
 
   @Test
   public void shouldNotDetectNonWindowBoundsSelects() {
-    assertThat(new WindowSelectMapper(ImmutableMap.of(5, otherFunc)).hasSelects(),
+    assertThat(new WindowSelectMapper(5, ImmutableList.of(otherFunc)).hasSelects(),
         is(false));
   }
 
   @Test
   public void shouldDetectWindowStartSelects() {
-    assertThat(new WindowSelectMapper(ImmutableMap.of(5, windowStartFunc)).hasSelects(),
+    assertThat(new WindowSelectMapper(5, ImmutableList.of(windowStartFunc)).hasSelects(),
         is(true));
   }
 
   @Test
   public void shouldDetectWindowEndSelects() {
-    assertThat(new WindowSelectMapper(ImmutableMap.of(5, windowEndFunc)).hasSelects(),
+    assertThat(new WindowSelectMapper(5, ImmutableList.of(windowEndFunc)).hasSelects(),
         is(true));
   }
 
   @Test
   public void shouldUpdateRowWithWindowBounds() {
     // Given:
-    final WindowSelectMapper mapper = new WindowSelectMapper(ImmutableMap.of(
-        0, otherFunc, 2, windowStartFunc, 3, windowEndFunc, 4, windowStartFunc));
+    final WindowSelectMapper mapper = new WindowSelectMapper(
+        1,
+        ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
+    );
 
     final Window window = new SessionWindow(12345L, 54321L);
     final GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
@@ -92,8 +93,7 @@ public class WindowSelectMapperTest {
   @Test(expected = IndexOutOfBoundsException.class)
   public void shouldThrowIfRowNotBigEnough() {
     // Given:
-    final WindowSelectMapper mapper = new WindowSelectMapper(ImmutableMap.of(
-        0, windowStartFunc));
+    final WindowSelectMapper mapper = new WindowSelectMapper(0, ImmutableList.of(windowStartFunc));
 
     final Window window = new SessionWindow(12345L, 54321L);
     final GenericRow row = new GenericRow(new ArrayList<>());

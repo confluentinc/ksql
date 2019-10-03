@@ -26,8 +26,8 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.StreamJoined;
 
 public final class StreamStreamJoinBuilder {
   private static final String LEFT_SERDE_CTX = "left";
@@ -41,7 +41,7 @@ public final class StreamStreamJoinBuilder {
       final KStreamHolder<K> right,
       final StreamStreamJoin<K> join,
       final KsqlQueryBuilder queryBuilder,
-      final JoinedFactory joinedFactory) {
+      final StreamJoinedFactory streamJoinedFactory) {
     final Formats leftFormats = join.getLeftFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
@@ -71,10 +71,11 @@ public final class StreamStreamJoinBuilder {
         leftPhysicalSchema,
         queryContext
     );
-    final Joined<K, GenericRow, GenericRow> joined = joinedFactory.create(
+    final StreamJoined<K, GenericRow, GenericRow> joined = streamJoinedFactory.create(
         keySerde,
         leftSerde,
         rightSerde,
+        StreamsUtil.buildOpName(queryContext),
         StreamsUtil.buildOpName(queryContext)
     );
     final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);

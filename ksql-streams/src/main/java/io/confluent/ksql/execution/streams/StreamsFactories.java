@@ -22,23 +22,27 @@ public class StreamsFactories {
   private final GroupedFactory groupedFactory;
   private final JoinedFactory joinedFactory;
   private final MaterializedFactory materializedFactory;
+  private final StreamJoinedFactory streamJoinedFactory;
 
   public static StreamsFactories create(final KsqlConfig ksqlConfig) {
     Objects.requireNonNull(ksqlConfig);
     return new StreamsFactories(
         GroupedFactory.create(ksqlConfig),
         JoinedFactory.create(ksqlConfig),
-        MaterializedFactory.create(ksqlConfig)
+        MaterializedFactory.create(ksqlConfig),
+        StreamJoinedFactory.create(ksqlConfig)
     );
   }
 
   public StreamsFactories(
       final GroupedFactory groupedFactory,
       final JoinedFactory joinedFactory,
-      final MaterializedFactory materializedFactory) {
+      final MaterializedFactory materializedFactory,
+      final StreamJoinedFactory streamJoinedFactory) {
     this.groupedFactory = Objects.requireNonNull(groupedFactory);
     this.joinedFactory = Objects.requireNonNull(joinedFactory);
     this.materializedFactory = Objects.requireNonNull(materializedFactory);
+    this.streamJoinedFactory = Objects.requireNonNull(streamJoinedFactory);
   }
 
   public GroupedFactory getGroupedFactory() {
@@ -51,5 +55,9 @@ public class StreamsFactories {
 
   public MaterializedFactory getMaterializedFactory() {
     return materializedFactory;
+  }
+
+  public StreamJoinedFactory getStreamJoinedFactory() {
+    return streamJoinedFactory;
   }
 }

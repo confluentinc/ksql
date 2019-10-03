@@ -83,7 +83,7 @@ public class PartialStringToTimestampParser {
 
   private static ZoneId parseTimezone(final String timezone) {
     if (timezone.trim().isEmpty()) {
-      return ZoneId.systemDefault();
+      return ZoneId.of("+0000");
     }
 
     try {

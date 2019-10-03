@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.name.FunctionName;
 import java.util.ArrayList;
 import java.util.Arrays;
 import org.apache.kafka.streams.kstream.Window;
@@ -47,9 +48,10 @@ public class WindowSelectMapperTest {
 
   @Before
   public void setUp() {
-    EasyMock.expect(windowStartFunc.getFunctionName()).andReturn("WinDowStarT").anyTimes();
-    EasyMock.expect(windowEndFunc.getFunctionName()).andReturn("WinDowEnD").anyTimes();
-    EasyMock.expect(otherFunc.getFunctionName()).andReturn("NotWindowStartOrWindowEnd").anyTimes();
+    EasyMock.expect(windowStartFunc.getFunctionName()).andReturn(FunctionName.of("WinDowStarT")).anyTimes();
+    EasyMock.expect(windowEndFunc.getFunctionName()).andReturn(FunctionName.of("WinDowEnD")).anyTimes();
+    EasyMock.expect(otherFunc.getFunctionName()).andReturn(
+        FunctionName.of("NotWindowStartOrWindowEnd")).anyTimes();
     EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc);
   }
 

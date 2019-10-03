@@ -46,7 +46,9 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -118,7 +120,10 @@ public class CodeGenRunnerTest {
     private static final int INVALID_JAVA_IDENTIFIER_INDEX = 16;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
-        .toConnectSchema(META_STORE_SCHEMA.findValueColumn("COL15").get().type());
+        .toConnectSchema(
+            META_STORE_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL15")))
+                .get()
+                .type());
 
     private static final List<Object> ONE_ROW = ImmutableList.of(
         0L, "S1", "S2", 3.1, 4.2, 5, true, false, 8L,
@@ -143,13 +148,13 @@ public class CodeGenRunnerTest {
         final KsqlFunction whenCondition = KsqlFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_BOOLEAN_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
-            "WHENCONDITION",
+            FunctionName.of("WHENCONDITION"),
             WhenCondition.class
         );
         final KsqlFunction whenResult = KsqlFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_INT32_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
-            "WHENRESULT",
+            FunctionName.of("WHENRESULT"),
             WhenResult.class
         );
         functionRegistry.ensureFunctionFactory(
@@ -174,7 +179,9 @@ public class CodeGenRunnerTest {
             SourceName.of("CODEGEN_TEST"),
             META_STORE_SCHEMA,
             SerdeOption.none(),
-            KeyField.of(ColumnName.of("COL0"), META_STORE_SCHEMA.findValueColumn("COL0").get()),
+            KeyField.of(
+                ColumnRef.withoutSource(ColumnName.of("COL0")),
+                META_STORE_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic
         );
@@ -208,7 +215,7 @@ public class CodeGenRunnerTest {
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0).getExpression(), "Select");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
-        assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
+        assertThat(expressionEvaluatorMetadata0.arguments(), hasSize(1));
 
         Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(null, 1));
         assertThat(result0, is(true));
@@ -240,7 +247,7 @@ public class CodeGenRunnerTest {
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), contains(0));
-        assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(1));
+        assertThat(expressionEvaluatorMetadata0.arguments(), hasSize(1));
 
         Object result0 = expressionEvaluatorMetadata0.evaluate(genericRow(null, "1"));
         assertThat(result0, is(false));
@@ -910,7 +917,7 @@ public class CodeGenRunnerTest {
         final ExpressionMetadata expressionEvaluatorMetadata0 = codeGenRunner.buildCodeGenFromParseTree
             (analysis.getSelectExpressions().get(0).getExpression(), "Filter");
         assertThat(expressionEvaluatorMetadata0.getIndexes(), containsInAnyOrder(cola, colb));
-        assertThat(expressionEvaluatorMetadata0.getUdfs(), hasSize(2));
+        assertThat(expressionEvaluatorMetadata0.arguments(), hasSize(2));
 
         final List<Object> columns = new ArrayList<>(ONE_ROW);
         columns.set(cola, values[0]);

@@ -579,7 +579,7 @@ public class AstBuilder {
               .getCommonFieldNames()
               .contains(name.name())
           ) {
-            alias = name.qualifier()
+            alias = name.source()
                 .map(q -> q.name() + "_" + name.name().name())
                 .map(ColumnName::of)
                 .orElseGet(name::name);
@@ -1221,7 +1221,8 @@ public class AstBuilder {
       }
 
       final Optional<NodeLocation> location = getLocation(identifier);
-      final ColumnRef name = ColumnRef.of(ColumnName.of(ParserUtil.getIdentifierText(identifier)));
+      final ColumnRef name = ColumnRef.withoutSource(
+          ColumnName.of(ParserUtil.getIdentifierText(identifier)));
       return Optional.of(new ColumnReferenceExp(location, name));
     }
 

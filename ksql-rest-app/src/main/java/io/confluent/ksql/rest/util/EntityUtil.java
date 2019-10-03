@@ -56,7 +56,8 @@ public final class EntityUtil {
     }
 
     return columns.stream()
-        .map(col -> SqlTypeWalker.visit(Field.of(col.fullName(), col.type()), new Converter()))
+        .map(col -> SqlTypeWalker.visit(
+            Field.of(col.ref().aliasedFieldName(), col.type()), new Converter()))
         .collect(Collectors.toList());
   }
 

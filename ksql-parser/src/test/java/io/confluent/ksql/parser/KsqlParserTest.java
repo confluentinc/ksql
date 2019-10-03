@@ -77,6 +77,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WithinExpression;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -159,7 +160,8 @@ public class KsqlParserTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ORDERTIME"), ORDERS_SCHEMA.findValueColumn("ORDERTIME").get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME")),
+            ORDERS_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))).get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders
     );
@@ -178,7 +180,8 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ITEMID"), ORDERS_SCHEMA.findValueColumn("ITEMID").get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID")),
+            ORDERS_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ITEMID"))).get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

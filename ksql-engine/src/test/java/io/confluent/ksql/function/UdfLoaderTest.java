@@ -156,7 +156,7 @@ public class UdfLoaderTest {
         .getFunction(ImmutableList.of(schema));
 
     // Then:
-    assertThat(fun.getFunctionName(), equalToIgnoringCase("floor"));
+    assertThat(fun.getFunctionName().name(), equalToIgnoringCase("floor"));
   }
 
   @Test
@@ -248,7 +248,7 @@ public class UdfLoaderTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Return type DECIMAL(2, 1) of UDF ReturnIncompatible does not "
+    expectedException.expectMessage(is("Return type DECIMAL(2, 1) of UDF RETURNINCOMPATIBLE does not "
                                            + "match the declared return type STRING."));
 
     // When:
@@ -457,7 +457,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(udfFactory, not(nullValue()));
     final KsqlFunction function = udfFactory.getFunction(args);
-    assertThat(function.getFunctionName(), equalToIgnoringCase("somefunction"));
+    assertThat(function.getFunctionName().name(), equalToIgnoringCase("somefunction"));
 
   }
 

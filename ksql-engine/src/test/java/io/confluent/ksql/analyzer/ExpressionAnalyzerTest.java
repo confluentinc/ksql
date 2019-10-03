@@ -98,7 +98,7 @@ public class ExpressionAnalyzerTest {
         ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnName.of("qualified")))
+    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("qualified"))))
         .thenReturn(ImmutableSet.of("multiple", "sources", "fully").stream().map(SourceName::of).collect(Collectors.toSet()));
 
     // When:
@@ -114,7 +114,7 @@ public class ExpressionAnalyzerTest {
         ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnName.of("qualified")))
+    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("qualified"))))
         .thenReturn(ImmutableSet.of("not-fully", "also-not-fully").stream().map(SourceName::of).collect(Collectors.toSet()));
 
     // Then:
@@ -130,10 +130,10 @@ public class ExpressionAnalyzerTest {
   public void shouldThrowOnMultipleSourcesIfNotFullyQualified() {
     // Given:
     final Expression expression = new ColumnReferenceExp(
-        ColumnRef.of("just-name")
+        ColumnRef.withoutSource(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnName.of("just-name")))
+    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("just-name"))))
         .thenReturn(ImmutableSet.of("multiple", "sources").stream().map(SourceName::of).collect(Collectors.toSet()));
 
     // Then:
@@ -149,10 +149,10 @@ public class ExpressionAnalyzerTest {
   public void shouldThrowOnNoSources() {
     // Given:
     final Expression expression = new ColumnReferenceExp(
-        ColumnRef.of("just-name")
+        ColumnRef.withoutSource(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnName.of("just-name")))
+    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("just-name"))))
         .thenReturn(ImmutableSet.of());
 
     // Then:

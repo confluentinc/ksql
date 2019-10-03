@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -83,8 +84,8 @@ public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFun
     return this.arguments.equals(argTypeList);
   }
 
-  public String getFunctionName() {
-    return functionName;
+  public FunctionName getFunctionName() {
+    return FunctionName.of(functionName);
   }
 
   public Supplier<A> getInitialValueSupplier() {

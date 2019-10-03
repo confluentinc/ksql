@@ -166,7 +166,9 @@ public class SchemaKGroupedTableTest {
         buildSourceTableStep(IN_SCHEMA),
         keyFormat,
         keySerde,
-        KeyField.of(IN_SCHEMA.value().get(0).name(), IN_SCHEMA.value().get(0)),
+        KeyField.of(
+            IN_SCHEMA.value().get(0).ref(),
+            IN_SCHEMA.value().get(0)),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry,
@@ -248,7 +250,7 @@ public class SchemaKGroupedTableTest {
   private static FunctionCall udaf(final String name) {
     return new FunctionCall(
         FunctionName.of(name),
-        ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("IN1")))
+        ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("IN1"))))
     );
   }
 }

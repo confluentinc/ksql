@@ -51,6 +51,8 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -90,6 +92,7 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -101,21 +104,28 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
-  private static final String TIMESTAMP_FIELD = "timestamp";
+  private static final ColumnName TIMESTAMP_FIELD = ColumnName.of("timestamp");
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
 
   private final KsqlConfig realConfig = new KsqlConfig(Collections.emptyMap());
   private SchemaKStream realStream;
   private StreamsBuilder realBuilder;
+
+  private static final ColumnName FIELD1 = ColumnName.of("field1");
+  private static final ColumnName FIELD2 = ColumnName.of("field2");
+  private static final ColumnName FIELD3 = ColumnName.of("field3");
+
   private static final LogicalSchema REAL_SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of(TIMESTAMP_FIELD), SqlTypes.BIGINT)
+      .valueColumn(FIELD1, SqlTypes.STRING)
+      .valueColumn(FIELD2, SqlTypes.STRING)
+      .valueColumn(FIELD3, SqlTypes.STRING)
+      .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
   private static final KeyField KEY_FIELD
-      = KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get());
+      = KeyField.of(
+          ColumnRef.withoutSource(ColumnName.of("field1")),
+      REAL_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("field1"))).get());
   private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
 
   private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
@@ -126,8 +136,10 @@ public class DataSourceNodeTest {
       SourceName.of("datasource"),
       REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of(ColumnName.of("key"), REAL_SCHEMA.findValueColumn("key").get()),
-      new LongColumnTimestampExtractionPolicy("timestamp"),
+      KeyField.of(
+          ColumnRef.withoutSource(ColumnName.of("key")),
+          REAL_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
+      new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
       new KsqlTopic(
           "topic",
           KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
@@ -209,7 +221,7 @@ public class DataSourceNodeTest {
     when(ksqlTopic.getKafkaTopicName()).thenReturn("topic");
     when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
     when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
-    when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
+    when(timestampExtractionPolicy.timestampField()).thenReturn(ColumnRef.withoutSource(TIMESTAMP_FIELD));
     when(timestampExtractionPolicy.create(anyInt())).thenReturn(timestampExtractor);
     when(kStream.transformValues(any(ValueTransformerSupplier.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapperWithKey.class))).thenReturn(kStream);
@@ -296,8 +308,10 @@ public class DataSourceNodeTest {
         SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get()),
-        new LongColumnTimestampExtractionPolicy("timestamp"),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("field1")),
+            REAL_SCHEMA.findValueColumn( ColumnRef.withoutSource(FIELD1)).get()),
+        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(TIMESTAMP_FIELD)),
         new KsqlTopic(
             "topic2",
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
@@ -321,8 +335,9 @@ public class DataSourceNodeTest {
         SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get()),
-        new LongColumnTimestampExtractionPolicy("timestamp"),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1")),
+            REAL_SCHEMA.findValueColumn( ColumnRef.withoutSource(FIELD1)).get()),
+        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(TIMESTAMP_FIELD)),
         new KsqlTopic(
             "topic2",
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
@@ -383,7 +398,7 @@ public class DataSourceNodeTest {
             .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
             .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
-            .valueColumn(ColumnName.of(TIMESTAMP_FIELD), SqlTypes.BIGINT)
+            .valueColumn(TIMESTAMP_FIELD, SqlTypes.BIGINT)
             .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
             .build().withAlias(sourceName)));
   }
@@ -448,7 +463,7 @@ public class DataSourceNodeTest {
   public void shouldBuildSourceStreamWithCorrectTimestampIndex() {
     // Given:
     reset(timestampExtractionPolicy);
-    when(timestampExtractionPolicy.timestampField()).thenReturn("field2");
+    when(timestampExtractionPolicy.timestampField()).thenReturn(ColumnRef.withoutSource(FIELD2));
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
@@ -458,11 +473,13 @@ public class DataSourceNodeTest {
     verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any());
   }
 
+  // should this even be possible? if you are using a timestamp extractor then shouldn't the name
+  // should be unqualified
   @Test
   public void shouldBuildSourceStreamWithCorrectTimestampIndexForQualifiedFieldName() {
     // Given:
     reset(timestampExtractionPolicy);
-    when(timestampExtractionPolicy.timestampField()).thenReturn("name.field2");
+    when(timestampExtractionPolicy.timestampField()).thenReturn(ColumnRef.of(SourceName.of("name"), ColumnName.of("field2")));
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
@@ -573,7 +590,9 @@ public class DataSourceNodeTest {
     when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
     when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
     when(dataSource.getKeyField())
-        .thenReturn(KeyField.of(ColumnName.of("field1"), REAL_SCHEMA.findValueColumn("field1").get()));
+        .thenReturn(KeyField.of(
+            ColumnRef.withoutSource(FIELD1),
+            REAL_SCHEMA.findValueColumn(ColumnRef.withoutSource(FIELD1)).get()));
 
     return new DataSourceNode(
         realNodeId,

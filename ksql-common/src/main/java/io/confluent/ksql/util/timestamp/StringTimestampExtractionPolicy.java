@@ -15,22 +15,20 @@
 
 package io.confluent.ksql.util.timestamp;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Objects;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
 
-  private final String timestampField;
+  private final ColumnRef timestampField;
   private final String format;
 
-  @JsonCreator
   public StringTimestampExtractionPolicy(
-      @JsonProperty("timestampField") final String timestampField,
-      @JsonProperty("format") final String format) {
+      final ColumnRef timestampField,
+      final String format) {
     Objects.requireNonNull(timestampField, "timestampField can't be null");
     Objects.requireNonNull(format, "format can't be null");
     this.timestampField = timestampField;
@@ -43,7 +41,7 @@ public class StringTimestampExtractionPolicy implements TimestampExtractionPolic
   }
 
   @Override
-  public String timestampField() {
+  public ColumnRef timestampField() {
     return timestampField;
   }
 

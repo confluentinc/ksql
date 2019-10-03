@@ -62,8 +62,8 @@ public class SelectValueMapperFactoryTest {
   public void setUp() {
     factory = new SelectValueMapperFactory(codeGenerator);
 
-    when(select_0.getName()).thenReturn(ColumnName.of("field_0"));
-    when(select_1.getName()).thenReturn(ColumnName.of("field_1"));
+    when(select_0.getAlias()).thenReturn(ColumnName.of("field_0"));
+    when(select_1.getAlias()).thenReturn(ColumnName.of("field_1"));
     when(select_1.getExpression()).thenReturn(exp_1);
     when(select_0.getExpression()).thenReturn(exp_0);
     when(select_1.getExpression()).thenReturn(exp_1);

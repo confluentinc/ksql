@@ -37,6 +37,7 @@ import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -68,7 +69,7 @@ public class StreamSelectKeyBuilderTest {
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
-  private static final ColumnName KEY = ColumnName.of("ATL.BOI");
+  private static final ColumnRef KEY = ColumnRef.of(SourceName.of("ATL"), ColumnName.of("BOI"));
 
   @Mock
   private KStream<Struct, GenericRow> kstream;

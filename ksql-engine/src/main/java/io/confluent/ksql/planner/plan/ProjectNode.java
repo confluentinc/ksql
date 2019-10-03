@@ -21,8 +21,8 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -43,7 +43,7 @@ public class ProjectNode extends PlanNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyFieldName,
+      final Optional<ColumnRef> keyFieldName,
       final List<SelectExpression> projectExpressions
   ) {
     super(id, source.getNodeOutputType());
@@ -113,7 +113,7 @@ public class ProjectNode extends PlanNode {
       final Column column = schema.value().get(i);
       final SelectExpression selectExpression = projectExpressions.get(i);
 
-      if (!column.name().equals(selectExpression.getName())) {
+      if (!column.name().equals(selectExpression.getAlias())) {
         throw new IllegalArgumentException("Mismatch between schema and selects");
       }
     }

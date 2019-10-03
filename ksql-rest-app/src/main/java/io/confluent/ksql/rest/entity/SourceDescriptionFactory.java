@@ -43,9 +43,10 @@ public final class SourceDescriptionFactory {
         writeQueries,
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema(), false),
         dataSource.getDataSourceType().getKsqlType(),
-        dataSource.getKeyField().name().map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
+        dataSource.getKeyField().ref().map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
-            .map(TimestampExtractionPolicy::timestampField).orElse(""),
+            .map(TimestampExtractionPolicy::timestampField)
+            .map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         (extended
             ? MetricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), false) : ""),

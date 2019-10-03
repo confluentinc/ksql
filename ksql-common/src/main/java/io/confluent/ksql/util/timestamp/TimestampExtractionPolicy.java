@@ -16,6 +16,7 @@
 package io.confluent.ksql.util.timestamp;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
@@ -23,7 +24,7 @@ public interface TimestampExtractionPolicy {
 
   TimestampExtractor create(int columnIndex);
 
-  default String timestampField() {
+  default ColumnRef timestampField() {
     return null;
   }
 }

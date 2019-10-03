@@ -132,7 +132,7 @@ public class SchemaKTableTest {
   private final Grouped grouped = Grouped.with(
       "group", Serdes.String(), Serdes.String());
   private final KeyField validKeyField = KeyField.of(
-      Optional.of(ColumnName.of("left.COL1")),
+      Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL1"))),
       metaStore.getSource(SourceName.of("TEST2"))
           .getKeyField()
           .legacy()
@@ -251,10 +251,10 @@ public class SchemaKTableTest {
   private SchemaKTable buildSchemaKTable(final KsqlTable ksqlTable, final KTable kTable) {
     final LogicalSchema schema = ksqlTable.getSchema().withAlias(ksqlTable.getName());
 
-    final Optional<String> newKeyName = ksqlTable.getKeyField().name()
-        .map(name -> SchemaUtil.buildAliasedFieldName(ksqlTable.getName().name(), name.name()));
+    final Optional<ColumnRef> newKeyName = ksqlTable.getKeyField().ref()
+        .map(ref -> ref.withSource(ksqlTable.getName()));
 
-    final KeyField keyFieldWithAlias = KeyField.of(newKeyName.map(ColumnName::of), ksqlTable.getKeyField().legacy());
+    final KeyField keyFieldWithAlias = KeyField.of(newKeyName, ksqlTable.getKeyField().legacy());
 
     return buildSchemaKTable(
         schema,
@@ -464,9 +464,9 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
-    assertThat(groupedSchemaKTable.getKeyField().name(), is(Optional.empty()));
-    assertThat(groupedSchemaKTable.getKeyField().legacy().map(LegacyField::name),
-        is(Optional.of(ColumnName.of("TEST2.COL2|+|TEST2.COL1"))));
+    assertThat(groupedSchemaKTable.getKeyField().ref(), is(Optional.empty()));
+    assertThat(groupedSchemaKTable.getKeyField().legacy().map(LegacyField::columnRef),
+        is(Optional.of(ColumnRef.withoutSource(ColumnName.withoutValidation("TEST2.COL2|+|TEST2.COL1")))));
   }
 
   @Test
@@ -705,7 +705,9 @@ public class SchemaKTableTest {
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("NEWKEY"), Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
+        is(KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("NEWKEY")),
+            Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -720,7 +722,9 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("NEWKEY"), Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
+        is(KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("NEWKEY")),
+            Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -735,7 +739,9 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("NEWKEY"), Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
+        is(KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("NEWKEY")),
+            Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -750,7 +756,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
-    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKTable.keyField.legacy().map(lf -> lf.name().name())));
+    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKTable.keyField.legacy().map(lf -> lf.columnRef().aliasedFieldName())));
     assertThat(result.getKeyField(), hasLegacyType(initialSchemaKTable.keyField.legacy().map(LegacyField::type)));
   }
 
@@ -767,7 +773,8 @@ public class SchemaKTableTest {
     // Then:
     assertThat(result.getKeyField(),
         Matchers.equalTo(KeyField.of(
-            ColumnName.of("COL0"), Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT))));
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT))));
   }
 
   @Test
@@ -810,7 +817,8 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnName.of("TEST2.COL1"), LegacyField.notInSchema(ColumnName.of("TEST2.COL1"), SqlTypes.STRING))));
+        is(KeyField.of(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")),
+            LegacyField.notInSchema(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")), SqlTypes.STRING))));
   }
 
   private static LogicalSchema getJoinSchema(

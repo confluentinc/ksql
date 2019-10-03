@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.name.FunctionName;
 import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.connect.data.Schema;
@@ -50,7 +51,7 @@ public class UdfFactoryTest {
         ignored -> Schema.OPTIONAL_STRING_SCHEMA,
         Schema.OPTIONAL_STRING_SCHEMA,
         Collections.<Schema>emptyList(),
-        "TestFunc",
+        FunctionName.of("TestFunc"),
         TestFunc.class,
         ksqlConfig -> null,
         "",

@@ -13,23 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.codegen;
+package io.confluent.ksql.test.utils;
 
-import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 
-public final class CodeGenUtil {
+public final class TestParsingUtil {
 
-  private static final String PARAM_NAME_PREFIX = "var";
-
-  private CodeGenUtil() {
+  private TestParsingUtil() {
   }
 
-  public static String paramName(final int index) {
-    return PARAM_NAME_PREFIX + index;
-  }
+  public static ColumnRef parseColumnRef(final String columnString) {
+    final String[] split = columnString.split("\\.", 2);
+    if (split.length == 1) {
+      return ColumnRef.withoutSource(ColumnName.of(split[0]));
+    }
 
-  public static String functionName(final FunctionName fun, final int index) {
-    return fun.name() + "_" + index;
+    return ColumnRef.of(
+        SourceName.of(split[0]),
+        ColumnName.of(split[1])
+    );
   }
 
 }

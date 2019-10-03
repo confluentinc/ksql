@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
@@ -125,17 +126,22 @@ class ExpressionAnalyzer {
     }
 
     private void throwOnUnknownField(final ColumnRef name) {
-      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(name.name());
+      // check all sources
+      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(
+          ColumnRef.withoutSource(name.name())
+      );
+
       if (sourcesWithField.isEmpty()) {
         if (allowWindowMetaFields && name.name().equals(SchemaUtil.WINDOWSTART_NAME)) {
           return;
         }
 
-        throw new KsqlException("Field '" + name + "' cannot be resolved.");
+        throw new KsqlException("Field '" + name.toString(FormatOptions.noEscape())
+            + "' cannot be resolved.");
       }
 
-      if (name.qualifier().isPresent()) {
-        final SourceName qualifier = name.qualifier().get();
+      if (name.source().isPresent()) {
+        final SourceName qualifier = name.source().get();
         if (!sourcesWithField.contains(qualifier)) {
           throw new KsqlException("Source '" + qualifier.name() + "', "
               + "used in '" + name.aliasedFieldName() + "' cannot be resolved.");

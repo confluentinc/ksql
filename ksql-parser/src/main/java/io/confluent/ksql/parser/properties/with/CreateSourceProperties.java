@@ -23,6 +23,7 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.DurationParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Delimiter;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
@@ -111,8 +112,8 @@ public final class CreateSourceProperties {
     }
   }
 
-  public Optional<String> getTimestampColumnName() {
-    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY));
+  public Optional<ColumnRef> getTimestampColumnName() {
+    return props.getTimestampColumn();
   }
 
   public Optional<String> getTimestampFormat() {

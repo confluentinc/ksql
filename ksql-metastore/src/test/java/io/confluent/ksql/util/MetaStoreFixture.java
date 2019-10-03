@@ -24,6 +24,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -76,7 +77,8 @@ public final class MetaStoreFixture {
         SourceName.of("TEST0"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("COL0"), test1Schema.findValueColumn("COL0").get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")), test1Schema.findValueColumn(
+            ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic0
     );
@@ -95,7 +97,9 @@ public final class MetaStoreFixture {
         SourceName.of("TEST1"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("COL0"), test1Schema.findValueColumn("COL0").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            test1Schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic1
     );
@@ -121,7 +125,9 @@ public final class MetaStoreFixture {
         SourceName.of("TEST2"),
         test2Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("COL0"), test2Schema.findValueColumn("COL0").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            test2Schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic2
     );
@@ -170,7 +176,8 @@ public final class MetaStoreFixture {
         SourceName.of("ORDERS"),
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("ORDERTIME"), ordersSchema.findValueColumn("ORDERTIME").get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME")),
+            ordersSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))).get()),
         timestampExtractionPolicy,
         ksqlTopicOrders
     );
@@ -196,7 +203,9 @@ public final class MetaStoreFixture {
         SourceName.of("TEST3"),
         testTable3,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("COL0"), testTable3.findValueColumn("COL0").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            testTable3.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic3
     );

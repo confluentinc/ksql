@@ -19,6 +19,7 @@ import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -66,7 +67,7 @@ public class RowGenerator {
     this.key = Objects.requireNonNull(key, "key");
     this.ksqlSchema = buildLogicalSchema(generator, avroData);
 
-    if (!ksqlSchema.findValueColumn(key).isPresent()) {
+    if (!ksqlSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(key))).isPresent()) {
       throw new IllegalArgumentException("key field does not exist in schema: " + key);
     }
   }

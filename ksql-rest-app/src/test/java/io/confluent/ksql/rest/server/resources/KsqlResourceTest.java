@@ -2074,7 +2074,7 @@ public class KsqlResourceTest {
               schema,
               SerdeOption.none(),
               KeyField
-                  .of(schema.value().get(0).name(), schema.value().get(0)),
+                  .of(schema.value().get(0).ref(), schema.value().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));
@@ -2087,7 +2087,7 @@ public class KsqlResourceTest {
               schema,
               SerdeOption.none(),
               KeyField
-                  .of(schema.value().get(0).name(), schema.value().get(0)),
+                  .of(schema.value().get(0).ref(), schema.value().get(0)),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));

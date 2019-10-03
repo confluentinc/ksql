@@ -15,51 +15,54 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
-import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public class ExpressionMetadata {
 
   private final IExpressionEvaluator expressionEvaluator;
-  private final List<Integer> indexes;
-  private final List<Kudf> udfs;
   private final SqlType expressionType;
   private final GenericRowValueTypeEnforcer typeEnforcer;
   private final ThreadLocal<Object[]> threadLocalParameters;
   private final Expression expression;
+  private final CodeGenSpec spec;
 
   public ExpressionMetadata(
       final IExpressionEvaluator expressionEvaluator,
-      final List<Integer> indexes,
-      final List<Kudf> udfs,
+      final CodeGenSpec spec,
       final SqlType expressionType,
       final GenericRowValueTypeEnforcer typeEnforcer,
       final Expression expression
   ) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
-    this.indexes = Collections.unmodifiableList(Objects.requireNonNull(indexes, "indexes"));
-    this.udfs = Collections.unmodifiableList(Objects.requireNonNull(udfs, "udfs"));
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
     this.typeEnforcer = Objects.requireNonNull(typeEnforcer, "typeEnforcer");
     this.expression = Objects.requireNonNull(expression, "expression");
-    this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[indexes.size()]);
+    this.spec = Objects.requireNonNull(spec, "spec");
+    this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[spec.arguments().size()]);
   }
 
+  @VisibleForTesting
   public List<Integer> getIndexes() {
-    return indexes;
+    return spec.arguments()
+        .stream()
+        .map(ArgumentSpec::colIndex)
+        .map(idx -> idx.orElse(-1))
+        .collect(Collectors.toList());
   }
 
-  public List<Kudf> getUdfs() {
-    return udfs;
+  public List<ArgumentSpec> arguments() {
+    return spec.arguments();
   }
 
   public SqlType getExpressionType() {
@@ -80,15 +83,7 @@ public class ExpressionMetadata {
 
   private Object[] getParameters(final GenericRow row) {
     final Object[] parameters = this.threadLocalParameters.get();
-    for (int idx = 0; idx < indexes.size(); idx++) {
-      final int paramIndex = indexes.get(idx);
-      if (paramIndex < 0) {
-        parameters[idx] = udfs.get(idx);
-      } else {
-        parameters[idx] = typeEnforcer
-            .enforceColumnType(paramIndex, row.getColumns().get(paramIndex));
-      }
-    }
+    spec.resolve(row, typeEnforcer, parameters);
     return parameters;
   }
 }

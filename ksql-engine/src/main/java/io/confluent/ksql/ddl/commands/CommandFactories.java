@@ -41,6 +41,8 @@ import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.RegisterType;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
@@ -251,14 +253,14 @@ public class CommandFactories implements DdlCommandFactory {
       final LogicalSchema schema) {
     if (statement.getProperties().getKeyField().isPresent()) {
       final String name = statement.getProperties().getKeyField().get().toUpperCase();
-      final String cleanName = StringUtil.cleanQuotes(name);
-      schema.findValueColumn(cleanName).orElseThrow(
+      final ColumnName columnName = ColumnName.of(StringUtil.cleanQuotes(name));
+      schema.findValueColumn(ColumnRef.withoutSource(columnName)).orElseThrow(
           () -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
-                  + cleanName + "'"
+                  + columnName.toString(FormatOptions.noEscape()) + "'"
           )
       );
-      return Optional.of(ColumnName.of(cleanName));
+      return Optional.of(columnName);
     } else {
       return Optional.empty();
     }
@@ -313,7 +315,7 @@ public class CommandFactories implements DdlCommandFactory {
       final CreateSourceProperties properties,
       final LogicalSchema schema
   ) {
-    final Optional<String> timestampName = properties.getTimestampColumnName();
+    final Optional<ColumnRef> timestampName = properties.getTimestampColumnName();
     final Optional<String> timestampFormat = properties.getTimestampFormat();
     return TimestampExtractionPolicyFactory
         .create(ksqlConfig, schema, timestampName, timestampFormat);

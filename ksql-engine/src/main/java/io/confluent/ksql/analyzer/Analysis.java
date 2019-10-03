@@ -61,7 +61,7 @@ public class Analysis {
   private final Set<ColumnRef> selectColumnRefs = new HashSet<>();
   private final List<Expression> groupByExpressions = new ArrayList<>();
   private Optional<WindowExpression> windowExpression = Optional.empty();
-  private Optional<ColumnName> partitionBy = Optional.empty();
+  private Optional<ColumnRef> partitionBy = Optional.empty();
   private ImmutableSet<SerdeOption> serdeOptions = ImmutableSet.of();
   private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
@@ -131,11 +131,11 @@ public class Analysis {
     this.havingExpression = Optional.of(havingExpression);
   }
 
-  public Optional<ColumnName> getPartitionBy() {
+  public Optional<ColumnRef> getPartitionBy() {
     return partitionBy;
   }
 
-  void setPartitionBy(final ColumnName partitionBy) {
+  void setPartitionBy(final ColumnRef partitionBy) {
     this.partitionBy = Optional.of(partitionBy);
   }
 
@@ -270,14 +270,14 @@ public class Analysis {
   @Immutable
   public static final class JoinInfo {
 
-    private final ColumnName leftJoinField;
-    private final ColumnName rightJoinField;
+    private final ColumnRef leftJoinField;
+    private final ColumnRef rightJoinField;
     private final JoinNode.JoinType type;
     private final Optional<WithinExpression> withinExpression;
 
     JoinInfo(
-        final ColumnName leftJoinField,
-        final ColumnName rightJoinField,
+        final ColumnRef leftJoinField,
+        final ColumnRef rightJoinField,
         final JoinType type,
         final Optional<WithinExpression> withinExpression
 
@@ -288,11 +288,11 @@ public class Analysis {
       this.withinExpression = requireNonNull(withinExpression, "withinExpression");
     }
 
-    public ColumnName getLeftJoinField() {
+    public ColumnRef getLeftJoinField() {
       return leftJoinField;
     }
 
-    public ColumnName getRightJoinField() {
+    public ColumnRef getRightJoinField() {
       return rightJoinField;
     }
 

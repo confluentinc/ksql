@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
@@ -73,7 +74,7 @@ public class InternalFunctionRegistryTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final KsqlFunction func = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
       Collections.emptyList(),
-      "func",
+      FunctionName.of("func"),
       Func1.class);
 
   @Rule
@@ -243,8 +244,8 @@ public class InternalFunctionRegistryTest {
               }
 
               @Override
-              public String getFunctionName() {
-                return "my_aggregate";
+              public FunctionName getFunctionName() {
+                return FunctionName.of("my_aggregate");
               }
 
               @Override
@@ -323,7 +324,7 @@ public class InternalFunctionRegistryTest {
     givenUdfFactoryRegistered();
     functionRegistry.addFunction(func);
     final KsqlFunction func2 = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class);
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), FunctionName.of("func"), Func1.class);
 
     // When:
     functionRegistry.addFunction(func2);

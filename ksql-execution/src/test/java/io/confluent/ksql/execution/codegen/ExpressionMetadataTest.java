@@ -15,6 +15,9 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.lang.reflect.InvocationTargetException;
@@ -35,7 +38,6 @@ public class ExpressionMetadataTest {
 
   @Mock
   private IExpressionEvaluator expressionEvaluator;
-  private List<Kudf> udfs;
   @Mock
   private Kudf udf;
   private final SqlType expressionType = SqlTypes.BIGINT;
@@ -51,6 +53,7 @@ public class ExpressionMetadataTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
+  private CodeGenSpec spec;
 
   @Before
   public void setup() throws InvocationTargetException {
@@ -58,16 +61,28 @@ public class ExpressionMetadataTest {
         .thenReturn(parameter1)
         .thenReturn(parameter2);
     when(expressionEvaluator.evaluate(any())).thenReturn(RETURN_VALUE);
-    udfs = ImmutableList.of(udf);
+    spec = new CodeGenSpec();
+
+
+
   }
 
   @Test
   public void shouldEvaluateExpressionWithNoUdfsCorrectly() throws InvocationTargetException {
     // Given:
+    spec.addParameter(
+        ColumnRef.withoutSource(ColumnName.of("foo1")),
+        Integer.class,
+        0
+    );
+    spec.addParameter(
+        ColumnRef.withoutSource(ColumnName.of("foo2")),
+        Integer.class,
+        1
+    );
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
-        ImmutableList.of(1, 0),
-        Collections.emptyList(),
+        spec,
         expressionType,
         typeEnforcer,
         expression
@@ -86,10 +101,19 @@ public class ExpressionMetadataTest {
   @Test
   public void shouldEvaluateExpressionWithUdfsCorrectly() throws InvocationTargetException {
     // Given:
+    spec.addFunction(
+        FunctionName.of("foo"),
+        udf
+    );
+    spec.addParameter(
+        ColumnRef.withoutSource(ColumnName.of("foo1")),
+        Integer.class,
+        0
+    );
+
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
-        ImmutableList.of(-1, 0),
-        udfs,
+        spec,
         expressionType,
         typeEnforcer,
         expression
@@ -108,6 +132,17 @@ public class ExpressionMetadataTest {
   public void shouldPerformThreadSafeParameterEvaluation()
       throws InterruptedException, InvocationTargetException {
     // Given:
+    spec.addParameter(
+        ColumnRef.withoutSource(ColumnName.of("foo1")),
+        Integer.class,
+        0
+    );
+    spec.addParameter(
+        ColumnRef.withoutSource(ColumnName.of("foo2")),
+        Integer.class,
+        1
+    );
+
     final CountDownLatch threadLatch = new CountDownLatch(1);
     final CountDownLatch mainLatch = new CountDownLatch(1);
     final Object thread1Param1 = 1;
@@ -130,8 +165,7 @@ public class ExpressionMetadataTest {
         .thenReturn(thread2Param2);
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
-        ImmutableList.of(0, 1),
-        Collections.emptyList(),
+        spec,
         expressionType,
         typeEnforcer,
         expression

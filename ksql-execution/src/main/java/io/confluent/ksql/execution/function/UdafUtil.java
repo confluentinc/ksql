@@ -15,15 +15,19 @@
 
 package io.confluent.ksql.execution.function;
 
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.OptionalInt;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
@@ -41,19 +45,33 @@ public final class UdafUtil {
       final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
       final List<Expression> functionArgs = functionCall.getArguments();
-      final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
+      final Schema argumentType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
       final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry.getAggregate(
           functionCall.getName().name(),
-          expressionType
+          argumentType
       );
 
-      final List<String> args = functionArgs.stream()
+      // UDAFs only support one non-constant argument, and that argument must be a column reference
+      final Expression arg = functionArgs.get(0);
+      final OptionalInt udafIndex;
+      if (arg instanceof ColumnReferenceExp) {
+        udafIndex = schema.valueColumnIndex(((ColumnReferenceExp) arg).getReference());
+      } else {
+        // assume that it is a column reference with no alias
+        udafIndex = schema.valueColumnIndex(ColumnRef.withoutSource(ColumnName.of(arg.toString())));
+      }
+
+      // args from index 1+ are all constants, such as in TopkKudaf
+      final List<String> args = functionArgs
+          .stream()
           .map(Expression::toString)
           .collect(Collectors.toList());
 
-      final int udafIndex = schema.valueColumnIndex(args.get(0)).getAsInt();
-
-      return aggregateFunctionInfo.getInstance(new AggregateFunctionArguments(udafIndex, args));
+      return aggregateFunctionInfo.getInstance(
+          new AggregateFunctionArguments(
+              udafIndex.orElseThrow(
+                  () -> new KsqlException("Could not find column for expression: " + arg)),
+              args));
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }

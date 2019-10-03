@@ -206,7 +206,7 @@ public class QueryAnalyzerFunctionalTest {
     // Then:
     assertThat(aggregateAnalysis.getNonAggregateSelectExpressions().get(ITEM_ID), contains(ITEM_ID));
     assertThat(aggregateAnalysis.getFinalSelectExpressions(), equalTo(Arrays.asList(ITEM_ID, new ColumnReferenceExp(
-        ColumnRef.of("KSQL_AGG_VARIABLE_0")))));
+        ColumnRef.withoutSource(ColumnName.of("KSQL_AGG_VARIABLE_0"))))));
     assertThat(aggregateAnalysis.getAggregateFunctionArguments(), equalTo(Collections.singletonList(ORDER_UNITS)));
     assertThat(aggregateAnalysis.getRequiredColumns(), containsInAnyOrder(ITEM_ID, ORDER_UNITS));
   }
@@ -350,7 +350,7 @@ public class QueryAnalyzerFunctionalTest {
     final Expression havingExpression = aggregateAnalysis.getHavingExpression();
     assertThat(havingExpression, equalTo(new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
-        new ColumnReferenceExp(ColumnRef.of("KSQL_AGG_VARIABLE_1")),
+        new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("KSQL_AGG_VARIABLE_1"))),
         new IntegerLiteral(10))));
   }
 

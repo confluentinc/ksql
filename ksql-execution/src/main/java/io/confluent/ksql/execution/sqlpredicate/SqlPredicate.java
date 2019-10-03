@@ -17,37 +17,30 @@ package io.confluent.ksql.execution.sqlpredicate;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.CodeGenUtil;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
+import io.confluent.ksql.execution.codegen.CodeGenSpec;
+import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import java.util.List;
-import java.util.Set;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public final class SqlPredicate {
   private final Expression filterExpression;
-  private final LogicalSchema schema;
   private final IExpressionEvaluator ee;
-  private final int[] columnIndexes;
-  private final KsqlConfig ksqlConfig;
-  private final FunctionRegistry functionRegistry;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private final ProcessingLogger processingLogger;
+  private final CodeGenSpec spec;
 
   public SqlPredicate(
       final Expression filterExpression,
@@ -57,42 +50,23 @@ public final class SqlPredicate {
       final ProcessingLogger processingLogger
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
-    this.schema = requireNonNull(schema, "schema");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
-    this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
-    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.processingLogger = requireNonNull(processingLogger);
 
     final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
-    final Set<CodeGenRunner.ParameterType> parameters
-        = codeGenRunner.getParameterInfo(this.filterExpression);
-
-    final String[] parameterNames = new String[parameters.size()];
-    final Class[] parameterTypes = new Class[parameters.size()];
-    columnIndexes = new int[parameters.size()];
-    int index = 0;
-
-    final Builder<String, String> fieldToParamName = ImmutableMap.<String, String>builder();
-    for (final CodeGenRunner.ParameterType param : parameters) {
-      final String paramName = CodeGenUtil.paramName(index);
-      fieldToParamName.put(param.getFieldName(), paramName);
-      parameterNames[index] = paramName;
-      parameterTypes[index] = param.getType();
-      columnIndexes[index] = schema.valueColumnIndex(param.getFieldName()).orElse(-1);
-      index++;
-    }
+    spec = codeGenRunner.getCodeGenSpec(this.filterExpression);
 
     try {
       ee = CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
       ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
-      ee.setParameters(parameterNames, parameterTypes);
+      ee.setParameters(spec.argumentNames(), spec.argumentTypes());
 
       ee.setExpressionType(boolean.class);
 
       final String expressionStr = new SqlToJavaVisitor(
           schema,
           functionRegistry,
-          fieldToParamName.build()::get
+          spec
       ).process(this.filterExpression);
 
       ee.cook(expressionStr);
@@ -107,36 +81,20 @@ public final class SqlPredicate {
   }
 
   public <K> Predicate<K, GenericRow> getPredicate() {
-    final ExpressionMetadata expressionEvaluator = createExpressionMetadata();
-
     return (key, row) -> {
       if (row == null) {
         return false;
       }
+
       try {
-        final List<Kudf> kudfs = expressionEvaluator.getUdfs();
-        final Object[] values = new Object[columnIndexes.length];
-        for (int i = 0; i < values.length; i++) {
-          if (columnIndexes[i] < 0) {
-            values[i] = kudfs.get(i);
-          } else {
-            values[i] = genericRowValueTypeEnforcer.enforceColumnType(
-                columnIndexes[i],
-                row.getColumns().get(columnIndexes[i])
-            );
-          }
-        }
+        final Object[] values = new Object[spec.arguments().size()];
+        spec.resolve(row, genericRowValueTypeEnforcer, values);
         return (Boolean) ee.evaluate(values);
       } catch (final Exception e) {
         logProcessingError(e, row);
       }
       return false;
     };
-  }
-
-  private ExpressionMetadata createExpressionMetadata() {
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
-    return codeGenRunner.buildCodeGenFromParseTree(filterExpression, "filter");
   }
 
   private void logProcessingError(final Exception e, final GenericRow row) {
@@ -157,13 +115,15 @@ public final class SqlPredicate {
     return filterExpression;
   }
 
-  // visible for testing
+  @VisibleForTesting
   int[] getColumnIndexes() {
     // As this is only used for testing it is ok to do the array copy.
     // We need to revisit the tests for this class and remove this.
-    final int[] result = new int[columnIndexes.length];
-    System.arraycopy(columnIndexes, 0, result, 0, columnIndexes.length);
-    return result;
+    return spec.arguments()
+        .stream()
+        .map(ArgumentSpec::colIndex)
+        .mapToInt(idx -> idx.orElse(-1))
+        .toArray();
   }
 
 }

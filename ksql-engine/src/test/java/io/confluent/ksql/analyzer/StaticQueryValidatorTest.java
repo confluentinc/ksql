@@ -127,7 +127,7 @@ public class StaticQueryValidatorTest {
   @Test
   public void shouldThrowOnPartitionBy() {
     // Given:
-    when(analysis.getPartitionBy()).thenReturn(Optional.of(ColumnName.of("Something")));
+    when(analysis.getPartitionBy()).thenReturn(Optional.of(ColumnRef.withoutSource(ColumnName.of("Something"))));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -167,7 +167,7 @@ public class StaticQueryValidatorTest {
   public void shouldThrowOnRowTimeInProjection() {
     // Given:
     when(analysis.getSelectColumnRefs())
-        .thenReturn(ImmutableSet.of(ColumnRef.of(SchemaUtil.ROWTIME_NAME)));
+        .thenReturn(ImmutableSet.of(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)));
 
     // Then:
     expectedException.expect(KsqlException.class);

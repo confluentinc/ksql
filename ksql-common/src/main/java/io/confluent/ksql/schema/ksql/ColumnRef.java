@@ -17,7 +17,6 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -62,16 +61,8 @@ public final class ColumnRef {
   /**
    * @see #of(Optional, ColumnName)
    */
-  public static ColumnRef of(final ColumnName name) {
+  public static ColumnRef withoutSource(final ColumnName name) {
     return new ColumnRef(Optional.empty(), name);
-  }
-
-  /**
-   * @see #of(Optional, ColumnName)
-   */
-  @VisibleForTesting
-  public static ColumnRef of(final String name) {
-    return new ColumnRef(Optional.empty(), ColumnName.of(name));
   }
 
   private ColumnRef(final Optional<SourceName> qualifier, final ColumnName name) {
@@ -79,7 +70,7 @@ public final class ColumnRef {
     this.name = requireNonNull(name, "name");
   }
 
-  public Optional<SourceName> qualifier() {
+  public Optional<SourceName> source() {
     return qualifier;
   }
 

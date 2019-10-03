@@ -25,6 +25,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -39,9 +40,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -50,8 +48,11 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
@@ -115,7 +116,8 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatQualifiedNameReference() {
-    assertThat(ExpressionFormatter.formatExpression(new ColumnReferenceExp(ColumnRef.of("name"))), equalTo("name"));
+    assertThat(ExpressionFormatter.formatExpression(new ColumnReferenceExp(ColumnRef.withoutSource(
+        ColumnName.of("name")))), equalTo("name"));
   }
 
   @Test

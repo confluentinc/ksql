@@ -15,32 +15,20 @@
 
 package io.confluent.ksql.execution.codegen;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
-import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
-import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
-import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
-import io.confluent.ksql.execution.expression.tree.IsNullPredicate;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
-import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.NotExpression;
-import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
-import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
@@ -48,11 +36,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Schema;
@@ -95,12 +80,12 @@ public class CodeGenRunner {
     this.expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
   }
 
-  public Set<ParameterType> getParameterInfo(final Expression expression) {
+  public CodeGenSpec getCodeGenSpec(final Expression expression) {
     final Visitor visitor =
         new Visitor(schema, functionRegistry, expressionTypeManager, ksqlConfig);
 
     visitor.process(expression, null);
-    return visitor.parameters;
+    return visitor.spec;
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
@@ -108,35 +93,17 @@ public class CodeGenRunner {
       final String type
   ) {
     try {
-      final Set<ParameterType> parameters = getParameterInfo(expression);
-
-      final String[] parameterNames = new String[parameters.size()];
-      final Class[] parameterTypes = new Class[parameters.size()];
-      final List<Integer> columnIndexes = new ArrayList<>(parameters.size());
-      final List<Kudf> kudfObjects = new ArrayList<>(parameters.size());
-
-      final Builder<String, String> fieldToParamName = ImmutableMap.<String, String>builder();
-      int index = 0;
-      for (final ParameterType param : parameters) {
-        final String paramName = CodeGenUtil.paramName(index);
-        fieldToParamName.put(param.fieldName, paramName);
-        parameterNames[index] = paramName;
-        parameterTypes[index] = param.type;
-        columnIndexes.add(schema.valueColumnIndex(param.fieldName).orElse(-1));
-        kudfObjects.add(param.getKudf());
-        index++;
-      }
-
+      final CodeGenSpec spec = getCodeGenSpec(expression);
       final String javaCode = new SqlToJavaVisitor(
           schema,
           functionRegistry,
-          fieldToParamName.build()::get
+          spec
       ).process(expression);
 
       final IExpressionEvaluator ee =
           CompilerFactoryFactory.getDefaultCompilerFactory().newExpressionEvaluator();
       ee.setDefaultImports(SqlToJavaVisitor.JAVA_IMPORTS.toArray(new String[0]));
-      ee.setParameters(parameterNames, parameterTypes);
+      ee.setParameters(spec.argumentNames(), spec.argumentTypes());
 
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(expression);
@@ -147,8 +114,7 @@ public class CodeGenRunner {
 
       return new ExpressionMetadata(
           ee,
-          columnIndexes,
-          kudfObjects,
+          spec,
           expressionType,
           new GenericRowValueTypeEnforcer(schema),
           expression);
@@ -162,15 +128,13 @@ public class CodeGenRunner {
     }
   }
 
-  private static final class Visitor extends VisitParentExpressionVisitor<Object, Object> {
+  private static final class Visitor extends TraversalExpressionVisitor<Void> {
 
+    private final CodeGenSpec spec;
     private final LogicalSchema schema;
-    private final Set<ParameterType> parameters;
     private final FunctionRegistry functionRegistry;
     private final ExpressionTypeManager expressionTypeManager;
     private final KsqlConfig ksqlConfig;
-
-    private int functionCounter = 0;
 
     private Visitor(
         final LogicalSchema schema,
@@ -180,133 +144,53 @@ public class CodeGenRunner {
     ) {
       this.schema = Objects.requireNonNull(schema, "schema");
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-      this.parameters = new HashSet<>();
       this.functionRegistry = functionRegistry;
       this.expressionTypeManager = expressionTypeManager;
+      this.spec = new CodeGenSpec();
     }
 
     private void addParameter(final Column schemaColumn) {
-      parameters.add(new ParameterType(
+      spec.addParameter(
+          schemaColumn.ref(),
           SQL_TO_JAVA_TYPE_CONVERTER.toJavaType(schemaColumn.type()),
-          schemaColumn.fullName(),
-          ksqlConfig));
+          schema.valueColumnIndex(schemaColumn.ref())
+              .orElseThrow(() -> new KsqlException(
+                  "Expected to find column in schema, but was missing: " + schemaColumn))
+      );
     }
 
-    public Object visitLikePredicate(final LikePredicate node, final Object context) {
+    public Void visitLikePredicate(final LikePredicate node, final Void context) {
       process(node.getValue(), null);
       return null;
     }
 
     @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
-    public Object visitFunctionCall(final FunctionCall node, final Object context) {
-      final int functionNumber = functionCounter++;
+    public Void visitFunctionCall(final FunctionCall node, final Void context) {
       final List<Schema> argumentTypes = new ArrayList<>();
-      final String functionName = node.getName().name();
+      final FunctionName functionName = node.getName();
       for (final Expression argExpr : node.getArguments()) {
         process(argExpr, null);
         argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
       }
 
-      final UdfFactory holder = functionRegistry.getUdfFactory(functionName);
+      final UdfFactory holder = functionRegistry.getUdfFactory(functionName.name());
       final KsqlFunction function = holder.getFunction(argumentTypes);
-      final String parameterName = CodeGenUtil.functionName(node.getName().name(), functionNumber);
-      parameters.add(new ParameterType(
-          function,
-          parameterName,
-          ksqlConfig));
-      return null;
-    }
-
-    public Object visitArithmeticBinary(
-        final ArithmeticBinaryExpression node,
-        final Object context) {
-      process(node.getLeft(), null);
-      process(node.getRight(), null);
-      return null;
-    }
-
-    public Object visitArithmeticUnary(
-        final ArithmeticUnaryExpression node,
-        final Object context) {
-      process(node.getValue(), null);
-      return null;
-    }
-
-    public Object visitIsNotNullPredicate(final IsNotNullPredicate node, final Object context) {
-      return process(node.getValue(), context);
-    }
-
-    public Object visitIsNullPredicate(final IsNullPredicate node, final Object context) {
-      return process(node.getValue(), context);
-    }
-
-    public Object visitLogicalBinaryExpression(
-        final LogicalBinaryExpression node,
-        final Object context) {
-      process(node.getLeft(), null);
-      process(node.getRight(), null);
-      return null;
-    }
-
-    @Override
-    public Object visitComparisonExpression(
-        final ComparisonExpression node,
-        final Object context) {
-      process(node.getLeft(), null);
-      process(node.getRight(), null);
-      return null;
-    }
-
-    @Override
-    public Object visitBetweenPredicate(final BetweenPredicate node, final Object context) {
-      process(node.getValue(), null);
-      process(node.getMax(), null);
-      process(node.getMin(), null);
-      return null;
-    }
-
-    @Override
-    public Object visitNotExpression(final NotExpression node, final Object context) {
-      return process(node.getValue(), null);
-    }
-
-    @Override
-    public Object visitDereferenceExpression(
-        final DereferenceExpression node,
-        final Object context
-    ) {
-      throw new UnsupportedOperationException(
-          "DereferenceExpression should have been resolved by now");
-    }
-
-    @Override
-    public Object visitSearchedCaseExpression(
-        final SearchedCaseExpression node,
-        final Object context) {
-      node.getWhenClauses().forEach(
-          whenClause -> {
-            process(whenClause.getOperand(), context);
-            process(whenClause.getResult(), context);
-          }
+      spec.addFunction(
+          function.getFunctionName(),
+          function.newInstance(ksqlConfig)
       );
-      node.getDefaultValue().ifPresent(defaultVal -> process(defaultVal, context));
+
       return null;
     }
 
     @Override
-    public Object visitCast(final Cast node, final Object context) {
-      process(node.getExpression(), context);
-      return null;
-    }
-
-    @Override
-    public Object visitSubscriptExpression(
+    public Void visitSubscriptExpression(
         final SubscriptExpression node,
-        final Object context
+        final Void context
     ) {
       if (node.getBase() instanceof ColumnReferenceExp) {
-        final String arrayBaseName = node.getBase().toString();
-        addParameter(getRequiredColumn(arrayBaseName));
+        final ColumnReferenceExp arrayBaseName = (ColumnReferenceExp) node.getBase();
+        addParameter(getRequiredColumn(arrayBaseName.getReference()));
       } else {
         process(node.getBase(), context);
       }
@@ -315,94 +199,21 @@ public class CodeGenRunner {
     }
 
     @Override
-    public Object visitColumnReference(
+    public Void visitColumnReference(
         final ColumnReferenceExp node,
-        final Object context
+        final Void context
     ) {
-      addParameter(getRequiredColumn(node.getReference().toString()));
+      addParameter(getRequiredColumn(node.getReference()));
       return null;
     }
 
-    private Column getRequiredColumn(final String columnName) {
-      return schema.findValueColumn(columnName)
+    private Column getRequiredColumn(final ColumnRef target) {
+      return schema.findValueColumn(target)
           .orElseThrow(() -> new RuntimeException(
               "Cannot find the select field in the available fields."
-                  + " field: " + columnName
+                  + " field: " + target
                   + ", schema: " + schema.value()));
     }
   }
 
-  public static final class ParameterType {
-
-    private final Class type;
-    private final Optional<KsqlFunction> function;
-    private final String fieldName;
-    private final KsqlConfig ksqlConfig;
-
-    private ParameterType(
-        final Class type,
-        final String fieldName,
-        final KsqlConfig ksqlConfig
-    ) {
-      this(
-          null,
-          Objects.requireNonNull(type, "type"),
-          fieldName,
-          ksqlConfig);
-    }
-
-    private ParameterType(
-        final KsqlFunction function,
-        final String fieldName,
-        final KsqlConfig ksqlConfig) {
-      this(
-          Objects.requireNonNull(function, "function"),
-          function.getKudfClass(),
-          fieldName,
-          ksqlConfig);
-    }
-
-    private ParameterType(
-        final KsqlFunction function,
-        final Class type,
-        final String fieldName,
-        final KsqlConfig ksqlConfig
-    ) {
-      this.function = Optional.ofNullable(function);
-      this.type = Objects.requireNonNull(type, "type");
-      this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    }
-
-    public Class getType() {
-      return type;
-    }
-
-    public String getFieldName() {
-      return fieldName;
-    }
-
-    public Kudf getKudf() {
-      return function.map(f -> f.newInstance(ksqlConfig)).orElse(null);
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      final ParameterType that = (ParameterType) o;
-      return Objects.equals(type, that.type)
-          && Objects.equals(function, that.function)
-          && Objects.equals(fieldName, that.fieldName);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(type, function, fieldName);
-    }
-  }
 }

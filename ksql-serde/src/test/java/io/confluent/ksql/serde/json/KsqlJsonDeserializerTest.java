@@ -54,7 +54,7 @@ public class KsqlJsonDeserializerTest {
   private static final String SOME_TOPIC = "bob";
 
   private static final String ORDERTIME = "ORDERTIME";
-  private static final String ORDERID = "ORDERID";
+  private static final String ORDERID = "@ORDERID";
   private static final String ITEMID = "ITEMID";
   private static final String ORDERUNITS = "ORDERUNITS";
   private static final String ARRAYCOL = "ARRAYCOL";

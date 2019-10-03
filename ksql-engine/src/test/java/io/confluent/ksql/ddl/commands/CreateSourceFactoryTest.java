@@ -392,14 +392,14 @@ public class CreateSourceFactoryTest {
   @Test
   public void shouldThrowIfKeyFieldNotInSchemaForStream() {
     // Given:
-    givenProperty(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("will-not-find-me"));
+    givenProperty(CreateConfigs.KEY_NAME_PROPERTY, new StringLiteral("`will-not-find-me`"));
     final CreateStream statement = new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
 
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "The KEY column set in the WITH clause does not exist in the schema: "
-            + "'WILL-NOT-FIND-ME'");
+            + "'will-not-find-me'");
 
     // When:
     createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
@@ -410,7 +410,7 @@ public class CreateSourceFactoryTest {
     // Given:
     givenProperty(
         CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY,
-        new StringLiteral("will-not-find-me")
+        new StringLiteral("`will-not-find-me`")
     );
     final CreateStream statement =
         new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
@@ -419,7 +419,7 @@ public class CreateSourceFactoryTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "The TIMESTAMP column set in the WITH clause does not exist in the schema: "
-            + "'WILL-NOT-FIND-ME'");
+            + "'will-not-find-me'");
 
     // When:
     createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);

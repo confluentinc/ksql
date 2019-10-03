@@ -20,6 +20,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateAsConfigs;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -82,7 +83,8 @@ public final class CreateSourceAsProperties {
 
 
   public Optional<ColumnRef> getTimestampColumnName() {
-    return props.getTimestampColumn();
+    return Optional.ofNullable(props.getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY))
+        .map(ColumnReferenceParser::parse);
   }
 
   public Optional<String> getTimestampFormat() {

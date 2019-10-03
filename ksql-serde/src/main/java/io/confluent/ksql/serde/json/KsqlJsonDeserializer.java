@@ -27,8 +27,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
+import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -88,16 +90,15 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
   private Object deserialize(final byte[] bytes) {
     final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", bytes);
-    return enforceFieldType(this, physicalSchema.serializedSchema(), schemaAndValue.value(), true);
+    return enforceFieldType(this, physicalSchema.serializedSchema(), schemaAndValue.value());
   }
 
   private static Object enforceFieldType(
       final KsqlJsonDeserializer deserializer,
       final Schema schema,
-      final Object columnVal,
-      final boolean topLevel
+      final Object columnVal
   ) {
-    return enforceFieldType(new JsonValueContext(deserializer, schema, columnVal, topLevel));
+    return enforceFieldType(new JsonValueContext(deserializer, schema, columnVal));
   }
 
   private static Object enforceFieldType(final JsonValueContext context) {
@@ -133,7 +134,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     final List<?> list = (List<?>) context.val;
     final List<Object> array = new ArrayList<>(list.size());
     for (final Object item : list) {
-      array.add(enforceFieldType(context.deserializer, context.schema.valueSchema(), item, false));
+      array.add(enforceFieldType(context.deserializer, context.schema.valueSchema(), item));
     }
     return array;
   }
@@ -148,9 +149,9 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     for (final Map.Entry<?, ?> e : map.entrySet()) {
       ksqlMap.put(
           enforceFieldType(
-              context.deserializer, Schema.OPTIONAL_STRING_SCHEMA, e.getKey(), false).toString(),
+              context.deserializer, Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
           enforceFieldType(
-              context.deserializer, context.schema.valueSchema(), e.getValue(), false)
+              context.deserializer, context.schema.valueSchema(), e.getValue())
       );
     }
     return ksqlMap;
@@ -163,34 +164,31 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     }
 
     final Struct columnStruct = new Struct(context.schema);
-    final Map<String, ?> fields =
-        toCaseInsensitiveFieldNameMap((Map<String, ?>) context.val, context.topLevel);
+    final Map<String, ?> fields = (Map<String, ?>) context.val;
+    final Map<String, ?> caseInsensitiveFields = toCaseInsensitiveFieldNameMap(fields);
 
-    context.schema.fields().forEach(
-        field -> {
-          final Object fieldValue = fields.get(field.name().toUpperCase());
-          final Object coerced = enforceFieldType(
-              context.deserializer, field.schema(), fieldValue, false);
-          columnStruct.put(field.name(), coerced);
-        });
+    for (Field field : context.schema.fields()) {
+      final Object fieldValue = ObjectUtils.defaultIfNull(
+          fields.get(field.name()),
+          caseInsensitiveFields.get(field.name().toUpperCase()));
+
+      final Object coerced = enforceFieldType(
+          context.deserializer,
+          field.schema(),
+          fieldValue
+      );
+
+      columnStruct.put(field.name(), coerced);
+    }
 
     return columnStruct;
   }
 
-  private static Map<String, ?> toCaseInsensitiveFieldNameMap(
-      final Map<String, ?> map,
-      final boolean omitAt
-  ) {
+  private static Map<String, ?> toCaseInsensitiveFieldNameMap(final Map<String, ?> map) {
     final Map<String, Object> result = new HashMap<>(map.size());
     for (final Map.Entry<String, ?> entry : map.entrySet()) {
-      if (omitAt && entry.getKey().startsWith("@")) {
-        if (entry.getKey().length() == 1) {
-          throw new KsqlException("Field name cannot be '@'.");
-        }
-        result.put(entry.getKey().toUpperCase().substring(1), entry.getValue());
-      } else {
-        result.put(entry.getKey().toUpperCase(), entry.getValue());
-      }
+      // what happens if we have two fields with the same name and different case?
+      result.put(entry.getKey().toUpperCase(), entry.getValue());
     }
     return result;
   }
@@ -214,18 +212,15 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     private final KsqlJsonDeserializer deserializer;
     private final Schema schema;
     private final Object val;
-    private final boolean topLevel;
 
     JsonValueContext(
         final KsqlJsonDeserializer deserializer,
         final Schema schema,
-        final Object val,
-        final boolean topLevel
+        final Object val
     ) {
       this.deserializer = Objects.requireNonNull(deserializer);
       this.schema = Objects.requireNonNull(schema, "schema");
       this.val = val;
-      this.topLevel = topLevel;
     }
   }
 }

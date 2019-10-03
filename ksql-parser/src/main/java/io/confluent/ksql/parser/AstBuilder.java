@@ -24,6 +24,7 @@ import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -980,29 +981,15 @@ public class AstBuilder {
 
     @Override
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
+      final ColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
+      final ColumnRef reference = columnReferenceExp.getReference();
 
-      final ColumnName columnName;
-      final SourceName prefixName;
-      final Optional<NodeLocation> columnLocation;
-      if (context.identifier(1) == null) {
-        prefixName = null;
-        columnName = ColumnName.of(ParserUtil.getIdentifierText(context.identifier(0)));
-        columnLocation = getLocation(context.identifier(0));
-      } else {
-        prefixName = SourceName.of(ParserUtil.getIdentifierText(context.identifier(0)));
-        columnName = ColumnName.of(ParserUtil.getIdentifierText(context.identifier(1)));
-        columnLocation = getLocation(context.identifier(1));
+      if (reference.source().isPresent()) {
+        throwOnUnknownNameOrAlias(reference.source().get());
+        return columnReferenceExp;
       }
 
-      if (prefixName != null) {
-        throwOnUnknownNameOrAlias(prefixName);
-
-        return new ColumnReferenceExp(
-            getLocation(context),
-            ColumnRef.of(prefixName, columnName)
-        );
-      }
-
+      final ColumnName columnName = reference.name();
       if (dataSourceExtractor.isJoin()) {
         if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
           throw new KsqlException("Field '" + columnName.name() + "' is ambiguous.");
@@ -1023,7 +1010,7 @@ public class AstBuilder {
         }
 
         throw new InvalidColumnReferenceException(
-            columnLocation,
+            getLocation(Iterables.getLast(context.identifier())),
             "Field '" + columnName.name() + "' cannot be resolved."
         );
       }

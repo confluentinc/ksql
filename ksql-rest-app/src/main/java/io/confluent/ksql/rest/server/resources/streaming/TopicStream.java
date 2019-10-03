@@ -68,6 +68,8 @@ public final class TopicStream {
           .stream(records.records(topicName).spliterator(), false)
           .filter(Objects::nonNull)
           .filter(r -> r.value() != null)
+          .filter(r -> r.value().get() != null)
+          .filter(r -> r.value().get().length != 0)
           .map((record) -> {
             if (formatter == null) {
               formatter = getFormatter(record);

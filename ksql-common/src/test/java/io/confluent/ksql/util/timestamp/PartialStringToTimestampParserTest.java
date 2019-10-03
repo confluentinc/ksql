@@ -28,7 +28,7 @@ import org.junit.rules.ExpectedException;
 public class PartialStringToTimestampParserTest {
 
   private static final StringToTimestampParser FULL_PARSER =
-      new StringToTimestampParser(KsqlConstants.DATE_TIME_PATTERN);
+      new StringToTimestampParser(KsqlConstants.DATE_TIME_PATTERN + "X");
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -43,44 +43,44 @@ public class PartialStringToTimestampParserTest {
   @Test
   public void shouldParseYear() {
     // When:
-    assertThat(parser.parse("2017"), is(fullParse("2017-01-01T00:00:00.000")));
+    assertThat(parser.parse("2017"), is(fullParse("2017-01-01T00:00:00.000+0000")));
   }
 
   @Test
   public void shouldParseYearMonth() {
     // When:
-    assertThat(parser.parse("2020-02"), is(fullParse("2020-02-01T00:00:00.000")));
+    assertThat(parser.parse("2020-02"), is(fullParse("2020-02-01T00:00:00.000+0000")));
   }
 
   @Test
   public void shouldParseFullDate() {
     // When:
-    assertThat(parser.parse("2020-01-02"), is(fullParse("2020-01-02T00:00:00.000")));
-    assertThat(parser.parse("2020-01-02T"), is(fullParse("2020-01-02T00:00:00.000")));
+    assertThat(parser.parse("2020-01-02"), is(fullParse("2020-01-02T00:00:00.000+0000")));
+    assertThat(parser.parse("2020-01-02T"), is(fullParse("2020-01-02T00:00:00.000+0000")));
   }
 
   @Test
   public void shouldParseDateWithHour() {
     // When:
-    assertThat(parser.parse("2020-12-02T13"), is(fullParse("2020-12-02T13:00:00.000")));
+    assertThat(parser.parse("2020-12-02T13"), is(fullParse("2020-12-02T13:00:00.000+0000")));
   }
 
   @Test
   public void shouldParseDateWithHourMinute() {
     // When:
-    assertThat(parser.parse("2020-12-02T13:59"), is(fullParse("2020-12-02T13:59:00.000")));
+    assertThat(parser.parse("2020-12-02T13:59"), is(fullParse("2020-12-02T13:59:00.000+0000")));
   }
 
   @Test
   public void shouldParseDateWithHourMinuteSecond() {
     // When:
-    assertThat(parser.parse("2020-12-02T13:59:58"), is(fullParse("2020-12-02T13:59:58.000")));
+    assertThat(parser.parse("2020-12-02T13:59:58"), is(fullParse("2020-12-02T13:59:58.000+0000")));
   }
 
   @Test
   public void shouldParseFullDateTime() {
     // When:
-    assertThat(parser.parse("2020-12-02T13:59:58.123"), is(fullParse("2020-12-02T13:59:58.123")));
+    assertThat(parser.parse("2020-12-02T13:59:58.123"), is(fullParse("2020-12-02T13:59:58.123+0000")));
   }
 
   @Test

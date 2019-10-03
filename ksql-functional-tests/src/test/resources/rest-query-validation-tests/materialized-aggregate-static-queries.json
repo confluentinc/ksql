@@ -464,7 +464,7 @@
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
-        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart='2020-02-23T23:45:12.000+0000';"
+        "SELECT * FROM AGGREGATE WHERE ROWKEY='10' AND WindowStart='2020-02-23T23:45:12.000';"
       ],
       "inputs": [
         {"topic": "test_topic", "timestamp": 1582501512456, "key": "11", "value": {}},

@@ -137,8 +137,7 @@ public class SchemaRegistryTopicSchemaSupplier implements TopicSchemaSupplier {
             + "\t-> Use the REST API to list available subjects"
             + "\t" + DocumentationLinks.SR_REST_GETSUBJECTS_DOC_URL
             + System.lineSeparator()
-            + "- You do not have permissions to access the Schema Registry.Subject: "
-            + topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+            + "- You do not have permissions to access the Schema Registry."
             + "\t-> See " + DocumentationLinks.SCHEMA_REGISTRY_SECURITY_DOC_URL));
   }
 

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.util;
 
+import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ALWAYS;
 import static io.confluent.ksql.util.ExecutorUtil.RetryBehaviour.ON_RETRYABLE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -24,6 +25,9 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.confluent.ksql.exception.KsqlSchemaAuthorizationException;
+import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.errors.RetriableException;
 import org.junit.Rule;
 import org.junit.Test;
@@ -119,6 +123,32 @@ public class ExecutorUtilTest {
 
     // When:
     ExecutorUtil.executeWithRetries(throwsNonRetriable, ON_RETRYABLE);
+  }
+
+  @Test
+  public void shouldNotRetryIfSupplierThrowsKsqlSchemaAuthorizationException() throws Exception {
+    // Given:
+    final AtomicBoolean firstCall = new AtomicBoolean(true);
+    final Callable<Object> throwsNonRetriable = () -> {
+      if (firstCall.get()) {
+        firstCall.set(false);
+        throw new KsqlSchemaAuthorizationException(
+            AclOperation.READ,
+            KsqlSchemaAuthorizationException.Type.SUBJECT, "subject"
+        );
+      }
+
+      throw new KsqlSchemaAuthorizationException(
+          AclOperation.READ,
+          KsqlSchemaAuthorizationException.Type.SUBJECT, "subject"
+      );
+    };
+
+    // Expect:
+    expectedException.expect(KsqlSchemaAuthorizationException.class);
+
+    // When:
+    ExecutorUtil.executeWithRetries(throwsNonRetriable, ALWAYS);
   }
 
   @Test

@@ -77,10 +77,6 @@ public class KsqlSchemaRegistryClientFactoryTest {
   }
 
   @Test
-  public void should() {
-  }
-
-  @Test
   public void shouldSetSocketFactoryWhenNoSpecificSslConfig() {
     // Given:
     final KsqlConfig config = config();

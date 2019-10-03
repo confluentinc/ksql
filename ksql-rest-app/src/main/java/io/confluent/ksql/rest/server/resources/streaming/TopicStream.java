@@ -180,9 +180,7 @@ public final class TopicStream {
 
             objectNode.put(SchemaUtil.ROWTIME_NAME.name(), record.timestamp());
             objectNode.put(SchemaUtil.ROWKEY_NAME.name(), key);
-            if (jsonNode != null) {
-              objectNode.setAll((ObjectNode) jsonNode);
-            }
+            objectNode.setAll((ObjectNode) jsonNode);
 
             final StringWriter stringWriter = new StringWriter();
             objectMapper.writeValue(stringWriter, objectNode);

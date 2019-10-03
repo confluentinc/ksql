@@ -90,7 +90,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedMetadataPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "metadata");
+    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata");
 
     // When:
     authorizationFilter.filter(request);
@@ -103,7 +103,7 @@ public class KsqlAuthorizationFilterTest {
   @Test
   public void filterShouldContinueOnUnauthorizedMetadataIdPath() {
     // Given:
-    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "metadata/id");
+    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "v1/metadata/id");
 
     // When:
     authorizationFilter.filter(request);

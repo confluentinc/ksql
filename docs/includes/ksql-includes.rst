@@ -138,7 +138,7 @@ Inspect the ``users`` topic by using the PRINT statement:
 
 .. code:: sql
 
-    PRINT users;
+    PRINT 'users';
 
 Your output should resemble:
 
@@ -157,7 +157,7 @@ Inspect the ``pageviews`` topic by using the PRINT statement:
 
 .. code:: sql
 
-    PRINT pageviews LIMIT 3;
+    PRINT 'pageviews';
 
 Your output should resemble:
 
@@ -167,7 +167,11 @@ Your output should resemble:
     10/23/18 12:24:03 AM UTC , 9461 , 1540254243183,User_9,Page_20
     10/23/18 12:24:03 AM UTC , 9471 , 1540254243617,User_7,Page_47
     10/23/18 12:24:03 AM UTC , 9481 , 1540254243888,User_4,Page_27
+    ^C10/23/18 12:24:05 AM UTC , 9521 , 1540254245161,User_9,Page_62
+    Topic printing ceased
     ksql>
+
+Press CTRL+C to stop printing messages.
 
 For more information, see :ref:`ksql_syntax_reference`.
 
@@ -255,19 +259,16 @@ the latest offset.
 
    .. code:: sql
 
-       SELECT pageid FROM pageviews_original EMIT CHANGES LIMIT 3;
+       SELECT pageid FROM pageviews_original LIMIT 3;
 
    Your output should resemble:
 
    ::
 
-       +-----------------+
-       |PAGEID           |
-       +-----------------+
-       |Page_63          |
-       |Page_44          |
-       |Page_59          |
-       Limit Reached
+       Page_24
+       Page_73
+       Page_78
+       LIMIT reached
        Query terminated
 
 #. Create a persistent query by using the ``CREATE STREAM`` keywords to precede the ``SELECT`` statement. The results from this
@@ -280,18 +281,16 @@ the latest offset.
        SELECT users_original.userid AS userid, pageid, regionid, gender
        FROM pageviews_original
        LEFT JOIN users_original
-         ON pageviews_original.userid = users_original.userid
-       EMIT CHANGES;
+         ON pageviews_original.userid = users_original.userid;
 
    Your output should resemble:
 
    ::
 
          Message
-        ----------------------------------------------------------------------------------------------------------
-        Stream PAGEVIEWS_ENRICHED created and running. Created by query with query ID: CSAS_PAGEVIEWS_ENRICHED_4
-        ----------------------------------------------------------------------------------------------------------
-
+        ----------------------------
+         Stream created and running
+        ----------------------------
 
    .. tip:: You can run ``DESCRIBE pageviews_enriched;`` to describe the stream.
 
@@ -300,18 +299,15 @@ the latest offset.
 
    .. code:: sql
 
-       SELECT * FROM pageviews_enriched EMIT CHANGES;
+       SELECT * FROM pageviews_enriched;
 
    Your output should resemble:
 
    ::
 
-       +---------------------+-----------+--------+---------+----------+----------+
-       |ROWTIME              |ROWKEY     |USERID  |PAGEID   |REGIONID  |GENDER    |
-       +---------------------+-----------+--------+---------+----------+----------+
-       |1570059294609        |User_7     |User_7  |Page_80  |Region_3  |FEMALE    |
-       |1570059294864        |User_7     |User_7  |Page_19  |Region_3  |FEMALE    |
-       |1570059295004        |User_1     |User_1  |Page_27  |Region_7  |OTHER     |
+       1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
+       1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
+       1519746862164 | User_1 | User_1 | Page_90 | Region_7 | FEMALE
        ^CQuery terminated
 
 #. Create a new persistent query where a condition limits the streams content, using ``WHERE``. Results from this query
@@ -321,17 +317,16 @@ the latest offset.
 
     CREATE STREAM pageviews_female AS
     SELECT * FROM pageviews_enriched
-    WHERE gender = 'FEMALE'
-    EMIT CHANGES;
+    WHERE gender = 'FEMALE';
 
    Your output should resemble:
 
    ::
 
          Message
-        ------------------------------------------------------------------------------------------------------
-         Stream PAGEVIEWS_FEMALE created and running. Created by query with query ID: CSAS_PAGEVIEWS_FEMALE_5
-        ------------------------------------------------------------------------------------------------------
+        ----------------------------
+         Stream created and running
+        ----------------------------
 
    .. tip:: You can run ``DESCRIBE pageviews_female;`` to describe the stream.
 
@@ -343,84 +338,61 @@ the latest offset.
        CREATE STREAM pageviews_female_like_89
          WITH (kafka_topic='pageviews_enriched_r8_r9') AS
        SELECT * FROM pageviews_female
-       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9'
-       EMIT CHANGES;
+       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
 
    Your output should resemble:
 
    ::
 
          Message
-        ----------------------------------------------------------------------------------------------------------------------
-         Stream PAGEVIEWS_FEMALE_LIKE_89 created and running. Created by query with query ID: CSAS_PAGEVIEWS_FEMALE_LIKE_89_6
-        ----------------------------------------------------------------------------------------------------------------------
+        ----------------------------
+         Stream created and running
+        ----------------------------
 
-#. Create a new persistent query that counts the pageviews for each region in a :ref:`tumbling window <windowing-tumbling>`
-   of 30 seconds when the count is greater than one. Results from this query are written to the ``PAGEVIEWS_REGIONS``
-   Kafka topic in the Avro format. KSQL will register the Avro schema with the configured |sr| when it writes the first
-   message to the ``PAGEVIEWS_REGIONS`` topic.
+#. Create a new persistent query that counts the pageviews for each region and gender combination in a
+   :ref:`tumbling window <windowing-tumbling>` of 30 seconds when the count is greater than one. Results from this query
+   are written to the ``PAGEVIEWS_REGIONS`` Kafka topic in the Avro format. KSQL will register the Avro schema with the
+   configured |sr| when it writes the first message to the ``PAGEVIEWS_REGIONS`` topic.
 
    .. code:: sql
 
     CREATE TABLE pageviews_regions
       WITH (VALUE_FORMAT='avro') AS
-    SELECT regionid , COUNT(*) AS numusers
+    SELECT gender, regionid , COUNT(*) AS numusers
     FROM pageviews_enriched
       WINDOW TUMBLING (size 30 second)
-    GROUP BY regionid
-    HAVING COUNT(*) > 1
-    EMIT CHANGES;
+    GROUP BY gender, regionid
+    HAVING COUNT(*) > 1;
 
    Your output should resemble:
 
    ::
 
          Message
-        -------------------------------------------------------------------------------------------------------
-         Table PAGEVIEWS_REGIONS created and running. Created by query with query ID: CTAS_PAGEVIEWS_REGIONS_7
-        -------------------------------------------------------------------------------------------------------
+        ---------------------------
+         Table created and running
+        ---------------------------
 
    .. tip:: You can run ``DESCRIBE pageviews_regions;`` to describe the table.
 
-#. Optional: View the changes to the above table in realtime using ``SELECT``.
+#. Optional: View results from the above queries using ``SELECT``.
 
    .. code:: sql
 
-       SELECT regionid, numusers FROM pageviews_regions EMIT CHANGES LIMIT 5;
+       SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
 
    Your output should resemble:
 
    ::
 
-       +-------------+-----------+
-       |REGIONID     |NUMUSERS   |
-       +-------------+-----------+
-       |Region_4     |2          |
-       |Region_1     |6          |
-       |Region_3     |3          |
-       |Region_5     |2          |
-       |Region_2     |2          |
+       FEMALE | Region_6 | 3
+       FEMALE | Region_1 | 4
+       FEMALE | Region_9 | 6
+       MALE | Region_8 | 2
+       OTHER | Region_5 | 4
        LIMIT reached
        Query terminated
        ksql>
-
-#. Optional: Query the materialized table for the values stored within KSQL for a specific key:
-
-.. code:: sql
-
-       SELECT * FROM pageviews_regions WHERE ROWKEY='Region_4';
-
-   Your output should resemble:
-
-   ::
-
-        ROWKEY STRING KEY | WINDOWSTART BIGINT KEY | REGIONID STRING | NUMUSERS BIGINT
-        --------------------------------------------------------------------------------
-        Region_4          | 1570133790000          | Region_1        | 6
-        Region_4          | 1570133820000          | Region_1        | 14
-        Region_4          | 1570133850000          | Region_1        | 16
-        Region_4          | 1570133880000          | Region_1        | 14
-        Region_4          | 1570133910000          | Region_1        | 16
 
 #.  Optional: Show all persistent queries.
 
@@ -434,10 +406,10 @@ the latest offset.
 
         Query ID                        | Kafka Topic              | Query String
         --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-        CSAS_PAGEVIEWS_FEMALE_1         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS       SELECT * FROM pageviews_enriched       WHERE gender = 'FEMALE' EMIT CHANGES;
-        CTAS_PAGEVIEWS_REGIONS_3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions         WITH (VALUE_FORMAT='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1 EMIT CHANGES;
-        CSAS_PAGEVIEWS_FEMALE_LIKE_89_2 | PAGEVIEWS_FEMALE_LIKE_89 | CREATE STREAM pageviews_female_like_89         WITH (kafka_topic='pageviews_enriched_r8_r9') AS       SELECT * FROM pageviews_female       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9' EMIT CHANGES;
-        CSAS_PAGEVIEWS_ENRICHED_0       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS       SELECT users_original.userid AS userid, pageid, regionid, gender       FROM pageviews_original       LEFT JOIN users_original         ON pageviews_original.userid = users_original.userid EMIT CHANGES;
+        CSAS_PAGEVIEWS_FEMALE_1         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS       SELECT * FROM pageviews_enriched       WHERE gender = 'FEMALE';
+        CTAS_PAGEVIEWS_REGIONS_3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions         WITH (VALUE_FORMAT='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
+        CSAS_PAGEVIEWS_FEMALE_LIKE_89_2 | PAGEVIEWS_FEMALE_LIKE_89 | CREATE STREAM pageviews_female_like_89         WITH (kafka_topic='pageviews_enriched_r8_r9') AS       SELECT * FROM pageviews_female       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+        CSAS_PAGEVIEWS_ENRICHED_0       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS       SELECT users_original.userid AS userid, pageid, regionid, gender       FROM pageviews_original       LEFT JOIN users_original         ON pageviews_original.userid = users_original.userid;
         --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
         For detailed information on a Query run: EXPLAIN <Query ID>;
 
@@ -454,23 +426,24 @@ the latest offset.
 
         Name                 : PAGEVIEWS_REGIONS
         Type                 : TABLE
-        Key field            : REGIONID
+        Key field            : KSQL_INTERNAL_COL_0|+|KSQL_INTERNAL_COL_1
         Key format           : STRING
         Timestamp field      : Not set - using <ROWTIME>
         Value format         : AVRO
-        Kafka topic          : PAGEVIEWS_REGIONS (partitions: 1, replication: 1)
+        Kafka topic          : PAGEVIEWS_REGIONS (partitions: 4, replication: 1)
 
         Field    | Type
         --------------------------------------
         ROWTIME  | BIGINT           (system)
         ROWKEY   | VARCHAR(STRING)  (system)
+        GENDER   | VARCHAR(STRING)
         REGIONID | VARCHAR(STRING)
         NUMUSERS | BIGINT
         --------------------------------------
 
         Queries that write into this TABLE
         -----------------------------------
-        CTAS_PAGEVIEWS_REGIONS_3 : CREATE TABLE pageviews_regions         WITH (value_format='avro') AS       SELECT regionid, COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY regionid       HAVING COUNT(*) > 1 EMIT CHANGES;
+        CTAS_PAGEVIEWS_REGIONS_3 : CREATE TABLE pageviews_regions         WITH (value_format='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
 
         For query topology and execution plan please run: EXPLAIN <QueryId>
 
@@ -603,7 +576,7 @@ Query the data, using ``->`` notation to access the Struct contents:
 
 .. code:: sql
 
-    SELECT ORDERID, ADDRESS->CITY FROM ORDERS EMIT CHANGES;
+    SELECT ORDERID, ADDRESS->CITY FROM ORDERS;
 
 Your output should resemble:
 
@@ -668,7 +641,7 @@ For the ``NEW_ORDERS`` topic, run:
 
 .. code:: sql
 
-    SELECT ORDER_ID, TOTAL_AMOUNT, CUSTOMER_NAME FROM NEW_ORDERS EMIT CHANGES LIMIT 3;
+    SELECT ORDER_ID, TOTAL_AMOUNT, CUSTOMER_NAME FROM NEW_ORDERS LIMIT 3;
 
 Your output should resemble:
 
@@ -682,7 +655,7 @@ For the ``SHIPMENTS`` topic, run:
 
 .. code:: sql
 
-    SELECT ORDER_ID, SHIPMENT_ID, WAREHOUSE FROM SHIPMENTS EMIT CHANGES LIMIT 2;
+    SELECT ORDER_ID, SHIPMENT_ID, WAREHOUSE FROM SHIPMENTS LIMIT 2;
 
 Your output should resemble:
 
@@ -701,8 +674,7 @@ based on a join window of 1 hour.
     FROM NEW_ORDERS O
     INNER JOIN SHIPMENTS S
       WITHIN 1 HOURS
-      ON O.ORDER_ID = S.ORDER_ID
-    EMIT CHANGES;
+      ON O.ORDER_ID = S.ORDER_ID;
 
 Your output should resemble:
 
@@ -778,7 +750,7 @@ Inspect the WAREHOUSE_LOCATION table:
 
 .. code:: sql
 
-    SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION EMIT CHANGES LIMIT 3;
+    SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_LOCATION LIMIT 3;
 
 Your output should resemble:
 
@@ -794,7 +766,7 @@ Inspect the WAREHOUSE_SIZE table:
 
 .. code:: sql
 
-    SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE EMIT CHANGES LIMIT 3;
+    SELECT ROWKEY, WAREHOUSE_ID FROM WAREHOUSE_SIZE LIMIT 3;
 
 Your output should resemble:
 
@@ -814,7 +786,6 @@ Now join the two tables:
     FROM WAREHOUSE_LOCATION WL
       LEFT JOIN WAREHOUSE_SIZE WS
         ON WL.WAREHOUSE_ID=WS.WAREHOUSE_ID
-    EMIT CHANGES
     LIMIT 3;
 
 Your output should resemble:
@@ -871,7 +842,7 @@ as part of the ``SELECT``:
 
 .. code:: sql
 
-    CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL EMIT CHANGES;
+    CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
 
 Your output should resemble:
 
@@ -911,7 +882,7 @@ Add stream of 3rd party orders into the existing output stream:
 
 .. code:: sql
 
-    INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY EMIT CHANGES;
+    INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
 
 
 Your output should resemble:
@@ -928,7 +899,7 @@ written to it:
 
 .. code:: sql
 
-    SELECT * FROM ALL_ORDERS EMIT CHANGES;
+    SELECT * FROM ALL_ORDERS;
 
 Your output should resemble the following. Note that there are messages from both source 
 topics (denoted by ``LOCAL`` and ``3RD PARTY`` respectively). 
@@ -958,8 +929,8 @@ Your output should resemble:
 
     Query ID          | Kafka Topic | Query String
     -------------------------------------------------------------------------------------------------------------------
-    CSAS_ALL_ORDERS_0 | ALL_ORDERS  | CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL EMIT CHANGES;
-    InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY EMIT CHANGES;
+    CSAS_ALL_ORDERS_0 | ALL_ORDERS  | CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
+    InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
     -------------------------------------------------------------------------------------------------------------------
 
 .. insert-into_02_end

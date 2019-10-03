@@ -227,7 +227,7 @@ Verify the data
 
     .. code:: sql
 
-        SELECT * FROM CLICKSTREAM LIMIT 5;
+        SELECT * FROM CLICKSTREAM EMIT CHANGES LIMIT 5;
 
     Your output should resemble:
 
@@ -246,7 +246,7 @@ Verify the data
 
     .. code:: sql
 
-        SELECT * FROM EVENTS_PER_MIN LIMIT 5;
+        SELECT * FROM EVENTS_PER_MIN EMIT CHANGES LIMIT 5;
 
     Your output should resemble:
 
@@ -264,7 +264,7 @@ Verify the data
 
     .. code:: sql
 
-        SELECT * FROM PAGES_PER_MIN LIMIT 5;
+        SELECT * FROM PAGES_PER_MIN EMIT CHANGES LIMIT 5;
 
     Your output should resemble:
 

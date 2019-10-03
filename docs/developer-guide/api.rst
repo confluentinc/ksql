@@ -47,7 +47,7 @@ Here's an example request that retrieves streaming data from ``TEST_STREAM``:
    curl -X "POST" "http://localhost:8088/query" \
         -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
         -d $'{
-     "ksql": "SELECT * FROM TEST_STREAM;",
+     "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
      "streamsProperties": {}
    }'
 
@@ -217,7 +217,7 @@ statements use the ``/query`` endpoint.
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
+        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice' EMIT CHANGES;",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }
@@ -232,7 +232,7 @@ statements use the ``/query`` endpoint.
 
       [
         {
-          "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
+          "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;",
           "commandId":"stream/PAGEVIEWS_HOME/create",
           "commandStatus": {
             "status":"SUCCESS",
@@ -241,7 +241,7 @@ statements use the ``/query`` endpoint.
           "commandSequenceNumber":10
         },
         {
-          "statementText":"CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
+          "statementText":"CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice' EMIT CHANGES;",
           "commandId":"stream/PAGEVIEWS_ALICE/create",
           "commandStatus": {
             "status":"SUCCESS",
@@ -266,7 +266,7 @@ similar to the example request above:
    Content-Type: application/vnd.ksql.v1+json
 
    {
-     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;"
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid EMIT CHANGES;"
    }
 
 The second method is to submit the statements as separate requests and incorporate the interdependency by using ``commandSequenceNumber``.
@@ -279,7 +279,7 @@ Send the first request:
    Content-Type: application/vnd.ksql.v1+json
 
    {
-     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';"
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;"
    }
 
 Make note of the ``commandSequenceNumber`` returned in the response:
@@ -291,7 +291,7 @@ Make note of the ``commandSequenceNumber`` returned in the response:
 
    [
      {
-       "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
+       "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;",
        "commandId":"stream/PAGEVIEWS_HOME/create",
        "commandStatus": {
          "status":"SUCCESS",
@@ -311,7 +311,7 @@ execute until after command number 10 has finished executing:
    Content-Type: application/vnd.ksql.v1+json
 
    {
-     "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;",
+     "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid EMIT CHANGES;",
      "commandSequenceNumber":10
    }
 
@@ -346,7 +346,7 @@ The ``/query`` resource lets you stream the output records of a ``SELECT`` state
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "SELECT * FROM pageviews;",
+        "ksql": "SELECT * FROM pageviews EMIT CHANGES;",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }

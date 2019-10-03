@@ -274,7 +274,7 @@ For example, consider the statement:
 
 .. code:: sql
 
-    CREATE STREAM y AS SELECT f0 FROM x;
+    CREATE STREAM y AS SELECT f0 FROM x EMIT CHANGES;
 
 The statement selects a single field as the value of stream ``y``. If ``f0`` has the
 integer value ``10``,

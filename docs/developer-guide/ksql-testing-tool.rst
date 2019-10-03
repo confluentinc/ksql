@@ -58,7 +58,7 @@ Here is a sample statements file for the testing tool:
 .. code:: sql
 
     CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders EMIT CHANGES;
 
 Input File
 ----------
@@ -186,7 +186,7 @@ are submitted later can affect the output of a query. For example, consider the 
     INSERT INTO orders VALUES(10.0);
     INSERT INTO orders VALUES(15.0);
     INSERT INTO orders VALUES(20.0);
-    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders EMIT CHANGES;
     INSERT INTO orders VALUES(25.0);
     INSERT INTO orders VALUES(30.0);
 

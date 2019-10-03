@@ -30,7 +30,8 @@ combination of a ``pageviews`` stream and a ``users`` table:
 
    CREATE STREAM pageviews_enriched AS
      SELECT users.userid AS userid, pageid, regionid, gender FROM pageviews
-     LEFT JOIN users ON pageviews.userid = users.userid;
+     LEFT JOIN users ON pageviews.userid = users.userid
+     EMIT CHANGES;
 
 
 For the full code example, see :ref:`ksql_quickstart-docker`.
@@ -51,7 +52,8 @@ expected time of two hours.
    CREATE STREAM late_orders AS
      SELECT o.orderid, o.itemid FROM orders o
      FULL OUTER JOIN shipments s WITHIN 2 HOURS
-     ON s.orderid = o.orderid WHERE s.orderid IS NULL;
+     ON s.orderid = o.orderid WHERE s.orderid IS NULL
+     EMIT CHANGES;
 
 Joins and Windows
 *****************

@@ -45,7 +45,8 @@ In the KSQL CLI, paste the following CREATE STREAM statement:
        userid VARCHAR,
        pageid VARCHAR)
       WITH (KAFKA_TOPIC='pageviews',
-            VALUE_FORMAT='DELIMITED');
+            VALUE_FORMAT='DELIMITED')
+      EMIT CHANGES;
 
 Your output should resemble:
 
@@ -155,7 +156,8 @@ like this:
       WITH (KAFKA_TOPIC='pageviews',
             VALUE_FORMAT='DELIMITED',
             KEY='pageid',
-            TIMESTAMP='viewtime');
+            TIMESTAMP='viewtime')
+      EMIT CHANGES;
 
 Confirm that the TIMESTAMP field is ``viewtime`` by using the DESCRIBE EXTENDED
 statement:
@@ -223,7 +225,8 @@ results from a persistent query that matches "introductory" pages that have a
 
     CREATE STREAM pageviews_intro AS
           SELECT * FROM pageviews
-          WHERE pageid < 'Page_20';
+          WHERE pageid < 'Page_20'
+          EMIT CHANGES;
 
 Your output should resemble:
 
@@ -273,7 +276,7 @@ Your output should resemble:
 
      Query ID               | Kafka Topic     | Query String
     --------------------------------------------------------------------------------------------------------------------------------------------
-     CSAS_PAGEVIEWS_INTRO_0 | PAGEVIEWS_INTRO | CREATE STREAM pageviews_intro AS       SELECT * FROM pageviews       WHERE pageid < 'Page_20';
+     CSAS_PAGEVIEWS_INTRO_0 | PAGEVIEWS_INTRO | CREATE STREAM pageviews_intro AS       SELECT * FROM pageviews       WHERE pageid < 'Page_20' EMIT CHANGES;
     --------------------------------------------------------------------------------------------------------------------------------------------
     For detailed information on a Query run: EXPLAIN <Query ID>;
 

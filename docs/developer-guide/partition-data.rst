@@ -111,7 +111,7 @@ use the following KSQL statement:
 
 .. code:: sql
 
-   CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY product_id;
+   CREATE STREAM products_rekeyed WITH (PARTITIONS=6) AS SELECT * FROM products PARTITION BY product_id EMIT CHANGES;
 
 For more information, see `Inspecting and Changing Topic Keys <https://www.confluent.io/stream-processing-cookbook/ksql-recipes/inspecting-changing-topic-keys>`__ 
 in the `Stream Processing Cookbook <https://www.confluent.io/product/ksql/stream-processing-cookbook>`__.

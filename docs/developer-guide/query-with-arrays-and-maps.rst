@@ -69,7 +69,8 @@ and the user's city and zip code from the ``contactinfo`` map.
              userid,
              gender,
              regionid
-      FROM users;
+      FROM users
+      EMIT CHANGES;
 
 Your output should resemble:
 
@@ -85,7 +86,8 @@ Run the following SELECT query to view the table:
 .. code:: sql
     
     SELECT userid, first_interest, city, zipcode
-      FROM users_interest_and_contactinfo;
+      FROM users_interest_and_contactinfo
+      EMIT CHANGES;
 
 Your output should resemble:
 
@@ -113,7 +115,8 @@ For example, to get the user's last interest run the following SELECT statement:
              userid,
              gender,
              regionid
-      FROM users_extended;
+      FROM users_extended
+      EMIT CHANGES;
 
 Your output should resemble:  
 

@@ -149,7 +149,8 @@ public final class StaticQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
-      final QueryContext.Stacker contextStacker = new Stacker(uniqueQueryId());
+      final QueryId queryId = uniqueQueryId();
+      final QueryContext.Stacker contextStacker = new Stacker(queryId);
 
       final Materialization mat = query
           .getMaterialization(contextStacker)
@@ -195,6 +196,7 @@ public final class StaticQueryExecutor {
 
       final TableRowsEntity entity = new TableRowsEntity(
           statement.getStatementText(),
+          queryId,
           outputSchema,
           rows
       );

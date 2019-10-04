@@ -291,7 +291,7 @@ public class KsMaterializedWindowTableTest {
     // Then:
     verify(tableStore).fetch(
         A_KEY,
-        Instant.ofEpochMilli(Long.MIN_VALUE),
+        Instant.ofEpochMilli(0L),
         Instant.ofEpochMilli(Long.MAX_VALUE)
     );
   }

@@ -149,7 +149,7 @@ public final class StaticQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
-      final QueryContext.Stacker contextStacker = new Stacker(new QueryId("static-query"));
+      final QueryContext.Stacker contextStacker = new Stacker(uniqueQueryId());
 
       final Materialization mat = query
           .getMaterialization(contextStacker)
@@ -207,6 +207,10 @@ public final class StaticQueryExecutor {
           e
       );
     }
+  }
+
+  private static QueryId uniqueQueryId() {
+    return new QueryId("query_" + System.currentTimeMillis());
   }
 
   private static Analysis analyze(

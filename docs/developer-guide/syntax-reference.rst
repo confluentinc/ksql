@@ -1611,8 +1611,7 @@ Scalar functions
 +========================+===========================================================================+===================================================+
 | ABS                    |  ``ABS(col1)``                                                            | The absolute value of a value                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Given JSON or AVRO array checks if a search       |
-|                        |                                                                           | value contains in it                              |
+| ARRAYCONTAINS          |  ``ARRAYCONTAINS('[1, 2, 3]', 3)``                                        | Checks if a value is contained within an array    |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | AS_ARRAY               |  ``AS_ARRAY(col1, col2)```                                                | Construct an array from a variable number of      |
 |                        |                                                                           | inputs.                                           |

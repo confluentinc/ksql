@@ -128,32 +128,17 @@ public class KsStateStoreTest {
   }
 
   @Test
-  public void shouldThrowIfNotRunningAfterRebalanced() {
+  public void shouldThrowIfNotRunningAfterFailedToGetStore() {
     // Given:
     when(kafkaStreams.state())
-        .thenReturn(State.REBALANCING)
-        .thenReturn(State.REBALANCING)
+        .thenReturn(State.RUNNING)
         .thenReturn(State.NOT_RUNNING);
+
+    when(kafkaStreams.store(any(), any())).thenThrow(new IllegalStateException());
 
     // When:
     expectedException.expect(NotRunningException.class);
     expectedException.expectMessage("The query was not in a running state. state: NOT_RUNNING");
-
-    // When:
-    store.store(QueryableStoreTypes.sessionStore());
-  }
-
-  @Test
-  public void shouldThrowIfPendingShutdown() {
-    // Given:
-    when(kafkaStreams.state())
-        .thenReturn(State.REBALANCING)
-        .thenReturn(State.REBALANCING)
-        .thenReturn(State.PENDING_SHUTDOWN);
-
-    // When:
-    expectedException.expect(NotRunningException.class);
-    expectedException.expectMessage("The query was not in a running state. state: PENDING_SHUTDOWN");
 
     // When:
     store.store(QueryableStoreTypes.sessionStore());

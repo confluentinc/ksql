@@ -36,7 +36,7 @@ import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 @Immutable
-public final class KsqlFunction implements IndexedFunction {
+public final class KsqlFunction implements IndexableAsFunction {
 
   static final String INTERNAL_PATH = "internal";
 

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.function;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +25,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -58,16 +57,13 @@ public class UdafUtilTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private KsqlAggregateFunction function;
-  @Mock
-  private KsqlAggregateFunction resolved;
   @Captor
-  private ArgumentCaptor<AggregateFunctionArguments> argumentsCaptor;
+  private ArgumentCaptor<AggregateFunctionInitArguments> argumentsCaptor;
 
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(functionRegistry.getAggregate(any(), any())).thenReturn(function);
-    when(function.getInstance(any())).thenReturn(resolved);
+    when(functionRegistry.getAggregate(any(), any(), any())).thenReturn(function);
   }
 
   @Test
@@ -77,7 +73,7 @@ public class UdafUtilTest {
         UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    assertThat(returned, is(resolved));
+    assertThat(returned, is(function));
   }
 
   @Test
@@ -86,7 +82,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregate(eq("AGG"), any());
+    verify(functionRegistry).getAggregate(eq("AGG"), any(), any());
   }
 
   @Test
@@ -95,17 +91,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregate(any(), eq(Schema.OPTIONAL_INT64_SCHEMA));
+    verify(functionRegistry).getAggregate(any(), eq(Schema.OPTIONAL_INT64_SCHEMA), any());
   }
 
-  @Test
-  public void shouldResolveWithCorrectArgs() {
-    // When:
-    UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
-
-    // Then:
-    verify(function).getInstance(argumentsCaptor.capture());
-    final AggregateFunctionArguments arguments = argumentsCaptor.getValue();
-    assertThat(arguments.udafIndex(), equalTo(1));
-  }
 }

@@ -23,7 +23,6 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
@@ -33,18 +32,16 @@ public class KudafUndoAggregatorTest {
   private static final InternalFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
   private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregate(
       "SUM",
-      Schema.OPTIONAL_INT32_SCHEMA
+      Schema.OPTIONAL_INT32_SCHEMA,
+      new AggregateFunctionInitArguments(2)
   );
 
   private KudafUndoAggregator aggregator;
 
   @Before
   public void init() {
-    final List<TableAggregationFunction<?, ?, ?>> functions = ImmutableList.of(
-        (TableAggregationFunction<?, ?, ?>) SUM_INFO.getInstance(
-            new AggregateFunctionArguments(2, Collections.singletonList("baz"))
-        )
-    );
+    final List<TableAggregationFunction<?, ?, ?>> functions =
+        ImmutableList.of((TableAggregationFunction)SUM_INFO);
     aggregator = new KudafUndoAggregator(2, functions);
   }
 

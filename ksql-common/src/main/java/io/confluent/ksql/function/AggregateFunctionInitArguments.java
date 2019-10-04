@@ -15,19 +15,39 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class AggregateFunctionArguments {
+public class AggregateFunctionInitArguments {
 
   private final int udafIndex;
-  private final List<String> args;
+  private final List<String> initArgs;
 
-  public AggregateFunctionArguments(final int index,  final List<String> args) {
+  public static final AggregateFunctionInitArguments EMPTY_ARGS =
+      new AggregateFunctionInitArguments();
+
+  private AggregateFunctionInitArguments() {
+    this.udafIndex = 0;
+    this.initArgs = Collections.emptyList();
+  }
+
+  public static AggregateFunctionInitArguments ofFunctionArgs(final int index,
+      final List<String> initArgs) {
+    return new AggregateFunctionInitArguments(index, Objects.requireNonNull(
+        initArgs.size() < 2 ? Collections.emptyList() : initArgs.subList(1, initArgs.size())
+    ));
+  }
+
+  public AggregateFunctionInitArguments(final int index, final String... initArgs) {
+    this(index, Arrays.asList(initArgs));
+  }
+
+  private AggregateFunctionInitArguments(final int index, final List<String> initArgs) {
     this.udafIndex = index;
-    this.args = ImmutableList.copyOf(Objects.requireNonNull(args, "args"));
+    this.initArgs = Objects.requireNonNull(initArgs);
 
     if (index < 0) {
       throw new IllegalArgumentException("index is negative: " + index);
@@ -39,15 +59,19 @@ public class AggregateFunctionArguments {
   }
 
   public String arg(final int i) {
-    return args.get(i);
+    return initArgs.get(i);
   }
 
   public void ensureArgCount(final int expectedCount, final String functionName) {
-    if (args.size() != expectedCount) {
+    if (initArgs.size() != expectedCount) {
       throw new KsqlException(
           String.format("Invalid parameter count for %s. Need %d args, got %d arg(s)",
-              functionName, expectedCount, args.size()));
+              functionName, expectedCount, initArgs.size()));
     }
+  }
+
+  public int argsSize() {
+    return initArgs.size();
   }
 
 }

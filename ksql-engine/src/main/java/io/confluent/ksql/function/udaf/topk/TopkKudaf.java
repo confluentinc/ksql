@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.function.udaf.topk;
 
-import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -117,13 +115,4 @@ public class TopkKudaf<T extends Comparable<? super T>>
     return Function.identity();
   }
 
-  @Override
-  public KsqlAggregateFunction<T, List<T>, List<T>> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    aggregateFunctionArguments.ensureArgCount(2, "TopK");
-    final int udafIndex = aggregateFunctionArguments.udafIndex();
-    final int topKSize = Integer.parseInt(aggregateFunctionArguments.arg(1));
-    return new TopkKudaf<>(functionName, udafIndex, topKSize, outputSchema,
-                           argumentTypes, clazz);
-  }
 }

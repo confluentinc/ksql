@@ -19,7 +19,7 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -46,10 +46,6 @@ public final class UdafUtil {
           new ExpressionTypeManager(schema, functionRegistry);
       final List<Expression> functionArgs = functionCall.getArguments();
       final Schema argumentType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
-      final KsqlAggregateFunction aggregateFunctionInfo = functionRegistry.getAggregate(
-          functionCall.getName().name(),
-          argumentType
-      );
 
       // UDAFs only support one non-constant argument, and that argument must be a column reference
       final Expression arg = functionArgs.get(0);
@@ -67,11 +63,14 @@ public final class UdafUtil {
           .map(Expression::toString)
           .collect(Collectors.toList());
 
-      return aggregateFunctionInfo.getInstance(
-          new AggregateFunctionArguments(
+      return functionRegistry.getAggregate(
+          functionCall.getName().name(),
+          argumentType,
+          AggregateFunctionInitArguments.ofFunctionArgs(
               udafIndex.orElseThrow(
                   () -> new KsqlException("Could not find column for expression: " + arg)),
-              args));
+              args)
+      );
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }

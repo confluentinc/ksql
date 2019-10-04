@@ -21,7 +21,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
-import io.confluent.ksql.function.udaf.UdfArgSupplier;
+import io.confluent.ksql.function.udaf.UdafArgApplier;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
@@ -57,12 +57,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class takes methods that have been marked with the Udf or UdfFactory annotation.
- * Each method gets a class generated for it. For Udfs it is an {@link UdfInvoker}.
- * For UDAFs it is a {@link KsqlAggregateFunction}
+ * This class takes methods that have been marked with the Udf or UdfFactory annotation. Each method
+ * gets a class generated for it. For Udfs it is an {@link UdfInvoker}. For UDAFs it is a {@link
+ * KsqlAggregateFunction}
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @Immutable
 public class UdfCompiler {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
   private static final Logger LOGGER = LoggerFactory.getLogger(UdfCompiler.class);
 
   private static final Set<Class<?>> SUPPORTED_TYPES = ImmutableSet.<Class<?>>builder()
@@ -110,7 +113,7 @@ public class UdfCompiler {
     }
   }
 
-  KsqlAggregateFunction<?, ?, ?> compileAggregate(
+  UdafCreator compileAggregate(
       final Method method,
       final ClassLoader loader,
       final String functionName,
@@ -120,20 +123,20 @@ public class UdfCompiler {
       final String outputSchema) {
 
     final String functionInfo = String.format("method='%s', functionName='%s', UDFClass='%s'",
-                                      method.getName(), functionName, method.getDeclaringClass());
+        method.getName(), functionName, method.getDeclaringClass());
 
     if (!(Udaf.class.equals(method.getReturnType())
         || TableUdaf.class.equals(method.getReturnType()))) {
       throw new KsqlException("UDAFs must implement " + Udaf.class.getName() + " or "
-                                  + TableUdaf.class.getName() + ". "
-                                  + functionInfo);
+          + TableUdaf.class.getName() + ". "
+          + functionInfo);
     }
 
     final UdafTypes types = new UdafTypes(method, functionName);
     final Schema inputValue = types.getInputSchema(inputSchema);
     final List<Schema> args = Collections.singletonList(inputValue);
-    final Schema aggregateValue = types.getAggregateSchema(aggregateSchema);
-    final Schema returnValue = types.getOutputSchema(outputSchema);
+    final Schema aggregateArgType = types.getAggregateSchema(aggregateSchema);
+    final Schema aggregateReturnType = types.getOutputSchema(outputSchema);
 
     try {
       final String generatedClassName
@@ -154,19 +157,20 @@ public class UdfCompiler {
           createScriptEvaluator(method,
               javaSourceClassLoader,
               UDAF_PACKAGE + generatedClassName);
-      final UdfArgSupplier evaluator = (UdfArgSupplier)
+      final UdafArgApplier argApplier = (UdafArgApplier)
           scriptEvaluator.createFastEvaluator("return new " + generatedClassName
-                  + "(args, aggregateType, outputType, metrics);",
-              UdfArgSupplier.class, new String[]{"args", "aggregateType", "outputType", "metrics"});
-
-      return evaluator.apply(args, aggregateValue, returnValue, metrics);
+                  + "(initArgs, argTypes, aggregateType, outputType, metrics);",
+              UdafArgApplier.class,
+              new String[]{"initArgs", "argTypes", "aggregateType", "outputType", "metrics"});
+      return new UdafCreator(functionName, argApplier, aggregateArgType, aggregateReturnType,
+          metrics, args);
     } catch (final Exception e) {
       throw new KsqlException("Failed to compile KSqlAggregateFunction for method='"
           + method.getName() + "' in class='" + method.getDeclaringClass() + "'", e);
     }
   }
 
-  private class UdafTypes {
+  public class UdafTypes {
 
     private final Type inputType;
     private final Type aggregateType;
@@ -206,7 +210,7 @@ public class UdfCompiler {
       //Currently, aggregate functions cannot have reified types as input parameters.
       if (!GenericsUtil.constituentGenerics(inputSchema).isEmpty()) {
         throw new KsqlException("Generic type parameters containing reified types are not currently"
-                                    + " supported. " + functionInfo);
+            + " supported. " + functionInfo);
       }
       return inputSchema;
     }
@@ -303,7 +307,8 @@ public class UdfCompiler {
 
   /**
    * Generates code for the given method.
-   * @param method  the UDF to generate the code for
+   *
+   * @param method the UDF to generate the code for
    * @return String representation of the code that should be compiled for the UDF
    */
   private static String generateCode(final Method method) {

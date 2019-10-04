@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
  *       that was added first.</li>
  * </ul>
  */
-public class UdfIndex<T extends IndexedFunction> {
+public class UdfIndex<T extends IndexableAsFunction> {
   // this class is implemented as a custom Trie data structure that resolves
   // the rules described above. the Trie is built so that each node in the
   // trie references a single possible parameter in the signature. take for

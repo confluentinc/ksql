@@ -86,7 +86,6 @@ public class UdfLoader {
   private final boolean loadCustomerUdfs;
   private final SqlTypeParser typeParser;
 
-
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   UdfLoader(
       final MutableFunctionRegistry functionRegistry,
@@ -129,7 +128,7 @@ public class UdfLoader {
   }
 
   // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
-  void loadUdfFromClass(final Class<?> ... udfClass) {
+  void loadUdfFromClass(final Class<?>... udfClass) {
     for (final Class<?> theClass: udfClass) {
       //classes must be annotated with @UdfDescription
       final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
@@ -140,11 +139,13 @@ public class UdfLoader {
       //method must be public and annotated with @Udf
       for (Method m: theClass.getDeclaredMethods()) {
         if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
-          handleUdfAnnotation(theClass,
-                              udfDescription,
-                              m,
-                              parentClassLoader,
-                              KsqlFunction.INTERNAL_PATH) ;
+          handleUdfAnnotation(
+              theClass,
+              udfDescription,
+              m,
+              parentClassLoader,
+              KsqlFunction.INTERNAL_PATH
+          );
         }
       }
     }
@@ -170,18 +171,18 @@ public class UdfLoader {
               return name.contains("ksql-engine");
             })
         .matchClassesWithMethodAnnotation(Udf.class,
-                                          processMethodAnnotation(loader, pathLoadedFrom))
+            processMethodAnnotation(loader, pathLoadedFrom))
         .matchClassesWithAnnotation(UdafDescription.class,
             handleUdafAnnotation(loader, pathLoadedFrom))
         .scan();
   }
 
   private ClassAnnotationMatchProcessor handleUdafAnnotation(final ClassLoader loader,
-                                                             final String path
+      final String path
   ) {
-    return (theClass) ->  {
+    return (theClass) -> {
       final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
-      final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions
+      final List<UdafCreator> argCreators
           = Arrays.stream(theClass.getMethods())
           .filter(method -> method.getAnnotation(UdafFactory.class) != null)
           .filter(method -> {
@@ -218,7 +219,7 @@ public class UdfLoader {
                   path,
                   e);
             }
-            return Optional.<KsqlAggregateFunction<?, ?, ?>>empty();
+            return Optional.<UdafCreator>empty();
           }).filter(Optional::isPresent)
           .map(Optional::get)
           .collect(Collectors.toList());
@@ -230,13 +231,15 @@ public class UdfLoader {
               udafAnnotation.version(),
               path,
               false),
-              aggregateFunctions));
+          argCreators));
     };
   }
 
-  private MethodAnnotationMatchProcessor processMethodAnnotation(final ClassLoader loader,
-                                                                 final String path) {
-    return (theClass, executable) ->  {
+  private MethodAnnotationMatchProcessor processMethodAnnotation(
+      final ClassLoader loader,
+      final String path
+  ) {
+    return (theClass, executable) -> {
       final UdfDescription annotation = theClass.getAnnotation(UdfDescription.class);
       if (annotation == null) {
         LOGGER.warn("Ignoring method annotated with @Udf but missing @UdfDescription. "
@@ -261,12 +264,13 @@ public class UdfLoader {
     };
   }
 
-  private void handleUdfAnnotation(final Class<?> theClass,
-                                   final UdfDescription annotation,
-                                   final Method method,
-                                   final ClassLoader classLoader,
-                                   final String path) {
-
+  private void handleUdfAnnotation(
+      final Class<?> theClass,
+      final UdfDescription annotation,
+      final Method method,
+      final ClassLoader classLoader,
+      final String path
+  ) {
     LOGGER.info("Adding UDF name='{}' from class={}", annotation.name(), theClass);
     final UdfInvoker udf = UdfCompiler.compile(method, classLoader);
     addFunction(theClass, annotation, method, udf, path);
@@ -274,19 +278,18 @@ public class UdfLoader {
 
 
   private void addFunction(final Class theClass,
-                           final UdfDescription classLevelAnnotation,
-                           final Method method,
-                           final UdfInvoker udf,
-                           final String path) {
+      final UdfDescription classLevelAnnotation,
+      final Method method,
+      final UdfInvoker udf,
+      final String path) {
     // sanity check
     instantiateUdfClass(method, classLevelAnnotation);
     final Udf udfAnnotation = method.getAnnotation(Udf.class);
     final String functionName = classLevelAnnotation.name();
     final String sensorName = "ksql-udf-" + functionName;
 
-    @SuppressWarnings("unchecked")
-    final Class<? extends Kudf> udfClass = metrics
-        .map(m -> (Class)UdfMetricProducer.class)
+    @SuppressWarnings("unchecked") final Class<? extends Kudf> udfClass = metrics
+        .map(m -> (Class) UdfMetricProducer.class)
         .orElse(PluggableUdf.class);
     addSensor(sensorName, functionName);
 
@@ -334,10 +337,12 @@ public class UdfLoader {
     final Schema javaReturnSchema = getReturnType(method, udfAnnotation);
 
     functionRegistry.addFunction(KsqlFunction.create(
-        handleUdfReturnSchema(theClass,
-                              javaReturnSchema,
-                              udfAnnotation,
-                              classLevelAnnotation),
+        handleUdfReturnSchema(
+            theClass,
+            javaReturnSchema,
+            udfAnnotation,
+            classLevelAnnotation
+        ),
         javaReturnSchema,
         parameters,
         FunctionName.of(functionName.toUpperCase()),
@@ -358,8 +363,10 @@ public class UdfLoader {
   }
 
 
-  private static Object instantiateUdfClass(final Method method,
-                                            final UdfDescription annotation) {
+  private static Object instantiateUdfClass(
+      final Method method,
+      final UdfDescription annotation
+  ) {
     try {
       return method.getDeclaringClass().newInstance();
     } catch (final Exception e) {
@@ -370,8 +377,10 @@ public class UdfLoader {
     }
   }
 
-  private static Object instantiateUdfClass(final Class udfClass,
-                                            final UdfDescription annotation) {
+  private static Object instantiateUdfClass(
+      final Class udfClass,
+      final UdfDescription annotation
+  ) {
     try {
       return udfClass.newInstance();
     } catch (final Exception e) {
@@ -431,7 +440,7 @@ public class UdfLoader {
     } catch (NoSuchMethodException e) {
       throw new KsqlException(String.format(
           "Cannot find schema provider method with name %s and parameter List<SqlType> in class "
-              + "%s.", schemaProviderName,theClass.getName()),e);
+              + "%s.", schemaProviderName, theClass.getName()), e);
     }
   }
 
@@ -472,9 +481,11 @@ public class UdfLoader {
     });
   }
 
-  public static UdfLoader newInstance(final KsqlConfig config,
-                                      final MutableFunctionRegistry metaStore,
-                                      final String ksqlInstallDir) {
+  public static UdfLoader newInstance(
+      final KsqlConfig config,
+      final MutableFunctionRegistry metaStore,
+      final String ksqlInstallDir
+  ) {
     final Boolean loadCustomerUdfs = config.getBoolean(KsqlConfig.KSQL_ENABLE_UDFS);
     final Boolean collectMetrics = config.getBoolean(KsqlConfig.KSQL_COLLECT_UDF_METRICS);
     final String extDirName = config.getString(KsqlConfig.KSQL_EXT_DIR);

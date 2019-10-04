@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
@@ -76,7 +77,8 @@ public class DoubleMinKudafTest {
 
   private DoubleMinKudaf getDoubleMinKudaf() {
     final KsqlAggregateFunction aggregateFunction = new MinAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA));
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+            AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DoubleMinKudaf.class));
     return  (DoubleMinKudaf) aggregateFunction;
   }

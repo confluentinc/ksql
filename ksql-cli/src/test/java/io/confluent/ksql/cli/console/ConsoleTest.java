@@ -37,6 +37,7 @@ import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -45,7 +46,6 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -272,7 +272,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), new EntityQueryId("0")));
+            "select * from t1", Collections.singleton("Test"), new QueryId("0")));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -321,10 +321,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new EntityQueryId("readId"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new EntityQueryId("writeId"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -962,10 +962,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() throws IOException {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new EntityQueryId("readId"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new EntityQueryId("writeId"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(

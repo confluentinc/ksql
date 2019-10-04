@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -33,23 +34,23 @@ public final class QueryDescriptionFactory {
     if (queryMetadata instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
       return create(
-          persistentQuery.getQueryId().getId(),
+          persistentQuery.getQueryId(),
           persistentQuery,
           ImmutableSet.of(persistentQuery.getSinkName()),
           false
       );
     }
-    return create("", queryMetadata, Collections.emptySet(), true);
+    return create(new QueryId(""), queryMetadata, Collections.emptySet(), true);
   }
 
   private static QueryDescription create(
-      final String id,
+      final QueryId id,
       final QueryMetadata queryMetadata,
       final Set<SourceName> sinks,
       final boolean valueSchemaOnly
   ) {
     return new QueryDescription(
-        new EntityQueryId(id),
+        id,
         queryMetadata.getStatementString(),
         EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly),
         queryMetadata.getSourceNames().stream().map(SourceName::name).collect(Collectors.toSet()),

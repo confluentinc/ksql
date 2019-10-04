@@ -18,7 +18,7 @@ package io.confluent.ksql.query;
 import static java.util.Objects.requireNonNull;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
@@ -28,10 +28,11 @@ public class QueryId {
   private final String id;
 
   @JsonCreator
-  public QueryId(@JsonProperty("id") final String id) {
+  public QueryId(final String id) {
     this.id = requireNonNull(id, "id");
   }
 
+  @JsonValue
   public String getId() {
     return id;
   }

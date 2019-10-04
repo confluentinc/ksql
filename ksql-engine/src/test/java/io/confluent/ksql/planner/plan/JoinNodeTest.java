@@ -50,6 +50,8 @@ import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -119,21 +121,21 @@ public class JoinNodeTest {
 
   private static final LogicalSchema JOIN_SCHEMA = joinSchema();
 
-  private static final Optional<String> NO_KEY_FIELD = Optional.empty();
+  private static final Optional<ColumnRef> NO_KEY_FIELD = Optional.empty();
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
   private static final ValueFormat OTHER_FORMAT = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
   private final KsqlConfig ksqlConfig = new KsqlConfig(new HashMap<>());
   private StreamsBuilder builder;
   private JoinNode joinNode;
 
-  private static final ColumnName LEFT_JOIN_FIELD_NAME = ColumnName.of(LEFT_ALIAS.name() + ".C0");
-  private static final ColumnName RIGHT_JOIN_FIELD_NAME = ColumnName.of(RIGHT_ALIAS.name() + ".R1");
+  private static final ColumnRef LEFT_JOIN_FIELD_REF = ColumnRef.of(LEFT_ALIAS, ColumnName.of("C0"));
+  private static final ColumnRef RIGHT_JOIN_FIELD_REF = ColumnRef.of(RIGHT_ALIAS, ColumnName.of("R1"));
 
   private static final KeyField leftJoinField = KeyField
-      .of(LEFT_JOIN_FIELD_NAME, Column.of(LEFT_JOIN_FIELD_NAME, SqlTypes.STRING));
+      .of(LEFT_JOIN_FIELD_REF, Column.of(LEFT_JOIN_FIELD_REF, SqlTypes.STRING));
 
   private static final KeyField rightJoinField = KeyField
-      .of(RIGHT_JOIN_FIELD_NAME, Column.of(RIGHT_JOIN_FIELD_NAME, SqlTypes.STRING));
+      .of(RIGHT_JOIN_FIELD_REF, Column.of(RIGHT_JOIN_FIELD_REF, SqlTypes.STRING));
 
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
@@ -225,8 +227,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        ColumnName.of("won't find me"),
-        RIGHT_JOIN_FIELD_NAME,
+        ColumnRef.withoutSource(ColumnName.of("won't find me")),
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
   }
@@ -243,8 +245,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        ColumnName.of("won't find me"),
+        LEFT_JOIN_FIELD_REF,
+        ColumnRef.withoutSource(ColumnName.of("won't find me")),
         Optional.empty()
     );
   }
@@ -257,13 +259,13 @@ public class JoinNodeTest {
         JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
     // Then:
-    assertThat(joinNode.getKeyField().name(), is(Optional.of(LEFT_JOIN_FIELD_NAME)));
+    assertThat(joinNode.getKeyField().ref(), is(Optional.of(LEFT_JOIN_FIELD_REF)));
   }
 
   @Test
@@ -345,8 +347,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         WITHIN_EXPRESSION
     );
 
@@ -377,8 +379,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.INNER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         WITHIN_EXPRESSION
     );
 
@@ -409,8 +411,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         WITHIN_EXPRESSION
     );
 
@@ -441,8 +443,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.INNER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -466,8 +468,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         WITHIN_EXPRESSION
     );
 
@@ -487,15 +489,15 @@ public class JoinNodeTest {
     setupStream(left, leftSchemaKStream);
     setupTable(right, rightSchemaKTable);
 
-    final ColumnName rightCriteriaColumn =
-        getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
+    final ColumnRef rightCriteriaColumn =
+        getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_REF);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
         rightCriteriaColumn,
         Optional.empty()
     );
@@ -505,9 +507,9 @@ public class JoinNodeTest {
     expectedException.expectMessage(String.format(
         "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        RIGHT_ALIAS.name(),
-        RIGHT_JOIN_FIELD_NAME.name(),
-        rightCriteriaColumn.name()
+        RIGHT_ALIAS.toString(FormatOptions.noEscape()),
+        RIGHT_JOIN_FIELD_REF.toString(FormatOptions.noEscape()),
+        rightCriteriaColumn.toString(FormatOptions.noEscape())
     ));
 
     // When:
@@ -525,8 +527,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -552,8 +554,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        ColumnName.of("right.ROWKEY"),
+        LEFT_JOIN_FIELD_REF,
+        ColumnRef.of(SourceName.of("right"), ColumnName.of("ROWKEY")),
         Optional.empty()
     );
 
@@ -582,8 +584,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -612,8 +614,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.INNER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -642,8 +644,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -670,8 +672,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.of(withinExpression)
     );
 
@@ -691,8 +693,8 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final ColumnName leftCriteriaColumn = getNonKeyColumn(LEFT_SOURCE_SCHEMA, LEFT_ALIAS,
-        LEFT_JOIN_FIELD_NAME);
+    final ColumnRef leftCriteriaColumn = getNonKeyColumn(LEFT_SOURCE_SCHEMA, LEFT_ALIAS,
+        LEFT_JOIN_FIELD_REF);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
@@ -700,7 +702,7 @@ public class JoinNodeTest {
         left,
         right,
         leftCriteriaColumn,
-        RIGHT_JOIN_FIELD_NAME,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -709,9 +711,9 @@ public class JoinNodeTest {
     expectedException.expectMessage(String.format(
         "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        LEFT_ALIAS.name(),
-        LEFT_JOIN_FIELD_NAME.name(),
-        leftCriteriaColumn.name()
+        LEFT_ALIAS.toString(FormatOptions.noEscape()),
+        LEFT_JOIN_FIELD_REF.toString(FormatOptions.noEscape()),
+        leftCriteriaColumn.toString(FormatOptions.noEscape())
     ));
 
     // When:
@@ -724,15 +726,15 @@ public class JoinNodeTest {
     setupTable(left, leftSchemaKTable);
     setupTable(right, rightSchemaKTable);
 
-    final ColumnName rightCriteriaColumn =
-        getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_NAME);
+    final ColumnRef rightCriteriaColumn =
+        getNonKeyColumn(RIGHT_SOURCE_SCHEMA, RIGHT_ALIAS, RIGHT_JOIN_FIELD_REF);
 
     final JoinNode joinNode = new JoinNode(
         nodeId,
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
         rightCriteriaColumn,
         Optional.empty()
     );
@@ -742,9 +744,9 @@ public class JoinNodeTest {
     expectedException.expectMessage(String.format(
         "Source table (%s) key column (%s) is not the column used in the join criteria (%s). "
             + "Only the table's key column or 'ROWKEY' is supported in the join criteria.",
-        RIGHT_ALIAS.name(),
-        RIGHT_JOIN_FIELD_NAME.name(),
-        rightCriteriaColumn.name()
+        RIGHT_ALIAS.toString(FormatOptions.noEscape()),
+        RIGHT_JOIN_FIELD_REF.toString(FormatOptions.noEscape()),
+        rightCriteriaColumn.toString(FormatOptions.noEscape())
     ));
 
     // When:
@@ -762,8 +764,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.INNER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -789,8 +791,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -816,8 +818,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -845,8 +847,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.of(withinExpression)
     );
 
@@ -868,8 +870,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         Optional.empty()
     );
 
@@ -898,8 +900,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.OUTER,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         WITHIN_EXPRESSION
     );
 
@@ -908,7 +910,7 @@ public class JoinNodeTest {
 
     // Then:
     verify(leftSchemaKStream).selectKey(
-        eq(LEFT_JOIN_FIELD_NAME),
+        eq(LEFT_JOIN_FIELD_REF),
         anyBoolean(),
         any()
     );
@@ -925,8 +927,8 @@ public class JoinNodeTest {
         JoinNode.JoinType.LEFT,
         left,
         right,
-        LEFT_JOIN_FIELD_NAME,
-        RIGHT_JOIN_FIELD_NAME,
+        LEFT_JOIN_FIELD_REF,
+        RIGHT_JOIN_FIELD_REF,
         WITHIN_EXPRESSION
     );
 
@@ -952,7 +954,7 @@ public class JoinNodeTest {
   private void setupTable(
       final DataSourceNode node,
       final SchemaKTable table,
-      final Optional<String> keyFieldName
+      final Optional<ColumnRef> keyFieldName
   ) {
     setupTable(node, table);
 
@@ -960,9 +962,9 @@ public class JoinNodeTest {
 
     final Optional<LegacyField> keyField = keyFieldName
         .map(key -> schema.findValueColumn(key).orElseThrow(AssertionError::new))
-        .map(field -> LegacyField.of(ColumnName.of(field.fullName()), field.type()));
+        .map(field -> LegacyField.of(field.ref(), field.type()));
 
-    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName.map(ColumnName::of), keyField));
+    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
   }
 
   @SuppressWarnings("unchecked")
@@ -1038,30 +1040,29 @@ public class JoinNodeTest {
         .thenReturn(new TopicDescription("test2", false, tablePartitionInfoList));
   }
 
-  private static Optional<ColumnName> getColumn(final LogicalSchema schema, final Predicate<ColumnName> filter) {
+  private static Optional<Column> getColumn(final LogicalSchema schema, final Predicate<ColumnName> filter) {
     return schema.value().stream()
-        .map(Column::name)
-        .filter(filter)
+        .filter(col -> filter.test(col.name()))
         .findFirst();
   }
 
-  private static ColumnName getNonKeyColumn(
+  private static ColumnRef getNonKeyColumn(
       final LogicalSchema schema,
       final SourceName alias,
-      final ColumnName keyName
+      final ColumnRef keyName
   ) {
     final ImmutableList<ColumnName> blackList = ImmutableList.of(
         SchemaUtil.ROWKEY_NAME,
         SchemaUtil.ROWTIME_NAME,
-        ColumnName.of(SchemaUtil.getFieldNameWithNoAlias(keyName.name()))
+        keyName.name()
     );
 
-    final ColumnName column =
+    final Column column =
         getColumn(schema, s -> !blackList.contains(s))
             .orElseThrow(AssertionError::new);
 
-    final Column field = schema.findValueColumn(column).get();
-    return ColumnName.of(SchemaUtil.buildAliasedFieldName(alias.name(), field.name().name()));
+    final Column field = schema.findValueColumn(column.ref()).get();
+    return ColumnRef.of(alias, field.name());
   }
 
   @SuppressWarnings("unchecked")

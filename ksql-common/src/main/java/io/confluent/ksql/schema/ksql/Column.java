@@ -37,7 +37,16 @@ public final class Column {
    * @return the immutable field.
    */
   public static Column of(final ColumnName name, final SqlType type) {
-    return new Column(ColumnRef.of(name), type);
+    return new Column(ColumnRef.withoutSource(name), type);
+  }
+
+  /**
+   * @param ref  the column reference
+   * @param type the type of the column
+   * @return the immutable column
+   */
+  public static Column of(final ColumnRef ref, final SqlType type) {
+    return new Column(ref, type);
   }
 
   /**
@@ -70,17 +79,10 @@ public final class Column {
   }
 
   /**
-   * @return the fully qualified field name.
-   */
-  public String fullName() {
-    return ref.aliasedFieldName();
-  }
-
-  /**
    * @return the source of the Column
    */
   public Optional<SourceName> source() {
-    return ref.qualifier();
+    return ref.source();
   }
 
   /**
@@ -98,6 +100,13 @@ public final class Column {
   }
 
   /**
+   * @return the column reference
+   */
+  public ColumnRef ref() {
+    return ref;
+  }
+
+  /**
    * Create a new Field that matches the current, but with the supplied {@code source}.
    *
    * @param source the source to set of the new field.
@@ -105,6 +114,21 @@ public final class Column {
    */
   public Column withSource(final SourceName source) {
     return new Column(ref.withSource(source), type);
+  }
+
+  /**
+   * A column {@code matches} a column reference if the names match
+   * and either the reference does not specify a source, or the specified
+   * source matches.
+   *
+   * @param ref the reference to check
+   * @return whether or not {@code ref} matches this instance
+   */
+  public boolean matches(final ColumnRef ref) {
+    return ref.name().equals(this.ref.name())
+        && (!source().isPresent()
+        || !ref.source().isPresent()
+        || ref.source().equals(this.ref.source()));
   }
 
   @Override

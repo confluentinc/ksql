@@ -51,7 +51,7 @@ public class UdafUtilTest {
       .build();
   private static final FunctionCall FUNCTION_CALL = new FunctionCall(
       FunctionName.of("AGG"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("BAR")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("BAR"))))
   );
 
   @Mock

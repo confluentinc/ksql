@@ -31,7 +31,9 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.DefaultSqlValueCoercer;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -317,28 +319,29 @@ public class StubValuesExecutor {
       final Map<ColumnName, Object> values,
       final KeyField keyField
   ) {
-    final Optional<ColumnName> keyFieldName = keyField.name();
+    final Optional<ColumnRef> keyFieldName = keyField.ref();
     if (keyFieldName.isPresent()) {
-      final ColumnName key = keyFieldName.get();
-      final Object keyValue = values.get(key);
+      final ColumnRef key = keyFieldName.get();
+      final Object keyValue = values.get(key.name());
       final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
 
       if (keyValue != null ^ rowKeyValue != null) {
         if (keyValue == null) {
-          values.put(key, rowKeyValue);
+          values.put(key.name(), rowKeyValue);
         } else {
           values.put(SchemaUtil.ROWKEY_NAME, keyValue.toString());
         }
       } else if (keyValue != null && !Objects.equals(keyValue.toString(), rowKeyValue)) {
         throw new KsqlException(String.format(
             "Expected ROWKEY and %s to match but got %s and %s respectively.",
-            key.name(), rowKeyValue, keyValue));
+            key.toString(FormatOptions.noEscape()), rowKeyValue, keyValue));
       }
     }
   }
 
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
-    return schema.findColumn(column)
+    return schema
+        .findColumn(ColumnRef.withoutSource(column))
         .map(Column::type)
         .orElseThrow(IllegalStateException::new);
   }

@@ -91,11 +91,11 @@ public class TableAggregateBuilderTest {
   );
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("ARGUMENT0")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT0"))))
   );
   private static final FunctionCall AGG1 = new FunctionCall(
       FunctionName.of("AGG1"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("ARGUMENT1")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT1"))))
   );
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
   private static final QueryContext CTX =

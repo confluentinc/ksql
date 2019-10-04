@@ -27,6 +27,7 @@ import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -339,7 +340,7 @@ public class UdfLoader {
                               classLevelAnnotation),
         javaReturnSchema,
         parameters,
-        functionName,
+        FunctionName.of(functionName.toUpperCase()),
         udfClass,
         ksqlConfig -> {
           final Object actualUdf = instantiateUdfClass(method, classLevelAnnotation);

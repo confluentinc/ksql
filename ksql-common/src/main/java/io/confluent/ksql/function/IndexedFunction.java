@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.name.FunctionName;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
@@ -27,7 +28,7 @@ public interface IndexedFunction {
   /**
    * @return the function name
    */
-  String getFunctionName();
+  FunctionName getFunctionName();
 
   /**
    * @return the schemas for the parameters

@@ -38,6 +38,8 @@ import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.PlanNodeId;
 import io.confluent.ksql.planner.plan.ProjectNode;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -104,13 +106,13 @@ public class LogicalPlanner {
 
     final Into intoDataSource = analysis.getInto().get();
 
-    final Optional<ColumnName> partitionByField = analysis.getPartitionBy();
+    final Optional<ColumnRef> partitionByField = analysis.getPartitionBy();
 
     partitionByField.ifPresent(keyName ->
         inputSchema.findValueColumn(keyName)
             .orElseThrow(() -> new KsqlException(
-                "Column " + keyName.name() + " does not exist in the result schema. "
-                    + "Error in Partition By clause.")
+                "Column " + keyName.name().toString(FormatOptions.noEscape())
+                    + " does not exist in the result schema. Error in Partition By clause.")
             ));
 
     final KeyField keyField = buildOutputKeyField(sourcePlanNode);
@@ -135,19 +137,19 @@ public class LogicalPlanner {
   ) {
     final KeyField sourceKeyField = sourcePlanNode.getKeyField();
 
-    final Optional<ColumnName> partitionByField = analysis.getPartitionBy();
+    final Optional<ColumnRef> partitionByField = analysis.getPartitionBy();
     if (!partitionByField.isPresent()) {
       return sourceKeyField;
     }
 
-    final ColumnName partitionBy = partitionByField.get();
+    final ColumnRef partitionBy = partitionByField.get();
     final LogicalSchema schema = sourcePlanNode.getSchema();
 
-    if (schema.isMetaColumn(partitionBy)) {
+    if (schema.isMetaColumn(partitionBy.name())) {
       return sourceKeyField.withName(Optional.empty());
     }
 
-    if (schema.isKeyColumn(partitionBy)) {
+    if (schema.isKeyColumn(partitionBy.name())) {
       return sourceKeyField;
     }
 
@@ -181,7 +183,7 @@ public class LogicalPlanner {
         new PlanNodeId("Aggregate"),
         sourcePlanNode,
         schema,
-        keyFieldName,
+        keyFieldName.map(ColumnRef::withoutSource),
         analysis.getGroupByExpressions(),
         analysis.getWindowExpression(),
         aggregateAnalysis.getAggregateFunctionArguments(),
@@ -193,25 +195,23 @@ public class LogicalPlanner {
   }
 
   private ProjectNode buildProjectNode(final PlanNode sourcePlanNode) {
-    final ColumnName sourceKeyFieldName = sourcePlanNode
+    final ColumnRef sourceKeyFieldName = sourcePlanNode
         .getKeyField()
-        .name()
+        .ref()
         .orElse(null);
 
     final LogicalSchema schema = buildProjectionSchema(sourcePlanNode);
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression instanceof ColumnReferenceExp
-            && sourceKeyFieldName != null
-            && ((ColumnReferenceExp) expression).getReference().aliasedFieldName()
-            .equals(sourceKeyFieldName.name())
+            && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName)
     );
 
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
         schema,
-        keyFieldName,
+        keyFieldName.map(ColumnRef::withoutSource),
         analysis.getSelectExpressions()
     );
   }
@@ -281,8 +281,8 @@ public class LogicalPlanner {
     for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
       final SelectExpression select = analysis.getSelectExpressions().get(i);
 
-      if (matcher.apply(select.getExpression(), select.getName())) {
-        return Optional.of(select.getName());
+      if (matcher.apply(select.getExpression(), select.getAlias())) {
+        return Optional.of(select.getAlias());
       }
     }
 
@@ -309,7 +309,7 @@ public class LogicalPlanner {
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(select.getExpression());
 
-      builder.valueColumn(select.getName(), expressionType);
+      builder.valueColumn(select.getAlias(), expressionType);
     }
 
     return builder.build();

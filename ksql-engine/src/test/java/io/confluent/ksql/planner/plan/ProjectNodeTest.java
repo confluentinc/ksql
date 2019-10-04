@@ -34,6 +34,7 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -59,7 +60,9 @@ public class ProjectNodeTest {
       .valueColumn(ColumnName.of("col1"), SqlTypes.STRING)
       .build();
   private static final KeyField SOURCE_KEY_FIELD = KeyField
-      .of(ColumnName.of("source-key"), Column.of(ColumnName.of("legacy-source-key"), SqlTypes.STRING));
+      .of(
+          ColumnRef.withoutSource(ColumnName.of("source-key")),
+          Column.of(ColumnName.of("legacy-source-key"), SqlTypes.STRING));
 
   @Mock
   private PlanNode source;
@@ -85,7 +88,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))),
         ImmutableList.of(SELECT_0, SELECT_1));
   }
 
@@ -95,7 +98,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))),
         ImmutableList.of(SELECT_0)); // <-- not enough expressions
   }
 
@@ -105,7 +108,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnName.of(KEY_FIELD_NAME)),
+        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))),
         ImmutableList.of(
             SelectExpression.of(ColumnName.of("wrongName"), TRUE_EXPRESSION),
             SELECT_1
@@ -141,7 +144,7 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnName.of("Unknown Key Field")),
+        Optional.of(ColumnRef.withoutSource(ColumnName.of("Unknown Key Field"))),
         ImmutableList.of(SELECT_0, SELECT_1));
   }
 
@@ -151,7 +154,7 @@ public class ProjectNodeTest {
     final KeyField keyField = projectNode.getKeyField();
 
     // Then:
-    assertThat(keyField.name(), is(Optional.of(ColumnName.of(KEY_FIELD_NAME))));
+    assertThat(keyField.ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME)))));
     assertThat(keyField.legacy(), is(SOURCE_KEY_FIELD.legacy()));
   }
 }

@@ -31,4 +31,16 @@ public final class KsqlPreconditions {
     }
   }
 
+  /**
+   * Ensures the truth of an expression involving one or more parameters to the calling method.
+   *
+   * @param expression a boolean expression
+   * @throws KsqlServerException if {@code expression} is false
+   */
+  public static void checkServerCondition(final boolean expression, final String message) {
+    if (!expression) {
+      throw new KsqlServerException(message);
+    }
+  }
+
 }

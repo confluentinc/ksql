@@ -39,7 +39,7 @@ public class KsqlBareOutputNode extends OutputNode {
       final TimestampExtractionPolicy extractionPolicy
   ) {
     super(id, source, schema, limit, extractionPolicy);
-    this.keyField = KeyField.of(source.getKeyField().name(), Optional.empty())
+    this.keyField = KeyField.of(source.getKeyField().ref(), Optional.empty())
         .validateKeyExistsIn(schema);
   }
 

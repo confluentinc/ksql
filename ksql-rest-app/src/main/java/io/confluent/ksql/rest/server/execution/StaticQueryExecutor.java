@@ -596,10 +596,10 @@ public final class StaticQueryExecutor {
       final SelectExpression select = analysis.getSelectExpressions().get(idx);
       final SqlType type = expressionTypeManager.getExpressionSqlType(select.getExpression());
 
-      if (input.schema.isKeyColumn(select.getName())) {
-        schemaBuilder.keyColumn(select.getName(), type);
+      if (input.schema.isKeyColumn(select.getAlias())) {
+        schemaBuilder.keyColumn(select.getAlias(), type);
       } else {
-        schemaBuilder.valueColumn(select.getName(), type);
+        schemaBuilder.valueColumn(select.getAlias(), type);
       }
     }
     return schemaBuilder;

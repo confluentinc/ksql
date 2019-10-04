@@ -21,6 +21,7 @@ import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -142,11 +143,16 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, Optional.of(timestamp), Optional.empty());
+        .create(
+            ksqlConfig,
+            schema,
+            Optional.of(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))),
+            Optional.empty());
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
-    assertThat(result.timestampField(), equalTo(timestamp.toUpperCase()));
+    assertThat(result.timestampField(),
+        equalTo(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))));
   }
 
   @Test
@@ -159,7 +165,7 @@ public class TimestampExtractionPolicyFactoryTest {
         .create(
             ksqlConfig,
             schemaBuilder2.build(),
-            Optional.of("whateva"),
+            Optional.of(ColumnRef.withoutSource(ColumnName.of("whateva"))),
             Optional.empty()
         );
   }
@@ -174,11 +180,16 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     final TimestampExtractionPolicy result = TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, Optional.of(field), Optional.of("yyyy-MM-DD"));
+        .create(
+            ksqlConfig,
+            schema,
+            Optional.of(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))),
+            Optional.of("yyyy-MM-DD"));
 
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
-    assertThat(result.timestampField(), equalTo(field.toUpperCase()));
+    assertThat(result.timestampField(),
+        equalTo(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))));
   }
 
   @Test
@@ -194,7 +205,11 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, Optional.of(field), Optional.empty());
+        .create(
+            ksqlConfig,
+            schema,
+            Optional.of(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))),
+            Optional.empty());
   }
 
   @Test
@@ -210,7 +225,10 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, Optional.of(timestamp), Optional.of("b"));
+        .create(ksqlConfig,
+            schema,
+            Optional.of(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))),
+            Optional.of("b"));
   }
 
   @Test
@@ -226,6 +244,9 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // When:
     TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, Optional.of(field), Optional.empty());
+        .create(ksqlConfig,
+            schema,
+            Optional.of(ColumnRef.withoutSource(ColumnName.of(field))),
+            Optional.empty());
   }
 }

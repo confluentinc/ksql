@@ -371,7 +371,7 @@ public class AggregateNodeTest {
         + "GROUP BY UCASE(col1) EMIT CHANGES;");
 
     // Then:
-    assertThat(stream.getKeyField().name(), is(Optional.empty()));
+    assertThat(stream.getKeyField().ref(), is(Optional.empty()));
     assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("UCASE(KSQL_INTERNAL_COL_0)")));
   }
 
@@ -382,7 +382,7 @@ public class AggregateNodeTest {
         + "GROUP BY col0 + 10 EMIT CHANGES;");
 
     // Then:
-    assertThat(stream.getKeyField().name(), is(Optional.empty()));
+    assertThat(stream.getKeyField().ref(), is(Optional.empty()));
     assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("(KSQL_INTERNAL_COL_0 + 10)")));
   }
 

@@ -17,7 +17,6 @@ package io.confluent.ksql.schema.ksql;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
@@ -110,61 +109,37 @@ public final class LogicalSchema {
   }
 
   /**
-   * Search for a column with the supplied {@code columnName}.
+   * Search for a column with the supplied {@code target}.
    *
-   * <p>If the columnName and the name of a column are an exact match, it will return that column.
-   *
-   * <p>If not exact match is found, any alias is stripped from the supplied  {@code columnName}
-   * before attempting to find a match again.
-   *
-   * <p>Search order if meta, then key and then value columns.
-   *
-   * @param columnName the column name, where any alias is ignored.
+   * @param target the column name, where any alias is ignored.
    * @return the column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findColumn(final ColumnName columnName) {
-    return findNamespacedColumn(withName(columnName))
+  public Optional<Column> findColumn(final ColumnRef target) {
+    return findNamespacedColumn(thatMatches(target))
         .map(NamespacedColumn::column);
   }
 
   /**
-   * Search for a value column with the supplied {@code columnName}.
+   * Search for a value column with the supplied {@code target}.
    *
-   * <p>If the columnName and the name of a column are an exact match, it will return that column.
-   *
-   * <p>If not exact match is found, any alias is stripped from the supplied  {@code columnName}
-   * before attempting to find a match again.
-   *
-   * @param columnName the column name, where any alias is ignored.
+   * @param target the column name, where any alias is ignored.
    * @return the value column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findValueColumn(final ColumnName columnName) {
-    return findValueColumn(columnName.name());
-  }
-
-  /**
-   * @see #findValueColumn(ColumnName)
-   */
-  public Optional<Column> findValueColumn(final String columnName) {
-    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(withLaxName(columnName)))
+  public Optional<Column> findValueColumn(final ColumnRef target) {
+    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(thatMatches(target)))
         .map(NamespacedColumn::column);
   }
 
   /**
-   * Find the index of the column with the supplied exact {@code fullColumnName}.
+   * Find the index of the column with the supplied exact {@code target}.
    *
-   * @param fullColumnName the exact name of the column to get the index of.
+   * @param target the exact name of the column to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
-  public OptionalInt valueColumnIndex(final ColumnName fullColumnName) {
-    return valueColumnIndex(fullColumnName.name());
-  }
-
-  @VisibleForTesting
-  public OptionalInt valueColumnIndex(final String fullColumnName) {
+  public OptionalInt valueColumnIndex(final ColumnRef target) {
     int idx = 0;
     for (final Column column : value()) {
-      if (column.fullName().equals(fullColumnName)) {
+      if (column.matches(target)) {
         return OptionalInt.of(idx);
       }
       ++idx;
@@ -337,23 +312,23 @@ public final class LogicalSchema {
     value.stream()
         .filter(c -> !findNamespacedColumn(
             (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
-                .and(withName(c.column().name()))
+                .and(thatMatches(c.column().ref()))
             )).isPresent())
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());
   }
 
+  private static Predicate<NamespacedColumn> thatMatches(final ColumnRef ref) {
+    return c -> c.column().matches(ref);
+  }
+
   private static Predicate<NamespacedColumn> withName(final ColumnName name) {
-    return c -> c.column().name().equals(name);
+    return c -> c.column().matches(ColumnRef.withoutSource(name));
   }
 
   private static Predicate<NamespacedColumn> withNamespace(final Namespace ns) {
     return c -> c.namespace() == ns;
-  }
-
-  private static Predicate<NamespacedColumn> withLaxName(final String name) {
-    return c -> SchemaUtil.isFieldName(name, c.column().fullName());
   }
 
   private static ConnectSchema toConnectSchema(
@@ -364,7 +339,7 @@ public final class LogicalSchema {
     final SchemaBuilder builder = SchemaBuilder.struct();
     for (final Column column : columns) {
       final Schema colSchema = converter.toConnectSchema(column.type());
-      builder.field(column.fullName(), colSchema);
+      builder.field(column.ref().aliasedFieldName(), colSchema);
     }
 
     return (ConnectSchema) builder.build();
@@ -374,8 +349,8 @@ public final class LogicalSchema {
 
     private final ImmutableList.Builder<NamespacedColumn> explicitColumns = ImmutableList.builder();
 
-    private final Set<String> seenKeys = new HashSet<>();
-    private final Set<String> seenValues = new HashSet<>();
+    private final Set<ColumnRef> seenKeys = new HashSet<>();
+    private final Set<ColumnRef> seenValues = new HashSet<>();
 
     private boolean addImplicitRowKey = true;
     private boolean addImplicitRowTime = true;
@@ -392,7 +367,7 @@ public final class LogicalSchema {
     }
 
     public Builder keyColumn(final Column column) {
-      if (!seenKeys.add(column.fullName())) {
+      if (!seenKeys.add(column.ref())) {
         throw new KsqlException("Duplicate keys found in schema: " + column);
       }
       explicitColumns.add(NamespacedColumn.of(column, Namespace.KEY));
@@ -416,7 +391,7 @@ public final class LogicalSchema {
     }
 
     public Builder valueColumn(final Column column) {
-      if (!seenValues.add(column.fullName())) {
+      if (!seenValues.add(column.ref())) {
         throw new KsqlException("Duplicate values found in schema: " + column);
       }
       explicitColumns.add(NamespacedColumn.of(column, Namespace.VALUE));

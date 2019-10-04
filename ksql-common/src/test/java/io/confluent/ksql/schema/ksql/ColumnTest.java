@@ -43,6 +43,7 @@ public class ColumnTest {
         .setDefault(SqlType.class, SqlTypes.BIGINT)
         .setDefault(ColumnName.class, SOME_NAME)
         .setDefault(SourceName.class, SOME_SOURCE)
+        .setDefault(ColumnRef.class, ColumnRef.of(SOME_SOURCE, SOME_NAME))
         .testAllPublicStaticMethods(Column.class);
   }
 
@@ -73,15 +74,6 @@ public class ColumnTest {
 
     assertThat(Column.of(SOME_SOURCE, SOME_NAME, SqlTypes.BOOLEAN).name(),
         is(SOME_NAME));
-  }
-
-  @Test
-  public void shouldReturnFullName() {
-    assertThat(Column.of(SOME_NAME, SqlTypes.BOOLEAN).fullName(),
-        is("SomeName"));
-
-    assertThat(Column.of(SOME_SOURCE, SOME_NAME, SqlTypes.BOOLEAN).fullName(),
-        is("SomeSource.SomeName"));
   }
 
   @Test

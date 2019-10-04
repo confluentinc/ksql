@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -163,7 +164,7 @@ public class StreamSourceBuilderTest {
     when(consumed.withOffsetResetPolicy(any())).thenReturn(consumed);
     when(consumed.withTimestampExtractor(any())).thenReturn(consumed);
     when(extractionPolicy.create(anyInt())).thenReturn(extractor);
-    when(extractionPolicy.timestampField()).thenReturn("field2");
+    when(extractionPolicy.timestampField()).thenReturn(ColumnRef.withoutSource(ColumnName.of("field2")));
     when(queryBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
     when(streamsBuilder.stream(anyString(), any(Consumed.class))).thenReturn(kStream);
     when(kStream.mapValues(any(ValueMapperWithKey.class))).thenReturn(kStream);

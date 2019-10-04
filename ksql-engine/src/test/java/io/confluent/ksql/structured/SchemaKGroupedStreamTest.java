@@ -75,7 +75,7 @@ public class SchemaKGroupedStreamTest {
       .build();
   private static final FunctionCall AGG = new FunctionCall(
       FunctionName.of("SUM"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of(ColumnName.of("IN1"))))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("IN1"))))
   );
   private static final KsqlWindowExpression KSQL_WINDOW_EXP = new SessionWindowExpression(
       100, TimeUnit.SECONDS

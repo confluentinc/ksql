@@ -46,20 +46,20 @@ public class AggregateParamsTest {
       .build();
   private static final FunctionCall AGG0 = new FunctionCall(
       FunctionName.of("AGG0"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("ARGUMENT0")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT0"))))
   );
   private static final long INITIAL_VALUE0 = 123;
   private static final FunctionCall AGG1 = new FunctionCall(
       FunctionName.of("AGG1"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("ARGUMENT1")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT1"))))
   );
   private static final FunctionCall TABLE_AGG = new FunctionCall(
       FunctionName.of("TABLE_AGG"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("ARGUMENT0")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT0"))))
   );
   private static final FunctionCall WINDOW_START = new FunctionCall(
       FunctionName.of("WindowStart"),
-      ImmutableList.of(new ColumnReferenceExp(ColumnRef.of("ARGUMENT0")))
+      ImmutableList.of(new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("ARGUMENT0"))))
   );
   private static final String INITIAL_VALUE1 = "initial";
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
@@ -90,11 +90,11 @@ public class AggregateParamsTest {
   public void init() {
     when(functionRegistry.getAggregate(same(AGG0.getName().name()), any())).thenReturn(agg0);
     when(agg0Resolved.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(agg0Resolved.getFunctionName()).thenReturn(AGG0.getName().name());
+    when(agg0Resolved.getFunctionName()).thenReturn(AGG0.getName());
     when(agg0.getInstance(any())).thenReturn(agg0Resolved);
     when(functionRegistry.getAggregate(same(AGG1.getName().name()), any())).thenReturn(agg1);
     when(agg1Resolved.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
-    when(agg1Resolved.getFunctionName()).thenReturn(AGG1.getName().name());
+    when(agg1Resolved.getFunctionName()).thenReturn(AGG1.getName());
     when(agg1.getInstance(any())).thenReturn(agg1Resolved);
     when(functionRegistry.getAggregate(same(TABLE_AGG.getName().name()), any()))
         .thenReturn(tableAgg);
@@ -104,7 +104,7 @@ public class AggregateParamsTest {
         .thenReturn(windowStart);
     when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(windowStart.getInstance(any())).thenReturn(windowStart);
-    when(windowStart.getFunctionName()).thenReturn(WINDOW_START.getName().name());
+    when(windowStart.getFunctionName()).thenReturn(WINDOW_START.getName());
 
     when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
 

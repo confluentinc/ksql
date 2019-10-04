@@ -154,9 +154,9 @@ public class AnalyzerFunctionalTest {
     assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
     assertThat(selects.get(2).getExpression().toString(), is("TEST1.COL3"));
 
-    assertThat(selects.get(0).getName(), is(COL0));
-    assertThat(selects.get(1).getName(), is(COL2));
-    assertThat(selects.get(2).getName(), is(COL3));
+    assertThat(selects.get(0).getAlias(), is(COL0));
+    assertThat(selects.get(1).getAlias(), is(COL2));
+    assertThat(selects.get(2).getAlias(), is(COL3));
   }
 
   @Test
@@ -173,8 +173,8 @@ public class AnalyzerFunctionalTest {
     assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinField(), is(ColumnName.of("T1.COL1")));
-    assertThat(analysis.getJoin().get().getRightJoinField(), is(ColumnName.of("T2.COL1")));
+    assertThat(analysis.getJoin().get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1"))));
+    assertThat(analysis.getJoin().get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1"))));
 
     final List<String> selects = analysis.getSelectExpressions().stream()
         .map(SelectExpression::getExpression)
@@ -184,7 +184,7 @@ public class AnalyzerFunctionalTest {
     assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
 
     final List<ColumnName> aliases = analysis.getSelectExpressions().stream()
-        .map(SelectExpression::getName)
+        .map(SelectExpression::getAlias)
         .collect(Collectors.toList());
 
     assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
@@ -202,8 +202,8 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(join, is(not(Optional.empty())));
     assertThat(join.get().getType(), is(JoinType.LEFT));
-    assertThat(join.get().getLeftJoinField(), is(ColumnName.of("T1.ROWKEY")));
-    assertThat(join.get().getRightJoinField(), is(ColumnName.of("T2.ROWKEY")));
+    assertThat(join.get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("ROWKEY"))));
+    assertThat(join.get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"), ColumnName.of("ROWKEY"))));
   }
 
   @Test
@@ -318,7 +318,9 @@ public class AnalyzerFunctionalTest {
         SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.of(ColumnName.of("FIELD1"), schema.findValueColumn(ColumnName.of("FIELD1")).get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("FIELD1")),
+            schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("FIELD1"))).get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopic
     );

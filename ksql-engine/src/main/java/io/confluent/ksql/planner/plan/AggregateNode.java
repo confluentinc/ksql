@@ -92,7 +92,7 @@ public class AggregateNode extends PlanNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<ColumnName> keyFieldName,
+      final Optional<ColumnRef> keyFieldName,
       final List<Expression> groupByExpressions,
       final Optional<WindowExpression> windowExpression,
       final List<Expression> aggregateFunctionArguments,
@@ -116,7 +116,9 @@ public class AggregateNode extends PlanNode {
     this.finalSelectExpressions =
         requireNonNull(finalSelectExpressions, "finalSelectExpressions");
     this.havingExpressions = havingExpressions;
-    this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"), Optional.empty())
+    this.keyField = KeyField.of(
+        requireNonNull(keyFieldName, "keyFieldName"),
+        Optional.empty())
         .validateKeyExistsIn(schema);
   }
 
@@ -341,7 +343,7 @@ public class AggregateNode extends PlanNode {
   private static class InternalSchema {
 
     private final List<SelectExpression> aggArgExpansions = new ArrayList<>();
-    private final Map<String, String> expressionToInternalColumnName = new HashMap<>();
+    private final Map<String, ColumnName> expressionToInternalColumnName = new HashMap<>();
 
     InternalSchema(
         final List<ColumnReferenceExp> requiredColumns,
@@ -366,7 +368,7 @@ public class AggregateNode extends PlanNode {
 
         aggArgExpansions.add(SelectExpression.of(ColumnName.of(internalName), expression));
         expressionToInternalColumnName
-            .putIfAbsent(expression.toString(), internalName);
+            .putIfAbsent(expression.toString(), ColumnName.of(internalName));
       }
     }
 
@@ -389,7 +391,7 @@ public class AggregateNode extends PlanNode {
         final ColumnReferenceExp nameRef = (ColumnReferenceExp) e;
         return new ColumnReferenceExp(
             nameRef.getLocation(),
-            ColumnRef.of(nameRef.getReference().name())
+            ColumnRef.withoutSource(nameRef.getReference().name())
         );
       };
 
@@ -431,7 +433,7 @@ public class AggregateNode extends PlanNode {
       return finalSelectExpressions.stream()
           .map(finalSelectExpression -> {
             final Expression internal = resolveToInternal(finalSelectExpression.getExpression());
-            return SelectExpression.of(finalSelectExpression.getName(), internal);
+            return SelectExpression.of(finalSelectExpression.getAlias(), internal);
           })
           .collect(Collectors.toList());
     }
@@ -441,9 +443,11 @@ public class AggregateNode extends PlanNode {
     }
 
     private Expression resolveToInternal(final Expression exp) {
-      final String name = expressionToInternalColumnName.get(exp.toString());
+      final ColumnName name = expressionToInternalColumnName.get(exp.toString());
       if (name != null) {
-        return new ColumnReferenceExp(exp.getLocation(), ColumnRef.of(name));
+        return new ColumnReferenceExp(
+            exp.getLocation(),
+            ColumnRef.withoutSource(name));
       }
 
       return ExpressionTreeRewriter.rewriteWith(new ResolveToInternalRewriter()::process, exp);
@@ -460,15 +464,18 @@ public class AggregateNode extends PlanNode {
           final ColumnReferenceExp node,
           final Context<Void> context
       ) {
-        final String name = expressionToInternalColumnName.get(node.toString());
+        // internal names are source-less
+        final ColumnName name = expressionToInternalColumnName.get(node.toString());
         if (name != null) {
           return Optional.of(
-              new ColumnReferenceExp(node.getLocation(), ColumnRef.of(name)));
+              new ColumnReferenceExp(
+                  node.getLocation(),
+                  ColumnRef.withoutSource(name)));
         }
 
         final boolean isAggregate = node.getReference().name().isAggregate();
 
-        if (!isAggregate || node.getReference().qualifier().isPresent()) {
+        if (!isAggregate || node.getReference().source().isPresent()) {
           throw new KsqlException("Unknown source column: " + node.toString());
         }
 

@@ -163,7 +163,9 @@ class Analyzer {
 
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
-      sink.getPartitionBy().ifPresent(analysis::setPartitionBy);
+      sink.getPartitionBy()
+          .map(name -> ColumnRef.of(sink.getName(), name.name()))
+          .ifPresent(analysis::setPartitionBy);
 
       setSerdeOptions(sink);
 
@@ -254,7 +256,7 @@ class Analyzer {
       final List<SelectExpression> selects = analysis.getSelectExpressions();
 
       final List<ColumnName> columnNames = analysis.getSelectExpressions().stream()
-          .map(SelectExpression::getName)
+          .map(SelectExpression::getAlias)
           .collect(Collectors.toList());
 
       for (int idx = selects.size() - 1; idx >= 0; --idx) {
@@ -265,11 +267,11 @@ class Analyzer {
           continue;
         }
 
-        if (!sourceSchemas.matchesNonValueField(expression.toString())) {
+        if (!sourceSchemas.matchesNonValueField(((ColumnReferenceExp) expression).getReference())) {
           continue;
         }
 
-        final ColumnName columnName = select.getName();
+        final ColumnName columnName = select.getAlias();
         if (columnName.equals(SchemaUtil.ROWTIME_NAME)
             || columnName.equals(SchemaUtil.ROWKEY_NAME)) {
           columnNames.remove(idx);
@@ -373,13 +375,13 @@ class Analyzer {
         throw new KsqlException("Only equality join criteria is supported.");
       }
 
-      final ColumnName leftJoinField = getJoinFieldName(
+      final ColumnRef leftJoinField = getJoinFieldName(
           comparisonExpression,
           left.getAlias(),
           left.getDataSource().getSchema()
       );
 
-      final ColumnName rightJoinField = getJoinFieldName(
+      final ColumnRef rightJoinField = getJoinFieldName(
           comparisonExpression,
           right.getAlias(),
           right.getDataSource().getSchema()
@@ -431,7 +433,7 @@ class Analyzer {
       return (ColumnReferenceExp) subExpression;
     }
 
-    private ColumnName getJoinFieldName(
+    private ColumnRef getJoinFieldName(
         final ComparisonExpression comparisonExpression,
         final SourceName sourceAlias,
         final LogicalSchema sourceSchema
@@ -439,7 +441,7 @@ class Analyzer {
       final ColumnReferenceExp left =
           checkExpressionType(comparisonExpression, comparisonExpression.getLeft());
 
-      Optional<ColumnName> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
+      Optional<ColumnRef> joinFieldName = getJoinFieldNameFromExpr(left, sourceAlias);
 
       if (!joinFieldName.isPresent()) {
         final ColumnReferenceExp right =
@@ -453,9 +455,9 @@ class Analyzer {
         }
       }
 
-      final ColumnName fieldName = joinFieldName.get();
+      final ColumnRef fieldName = joinFieldName.get();
 
-      final Optional<ColumnName> joinField =
+      final Optional<ColumnRef> joinField =
           getJoinFieldNameFromSource(fieldName, sourceAlias, sourceSchema);
 
       return joinField
@@ -465,32 +467,32 @@ class Analyzer {
                   comparisonExpression.getLocation().map(Objects::toString).orElse(""),
                   comparisonExpression,
                   sourceAlias.name(),
-                  fieldName.name()
+                  fieldName.name().toString(FormatOptions.noEscape())
               )
           ));
     }
 
-    private Optional<ColumnName> getJoinFieldNameFromExpr(
+    private Optional<ColumnRef> getJoinFieldNameFromExpr(
         final ColumnReferenceExp nameRef,
         final SourceName sourceAlias
     ) {
-      if (nameRef.getReference().qualifier().isPresent()
-          && !nameRef.getReference().qualifier().get().equals(sourceAlias)) {
+      if (nameRef.getReference().source().isPresent()
+          && !nameRef.getReference().source().get().equals(sourceAlias)) {
         return Optional.empty();
       }
 
-      final ColumnName fieldName = nameRef.getReference().name();
+      final ColumnRef fieldName = nameRef.getReference();
       return Optional.of(fieldName);
     }
 
-    private Optional<ColumnName> getJoinFieldNameFromSource(
-        final ColumnName fieldName,
+    private Optional<ColumnRef> getJoinFieldNameFromSource(
+        final ColumnRef fieldName,
         final SourceName sourceAlias,
         final LogicalSchema sourceSchema
     ) {
       return sourceSchema.findColumn(fieldName)
-          .map(field -> SchemaUtil.buildAliasedFieldName(sourceAlias.name(), field.name().name()))
-          .map(ColumnName::of);
+          .map(Column::ref)
+          .map(ref -> ref.withSource(sourceAlias));
     }
 
     @Override

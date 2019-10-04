@@ -30,6 +30,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Optional;
@@ -120,12 +121,14 @@ public class DdlCommandExec {
         final LogicalSchema schema
     ) {
       if (keyFieldName.isPresent()) {
-        final Column keyColumn = schema.findValueColumn(keyFieldName.get())
+        final Column keyColumn = schema.findValueColumn(
+            // for DDL commands, the key name is never specified with a source
+            ColumnRef.withoutSource(keyFieldName.get()))
             .orElseThrow(() -> new IllegalStateException(
                 "The KEY column set in the WITH clause does not exist in the schema: '"
                     + keyFieldName + "'"
             ));
-        return KeyField.of(keyFieldName.get(), keyColumn);
+        return KeyField.of(ColumnRef.withoutSource(keyFieldName.get()), keyColumn);
       } else {
         return KeyField.none();
       }

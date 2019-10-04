@@ -213,7 +213,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetColumnByName() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(F0);
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnRef.withoutSource(F0));
 
     // Then:
     assertThat(result, is(Optional.of(Column.of(F0, SqlTypes.STRING))));
@@ -222,7 +222,9 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetColumnByAliasedName() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn("SomeAlias.f0");
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(
+        ColumnRef.of(SourceName.of("SomeAlias"), F0)
+    );
 
     // Then:
     assertThat(result, is(Optional.of(Column.of(F0, SqlTypes.STRING))));
@@ -231,16 +233,8 @@ public class LogicalSchemaTest {
   @Test
   public void shouldNotGetColumnByNameIfWrongCase() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(ColumnName.of("F0"));
-
-    // Then:
-    assertThat(result, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldNotGetColumnByNameIfColumnIsAliasedAndNameIsNot() {
-    // When:
-    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(F0);
+    final Optional<Column> result = SOME_SCHEMA.findValueColumn(
+        ColumnRef.withoutSource(ColumnName.of("F0")));
 
     // Then:
     assertThat(result, is(Optional.empty()));
@@ -249,7 +243,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetColumnByNameIfBothColumnAndNameAreAliased() {
     // When:
-    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn("bob.f0");
+    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(ColumnRef.of(SourceName.of("bob"), F0));
 
     // Then:
     assertThat(result, is(Optional.of(Column.of(BOB, F0, SqlTypes.STRING))));
@@ -257,76 +251,66 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldNotGetMetaColumnFromValue() {
-    assertThat(SOME_SCHEMA.findValueColumn("ROWTIME"), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(ColumnRef.withoutSource(ROWTIME_NAME)), is(Optional.empty()));
   }
 
   @Test
   public void shouldNotGetKeyColumnFromValue() {
-    assertThat(SOME_SCHEMA.findValueColumn(K0), is(Optional.empty()));
+    assertThat(SOME_SCHEMA.findValueColumn(ColumnRef.withoutSource(K0)), is(Optional.empty()));
   }
 
   @Test
   public void shouldGetMetaColumnFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn("ROWTIME"),
+    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(ColumnRef.withoutSource(ROWTIME_NAME)),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetKeyColumnFromValueIfAdded() {
-    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(K0),
+    assertThat(SOME_SCHEMA.withMetaAndKeyColsInValue().findValueColumn(ColumnRef.withoutSource(K0)),
         is(not(Optional.empty())));
   }
 
   @Test
   public void shouldGetMetaFields() {
-    assertThat(SOME_SCHEMA.findColumn(ROWTIME_NAME), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)), is(Optional.of(
         Column.of(ROWTIME_NAME, SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldGetKeyColumns() {
-    assertThat(SOME_SCHEMA.findColumn(K0), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(K0)), is(Optional.of(
         Column.of(K0, SqlTypes.BIGINT)
     )));
   }
 
   @Test
   public void shouldGetValueColumns() {
-    assertThat(SOME_SCHEMA.findColumn(F0), is(Optional.of(
+    assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(F0)), is(Optional.of(
         Column.of(F0, SqlTypes.STRING)
     )));
   }
 
   @Test
   public void shouldGetColumnIndex() {
-    assertThat(SOME_SCHEMA.valueColumnIndex(F0), is(OptionalInt.of(0)));
-    assertThat(SOME_SCHEMA.valueColumnIndex(F1), is(OptionalInt.of(1)));
+    assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(F0)), is(OptionalInt.of(0)));
+    assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(F1)), is(OptionalInt.of(1)));
   }
 
   @Test
   public void shouldReturnMinusOneForIndexIfColumnNotFound() {
-    assertThat(SOME_SCHEMA.valueColumnIndex("wontfindme"), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(ColumnName.of("wontfindme"))), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldNotFindColumnIfDifferentCase() {
-    assertThat(SOME_SCHEMA.valueColumnIndex(ColumnName.of("F0")), is(OptionalInt.empty()));
+    assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(ColumnName.of("F0"))), is(OptionalInt.empty()));
   }
 
   @Test
   public void shouldGetAliasedColumnIndex() {
-    assertThat(ALIASED_SCHEMA.valueColumnIndex("bob.f1"), is(OptionalInt.of(1)));
-  }
-
-  @Test
-  public void shouldNotFindUnaliasedColumnIndexInAliasedSchema() {
-    assertThat(ALIASED_SCHEMA.valueColumnIndex(F1), is(OptionalInt.empty()));
-  }
-
-  @Test
-  public void shouldNotFindAliasedColumnIndexInUnaliasedSchema() {
-    assertThat(SOME_SCHEMA.valueColumnIndex("bob.f1"), is(OptionalInt.empty()));
+    assertThat(ALIASED_SCHEMA.valueColumnIndex(ColumnRef.of(SourceName.of("bob"), F1)), is(OptionalInt.of(1)));
   }
 
   @Test
@@ -580,9 +564,11 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result.value(), hasSize(schema.value().size() + 2));
-    assertThat(result.value().get(0).fullName(), is("bob." + SchemaUtil.ROWTIME_NAME.name()));
+    assertThat(result.value().get(0).source().get(), is(SourceName.of("bob")));
+    assertThat(result.value().get(0).name(), is(ROWTIME_NAME));
     assertThat(result.value().get(0).type(), is(SqlTypes.BIGINT));
-    assertThat(result.value().get(1).fullName(), is("bob." + SchemaUtil.ROWKEY_NAME.name()));
+    assertThat(result.value().get(1).source().get(), is(SourceName.of("bob")));
+    assertThat(result.value().get(1).name(), is(ROWKEY_NAME));
     assertThat(result.value().get(1).type(), is(SqlTypes.STRING));
   }
 

@@ -37,7 +37,7 @@ public final class StreamSelectKeyBuilder {
     final LogicalSchema sourceSchema = selectKey.getSources().get(0).getProperties().getSchema();
     final Column keyColumn = sourceSchema.findValueColumn(selectKey.getFieldName())
         .orElseThrow(IllegalArgumentException::new);
-    final int keyIndexInValue = sourceSchema.valueColumnIndex(keyColumn.fullName())
+    final int keyIndexInValue = sourceSchema.valueColumnIndex(keyColumn.ref())
         .orElseThrow(IllegalStateException::new);
     final boolean updateRowKey = selectKey.isUpdateRowKey();
     final KStream<?, GenericRow> kstream = stream.getStream();

@@ -20,12 +20,17 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Literal;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.ConfigMetaData;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.AbstractConfig;
@@ -67,6 +72,25 @@ final class PropertiesConfig extends AbstractConfig {
 
   public Map<String, Literal> copyOfOriginalLiterals() {
     return new HashMap<>(originalLiterals);
+  }
+
+  public Optional<ColumnRef> getTimestampColumn() {
+    // this does not yet support quoted identifiers and assumes that all
+    // timestamps columns are unquoted (i.e. upper-cased in the schema)
+    final String timestampCol = getString(CommonCreateConfigs.TIMESTAMP_NAME_PROPERTY);
+    if (timestampCol == null) {
+      return Optional.empty();
+    }
+
+    final String[] split = timestampCol.toUpperCase().split("\\.", 2);
+    if (split.length == 1) {
+      return Optional.of(ColumnRef.withoutSource(ColumnName.of(split[0])));
+    }
+
+    return Optional.of(ColumnRef.of(
+        SourceName.of(split[0]),
+        ColumnName.of(split[1])
+    ));
   }
 
   void validateDateTimeFormat(final String configName) {

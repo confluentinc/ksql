@@ -26,8 +26,8 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -75,9 +75,9 @@ public class DataSourceNode extends PlanNode {
     // and a KS transformValues to add the implicit fields
     this.schema = StreamSource.getSchemaWithMetaAndKeyFields(alias, dataSource.getSchema());
 
-    final Optional<ColumnName> keyFieldName = dataSource.getKeyField()
+    final Optional<ColumnRef> keyFieldName = dataSource.getKeyField()
         .withAlias(alias)
-        .name();
+        .ref();
 
     this.keyField = KeyField.of(keyFieldName, dataSource.getKeyField().legacy())
         .validateKeyExistsIn(schema.getSchema());
@@ -163,10 +163,16 @@ public class DataSourceNode extends PlanNode {
 
   private int timestampIndex() {
     final LogicalSchema originalSchema = dataSource.getSchema();
-    final String timestampField = dataSource.getTimestampExtractionPolicy().timestampField();
+    final ColumnRef timestampField = dataSource.getTimestampExtractionPolicy().timestampField();
+    if (timestampField == null) {
+      return -1;
+    }
+
     return originalSchema.valueColumnIndex(timestampField)
         .orElse(
-            originalSchema.withAlias(alias).valueColumnIndex(timestampField)
+            originalSchema
+                .withAlias(alias)
+                .valueColumnIndex(timestampField)
                 .orElse(-1)
         );
   }

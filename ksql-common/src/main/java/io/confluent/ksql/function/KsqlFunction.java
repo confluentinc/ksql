@@ -18,6 +18,8 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -41,7 +43,7 @@ public final class KsqlFunction implements IndexedFunction {
   private final Function<List<Schema>,Schema> returnSchemaProvider;
   private final Schema javaReturnType;
   private final List<Schema> parameters;
-  private final String functionName;
+  private final FunctionName functionName;
   private final Class<? extends Kudf> kudfClass;
   private final Function<KsqlConfig, Kudf> udfFactory;
   private final String description;
@@ -52,7 +54,7 @@ public final class KsqlFunction implements IndexedFunction {
       final Function<List<Schema>,Schema> returnSchemaProvider,
       final Schema javaReturnType,
       final List<Schema> arguments,
-      final String functionName,
+      final FunctionName functionName,
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
@@ -92,7 +94,7 @@ public final class KsqlFunction implements IndexedFunction {
   public static KsqlFunction createLegacyBuiltIn(
       final Schema returnType,
       final List<Schema> arguments,
-      final String functionName,
+      final FunctionName functionName,
       final Class<? extends Kudf> kudfClass
   ) {
     final Function<KsqlConfig, Kudf> udfFactory = ksqlConfig -> {
@@ -118,7 +120,7 @@ public final class KsqlFunction implements IndexedFunction {
       final Function<List<Schema>,Schema> schemaProvider,
       final Schema javaReturnType,
       final List<Schema> arguments,
-      final String functionName,
+      final FunctionName functionName,
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
       final String description,
@@ -180,7 +182,7 @@ public final class KsqlFunction implements IndexedFunction {
                                                 + "return type %s.",
                                             SchemaConverters.connectToSqlConverter().toSqlType(
                                                 s1).toString(),
-                                            functionName,
+                                            functionName.toString(FormatOptions.noEscape()),
                                             SchemaConverters.connectToSqlConverter().toSqlType(
                                                 s2).toString()));
     }
@@ -190,7 +192,7 @@ public final class KsqlFunction implements IndexedFunction {
     return parameters;
   }
 
-  public String getFunctionName() {
+  public FunctionName getFunctionName() {
     return functionName;
   }
 

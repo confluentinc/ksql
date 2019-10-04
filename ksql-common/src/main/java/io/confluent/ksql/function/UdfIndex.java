@@ -240,7 +240,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
     @Override
     public String toString() {
-      return value != null ? value.getFunctionName() : "EMPTY";
+      return value != null ? value.getFunctionName().name() : "EMPTY";
     }
 
     int compare(final Node other) {

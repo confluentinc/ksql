@@ -34,6 +34,7 @@ import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,7 +68,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
   @Override
   public void addFunction(final KsqlFunction ksqlFunction) {
-    final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().toUpperCase());
+    final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().name().toUpperCase());
     if (udfFactory == null) {
       throw new KsqlException("Unknown function factory: " + ksqlFunction.getFunctionName());
     }
@@ -185,33 +186,33 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "LCASE", LCaseKudf.class));
+          FunctionName.of("LCASE"), LCaseKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "UCASE", UCaseKudf.class));
+          FunctionName.of("UCASE"), UCaseKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          ConcatKudf.NAME, ConcatKudf.class));
+          FunctionName.of(ConcatKudf.NAME), ConcatKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "TRIM", TrimKudf.class));
+          FunctionName.of("TRIM"), TrimKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA,
               Schema.OPTIONAL_STRING_SCHEMA),
-          "IFNULL", IfNullKudf.class));
+          FunctionName.of("IFNULL"), IfNullKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_INT32_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "LEN",
+          FunctionName.of("LEN"),
           LenKudf.class));
     }
 
@@ -220,13 +221,13 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          "CEIL",
+          FunctionName.of("CEIL"),
           CeilKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,
           Collections.emptyList(),
-          "RANDOM",
+          FunctionName.of("RANDOM"),
           RandomKudf.class));
     }
 
@@ -235,13 +236,13 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          JsonExtractStringKudf.NAME,
+          FunctionName.of(JsonExtractStringKudf.NAME),
           JsonExtractStringKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_BOOLEAN_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          "ARRAYCONTAINS",
+          FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
@@ -249,7 +250,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
               Schema.OPTIONAL_STRING_SCHEMA),
-          "ARRAYCONTAINS",
+          FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
@@ -257,7 +258,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
               Schema.OPTIONAL_INT32_SCHEMA),
-          "ARRAYCONTAINS",
+          FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
@@ -265,7 +266,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
               Schema.OPTIONAL_INT64_SCHEMA),
-          "ARRAYCONTAINS",
+          FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class));
 
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
@@ -273,7 +274,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
               Schema.OPTIONAL_FLOAT64_SCHEMA),
-          "ARRAYCONTAINS",
+          FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class));
     }
 
@@ -284,7 +285,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ImmutableList.of(
               SchemaBuilder.struct().optional().build(),
               Schema.STRING_SCHEMA),
-          FetchFieldFromStruct.FUNCTION_NAME,
+          FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
           FetchFieldFromStruct.class),
           true);
     }
@@ -316,7 +317,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
         final boolean internal
     ) {
       final UdfMetadata metadata = new UdfMetadata(
-          ksqlFunction.getFunctionName(),
+          ksqlFunction.getFunctionName().name(),
           ksqlFunction.getDescription(),
           "Confluent",
           "",

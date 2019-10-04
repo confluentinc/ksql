@@ -23,10 +23,10 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -41,7 +41,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
-  private final Optional<ColumnName> partitionByField;
+  private final Optional<ColumnRef> partitionByField;
   private final boolean doCreateInto;
   private final Set<SerdeOption> serdeOptions;
   private final SourceName intoSourceName;
@@ -54,7 +54,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final Optional<ColumnName> partitionByField,
+      final Optional<ColumnRef> partitionByField,
       final OptionalInt limit,
       final boolean doCreateInto,
       final Set<SerdeOption> serdeOptions,
@@ -149,7 +149,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
 
     final KeyField resultKeyField = KeyField.of(
-        schemaKStream.getKeyField().name(),
+        schemaKStream.getKeyField().ref(),
         getKeyField().legacy()
     );
 
@@ -167,13 +167,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return;
     }
 
-    final ColumnName fieldName = partitionByField.get();
+    final ColumnRef fieldName = partitionByField.get();
 
-    if (getSchema().isMetaColumn(fieldName) || getSchema().isKeyColumn(fieldName)) {
+    if (getSchema().isMetaColumn(fieldName.name()) || getSchema().isKeyColumn(fieldName.name())) {
       return;
     }
 
-    if (!keyField.name().equals(Optional.of(fieldName))) {
+    if (!keyField.ref().equals(Optional.of(fieldName))) {
       throw new IllegalArgumentException("keyField must match partition by field");
     }
   }

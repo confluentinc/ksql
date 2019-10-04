@@ -48,7 +48,7 @@ public final class WindowSelectMapper
   ) {
     final ImmutableMap.Builder<Integer, Type> selectsBuilder = new Builder<>();
     for (int i = 0; i < functions.size(); i++) {
-      final String name = functions.get(i).getFunctionName().toUpperCase();
+      final String name = functions.get(i).getFunctionName().name().toUpperCase();
       if (WINDOW_FUNCTION_NAMES.containsKey(name)) {
         selectsBuilder.put(initialUdafIndex + i, WINDOW_FUNCTION_NAMES.get(name));
       }

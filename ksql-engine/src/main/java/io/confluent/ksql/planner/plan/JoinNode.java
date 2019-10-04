@@ -22,10 +22,11 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.ValueFormat;
@@ -54,8 +55,8 @@ public class JoinNode extends PlanNode {
   private final DataSourceNode left;
   private final DataSourceNode right;
   private final LogicalSchema schema;
-  private final ColumnName leftJoinFieldName;
-  private final ColumnName rightJoinFieldName;
+  private final ColumnRef leftJoinFieldName;
+  private final ColumnRef rightJoinFieldName;
   private final KeyField keyField;
   private final Optional<WithinExpression> withinExpression;
 
@@ -64,8 +65,8 @@ public class JoinNode extends PlanNode {
       final JoinType joinType,
       final DataSourceNode left,
       final DataSourceNode right,
-      final ColumnName leftJoinFieldName,
-      final ColumnName rightJoinFieldName,
+      final ColumnRef leftJoinFieldName,
+      final ColumnRef rightJoinFieldName,
       final Optional<WithinExpression> withinExpression
   ) {
     super(id, calculateSinkType(left, right));
@@ -80,8 +81,8 @@ public class JoinNode extends PlanNode {
     validateSchemaColumn(rightJoinFieldName, right.getSchema());
 
     this.keyField = KeyField
-        .of(leftJoinFieldName,
-            LegacyField.of(ColumnName.of(leftKeyCol.fullName()), leftKeyCol.type()));
+        .of(leftKeyCol.ref(),
+            LegacyField.of(leftKeyCol.ref(), leftKeyCol.type()));
 
     this.schema = buildSchema(left, right);
   }
@@ -151,7 +152,7 @@ public class JoinNode extends PlanNode {
     return node.getDataSource().getName().name();
   }
 
-  private static Column validateSchemaColumn(final ColumnName column, final LogicalSchema schema) {
+  private static Column validateSchemaColumn(final ColumnRef column, final LogicalSchema schema) {
     return schema.findValueColumn(column)
         .orElseThrow(() -> new IllegalArgumentException(
             "Invalid join field, not found in schema: " + column));
@@ -208,7 +209,7 @@ public class JoinNode extends PlanNode {
 
     protected SchemaKStream<K> buildStream(
         final PlanNode node,
-        final ColumnName joinFieldName
+        final ColumnRef joinFieldName
     ) {
       return maybeRePartitionByKey(
           node.buildStream(builder),
@@ -219,7 +220,7 @@ public class JoinNode extends PlanNode {
     @SuppressWarnings("unchecked")
     protected SchemaKTable<K> buildTable(
         final PlanNode node,
-        final ColumnName joinFieldName,
+        final ColumnRef joinFieldName,
         final SourceName tableName
     ) {
       final SchemaKStream<?> schemaKStream = node.buildStream(
@@ -236,11 +237,13 @@ public class JoinNode extends PlanNode {
           .getKeyField()
           .resolve(schemaKStream.getSchema(), builder.getKsqlConfig());
 
-      final ColumnName rowKey = ColumnName.of(SchemaUtil.buildAliasedFieldName(
-          tableName.name(), SchemaUtil.ROWKEY_NAME.name()));
+      final ColumnRef rowKey = ColumnRef.of(
+          tableName,
+          SchemaUtil.ROWKEY_NAME
+      );
 
       final boolean namesMatch = keyColumn
-          .map(field -> SchemaUtil.isFieldName(joinFieldName.name(), field.fullName()))
+          .map(field -> field.matches(joinFieldName))
           .orElse(false);
 
       if (namesMatch || joinFieldName.equals(rowKey)) {
@@ -255,8 +258,10 @@ public class JoinNode extends PlanNode {
       }
 
       throw new KsqlException(
-          "Source table (" + tableName.name() + ") key column (" + keyColumn.get().fullName() + ") "
-              + "is not the column used in the join criteria (" + joinFieldName.name() + "). "
+          "Source table (" + tableName.toString(FormatOptions.noEscape()) + ") key column ("
+              + keyColumn.get().ref().toString(FormatOptions.noEscape()) + ") "
+              + "is not the column used in the join criteria ("
+              + joinFieldName.toString(FormatOptions.noEscape()) + "). "
               + "Only the table's key column or 'ROWKEY' is supported in the join criteria."
       );
     }
@@ -264,7 +269,7 @@ public class JoinNode extends PlanNode {
     @SuppressWarnings("unchecked")
     static <K> SchemaKStream<K> maybeRePartitionByKey(
         final SchemaKStream stream,
-        final ColumnName joinFieldName,
+        final ColumnRef joinFieldName,
         final Stacker contextStacker
     ) {
       final LogicalSchema schema = stream.getSchema();
@@ -290,8 +295,8 @@ public class JoinNode extends PlanNode {
      * @return the key field that should be used by the resultant joined stream.
      */
     static KeyField getJoinedKeyField(final SourceName leftAlias, final KeyField leftKeyField) {
-      final Optional<ColumnName> latest = Optional
-          .of(leftKeyField.name().orElse(SchemaUtil.ROWKEY_NAME));
+      final Optional<ColumnRef> latest = Optional
+          .of(leftKeyField.ref().orElse(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)));
 
       return KeyField.of(latest, leftKeyField.legacy())
           .withAlias(leftAlias);

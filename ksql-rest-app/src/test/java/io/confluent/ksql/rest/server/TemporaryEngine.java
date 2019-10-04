@@ -31,6 +31,7 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -111,7 +112,9 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnName.of("val"), SCHEMA.findValueColumn("val").get()),
+                KeyField.of(
+                    ColumnRef.withoutSource(ColumnName.of("val")),
+                    SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("val"))).get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -123,7 +126,9 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(ColumnName.of("val"), SCHEMA.findValueColumn("val").get()),
+                KeyField.of(
+                    ColumnRef.withoutSource(ColumnName.of("val")),
+                    SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("val"))).get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );

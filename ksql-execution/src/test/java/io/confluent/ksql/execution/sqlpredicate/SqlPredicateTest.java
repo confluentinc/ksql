@@ -83,7 +83,7 @@ public class SqlPredicateTest {
   private static final KsqlFunction LEN_FUNCTION = KsqlFunction.createLegacyBuiltIn(
       Schema.OPTIONAL_INT32_SCHEMA,
       ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA),
-      "LEN",
+      FunctionName.of("LEN"),
       LenDummy.class
   );
 
@@ -192,7 +192,7 @@ public class SqlPredicateTest {
     );
   }
 
-  private static class LenDummy implements Kudf {
+  public static class LenDummy implements Kudf {
 
     @Override
     public Object evaluate(Object... args) {

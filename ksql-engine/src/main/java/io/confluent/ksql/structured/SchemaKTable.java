@@ -34,8 +34,8 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
-import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
@@ -176,10 +176,11 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final KeySerde<Struct> groupedKeySerde = keySerde
         .rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
 
-    final ColumnName aggregateKeyName = groupedKeyNameFor(groupByExpressions);
+    final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
     final LegacyField legacyKeyField = LegacyField.notInSchema(aggregateKeyName, SqlTypes.STRING);
-    final Optional<ColumnName> newKeyField =
-        getSchema().findValueColumn(aggregateKeyName).map(Column::fullName).map(ColumnName::of);
+    final Optional<ColumnRef> newKeyField = getSchema()
+        .findValueColumn(ColumnRef.withoutSource(aggregateKeyName.name()))
+        .map(Column::ref);
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(
         contextStacker,

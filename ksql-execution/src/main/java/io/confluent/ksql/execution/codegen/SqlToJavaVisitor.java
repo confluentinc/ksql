@@ -56,6 +56,7 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -129,18 +130,34 @@ public class SqlToJavaVisitor {
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
-  private final Function<String, String> fieldToParamName;
+  private final Function<FunctionName, String> funNameToCodeName;
+  private final Function<ColumnRef, String> colRefToCodeName;
 
   public SqlToJavaVisitor(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
-      final Function<String, String> fieldToParamName
+      final CodeGenSpec spec
   ) {
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this(
+        schema,
+        functionRegistry,
+        spec::getCodeName,
+        spec::reserveFunctionName
+    );
+  }
+
+  public SqlToJavaVisitor(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final Function<ColumnRef, String> colRefToCodeName,
+      final Function<FunctionName, String> funNameToCodeName
+  ) {
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
-    this.fieldToParamName = Objects.requireNonNull(fieldToParamName, "fieldToParamName");
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");
+    this.funNameToCodeName = Objects.requireNonNull(funNameToCodeName, "funNameToCodeName");
   }
 
   public String process(final Expression expression) {
@@ -157,7 +174,6 @@ public class SqlToJavaVisitor {
   private class Formatter implements ExpressionVisitor<Pair<String, Schema>, Void> {
 
     private final FunctionRegistry functionRegistry;
-    private int functionCounter = 0;
 
     Formatter(final FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
@@ -273,13 +289,13 @@ public class SqlToJavaVisitor {
         final ColumnReferenceExp node,
         final Void context
     ) {
-      final String fieldName = formatQualifiedName(node.getReference());
-      final Column schemaColumn = schema.findValueColumn(fieldName)
+      final ColumnRef fieldName = node.getReference();
+      final Column schemaColumn = schema.findValueColumn(node.getReference())
           .orElseThrow(() ->
-              new KsqlException("Field not found: " + fieldName));
+              new KsqlException("Field not found: " + node.getReference()));
 
       final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
-      return new Pair<>(fieldToParamName.apply(fieldName), schema);
+      return new Pair<>(colRefToCodeName.apply(fieldName), schema);
     }
 
     @Override
@@ -315,13 +331,11 @@ public class SqlToJavaVisitor {
     public Pair<String, Schema> visitFunctionCall(
         final FunctionCall node,
         final Void context) {
-      final String functionName = node.getName().name();
+      final FunctionName functionName = node.getName();
 
-      final String instanceName = fieldToParamName.apply(
-          CodeGenUtil.functionName(functionName, functionCounter++)
-      );
+      final String instanceName = funNameToCodeName.apply(functionName);
 
-      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
+      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName.name());
       final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, context).getLeft())

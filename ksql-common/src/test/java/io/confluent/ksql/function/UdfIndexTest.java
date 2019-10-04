@@ -7,6 +7,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -38,8 +39,8 @@ public class UdfIndexTest {
   private static final Schema STRING_LIST = SchemaBuilder.array(STRING).build();
   private static final Schema INT_LIST = SchemaBuilder.array(INT).build();
 
-  private static final String EXPECTED = "expected";
-  private static final String OTHER = "other";
+  private static final FunctionName EXPECTED = FunctionName.of("expected");
+  private static final FunctionName OTHER = FunctionName.of("other");
 
   private UdfIndex<KsqlFunction> udfIndex;
 
@@ -729,6 +730,14 @@ public class UdfIndexTest {
 
   private static KsqlFunction function(
       final String name,
+      final boolean isVarArgs,
+      final Schema... args
+  ) {
+    return function(FunctionName.of(name), isVarArgs, args);
+  }
+
+  private static KsqlFunction function(
+      final FunctionName name,
       final boolean isVarArgs,
       final Schema... args
   ) {

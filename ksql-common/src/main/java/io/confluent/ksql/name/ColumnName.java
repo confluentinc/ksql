@@ -16,6 +16,7 @@
 package io.confluent.ksql.name;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.util.KsqlPreconditions;
 
 /**
  * The name of a column within a source.
@@ -30,6 +31,13 @@ public final class ColumnName extends Name<ColumnName> {
   }
 
   public static ColumnName of(final String name) {
+    KsqlPreconditions.checkServerCondition(!name.contains("."), "expected no aliased fields!");
+    return new ColumnName(name);
+  }
+
+  // this can be used to create a column name without validating that it doesn't
+  // have an alias - unfortunately this is necessary for our group by key creation :(
+  public static ColumnName withoutValidation(final String name) {
     return new ColumnName(name);
   }
 

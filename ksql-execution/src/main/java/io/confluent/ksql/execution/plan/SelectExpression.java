@@ -26,11 +26,11 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class SelectExpression {
 
-  private final ColumnName name;
+  private final ColumnName alias;
   private final Expression expression;
 
-  private SelectExpression(final ColumnName name, final Expression expression) {
-    this.name = Objects.requireNonNull(name, "name");
+  private SelectExpression(final ColumnName alias, final Expression expression) {
+    this.alias = Objects.requireNonNull(alias, "alias");
     this.expression = Objects.requireNonNull(expression, "expression");
   }
 
@@ -38,8 +38,8 @@ public final class SelectExpression {
     return new SelectExpression(name, expression);
   }
 
-  public ColumnName getName() {
-    return name;
+  public ColumnName getAlias() {
+    return alias;
   }
 
   public Expression getExpression() {
@@ -55,19 +55,19 @@ public final class SelectExpression {
       return false;
     }
     final SelectExpression that = (SelectExpression) o;
-    return Objects.equals(name, that.name)
+    return Objects.equals(alias, that.alias)
         && Objects.equals(expression, that.expression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, expression);
+    return Objects.hash(alias, expression);
   }
 
   @Override
   public String toString() {
     return "SelectExpression{"
-        + "name='" + name + '\''
+        + "name='" + alias + '\''
         + ", expression=" + expression
         + '}';
   }

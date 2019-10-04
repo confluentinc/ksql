@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -118,6 +119,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
             queryBuilder.getFunctionRegistry(), call, sourceTableStep.getSchema())
         ).filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::getFunctionName)
+        .map(FunctionName::name)
         .collect(Collectors.toList());
     if (!unsupportedFunctionNames.isEmpty()) {
       throw new KsqlException(

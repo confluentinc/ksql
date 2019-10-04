@@ -158,6 +158,11 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
+  @Override
+  public ExecutionStep<?> getSourceStep() {
+    return sourceTableStep;
+  }
+
   public ExecutionStep<KTableHolder<K>> getSourceTableStep() {
     return sourceTableStep;
   }

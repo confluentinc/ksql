@@ -26,12 +26,14 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
 import io.confluent.ksql.parser.tree.Statement;
+import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -51,7 +53,9 @@ import java.util.function.BiConsumer;
 /**
  * Holds the mutable state and services of the engine.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class EngineContext {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final MutableMetaStore metaStore;
   private final ServiceContext serviceContext;
@@ -160,29 +164,45 @@ final class EngineContext {
     return new QueryEngine(
         serviceContext,
         processingLogContext,
-        queryIdGenerator,
-        this::unregisterQuery);
+        queryIdGenerator);
   }
 
-  String executeDdlStatement(
+  QueryExecutor createQueryExecutor(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties,
+      final ServiceContext serviceContext) {
+    return new QueryExecutor(
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
+        overriddenProperties,
+        processingLogContext,
+        serviceContext,
+        metaStore,
+        this::unregisterQuery
+    );
+  }
+
+  DdlCommand createDdlCommand(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    final DdlCommand command = ddlCommandFactory.create(
+    return ddlCommandFactory.create(
         sqlExpression,
         statement,
         ksqlConfig,
         overriddenProperties
     );
+  }
 
-    final DdlCommandResult result = ddlCommandExec.execute(command);
-
+  String executeDdl(
+      final String sqlExpression,
+      final DdlCommand command,
+      final Optional<KeyField> keyField) {
+    final DdlCommandResult result = ddlCommandExec.execute(command, keyField);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }
-
     return result.getMessage();
   }
 

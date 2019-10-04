@@ -25,7 +25,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -96,7 +96,6 @@ public class QueryDescriptionFactoryTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -199,7 +198,6 @@ public class QueryDescriptionFactoryTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -233,7 +231,6 @@ public class QueryDescriptionFactoryTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,

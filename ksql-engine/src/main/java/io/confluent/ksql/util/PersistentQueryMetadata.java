@@ -44,6 +44,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
   private final SourceName sinkName;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
+  private final DataSourceType dataSourceType;
   private final Optional<MaterializationProvider> materializationProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -72,7 +73,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
         schema.logicalSchema(),
         sourceNames,
         executionPlan,
-        dataSourceType,
         queryApplicationId,
         topology,
         streamsProperties,
@@ -86,6 +86,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProvider =
         requireNonNull(materializationProvider, "materializationProvider");
+    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
   }
 
   private PersistentQueryMetadata(
@@ -99,10 +100,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
     this.materializationProvider = other.materializationProvider;
+    this.dataSourceType = other.dataSourceType;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
     return new PersistentQueryMetadata(this, closeCallback);
+  }
+
+  public DataSourceType getDataSourceType() {
+    return dataSourceType;
   }
 
   public QueryId getQueryId() {

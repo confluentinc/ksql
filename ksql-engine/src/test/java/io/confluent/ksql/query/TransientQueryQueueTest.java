@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.physical;
+package io.confluent.ksql.query;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
@@ -23,11 +23,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.physical.TransientQueryQueue.QueuePopulator;
-import io.confluent.ksql.structured.SchemaKStream;
+import io.confluent.ksql.query.TransientQueryQueue.QueuePopulator;
 import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.stream.IntStream;
@@ -60,8 +58,8 @@ public class TransientQueryQueueTest {
 
   @Before
   public void setUp() {
-    final TransientQueryQueue<String> queuer =
-        new TransientQueryQueue<>(kStreamsApp, OptionalInt.of(SOME_LIMIT));
+    final TransientQueryQueue queuer =
+        new TransientQueryQueue(kStreamsApp, OptionalInt.of(SOME_LIMIT));
 
     queuer.setLimitHandler(limitHandler);
 

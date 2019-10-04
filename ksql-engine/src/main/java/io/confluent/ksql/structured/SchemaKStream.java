@@ -672,7 +672,7 @@ public class SchemaKStream<K> {
     final boolean rekey = rekeyRequired(groupByExpressions);
     final KeyFormat rekeyedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
     if (!rekey) {
-      return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker, queryBuilder);
+      return groupByKey(rekeyedKeyFormat, valueFormat, contextStacker);
     }
 
     final KeySerde<Struct> groupedKeySerde = keySerde
@@ -706,8 +706,7 @@ public class SchemaKStream<K> {
   private SchemaKGroupedStream groupByKey(
       final KeyFormat rekeyedKeyFormat,
       final ValueFormat valueFormat,
-      final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder queryBuilder
+      final QueryContext.Stacker contextStacker
   ) {
     final KeySerde<Struct> structKeySerde = getGroupByKeyKeySerde();
     final StreamGroupByKey step =
@@ -736,7 +735,7 @@ public class SchemaKStream<K> {
     return (KeySerde<Struct>) keySerde;
   }
 
-  public ExecutionStep<KStreamHolder<K>> getSourceStep() {
+  public ExecutionStep<?> getSourceStep() {
     return sourceStep;
   }
 

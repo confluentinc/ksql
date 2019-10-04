@@ -17,6 +17,9 @@ package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
@@ -27,19 +30,25 @@ public final class AvroUtil {
   }
 
   public static void throwOnInvalidSchemaEvolution(
-      final PersistentQueryMetadata queryMetadata,
+      final String statementText,
+      final CreateSourceCommand ddl,
       final SchemaRegistryClient schemaRegistryClient
   ) {
-    if (queryMetadata.getResultTopicFormat() != Format.AVRO) {
+    final KsqlTopic topic = ddl.getTopic();
+    if (topic.getValueFormat().getFormat() != Format.AVRO) {
       return;
     }
 
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        ddl.getSchema(),
+        ddl.getSerdeOptions()
+    );
     final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
-        queryMetadata.getPhysicalSchema().valueSchema(),
-        queryMetadata.getSinkName().name()
+        physicalSchema.valueSchema(),
+        ddl.getSourceName().name()
     );
 
-    final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
+    final String topicName = topic.getKafkaTopicName();
 
     if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
       throw new KsqlStatementException(String.format(
@@ -50,7 +59,7 @@ public final class AvroUtil {
           topicName,
           avroSchema,
           getRegisteredSchema(topicName, schemaRegistryClient)
-      ), queryMetadata.getStatementString());
+      ), statementText);
     }
   }
 

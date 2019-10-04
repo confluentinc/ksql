@@ -23,7 +23,7 @@ import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
+import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
@@ -33,12 +33,10 @@ import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,24 +49,21 @@ class QueryEngine {
 
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
-  private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
-      final QueryIdGenerator queryIdGenerator,
-      final Consumer<QueryMetadata> queryCloseCallback
+      final QueryIdGenerator queryIdGenerator
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
         "processingLogContext");
-    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
-  QueryMetadata buildPhysicalPlan(
+  PhysicalPlan<?> buildPhysicalPlan(
       final LogicalPlanNode logicalPlanNode,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties,
@@ -84,11 +79,7 @@ class QueryEngine {
         serviceContext,
         processingLogContext,
         metaStore,
-        overriddenProperties,
-        metaStore,
-        queryIdGenerator,
-        new KafkaStreamsBuilderImpl(serviceContext.getKafkaClientSupplier()),
-        queryCloseCallback
+        queryIdGenerator
     );
 
     return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);

@@ -27,7 +27,7 @@ import java.util.Set;
 /**
  * Base class of create table/stream command
  */
-abstract class CreateSourceCommand implements DdlCommand {
+public abstract class CreateSourceCommand implements DdlCommand {
   private final String sqlExpression;
   private final SourceName sourceName;
   private final LogicalSchema schema;

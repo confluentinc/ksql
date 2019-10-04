@@ -49,6 +49,11 @@ public final class ConfiguredStatement<T extends Statement> {
     this.config = Objects.requireNonNull(config, "config");
   }
 
+  @SuppressWarnings("unchecked")
+  public <S extends Statement> ConfiguredStatement<S> cast() {
+    return (ConfiguredStatement<S>) this;
+  }
+
   public T getStatement() {
     return statement.getStatement();
   }

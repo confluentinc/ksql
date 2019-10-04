@@ -33,6 +33,7 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -50,10 +51,22 @@ public class DdlCommandExec {
    * execute on metaStore
    */
   public DdlCommandResult execute(final DdlCommand ddlCommand) {
-    return new Executor().execute(ddlCommand);
+    return execute(ddlCommand, Optional.empty());
   }
 
-  private class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
+  public DdlCommandResult execute(
+      final DdlCommand ddlCommand,
+      final Optional<KeyField> keyFieldOverride) {
+    return new Executor(keyFieldOverride).execute(ddlCommand);
+  }
+
+  private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
+    final Optional<KeyField> keyFieldOverride;
+
+    private Executor(final Optional<KeyField> keyFieldOverride) {
+      this.keyFieldOverride = Objects.requireNonNull(keyFieldOverride, "keyFieldOverride");
+    }
+
     @Override
     public DdlCommandResult executeCreateStream(final CreateStreamCommand createStream) {
       final KsqlStream<?> ksqlStream = new KsqlStream<>(
@@ -120,6 +133,9 @@ public class DdlCommandExec {
         final Optional<ColumnName> keyFieldName,
         final LogicalSchema schema
     ) {
+      if (keyFieldOverride.isPresent()) {
+        return keyFieldOverride.get();
+      }
       if (keyFieldName.isPresent()) {
         final Column keyColumn = schema.findValueColumn(
             // for DDL commands, the key name is never specified with a source

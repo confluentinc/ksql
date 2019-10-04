@@ -15,56 +15,28 @@
 
 package io.confluent.ksql.ddl.commands;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-
-import com.google.common.collect.Iterables;
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.ddl.commands.CreateStreamCommand;
 import io.confluent.ksql.execution.ddl.commands.CreateTableCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DropSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.DropTypeCommand;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.ddl.commands.RegisterTypeCommand;
-import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DropType;
-import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
-import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.CreateTable;
 import io.confluent.ksql.parser.tree.DdlStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.DropTable;
 import io.confluent.ksql.parser.tree.RegisterType;
-import io.confluent.ksql.parser.tree.TableElement.Namespace;
-import io.confluent.ksql.parser.tree.TableElements;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.schema.ksql.SqlBaseType;
-import io.confluent.ksql.serde.Format;
-import io.confluent.ksql.serde.GenericRowSerDe;
-import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.serde.SerdeOptions;
-import io.confluent.ksql.serde.ValueSerdeFactory;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMapR2;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandFactories implements DdlCommandFactory {
@@ -83,25 +55,33 @@ public class CommandFactories implements DdlCommandFactory {
       .put(DropType.class, CommandFactories::handleDropType)
       .build();
 
-  private final ServiceContext serviceContext;
-  private final MetaStore metaStore;
-  private final SerdeOptionsSupplier serdeOptionsSupplier;
-  private final ValueSerdeFactory serdeFactory;
+  private final CreateSourceFactory createSourceFactory;
+  private final DropSourceFactory dropSourceFactory;
+  private final RegisterTypeFactory registerTypeFactory;
+  private final DropTypeFactory dropTypeFactory;
 
   public CommandFactories(final ServiceContext serviceContext, final MetaStore metaStore) {
-    this(serviceContext, metaStore, SerdeOptions::buildForCreateStatement, new GenericRowSerDe());
+    this(
+        new CreateSourceFactory(serviceContext),
+        new DropSourceFactory(metaStore),
+        new RegisterTypeFactory(),
+        new DropTypeFactory()
+    );
   }
 
+  @VisibleForTesting
   CommandFactories(
-      final ServiceContext serviceContext,
-      final MetaStore metaStore,
-      final SerdeOptionsSupplier serdeOptionsSupplier,
-      final ValueSerdeFactory serdeFactory) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.serdeOptionsSupplier =
-        Objects.requireNonNull(serdeOptionsSupplier, "serdeOptionsSupplier");
-    this.serdeFactory = Objects.requireNonNull(serdeFactory, "serdeFactory");
+      final CreateSourceFactory createSourceFactory,
+      final DropSourceFactory dropSourceFactory,
+      final RegisterTypeFactory registerTypeFactory,
+      final DropTypeFactory dropTypeFactory
+  ) {
+    this.createSourceFactory =
+        Objects.requireNonNull(createSourceFactory, "createSourceFactory");
+    this.dropSourceFactory = Objects.requireNonNull(dropSourceFactory, "dropSourceFactory");
+    this.registerTypeFactory =
+        Objects.requireNonNull(registerTypeFactory, "registerTypeFactory");
+    this.dropTypeFactory = Objects.requireNonNull(dropTypeFactory, "dropTypeFactory");
   }
 
   @Override
@@ -130,36 +110,10 @@ public class CommandFactories implements DdlCommandFactory {
       final CallInfo callInfo,
       final CreateStream statement
   ) {
-    final SourceName sourceName = statement.getName();
-    final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements());
-    final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
-    final TimestampExtractionPolicy timestampExtractionPolicy = buildTimestampExtractor(
-        callInfo.ksqlConfig,
-        statement.getProperties(),
-        schema
-    );
-    final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
-        schema,
-        topic.getValueFormat().getFormat(),
-        statement.getProperties().getWrapSingleValues(),
-        callInfo.ksqlConfig
-    );
-    validateSerdeCanHandleSchemas(
-        callInfo.ksqlConfig,
-        serviceContext,
-        serdeFactory,
-        PhysicalSchema.from(schema, serdeOptions),
-        topic
-    );
-    return new CreateStreamCommand(
+    return createSourceFactory.createStreamCommand(
         callInfo.sqlExpression,
-        sourceName,
-        schema,
-        keyFieldName,
-        timestampExtractionPolicy,
-        serdeOptions,
-        topic
+        statement,
+        callInfo.ksqlConfig
     );
   }
 
@@ -167,186 +121,29 @@ public class CommandFactories implements DdlCommandFactory {
       final CallInfo callInfo,
       final CreateTable statement
   ) {
-    final SourceName sourceName = statement.getName();
-    final KsqlTopic topic = buildTopic(statement.getProperties(), serviceContext);
-    final LogicalSchema schema = buildSchema(statement.getElements());
-    final Optional<ColumnName> keyFieldName = buildKeyFieldName(statement, schema);
-    final TimestampExtractionPolicy timestampExtractionPolicy = buildTimestampExtractor(
-        callInfo.ksqlConfig,
-        statement.getProperties(),
-        schema
-    );
-    final Set<SerdeOption> serdeOptions = serdeOptionsSupplier.build(
-        schema,
-        topic.getValueFormat().getFormat(),
-        statement.getProperties().getWrapSingleValues(),
-        callInfo.ksqlConfig
-    );
-    validateSerdeCanHandleSchemas(
-        callInfo.ksqlConfig,
-        serviceContext,
-        serdeFactory,
-        PhysicalSchema.from(schema, serdeOptions),
-        topic
-    );
-    return new CreateTableCommand(
+    return createSourceFactory.createTableCommand(
         callInfo.sqlExpression,
-        sourceName,
-        schema,
-        keyFieldName,
-        timestampExtractionPolicy,
-        serdeOptions,
-        topic
+        statement,
+        callInfo.ksqlConfig
     );
   }
 
   private DropSourceCommand handleDropStream(final DropStream statement) {
-    return handleDropSource(
-        statement.getName(),
-        statement.getIfExists(),
-        DataSourceType.KSTREAM
-    );
+    return dropSourceFactory.create(statement);
   }
 
   private DropSourceCommand handleDropTable(final DropTable statement) {
-    return handleDropSource(
-        statement.getName(),
-        statement.getIfExists(),
-        DataSourceType.KTABLE
-    );
+    return dropSourceFactory.create(statement);
   }
 
   @SuppressWarnings("MethodMayBeStatic")
   private RegisterTypeCommand handleRegisterType(final RegisterType statement) {
-    return new RegisterTypeCommand(
-        statement.getType().getSqlType(),
-        statement.getName()
-    );
+    return registerTypeFactory.create(statement);
   }
 
   @SuppressWarnings("MethodMayBeStatic")
   private DropTypeCommand handleDropType(final DropType statement) {
-    return new DropTypeCommand(statement.getTypeName());
-  }
-
-  private DropSourceCommand handleDropSource(
-      final SourceName sourceName,
-      final boolean ifExists,
-      final DataSourceType dataSourceType) {
-    final DataSource<?> dataSource = metaStore.getSource(sourceName);
-    if (dataSource == null) {
-      if (ifExists) {
-        throw new KsqlException("Source " + sourceName.name() + " does not exist.");
-      }
-    } else if (dataSource.getDataSourceType() != dataSourceType) {
-      throw new KsqlException(String.format(
-          "Incompatible data source type is %s, but statement was DROP %s",
-          dataSource.getDataSourceType() == DataSourceType.KSTREAM ? "STREAM" : "TABLE",
-          dataSourceType == DataSourceType.KSTREAM ? "STREAM" : "TABLE"
-      ));
-    }
-    return new DropSourceCommand(sourceName);
-  }
-
-  private static Optional<ColumnName> buildKeyFieldName(
-      final CreateSource statement,
-      final LogicalSchema schema) {
-    if (statement.getProperties().getKeyField().isPresent()) {
-      final String name = statement.getProperties().getKeyField().get().toUpperCase();
-      final ColumnName columnName = ColumnName.of(StringUtil.cleanQuotes(name));
-      schema.findValueColumn(ColumnRef.withoutSource(columnName)).orElseThrow(
-          () -> new KsqlException(
-              "The KEY column set in the WITH clause does not exist in the schema: '"
-                  + columnName.toString(FormatOptions.noEscape()) + "'"
-          )
-      );
-      return Optional.of(columnName);
-    } else {
-      return Optional.empty();
-    }
-  }
-
-  private static LogicalSchema buildSchema(final TableElements tableElements) {
-    if (Iterables.isEmpty(tableElements)) {
-      throw new KsqlException("The statement does not define any columns.");
-    }
-
-    tableElements.forEach(e -> {
-      if (e.getName().equals(SchemaUtil.ROWTIME_NAME)) {
-        throw new KsqlException("'" + e.getName().name() + "' is a reserved column name.");
-      }
-
-      final boolean isRowKey = e.getName().equals(SchemaUtil.ROWKEY_NAME);
-
-      if (e.getNamespace() == Namespace.KEY) {
-        if (!isRowKey) {
-          throw new KsqlException("'" + e.getName().name() + "' is an invalid KEY column name. "
-              + "KSQL currently only supports KEY columns named ROWKEY.");
-        }
-
-        if (e.getType().getSqlType().baseType() != SqlBaseType.STRING) {
-          throw new KsqlException("'" + e.getName().name()
-              + "' is a KEY column with an unsupported type. "
-              + "KSQL currently only supports KEY columns of type " + SqlBaseType.STRING + ".");
-        }
-      } else if (isRowKey) {
-        throw new KsqlException("'" + e.getName().name() + "' is a reserved column name. "
-            + "It can only be used for KEY columns.");
-      }
-    });
-
-    return tableElements.toLogicalSchema(true);
-  }
-
-  private static KsqlTopic buildTopic(
-      final CreateSourceProperties properties,
-      final ServiceContext serviceContext
-  ) {
-    final String kafkaTopicName = properties.getKafkaTopic();
-    if (!serviceContext.getTopicClient().isTopicExists(kafkaTopicName)) {
-      throw new KsqlException("Kafka topic does not exist: " + kafkaTopicName);
-    }
-
-    return TopicFactory.create(properties);
-  }
-
-  private static TimestampExtractionPolicy buildTimestampExtractor(
-      final KsqlConfig ksqlConfig,
-      final CreateSourceProperties properties,
-      final LogicalSchema schema
-  ) {
-    final Optional<ColumnRef> timestampName = properties.getTimestampColumnName();
-    final Optional<String> timestampFormat = properties.getTimestampFormat();
-    return TimestampExtractionPolicyFactory
-        .create(ksqlConfig, schema, timestampName, timestampFormat);
-  }
-
-  private static void validateSerdeCanHandleSchemas(
-      final KsqlConfig ksqlConfig,
-      final ServiceContext serviceContext,
-      final ValueSerdeFactory valueSerdeFactory,
-      final PhysicalSchema physicalSchema,
-      final KsqlTopic topic
-  ) {
-    valueSerdeFactory.create(
-        topic.getValueFormat().getFormatInfo(),
-        physicalSchema.valueSchema(),
-        ksqlConfig,
-        serviceContext.getSchemaRegistryClientFactory(),
-        "",
-        NoopProcessingLogContext.INSTANCE
-    ).close();
-  }
-
-  @FunctionalInterface
-  interface SerdeOptionsSupplier {
-
-    Set<SerdeOption> build(
-        LogicalSchema schema,
-        Format valueFormat,
-        Optional<Boolean> wrapSingleValues,
-        KsqlConfig ksqlConfig
-    );
+    return dropTypeFactory.create(statement);
   }
 
   private static final class CallInfo {

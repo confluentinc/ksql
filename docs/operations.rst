@@ -98,7 +98,7 @@ Troubleshooting
 ------------------------------------
 SELECT query hangs and doesn’t stop?
 ------------------------------------
-Queries in KSQL, including non-persistent queries such as ``SELECT * FROM myTable``, are continuous streaming queries.
+Queries in KSQL, including non-persistent queries such as ``SELECT * FROM myTable EMIT CHANGES``, are continuous streaming queries.
 Streaming queries  will not stop unless explicitly terminated.  To terminate a non-persistent query in the KSQL CLI you
 must type ``Ctrl + C``.
 

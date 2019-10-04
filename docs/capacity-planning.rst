@@ -82,7 +82,7 @@ Some queries require that the input stream be repartitioned so that all messages
 
     .. code:: sql
 
-        CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid;
+        CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid EMIT CHANGES;
         DESCRIBE EXTENDED pageviews_by_page;
         
     Your output should resemble:
@@ -92,7 +92,7 @@ Some queries require that the input stream be repartitioned so that all messages
         ...
         Queries that write into this TABLE
         -----------------------------------
-        id:CTAS_PAGEVIEWS_BY_PAGE - CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid;
+        id:CTAS_PAGEVIEWS_BY_PAGE - CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid EMIT CHANGES;
 
         For query topology and execution plan please run: EXPLAIN <QueryId>
 
@@ -107,7 +107,7 @@ Some queries require that the input stream be repartitioned so that all messages
     ::
 
         Type                 : QUERY
-        SQL                  : CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid;
+        SQL                  : CREATE TABLE pageviews_by_page AS SELECT pageid, COUNT(*) FROM pageviews_original GROUP BY pageid EMIT CHANGES;
 
         Execution plan
         --------------
@@ -313,7 +313,8 @@ out all the views that lasted less than 10 seconds:
         WITH (PARTITIONS=64) AS
         SELECT *
         FROM pageviews_original
-        WHERE duration > 10;
+        WHERE duration > 10
+        EMIT CHANGES;
 
 KSQL
 ++++
@@ -354,13 +355,15 @@ and then count up views by city:
     CREATE STREAM pageviews_meaningful_with_user_info
         WITH (PARTITIONS=64) AS
         SELECT pv.viewtime, pv.userid, pv.pageid, pv.client_ip, pv.url, pv.duration, pv.from_url, u.city, u.country, u.gender, u.email
-        FROM pageviews_meaningful pv LEFT JOIN users u ON pv.userid = u.userid;
+        FROM pageviews_meaningful pv LEFT JOIN users u ON pv.userid = u.userid
+        EMIT CHANGES;
 
     CREATE TABLE pageview_counts_by_city
         WITH (PARTITIONS=64) AS
         SELECT country, city, count(*)
         FROM pageviews_meaningful_with_user_info
-        GROUP BY country, city;
+        GROUP BY country, city
+        EMIT CHANGES;
 
 KSQL
 ++++

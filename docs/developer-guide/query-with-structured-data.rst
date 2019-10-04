@@ -183,7 +183,7 @@ Run a SELECT query to inspect the ``T`` stream:
 
 .. code:: sql
 
-    SELECT * FROM T;
+    SELECT * FROM T EMIT CHANGES;
 
 Your output should resemble:
 
@@ -208,7 +208,7 @@ nested elements:
 
 .. code:: sql
 
-    SELECT DATA->"field-a", DATA->"field-b" FROM T WHERE TYPE='key1' LIMIT 2;
+    SELECT DATA->"field-a", DATA->"field-b" FROM T WHERE TYPE='key1' EMIT CHANGES LIMIT 2;
 
 Your output should resemble:
 
@@ -223,7 +223,7 @@ Query the other nested elements:
 
 .. code:: sql
 
-    SELECT DATA->"field-a", DATA->"field-c", DATA->"field-d" FROM T WHERE TYPE='key2' LIMIT 2;
+    SELECT DATA->"field-a", DATA->"field-c", DATA->"field-d" FROM T WHERE TYPE='key2' EMIT CHANGES LIMIT 2;
 
 Your output should resemble:
 
@@ -240,11 +240,11 @@ new streams.
 
 .. code:: sql
 
-    CREATE STREAM TYPE_1 AS SELECT DATA->"field-a", DATA->"field-b" FROM T WHERE TYPE='key1';
+    CREATE STREAM TYPE_1 AS SELECT DATA->"field-a", DATA->"field-b" FROM T WHERE TYPE='key1' EMIT CHANGES;
 
 .. code:: sql
 
-    CREATE STREAM TYPE_2 AS SELECT DATA->"field-a", DATA->"field-c",DATA->"field-d" FROM T2 WHERE TYPE='key2';
+    CREATE STREAM TYPE_2 AS SELECT DATA->"field-a", DATA->"field-c",DATA->"field-d" FROM T2 WHERE TYPE='key2' EMIT CHANGES;
 
 For both statements, your output should resemble:
 

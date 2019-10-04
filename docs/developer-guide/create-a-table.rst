@@ -106,7 +106,7 @@ statement:
 
 .. code:: sql
 
-    SELECT * FROM users;
+    SELECT * FROM users EMIT CHANGES;
 
 Your output should resemble:
 
@@ -144,7 +144,8 @@ results from a persistent query for users that have ``gender`` set to ``FEMALE``
 
     CREATE TABLE users_female AS
       SELECT userid, gender, regionid FROM users
-      WHERE gender='FEMALE';
+      WHERE gender='FEMALE'
+      EMIT CHANGES;
 
 Your output should resemble:
 
@@ -206,7 +207,7 @@ Your output should resemble:
 
      Query ID            | Kafka Topic  | Query String
     -----------------------------------------------------------------------------------------------------------------------------------------
-     CTAS_USERS_FEMALE_0 | USERS_FEMALE | CREATE TABLE users_female AS   SELECT userid, gender, regionid FROM users   WHERE gender='FEMALE';
+     CTAS_USERS_FEMALE_0 | USERS_FEMALE | CREATE TABLE users_female AS   SELECT userid, gender, regionid FROM users   WHERE gender='FEMALE' EMIT CHANGES;
     -----------------------------------------------------------------------------------------------------------------------------------------
     For detailed information on a Query run: EXPLAIN <Query ID>;
 
@@ -225,7 +226,8 @@ function like COUNT(*) in the SELECT clause.
     CREATE TABLE pageviews_table AS
       SELECT viewtime, userid, pageid, COUNT(*) AS TOTAL
       FROM pageviews_original WINDOW TUMBLING (SIZE 1 MINUTES)
-      GROUP BY viewtime, userid, pageid;
+      GROUP BY viewtime, userid, pageid
+      EMIT CHANGES;
 
 Your output should resemble:
 
@@ -237,11 +239,11 @@ Your output should resemble:
     ---------------------------
     ksql>
 
-Inspect the table by using a SELECT statement.
+Observe the changes happening to the table using a streaming SELECT statement.
 
 .. code:: sql
 
-    SELECT * FROM pageviews_table;
+    SELECT * FROM pageviews_table EMIT CHANGES;
 
 Your output should resemble:
 
@@ -256,6 +258,22 @@ Your output should resemble:
     1557183930727 | 1557183930726|+|User_6|+|Page_93 : Window{start=1557183900000 end=-} | 1557183930726 | User_6 | Page_93 | 1
     ^CQuery terminated
     ksql>
+
+Lookup the value for a specific key within the table using a SELECT statement.
+
+.. code:: sql
+
+    SELECT * FROM pageviews_table WHERE ROWKEY='1557183929488|+|User_9|+|Page_39';
+
+Your output should resemble:
+
+::
+
+     ROWKEY STRING KEY                | WINDOWSTART BIGINT KEY | VIEWTIME BIGINT | USERID STRING | PAGEID STRING | TOTAL BIGINT
+     ----------------------------------------------------------------------------------------------------------------------------
+     1557183929488|+|User_9|+|Page_39 | 1557183900000          | 1557183929488   | User_9        | Page_39       | 1
+     ----------------------------------------------------------------------------------------------------------------------------
+     ksql>
 
 Delete a KSQL Table
 *******************

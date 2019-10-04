@@ -31,7 +31,8 @@ because the result of the query is a KSQL table.
       SELECT regionid,
              COUNT(*)
       FROM pageviews
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 Tombstone Records
 =================
@@ -63,7 +64,8 @@ This query computes the pageview count per region per minute:
              COUNT(*)
       FROM pageviews
       WINDOW TUMBLING (SIZE 1 MINUTE)
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 To count the pageviews for “Region_6” by female users every
 30 seconds, you can change the previous query to the following:
@@ -76,7 +78,8 @@ To count the pageviews for “Region_6” by female users every
       FROM pageviews
       WINDOW TUMBLING (SIZE 30 SECONDS)
       WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6'
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 Aggregate Records Over a Hopping Window
 =======================================
@@ -97,7 +100,8 @@ and substring matching.
       FROM pageviews
       WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
       WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 Aggregate Records Over a Session Window
 =======================================
@@ -113,7 +117,8 @@ the input data and performs the counting step per region.
              COUNT(*)
       FROM pageviews
       WINDOW SESSION (60 SECONDS)
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 For more information, see :ref:`time-and-windows-in-ksql-queries`.
 

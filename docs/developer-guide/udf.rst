@@ -744,7 +744,7 @@ built-in functions. The function names are case-insensitive. For example, using 
     CREATE STREAM number_stream (int1 INT, int2 INT, long1 BIGINT, long2 BIGINT)
       WITH (VALUE_FORMAT = 'JSON', KAFKA_TOPIC = 'numbers');
 
-    SELECT multiply(int1, int2), MULTIPLY(long1, long2) FROM number_stream;
+    SELECT multiply(int1, int2), MULTIPLY(long1, long2) FROM number_stream EMIT CHANGES;
 
 
 

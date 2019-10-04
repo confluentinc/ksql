@@ -362,7 +362,8 @@ from the ``authorization_attempts`` stream:
       WINDOW TUMBLING (SIZE 5 SECONDS)
       WHERE region = ‘west’
       GROUP BY card_number
-      HAVING count(*) > 3; 
+      HAVING count(*) > 3
+      EMIT CHANGES;
 
 The KSQL engine translates the DML statement into a Kafka Streams application.
 The application reads the source topic continuously, and whenever the

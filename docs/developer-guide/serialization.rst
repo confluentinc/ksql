@@ -109,7 +109,7 @@ For example, consider the statements:
 .. code:: sql
 
     CREATE STREAM x (f0 INT, f1 STRING) WITH (VALUE_FORMAT='JSON', ...);
-    CREATE STREAM y AS SELECT f0 FROM x;
+    CREATE STREAM y AS SELECT f0 FROM x EMIT CHANGES;
 
 The second statement defines a stream with only a single field in the value,
 named ``f0``.
@@ -136,7 +136,7 @@ For example,
 
 .. code:: sql
 
-    CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x;
+    CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x EMIT CHANGES;
 
 If a statement doesn't set the value wrapping explicitly, KSQL uses the system
 default, defined by ``ksql.persistence.wrap.single.values``. You can change the system default.
@@ -179,14 +179,14 @@ Single-field serialization examples
 
     -- creates a stream, picking up the system default of wrapping values.
     -- the serialized values in the sink topic will be wrapped.
-    CREATE STREAM IMPLICIT_SINK AS SELECT ID FROM S;
+    CREATE STREAM IMPLICIT_SINK AS SELECT ID FROM S EMIT CHANGES;
 
     -- override 'ksql.persistence.wrap.single.values' to false
     -- the serialized values will not be wrapped.
-    CREATE STREAM EXPLICIT_SINK WITH(WRAP_SINGLE_VALUE=false) AS SELECT ID FROM S;
+    CREATE STREAM EXPLICIT_SINK WITH(WRAP_SINGLE_VALUE=false) AS SELECT ID FROM S EMIT CHANGES;
 
     -- results in an error as the value schema is multi-field
-    CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S;
+    CREATE STREAM BAD_SINK WITH(WRAP_SINGLE_VALUE=true) AS SELECT ID, COST FROM S EMIT CHANGES;
 
 .. _ksql_formats:
 
@@ -286,7 +286,7 @@ the ``WRAP_SINGLE_VALUE`` is set to ``false``, for example:
 
 .. code:: sql
 
-    CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x;
+    CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x EMIT CHANGES;
 
 For more information, see :ref:`ksql_single_field_wrapping`.
 
@@ -363,7 +363,7 @@ the ``WRAP_SINGLE_VALUE`` is set to ``false``, for example:
 
 .. code:: sql
 
-    CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x;
+    CREATE STREAM y WITH (WRAP_SINGLE_VALUE=false) AS SELECT id FROM x EMIT CHANGES;
 
 For more information, see :ref:`ksql_single_field_wrapping`.
 

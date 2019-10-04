@@ -340,10 +340,10 @@ The following examples show common usage:
     .. code:: bash
 
         ksql <<EOF
-        > SHOW TOPICS;
-        > SHOW STREAMS;
-        > exit
-        > EOF
+        SHOW TOPICS;
+        SHOW STREAMS;
+        exit
+        EOF
 
 -   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
     an explicitly defined KSQL server endpoint.

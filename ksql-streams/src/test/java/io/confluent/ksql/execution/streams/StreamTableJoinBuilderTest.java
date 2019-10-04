@@ -135,7 +135,8 @@ public class StreamTableJoinBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             joinedFactory,
-            mock(MaterializedFactory.class)
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
         )
     );
   }

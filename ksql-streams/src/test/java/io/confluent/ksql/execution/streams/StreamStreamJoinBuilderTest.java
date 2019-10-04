@@ -3,6 +3,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -128,7 +129,7 @@ public class StreamStreamJoinBuilderTest {
         .thenReturn(leftSerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.AVRO)), any(), any()))
         .thenReturn(rightSerde);
-    when(streamJoinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
+    when(streamJoinedFactory.create(any(Serde.class), any(Serde.class), any(Serde.class), anyString(), anyString())).thenReturn(joined);
     when(left.build(any())).thenReturn(
         new KStreamHolder<>(leftKStream, keySerdeFactory));
     when(right.build(any())).thenReturn(
@@ -139,15 +140,16 @@ public class StreamStreamJoinBuilderTest {
         mock(AggregateParams.Factory.class),
         new StreamsFactories(
             mock(GroupedFactory.class),
-            streamJoinedFactory,
-            mock(MaterializedFactory.class)
+            mock(JoinedFactory.class),
+            mock(MaterializedFactory.class),
+            streamJoinedFactory
         )
     );
   }
 
   @SuppressWarnings("unchecked")
   private void givenLeftJoin() {
-    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any())).thenReturn(resultKStream);
+    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.LEFT,

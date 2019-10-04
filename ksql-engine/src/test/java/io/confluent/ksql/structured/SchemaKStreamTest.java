@@ -277,7 +277,7 @@ public class SchemaKStreamTest {
         queryBuilder,
         mock(SqlPredicateFactory.class),
         mock(AggregateParams.Factory.class),
-        new StreamsFactories(mockGroupedFactory, mockJoinedFactory, mockMaterializedFactory)
+        new StreamsFactories(mockGroupedFactory, mockJoinedFactory, mockMaterializedFactory, mockStreamJoinedFactory)
     );
   }
 

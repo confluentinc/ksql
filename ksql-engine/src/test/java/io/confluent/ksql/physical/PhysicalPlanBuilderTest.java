@@ -126,6 +126,12 @@ public class PhysicalPlanBuilderTest {
     return execute(CREATE_STREAM_TEST1 + query).get(0);
   }
 
+  private QueryMetadata buildTransientQuery(final String query) {
+    givenKafkaTopicsExist("test1");
+    execute(CREATE_STREAM_TEST1);
+    return executeQuery(query);
+  }
+
   @Test
   public void shouldHaveKStreamDataSource() {
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) buildQuery(
@@ -135,14 +141,14 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldMakeBareQuery() {
-    final QueryMetadata queryMetadata = buildQuery(simpleSelectFilter);
+    final QueryMetadata queryMetadata = buildTransientQuery(simpleSelectFilter);
     assertThat(queryMetadata, instanceOf(TransientQueryMetadata.class));
   }
 
   @Test
   public void shouldBuildTransientQueryWithCorrectSchema() {
     // When:
-    final QueryMetadata queryMetadata = buildQuery(simpleSelectFilter);
+    final QueryMetadata queryMetadata = buildTransientQuery(simpleSelectFilter);
 
     // Then:
     assertThat(queryMetadata.getLogicalSchema(), is(LogicalSchema.builder()
@@ -181,15 +187,17 @@ public class PhysicalPlanBuilderTest {
 
   @Test
   public void shouldCreateExecutionPlan() {
-    final String queryString =
+    final String ddl =
         "CREATE STREAM TEST1 ("
             + "COL0 BIGINT, COL1 VARCHAR, COL2 STRING, COL3 DOUBLE,"
             + " COL4 ARRAY<DOUBLE>, COL5 MAP<STRING, DOUBLE>)"
-            + " WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');"
-            + "SELECT col0, sum(col3), count(col3) FROM test1"
+            + " WITH (KAFKA_TOPIC = 'test1', VALUE_FORMAT = 'JSON');";
+    final String queryString =
+        "SELECT col0, sum(col3), count(col3) FROM test1"
             + " WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;";
     givenKafkaTopicsExist("test1");
-    final QueryMetadata metadata = execute(queryString).get(0);
+    execute(ddl);
+    final QueryMetadata metadata = executeQuery(queryString);
     final String planText = metadata.getExecutionPlan();
     final String[] lines = planText.split("\n");
     assertThat(lines[0], startsWith(
@@ -489,6 +497,11 @@ public class PhysicalPlanBuilderTest {
         sql,
         ksqlConfig,
         Collections.emptyMap());
+  }
+
+  private TransientQueryMetadata executeQuery(final String sql) {
+    return KsqlEngineTestUtil.executeQuery(
+        serviceContext, ksqlEngine, sql, ksqlConfig, Collections.emptyMap());
   }
 
   private void givenKafkaTopicsExist(final String... names) {

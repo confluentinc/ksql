@@ -99,13 +99,24 @@ public final class ExplainExecutor {
         explain.getStatementText().substring("EXPLAIN ".length()),
         statement);
 
-    final QueryMetadata metadata = executionContext.createSandbox(serviceContext)
-        .execute(
-            serviceContext,
-            ConfiguredStatement.of(preparedStatement, explain.getOverrides(), explain.getConfig()))
-        .getQuery()
-        .orElseThrow(() ->
-            new IllegalStateException("The provided statement did not run a ksql query"));
+    final QueryMetadata metadata;
+    final KsqlExecutionContext sandbox = executionContext.createSandbox(serviceContext);
+    if (preparedStatement.getStatement() instanceof Query) {
+      metadata = sandbox.executeQuery(
+          serviceContext,
+          ConfiguredStatement.of(
+              preparedStatement, explain.getOverrides(), explain.getConfig()).cast()
+      );
+    } else {
+      metadata = sandbox
+          .execute(
+              serviceContext,
+              ConfiguredStatement
+                  .of(preparedStatement, explain.getOverrides(), explain.getConfig()))
+          .getQuery()
+          .orElseThrow(() ->
+              new IllegalStateException("The provided statement did not run a ksql query"));
+    }
 
     return QueryDescriptionFactory.forQueryMetadata(metadata);
   }

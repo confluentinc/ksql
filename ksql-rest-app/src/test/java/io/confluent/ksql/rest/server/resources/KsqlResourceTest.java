@@ -146,6 +146,7 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.Sandbox;
+import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import io.confluent.rest.RestConfig;
@@ -1208,7 +1209,7 @@ public class KsqlResourceTest {
         ksqlString, QueryDescriptionEntity.class);
 
     // Then:
-    validateQueryDescription(ksqlQueryString, emptyMap(), query);
+    validateTransientQueryDescription(ksqlQueryString, emptyMap(), query);
   }
 
   @Test
@@ -1285,7 +1286,7 @@ public class KsqlResourceTest {
     final String ksqlString = "CREATE STREAM test_explain AS SELECT * FROM test_stream;";
     givenMockEngine();
 
-    when(sandbox.execute(any(), any()))
+    when(sandbox.execute(any(), any(ConfiguredStatement.class)))
         .thenThrow(new RuntimeException("internal error"));
 
     // When:
@@ -2032,6 +2033,20 @@ public class KsqlResourceTest {
     return entityList.stream()
         .map(expectedEntityType::cast)
         .collect(Collectors.toList());
+  }
+
+  private void validateTransientQueryDescription(
+      final String ksqlQueryString,
+      final Map<String, Object> overriddenProperties,
+      final KsqlEntity entity) {
+    final TransientQueryMetadata queryMetadata = KsqlEngineTestUtil.executeQuery(
+        serviceContext,
+        ksqlEngine,
+        ksqlQueryString,
+        ksqlConfig,
+        overriddenProperties
+    );
+    validateQueryDescription(queryMetadata, overriddenProperties, entity);
   }
 
   @SuppressWarnings("SameParameterValue")

@@ -28,6 +28,7 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -197,10 +198,11 @@ public class KsqlContext implements AutoCloseable {
     final CustomExecutor executor =
         CustomExecutors.EXECUTOR_MAP.getOrDefault(
             configured.getStatement().getClass(),
-            (serviceContext, s, props) -> executionContext.execute(serviceContext, s));
+            (passedExecutionContext, s, props) -> passedExecutionContext.execute(
+                passedExecutionContext.getServiceContext(), s));
 
     return executor.apply(
-        executionContext.getServiceContext(),
+        executionContext,
         configured,
         mutableSessionPropertyOverrides
     );
@@ -209,7 +211,7 @@ public class KsqlContext implements AutoCloseable {
   @FunctionalInterface
   private interface CustomExecutor {
     ExecuteResult apply(
-        ServiceContext serviceContext,
+        KsqlExecutionContext executionContext,
         ConfiguredStatement<?> statement,
         Map<String, Object> mutableSessionPropertyOverrides
     );
@@ -218,13 +220,17 @@ public class KsqlContext implements AutoCloseable {
   @SuppressWarnings("unchecked")
   private enum CustomExecutors {
 
-    SET_PROPERTY(SetProperty.class, (serviceContext, stmt, props) -> {
+    SET_PROPERTY(SetProperty.class, (executionContext, stmt, props) -> {
       PropertyOverrider.set((ConfiguredStatement<SetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
     }),
-    UNSET_PROPERTY(UnsetProperty.class, (serviceContext, stmt, props) -> {
+    UNSET_PROPERTY(UnsetProperty.class, (executionContext, stmt, props) -> {
       PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
+    }),
+    QUERY(Query.class, (executionContext, stmt, props) -> {
+      return ExecuteResult.of(
+          executionContext.executeQuery(executionContext.getServiceContext(), stmt.cast()));
     })
     ;
 
@@ -256,11 +262,12 @@ public class KsqlContext implements AutoCloseable {
     }
 
     public ExecuteResult execute(
-        final ServiceContext serviceContext,
+        final KsqlExecutionContext executionContext,
         final ConfiguredStatement<?> statement,
         final Map<String, Object> mutableSessionPropertyOverrides
     ) {
-      return executor.apply(serviceContext, statement, mutableSessionPropertyOverrides);
+      return executor.apply(
+          executionContext, statement, mutableSessionPropertyOverrides);
     }
   }
 }

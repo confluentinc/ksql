@@ -16,8 +16,6 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMap.Builder;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
@@ -34,7 +32,6 @@ import org.slf4j.LoggerFactory;
 public class KsqlServerMain {
 
   private static final Logger log = LoggerFactory.getLogger(KsqlServerMain.class);
-  private static final String KSQL_REST_SERVER_DEFAULT_APP_ID = "KSQL_REST_SERVER_DEFAULT_APP_ID";
 
   private final Executable executable;
 
@@ -93,7 +90,7 @@ public class KsqlServerMain {
       return StandaloneExecutorFactory.create(properties, queriesFile.get(), installDir);
     }
 
-    final KsqlRestConfig restConfig = new KsqlRestConfig(ensureValidProps(properties));
+    final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
     final Executable restApp = KsqlRestApplication.buildApplication(
         restConfig,
         KsqlVersionCheckerAgent::new
@@ -106,17 +103,6 @@ public class KsqlServerMain {
 
     final Executable connect = ConnectExecutable.of(connectConfigFile);
     return MultiExecutable.of(connect, restApp);
-  }
-
-  private static Map<?, ?> ensureValidProps(final Map<String, String> properties) {
-    if (properties.containsKey(StreamsConfig.APPLICATION_ID_CONFIG)) {
-      return properties;
-    }
-
-    final Builder<String, String> builder = ImmutableMap.builder();
-    builder.putAll(properties);
-    builder.put(StreamsConfig.APPLICATION_ID_CONFIG, KSQL_REST_SERVER_DEFAULT_APP_ID);
-    return builder.build();
   }
 
   @VisibleForTesting

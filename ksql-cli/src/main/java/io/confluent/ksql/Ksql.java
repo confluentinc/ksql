@@ -23,7 +23,6 @@ import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.util.ErrorMessageUtil;
-import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import java.io.File;
@@ -34,7 +33,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Predicate;
-import org.apache.kafka.streams.StreamsConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,17 +112,8 @@ public final class Ksql {
     return PropertiesUtil.filterByKey(props, NOT_CLIENT_SIDE_CONFIG);
   }
 
-  @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private static Map<String, String> loadProperties(final String propertiesFile) {
-    final Map<String, String> properties = PropertiesUtil
-        .loadProperties(new File(propertiesFile));
-
-    final String serviceId = properties.get(KsqlConfig.KSQL_SERVICE_ID_CONFIG);
-    if (serviceId != null) {
-      properties.put(StreamsConfig.APPLICATION_ID_CONFIG, serviceId);
-    }
-
-    return properties;
+    return PropertiesUtil.loadProperties(new File(propertiesFile));
   }
 
   interface KsqlClientBuilder {

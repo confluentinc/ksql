@@ -83,7 +83,6 @@ public class MockApplication extends Application<KsqlRestConfig> {
     final Map<String, Object> props = ImmutableMap.<String, Object>builder()
         .put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
         .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-        .put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test")
         .put(RestConfig.SHUTDOWN_GRACEFUL_MS_CONFIG, (int) TimeUnit.SECONDS.toMillis(30))
         .build();
 

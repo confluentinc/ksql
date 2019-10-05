@@ -45,6 +45,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
+import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -57,7 +58,6 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
 import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.Windowed;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ExecutionStepFactory {
@@ -65,7 +65,7 @@ public final class ExecutionStepFactory {
   private ExecutionStepFactory() {
   }
 
-  public static StreamSource<Windowed<Struct>> streamSourceWindowed(
+  public static WindowedStreamSource streamSourceWindowed(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
@@ -75,7 +75,7 @@ public final class ExecutionStepFactory {
       final Optional<AutoOffsetReset> offsetReset
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamSource<>(
+    return new WindowedStreamSource(
         new DefaultExecutionStepProperties(
             schema.getSchema(),
             queryContext),
@@ -88,7 +88,7 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static StreamSource<Struct> streamSource(
+  public static StreamSource streamSource(
       final QueryContext.Stacker stacker,
       final LogicalSchemaWithMetaAndKeyFields schema,
       final String topicName,
@@ -98,7 +98,7 @@ public final class ExecutionStepFactory {
       final Optional<AutoOffsetReset> offsetReset
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamSource<>(
+    return new StreamSource(
         new DefaultExecutionStepProperties(
             schema.getSchema(),
             queryContext),

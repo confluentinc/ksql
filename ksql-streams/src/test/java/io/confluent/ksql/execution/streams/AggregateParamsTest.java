@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -84,16 +83,16 @@ public class AggregateParamsTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(functionRegistry.getAggregate(same(AGG0.getName().name()), any(), any())).thenReturn(agg0);
+    when(functionRegistry.getAggregateFunction(same(AGG0.getName().name()), any(), any())).thenReturn(agg0);
     when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(agg0.getFunctionName()).thenReturn(AGG0.getName());
-    when(functionRegistry.getAggregate(same(AGG1.getName().name()), any(), any())).thenReturn(agg1);
+    when(functionRegistry.getAggregateFunction(same(AGG1.getName().name()), any(), any())).thenReturn(agg1);
     when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
     when(agg1.getFunctionName()).thenReturn(AGG1.getName());
-    when(functionRegistry.getAggregate(same(TABLE_AGG.getName().name()), any(), any()))
+    when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName().name()), any(), any()))
         .thenReturn(tableAgg);
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(functionRegistry.getAggregate(same(WINDOW_START.getName().name()), any(), any()))
+    when(functionRegistry.getAggregateFunction(same(WINDOW_START.getName().name()), any(), any()))
         .thenReturn(windowStart);
     when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(windowStart.getFunctionName()).thenReturn(WINDOW_START.getName());

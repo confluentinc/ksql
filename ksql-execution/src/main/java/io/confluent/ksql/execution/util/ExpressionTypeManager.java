@@ -359,7 +359,7 @@ public class ExpressionTypeManager {
             AggregateFunctionInitArguments.ofFunctionArgs(0, sargs);
 
         final KsqlAggregateFunction aggFunc = functionRegistry
-            .getAggregate(node.getName().name(), schema, args);
+            .getAggregateFunction(node.getName().name(), schema, args);
 
         final Schema returnSchema = aggFunc.getReturnType();
 

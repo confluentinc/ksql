@@ -63,7 +63,7 @@ public class UdafUtilTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(functionRegistry.getAggregate(any(), any(), any())).thenReturn(function);
+    when(functionRegistry.getAggregateFunction(any(), any(), any())).thenReturn(function);
   }
 
   @Test
@@ -82,7 +82,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregate(eq("AGG"), any(), any());
+    verify(functionRegistry).getAggregateFunction(eq("AGG"), any(), any());
   }
 
   @Test
@@ -91,7 +91,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregate(any(), eq(Schema.OPTIONAL_INT64_SCHEMA), any());
+    verify(functionRegistry).getAggregateFunction(any(), eq(Schema.OPTIONAL_INT64_SCHEMA), any());
   }
 
 }

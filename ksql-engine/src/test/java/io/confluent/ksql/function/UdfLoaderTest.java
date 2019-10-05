@@ -110,7 +110,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldLoadUdafs() {
     final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregate("test_udaf", Schema.OPTIONAL_INT64_SCHEMA,
+        .getAggregateFunction("test_udaf", Schema.OPTIONAL_INT64_SCHEMA,
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
@@ -127,7 +127,7 @@ public class UdfLoaderTest {
         .build();
 
     final KsqlAggregateFunction instance = FUNC_REG
-        .getAggregate("test_udaf", schema, AggregateFunctionInitArguments.EMPTY_ARGS);
+        .getAggregateFunction("test_udaf", schema, AggregateFunctionInitArguments.EMPTY_ARGS);
 
     assertThat(instance.getInitialValueSupplier().get(),
         equalTo(new Struct(schema).put("A", 0).put("B", 0)));

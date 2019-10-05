@@ -21,6 +21,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Represents a list of initial arguments for the creation of a
+ * {@link io.confluent.ksql.function.KsqlAggregateFunction}
+ *
+ * <p>The initial arguments are always constants.
+ */
 public class AggregateFunctionInitArguments {
 
   private final int udafIndex;

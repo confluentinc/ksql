@@ -103,7 +103,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(
+  public KsqlAggregateFunction getAggregateFunction(
       final String functionName,
       final Schema argumentType,
       final AggregateFunctionInitArguments initArgs

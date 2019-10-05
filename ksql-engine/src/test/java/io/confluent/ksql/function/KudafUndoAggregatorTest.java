@@ -30,7 +30,7 @@ import org.junit.Test;
 
 public class KudafUndoAggregatorTest {
   private static final InternalFunctionRegistry FUNCTION_REGISTRY = new InternalFunctionRegistry();
-  private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregate(
+  private static final KsqlAggregateFunction SUM_INFO = FUNCTION_REGISTRY.getAggregateFunction(
       "SUM",
       Schema.OPTIONAL_INT32_SCHEMA,
       new AggregateFunctionInitArguments(2)

@@ -307,7 +307,7 @@ public class InternalFunctionRegistryTest {
             return ImmutableList.of();
           }
         });
-    assertThat(functionRegistry.getAggregate("my_aggregate",
+    assertThat(functionRegistry.getAggregateFunction("my_aggregate",
         Schema.OPTIONAL_INT32_SCHEMA,
         AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
   }

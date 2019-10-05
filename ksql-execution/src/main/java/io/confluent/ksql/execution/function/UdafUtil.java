@@ -63,7 +63,7 @@ public final class UdafUtil {
           .map(Expression::toString)
           .collect(Collectors.toList());
 
-      return functionRegistry.getAggregate(
+      return functionRegistry.getAggregateFunction(
           functionCall.getName().name(),
           argumentType,
           AggregateFunctionInitArguments.ofFunctionArgs(

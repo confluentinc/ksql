@@ -34,7 +34,9 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction<?, ?, ?> getProperAggregateFunction(final List<Schema> argTypeList) {
+  public synchronized KsqlAggregateFunction<?, ?, ?> getProperAggregateFunction(
+      final List<Schema> argTypeList
+  ) {
     final KsqlAggregateFunction ksqlAggregateFunction = udfIndex.getFunction(argTypeList);
     if (ksqlAggregateFunction == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
@@ -46,7 +48,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public List<List<Schema>> supportedArgs() {
+  public synchronized List<List<Schema>> supportedArgs() {
     return udfIndex.values()
         .stream()
         .map(KsqlAggregateFunction::getArguments)

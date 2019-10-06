@@ -15,16 +15,18 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class TrimKudf implements Kudf {
+@UdfDescription(name = "LCase", description = LCase.DESCRIPTION)
+public class LCase {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Trim udf should have one input argument.");
-    }
-    return args[0].toString().trim();
+  static final String DESCRIPTION = "Converts all characters in the string argument to lowercase.";
+
+  @Udf
+  public String lcase(@UdfParameter final String arg) {
+    return arg == null ? null : arg.toLowerCase();
   }
+
 }

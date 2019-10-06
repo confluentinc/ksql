@@ -376,12 +376,6 @@ public class InternalFunctionRegistryTest {
 
     // Verify that all built-in UDF are correctly registered in the InternalFunctionRegistry
     List<String> buildtInUDF = Arrays.asList(
-        // String UDF
-        "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
-        // Math UDF
-        "CEIL", "RANDOM",
-        // JSON UDF
-        "EXTRACTJSONFIELD", "ARRAYCONTAINS",
         // Struct UDF
         "FETCH_FIELD_FROM_STRUCT"
     );

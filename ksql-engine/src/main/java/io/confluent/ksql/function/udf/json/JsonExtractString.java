@@ -19,32 +19,34 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.json.JsonPathTokenizer;
 import java.io.IOException;
 import java.util.List;
 
-public class JsonExtractStringKudf implements Kudf {
+@UdfDescription(name = "EXTRACTJSONFIELD", description = JsonExtractString.DESCRIPTION)
+public class JsonExtractString {
   private static final ObjectReader OBJECT_READER = JsonMapper.INSTANCE.mapper.reader();
-  public static final String NAME = "EXTRACTJSONFIELD";
+  static final String DESCRIPTION = "Extracts a field from json";
 
-  private List<String> tokens = null;
-
-  @Override
-  public Object evaluate(final Object... args) {
-    UdfUtil.ensureCorrectArgs("EXTRACTJSONFIELD", args, String.class, String.class);
-
-    ensureInitialized(args);
-
-    if (args[0] == null) {
+  @Udf
+  public String extractJson(@UdfParameter final String json, @UdfParameter final String field) {
+    if (json == null) {
       return null;
     }
+    if (field == null) {
+      throw new KsqlException("Path can not be null");
+    }
 
-    JsonNode currentNode = parseJsonDoc(args[0]);
+    final JsonPathTokenizer tokenizer = new JsonPathTokenizer(field);
+    final List<String> tokens = ImmutableList.copyOf(tokenizer);
+
+    JsonNode currentNode = parseJsonDoc(json);
     for (final String token : tokens) {
       if (currentNode instanceof ArrayNode) {
         try {
@@ -67,20 +69,6 @@ public class JsonExtractStringKudf implements Kudf {
     } else {
       return currentNode.toString();
     }
-  }
-
-  private void ensureInitialized(final Object[] args) {
-    if (tokens != null) {
-      return;
-    }
-
-    if (args[1] == null) {
-      throw new KsqlException("Path can not be null");
-    }
-
-    final String path = args[1].toString();
-    final JsonPathTokenizer tokenizer = new JsonPathTokenizer(path);
-    tokens = ImmutableList.copyOf(tokenizer);
   }
 
   private static JsonNode parseJsonDoc(final Object arg) {

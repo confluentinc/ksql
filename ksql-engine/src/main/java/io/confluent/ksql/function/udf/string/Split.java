@@ -25,14 +25,14 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-@UdfDescription(name = SplitKudf.NAME, author = KsqlConstants.CONFLUENT_AUTHOR,
+@UdfDescription(name = Split.NAME, author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Splits a string into an array of substrings based on a delimiter. "
         + "If the delimiter is found at the beginning of the string, end of the string, or there "
         + "are contiguous delimiters in the string, then empty strings are added to the array. "
         + "If the delimiter is not found, then the original string is returned as the only "
         + "element in the array. If the delimiter is empty, then all characters in the string are "
         + "split.")
-public class SplitKudf {
+public class Split {
   static final String NAME = "split";
 
   private static final Pattern EMPTY_DELIMITER = Pattern.compile("");

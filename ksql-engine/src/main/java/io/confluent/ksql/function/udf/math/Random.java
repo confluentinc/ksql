@@ -15,16 +15,19 @@
 
 package io.confluent.ksql.function.udf.math;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
 
-public class CeilKudf implements Kudf {
+@UdfDescription(name = "Random", description = Random.DESCRIPTION)
+public class Random {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Ceil udf should have one input argument.");
-    }
-    return Math.ceil((Double) args[0]);
+  static final String DESCRIPTION = "Returns a double value with a positive sign, greater than or "
+      + "equal to 0.0 and less than 1.0. Returned values are chosen pseudorandomly with "
+      + "(approximately) uniform distribution from that range. The behavior is the same as "
+      + "math.random in Java.";
+
+  @Udf
+  public Double random() {
+    return Math.random();
   }
 }

@@ -20,36 +20,28 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.KudfTester;
+import io.confluent.ksql.util.KsqlException;
 import java.util.stream.IntStream;
 import org.junit.Before;
 import org.junit.Test;
 
-public class JsonExtractStringKudfTest {
+public class JsonExtractStringTest {
   private static final String JSON_DOC = "{"
                                   + "\"thing1\":{\"thing2\":\"hello\"},"
                                   + "\"array\":[101,102]"
                                   + "}";
 
-  private JsonExtractStringKudf udf;
+  private JsonExtractString udf;
 
   @Before
   public void setUp() {
-    udf = new JsonExtractStringKudf();
-  }
-
-  @Test
-  public void shouldBeWellBehavedUdf() {
-    new KudfTester(JsonExtractStringKudf::new)
-        .withArguments(JSON_DOC, "$.thing1")
-        .withNonNullableArgument(1)
-        .test();
+    udf = new JsonExtractString();
   }
 
   @Test
   public void shouldExtractJsonField() {
     // When:
-    final Object result = udf.evaluate(JSON_DOC, "$.thing1.thing2");
+    final Object result = udf.extractJson(JSON_DOC, "$.thing1.thing2");
 
     // Then:
     assertThat(result, is("hello"));
@@ -58,7 +50,7 @@ public class JsonExtractStringKudfTest {
   @Test
   public void shouldExtractJsonDoc() {
     // When:
-    final Object result = udf.evaluate(JSON_DOC, "$.thing1");
+    final Object result = udf.extractJson(JSON_DOC, "$.thing1");
 
     // Then:
     assertThat(result, is("{\"thing2\":\"hello\"}"));
@@ -67,7 +59,7 @@ public class JsonExtractStringKudfTest {
   @Test
   public void shouldExtractWholeJsonDoc() {
     // When:
-    final Object result = udf.evaluate(JSON_DOC, "$");
+    final Object result = udf.extractJson(JSON_DOC, "$");
 
     // Then:
     assertThat(result, is(JSON_DOC));
@@ -76,7 +68,7 @@ public class JsonExtractStringKudfTest {
   @Test
   public void shouldExtractJsonArrayField() {
     // When:
-    final Object result = udf.evaluate(JSON_DOC, "$.array.1");
+    final Object result = udf.extractJson(JSON_DOC, "$.array.1");
 
     // Then:
     assertThat(result, is("102"));
@@ -85,25 +77,30 @@ public class JsonExtractStringKudfTest {
   @Test
   public void shouldReturnNullIfNodeNotFound() {
     // When:
-    final Object result = udf.evaluate(JSON_DOC, "$.will.not.find.me");
+    final Object result = udf.extractJson(JSON_DOC, "$.will.not.find.me");
 
     // Then:
     assertThat(result, is(nullValue()));
   }
 
-  @Test(expected = KsqlFunctionException.class)
-  public void shouldThrowIfTooFewParameters() {
-    udf.evaluate(JSON_DOC);
+  @Test
+  public void shouldHandleNullJson() {
+    // When:
+    final Object result = udf.extractJson(null, "$.will.not.find.me");
+
+    // Then:
+    assertThat(result, is(nullValue()));
   }
 
-  @Test(expected = KsqlFunctionException.class)
-  public void shouldThrowIfTooManyParameters() {
-    udf.evaluate(JSON_DOC, "$.thing1", "extra");
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfFieldIsNull() {
+    udf.extractJson(JSON_DOC, null);
   }
 
   @Test(expected = KsqlFunctionException.class)
   public void shouldThrowOnInvalidJsonDoc() {
-    udf.evaluate("this is NOT a JSON doc", "$.thing1");
+    udf.extractJson("this is NOT a JSON doc", "$.thing1");
   }
 
   @Test

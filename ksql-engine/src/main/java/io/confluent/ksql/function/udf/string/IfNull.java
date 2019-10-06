@@ -15,24 +15,26 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
-public class ConcatKudf implements Kudf {
-  public static final String NAME = "CONCAT";
+@UdfDescription(name = "IfNull", description = IfNull.DESCRIPTION)
+public class IfNull {
 
-  @Override
-  public String evaluate(final Object... args) {
-    if (args.length < 2) {
-      throw new KsqlFunctionException(NAME + " should have at least two input argument.");
+  static final String DESCRIPTION = "Returns the first of its arguments that is not null.  Null "
+      + "is returned only if all arguments are null.";
+
+  @Udf
+  public Object ifNull(@UdfParameter final Object... args) {
+
+    final Optional<Object> isNull =  Arrays.stream(args).filter((Objects::nonNull)).findFirst();
+    if (isNull.isPresent()) {
+      return isNull.get();
     }
-
-    return Arrays.stream(args)
-        .filter(Objects::nonNull)
-        .map(Object::toString)
-        .collect(Collectors.joining());
+    return null;
   }
 }

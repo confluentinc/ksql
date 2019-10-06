@@ -18,46 +18,37 @@ package io.confluent.ksql.function.udf.string;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.function.udf.KudfTester;
 import org.junit.Before;
 import org.junit.Test;
 
-public class ConcatKudfTest {
+public class ConcatTest {
 
-  private ConcatKudf udf;
+  private Concat udf;
 
   @Before
   public void setUp() {
-    udf = new ConcatKudf();
-  }
-
-  @Test
-  public void shouldBeWellBehavedUdf() {
-    new KudfTester(ConcatKudf::new)
-        .withArgumentTypes(Object.class, Object.class)
-        .withUnboundedMaxArgCount()
-        .test();
+    udf = new Concat();
   }
 
   @Test
   public void shouldConcatStrings() {
-    assertThat(udf.evaluate("Hello", " Mum"), is("Hello Mum"));
+    assertThat(udf.concat("Hello", " Mum"), is("Hello Mum"));
   }
 
   @Test
   public void shouldConcatNonStrings() {
-    assertThat(udf.evaluate(1.345, 34), is("1.34534"));
+    assertThat(udf.concat(1.345, 34), is("1.34534"));
   }
 
   @Test
   public void shouldConcatIgnoringNulls() {
     assertThat(
-        udf.evaluate(null, "this ", null, "should ", null, "work!", null),
+        udf.concat(null, "this ", null, "should ", null, "work!", null),
         is("this should work!"));
   }
 
   @Test
   public void shouldReturnEmptyStringIfAllArgsNull() {
-    assertThat(udf.evaluate(null, null), is(""));
+    assertThat(udf.concat(null, null), is(""));
   }
 }

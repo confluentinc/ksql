@@ -24,16 +24,6 @@ import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.function.udf.json.ArrayContainsKudf;
-import io.confluent.ksql.function.udf.json.JsonExtractStringKudf;
-import io.confluent.ksql.function.udf.math.CeilKudf;
-import io.confluent.ksql.function.udf.math.RandomKudf;
-import io.confluent.ksql.function.udf.string.ConcatKudf;
-import io.confluent.ksql.function.udf.string.IfNullKudf;
-import io.confluent.ksql.function.udf.string.LCaseKudf;
-import io.confluent.ksql.function.udf.string.LenKudf;
-import io.confluent.ksql.function.udf.string.TrimKudf;
-import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -173,108 +163,8 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void init() {
-      addStringFunctions();
-      addMathFunctions();
-      addJsonFunctions();
       addStructFieldFetcher();
       addUdafFunctions();
-    }
-
-    private void addStringFunctions() {
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "LCASE", LCaseKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "UCASE", UCaseKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          ConcatKudf.NAME, ConcatKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "TRIM", TrimKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA,
-              Schema.OPTIONAL_STRING_SCHEMA),
-          "IFNULL", IfNullKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_INT32_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
-          "LEN",
-          LenKudf.class));
-    }
-
-    private void addMathFunctions() {
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          "CEIL",
-          CeilKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
-          Collections.emptyList(),
-          "RANDOM",
-          RandomKudf.class));
-    }
-
-    private void addJsonFunctions() {
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          JsonExtractStringKudf.NAME,
-          JsonExtractStringKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          "ARRAYCONTAINS",
-          ArrayContainsKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
-          ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
-              Schema.OPTIONAL_STRING_SCHEMA),
-          "ARRAYCONTAINS",
-          ArrayContainsKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
-          ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
-              Schema.OPTIONAL_INT32_SCHEMA),
-          "ARRAYCONTAINS",
-          ArrayContainsKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
-          ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
-              Schema.OPTIONAL_INT64_SCHEMA),
-          "ARRAYCONTAINS",
-          ArrayContainsKudf.class));
-
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
-          ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
-              Schema.OPTIONAL_FLOAT64_SCHEMA),
-          "ARRAYCONTAINS",
-          ArrayContainsKudf.class));
     }
 
     private void addStructFieldFetcher() {
@@ -299,10 +189,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
       functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
-    }
-
-    private void addBuiltInFunction(final KsqlFunction ksqlFunction) {
-      addBuiltInFunction(ksqlFunction, false);
     }
 
     private void addBuiltInFunction(final KsqlFunction ksqlFunction, final boolean internal) {

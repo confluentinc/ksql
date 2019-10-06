@@ -15,16 +15,18 @@
 
 package io.confluent.ksql.function.udf.string;
 
-import io.confluent.ksql.function.KsqlFunctionException;
-import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.Udf;
+import io.confluent.ksql.function.udf.UdfDescription;
+import io.confluent.ksql.function.udf.UdfParameter;
 
-public class LenKudf implements Kudf {
+@UdfDescription(name = "UCase", description = UCase.DESCRIPTION)
+public class UCase {
 
-  @Override
-  public Object evaluate(final Object... args) {
-    if (args.length != 1) {
-      throw new KsqlFunctionException("Length udf should have one input argument.");
-    }
-    return args[0].toString().length();
+  static final String DESCRIPTION = "Converts all characters in the string argument to uppercase.";
+
+  @Udf
+  public String ucase(@UdfParameter final String arg) {
+    return arg == null ? null : arg.toUpperCase();
   }
+
 }

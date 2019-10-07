@@ -34,7 +34,6 @@ public class KsqlRestConfigTest {
 
   private static final Map<String, ?> MIN_VALID_CONFIGS = ImmutableMap.<String, Object>builder()
       .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
-      .put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test")
       .put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088")
       .build();
 
@@ -49,7 +48,6 @@ public class KsqlRestConfigTest {
     final Map<String, Object> ksqlConfigProperties = config.getKsqlConfigProperties();
     final Map<String, Object> expectedKsqlConfigProperties = new HashMap<>();
     expectedKsqlConfigProperties.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    expectedKsqlConfigProperties.put(StreamsConfig.APPLICATION_ID_CONFIG, "ksql_config_test");
     expectedKsqlConfigProperties.put(RestConfig.LISTENERS_CONFIG, "http://localhost:8088");
     expectedKsqlConfigProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     expectedKsqlConfigProperties.put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "test");

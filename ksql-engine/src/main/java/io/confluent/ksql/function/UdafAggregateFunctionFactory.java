@@ -35,7 +35,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
+  public synchronized KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
       final List<Schema> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
@@ -50,7 +50,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public List<List<Schema>> supportedArgs() {
+  public synchronized List<List<Schema>> supportedArgs() {
     return udfIndex.values()
         .stream()
         .map(UdafCreator::getArguments)

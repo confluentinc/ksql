@@ -362,6 +362,6 @@ Create the ``impressions2`` persistent streaming query:
 
 .. code:: sql
 
-    CREATE STREAM impressions2 as select * from impressions;
+    CREATE STREAM impressions2 as select * from impressions EMIT CHANGES;
  
 

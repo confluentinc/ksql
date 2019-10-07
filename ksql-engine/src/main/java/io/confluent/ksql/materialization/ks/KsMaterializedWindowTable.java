@@ -55,7 +55,7 @@ class KsMaterializedWindowTable implements MaterializedWindowedTable {
 
       final Instant lower = windowStartBounds.hasLowerBound()
           ? windowStartBounds.lowerEndpoint()
-          : Instant.ofEpochMilli(Long.MIN_VALUE);
+          : Instant.ofEpochMilli(0);
 
       final Instant upper = windowStartBounds.hasUpperBound()
           ? windowStartBounds.upperEndpoint()

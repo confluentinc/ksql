@@ -211,7 +211,8 @@ end them with the TERMINATE statement.
       SELECT users.userid AS userid, pageid, regionid, gender
       FROM pageviews_original
       LEFT JOIN users
-        ON pageviews_original.userid = users.userid;
+        ON pageviews_original.userid = users.userid
+      EMIT CHANGES;
 
    Your output should resemble:
 
@@ -276,7 +277,8 @@ You can assign properties in the KSQL Editor before you run your queries.
 
       CREATE STREAM pageviews_female AS
       SELECT * FROM pageviews_enriched
-      WHERE gender = 'FEMALE';
+      WHERE gender = 'FEMALE'
+      EMIT CHANGES;
 
    .. figure:: ../img/c3-ksql-set-auto-offset-reset.png
       :alt: Screenshot showing how to set a query property in the KSQL Editor page
@@ -327,7 +329,7 @@ JSON file.
 
    .. code:: sql
 
-      SELECT * FROM  PAGEVIEWS_FEMALE;
+      SELECT * FROM  PAGEVIEWS_FEMALE EMIT CHANGES;
 
 #. In the query results window, select some records and click **Download**.
    

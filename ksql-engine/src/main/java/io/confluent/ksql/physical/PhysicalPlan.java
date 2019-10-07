@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.physical;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
 import java.util.Optional;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
 public final class PhysicalPlan<T> {

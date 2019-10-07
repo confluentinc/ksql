@@ -32,8 +32,6 @@ import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.materialization.AggregatesInfo;
-import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
@@ -66,7 +64,6 @@ import java.util.stream.Collectors;
 
 public class AggregateNode extends PlanNode {
 
-  private static final String AGGREGATE_STATE_STORE_NAME = "Aggregate-aggregate";
   private static final String INTERNAL_COLUMN_NAME_PREFIX = "KSQL_INTERNAL_COL_";
 
   private static final String PREPARE_OP_NAME = "prepare";
@@ -85,7 +82,6 @@ public class AggregateNode extends PlanNode {
   private final List<ColumnReferenceExp> requiredColumns;
   private final List<Expression> finalSelectExpressions;
   private final Expression havingExpressions;
-  private Optional<MaterializationInfo> materializationInfo = Optional.empty();
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public AggregateNode(
@@ -159,10 +155,6 @@ public class AggregateNode extends PlanNode {
 
   public List<ColumnReferenceExp> getRequiredColumns() {
     return requiredColumns;
-  }
-
-  public Optional<MaterializationInfo> getMaterializationInfo() {
-    return materializationInfo;
   }
 
   private List<SelectExpression> getFinalSelectExpressions() {
@@ -284,21 +276,6 @@ public class AggregateNode extends PlanNode {
 
     final List<SelectExpression> finalSelects = internalSchema
         .updateFinalSelectExpressions(getFinalSelectExpressions());
-
-    final AggregatesInfo aggregatesInfo = AggregatesInfo.of(
-        requiredColumns.size(),
-        functionsWithInternalIdentifiers,
-        prepareSchema
-    );
-
-    materializationInfo = Optional.of(MaterializationInfo.of(
-        AGGREGATE_STATE_STORE_NAME,
-        aggregatesInfo,
-        outputSchema,
-        havingExpression,
-        schema,
-        finalSelects
-    ));
 
     return aggregated.select(
         finalSelects,

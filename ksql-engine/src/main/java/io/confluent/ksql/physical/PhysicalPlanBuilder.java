@@ -15,24 +15,17 @@
 
 package io.confluent.ksql.physical;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.planner.LogicalPlanNode;
-import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.OutputNode;
-import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class PhysicalPlanBuilder {
@@ -77,33 +70,12 @@ public class PhysicalPlanBuilder {
     );
 
     final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
-    final DataSourceType sourceType = (resultStream instanceof SchemaKTable)
-        ? DataSourceType.KTABLE
-        : DataSourceType.KSTREAM;
-    final Optional<MaterializationInfo> materializationInfo = sourceType == DataSourceType.KTABLE
-        ? findMaterializationInfo(outputNode)
-        : Optional.empty();
     return new PhysicalPlan<>(
         queryId,
         resultStream.getSourceStep(),
-        materializationInfo,
         resultStream.getExecutionPlan(queryId, ""),
         resultStream.getKeyField()
     );
-  }
-
-  private static Optional<MaterializationInfo> findMaterializationInfo(
-      final PlanNode node
-  ) {
-    if (node instanceof AggregateNode) {
-      return ((AggregateNode) node).getMaterializationInfo();
-    }
-
-    return node.getSources().stream()
-        .map(PhysicalPlanBuilder::findMaterializationInfo)
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .findFirst();
   }
 }
 

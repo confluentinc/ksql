@@ -41,6 +41,12 @@ public final class TableMapValuesBuilder {
             queryBuilder.getFunctionRegistry(),
             queryBuilder.getProcessingLogContext()
         );
-    return table.withTable(table.getTable().mapValues(selection.getMapper()));
+    return table
+        .withTable(table.getTable().mapValues(selection.getMapper()))
+        .withMaterialization(
+            table.getMaterializationBuilder().map(
+                b -> b.mapValues(step.getSelectExpressions(), step.getSchema())
+            )
+        );
   }
 }

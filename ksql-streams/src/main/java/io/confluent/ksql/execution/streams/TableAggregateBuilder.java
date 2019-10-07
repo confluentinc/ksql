@@ -17,10 +17,12 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import java.util.Optional;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
@@ -74,6 +76,19 @@ public final class TableAggregateBuilder {
         aggregateParams.getUndoAggregator(),
         materialized
     ).mapValues(aggregateParams.getAggregator().getResultMapper());
-    return new KTableHolder<>(aggregated, KeySerdeFactory.unwindowed(queryBuilder));
+    final MaterializationInfo.Builder materializationBuilder =
+        AggregateBuilderUtils.materializationInfoBuilder(
+            aggregate.getProperties().getQueryContext(),
+            aggregate.getNonFuncColumnCount(),
+            aggregate.getAggregations(),
+            sourceSchema,
+            aggregate.getAggregationSchema(),
+            aggregate.getSchema()
+        );
+    return new KTableHolder<>(
+        aggregated,
+        KeySerdeFactory.unwindowed(queryBuilder),
+        Optional.of(materializationBuilder)
+    );
   }
 }

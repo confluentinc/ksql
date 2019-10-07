@@ -242,7 +242,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public <K> KTableHolder<K> visitTableSink(final TableSink<K> tableSink) {
     final KTableHolder<K> source = tableSink.getSource().build(this);
     TableSinkBuilder.build(source, tableSink, queryBuilder);
-    return null;
+    return source;
   }
 
   @Override

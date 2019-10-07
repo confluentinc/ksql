@@ -16,19 +16,32 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.KTable;
 
 public final class KTableHolder<K> {
   private final KTable<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
+  private final Optional<MaterializationInfo.Builder> materializationBuilder;
+
+  public KTableHolder(
+      final KTable<K, GenericRow> stream,
+      final KeySerdeFactory<K> keySerdeFactory,
+      final Optional<MaterializationInfo.Builder> materializationBuilder
+  ) {
+    this.stream = Objects.requireNonNull(stream, "stream");
+    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.materializationBuilder =
+        Objects.requireNonNull(materializationBuilder, "materializationProvider");
+  }
 
   public KTableHolder(
       final KTable<K, GenericRow> stream,
       final KeySerdeFactory<K> keySerdeFactory
   ) {
-    this.stream = Objects.requireNonNull(stream, "stream");
-    this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this(stream, keySerdeFactory, Optional.empty());
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {
@@ -39,7 +52,19 @@ public final class KTableHolder<K> {
     return stream;
   }
 
+  public Optional<MaterializationInfo.Builder> getMaterializationBuilder() {
+    return materializationBuilder;
+  }
+
   public KTableHolder<K> withTable(final KTable<K, GenericRow> table) {
-    return new KTableHolder<>(table, keySerdeFactory);
+    return new KTableHolder<>(table, keySerdeFactory, materializationBuilder);
+  }
+
+  public KTableHolder<K> withMaterialization(final Optional<MaterializationInfo.Builder> builder) {
+    return new KTableHolder<>(
+        stream,
+        keySerdeFactory,
+        builder
+    );
   }
 }

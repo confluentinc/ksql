@@ -18,10 +18,15 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.materialization.AggregatesInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
+import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -53,5 +58,20 @@ public final class AggregateBuilderUtils {
         queryContext
     );
     return materializedFactory.create(keySerde, valueSerde, StreamsUtil.buildOpName(queryContext));
+  }
+
+  static MaterializationInfo.Builder materializationInfoBuilder(
+      final QueryContext queryContext,
+      final int nonFuncColumns,
+      final List<FunctionCall> functions,
+      final LogicalSchema sourceSchema,
+      final LogicalSchema aggregationSchema,
+      final LogicalSchema outputSchema
+  ) {
+    return new Builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
+        .mapAggregates(
+            AggregatesInfo.of(nonFuncColumns, functions, sourceSchema),
+            outputSchema
+        );
   }
 }

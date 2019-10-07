@@ -87,10 +87,8 @@ public class StreamStreamJoinBuilderTest {
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
   private static final JoinWindows WINDOWS = JoinWindows.of(BEFORE).after(AFTER);
-  private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KStream<Struct, GenericRow> leftKStream;

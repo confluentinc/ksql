@@ -59,9 +59,9 @@ public class TableTableJoinBuilderTest {
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
   private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
+      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KTable<Struct, GenericRow> leftKTable;

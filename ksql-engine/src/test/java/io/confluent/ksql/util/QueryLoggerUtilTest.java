@@ -24,12 +24,14 @@ import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 
 public class QueryLoggerUtilTest {
-  private final QueryContext.Stacker contextStacker = new QueryContext.Stacker(new QueryId("queryid"));
+  private final QueryId queryId = new QueryId("queryid");
+  private final QueryContext.Stacker contextStacker = new QueryContext.Stacker();
 
   @Test
   public void shouldBuildCorrectName() {
     // When:
     final String name = QueryLoggerUtil.queryLoggerName(
+        queryId,
         contextStacker.push("biz", "baz").getQueryContext());
 
     // Then:
@@ -39,7 +41,7 @@ public class QueryLoggerUtilTest {
   @Test
   public void shouldBuildCorrectNameWhenNoSubhierarchy() {
     // When:
-    final String name = QueryLoggerUtil.queryLoggerName(contextStacker.getQueryContext());
+    final String name = QueryLoggerUtil.queryLoggerName(queryId, contextStacker.getQueryContext());
 
     // Then:
     assertThat(name, equalTo("queryid"));

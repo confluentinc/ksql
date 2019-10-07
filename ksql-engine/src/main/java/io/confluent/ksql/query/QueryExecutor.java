@@ -359,10 +359,11 @@ public final class QueryExecutor {
             streamsProperties
         );
 
-    return ksMaterialization.map(ksMat -> contextStacker -> ksqlMaterializationFactory
+    return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory
         .create(
             ksMat,
             info,
+            queryId,
             contextStacker
         ));
   }

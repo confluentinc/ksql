@@ -23,20 +23,14 @@ import java.util.List;
 import java.util.Objects;
 
 public final class QueryContext {
-  private final QueryId queryId;
   private final List<String> context;
 
-  private QueryContext(final QueryId queryId) {
-    this(queryId, Collections.emptyList());
+  private QueryContext() {
+    this(Collections.emptyList());
   }
 
-  private QueryContext(final QueryId queryId, final List<String> context) {
-    this.queryId = Objects.requireNonNull(queryId);
+  private QueryContext(final List<String> context) {
     this.context = Objects.requireNonNull(context);
-  }
-
-  public QueryId getQueryId() {
-    return queryId;
   }
 
   public List<String> getContext() {
@@ -45,7 +39,6 @@ public final class QueryContext {
 
   private QueryContext push(final String ...context) {
     return new QueryContext(
-        queryId,
         new ImmutableList.Builder<String>()
             .addAll(this.context)
             .addAll(Arrays.asList(context))
@@ -56,8 +49,8 @@ public final class QueryContext {
   public static class Stacker {
     final QueryContext queryContext;
 
-    public Stacker(final QueryId queryId) {
-      this.queryContext = Objects.requireNonNull(new QueryContext(queryId));
+    public Stacker() {
+      this.queryContext = new QueryContext();
     }
 
     public static Stacker of(final QueryContext queryContext) {
@@ -91,7 +84,6 @@ public final class QueryContext {
   @Override
   public boolean equals(final Object o) {
     return o instanceof QueryContext
-        && Objects.equals(queryId ,((QueryContext)o).queryId)
         && Objects.equals(context, ((QueryContext)o).context);
   }
 

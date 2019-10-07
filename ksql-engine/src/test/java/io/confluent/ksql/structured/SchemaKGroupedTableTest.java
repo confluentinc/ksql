@@ -88,8 +88,7 @@ public class SchemaKGroupedTableTest {
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
-  private final QueryContext.Stacker queryContext
-      = new QueryContext.Stacker(new QueryId("query")).push("node");
+  private final QueryContext.Stacker queryContext = new QueryContext.Stacker().push("node");
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
 

@@ -80,9 +80,9 @@ public class StreamTableJoinBuilderTest {
       SerdeOption.none()
   );
   private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
+      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KStream<Struct, GenericRow> leftKStream;

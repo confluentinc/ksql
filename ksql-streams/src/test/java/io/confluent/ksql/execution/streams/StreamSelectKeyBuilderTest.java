@@ -91,7 +91,7 @@ public class StreamSelectKeyBuilderTest {
   private ArgumentCaptor<ValueMapperWithKey<Struct, GenericRow, GenericRow>> mapperCaptor;
 
   private final QueryContext queryContext =
-      new QueryContext.Stacker(new QueryId("hey")).push("ya").getQueryContext();
+      new QueryContext.Stacker().push("ya").getQueryContext();
   private final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
       SCHEMA,
       queryContext
@@ -106,6 +106,7 @@ public class StreamSelectKeyBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("hey"));
     when(sourceStep.getProperties()).thenReturn(properties);
     when(kstream.filter(any())).thenReturn(filteredKStream);
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);

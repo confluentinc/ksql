@@ -108,7 +108,7 @@ public class SchemaKGroupedStreamTest {
 
   private final FunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final QueryContext.Stacker queryContext
-      = new QueryContext.Stacker(new QueryId("query")).push("node");
+      = new QueryContext.Stacker().push("node");
 
   private SchemaKGroupedStream schemaGroupedStream;
 

@@ -56,6 +56,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -760,19 +761,19 @@ public class SchemaKStream<K> {
     return sourceSchemaKStreams;
   }
 
-  public String getExecutionPlan(final String indent) {
+  public String getExecutionPlan(final QueryId queryId, final String indent) {
     final StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(indent)
         .append(" > [ ")
         .append(type).append(" ] | Schema: ")
         .append(getSchema().toString(FORMAT_OPTIONS))
-        .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(getQueryContext()))
+        .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(queryId, getQueryContext()))
         .append("\n");
     for (final SchemaKStream schemaKStream : sourceSchemaKStreams) {
       stringBuilder
           .append("\t")
           .append(indent)
-          .append(schemaKStream.getExecutionPlan(indent + "\t"));
+          .append(schemaKStream.getExecutionPlan(queryId, indent + "\t"));
     }
     return stringBuilder.toString();
   }

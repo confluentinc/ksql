@@ -149,10 +149,10 @@ public final class StaticQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
-      final QueryContext.Stacker contextStacker = new Stacker(new QueryId("static-query"));
+      final QueryContext.Stacker contextStacker = new Stacker();
 
       final Materialization mat = query
-          .getMaterialization(contextStacker)
+          .getMaterialization(new QueryId("static-query"), contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());

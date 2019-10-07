@@ -70,7 +70,7 @@ public class TableFilterBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
 
-  private final QueryContext queryContext = new QueryContext.Stacker(new QueryId("foo"))
+  private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
 
@@ -83,6 +83,7 @@ public class TableFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);

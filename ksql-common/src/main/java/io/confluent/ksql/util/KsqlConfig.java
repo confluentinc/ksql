@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -52,6 +53,11 @@ public class KsqlConfig extends AbstractConfig {
 
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
+
+  public static final String METRIC_REPORTER_CLASSES_CONFIG = "ksql.metric.reporters";
+
+  public static final String METRIC_REPORTER_CLASSES_DOC =
+      CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
@@ -551,6 +557,11 @@ public class KsqlConfig extends AbstractConfig {
             ),
             ConfigDef.Importance.LOW,
             KSQL_ACCESS_VALIDATOR_DOC
+        ).define(METRIC_REPORTER_CLASSES_CONFIG,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            METRIC_REPORTER_CLASSES_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

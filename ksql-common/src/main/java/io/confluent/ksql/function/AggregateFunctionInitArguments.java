@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a list of initial arguments for the creation of a
+ * Represents a list of initial arguments for the creation of a UDAF
  * {@link io.confluent.ksql.function.KsqlAggregateFunction}
  *
  * <p>The initial arguments are always constants.
@@ -42,6 +42,12 @@ public class AggregateFunctionInitArguments {
 
   public static AggregateFunctionInitArguments ofFunctionArgs(final int index,
       final List<String> initArgs) {
+    /*
+    The first argument to an aggregate function is the value being aggregated, the
+    arguments after that are the actual init arguments (constants).
+    So we remove the first argument as it's not an init argument.
+    The args can also be empty (e.g. in the case of COUNT(*)
+    */
     return new AggregateFunctionInitArguments(index, Objects.requireNonNull(
         initArgs.size() < 2 ? Collections.emptyList() : initArgs.subList(1, initArgs.size())
     ));

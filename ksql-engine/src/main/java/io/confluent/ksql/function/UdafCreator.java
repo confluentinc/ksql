@@ -22,7 +22,7 @@ import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 
-class UdafCreator implements IndexableAsFunction {
+class UdafCreator implements FunctionSignature {
 
   private final FunctionName functionName;
   private final UdafArgApplier argSupplier;

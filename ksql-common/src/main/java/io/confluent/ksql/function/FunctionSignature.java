@@ -20,10 +20,9 @@ import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * Something that can be indexed as if it were a function
- * {@link UdfIndex}.
+ * Describes something that has a function signature and can be indexed in a {@link UdfIndex}.
  */
-public interface IndexableAsFunction {
+public interface FunctionSignature {
 
   /**
    * @return the function name

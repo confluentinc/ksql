@@ -22,7 +22,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
-public interface KsqlAggregateFunction<I, A, O> extends IndexableAsFunction {
+public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
 
   Supplier<A> getInitialValueSupplier();
 

@@ -29,6 +29,7 @@ import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.List;
+import java.util.Optional;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -66,7 +67,7 @@ public class DefaultConnectClientTest {
 
   @Before
   public void setup() {
-    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port());
+    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port(), Optional.empty());
   }
 
   @Test

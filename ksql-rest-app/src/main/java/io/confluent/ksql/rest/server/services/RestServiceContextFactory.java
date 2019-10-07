@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.services;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
+import io.confluent.ksql.services.DefaultConnectClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
@@ -71,7 +72,8 @@ public final class RestServiceContextFactory {
         ksqlConfig,
         kafkaClientSupplier,
         srClientFactory,
-        new DefaultKsqlClient(authHeader)
+        new DefaultKsqlClient(authHeader),
+        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY), authHeader)
     );
   }
 }

@@ -19,6 +19,7 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.schema.registry.KsqlSchemaRegistryClientFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -35,7 +36,10 @@ public final class ServiceContextFactory {
         ksqlConfig,
         new DefaultKafkaClientSupplier(),
         new KsqlSchemaRegistryClientFactory(ksqlConfig, Collections.emptyMap())::get,
-        ksqlClient
+        ksqlClient,
+        new DefaultConnectClient(
+            ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
+            Optional.empty())
     );
   }
 
@@ -43,7 +47,8 @@ public final class ServiceContextFactory {
       final KsqlConfig ksqlConfig,
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory,
-      final SimpleKsqlClient ksqlClient
+      final SimpleKsqlClient ksqlClient,
+      final ConnectClient connectClient
   ) {
     final Admin adminClient = kafkaClientSupplier.getAdmin(
         ksqlConfig.getKsqlAdminClientConfigProps()
@@ -54,7 +59,7 @@ public final class ServiceContextFactory {
         adminClient,
         new KafkaTopicClientImpl(adminClient),
         srClientFactory,
-        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY)),
+        connectClient,
         ksqlClient
     );
   }

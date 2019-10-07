@@ -85,7 +85,7 @@ public class CodeGenRunner {
         new Visitor(schema, functionRegistry, expressionTypeManager, ksqlConfig);
 
     visitor.process(expression, null);
-    return visitor.spec;
+    return visitor.spec.build();
   }
 
   public ExpressionMetadata buildCodeGenFromParseTree(
@@ -94,7 +94,7 @@ public class CodeGenRunner {
   ) {
     try {
       final CodeGenSpec spec = getCodeGenSpec(expression);
-      final String javaCode = new SqlToJavaVisitor(
+      final String javaCode = SqlToJavaVisitor.of(
           schema,
           functionRegistry,
           spec
@@ -130,7 +130,7 @@ public class CodeGenRunner {
 
   private static final class Visitor extends TraversalExpressionVisitor<Void> {
 
-    private final CodeGenSpec spec;
+    private final CodeGenSpec.Builder spec;
     private final LogicalSchema schema;
     private final FunctionRegistry functionRegistry;
     private final ExpressionTypeManager expressionTypeManager;
@@ -146,7 +146,7 @@ public class CodeGenRunner {
       this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
       this.functionRegistry = functionRegistry;
       this.expressionTypeManager = expressionTypeManager;
-      this.spec = new CodeGenSpec();
+      this.spec = new CodeGenSpec.Builder();
     }
 
     private void addParameter(final Column schemaColumn) {

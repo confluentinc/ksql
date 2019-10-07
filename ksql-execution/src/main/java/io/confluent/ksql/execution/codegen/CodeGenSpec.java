@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.execution.codegen;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ListMultimap;
+import com.google.common.collect.ImmutableListMultimap;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
@@ -25,39 +25,27 @@ import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 
-public class CodeGenSpec {
+@Immutable
+public final class CodeGenSpec {
 
-  private List<ArgumentSpec> arguments = new ArrayList<>();
-  private Map<ColumnRef, String> columnToCodeName = new HashMap<>();
-  private ListMultimap<FunctionName, String> functionToCodeName = ArrayListMultimap.create();
+  private final ImmutableList<ArgumentSpec> arguments;
+  private final ImmutableMap<ColumnRef, String> columnToCodeName;
+  private final ImmutableListMultimap<FunctionName, String> functionToCodeName;
 
-  public void addParameter(final ColumnRef columnRef, final Class<?> type, final int colIndex) {
-    final String codeName = CodeGenUtil.paramName(arguments.size());
-    arguments.add(new ArgumentSpec(
-        codeName,
-        type,
-        OptionalInt.of(colIndex),
-        Optional.empty()
-    ));
-    columnToCodeName.put(columnRef, codeName);
-  }
-
-  public void addFunction(final FunctionName functionName, final Kudf function) {
-    final String codeName = CodeGenUtil.functionName(functionName, arguments.size());
-    arguments.add(new ArgumentSpec(
-        codeName,
-        function.getClass(),
-        OptionalInt.empty(),
-        Optional.of(function)
-    ));
-    functionToCodeName.put(functionName, codeName);
+  private CodeGenSpec(
+      final ImmutableList<ArgumentSpec> arguments,
+      final ImmutableMap<ColumnRef, String> columnToCodeName,
+      final ImmutableListMultimap<FunctionName, String> functionToCodeName
+  ) {
+    this.arguments = arguments;
+    this.columnToCodeName = columnToCodeName;
+    this.functionToCodeName = functionToCodeName;
   }
 
   public String[] argumentNames() {
@@ -69,19 +57,19 @@ public class CodeGenSpec {
   }
 
   public List<ArgumentSpec> arguments() {
-    return ImmutableList.copyOf(arguments);
+    return arguments;
   }
 
   public String getCodeName(final ColumnRef columnRef) {
     return columnToCodeName.get(columnRef);
   }
 
-  public String reserveFunctionName(final FunctionName functionName) {
+  public String getUniqueNameForFunction(final FunctionName functionName, final int index) {
     final List<String> names = functionToCodeName.get(functionName);
-    if (names.isEmpty()) {
-      throw new KsqlException("Ran out of unique names for: " + functionName);
+    if (names.size() <= index) {
+      throw new KsqlException("Cannot get name for " + functionName + " " + index + " times");
     }
-    return names.remove(0);
+    return names.get(index);
   }
 
   public void resolve(
@@ -104,6 +92,48 @@ public class CodeGenSpec {
                     + " to be a function, but was "
                     + spec));
       }
+    }
+  }
+
+  static class Builder {
+
+    private final ImmutableList.Builder<ArgumentSpec> argumentBuilder = ImmutableList.builder();
+    private final Map<ColumnRef, String> columnRefToName = new HashMap<>();
+    private final ImmutableListMultimap.Builder<FunctionName, String> functionNameBuilder =
+        ImmutableListMultimap.builder();
+
+    private int argumentCount = 0;
+
+    void addParameter(final ColumnRef columnRef, final Class<?> type, final int colIndex) {
+      final String codeName = CodeGenUtil.paramName(argumentCount);
+      argumentBuilder.add(new ArgumentSpec(
+          codeName,
+          type,
+          OptionalInt.of(colIndex),
+          Optional.empty()
+      ));
+      columnRefToName.put(columnRef, codeName);
+      argumentCount++;
+    }
+
+    void addFunction(final FunctionName functionName, final Kudf function) {
+      final String codeName = CodeGenUtil.functionName(functionName, argumentCount);
+      functionNameBuilder.put(functionName, codeName);
+      argumentBuilder.add(new ArgumentSpec(
+          codeName,
+          function.getClass(),
+          OptionalInt.empty(),
+          Optional.of(function)
+      ));
+      argumentCount++;
+    }
+
+    CodeGenSpec build() {
+      return new CodeGenSpec(
+          argumentBuilder.build(),
+          ImmutableMap.copyOf(columnRefToName),
+          functionNameBuilder.build()
+      );
     }
   }
 

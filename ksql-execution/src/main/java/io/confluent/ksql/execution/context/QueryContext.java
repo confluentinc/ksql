@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.context;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.query.QueryId;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;

@@ -21,7 +21,6 @@ import io.confluent.ksql.rest.entity.HealthcheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
@@ -29,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import org.apache.kafka.common.config.ConfigException;
 
 public class HealthcheckAgent {
 
@@ -68,21 +68,20 @@ public class HealthcheckAgent {
     final String address = listeners.stream()
         .map(String::trim)
         .findFirst()
-        .orElseThrow(() -> invalidAddressException(listeners));
+        .orElseThrow(() -> invalidAddressException(listeners, "value cannot be empty"));
 
     try {
       return new URL(address).toURI();
     } catch (final Exception e) {
-      throw invalidAddressException(listeners);
+      throw invalidAddressException(listeners, e.getMessage());
     }
   }
 
-  private static KsqlException invalidAddressException(final List<String> serverAddresses) {
-    return new KsqlException(String.format(
-        "Invalid value for '%s' config: %s.",
-        RestConfig.LISTENERS_CONFIG,
-        serverAddresses.toString())
-    );
+  private static RuntimeException invalidAddressException(
+      final List<String> serverAddresses,
+      final String message
+  ) {
+    return new ConfigException(RestConfig.LISTENERS_CONFIG, serverAddresses, message);
   }
 
   private static class Check {

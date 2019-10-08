@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.function.udaf.max;
 
-import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import java.math.BigDecimal;
 import org.apache.kafka.connect.data.Schema;
@@ -35,11 +33,4 @@ public class DecimalMaxKudaf extends BaseNumberKudaf<BigDecimal> {
           "Computes the maximum decimal value for a key.");
   }
 
-  @Override
-  public KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments
-  ) {
-    return new DecimalMaxKudaf(
-        functionName, aggregateFunctionArguments.udafIndex(), getReturnType());
-  }
 }

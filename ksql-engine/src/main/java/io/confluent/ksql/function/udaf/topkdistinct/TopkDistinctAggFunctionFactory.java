@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udaf.topkdistinct;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -43,23 +44,25 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   @SuppressWarnings("unchecked")
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
+  public KsqlAggregateFunction createAggregateFunction(
+      final List<Schema> argTypeList,
+      final AggregateFunctionInitArguments initArgs) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
-
+    final int tkValFromArg = Integer.parseInt(initArgs.arg(0));
     final Schema argSchema = argTypeList.get(0);
     switch (argSchema.type()) {
       case INT32:
       case INT64:
       case FLOAT64:
       case STRING:
-        return new TopkDistinctKudaf(NAME, 0, -1, argSchema,
-                                     SchemaUtil.getJavaType(argSchema));
+        return new TopkDistinctKudaf(NAME, initArgs.udafIndex(), tkValFromArg, argSchema,
+            SchemaUtil.getJavaType(argSchema));
       case BYTES:
         DecimalUtil.requireDecimal(argSchema);
-        return new TopkDistinctKudaf(NAME, 0, -1, argSchema,
-                                     SchemaUtil.getJavaType(argSchema));
+        return new TopkDistinctKudaf(NAME, initArgs.udafIndex(), tkValFromArg, argSchema,
+            SchemaUtil.getJavaType(argSchema));
       default:
         throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
             + " argument type exists!");

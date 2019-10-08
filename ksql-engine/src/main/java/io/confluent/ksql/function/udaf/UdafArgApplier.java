@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udaf;
 
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.List;
 import java.util.Optional;
@@ -23,11 +24,15 @@ import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 /*
- * Used during when creating UDAFS from the ext dir
+ * Used during when creating UDAFS
  */
-public interface UdfArgSupplier {
-  KsqlAggregateFunction apply(List<Schema> args,
-                              Schema aggregateType,
-                              Schema outputType,
-                              Optional<Metrics> metrics);
+public interface UdafArgApplier {
+
+  KsqlAggregateFunction apply(
+      AggregateFunctionInitArguments initArgs,
+      List<Schema> argTypes,
+      Schema aggregateType,
+      Schema outputType,
+      Optional<Metrics> metrics
+  );
 }

@@ -103,16 +103,17 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public KsqlAggregateFunction getAggregate(
+  public KsqlAggregateFunction getAggregateFunction(
       final String functionName,
-      final Schema argumentType
+      final Schema argumentType,
+      final AggregateFunctionInitArguments initArgs
   ) {
     final AggregateFunctionFactory udafFactory = udafs.get(functionName.toUpperCase());
     if (udafFactory == null) {
       throw new KsqlException("No aggregate function with name " + functionName + " exists!");
     }
-
-    return udafFactory.getProperAggregateFunction(Collections.singletonList(argumentType));
+    return udafFactory.createAggregateFunction(Collections.singletonList(argumentType),
+        initArgs);
   }
 
   @Override

@@ -90,12 +90,6 @@ public class BaseAggregateFunctionTest {
     }
 
     @Override
-    public KsqlAggregateFunction<String, Integer, Integer> getInstance(
-        final AggregateFunctionArguments args) {
-      return null;
-    }
-
-    @Override
     public Integer aggregate(final String currentValue, final Integer aggregateValue) {
       return null;
     }

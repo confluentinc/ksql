@@ -20,10 +20,9 @@ import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
 /**
- * An interface that designates functions that can be indexed using the
- * {@link UdfIndex}.
+ * Describes something that has a function signature and can be indexed in a {@link UdfIndex}.
  */
-public interface IndexedFunction {
+public interface FunctionSignature {
 
   /**
    * @return the function name

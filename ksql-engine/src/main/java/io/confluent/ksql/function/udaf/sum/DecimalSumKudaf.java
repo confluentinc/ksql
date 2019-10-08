@@ -16,9 +16,7 @@
 package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -49,13 +47,6 @@ public class DecimalSumKudaf
         "Computes the sum of decimal values for a key, resulting in a decimal with the same "
             + "precision and scale.");
     context = new MathContext(DecimalUtil.precision(outputSchema));
-  }
-
-  @Override
-  public KsqlAggregateFunction<BigDecimal, BigDecimal, BigDecimal> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new DecimalSumKudaf(
-        functionName, aggregateFunctionArguments.udafIndex(), getAggregateType());
   }
 
   @Override

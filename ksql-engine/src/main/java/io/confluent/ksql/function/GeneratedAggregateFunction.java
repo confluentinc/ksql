@@ -17,7 +17,6 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.udaf.Udaf;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -41,16 +40,20 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
   protected Optional<Sensor> mergeSensor;
   protected Udaf<I, A, O> udaf;
 
-  public GeneratedAggregateFunction(
+  protected GeneratedAggregateFunction(
       final String functionName,
+      final int udafIndex,
+      final Udaf<I, A, O> udaf,
       final Schema aggregateType,
       final Schema outputType,
       final List<Schema> arguments,
       final String description,
       final Optional<Metrics> metrics) {
 
-    this(functionName, -1, null, aggregateType, outputType, arguments, description,
-         Optional.empty(), Optional.empty(), Optional.empty());
+    super(functionName, udafIndex, udaf::initialize, aggregateType,
+        outputType, arguments, description);
+
+    this.udaf = udaf;
 
     final String method = getSourceMethodName();
     final String aggSensorName = String.format("aggregate-%s-%s", functionName, method);
@@ -58,26 +61,6 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
     final String mergeSensorName = String.format("merge-%s-%s", functionName, method);
 
     initMetrics(metrics, functionName, method, aggSensorName, mapSensorName, mergeSensorName);
-
-  }
-
-  protected GeneratedAggregateFunction(
-      final String functionName,
-      final int udafIndex,
-      final Supplier<A> udafSupplier,
-      final Schema aggregateType,
-      final Schema outputType,
-      final List<Schema> arguments,
-      final String description,
-      final Optional<Sensor> aggregateSensor,
-      final Optional<Sensor> mapSensor,
-      final Optional<Sensor> mergeSensor) {
-
-    super(functionName, udafIndex, udafSupplier, aggregateType, outputType, arguments, description);
-
-    this.aggregateSensor = Objects.requireNonNull(aggregateSensor);
-    this.mapSensor = Objects.requireNonNull(mapSensor);
-    this.mergeSensor = Objects.requireNonNull(mergeSensor);
   }
 
   protected abstract String getSourceMethodName();
@@ -103,23 +86,23 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
             aggSensorName + "-avg",
             groupName,
             String.format("Average time for an aggregate invocation of %s %s udaf", name, method)),
-                   new Avg());
+            new Avg());
         sensor.add(metrics.metricName(
             aggSensorName + "-max",
             groupName,
             String.format("Max time for an aggregate invocation of %s %s udaf", name, method)),
-                   new Max());
+            new Max());
         sensor.add(metrics.metricName(
             aggSensorName + "-count",
             groupName,
             String.format("Total number of aggregate invocations of %s %s udaf", name, method)),
-                   new WindowedCount());
+            new WindowedCount());
         sensor.add(metrics.metricName(
             aggSensorName + "-rate",
             groupName,
             String.format("The average number of occurrences of aggregate "
                 + "%s %s operation per second udaf", name, method)),
-                   new Rate(TimeUnit.SECONDS, new WindowedCount()));
+            new Rate(TimeUnit.SECONDS, new WindowedCount()));
         this.aggregateSensor = Optional.of(sensor);
       }
 
@@ -129,23 +112,23 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
             mapSensorName + "-avg",
             groupName,
             String.format("Average time for a map invocation of %s %s udaf", name, method)),
-                   new Avg());
+            new Avg());
         sensor.add(metrics.metricName(
             mapSensorName + "-max",
             groupName,
             String.format("Max time for a map invocation of %s %s udaf", name, method)),
-                   new Max());
+            new Max());
         sensor.add(metrics.metricName(
             mapSensorName + "-count",
             groupName,
             String.format("Total number of map invocations of %s %s udaf", name, method)),
-                   new WindowedCount());
+            new WindowedCount());
         sensor.add(metrics.metricName(
             mapSensorName + "-rate",
             groupName,
             String.format("The average number of occurrences of map "
-                              + "%s %s operation per second udaf", name, method)),
-                   new Rate(TimeUnit.SECONDS, new WindowedCount()));
+                + "%s %s operation per second udaf", name, method)),
+            new Rate(TimeUnit.SECONDS, new WindowedCount()));
         this.mapSensor = Optional.of(sensor);
       }
 
@@ -155,24 +138,24 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
             mergeSensorName + "-avg",
             groupName,
             String.format("Average time for a merge invocation of %s %s udaf", name, method)),
-                   new Avg());
+            new Avg());
         sensor.add(metrics.metricName(
             mergeSensorName + "-max",
             groupName,
             String.format("Max time for a merge invocation of %s %s udaf", name, method)),
-                   new Max());
+            new Max());
         sensor.add(metrics.metricName(
             mergeSensorName + "-count",
             groupName,
             String.format("Total number of merge invocations of %s %s udaf", name, method)),
-                   new WindowedCount());
+            new WindowedCount());
         sensor.add(metrics.metricName(
             mergeSensorName + "-rate",
             groupName,
             String.format(
                 "The average number of occurrences of merge %s %s operation per second udaf",
                 name, method)),
-                   new Rate(TimeUnit.SECONDS, new WindowedCount()));
+            new Rate(TimeUnit.SECONDS, new WindowedCount()));
         this.mergeSensor = Optional.of(sensor);
       }
     } else {
@@ -185,7 +168,7 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
 
   @Override
   public A aggregate(final I currentValue, final A aggregateValue) {
-    return timed(aggregateSensor, () -> udaf.aggregate(currentValue,aggregateValue));
+    return timed(aggregateSensor, () -> udaf.aggregate(currentValue, aggregateValue));
   }
 
   @Override
@@ -196,10 +179,6 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
   @Override
   public Function<A, O> getResultMapper() {
     return (v1) -> timed(mapSensor, () -> udaf.map(v1));
-  }
-
-  protected static <I, A, O> Supplier<A> supplier(final Udaf<I, A, O> udaf) {
-    return udaf::initialize;
   }
 
   private static <T> T timed(final Optional<Sensor> maybeSensor, final Supplier<T> task) {

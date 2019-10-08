@@ -23,7 +23,6 @@ import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -87,10 +86,8 @@ public class StreamStreamJoinBuilderTest {
   private static final Duration BEFORE = Duration.ofMillis(1000);
   private static final Duration AFTER = Duration.ofMillis(2000);
   private static final JoinWindows WINDOWS = JoinWindows.of(BEFORE).after(AFTER);
-  private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KStream<Struct, GenericRow> leftKStream;

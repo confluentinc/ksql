@@ -16,13 +16,12 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.JoinType;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.apache.kafka.connect.data.Struct;
@@ -59,9 +58,9 @@ public class TableTableJoinBuilderTest {
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
   private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
+      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KTable<Struct, GenericRow> leftKTable;

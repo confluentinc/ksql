@@ -16,6 +16,7 @@
 package io.confluent.ksql.materialization;
 
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.query.QueryId;
 
 public interface MaterializationProvider {
 
@@ -25,5 +26,5 @@ public interface MaterializationProvider {
    * @param contextStacker the query context stacker.
    * @return the materialization.
    */
-  Materialization build(QueryContext.Stacker contextStacker);
+  Materialization build(QueryId queryId, QueryContext.Stacker contextStacker);
 }

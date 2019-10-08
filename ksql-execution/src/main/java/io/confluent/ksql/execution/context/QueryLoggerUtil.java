@@ -16,16 +16,17 @@
 package io.confluent.ksql.execution.context;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.query.QueryId;
 
 public final class QueryLoggerUtil {
   private QueryLoggerUtil() {
   }
 
-  public static String queryLoggerName(final QueryContext queryContext) {
+  public static String queryLoggerName(final QueryId queryId, final QueryContext queryContext) {
     return String.join(
         ".",
         new ImmutableList.Builder<String>()
-            .add(queryContext.getQueryId().getId())
+            .add(queryId.getId())
             .addAll(queryContext.getContext())
             .build()
     );

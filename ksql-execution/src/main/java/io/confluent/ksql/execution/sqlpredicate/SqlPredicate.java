@@ -63,7 +63,7 @@ public final class SqlPredicate {
 
       ee.setExpressionType(boolean.class);
 
-      final String expressionStr = new SqlToJavaVisitor(
+      final String expressionStr = SqlToJavaVisitor.of(
           schema,
           functionRegistry,
           spec

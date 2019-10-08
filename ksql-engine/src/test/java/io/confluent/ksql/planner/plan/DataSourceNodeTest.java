@@ -51,7 +51,6 @@ import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -92,7 +91,6 @@ import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -202,7 +200,7 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(queryId)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
 
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
@@ -245,7 +243,7 @@ public class DataSourceNodeTest {
         queryContextCaptor.capture()
     );
 
-    assertThat(QueryLoggerUtil.queryLoggerName(queryContextCaptor.getValue()),
+    assertThat(QueryLoggerUtil.queryLoggerName(queryId, queryContextCaptor.getValue()),
         is("source-test.0.source"));
   }
 

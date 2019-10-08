@@ -352,10 +352,10 @@ The following examples show common usage:
     .. code:: bash
 
         ksql <<EOF
-        > SHOW TOPICS;
-        > SHOW STREAMS;
-        > exit
-        > EOF
+        SHOW TOPICS;
+        SHOW STREAMS;
+        exit
+        EOF
 
 -   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
     an explicitly defined KSQL server endpoint.
@@ -377,9 +377,9 @@ The following examples show common usage:
     .. code:: bash
 
         ksql http://localhost:8088 <<EOF
-        > RUN SCRIPT '/path/to/local/application.sql';
-        > exit
-        > EOF
+        RUN SCRIPT '/path/to/local/application.sql';
+        exit
+        EOF
 
     .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, including running DDL statements
               (CREATE STREAM, CREATE TABLE), persistent queries (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and

@@ -34,8 +34,8 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamMapValues;
@@ -105,7 +105,7 @@ public class StreamMapValuesBuilderTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private final QueryContext context =
-      new QueryContext.Stacker(new QueryId("qid")).getQueryContext();
+      new QueryContext.Stacker().getQueryContext();
 
   private PlanBuilder planBuilder;
   private StreamMapValues<Struct> step;
@@ -118,6 +118,7 @@ public class StreamMapValuesBuilderTest {
     when(properties.getQueryContext()).thenReturn(context);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);

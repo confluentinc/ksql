@@ -14,8 +14,8 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
@@ -71,7 +71,7 @@ public class StreamFilterBuilderTest {
   private KeySerdeFactory<Struct> keySerdeFactory;
   private KStreamHolder<Struct> sourceWithSerdeFactory;
 
-  private final QueryContext queryContext = new QueryContext.Stacker(new QueryId("foo"))
+  private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
 
@@ -84,6 +84,7 @@ public class StreamFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);

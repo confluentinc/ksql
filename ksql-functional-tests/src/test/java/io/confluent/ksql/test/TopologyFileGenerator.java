@@ -33,10 +33,10 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
@@ -179,7 +179,6 @@ public final class TopologyFileGenerator {
             .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
             .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
             .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
-            .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
             .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
             .put(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
                 KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)

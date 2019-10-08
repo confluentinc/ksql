@@ -119,6 +119,10 @@ public final class KsqlQueryBuilder {
     return QuerySchemas.of(schemas);
   }
 
+  public QueryId getQueryId() {
+    return queryId;
+  }
+
   public KsqlQueryBuilder withKsqlConfig(final KsqlConfig newConfig) {
     return of(
         streamsBuilder,
@@ -131,7 +135,7 @@ public final class KsqlQueryBuilder {
   }
 
   public QueryContext.Stacker buildNodeContext(final String context) {
-    return new QueryContext.Stacker(queryId)
+    return new QueryContext.Stacker()
         .push(context);
   }
 
@@ -140,7 +144,7 @@ public final class KsqlQueryBuilder {
       final PhysicalSchema schema,
       final QueryContext queryContext
   ) {
-    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
     return keySerdeFactory.create(
         format,
@@ -158,7 +162,7 @@ public final class KsqlQueryBuilder {
       final PhysicalSchema schema,
       final QueryContext queryContext
   ) {
-    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
     return keySerdeFactory.create(
         format,
@@ -176,7 +180,7 @@ public final class KsqlQueryBuilder {
       final PhysicalSchema schema,
       final QueryContext queryContext
   ) {
-    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryContext);
+    final String loggerNamePrefix = QueryLoggerUtil.queryLoggerName(queryId, queryContext);
 
     track(loggerNamePrefix, schema.valueSchema());
 

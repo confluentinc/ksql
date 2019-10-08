@@ -17,11 +17,10 @@ package io.confluent.ksql.function;
 
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.udaf.TableUdaf;
+import io.confluent.ksql.function.udaf.Udaf;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("unused") // used in generated code
@@ -30,27 +29,15 @@ public abstract class GeneratedTableAggregateFunction<I, A, O>
 
   public GeneratedTableAggregateFunction(
       final String functionName,
+      final int udafIndex,
+      final Udaf<I, A, O> udaf,
       final Schema aggregateType,
       final Schema outputType,
       final List<Schema> arguments,
       final String description,
       final Optional<Metrics> metrics) {
-    super(functionName, aggregateType, outputType, arguments, description, metrics);
-  }
-
-  protected GeneratedTableAggregateFunction(
-      final String functionName,
-      final int udafIndex,
-      final Supplier<A> udafSupplier,
-      final Schema aggregateType,
-      final Schema outputType,
-      final List<Schema> arguments,
-      final String description,
-      final Optional<Sensor> aggregateSensor,
-      final Optional<Sensor> mapSensor,
-      final Optional<Sensor> mergeSensor) {
-    super(functionName, udafIndex, udafSupplier, aggregateType, outputType,
-          arguments, description, aggregateSensor, mapSensor, mergeSensor);
+    super(functionName, udafIndex, udaf, aggregateType, outputType, arguments, description,
+        metrics);
   }
 
   @Override

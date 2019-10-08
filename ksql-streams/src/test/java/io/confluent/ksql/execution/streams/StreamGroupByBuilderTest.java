@@ -15,14 +15,14 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
@@ -30,7 +30,6 @@ import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -74,9 +73,9 @@ public class StreamGroupByBuilderTest {
       columnReference("MAN")
   );
   private static final QueryContext SOURCE_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("source").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("source").getQueryContext();
   private static final QueryContext STEP_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("groupby").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepProperties SOURCE_PROPERTIES
       = new DefaultExecutionStepProperties(SCHEMA, SOURCE_CTX);
   private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(

@@ -1,8 +1,9 @@
 /*
  * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License; you may not use this file
- * except in compliance with the License.  You may obtain a copy of the License at
+ * Licensed under the Confluent Community License (the "License"); you may not use
+ * this file except in compliance with the License.  You may obtain a copy of the
+ * License at
  *
  * http://www.confluent.io/confluent-community-license
  *
@@ -14,16 +15,16 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
+import org.apache.kafka.streams.kstream.Windowed;
 
-@Immutable
-public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
-  public StreamSource(
+public final class WindowedStreamSource
+    extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
+  public WindowedStreamSource(
       final ExecutionStepProperties properties,
       final String topicName,
       final Formats formats,
@@ -43,7 +44,7 @@ public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struc
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
-    return builder.visitStreamSource(this);
+  public KStreamHolder<Windowed<Struct>> build(final PlanBuilder builder) {
+    return builder.visitWindowedStreamSource(this);
   }
 }

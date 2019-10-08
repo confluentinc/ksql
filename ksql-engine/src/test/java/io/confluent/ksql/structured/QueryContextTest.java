@@ -17,26 +17,20 @@ package io.confluent.ksql.structured;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.query.QueryId;
 import org.junit.Test;
 
 public class QueryContextTest {
-  private final QueryId queryId = new QueryId("query");
-  private final QueryContext.Stacker contextStacker
-      = new QueryContext.Stacker(queryId).push("node");
+  private final QueryContext.Stacker contextStacker = new QueryContext.Stacker().push("node");
   private final QueryContext queryContext = contextStacker.getQueryContext();
 
   private static void assertQueryContext(
       final QueryContext queryContext,
-      final QueryId queryId,
       final String ...context) {
-    assertThat(queryContext.getQueryId(), equalTo(queryId));
     if (context.length > 0) {
       assertThat(queryContext.getContext(), contains(context));
     } else {
@@ -53,8 +47,8 @@ public class QueryContextTest {
 
     // Then:
     assertThat(ImmutableSet.of(queryContext, childContext, grandchildContext), hasSize(3));
-    assertQueryContext(queryContext, queryId, "node");
-    assertQueryContext(childContext, queryId, "node", "child");
-    assertQueryContext(grandchildContext, queryId, "node", "child", "grandchild");
+    assertQueryContext(queryContext, "node");
+    assertQueryContext(childContext, "node", "child");
+    assertQueryContext(grandchildContext, "node", "child", "grandchild");
   }
 }

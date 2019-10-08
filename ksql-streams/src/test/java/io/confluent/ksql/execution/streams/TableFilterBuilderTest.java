@@ -1,40 +1,40 @@
  package io.confluent.ksql.execution.streams;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+ import static org.hamcrest.Matchers.is;
+ import static org.junit.Assert.assertThat;
+ import static org.mockito.ArgumentMatchers.any;
+ import static org.mockito.Mockito.mock;
+ import static org.mockito.Mockito.verify;
+ import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
-import io.confluent.ksql.execution.plan.KTableHolder;
-import io.confluent.ksql.execution.plan.PlanBuilder;
-import io.confluent.ksql.execution.plan.TableFilter;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogContext;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
-import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Predicate;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+ import io.confluent.ksql.GenericRow;
+ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+ import io.confluent.ksql.execution.context.QueryContext;
+ import io.confluent.ksql.execution.expression.tree.Expression;
+ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
+ import io.confluent.ksql.execution.plan.ExecutionStep;
+ import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+ import io.confluent.ksql.execution.plan.KTableHolder;
+ import io.confluent.ksql.execution.plan.KeySerdeFactory;
+ import io.confluent.ksql.execution.plan.PlanBuilder;
+ import io.confluent.ksql.execution.plan.TableFilter;
+ import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+ import io.confluent.ksql.function.FunctionRegistry;
+ import io.confluent.ksql.logging.processing.ProcessingLogContext;
+ import io.confluent.ksql.logging.processing.ProcessingLogger;
+ import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+ import io.confluent.ksql.query.QueryId;
+ import io.confluent.ksql.schema.ksql.LogicalSchema;
+ import io.confluent.ksql.util.KsqlConfig;
+ import org.apache.kafka.connect.data.Struct;
+ import org.apache.kafka.streams.kstream.KTable;
+ import org.apache.kafka.streams.kstream.Predicate;
+ import org.junit.Before;
+ import org.junit.Rule;
+ import org.junit.Test;
+ import org.mockito.Mock;
+ import org.mockito.junit.MockitoJUnit;
+ import org.mockito.junit.MockitoRule;
 
 public class TableFilterBuilderTest {
   @Mock
@@ -70,7 +70,7 @@ public class TableFilterBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
 
-  private final QueryContext queryContext = new QueryContext.Stacker(new QueryId("foo"))
+  private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
 
@@ -83,6 +83,7 @@ public class TableFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);

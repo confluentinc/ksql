@@ -22,34 +22,38 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
-  private final UdfIndex<KsqlAggregateFunction<?, ?, ?>> udfIndex;
+
+  private final UdfIndex<UdafCreator> udfIndex;
 
   UdafAggregateFunctionFactory(
       final UdfMetadata metadata,
-      final List<KsqlAggregateFunction<?, ?, ?>> functionList
+      final List<UdafCreator> factoryList
   ) {
     super(metadata);
     udfIndex = new UdfIndex<>(metadata.getName());
-    functionList.forEach(udfIndex::addFunction);
+    factoryList.forEach(udfIndex::addFunction);
   }
 
   @Override
-  public KsqlAggregateFunction<?, ?, ?> getProperAggregateFunction(final List<Schema> argTypeList) {
-    final KsqlAggregateFunction ksqlAggregateFunction = udfIndex.getFunction(argTypeList);
-    if (ksqlAggregateFunction == null) {
+  public synchronized KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
+      final List<Schema> argTypeList,
+      final AggregateFunctionInitArguments initArgs
+  ) {
+    final UdafCreator creator = udfIndex.getFunction(argTypeList);
+    if (creator == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="
           + argTypeList.stream().map(schema -> schema.type().getName())
           .collect(Collectors.joining(",")));
     }
-    return ksqlAggregateFunction;
+    return creator.createFunction(initArgs);
   }
 
   @Override
-  public List<List<Schema>> supportedArgs() {
+  public synchronized List<List<Schema>> supportedArgs() {
     return udfIndex.values()
         .stream()
-        .map(KsqlAggregateFunction::getArguments)
+        .map(UdafCreator::getArguments)
         .collect(Collectors.toList());
   }
 }

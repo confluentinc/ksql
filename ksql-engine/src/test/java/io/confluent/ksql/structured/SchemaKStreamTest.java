@@ -45,14 +45,14 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.streams.AggregateParams;
@@ -63,6 +63,7 @@ import io.confluent.ksql.execution.streams.KSPlanBuilder;
 import io.confluent.ksql.execution.streams.KsqlValueJoiner;
 import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.streams.SqlPredicateFactory;
+import io.confluent.ksql.execution.streams.StreamsFactories;
 import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -93,7 +94,6 @@ import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.execution.streams.StreamsFactories;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -167,7 +167,7 @@ public class SchemaKStreamTest {
       .valueColumn(ColumnName.of("val"), SqlTypes.BIGINT)
       .build();
   private final QueryContext.Stacker queryContext
-      = new QueryContext.Stacker(new QueryId("query")).push("node");
+      = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private PlanBuilder planBuilder;
@@ -253,6 +253,7 @@ public class SchemaKStreamTest {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
 
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("query"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
@@ -1199,7 +1200,7 @@ public class SchemaKStreamTest {
     // Given:
     when(sourceProperties.getSchema()).thenReturn(simpleSchema);
     final SchemaKStream parentSchemaKStream = mock(SchemaKStream.class);
-    when(parentSchemaKStream.getExecutionPlan(anyString()))
+    when(parentSchemaKStream.getExecutionPlan(any(), anyString()))
         .thenReturn("parent plan");
     when(sourceProperties.getQueryContext()).thenReturn(
         queryContext.push("source").getQueryContext());
@@ -1216,7 +1217,7 @@ public class SchemaKStreamTest {
     );
 
     // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
         " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
             + "Logger: query.node.source\n"
             + "\tparent plan"));
@@ -1242,7 +1243,7 @@ public class SchemaKStreamTest {
     );
 
     // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
         " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
             + "Logger: query.node.source\n"));
   }
@@ -1251,10 +1252,10 @@ public class SchemaKStreamTest {
   public void shouldSummarizeExecutionPlanCorrectlyWhenMultipleParents() {
     // Given:
     final SchemaKStream parentSchemaKStream1 = mock(SchemaKStream.class);
-    when(parentSchemaKStream1.getExecutionPlan(anyString()))
+    when(parentSchemaKStream1.getExecutionPlan(any(), anyString()))
         .thenReturn("parent 1 plan");
     final SchemaKStream parentSchemaKStream2 = mock(SchemaKStream.class);
-    when(parentSchemaKStream2.getExecutionPlan(anyString()))
+    when(parentSchemaKStream2.getExecutionPlan(any(), anyString()))
         .thenReturn("parent 2 plan");
     when(sourceProperties.getSchema()).thenReturn(simpleSchema);
     when(sourceProperties.getQueryContext()).thenReturn(
@@ -1273,7 +1274,7 @@ public class SchemaKStreamTest {
     );
 
     // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
         " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
             + "Logger: query.node.source\n"
             + "\tparent 1 plan"

@@ -137,7 +137,7 @@ public class KsqlStructuredDataOutputNodeTest {
         .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(QUERY_ID)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
     when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
@@ -225,7 +225,7 @@ public class KsqlStructuredDataOutputNodeTest {
     verify(resultStream).selectKey(
         KEY_FIELD.ref().get(),
         false,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
     );
 
     assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
@@ -243,7 +243,7 @@ public class KsqlStructuredDataOutputNodeTest {
     verify(resultStream).selectKey(
         ColumnRef.withoutSource(ColumnName.of("ROWKEY")),
         false,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
     );
 
     assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
@@ -261,7 +261,7 @@ public class KsqlStructuredDataOutputNodeTest {
     verify(resultStream).selectKey(
         ColumnRef.withoutSource(ColumnName.of("ROWTIME")),
         false,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
     );
 
     assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));

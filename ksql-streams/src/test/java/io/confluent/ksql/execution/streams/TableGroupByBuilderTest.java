@@ -15,14 +15,14 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.TableKeyValueMapper;
@@ -74,9 +74,9 @@ public class TableGroupByBuilderTest {
       columnReference("MAN")
   );
   private static final QueryContext SOURCE_CONTEXT =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("source").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("source").getQueryContext();
   private static final QueryContext STEP_CONTEXT =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("groupby").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepProperties SOURCE_PROPERTIES =
       new DefaultExecutionStepProperties(SCHEMA, SOURCE_CONTEXT);
   private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(
@@ -125,6 +125,7 @@ public class TableGroupByBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);

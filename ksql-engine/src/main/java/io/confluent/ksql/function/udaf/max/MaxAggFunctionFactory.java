@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
@@ -24,6 +25,7 @@ import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
 public class MaxAggFunctionFactory extends AggregateFunctionFactory {
+
   private static final String FUNCTION_NAME = "MAX";
 
   public MaxAggFunctionFactory() {
@@ -31,7 +33,10 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
+  public KsqlAggregateFunction createAggregateFunction(
+      final List<Schema> argTypeList,
+      final AggregateFunctionInitArguments initArgs
+  ) {
     KsqlPreconditions.checkArgument(
         argTypeList.size() == 1,
         "expected exactly one argument to aggregate MAX function");
@@ -39,14 +44,14 @@ public class MaxAggFunctionFactory extends AggregateFunctionFactory {
     final Schema argSchema = argTypeList.get(0);
     switch (argSchema.type()) {
       case INT32:
-        return new IntegerMaxKudaf(FUNCTION_NAME, -1);
+        return new IntegerMaxKudaf(FUNCTION_NAME, initArgs.udafIndex());
       case INT64:
-        return new LongMaxKudaf(FUNCTION_NAME, -1);
+        return new LongMaxKudaf(FUNCTION_NAME, initArgs.udafIndex());
       case FLOAT64:
-        return new DoubleMaxKudaf(FUNCTION_NAME, -1);
+        return new DoubleMaxKudaf(FUNCTION_NAME, initArgs.udafIndex());
       case BYTES:
         DecimalUtil.requireDecimal(argSchema);
-        return new DecimalMaxKudaf(FUNCTION_NAME, -1, argSchema);
+        return new DecimalMaxKudaf(FUNCTION_NAME, initArgs.udafIndex(), argSchema);
       default:
         throw new KsqlException("No Max aggregate function with " + argTypeList.get(0) + " "
             + " argument type exists!");

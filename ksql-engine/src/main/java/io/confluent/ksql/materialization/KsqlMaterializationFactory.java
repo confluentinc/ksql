@@ -30,6 +30,7 @@ import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -91,16 +92,17 @@ public final class KsqlMaterializationFactory {
   public Materialization create(
       final Materialization delegate,
       final MaterializationInfo info,
+      final QueryId queryId,
       final QueryContext.Stacker contextStacker
   ) {
     final Function<GenericRow, GenericRow> aggregateMapper =
         bakeAggregateMapper(info);
 
     final Predicate<Struct, GenericRow> havingPredicate =
-        bakeHavingExpression(info, contextStacker);
+        bakeHavingExpression(info, queryId, contextStacker);
 
     final Function<GenericRow, GenericRow> valueMapper =
-        bakeStoreSelects(info, contextStacker);
+        bakeStoreSelects(info, queryId, contextStacker);
 
     return materializationFactory.create(
         delegate,
@@ -122,6 +124,7 @@ public final class KsqlMaterializationFactory {
 
   private Predicate<Struct, GenericRow> bakeHavingExpression(
       final MaterializationInfo info,
+      final QueryId queryId,
       final QueryContext.Stacker contextStacker
   ) {
     if (!info.havingExpression().isPresent()) {
@@ -131,7 +134,10 @@ public final class KsqlMaterializationFactory {
     final Expression having = info.havingExpression().get();
 
     final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
-        QueryLoggerUtil.queryLoggerName(contextStacker.push(FILTER_OP_NAME).getQueryContext())
+        QueryLoggerUtil.queryLoggerName(
+            queryId,
+            contextStacker.push(FILTER_OP_NAME).getQueryContext()
+        )
     );
 
     final SqlPredicate predicate = sqlPredicateFactory.create(
@@ -147,10 +153,14 @@ public final class KsqlMaterializationFactory {
 
   private Function<GenericRow, GenericRow> bakeStoreSelects(
       final MaterializationInfo info,
+      final QueryId queryId,
       final Stacker contextStacker
   ) {
     final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
-        QueryLoggerUtil.queryLoggerName(contextStacker.push(PROJECT_OP_NAME).getQueryContext())
+        QueryLoggerUtil.queryLoggerName(
+            queryId,
+            contextStacker.push(PROJECT_OP_NAME).getQueryContext()
+        )
     );
 
     return selectMapperFactory.create(

@@ -16,9 +16,11 @@ package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSource;
+import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -41,21 +43,9 @@ public final class StreamSourceBuilder {
   private StreamSourceBuilder() {
   }
 
-  @SuppressWarnings("unchecked")
-  public static <K> KStreamHolder<K> build(
+  public static KStreamHolder<Struct> build(
       final KsqlQueryBuilder queryBuilder,
-      final StreamSource<?> streamSource
-  ) {
-    if (streamSource.getFormats().getKeyFormat().isWindowed()) {
-      return (KStreamHolder) buildWindowed(queryBuilder,streamSource);
-    } else {
-      return (KStreamHolder) buildUnwindowed(queryBuilder, streamSource);
-    }
-  }
-
-  public static KStreamHolder<Struct> buildUnwindowed(
-      final KsqlQueryBuilder queryBuilder,
-      final StreamSource<?> streamSource
+      final StreamSource streamSource
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
@@ -84,7 +74,7 @@ public final class StreamSourceBuilder {
 
   public static KStreamHolder<Windowed<Struct>> buildWindowed(
       final KsqlQueryBuilder queryBuilder,
-      final StreamSource<?> streamSource
+      final WindowedStreamSource streamSource
   ) {
     final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
     final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
@@ -119,7 +109,7 @@ public final class StreamSourceBuilder {
 
   private static Serde<GenericRow> getValueSerde(
       final KsqlQueryBuilder queryBuilder,
-      final StreamSource<?> streamSource,
+      final AbstractStreamSource<?> streamSource,
       final PhysicalSchema physicalSchema) {
     return queryBuilder.buildValueSerde(
         streamSource.getFormats().getValueFormat().getFormatInfo(),
@@ -128,7 +118,7 @@ public final class StreamSourceBuilder {
     );
   }
 
-  private static PhysicalSchema getPhysicalSchema(final StreamSource<?> streamSource) {
+  private static PhysicalSchema getPhysicalSchema(final AbstractStreamSource streamSource) {
     return PhysicalSchema.from(
         streamSource.getSourceSchema(),
         streamSource.getFormats().getOptions()
@@ -136,7 +126,7 @@ public final class StreamSourceBuilder {
   }
 
   private static <K> KStream<K, GenericRow> buildKStream(
-      final StreamSource<?> streamSource,
+      final AbstractStreamSource streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
       final ValueMapperWithKey<K, GenericRow, GenericRow> mapper) {
@@ -151,7 +141,7 @@ public final class StreamSourceBuilder {
   }
 
   private static <K> Consumed<K, GenericRow> buildSourceConsumed(
-      final StreamSource<?> streamSource,
+      final AbstractStreamSource<?> streamSource,
       final Serde<K> keySerde,
       final Serde<GenericRow> valueSerde) {
     final TimestampExtractionPolicy timestampPolicy = streamSource.getTimestampPolicy();
@@ -228,7 +218,7 @@ public final class StreamSourceBuilder {
 
   public static KeySerde<Windowed<Struct>> getWindowedKeySerde(
       final KsqlQueryBuilder ksqlQueryBuilder,
-      final StreamSource<?> streamSource) {
+      final AbstractStreamSource<?> streamSource) {
     return ksqlQueryBuilder.buildKeySerde(
         streamSource.getFormats().getKeyFormat().getFormatInfo(),
         streamSource.getFormats().getKeyFormat().getWindowInfo().get(),
@@ -239,7 +229,7 @@ public final class StreamSourceBuilder {
 
   public static KeySerde<Struct> getKeySerde(
       final KsqlQueryBuilder ksqlQueryBuilder,
-      final StreamSource<?> streamSource) {
+      final AbstractStreamSource<?> streamSource) {
     return ksqlQueryBuilder.buildKeySerde(
         streamSource.getFormats().getKeyFormat().getFormatInfo(),
         getPhysicalSchema(streamSource),

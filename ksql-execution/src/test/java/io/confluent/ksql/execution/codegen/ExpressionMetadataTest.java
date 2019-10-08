@@ -10,7 +10,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
@@ -21,8 +20,6 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
@@ -53,7 +50,7 @@ public class ExpressionMetadataTest {
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
-  private CodeGenSpec spec;
+  private CodeGenSpec.Builder spec;
 
   @Before
   public void setup() throws InvocationTargetException {
@@ -61,10 +58,7 @@ public class ExpressionMetadataTest {
         .thenReturn(parameter1)
         .thenReturn(parameter2);
     when(expressionEvaluator.evaluate(any())).thenReturn(RETURN_VALUE);
-    spec = new CodeGenSpec();
-
-
-
+    spec = new CodeGenSpec.Builder();
   }
 
   @Test
@@ -82,7 +76,7 @@ public class ExpressionMetadataTest {
     );
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
-        spec,
+        spec.build(),
         expressionType,
         typeEnforcer,
         expression
@@ -113,7 +107,7 @@ public class ExpressionMetadataTest {
 
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
-        spec,
+        spec.build(),
         expressionType,
         typeEnforcer,
         expression
@@ -165,7 +159,7 @@ public class ExpressionMetadataTest {
         .thenReturn(thread2Param2);
     expressionMetadata = new ExpressionMetadata(
         expressionEvaluator,
-        spec,
+        spec.build(),
         expressionType,
         typeEnforcer,
         expression

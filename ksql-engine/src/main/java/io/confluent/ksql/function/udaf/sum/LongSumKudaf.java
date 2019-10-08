@@ -16,9 +16,7 @@
 package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.AggregateFunctionArguments;
 import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
@@ -64,9 +62,4 @@ public class LongSumKudaf
     return Function.identity();
   }
 
-  @Override
-  public KsqlAggregateFunction<Long, Long, Long> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new LongSumKudaf(functionName, aggregateFunctionArguments.udafIndex());
-  }
 }

@@ -33,12 +33,11 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -95,7 +94,7 @@ public class TableSinkBuilderTest {
   private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> mapperCaptor;
 
   private final QueryContext queryContext =
-      new QueryContext.Stacker(new QueryId("qid")).push("sink").getQueryContext();
+      new QueryContext.Stacker().push("sink").getQueryContext();
 
   private PlanBuilder planBuilder;
   private TableSink<Struct> sink;

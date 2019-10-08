@@ -1,9 +1,9 @@
 package io.confluent.ksql.query;
 
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -162,7 +162,7 @@ public class QueryExecutorTest {
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
     when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(Optional.of(ksMaterialization));
-    when(ksqlMaterializationFactory.create(any(), any(), any())).thenReturn(materialization);
+    when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
@@ -266,8 +266,8 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker(QUERY_ID);
-    final Optional<Materialization> result = queryMetadata.getMaterialization(stacker);
+    final QueryContext.Stacker stacker = new Stacker();
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     // Then:
     assertThat(result.get(), is(materialization));
@@ -310,13 +310,14 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker(QUERY_ID);
-    queryMetadata.getMaterialization(stacker);
+    final QueryContext.Stacker stacker = new Stacker();
+    queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     // Then:
     verify(ksqlMaterializationFactory).create(
         ksMaterialization,
         materializationInfo,
+        QUERY_ID,
         stacker
     );
   }
@@ -333,8 +334,8 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker(QUERY_ID);
-    final Optional<Materialization> result = queryMetadata.getMaterialization(stacker);
+    final QueryContext.Stacker stacker = new Stacker();
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     assertThat(result, is(Optional.empty()));
   }

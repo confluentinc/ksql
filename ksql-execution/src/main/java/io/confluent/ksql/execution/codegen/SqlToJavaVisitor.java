@@ -17,8 +17,11 @@ package io.confluent.ksql.execution.codegen;
 
 import static java.lang.String.format;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
@@ -133,19 +136,24 @@ public class SqlToJavaVisitor {
   private final Function<FunctionName, String> funNameToCodeName;
   private final Function<ColumnRef, String> colRefToCodeName;
 
-  public SqlToJavaVisitor(
+  public static SqlToJavaVisitor of(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
       final CodeGenSpec spec
   ) {
-    this(
+    final Multiset<FunctionName> nameCounts = HashMultiset.create();
+    return new SqlToJavaVisitor(
         schema,
         functionRegistry,
         spec::getCodeName,
-        spec::reserveFunctionName
+        name -> {
+          final int index = nameCounts.add(name, 1);
+          return spec.getUniqueNameForFunction(name, index);
+        }
     );
   }
 
+  @VisibleForTesting
   public SqlToJavaVisitor(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,

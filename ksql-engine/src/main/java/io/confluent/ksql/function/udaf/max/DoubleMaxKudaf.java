@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.function.udaf.max;
 
-import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
 
@@ -30,9 +28,4 @@ public class DoubleMaxKudaf extends BaseNumberKudaf<Double> {
           "Computes the maximum double value for a key.");
   }
 
-  @Override
-  public KsqlAggregateFunction<Double, Double, Double> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new DoubleMaxKudaf(functionName, aggregateFunctionArguments.udafIndex());
-  }
 }

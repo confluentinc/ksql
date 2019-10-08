@@ -136,8 +136,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public Optional<Materialization> getMaterialization(
+      final QueryId queryId,
       final QueryContext.Stacker contextStacker
   ) {
-    return materializationProvider.map(builder -> builder.build(contextStacker));
+    return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 }

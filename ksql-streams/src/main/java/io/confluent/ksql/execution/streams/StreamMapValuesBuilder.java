@@ -33,6 +33,7 @@ public final class StreamMapValuesBuilder {
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
     final Selection selection =
         Selection.of(
+            queryBuilder.getQueryId(),
             queryContext,
             sourceSchema,
             step.getSelectExpressions(),

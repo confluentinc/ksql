@@ -32,9 +32,9 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.name.ColumnName;
@@ -101,7 +101,7 @@ public class StreamToTableBuilderTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> source;
 
-  private final QueryContext.Stacker stacker = new QueryContext.Stacker(new QueryId("qid"));
+  private final QueryContext.Stacker stacker = new QueryContext.Stacker();
   private final QueryContext queryContext = stacker.push("s2t").getQueryContext();
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
@@ -127,6 +127,7 @@ public class StreamToTableBuilderTest {
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
     when(kGroupedStream.aggregate(any(), any(), any(Materialized.class))).thenReturn(kTable);
+    when(ksqlQueryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(ksqlQueryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(source.build(any())).thenReturn(
         new KStreamHolder<>(kStream, keySerdeFactory));

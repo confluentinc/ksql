@@ -16,6 +16,7 @@
 package io.confluent.ksql.rest.server.filters;
 
 import io.confluent.ksql.rest.Errors;
+import io.confluent.ksql.rest.server.resources.HealthcheckResource;
 import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import java.lang.reflect.Method;
@@ -39,8 +40,10 @@ import org.slf4j.LoggerFactory;
 public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
   private static final Logger log = LoggerFactory.getLogger(KsqlAuthorizationFilter.class);
 
-  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION =
-      getPathsFrom(ServerMetadataResource.class);
+  private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = getPathsFrom(
+      ServerMetadataResource.class,
+      HealthcheckResource.class
+  );
 
   private final KsqlAuthorizationProvider authorizationProvider;
 
@@ -75,17 +78,20 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
     return !PATHS_WITHOUT_AUTHORIZATION.contains(path);
   }
 
-  private static Set<String> getPathsFrom(final Class<?> resourceClass) {
-    final Set<String> paths = new HashSet<>();
-    final String mainPath = StringUtils.stripEnd(
-        resourceClass.getAnnotation(Path.class).value(), "/"
-    );
+  private static Set<String> getPathsFrom(final Class<?> ...resourceClass) {
 
-    paths.add(mainPath);
-    for (Method m : resourceClass.getMethods()) {
-      if (m.isAnnotationPresent(Path.class)) {
-        paths.add(mainPath + "/"
-            + StringUtils.strip(m.getAnnotation(Path.class).value(), "/"));
+    final Set<String> paths = new HashSet<>();
+    for (final Class<?> clazz : resourceClass) {
+      final String mainPath = StringUtils.stripEnd(
+          clazz.getAnnotation(Path.class).value(), "/"
+      );
+
+      paths.add(mainPath);
+      for (Method m : clazz.getMethods()) {
+        if (m.isAnnotationPresent(Path.class)) {
+          paths.add(mainPath + "/"
+              + StringUtils.strip(m.getAnnotation(Path.class).value(), "/"));
+        }
       }
     }
 

@@ -113,6 +113,19 @@ public class KsqlAuthorizationFilterTest {
     verifyZeroInteractions(authorizationProvider);
   }
 
+  @Test
+  public void filterShouldContinueOnUnauthorizedHealthcheckPath() {
+    // Given:
+    ContainerRequest request = givenRequestContext(userPrincipal, "GET", "healthcheck");
+
+    // When:
+    authorizationFilter.filter(request);
+
+    // Then:
+    assertThat(request.getAbortResponse(), is(nullValue()));
+    verifyZeroInteractions(authorizationProvider);
+  }
+
   private ContainerRequest givenRequestContext(
       final Principal principal,
       final String method,

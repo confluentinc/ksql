@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
@@ -37,7 +38,8 @@ public final class AvroUtil {
       final KsqlConfig ksqlConfig
   ) {
     final KsqlTopic topic = ddl.getTopic();
-    if (topic.getValueFormat().getFormat() != Format.AVRO) {
+    final FormatInfo format = topic.getValueFormat().getFormatInfo();
+    if (format.getFormat() != Format.AVRO) {
       return;
     }
 
@@ -47,7 +49,7 @@ public final class AvroUtil {
     );
     final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
-        ddl.getSourceName().name(),
+        format.getAvroFullSchemaName().orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
         ksqlConfig
     );
 

@@ -164,27 +164,33 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     }
 
     final Struct columnStruct = new Struct(context.schema);
-    final Map<String, ?> fields = (Map<String, ?>) context.val;
-    final Map<String, ?> caseInsensitiveFields = toCaseInsensitiveFieldNameMap(fields);
+    final Map<String, ?> jsonFields = (Map<String, ?>) context.val;
 
-    for (Field field : context.schema.fields()) {
+    final Map<String, ?> upperCasedFields = upperCaseKeys(jsonFields);
+
+    for (Field ksqlField : context.schema.fields()) {
+      // the "case insensitive" strategy leverages that all KSQL fields are internally
+      // case sensitive - if they were specified without quotes, then they are upper-cased
+      // during parsing. any ksql fields that are case insensitive, therefore, will be matched
+      // in this case insensitive field map without modification but the quoted fields will not
+      // (unless they were all uppercase to start off with, which is expected to match)
       final Object fieldValue = ObjectUtils.defaultIfNull(
-          fields.get(field.name()),
-          caseInsensitiveFields.get(field.name().toUpperCase()));
+          jsonFields.get(ksqlField.name()),
+          upperCasedFields.get(ksqlField.name()));
 
       final Object coerced = enforceFieldType(
           context.deserializer,
-          field.schema(),
+          ksqlField.schema(),
           fieldValue
       );
 
-      columnStruct.put(field.name(), coerced);
+      columnStruct.put(ksqlField.name(), coerced);
     }
 
     return columnStruct;
   }
 
-  private static Map<String, ?> toCaseInsensitiveFieldNameMap(final Map<String, ?> map) {
+  private static Map<String, ?> upperCaseKeys(final Map<String, ?> map) {
     final Map<String, Object> result = new HashMap<>(map.size());
     for (final Map.Entry<String, ?> entry : map.entrySet()) {
       // what happens if we have two fields with the same name and different case?

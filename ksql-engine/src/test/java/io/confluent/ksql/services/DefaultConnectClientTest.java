@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
+import com.github.tomakehurst.wiremock.matching.EqualToPattern;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
@@ -30,6 +31,7 @@ import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import java.util.List;
 import java.util.Optional;
+import javax.ws.rs.core.HttpHeaders;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -58,16 +60,19 @@ public class DefaultConnectClientTest {
       ),
       ConnectorType.SOURCE
   );
+  private static final String AUTH_HEADER = "Basic FOOBAR";
 
   @Rule
   public WireMockRule wireMockRule = new WireMockRule(
-      WireMockConfiguration.wireMockConfig().dynamicPort());
+      WireMockConfiguration.wireMockConfig()
+          .dynamicPort()
+  );
 
   private ConnectClient client;
 
   @Before
   public void setup() {
-    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port(), Optional.empty());
+    client = new DefaultConnectClient("http://localhost:" + wireMockRule.port(), Optional.of(AUTH_HEADER));
   }
 
   @Test
@@ -75,6 +80,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/connectors"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_CREATED)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_INFO)))
@@ -94,6 +100,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.post(WireMock.urlEqualTo("/connectors"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
                 .withBody("Oh no!"))
@@ -113,6 +120,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/connectors"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(ImmutableList.of("one", "two"))))
@@ -131,6 +139,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/connectors/foo"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_INFO)))
@@ -149,6 +158,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/connectors/foo/status"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_OK)
                 .withBody(MAPPER.writeValueAsString(SAMPLE_STATUS)))
@@ -175,6 +185,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.delete(WireMock.urlEqualTo("/connectors/foo"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_NO_CONTENT))
     );
@@ -192,6 +203,7 @@ public class DefaultConnectClientTest {
     // Given:
     WireMock.stubFor(
         WireMock.get(WireMock.urlEqualTo("/connectors"))
+            .withHeader(HttpHeaders.AUTHORIZATION, new EqualToPattern(AUTH_HEADER))
             .willReturn(WireMock.aResponse()
                 .withStatus(HttpStatus.SC_INTERNAL_SERVER_ERROR)
                 .withBody("Encountered an error!"))

@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
 import org.apache.http.HttpStatus;
 
@@ -32,7 +33,8 @@ public final class AvroUtil {
   public static void throwOnInvalidSchemaEvolution(
       final String statementText,
       final CreateSourceCommand ddl,
-      final SchemaRegistryClient schemaRegistryClient
+      final SchemaRegistryClient schemaRegistryClient,
+      final KsqlConfig ksqlConfig
   ) {
     final KsqlTopic topic = ddl.getTopic();
     if (topic.getValueFormat().getFormat() != Format.AVRO) {
@@ -43,9 +45,10 @@ public final class AvroUtil {
         ddl.getSchema(),
         ddl.getSerdeOptions()
     );
-    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
+    final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
         physicalSchema.valueSchema(),
-        ddl.getSourceName().name()
+        ddl.getSourceName().name(),
+        ksqlConfig
     );
 
     final String topicName = topic.getKafkaTopicName();

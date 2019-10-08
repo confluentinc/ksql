@@ -75,7 +75,7 @@ public class HealthcheckResource {
   ) {
     return new HealthcheckResource(
         new HealthcheckAgent(serviceContext, restConfig),
-        Duration.ofSeconds(15), // TODO: fetch from config
+        Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG)),
         System::currentTimeMillis
     );
   }

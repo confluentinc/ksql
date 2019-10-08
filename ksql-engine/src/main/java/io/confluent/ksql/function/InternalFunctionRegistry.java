@@ -17,10 +17,6 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
-import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
-import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
-import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
-import io.confluent.ksql.function.udaf.sum.SumAggFunctionFactory;
 import io.confluent.ksql.function.udaf.topk.TopKAggregateFunctionFactory;
 import io.confluent.ksql.function.udaf.topkdistinct.TopkDistinctAggFunctionFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
@@ -291,13 +287,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addUdafFunctions() {
-
-      functionRegistry.addAggregateFunctionFactory(new CountAggFunctionFactory());
-      functionRegistry.addAggregateFunctionFactory(new SumAggFunctionFactory());
-
-      functionRegistry.addAggregateFunctionFactory(new MaxAggFunctionFactory());
-      functionRegistry.addAggregateFunctionFactory(new MinAggFunctionFactory());
-
       functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
     }

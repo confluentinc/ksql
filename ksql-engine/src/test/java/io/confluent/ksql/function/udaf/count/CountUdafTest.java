@@ -16,80 +16,68 @@
 package io.confluent.ksql.function.udaf.count;
 
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.function.udaf.TableUdaf;
 import org.junit.Test;
 
-public class CountKudafTest {
+public class CountUdafTest {
 
   @Test
   public void shouldGetCorrectCount() {
-    final CountKudaf doubleCountKudaf = getDoubleCountKudaf();
+    final TableUdaf<Double, Long, Long> udaf = CountUdaf.count();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     Long currentCount = 0L;
     for (final double i: values) {
-      currentCount = doubleCountKudaf.aggregate(i, currentCount);
+      currentCount = udaf.aggregate(i, currentCount);
     }
     assertThat(7L, equalTo(currentCount));
   }
 
   @Test
   public void shouldHandleNullCount() {
-    final CountKudaf doubleCountKudaf = getDoubleCountKudaf();
+    final TableUdaf<Double, Long, Long> udaf = CountUdaf.count();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     Long currentCount = 0L;
 
     // aggregate null before any aggregation
-    currentCount = doubleCountKudaf.aggregate(null, currentCount);
+    currentCount = udaf.aggregate(null, currentCount);
     assertThat(0L, equalTo(currentCount));
 
     // now send each value to aggregation and verify
     for (final double i: values) {
-      currentCount = doubleCountKudaf.aggregate(i, currentCount);
+      currentCount = udaf.aggregate(i, currentCount);
     }
     assertThat(7L, equalTo(currentCount));
 
     // null should not affect count
-    currentCount = doubleCountKudaf.aggregate(null, currentCount);
+    currentCount = udaf.aggregate(null, currentCount);
     assertThat(7L, equalTo(currentCount));
   }
 
   @Test
   public void shouldUndoElement() {
-    final CountKudaf doubleCountKudaf = getDoubleCountKudaf();
+    final TableUdaf<Double, Long, Long> udaf = CountUdaf.count();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     Long currentCount = 0L;
     for (final double i: values) {
-      currentCount = doubleCountKudaf.aggregate(i, currentCount);
+      currentCount = udaf.aggregate(i, currentCount);
     }
     assertThat(7L, equalTo(currentCount));
-    currentCount = doubleCountKudaf.undo(3.0, currentCount);
+    currentCount = udaf.undo(3.0, currentCount);
     assertThat(6L, equalTo(currentCount));
   }
 
   @Test
   public void shouldUndoElementHandleNull() {
-    final CountKudaf doubleCountKudaf = getDoubleCountKudaf();
+    final TableUdaf<Double, Long, Long> udaf = CountUdaf.count();
     final double[] values = new double[]{3.0, 5.0, 8.0, 2.2, 3.5, 4.6, 5.0};
     Long currentCount = 0L;
     for (final double i: values) {
-      currentCount = doubleCountKudaf.aggregate(i, currentCount);
+      currentCount = udaf.aggregate(i, currentCount);
     }
     assertThat(7L, equalTo(currentCount));
-    currentCount = doubleCountKudaf.undo(null, currentCount);
+    currentCount = udaf.undo(null, currentCount);
     assertThat(7L, equalTo(currentCount));
-  }
-
-
-
-  private CountKudaf getDoubleCountKudaf() {
-    final KsqlAggregateFunction aggregateFunction = new CountAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA));
-    assertThat(aggregateFunction, instanceOf(CountKudaf.class));
-    return  (CountKudaf) aggregateFunction;
   }
 }

@@ -110,7 +110,8 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private MaterializationFactory materializationFactory;
 
-  private final Stacker contextStacker = new Stacker(new QueryId("start"));
+  private final QueryId queryId = new QueryId("start");
+  private final Stacker contextStacker = new Stacker();
 
   private KsqlMaterializationFactory factory;
 
@@ -159,7 +160,7 @@ public class KsqlMaterializationFactoryTest {
     when(info.havingExpression()).thenReturn(Optional.empty());
 
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(sqlPredicateFactory, never()).create(any(), any(), any(), any(), any());
@@ -168,7 +169,7 @@ public class KsqlMaterializationFactoryTest {
   @Test
   public void shouldGetFilterProcessingLoggerWithCorrectParams() {
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(processingLoggerFactory).getLogger("start.filter");
@@ -177,7 +178,7 @@ public class KsqlMaterializationFactoryTest {
   @Test
   public void shouldBuildHavingPredicateWithCorrectParams() {
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(sqlPredicateFactory).create(
@@ -192,7 +193,7 @@ public class KsqlMaterializationFactoryTest {
   @Test
   public void shouldGetProjectProcessingLoggerWithCorrectParams() {
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(processingLoggerFactory).getLogger("start.project");
@@ -204,7 +205,7 @@ public class KsqlMaterializationFactoryTest {
     when(info.tableSelects()).thenReturn(SELECTS);
 
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(aggregateMapperFactory).create(
@@ -219,7 +220,7 @@ public class KsqlMaterializationFactoryTest {
     when(info.tableSelects()).thenReturn(SELECTS);
 
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(selectMapperFactory).create(
@@ -234,7 +235,7 @@ public class KsqlMaterializationFactoryTest {
   @Test
   public void shouldBuildMaterializationWithCorrectParams() {
     // When:
-    factory.create(materialization, info, contextStacker);
+    factory.create(materialization, info, queryId, contextStacker);
 
     // Then:
     verify(materializationFactory).create(
@@ -255,7 +256,7 @@ public class KsqlMaterializationFactoryTest {
 
     // When:
     final Materialization result = factory
-        .create(materialization, info, contextStacker);
+        .create(materialization, info, queryId, contextStacker);
 
     // Then:
     assertThat(result, is(ksqlMaterialization));

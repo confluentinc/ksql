@@ -48,6 +48,7 @@ public final class StreamFilterBuilder {
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext().getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
+                queryBuilder.getQueryId(),
                 contextStacker.push("FILTER").getQueryContext())
         )
     );

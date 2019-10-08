@@ -74,9 +74,9 @@ public class StreamGroupByBuilderTest {
       columnReference("MAN")
   );
   private static final QueryContext SOURCE_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("source").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("source").getQueryContext();
   private static final QueryContext STEP_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("groupby").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepProperties SOURCE_PROPERTIES
       = new DefaultExecutionStepProperties(SCHEMA, SOURCE_CTX);
   private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(

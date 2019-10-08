@@ -161,6 +161,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     final Selection selection = Selection.of(
+        queryBuilder.getQueryId(),
         queryContext,
         source.getProperties().getSchema(),
         selectExpressions,
@@ -271,6 +272,7 @@ public final class ExecutionStepFactory {
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     final Selection selection = Selection.of(
+        queryBuilder.getQueryId(),
         queryContext,
         source.getProperties().getSchema(),
         selectExpressions,

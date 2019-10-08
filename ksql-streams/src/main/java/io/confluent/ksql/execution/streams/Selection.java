@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
@@ -33,6 +34,7 @@ public final class Selection {
   private final LogicalSchema schema;
 
   public static Selection of(
+      final QueryId queryId,
       final QueryContext queryContext,
       final LogicalSchema sourceSchema,
       final List<SelectExpression> selectExpressions,
@@ -41,6 +43,7 @@ public final class Selection {
       final ProcessingLogContext processingLogContext) {
     final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(queryContext);
     final String loggerName = QueryLoggerUtil.queryLoggerName(
+        queryId,
         contextStacker.push(SELECTION_CONTEXT).getQueryContext()
     );
     final SelectValueMapper mapper = SelectValueMapperFactory.create(

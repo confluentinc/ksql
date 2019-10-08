@@ -84,12 +84,13 @@ public class KsqlBareOutputNodeTest {
   public void before() {
     builder = new StreamsBuilder();
 
+    when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(new KsqlConfig(Collections.emptyMap()));
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(ProcessingLogContext.create());
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(queryId)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 

@@ -87,7 +87,7 @@ public class PhysicalPlanBuilder {
         queryId,
         resultStream.getSourceStep(),
         materializationInfo,
-        resultStream.getExecutionPlan(""),
+        resultStream.getExecutionPlan(queryId, ""),
         resultStream.getKeyField()
     );
   }

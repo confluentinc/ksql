@@ -95,7 +95,7 @@ public class TableSinkBuilderTest {
   private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> mapperCaptor;
 
   private final QueryContext queryContext =
-      new QueryContext.Stacker(new QueryId("qid")).push("sink").getQueryContext();
+      new QueryContext.Stacker().push("sink").getQueryContext();
 
   private PlanBuilder planBuilder;
   private TableSink<Struct> sink;

@@ -99,7 +99,7 @@ public class TableAggregateBuilderTest {
   );
   private static final List<FunctionCall> FUNCTIONS = ImmutableList.of(AGG0, AGG1);
   private static final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("agg").push("regate").getQueryContext();
+      new QueryContext.Stacker().push("agg").push("regate").getQueryContext();
   private static final KeyFormat KEY_FORMAT = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
   private static final ValueFormat VALUE_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
 

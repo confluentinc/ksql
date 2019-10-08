@@ -167,7 +167,7 @@ public class SchemaKStreamTest {
       .valueColumn(ColumnName.of("val"), SqlTypes.BIGINT)
       .build();
   private final QueryContext.Stacker queryContext
-      = new QueryContext.Stacker(new QueryId("query")).push("node");
+      = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private PlanBuilder planBuilder;
@@ -253,6 +253,7 @@ public class SchemaKStreamTest {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
 
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("query"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
@@ -1199,7 +1200,7 @@ public class SchemaKStreamTest {
     // Given:
     when(sourceProperties.getSchema()).thenReturn(simpleSchema);
     final SchemaKStream parentSchemaKStream = mock(SchemaKStream.class);
-    when(parentSchemaKStream.getExecutionPlan(anyString()))
+    when(parentSchemaKStream.getExecutionPlan(any(), anyString()))
         .thenReturn("parent plan");
     when(sourceProperties.getQueryContext()).thenReturn(
         queryContext.push("source").getQueryContext());
@@ -1216,7 +1217,7 @@ public class SchemaKStreamTest {
     );
 
     // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
         " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
             + "Logger: query.node.source\n"
             + "\tparent plan"));
@@ -1242,7 +1243,7 @@ public class SchemaKStreamTest {
     );
 
     // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
         " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
             + "Logger: query.node.source\n"));
   }
@@ -1251,10 +1252,10 @@ public class SchemaKStreamTest {
   public void shouldSummarizeExecutionPlanCorrectlyWhenMultipleParents() {
     // Given:
     final SchemaKStream parentSchemaKStream1 = mock(SchemaKStream.class);
-    when(parentSchemaKStream1.getExecutionPlan(anyString()))
+    when(parentSchemaKStream1.getExecutionPlan(any(), anyString()))
         .thenReturn("parent 1 plan");
     final SchemaKStream parentSchemaKStream2 = mock(SchemaKStream.class);
-    when(parentSchemaKStream2.getExecutionPlan(anyString()))
+    when(parentSchemaKStream2.getExecutionPlan(any(), anyString()))
         .thenReturn("parent 2 plan");
     when(sourceProperties.getSchema()).thenReturn(simpleSchema);
     when(sourceProperties.getQueryContext()).thenReturn(
@@ -1273,7 +1274,7 @@ public class SchemaKStreamTest {
     );
 
     // When/Then:
-    assertThat(schemaKtream.getExecutionPlan(""), equalTo(
+    assertThat(schemaKtream.getExecutionPlan(new QueryId("query"), ""), equalTo(
         " > [ SOURCE ] | Schema: [ROWKEY STRING KEY, key STRING, val BIGINT] | "
             + "Logger: query.node.source\n"
             + "\tparent 1 plan"

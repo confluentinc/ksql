@@ -19,30 +19,22 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
-import java.util.Map;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Immutable
-public final class HealthcheckResponse {
+public final class HealthcheckResponseDetail {
   private final boolean isHealthy;
-  private final Map<String, HealthcheckResponseDetail> details;
 
   @JsonCreator
-  public HealthcheckResponse(
-      @JsonProperty("isHealthy") final boolean isHealthy,
-      @JsonProperty("details") final Map<String, HealthcheckResponseDetail> details
+  public HealthcheckResponseDetail(
+      @JsonProperty("isHealthy") final boolean isHealthy
   ) {
     this.isHealthy = isHealthy;
-    this.details = Objects.requireNonNull(details, "details");
   }
 
   public boolean getIsHealthy() {
     return isHealthy;
-  }
-
-  public Map<String, HealthcheckResponseDetail> getDetails() {
-    return details;
   }
 
   @Override
@@ -55,13 +47,12 @@ public final class HealthcheckResponse {
       return false;
     }
 
-    final HealthcheckResponse that = (HealthcheckResponse) o;
-    return isHealthy == that.isHealthy
-        && Objects.equals(details, that.details);
+    final HealthcheckResponseDetail that = (HealthcheckResponseDetail) o;
+    return isHealthy == that.isHealthy;
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(isHealthy, details);
+    return Objects.hash(isHealthy);
   }
 }

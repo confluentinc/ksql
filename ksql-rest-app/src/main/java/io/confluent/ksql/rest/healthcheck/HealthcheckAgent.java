@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.healthcheck;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthcheckResponse;
+import io.confluent.ksql.rest.entity.HealthcheckResponseDetail;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.ServiceContext;
@@ -46,12 +47,13 @@ public class HealthcheckAgent {
   }
 
   public HealthcheckResponse checkHealth() {
-    final Map<String, Boolean> results = DEFAULT_CHECKS.stream()
+    final Map<String, HealthcheckResponseDetail> results = DEFAULT_CHECKS.stream()
         .collect(Collectors.toMap(
             Check::getName,
-            check -> isSuccessful(check.getKsqlStatement())
+            check -> new HealthcheckResponseDetail(isSuccessful(check.getKsqlStatement()))
         ));
     final boolean allHealthy = results.values().stream()
+        .map(HealthcheckResponseDetail::getIsHealthy)
         .reduce(Boolean::logicalAnd)
         .orElse(true);
     return new HealthcheckResponse(allHealthy, results);

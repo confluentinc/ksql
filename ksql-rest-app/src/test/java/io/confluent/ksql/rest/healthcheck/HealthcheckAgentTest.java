@@ -84,8 +84,8 @@ public class HealthcheckAgentTest {
 
     // Then:
     verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any());
-    assertThat(response.getDetails().get("metastore"), is(true));
-    assertThat(response.getDetails().get("kafka"), is(true));
+    assertThat(response.getDetails().get("metastore").getIsHealthy(), is(true));
+    assertThat(response.getDetails().get("kafka").getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
   }
 
@@ -99,7 +99,7 @@ public class HealthcheckAgentTest {
     final HealthcheckResponse response = healthcheckAgent.checkHealth();
 
     // Then:
-    assertThat(response.getDetails().get("metastore"), is(false));
+    assertThat(response.getDetails().get("metastore").getIsHealthy(), is(false));
     assertThat(response.getIsHealthy(), is(false));
   }
 
@@ -113,7 +113,7 @@ public class HealthcheckAgentTest {
     final HealthcheckResponse response = healthcheckAgent.checkHealth();
 
     // Then:
-    assertThat(response.getDetails().get("kafka"), is(false));
+    assertThat(response.getDetails().get("kafka").getIsHealthy(), is(false));
     assertThat(response.getIsHealthy(), is(false));
   }
 }

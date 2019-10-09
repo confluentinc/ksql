@@ -47,6 +47,7 @@ import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.serde.connect.ConnectSchemaTranslator;
 import java.io.IOException;
 import java.util.Collections;
+import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
@@ -97,10 +98,12 @@ public class AvroUtilTest {
       .valueColumn(ColumnName.of("mapcol"), SqlTypes.map(SqlTypes.INTEGER))
       .build();
 
+  private static final String SCHEMA_NAME = "schema_name";
+
   private static final KsqlTopic RESULT_TOPIC = new KsqlTopic(
       "actual-name",
       KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-      ValueFormat.of(FormatInfo.of(Format.AVRO)),
+      ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of(SCHEMA_NAME), Optional.empty())),
       false);
 
   @Rule
@@ -117,7 +120,6 @@ public class AvroUtilTest {
   public void setUp() {
     when(ddlCommand.getSerdeOptions()).thenReturn(SerdeOption.none());
     when(ddlCommand.getSchema()).thenReturn(MUTLI_FIELD_SCHEMA);
-    when(ddlCommand.getSourceName()).thenReturn(STREAM_NAME);
     when(ddlCommand.getTopic()).thenReturn(RESULT_TOPIC);
   }
 
@@ -139,7 +141,7 @@ public class AvroUtilTest {
     final PhysicalSchema schema = PhysicalSchema.from(MUTLI_FIELD_SCHEMA, SerdeOption.none());
 
     final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), STREAM_NAME.name(), ksqlConfig);
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     // When:
@@ -159,7 +161,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), STREAM_NAME.name(), ksqlConfig);
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -178,7 +180,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), STREAM_NAME.name(), ksqlConfig);
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);
@@ -199,7 +201,7 @@ public class AvroUtilTest {
     when(srClient.testCompatibility(anyString(), any())).thenReturn(true);
 
     final org.apache.avro.Schema expectedAvroSchema = AvroSchemas
-        .getAvroSchema(schema.valueSchema(), STREAM_NAME.name(), ksqlConfig);
+        .getAvroSchema(schema.valueSchema(), SCHEMA_NAME, ksqlConfig);
 
     // When:
     AvroUtil.throwOnInvalidSchemaEvolution(STATEMENT_TEXT, ddlCommand, srClient, ksqlConfig);

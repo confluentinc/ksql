@@ -19,6 +19,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
@@ -84,9 +85,19 @@ public final class StreamAggregateBuilder {
         aggregateParams.getAggregator(),
         materialized
     );
-    return new KTableHolder<>(
+    final MaterializationInfo.Builder materializationBuilder =
+        AggregateBuilderUtils.materializationInfoBuilder(
+            aggregate.getProperties().getQueryContext(),
+            aggregate.getNonFuncColumnCount(),
+            aggregate.getAggregations(),
+            sourceSchema,
+            aggregate.getAggregationSchema(),
+            aggregate.getSchema()
+        );
+    return KTableHolder.materialized(
         aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
-        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx),
+        materializationBuilder
     );
   }
 
@@ -128,13 +139,27 @@ public final class StreamAggregateBuilder {
     final KTable<Windowed<Struct>, GenericRow> reduced = aggregated.mapValues(
         aggregateParams.getAggregator().getResultMapper()
     );
+    final MaterializationInfo.Builder materializationBuilder =
+        AggregateBuilderUtils.materializationInfoBuilder(
+            aggregate.getProperties().getQueryContext(),
+            aggregate.getNonFuncColumnCount(),
+            aggregate.getAggregations(),
+            sourceSchema,
+            aggregate.getAggregationSchema(),
+            aggregate.getSchema()
+        );
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
     if (!windowSelectMapper.hasSelects()) {
-      return new KTableHolder<>(reduced, KeySerdeFactory.windowed(queryBuilder));
+      return KTableHolder.materialized(
+          reduced,
+          KeySerdeFactory.windowed(queryBuilder),
+          materializationBuilder
+      );
     }
-    return new KTableHolder<>(
+    return KTableHolder.materialized(
         reduced.mapValues(windowSelectMapper),
-        KeySerdeFactory.windowed(queryBuilder)
+        KeySerdeFactory.windowed(queryBuilder),
+        materializationBuilder
     );
   }
 

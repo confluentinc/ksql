@@ -236,7 +236,7 @@ public class SchemaKStreamTest {
     rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueConnectSchema());
 
     when(tableSourceStep.build(any())).thenReturn(
-        new KTableHolder(kTable, keySerdeFactory)
+        KTableHolder.unmaterialized(kTable, keySerdeFactory)
     );
     schemaKTable = new SchemaKTable(
         tableSourceStep,

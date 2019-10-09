@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.entity;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
-import io.confluent.ksql.materialization.TableRow;
+import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;

@@ -143,7 +143,7 @@ public class JoinNodeTest {
   private static final PlanNodeId nodeId = new PlanNodeId("join");
   private static final QueryId queryId = new QueryId("join-query");
   private static final QueryContext.Stacker CONTEXT_STACKER =
-      new QueryContext.Stacker(queryId).push(nodeId.toString());
+      new QueryContext.Stacker().push(nodeId.toString());
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -189,7 +189,7 @@ public class JoinNodeTest {
     when(ksqlStreamBuilder.withKsqlConfig(any())).thenReturn(ksqlStreamBuilder);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(queryId)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 

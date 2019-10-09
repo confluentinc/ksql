@@ -10,7 +10,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -69,11 +68,7 @@ public class AggregateParamsTest {
   @Mock
   private KsqlAggregateFunction agg0;
   @Mock
-  private KsqlAggregateFunction agg0Resolved;
-  @Mock
   private KsqlAggregateFunction agg1;
-  @Mock
-  private KsqlAggregateFunction agg1Resolved;
   @Mock
   private TableAggregationFunction tableAgg;
   @Mock
@@ -88,22 +83,18 @@ public class AggregateParamsTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(functionRegistry.getAggregate(same(AGG0.getName().name()), any())).thenReturn(agg0);
-    when(agg0Resolved.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(agg0Resolved.getFunctionName()).thenReturn(AGG0.getName());
-    when(agg0.getInstance(any())).thenReturn(agg0Resolved);
-    when(functionRegistry.getAggregate(same(AGG1.getName().name()), any())).thenReturn(agg1);
-    when(agg1Resolved.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
-    when(agg1Resolved.getFunctionName()).thenReturn(AGG1.getName());
-    when(agg1.getInstance(any())).thenReturn(agg1Resolved);
-    when(functionRegistry.getAggregate(same(TABLE_AGG.getName().name()), any()))
+    when(functionRegistry.getAggregateFunction(same(AGG0.getName().name()), any(), any())).thenReturn(agg0);
+    when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
+    when(agg0.getFunctionName()).thenReturn(AGG0.getName());
+    when(functionRegistry.getAggregateFunction(same(AGG1.getName().name()), any(), any())).thenReturn(agg1);
+    when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
+    when(agg1.getFunctionName()).thenReturn(AGG1.getName());
+    when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName().name()), any(), any()))
         .thenReturn(tableAgg);
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(tableAgg.getInstance(any())).thenReturn(tableAgg);
-    when(functionRegistry.getAggregate(same(WINDOW_START.getName().name()), any()))
+    when(functionRegistry.getAggregateFunction(same(WINDOW_START.getName().name()), any(), any()))
         .thenReturn(windowStart);
     when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
-    when(windowStart.getInstance(any())).thenReturn(windowStart);
     when(windowStart.getFunctionName()).thenReturn(WINDOW_START.getName());
 
     when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
@@ -126,7 +117,7 @@ public class AggregateParamsTest {
     // Then:
     verify(udafFactory).create(
         2,
-         ImmutableList.of(agg0Resolved, agg1Resolved)
+         ImmutableList.of(agg0, agg1)
     );
   }
 

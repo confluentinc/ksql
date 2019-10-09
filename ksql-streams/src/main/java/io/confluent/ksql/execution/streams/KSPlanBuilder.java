@@ -38,6 +38,7 @@ import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
+import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
@@ -140,8 +141,14 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KStreamHolder<K> visitStreamSource(final StreamSource<K> streamSource) {
+  public KStreamHolder<Struct> visitStreamSource(final StreamSource streamSource) {
     return StreamSourceBuilder.build(queryBuilder, streamSource);
+  }
+
+  @Override
+  public KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
+      final WindowedStreamSource windowedStreamSource) {
+    return StreamSourceBuilder.buildWindowed(queryBuilder, windowedStreamSource);
   }
 
   @Override
@@ -153,7 +160,7 @@ public final class KSPlanBuilder implements PlanBuilder {
         right,
         join,
         queryBuilder,
-        streamsFactories.getJoinedFactory()
+        streamsFactories.getStreamJoinedFactory()
     );
   }
 
@@ -235,7 +242,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public <K> KTableHolder<K> visitTableSink(final TableSink<K> tableSink) {
     final KTableHolder<K> source = tableSink.getSource().build(this);
     TableSinkBuilder.build(source, tableSink, queryBuilder);
-    return null;
+    return source;
   }
 
   @Override

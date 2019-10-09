@@ -354,7 +354,7 @@ public class AggregateNodeTest {
     );
 
     final List<String> loggers = queryContextCaptor.getAllValues().stream()
-        .map(QueryLoggerUtil::queryLoggerName)
+        .map(ctx -> QueryLoggerUtil.queryLoggerName(queryId, ctx))
         .collect(Collectors.toList());
 
     assertThat(loggers, contains(
@@ -396,12 +396,13 @@ public class AggregateNodeTest {
 
   @SuppressWarnings("unchecked")
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
+    when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(builder);
     when(ksqlStreamBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(ksqlStreamBuilder.getFunctionRegistry()).thenReturn(FUNCTION_REGISTRY);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(queryId)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
 

@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.function.udaf.min;
 
-import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
 
@@ -30,9 +28,4 @@ public class IntegerMinKudaf extends BaseNumberKudaf<Integer> {
           "Computes the minimum integer value for a key.");
   }
 
-  @Override
-  public KsqlAggregateFunction<Integer, Integer, Integer> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new IntegerMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
-  }
 }

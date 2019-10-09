@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.query.QueryId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -27,7 +28,7 @@ import java.util.Set;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {
 
-  private final EntityQueryId id;
+  private final QueryId id;
   private final String statementText;
   private final List<FieldInfo> fields;
   private final Set<String> sources;
@@ -38,7 +39,7 @@ public class QueryDescription {
 
   @JsonCreator
   public QueryDescription(
-      @JsonProperty("id") final EntityQueryId id,
+      @JsonProperty("id") final QueryId id,
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("fields") final List<FieldInfo> fields,
       @JsonProperty("sources") final Set<String> sources,
@@ -57,7 +58,7 @@ public class QueryDescription {
     this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
   }
 
-  public EntityQueryId getId() {
+  public QueryId getId() {
     return id;
   }
 

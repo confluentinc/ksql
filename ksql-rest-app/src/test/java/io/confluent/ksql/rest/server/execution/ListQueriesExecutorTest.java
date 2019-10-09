@@ -27,13 +27,11 @@ import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.rest.server.TemporaryEngine;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import org.junit.Rule;
@@ -78,7 +76,7 @@ public class ListQueriesExecutorTest {
         new RunningQuery(
             metadata.getStatementString(),
             ImmutableSet.of(metadata.getSinkName().name()),
-            new EntityQueryId(metadata.getQueryId()))));
+            metadata.getQueryId())));
   }
 
   @Test

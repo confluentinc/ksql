@@ -83,6 +83,6 @@ public final class StreamToTableBuilder {
             () -> null,
             (k, value, oldValue) -> value.orElse(null),
             materialized);
-    return new KTableHolder<>(table, sourceStream.getKeySerdeFactory());
+    return KTableHolder.unmaterialized(table, sourceStream.getKeySerdeFactory());
   }
 }

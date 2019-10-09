@@ -375,7 +375,6 @@ final class EngineExecutor {
         ksqlPlan.getStatementText(),
         physicalPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
-        physicalPlan.getMaterializationInfo(),
         queryPlan.getSources(),
         physicalPlan.getPhysicalPlan(),
         physicalPlan.getPlanSummary()

@@ -101,7 +101,7 @@ public class StreamToTableBuilderTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> source;
 
-  private final QueryContext.Stacker stacker = new QueryContext.Stacker(new QueryId("qid"));
+  private final QueryContext.Stacker stacker = new QueryContext.Stacker();
   private final QueryContext queryContext = stacker.push("s2t").getQueryContext();
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
@@ -127,6 +127,7 @@ public class StreamToTableBuilderTest {
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(kStream.groupByKey()).thenReturn(kGroupedStream);
     when(kGroupedStream.aggregate(any(), any(), any(Materialized.class))).thenReturn(kTable);
+    when(ksqlQueryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(ksqlQueryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(source.build(any())).thenReturn(
         new KStreamHolder<>(kStream, keySerdeFactory));
@@ -137,7 +138,8 @@ public class StreamToTableBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
-            materializedFactory
+            materializedFactory,
+            mock(StreamJoinedFactory.class)
         )
     );
   }

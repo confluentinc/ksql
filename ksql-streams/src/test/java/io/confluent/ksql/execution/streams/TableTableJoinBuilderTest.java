@@ -59,9 +59,9 @@ public class TableTableJoinBuilderTest {
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
   private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
+      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KTable<Struct, GenericRow> leftKTable;
@@ -87,9 +87,9 @@ public class TableTableJoinBuilderTest {
     when(right.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
     when(left.build(any())).thenReturn(
-        new KTableHolder<>(leftKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(leftKTable, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        new KTableHolder<>(rightKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         mock(KsqlQueryBuilder.class),
         mock(SqlPredicateFactory.class),

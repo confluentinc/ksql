@@ -42,7 +42,10 @@ public interface PlanBuilder {
 
   <K> KStreamHolder<K> visitStreamSink(StreamSink<K> streamSink);
 
-  <K> KStreamHolder<K> visitStreamSource(StreamSource<K> streamSource);
+  KStreamHolder<Struct> visitStreamSource(StreamSource streamSource);
+
+  KStreamHolder<Windowed<Struct>> visitWindowedStreamSource(
+      WindowedStreamSource windowedStreamSource);
 
   <K> KStreamHolder<K> visitStreamStreamJoin(StreamStreamJoin<K> streamStreamJoin);
 

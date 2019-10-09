@@ -95,7 +95,7 @@ public class TableSinkBuilderTest {
   private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> mapperCaptor;
 
   private final QueryContext queryContext =
-      new QueryContext.Stacker(new QueryId("qid")).push("sink").getQueryContext();
+      new QueryContext.Stacker().push("sink").getQueryContext();
 
   private PlanBuilder planBuilder;
   private TableSink<Struct> sink;
@@ -111,7 +111,7 @@ public class TableSinkBuilderTest {
         new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
     );
     when(source.build(any())).thenReturn(
-        new KTableHolder<>(kTable, keySerdeFactory));
+        KTableHolder.unmaterialized(kTable, keySerdeFactory));
     sink = new TableSink<>(
         new DefaultExecutionStepProperties(SCHEMA, queryContext),
         source,

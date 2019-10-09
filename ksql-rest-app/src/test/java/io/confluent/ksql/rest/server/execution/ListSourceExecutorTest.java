@@ -36,7 +36,6 @@ import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -239,7 +238,7 @@ public class ListSourceExecutorTest {
             ImmutableList.of(new RunningQuery(
                 metadata.getStatementString(),
                 ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
-                new EntityQueryId(metadata.getQueryId()))),
+                metadata.getQueryId())),
             Optional.empty())));
   }
 

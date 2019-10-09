@@ -202,7 +202,7 @@ public class DataSourceNodeTest {
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(realConfig);
     when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(realBuilder);
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(queryId)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
 
     when(ksqlStreamBuilder.buildKeySerde(any(), any(), any()))
@@ -245,7 +245,7 @@ public class DataSourceNodeTest {
         queryContextCaptor.capture()
     );
 
-    assertThat(QueryLoggerUtil.queryLoggerName(queryContextCaptor.getValue()),
+    assertThat(QueryLoggerUtil.queryLoggerName(queryId, queryContextCaptor.getValue()),
         is("source-test.0.source"));
   }
 

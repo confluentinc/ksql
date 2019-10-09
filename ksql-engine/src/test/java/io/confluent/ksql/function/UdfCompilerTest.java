@@ -172,7 +172,7 @@ public class UdfCompilerTest {
 
   @Test
   public void shouldCompileUdafWithMethodWithNoArgs() throws Exception {
-    final KsqlAggregateFunction function
+    final UdafCreator creator
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
@@ -180,8 +180,7 @@ public class UdfCompilerTest {
         "",
         "",
         "");
-    assertThat(function.getInstance(
-        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex"))),
+    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS),
         not(nullValue()));
   }
 
@@ -201,7 +200,7 @@ public class UdfCompilerTest {
 
   @Test
   public void shouldImplementTableAggregateFunctionWhenTableUdafClass() throws Exception {
-    final KsqlAggregateFunction function
+    final UdafCreator creator
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
@@ -209,12 +208,14 @@ public class UdfCompilerTest {
         "",
         "",
         "");
+    final KsqlAggregateFunction function = creator
+        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(function, instanceOf(TableAggregationFunction.class));
   }
 
   @Test
   public void shouldCompileUdafWhenMethodHasArgs() throws Exception {
-    final KsqlAggregateFunction function
+    final UdafCreator creator
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLengthString",
         String.class),
         classLoader,
@@ -223,8 +224,8 @@ public class UdfCompilerTest {
         "",
         "",
         "");
-    final KsqlAggregateFunction instance = function.getInstance(
-        new AggregateFunctionArguments(0, Arrays.asList("udfIndex", "some string")));
+    final KsqlAggregateFunction instance =
+        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"));
     assertThat(instance,
         not(nullValue()));
     assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
@@ -236,7 +237,7 @@ public class UdfCompilerTest {
   public void shouldCollectMetricsForUdafsWhenEnabled() throws Exception {
     final Metrics metrics = new Metrics();
     final UdfCompiler udfCompiler = new UdfCompiler(Optional.of(metrics));
-    final KsqlAggregateFunction function
+    final UdafCreator creator
         = udfCompiler.compileAggregate(TestUdaf.class.getMethod("createSumLong"),
         classLoader,
         "test-udf",
@@ -245,14 +246,14 @@ public class UdfCompilerTest {
         "",
         "");
 
-    final KsqlAggregateFunction<Long, Long, Long> executable = function.getInstance(
-        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
+    final KsqlAggregateFunction<Long, Long, Long> executable =
+        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
 
     executable.aggregate(1L, 1L);
     executable.aggregate(1L, 1L);
     final KafkaMetric metric = metrics.metric(
         metrics.metricName("aggregate-test-udf-createSumLong-count",
-        "ksql-udaf-test-udf-createSumLong"));
+            "ksql-udaf-test-udf-createSumLong"));
     assertThat(metric.metricValue(), equalTo(2.0));
   }
 
@@ -265,13 +266,15 @@ public class UdfCompilerTest {
 
   @Test(expected = KsqlException.class)
   public void shouldThrowIfUnsupportedInputType() throws Exception {
-    udfCompiler.compileAggregate(UdfCompilerTest.class.getMethod("invalidInputTypeUdaf"),
-                                 classLoader,
-                                 "test",
-                                 "desc",
-                                 "",
-                                 "",
-                                 "");
+    udfCompiler.compileAggregate(
+        UdfCompilerTest.class.getMethod("invalidInputTypeUdaf"),
+        classLoader,
+        "test",
+        "desc",
+        "",
+        "",
+        ""
+    );
   }
 
   @Test
@@ -351,7 +354,8 @@ public class UdfCompilerTest {
   public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
       throws Exception {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Can't coerce argument at index 0 from null to a primitive type");
+    expectedException
+        .expectMessage("Can't coerce argument at index 0 from null to a primitive type");
     final UdfInvoker udf =
         UdfCompiler.compile(getClass().getMethod("udfPrimitive", double.class), classLoader);
     udf.eval(this, new Object[]{null});
@@ -600,12 +604,13 @@ public class UdfCompilerTest {
   public static Udaf<List<Integer>, Boolean, Boolean> createListBoolean() {
     return null;
   }
-  
+
   public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap() {
     return null;
   }
 
-  public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap(int ignored) {
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap(
+      int ignored) {
     return null;
   }
 

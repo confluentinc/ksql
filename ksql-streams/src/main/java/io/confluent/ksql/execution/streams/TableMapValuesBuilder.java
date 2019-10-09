@@ -33,6 +33,7 @@ public final class TableMapValuesBuilder {
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
     final Selection selection =
         Selection.of(
+            queryBuilder.getQueryId(),
             queryContext,
             sourceSchema,
             step.getSelectExpressions(),
@@ -40,6 +41,12 @@ public final class TableMapValuesBuilder {
             queryBuilder.getFunctionRegistry(),
             queryBuilder.getProcessingLogContext()
         );
-    return table.withTable(table.getTable().mapValues(selection.getMapper()));
+    return table
+        .withTable(table.getTable().mapValues(selection.getMapper()))
+        .withMaterialization(
+            table.getMaterializationBuilder().map(
+                b -> b.project(step.getSelectExpressions(), step.getSchema())
+            )
+        );
   }
 }

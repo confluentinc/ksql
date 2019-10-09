@@ -107,7 +107,7 @@ public class KsqlQueryBuilderTest {
   public void setUp() {
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
-    queryContext = new QueryContext.Stacker(QUERY_ID).push("context").getQueryContext();
+    queryContext = new QueryContext.Stacker().push("context").getQueryContext();
 
     when(keySerdeFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(keySerde);
@@ -148,7 +148,7 @@ public class KsqlQueryBuilderTest {
     final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
 
     // Then:
-    assertThat(result, is(new Stacker(QUERY_ID).push("some-id")));
+    assertThat(result, is(new Stacker().push("some-id")));
   }
 
   @Test
@@ -179,7 +179,7 @@ public class KsqlQueryBuilderTest {
         SOME_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
         processingLogContext
     );
   }
@@ -201,7 +201,7 @@ public class KsqlQueryBuilderTest {
         SOME_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
         processingLogContext
     );
   }
@@ -221,7 +221,7 @@ public class KsqlQueryBuilderTest {
         SOME_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
         processingLogContext
     );
   }

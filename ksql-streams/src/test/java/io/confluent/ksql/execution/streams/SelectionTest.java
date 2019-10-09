@@ -66,7 +66,7 @@ public class SelectionTest {
   @Mock
   private ProcessingLogger processingLogger;
   private final QueryContext queryContext =
-      new QueryContext.Stacker(new QueryId("query")).getQueryContext();
+      new QueryContext.Stacker().getQueryContext();
 
   private Selection selection;
 
@@ -78,6 +78,7 @@ public class SelectionTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
     selection = Selection.of(
+        new QueryId("query"),
         queryContext,
         SCHEMA,
         SELECT_EXPRESSIONS,

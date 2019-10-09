@@ -45,8 +45,8 @@ public abstract class AggregateFunctionFactory {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract KsqlAggregateFunction<?, ?, ?> getProperAggregateFunction(
-      List<Schema> argTypeList);
+  public abstract KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
+      List<Schema> argTypeList, AggregateFunctionInitArguments initArgs);
 
   protected abstract List<List<Schema>> supportedArgs();
 
@@ -71,10 +71,16 @@ public abstract class AggregateFunctionFactory {
   }
 
   public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?, ?>> consumer) {
-    supportedArgs().forEach(args -> consumer.accept(getProperAggregateFunction(args)));
+    supportedArgs().forEach(args ->
+        consumer.accept(createAggregateFunction(args, getDefaultArguments())));
   }
 
   public boolean isInternal() {
     return metadata.isInternal();
   }
+
+  public AggregateFunctionInitArguments getDefaultArguments() {
+    return AggregateFunctionInitArguments.EMPTY_ARGS;
+  }
+
 }

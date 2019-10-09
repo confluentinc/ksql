@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
@@ -78,7 +79,8 @@ public class DecimalMaxKudafTest {
 
   private DecimalMaxKudaf getDecimalMaxKudaf(final int precision) {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(DecimalUtil.builder(precision, 1)));
+        .createAggregateFunction(Collections.singletonList(DecimalUtil.builder(precision, 1))
+            , AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DecimalMaxKudaf.class));
     return  (DecimalMaxKudaf) aggregateFunction;
   }

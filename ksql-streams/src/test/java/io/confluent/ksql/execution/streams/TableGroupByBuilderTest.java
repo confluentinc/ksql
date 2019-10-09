@@ -74,9 +74,9 @@ public class TableGroupByBuilderTest {
       columnReference("MAN")
   );
   private static final QueryContext SOURCE_CONTEXT =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("source").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("source").getQueryContext();
   private static final QueryContext STEP_CONTEXT =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("groupby").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepProperties SOURCE_PROPERTIES =
       new DefaultExecutionStepProperties(SCHEMA, SOURCE_CONTEXT);
   private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(
@@ -125,6 +125,7 @@ public class TableGroupByBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
@@ -136,7 +137,7 @@ public class TableGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
     when(sourceStep.build(any())).thenReturn(
-        new KTableHolder<>(sourceTable, mock(KeySerdeFactory.class)));
+        KTableHolder.unmaterialized(sourceTable, mock(KeySerdeFactory.class)));
     groupBy = new TableGroupBy<>(
         PROPERTIES,
         sourceStep,
@@ -150,7 +151,8 @@ public class TableGroupByBuilderTest {
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
-            mock(MaterializedFactory.class)
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
         )
     );
   }

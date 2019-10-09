@@ -18,20 +18,21 @@ package io.confluent.ksql.query;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.streams.KSPlanBuilder;
+import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
+import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
-import io.confluent.ksql.materialization.KsqlMaterializationFactory;
-import io.confluent.ksql.materialization.MaterializationInfo;
-import io.confluent.ksql.materialization.MaterializationProvider;
-import io.confluent.ksql.materialization.ks.KsMaterialization;
-import io.confluent.ksql.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.ConsumerCollector;
 import io.confluent.ksql.metrics.ProducerCollector;
@@ -181,18 +182,24 @@ public final class QueryExecutor {
     );
   }
 
+  private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {
+    if (result instanceof KTableHolder) {
+      return ((KTableHolder<?>) result).getMaterializationBuilder().map(Builder::build);
+    }
+    return Optional.empty();
+  }
+
   public PersistentQueryMetadata buildQuery(
       final String statementText,
       final QueryId queryId,
       final DataSource<?> sinkDataSource,
-      final Optional<MaterializationInfo> materializationInfo,
       final Set<SourceName> sources,
       final ExecutionStep<?> physicalPlan,
       final String planSummary
   ) {
     final KsqlQueryBuilder ksqlQueryBuilder = queryBuilder(queryId);
     final PlanBuilder planBuilder = new KSPlanBuilder(ksqlQueryBuilder);
-    physicalPlan.build(planBuilder);
+    final Object result = physicalPlan.build(planBuilder);
     final String persistanceQueryPrefix =
         ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG);
     final String applicationId = getQueryApplicationId(
@@ -208,7 +215,7 @@ public final class QueryExecutor {
         sinkDataSource.getSchema(),
         sinkDataSource.getSerdeOptions()
     );
-    final Optional<MaterializationProvider> materializationBuilder = materializationInfo
+    final Optional<MaterializationProvider> materializationBuilder = getMaterializationInfo(result)
         .flatMap(info -> buildMaterializationProvider(
             info,
             streams,
@@ -353,16 +360,17 @@ public final class QueryExecutor {
         .create(
             info.stateStoreName(),
             kafkaStreams,
-            info.aggregationSchema(),
+            info.getStateStoreSchema(),
             keySerializer,
             keyFormat.getWindowType(),
             streamsProperties
         );
 
-    return ksMaterialization.map(ksMat -> contextStacker -> ksqlMaterializationFactory
+    return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory
         .create(
             ksMat,
             info,
+            queryId,
             contextStacker
         ));
   }

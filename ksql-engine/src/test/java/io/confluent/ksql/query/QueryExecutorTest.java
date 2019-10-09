@@ -21,15 +21,16 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
-import io.confluent.ksql.materialization.KsqlMaterializationFactory;
-import io.confluent.ksql.materialization.Materialization;
-import io.confluent.ksql.materialization.MaterializationInfo;
-import io.confluent.ksql.materialization.ks.KsMaterialization;
-import io.confluent.ksql.materialization.ks.KsMaterializationFactory;
+import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory;
+import io.confluent.ksql.execution.streams.materialization.Materialization;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterialization;
+import io.confluent.ksql.execution.streams.materialization.ks.KsMaterializationFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metrics.ConsumerCollector;
@@ -68,6 +69,7 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -100,13 +102,17 @@ public class QueryExecutorTest {
   private static final String PERSISTENT_PREFIX = "persistent-";
 
   @Mock
-  private ExecutionStep<KStreamHolder<Struct>> physicalPlan;
+  private ExecutionStep physicalPlan;
+  @Mock
+  private KTable<Struct, GenericRow> ktable;
   @Mock
   private KStream<Struct, GenericRow> kstream;
   @Mock
   private DataSource<?> sink;
   @Mock
   private KsqlTopic ksqlTopic;
+  @Mock
+  private MaterializationInfo.Builder materializationBuilder;
   @Mock
   private MaterializationInfo materializationInfo;
   @Mock
@@ -142,7 +148,9 @@ public class QueryExecutorTest {
   @Mock
   private LogicalSchema aggregationSchema;
   @Mock
-  private KStreamHolder<Struct> streamWithSerdeFactory;
+  private KTableHolder<Struct> tableHolder;
+  @Mock
+  private KStreamHolder<Struct> streamHolder;
   @Captor
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 
@@ -158,17 +166,20 @@ public class QueryExecutorTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(KEY_FORMAT);
     when(kafkaStreamsBuilder.buildKafkaStreams(any(), any())).thenReturn(kafkaStreams);
     when(streamsBuilder.build()).thenReturn(topology);
-    when(materializationInfo.aggregationSchema()).thenReturn(aggregationSchema);
+    when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.of(materializationBuilder));
+    when(materializationBuilder.build()).thenReturn(materializationInfo);
+    when(materializationInfo.getStateStoreSchema()).thenReturn(aggregationSchema);
     when(materializationInfo.stateStoreName()).thenReturn(STORE_NAME);
     when(ksMaterializationFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(Optional.of(ksMaterialization));
-    when(ksqlMaterializationFactory.create(any(), any(), any())).thenReturn(materialization);
+    when(ksqlMaterializationFactory.create(any(), any(), any(), any())).thenReturn(materialization);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(processingLogger);
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(Collections.emptyMap());
     when(ksqlConfig.getString(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG))
         .thenReturn(PERSISTENT_PREFIX);
     when(ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG)).thenReturn(SERVICE_ID);
+    when(physicalPlan.build(any())).thenReturn(tableHolder);
     queryBuilder = new QueryExecutor(
         ksqlConfig,
         OVERRIDES,
@@ -216,7 +227,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -243,7 +253,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -261,13 +270,12 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker(QUERY_ID);
-    final Optional<Materialization> result = queryMetadata.getMaterialization(stacker);
+    final QueryContext.Stacker stacker = new Stacker();
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     // Then:
     assertThat(result.get(), is(materialization));
@@ -280,7 +288,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -305,36 +312,38 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker(QUERY_ID);
-    queryMetadata.getMaterialization(stacker);
+    final QueryContext.Stacker stacker = new Stacker();
+    queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     // Then:
     verify(ksqlMaterializationFactory).create(
         ksMaterialization,
         materializationInfo,
+        QUERY_ID,
         stacker
     );
   }
 
   @Test
   public void shouldNotIncludeMaterializationProviderIfNoMaterialization() {
+    // Given:
+    when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
+
     // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.empty(),
         SOURCES,
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker(QUERY_ID);
-    final Optional<Materialization> result = queryMetadata.getMaterialization(stacker);
+    final QueryContext.Stacker stacker = new Stacker();
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     assertThat(result, is(Optional.empty()));
   }
@@ -346,7 +355,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -367,7 +375,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -397,7 +404,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -457,7 +463,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -482,7 +487,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -508,7 +512,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -538,7 +541,6 @@ public class QueryExecutorTest {
         STATEMENT_TEXT,
         QUERY_ID,
         sink,
-        Optional.of(materializationInfo),
         SOURCES,
         physicalPlan,
         SUMMARY
@@ -605,7 +607,7 @@ public class QueryExecutorTest {
   }
 
   private void givenTransientQuery() {
-    when(physicalPlan.build(any())).thenReturn(streamWithSerdeFactory);
-    when(streamWithSerdeFactory.getStream()).thenReturn(kstream);
+    when(physicalPlan.build(any())).thenReturn(streamHolder);
+    when(streamHolder.getStream()).thenReturn(kstream);
   }
 }

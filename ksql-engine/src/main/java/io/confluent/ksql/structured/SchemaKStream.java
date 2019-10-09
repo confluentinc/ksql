@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
@@ -46,6 +47,7 @@ import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.StreamStreamJoin;
 import io.confluent.ksql.execution.plan.StreamTableJoin;
 import io.confluent.ksql.execution.plan.StreamToTable;
+import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.StreamSourceBuilder;
 import io.confluent.ksql.execution.util.StructKeyUtil;
@@ -54,6 +56,7 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -75,7 +78,6 @@ import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Windowed;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
@@ -103,7 +105,7 @@ public class SchemaKStream<K> {
       final KsqlQueryBuilder builder,
       final KeyFormat keyFormat,
       final KeySerde<K> keySerde,
-      final StreamSource<K> streamSource,
+      final AbstractStreamSource<KStreamHolder<K>> streamSource,
       final KeyField keyField) {
     return new SchemaKStream<>(
         streamSource,
@@ -128,7 +130,7 @@ public class SchemaKStream<K> {
   ) {
     final KsqlTopic topic = dataSource.getKsqlTopic();
     if (topic.getKeyFormat().isWindowed()) {
-      final StreamSource<Windowed<Struct>> step = streamSourceWindowed(
+      final WindowedStreamSource step = streamSourceWindowed(
           contextStacker,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
@@ -144,7 +146,7 @@ public class SchemaKStream<K> {
           step,
           keyField);
     } else {
-      final StreamSource<Struct> step = streamSource(
+      final StreamSource step = streamSource(
           contextStacker,
           schemaWithMetaAndKeyFields,
           topic.getKafkaTopicName(),
@@ -759,19 +761,19 @@ public class SchemaKStream<K> {
     return sourceSchemaKStreams;
   }
 
-  public String getExecutionPlan(final String indent) {
+  public String getExecutionPlan(final QueryId queryId, final String indent) {
     final StringBuilder stringBuilder = new StringBuilder();
     stringBuilder.append(indent)
         .append(" > [ ")
         .append(type).append(" ] | Schema: ")
         .append(getSchema().toString(FORMAT_OPTIONS))
-        .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(getQueryContext()))
+        .append(" | Logger: ").append(QueryLoggerUtil.queryLoggerName(queryId, getQueryContext()))
         .append("\n");
     for (final SchemaKStream schemaKStream : sourceSchemaKStreams) {
       stringBuilder
           .append("\t")
           .append(indent)
-          .append(schemaKStream.getExecutionPlan(indent + "\t"));
+          .append(schemaKStream.getExecutionPlan(queryId, indent + "\t"));
     }
     return stringBuilder.toString();
   }

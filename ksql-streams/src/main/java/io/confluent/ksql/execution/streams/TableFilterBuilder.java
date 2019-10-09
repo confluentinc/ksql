@@ -48,9 +48,16 @@ public final class TableFilterBuilder {
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext().getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
+                queryBuilder.getQueryId(),
                 contextStacker.push("FILTER").getQueryContext())
         )
     );
-    return table.withTable(table.getTable().filter(predicate.getPredicate()));
+    return table
+        .withTable(table.getTable().filter(predicate.getPredicate()))
+        .withMaterialization(
+            table.getMaterializationBuilder().map(
+                b -> b.filter(step.getFilterExpression())
+            )
+        );
   }
 }

@@ -25,7 +25,6 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.ListStreams;
 import io.confluent.ksql.parser.tree.ListTables;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -220,7 +219,7 @@ public final class ListSourceExecutor {
         .map(q -> new RunningQuery(
             q.getStatementString(),
             ImmutableSet.of(q.getSinkName().name()),
-            new EntityQueryId(q.getQueryId())
+            q.getQueryId()
         ))
         .collect(Collectors.toList());
   }

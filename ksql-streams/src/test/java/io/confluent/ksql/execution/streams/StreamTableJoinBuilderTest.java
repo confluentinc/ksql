@@ -80,9 +80,9 @@ public class StreamTableJoinBuilderTest {
       SerdeOption.none()
   );
   private final QueryContext SRC_CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("src").getQueryContext();
+      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
-      new QueryContext.Stacker(new QueryId("qid")).push("jo").push("in").getQueryContext();
+      new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
   @Mock
   private KStream<Struct, GenericRow> leftKStream;
@@ -127,7 +127,7 @@ public class StreamTableJoinBuilderTest {
     when(left.build(any())).thenReturn(
         new KStreamHolder<>(leftKStream, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        new KTableHolder<>(rightKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -135,7 +135,8 @@ public class StreamTableJoinBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             joinedFactory,
-            mock(MaterializedFactory.class)
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
         )
     );
   }

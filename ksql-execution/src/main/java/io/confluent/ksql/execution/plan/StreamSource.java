@@ -14,34 +14,15 @@
 
 package io.confluent.ksql.execution.plan;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
+import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 
 @Immutable
-public class StreamSource<K> implements ExecutionStep<KStreamHolder<K>> {
-  private final ExecutionStepProperties properties;
-  private final String topicName;
-  private final Formats formats;
-  private final TimestampExtractionPolicy timestampPolicy;
-  private final int timestampIndex;
-  private final Optional<AutoOffsetReset> offsetReset;
-  private final LogicalSchema sourceSchema;
-
-  public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
-      final SourceName alias,
-      final LogicalSchema schema) {
-    return LogicalSchemaWithMetaAndKeyFields.fromOriginal(alias, schema);
-  }
-
-  @VisibleForTesting
+public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
   public StreamSource(
       final ExecutionStepProperties properties,
       final String topicName,
@@ -50,76 +31,19 @@ public class StreamSource<K> implements ExecutionStep<KStreamHolder<K>> {
       final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
       final LogicalSchema sourceSchema) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.topicName = Objects.requireNonNull(topicName, "topicName");
-    this.formats = Objects.requireNonNull(formats, "formats");
-    this.timestampPolicy = Objects.requireNonNull(timestampPolicy, "timestampPolicy");
-    this.timestampIndex = timestampIndex;
-    this.offsetReset = Objects.requireNonNull(offsetReset, "offsetReset");
-    this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
-  }
-
-  @Override
-  public ExecutionStepProperties getProperties() {
-    return properties;
-  }
-
-  @Override
-  public List<ExecutionStep<?>> getSources() {
-    return Collections.emptyList();
-  }
-
-  public LogicalSchema getSourceSchema() {
-    return sourceSchema;
-  }
-
-  public Optional<AutoOffsetReset> getOffsetReset() {
-    return offsetReset;
-  }
-
-  public int getTimestampIndex() {
-    return timestampIndex;
-  }
-
-  public TimestampExtractionPolicy getTimestampPolicy() {
-    return timestampPolicy;
-  }
-
-  public Formats getFormats() {
-    return formats;
-  }
-
-  public String getTopicName() {
-    return topicName;
-  }
-
-  @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
-    return builder.visitStreamSource(this);
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final StreamSource that = (StreamSource) o;
-    return Objects.equals(properties, that.properties)
-        && Objects.equals(topicName, that.topicName)
-        && Objects.equals(formats, that.formats)
-        && Objects.equals(timestampPolicy, that.timestampPolicy);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(
+    super(
         properties,
         topicName,
         formats,
-        timestampPolicy
+        timestampPolicy,
+        timestampIndex,
+        offsetReset,
+        sourceSchema
     );
+  }
+
+  @Override
+  public KStreamHolder<Struct> build(final PlanBuilder builder) {
+    return builder.visitStreamSource(this);
   }
 }

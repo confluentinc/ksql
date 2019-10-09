@@ -85,6 +85,15 @@ public class KsqlRequest {
     return Objects.hash(ksql, streamsProperties, commandSequenceNumber);
   }
 
+  @Override
+  public String toString() {
+    return "KsqlRequest{"
+        + "ksql='" + ksql + '\''
+        + ", streamsProperties=" + streamsProperties
+        + ", commandSequenceNumber=" + commandSequenceNumber
+        + '}';
+  }
+
   /**
    * Converts all Class references values to their canonical String value.
    * </p>

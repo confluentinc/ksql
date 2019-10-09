@@ -20,7 +20,6 @@ import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.DecimalUtil;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 import org.apache.kafka.connect.data.Schema;
 
 
@@ -38,15 +37,22 @@ public abstract class TableFunctionFactory {
       .build();
 
   public TableFunctionFactory(final String functionName) {
-    this(new UdfMetadata(functionName, "", "confluent", "", KsqlFunction.INTERNAL_PATH, false));
+    this(new UdfMetadata(
+        functionName,
+        "",
+        "confluent",
+        "",
+        KsqlFunction.INTERNAL_PATH,
+        false
+        )
+    );
   }
 
   public TableFunctionFactory(final UdfMetadata metadata) {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract KsqlTableFunction<?, ?> getProperTableFunction(
-      List<Schema> argTypeList);
+  public abstract KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList);
 
   protected abstract List<List<Schema>> supportedArgs();
 
@@ -68,10 +74,6 @@ public abstract class TableFunctionFactory {
 
   public String getVersion() {
     return metadata.getVersion();
-  }
-
-  public void eachFunction(final Consumer<KsqlTableFunction<?, ?>> consumer) {
-    supportedArgs().forEach(args -> consumer.accept(getProperTableFunction(args)));
   }
 
   public boolean isInternal() {

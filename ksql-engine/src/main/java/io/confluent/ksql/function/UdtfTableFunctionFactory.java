@@ -34,7 +34,7 @@ public class UdtfTableFunctionFactory extends TableFunctionFactory {
   }
 
   @Override
-  public KsqlTableFunction<?, ?> getProperTableFunction(final List<Schema> argTypeList) {
+  public KsqlTableFunction<?, ?> createTableFunction(final List<Schema> argTypeList) {
     final KsqlTableFunction ksqlTableFunction = udfIndex.getFunction(argTypeList);
     if (ksqlTableFunction == null) {
       throw new KsqlException("There is no table function with name='" + getName()

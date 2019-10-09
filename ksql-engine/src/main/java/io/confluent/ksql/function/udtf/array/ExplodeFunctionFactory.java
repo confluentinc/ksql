@@ -24,7 +24,7 @@ import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 
-public class ExplodeIntegerArrayFunctionFactory extends TableFunctionFactory {
+public class ExplodeFunctionFactory extends TableFunctionFactory {
 
   private static final FunctionName NAME = FunctionName.of("EXPLODE");
 
@@ -33,13 +33,13 @@ public class ExplodeIntegerArrayFunctionFactory extends TableFunctionFactory {
       .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
       .build();
 
-  public ExplodeIntegerArrayFunctionFactory() {
+  public ExplodeFunctionFactory() {
     super(NAME.name());
   }
 
   @SuppressWarnings("unchecked")
   @Override
-  public KsqlTableFunction getProperTableFunction(final List<Schema> argTypeList) {
+  public KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("EXPLODE function should have two arguments.");
     }

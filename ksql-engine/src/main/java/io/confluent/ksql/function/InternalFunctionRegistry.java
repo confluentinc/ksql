@@ -34,7 +34,7 @@ import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
-import io.confluent.ksql.function.udtf.array.ExplodeIntegerArrayFunctionFactory;
+import io.confluent.ksql.function.udtf.array.ExplodeFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -132,7 +132,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       throw new KsqlException("No table function with name " + functionName + " exists!");
     }
 
-    return udtfFactory.getProperTableFunction(Collections.singletonList(argumentType));
+    return udtfFactory.createTableFunction(Collections.singletonList(argumentType));
   }
 
   @Override
@@ -341,7 +341,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addUdtfFunctions() {
-      functionRegistry.addTableFunctionFactory(new ExplodeIntegerArrayFunctionFactory());
+      functionRegistry.addTableFunctionFactory(new ExplodeFunctionFactory());
     }
 
     private void addBuiltInFunction(final KsqlFunction ksqlFunction) {

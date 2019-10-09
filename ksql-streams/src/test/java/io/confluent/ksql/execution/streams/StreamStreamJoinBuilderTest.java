@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -253,6 +254,7 @@ public class StreamStreamJoinBuilderTest {
   }
 
   @Test
+  @SuppressFBWarnings
   public void shouldBuildJoinedCorrectly() {
     // Given:
     givenInnerJoin();

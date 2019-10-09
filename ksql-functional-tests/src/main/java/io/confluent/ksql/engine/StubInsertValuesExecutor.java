@@ -34,10 +34,10 @@ public final class StubInsertValuesExecutor {
   private StubInsertValuesExecutor() {
   }
 
-  public static StubValuesExecutor of(final StubKafkaService stubKafkaService) {
+  public static InsertValuesExecutor of(final StubKafkaService stubKafkaService) {
     final StubProducer stubProducer = new StubProducer(stubKafkaService);
 
-    return new StubValuesExecutor(
+    return new InsertValuesExecutor(
         false,
         (record, ignored1, ingnored2) -> stubProducer.sendRecord(record));
   }

@@ -73,7 +73,7 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public class StubValuesExecutor {
+public class InsertValuesExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Duration MAX_SEND_TIMEOUT = Duration.ofSeconds(5);
@@ -84,8 +84,8 @@ public class StubValuesExecutor {
   private final ValueSerdeFactory valueSerdeFactory;
   private final KeySerdeFactory keySerdeFactory;
 
-  public StubValuesExecutor() {
-    this(true, StubValuesExecutor::sendRecord);
+  public InsertValuesExecutor() {
+    this(true, InsertValuesExecutor::sendRecord);
   }
 
   public interface RecordProducer {
@@ -98,7 +98,7 @@ public class StubValuesExecutor {
   }
 
   @VisibleForTesting
-  StubValuesExecutor(
+  InsertValuesExecutor(
       final boolean canBeDisabledByConfig,
       final RecordProducer producer
   ) {
@@ -112,15 +112,15 @@ public class StubValuesExecutor {
   }
 
   @VisibleForTesting
-  StubValuesExecutor(
+  InsertValuesExecutor(
       final LongSupplier clock,
       final KeySerdeFactory keySerdeFactory,
       final ValueSerdeFactory valueSerdeFactory
   ) {
-    this(StubValuesExecutor::sendRecord, true, clock, keySerdeFactory, valueSerdeFactory);
+    this(InsertValuesExecutor::sendRecord, true, clock, keySerdeFactory, valueSerdeFactory);
   }
 
-  private StubValuesExecutor(
+  private InsertValuesExecutor(
       final RecordProducer producer,
       final boolean canBeDisabledByConfig,
       final LongSupplier clock,

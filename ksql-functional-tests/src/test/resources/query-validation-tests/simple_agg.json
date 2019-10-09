@@ -1,0 +1,19 @@
+{
+  "tests": [
+    {
+      "name": "simple_agg",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT, AGE BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, AGE FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "AGE": 23}},
+        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "AGE": 100}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 0, "value": {"ID":  0, "AGE": 23}},
+        {"topic": "OUTPUT", "key": 1, "value": {"ID":  1, "AGE": 100}}
+      ]
+    }
+  ]
+}

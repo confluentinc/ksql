@@ -29,7 +29,6 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -91,12 +90,6 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private WindowExpression windowExp;
   @Mock
-  private MaterializedFactory materializedFactory;
-  @Mock
-  private KeySerde<Struct> keySerde;
-  @Mock
-  private KeySerde<Windowed<Struct>> windowedKeySerde;
-  @Mock
   private ExecutionStep sourceStep;
   @Mock
   private KeyFormat keyFormat;
@@ -116,16 +109,13 @@ public class SchemaKGroupedStreamTest {
     schemaGroupedStream = new SchemaKGroupedStream(
         sourceStep,
         keyFormat,
-        keySerde,
         keyField,
         sourceStreams,
         config,
-        functionRegistry,
-        materializedFactory
+        functionRegistry
     );
     when(windowExp.getKsqlWindowExpression()).thenReturn(KSQL_WINDOW_EXP);
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
-    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
   }
 
   @Test

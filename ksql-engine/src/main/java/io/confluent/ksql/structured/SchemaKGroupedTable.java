@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -33,7 +32,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
@@ -51,42 +49,18 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   SchemaKGroupedTable(
       final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
       final KeyFormat keyFormat,
-      final KeySerde<Struct> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
-    this(
-        sourceTableStep,
-        keyFormat,
-        keySerde,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry,
-        MaterializedFactory.create(ksqlConfig));
-  }
-
-  SchemaKGroupedTable(
-      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
-      final KeyFormat keyFormat,
-      final KeySerde<Struct> keySerde,
-      final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final MaterializedFactory materializedFactory
-  ) {
     super(
         null,
         keyFormat,
-        keySerde,
         keyField,
         sourceSchemaKStreams,
         ksqlConfig,
-        functionRegistry,
-        materializedFactory
+        functionRegistry
     );
 
     this.sourceTableStep = Objects.requireNonNull(sourceTableStep, "sourceTableStep");
@@ -141,7 +115,6 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         keyField,
         sourceSchemaKStreams,
         SchemaKStream.Type.AGGREGATE,

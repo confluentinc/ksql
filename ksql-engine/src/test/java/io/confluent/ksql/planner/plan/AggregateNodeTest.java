@@ -116,13 +116,6 @@ public class AggregateNodeTest {
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
 
-  @Before
-  public void setUp()  {
-    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
-    when(reboundKeySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
-    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
-  }
-
   @Test
   public void shouldBuildSourceNode() {
     // When:

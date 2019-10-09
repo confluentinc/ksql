@@ -18,11 +18,9 @@ package io.confluent.ksql.rest.client;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.properties.LocalProperties;
-import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.InputStream;
@@ -30,7 +28,6 @@ import java.net.SocketTimeoutException;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import javax.naming.AuthenticationException;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
@@ -39,8 +36,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedHashMap;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
-import org.eclipse.jetty.http.HttpStatus;
-import org.eclipse.jetty.http.HttpStatus.Code;
 import org.glassfish.jersey.client.ClientProperties;
 
 @SuppressWarnings("WeakerAccess") // Public API
@@ -139,11 +134,7 @@ public final class KsqlTarget {
         .headers(headers())
         .get()
     ) {
-      final Code statusCode = HttpStatus.getCode(response.getStatus());
-      return statusCode == Code.OK
-          ? RestResponse.successful(statusCode, response.readEntity(type))
-          : createErrorResponse(path, response);
-
+      return KsqlClientUtil.toRestResponse(response, path, r -> r.readEntity(type));
     } catch (final Exception e) {
       throw new KsqlRestClientException("Error issuing GET to KSQL server. path:" + path, e);
     }
@@ -166,11 +157,7 @@ public final class KsqlTarget {
           .headers(headers())
           .post(Entity.json(jsonEntity));
 
-      final Code statusCode = HttpStatus.getCode(response.getStatus());
-      return statusCode == Code.OK
-          ? RestResponse.successful(statusCode, mapper.apply(response))
-          : createErrorResponse(path, response);
-
+      return KsqlClientUtil.toRestResponse(response, path, mapper);
     } catch (final ProcessingException e) {
       if (shouldRetry(readTimeoutMs, e)) {
         return post(path, jsonEntity, calcReadTimeout(readTimeoutMs), closeResponse, mapper);
@@ -201,59 +188,5 @@ public final class KsqlTarget {
 
   private static Optional<Integer> calcReadTimeout(final Optional<Integer> previousTimeoutMs) {
     return previousTimeoutMs.map(timeout -> Math.min(timeout * 2, MAX_TIMEOUT));
-  }
-
-  private static <T> RestResponse<T> createErrorResponse(
-      final String path,
-      final Response response
-  ) {
-    final Code statusCode = HttpStatus.getCode(response.getStatus());
-    final Optional<KsqlErrorMessage> errorMessage = tryReadErrorMessage(response);
-    if (errorMessage.isPresent()) {
-      return RestResponse.erroneous(statusCode, errorMessage.get());
-    }
-
-    if (statusCode == Code.NOT_FOUND) {
-      return RestResponse.erroneous(statusCode,
-          "Path not found. Path='" + path + "'. "
-              + "Check your ksql http url to make sure you are connecting to a ksql server."
-      );
-    }
-
-    if (statusCode == Code.UNAUTHORIZED) {
-      return RestResponse.erroneous(statusCode, unauthorizedErrorMsg());
-    }
-
-    if (statusCode == Code.FORBIDDEN) {
-      return RestResponse.erroneous(statusCode, forbiddenErrorMsg());
-    }
-
-    return RestResponse.erroneous(
-        statusCode,
-        "The server returned an unexpected error: "
-            + response.getStatusInfo().getReasonPhrase());
-  }
-
-  private static Optional<KsqlErrorMessage> tryReadErrorMessage(final Response response) {
-    try {
-      return Optional.ofNullable(response.readEntity(KsqlErrorMessage.class));
-    } catch (final Exception e) {
-      return Optional.empty();
-    }
-  }
-
-  private static KsqlErrorMessage unauthorizedErrorMsg() {
-    return new KsqlErrorMessage(
-        Errors.ERROR_CODE_UNAUTHORIZED,
-        new AuthenticationException(
-            "Could not authenticate successfully with the supplied credentials.")
-    );
-  }
-
-  private static KsqlErrorMessage forbiddenErrorMsg() {
-    return new KsqlErrorMessage(
-        Errors.ERROR_CODE_FORBIDDEN,
-        new AuthenticationException("You are forbidden from using this cluster.")
-    );
   }
 }

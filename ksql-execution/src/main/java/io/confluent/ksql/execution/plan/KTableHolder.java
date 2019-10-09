@@ -26,7 +26,7 @@ public final class KTableHolder<K> {
   private final KeySerdeFactory<K> keySerdeFactory;
   private final Optional<MaterializationInfo.Builder> materializationBuilder;
 
-  public KTableHolder(
+  private KTableHolder(
       final KTable<K, GenericRow> stream,
       final KeySerdeFactory<K> keySerdeFactory,
       final Optional<MaterializationInfo.Builder> materializationBuilder
@@ -37,11 +37,19 @@ public final class KTableHolder<K> {
         Objects.requireNonNull(materializationBuilder, "materializationProvider");
   }
 
-  public KTableHolder(
+  public static <K> KTableHolder<K> unmaterialized(
       final KTable<K, GenericRow> stream,
       final KeySerdeFactory<K> keySerdeFactory
   ) {
-    this(stream, keySerdeFactory, Optional.empty());
+    return new KTableHolder<>(stream, keySerdeFactory, Optional.empty());
+  }
+
+  public static <K> KTableHolder<K> materialized(
+      final KTable<K, GenericRow> stream,
+      final KeySerdeFactory<K> keySerdeFactory,
+      final MaterializationInfo.Builder materializationBuilder
+  ) {
+    return new KTableHolder<>(stream, keySerdeFactory, Optional.of(materializationBuilder));
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {

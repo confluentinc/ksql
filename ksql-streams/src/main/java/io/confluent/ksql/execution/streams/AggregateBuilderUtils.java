@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static io.confluent.ksql.execution.materialization.MaterializationInfo.builder;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.materialization.AggregatesInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
-import io.confluent.ksql.execution.materialization.MaterializationInfo.Builder;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -68,7 +69,7 @@ public final class AggregateBuilderUtils {
       final LogicalSchema aggregationSchema,
       final LogicalSchema outputSchema
   ) {
-    return new Builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
+    return builder(StreamsUtil.buildOpName(queryContext), aggregationSchema)
         .mapAggregates(
             AggregatesInfo.of(nonFuncColumns, functions, sourceSchema),
             outputSchema

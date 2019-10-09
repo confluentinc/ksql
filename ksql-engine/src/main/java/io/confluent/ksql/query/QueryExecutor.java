@@ -182,7 +182,7 @@ public final class QueryExecutor {
     );
   }
 
-  private Optional<MaterializationInfo> getMaterializationInfo(final Object result) {
+  private static Optional<MaterializationInfo> getMaterializationInfo(final Object result) {
     if (result instanceof KTableHolder) {
       return ((KTableHolder<?>) result).getMaterializationBuilder().map(Builder::build);
     }

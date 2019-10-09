@@ -22,7 +22,6 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.Optional;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedTable;
@@ -85,10 +84,10 @@ public final class TableAggregateBuilder {
             aggregate.getAggregationSchema(),
             aggregate.getSchema()
         );
-    return new KTableHolder<>(
+    return KTableHolder.materialized(
         aggregated,
         KeySerdeFactory.unwindowed(queryBuilder),
-        Optional.of(materializationBuilder)
+        materializationBuilder
     );
   }
 }

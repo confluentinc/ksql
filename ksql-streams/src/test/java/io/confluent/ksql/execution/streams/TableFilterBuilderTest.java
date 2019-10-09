@@ -105,7 +105,7 @@ public class TableFilterBuilderTest {
     );
     step = new TableFilter<>(properties, sourceStep, filterExpression);
     when(sourceStep.build(any())).thenReturn(
-        new KTableHolder<>(sourceKTable, keySerdeFactory, Optional.of(materializationBuilder)))
+        KTableHolder.materialized(sourceKTable, keySerdeFactory, materializationBuilder))
     ;
     planBuilder = new KSPlanBuilder(
         queryBuilder,

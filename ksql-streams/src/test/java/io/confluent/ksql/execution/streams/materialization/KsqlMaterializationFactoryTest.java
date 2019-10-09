@@ -32,6 +32,7 @@ import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.materialization.AggregatesInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.ProjectInfo;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.execution.streams.materialization.KsqlMaterializationFactory.AggregateMapperFactory;
@@ -117,7 +118,7 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private MaterializationInfo.AggregateMapInfo aggregateMapInfo;
   @Mock
-  private MaterializationInfo.SelectMapperInfo selectMapperInfo;
+  private ProjectInfo selectMapperInfo;
   @Mock
   private MaterializationInfo.SqlPredicateInfo sqlPredicateInfo;
   @Captor

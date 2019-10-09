@@ -33,8 +33,8 @@ import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.support.metrics.common.time.Clock;
 import java.time.Duration;
+import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.errors.InvalidStateStoreException;
@@ -73,7 +73,7 @@ public class KsStateStoreTest {
   @Mock
   private KafkaStreams kafkaStreams;
   @Mock
-  private Clock clock;
+  private Supplier<Long> clock;
 
   private KsStateStore store;
 
@@ -81,6 +81,7 @@ public class KsStateStoreTest {
   public void setUp() {
     store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, TIMEOUT, clock);
 
+    when(clock.get()).thenReturn(0L);
     when(kafkaStreams.state()).thenReturn(State.RUNNING);
   }
 
@@ -89,7 +90,7 @@ public class KsStateStoreTest {
     new NullPointerTester()
         .setDefault(KafkaStreams.class, kafkaStreams)
         .setDefault(LogicalSchema.class, SCHEMA)
-        .setDefault(Clock.class, clock)
+        .setDefault(Supplier.class, clock)
         .testConstructors(KsStateStore.class, Visibility.PACKAGE);
   }
 
@@ -116,7 +117,7 @@ public class KsStateStoreTest {
   public void shouldThrowIfDoesNotFinishRebalanceBeforeTimeout() {
     // Given:
     when(kafkaStreams.state()).thenReturn(State.REBALANCING);
-    when(clock.currentTimeMs()).thenReturn(0L, 5L, TIMEOUT.toMillis() + 1);
+    when(clock.get()).thenReturn(0L, 5L, TIMEOUT.toMillis() + 1);
 
     // When:
     expectedException.expect(MaterializationTimeOutException.class);

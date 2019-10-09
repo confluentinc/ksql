@@ -35,7 +35,6 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeySerde;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -95,10 +94,10 @@ public final class StreamAggregateBuilder {
             aggregate.getAggregationSchema(),
             aggregate.getSchema()
         );
-    return new KTableHolder<>(
+    return KTableHolder.materialized(
         aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
         (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx),
-        Optional.of(materializationBuilder)
+        materializationBuilder
     );
   }
 
@@ -151,16 +150,16 @@ public final class StreamAggregateBuilder {
         );
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
     if (!windowSelectMapper.hasSelects()) {
-      return new KTableHolder<>(
+      return KTableHolder.materialized(
           reduced,
           KeySerdeFactory.windowed(queryBuilder),
-          Optional.of(materializationBuilder)
+          materializationBuilder
       );
     }
-    return new KTableHolder<>(
+    return KTableHolder.materialized(
         reduced.mapValues(windowSelectMapper),
         KeySerdeFactory.windowed(queryBuilder),
-        Optional.of(materializationBuilder)
+        materializationBuilder
     );
   }
 

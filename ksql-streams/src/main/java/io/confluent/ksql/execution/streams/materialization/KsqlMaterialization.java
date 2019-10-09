@@ -69,7 +69,8 @@ class KsqlMaterialization implements Materialization {
   ) {
     this.inner = requireNonNull(inner, "table");
     this.schema = requireNonNull(schema, "schema");
-    this.transforms = Objects.requireNonNull(transforms, "transforms");
+    this.transforms = ImmutableList.copyOf(
+        Objects.requireNonNull(transforms, "transforms"));
   }
 
   @Override

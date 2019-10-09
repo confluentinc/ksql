@@ -53,11 +53,6 @@
             <artifactId>connect-runtime</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.confluent.support</groupId>
-            <artifactId>support-metrics-common</artifactId>
-        </dependency>
-
         <!-- Required for running tests -->
 
         <dependency>

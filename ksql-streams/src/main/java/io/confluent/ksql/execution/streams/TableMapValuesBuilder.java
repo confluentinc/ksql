@@ -45,7 +45,7 @@ public final class TableMapValuesBuilder {
         .withTable(table.getTable().mapValues(selection.getMapper()))
         .withMaterialization(
             table.getMaterializationBuilder().map(
-                b -> b.mapValues(step.getSelectExpressions(), step.getSchema())
+                b -> b.project(step.getSelectExpressions(), step.getSchema())
             )
         );
   }

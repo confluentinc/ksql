@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.materialization;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -35,24 +36,6 @@ public final class MaterializationInfo {
   private final LogicalSchema stateStoreSchema;
   private final List<TransformInfo> transforms;
   private final LogicalSchema schema;
-
-  /**
-   * Create instance.
-   *
-   * @param stateStoreName the name of the state store
-   * @param stateStoreSchema the schema of the data in the state store
-   * @param transforms a list of transformations to be applied to the data in the store
-   * @param schema the schema of the result of applying transformations to the data in the store
-   * @return instance.
-   */
-  public static MaterializationInfo of(
-      final String stateStoreName,
-      final LogicalSchema stateStoreSchema,
-      final List<TransformInfo> transforms,
-      final LogicalSchema schema
-  ) {
-    return new MaterializationInfo(stateStoreName, stateStoreSchema, transforms, schema);
-  }
 
   public String stateStoreName() {
     return stateStoreName;
@@ -78,42 +61,76 @@ public final class MaterializationInfo {
   ) {
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.stateStoreSchema = requireNonNull(stateStoreSchema, "stateStoreSchema");
-    this.transforms = requireNonNull(transforms, "transforms");
+    this.transforms = ImmutableList.copyOf(requireNonNull(transforms, "transforms"));
     this.schema = requireNonNull(schema, "schema");
   }
 
-  public static class Builder {
+  /**
+   * Create a MaterializationInfo builder.
+   *
+   * @param stateStoreName the name of the state store
+   * @param stateStoreSchema the schema of the data in the state store
+   * @return builder instance.
+   */
+  public static Builder builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
+    return new Builder(stateStoreName, stateStoreSchema);
+  }
+
+  public static final class Builder {
     private final String stateStoreName;
     private final LogicalSchema stateStoreSchema;
     private final List<TransformInfo> transforms;
     private LogicalSchema schema;
 
-    public Builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
+    private Builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
       this.stateStoreName = Objects.requireNonNull(stateStoreName, "stateStoreName");
       this.stateStoreSchema = Objects.requireNonNull(stateStoreSchema, "stateStoreSchema");
       this.transforms = new LinkedList<>();
       this.schema = stateStoreSchema;
     }
 
-    public Builder mapAggregates(final AggregatesInfo aggregatesInfo, final LogicalSchema schema) {
+    /**
+     * Adds an aggregate map transform for mapping final result of complex aggregates (e.g. avg)
+     * @param aggregatesInfo descriptor of aggregation functions.
+     * @param resultSchema schema after applying aggregate result mapping.
+     * @return A builder instance with this transformation.
+     */
+    public Builder mapAggregates(
+        final AggregatesInfo aggregatesInfo,
+        final LogicalSchema resultSchema) {
       transforms.add(new AggregateMapInfo(aggregatesInfo));
-      this.schema = schema;
+      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
     }
 
-    public Builder mapValues(
+    /**
+     * Adds a transform that projects a list of expressions from the value.
+     * @param selectExpressions The list of expressions to project.
+     * @param resultSchema The schema after applying the projection.
+     * @return A builder instance with this transformation.
+     */
+    public Builder project(
         final List<SelectExpression> selectExpressions,
-        final LogicalSchema schema) {
-      transforms.add(new SelectMapperInfo(selectExpressions, this.schema));
-      this.schema = schema;
+        final LogicalSchema resultSchema) {
+      transforms.add(new ProjectInfo(selectExpressions, this.schema));
+      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
     }
 
+    /**
+     * Adds a transform that filters rows from the materialization.
+     * @param filterExpression A boolean expression to filter rows on.
+     * @return A builder instance with this transformation.
+     */
     public Builder filter(final Expression filterExpression) {
       transforms.add(new SqlPredicateInfo(filterExpression, schema));
       return this;
     }
 
+    /**
+     * Builds a MaterializationInfo with the properties and transforms in the builder.
+     * @return a MaterializationInfo instance.
+     */
     public MaterializationInfo build() {
       return new MaterializationInfo(stateStoreName, stateStoreSchema, transforms, schema);
     }
@@ -128,7 +145,7 @@ public final class MaterializationInfo {
 
     R visit(SqlPredicateInfo info);
 
-    R visit(SelectMapperInfo info);
+    R visit(ProjectInfo info);
   }
 
   public static class AggregateMapInfo implements TransformInfo {
@@ -170,11 +187,11 @@ public final class MaterializationInfo {
     }
   }
 
-  public static class SelectMapperInfo implements TransformInfo {
+  public static class ProjectInfo implements TransformInfo {
     final List<SelectExpression> selectExpressions;
     final LogicalSchema schema;
 
-    SelectMapperInfo(final List<SelectExpression> selectExpressions, final LogicalSchema schema) {
+    ProjectInfo(final List<SelectExpression> selectExpressions, final LogicalSchema schema) {
       this.selectExpressions = Objects.requireNonNull(selectExpressions, "selectExpressions");
       this.schema = Objects.requireNonNull(schema, "schema");
     }

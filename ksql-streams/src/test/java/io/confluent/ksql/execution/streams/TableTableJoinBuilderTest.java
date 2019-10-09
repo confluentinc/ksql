@@ -87,9 +87,9 @@ public class TableTableJoinBuilderTest {
     when(right.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
     when(left.build(any())).thenReturn(
-        new KTableHolder<>(leftKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(leftKTable, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        new KTableHolder<>(rightKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         mock(KsqlQueryBuilder.class),
         mock(SqlPredicateFactory.class),

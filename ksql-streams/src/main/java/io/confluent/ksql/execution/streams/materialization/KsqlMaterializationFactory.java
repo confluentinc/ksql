@@ -24,6 +24,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.materialization.AggregatesInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.ProjectInfo;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.execution.streams.AggregateParams;
@@ -192,7 +193,7 @@ public final class KsqlMaterializationFactory {
           info.getInfo(),
           functionRegistry
       );
-      return (s, g) -> Optional.of(mapper.apply(g));
+      return (k, v) -> Optional.of(mapper.apply(v));
     }
 
     @Override
@@ -213,7 +214,7 @@ public final class KsqlMaterializationFactory {
 
     @Override
     public BiFunction<Struct, GenericRow, Optional<GenericRow>> visit(
-        final MaterializationInfo.SelectMapperInfo info
+        final ProjectInfo info
     ) {
       final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
           QueryLoggerUtil.queryLoggerName(queryId, stacker.push(PROJECT_OP_NAME).getQueryContext())

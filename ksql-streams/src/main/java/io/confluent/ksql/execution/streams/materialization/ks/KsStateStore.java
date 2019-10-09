@@ -22,8 +22,8 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.support.metrics.common.time.Clock;
 import java.time.Duration;
+import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.state.QueryableStoreType;
@@ -39,7 +39,7 @@ class KsStateStore {
   private final KafkaStreams kafkaStreams;
   private final LogicalSchema schema;
   private final Duration timeout;
-  private final Clock clock;
+  private final Supplier<Long> clock;
 
   KsStateStore(
       final String stateStoreName,
@@ -55,7 +55,7 @@ class KsStateStore {
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
       final Duration timeout,
-      final Clock clock
+      final Supplier<Long> clock
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
@@ -84,9 +84,9 @@ class KsStateStore {
   }
 
   private void awaitRunning() {
-    final long threshold = clock.currentTimeMs() + timeout.toMillis();
+    final long threshold = clock.get() + timeout.toMillis();
     while (kafkaStreams.state() == State.REBALANCING) {
-      if (clock.currentTimeMs() > threshold) {
+      if (clock.get() > threshold) {
         throw new MaterializationTimeOutException("Store failed to rebalance within the configured "
             + "timeout. timeout: " + timeout.toMillis() + "ms");
       }

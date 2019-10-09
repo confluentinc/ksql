@@ -137,7 +137,7 @@ public class TableGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
     when(sourceStep.build(any())).thenReturn(
-        new KTableHolder<>(sourceTable, mock(KeySerdeFactory.class)));
+        KTableHolder.unmaterialized(sourceTable, mock(KeySerdeFactory.class)));
     groupBy = new TableGroupBy<>(
         PROPERTIES,
         sourceStep,

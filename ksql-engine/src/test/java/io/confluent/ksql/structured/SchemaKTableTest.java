@@ -216,7 +216,7 @@ public class SchemaKTableTest {
     when(sourceStep.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(schema, queryContext.getQueryContext()));
     when(sourceStep.getSchema()).thenReturn(schema);
-    when(sourceStep.build(any())).thenReturn(new KTableHolder(kTable, keySerdeFactory));
+    when(sourceStep.build(any())).thenReturn(KTableHolder.unmaterialized(kTable, keySerdeFactory));
     return sourceStep;
   }
 

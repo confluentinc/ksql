@@ -111,7 +111,7 @@ public class TableSinkBuilderTest {
         new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
     );
     when(source.build(any())).thenReturn(
-        new KTableHolder<>(kTable, keySerdeFactory));
+        KTableHolder.unmaterialized(kTable, keySerdeFactory));
     sink = new TableSink<>(
         new DefaultExecutionStepProperties(SCHEMA, queryContext),
         source,

@@ -34,6 +34,7 @@ import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -440,6 +441,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
+    MetricCollectors.addConfigurableReporter(ksqlConfig);
+
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());
     final ProcessingLogContext processingLogContext
@@ -451,7 +454,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       Thread.setDefaultUncaughtExceptionHandler(
           new KsqlUncaughtExceptionHandler(LogManager::shutdown));
     }
-    
+
     final HybridQueryIdGenerator hybridQueryIdGenerator =
         new HybridQueryIdGenerator();
 

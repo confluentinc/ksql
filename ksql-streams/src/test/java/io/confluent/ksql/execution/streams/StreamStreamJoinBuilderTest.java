@@ -254,7 +254,7 @@ public class StreamStreamJoinBuilderTest {
   }
 
   @Test
-  @SuppressFBWarnings
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildJoinedCorrectly() {
     // Given:
     givenInnerJoin();

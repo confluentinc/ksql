@@ -152,7 +152,8 @@ public class StreamGroupByBuilderTest {
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
-            mock(MaterializedFactory.class)
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
         )
     );
     streamGroupByKey = new StreamGroupByKey(PROPERTIES, sourceStep, FORMATS);

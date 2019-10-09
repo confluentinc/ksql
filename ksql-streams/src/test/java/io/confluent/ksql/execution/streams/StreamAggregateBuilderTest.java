@@ -207,7 +207,8 @@ public class StreamAggregateBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
-            materializedFactory
+            materializedFactory,
+            mock(StreamJoinedFactory.class)
         )
     );
   }

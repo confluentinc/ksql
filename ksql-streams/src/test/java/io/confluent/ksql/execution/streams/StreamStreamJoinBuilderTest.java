@@ -3,6 +3,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -10,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -37,8 +39,8 @@ import java.time.Duration;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Joined;
 import org.apache.kafka.streams.kstream.KStream;
+import org.apache.kafka.streams.kstream.StreamJoined;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -101,9 +103,9 @@ public class StreamStreamJoinBuilderTest {
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> right;
   @Mock
-  private Joined<Struct, GenericRow, GenericRow> joined;
+  private StreamJoined<Struct, GenericRow, GenericRow> joined;
   @Mock
-  private JoinedFactory joinedFactory;
+  private StreamJoinedFactory streamJoinedFactory;
   @Mock
   private KsqlQueryBuilder queryBuilder;
   @Mock
@@ -128,7 +130,7 @@ public class StreamStreamJoinBuilderTest {
         .thenReturn(leftSerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.AVRO)), any(), any()))
         .thenReturn(rightSerde);
-    when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
+    when(streamJoinedFactory.create(any(Serde.class), any(Serde.class), any(Serde.class), anyString(), anyString())).thenReturn(joined);
     when(left.build(any())).thenReturn(
         new KStreamHolder<>(leftKStream, keySerdeFactory));
     when(right.build(any())).thenReturn(
@@ -139,15 +141,16 @@ public class StreamStreamJoinBuilderTest {
         mock(AggregateParams.Factory.class),
         new StreamsFactories(
             mock(GroupedFactory.class),
-            joinedFactory,
-            mock(MaterializedFactory.class)
+            mock(JoinedFactory.class),
+            mock(MaterializedFactory.class),
+            streamJoinedFactory
         )
     );
   }
 
   @SuppressWarnings("unchecked")
   private void givenLeftJoin() {
-    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any())).thenReturn(resultKStream);
+    when(leftKStream.leftJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.LEFT,
@@ -162,7 +165,7 @@ public class StreamStreamJoinBuilderTest {
 
   @SuppressWarnings("unchecked")
   private void givenOuterJoin() {
-    when(leftKStream.outerJoin(any(KStream.class), any(), any(), any())).thenReturn(resultKStream);
+    when(leftKStream.outerJoin(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.OUTER,
@@ -177,7 +180,7 @@ public class StreamStreamJoinBuilderTest {
 
   @SuppressWarnings("unchecked")
   private void givenInnerJoin() {
-    when(leftKStream.join(any(KStream.class), any(), any(), any())).thenReturn(resultKStream);
+    when(leftKStream.join(any(KStream.class), any(), any(), any(StreamJoined.class))).thenReturn(resultKStream);
     join = new StreamStreamJoin<>(
         new DefaultExecutionStepProperties(SCHEMA, CTX),
         JoinType.INNER,
@@ -251,6 +254,7 @@ public class StreamStreamJoinBuilderTest {
   }
 
   @Test
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
   public void shouldBuildJoinedCorrectly() {
     // Given:
     givenInnerJoin();
@@ -259,7 +263,7 @@ public class StreamStreamJoinBuilderTest {
     join.build(planBuilder);
 
     // Then:
-    verify(joinedFactory).create(keySerde, leftSerde, rightSerde, "jo-in");
+    verify(streamJoinedFactory).create(keySerde, leftSerde, rightSerde, "jo-in", "jo-in");
   }
 
   @Test

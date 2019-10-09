@@ -43,6 +43,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
+import io.confluent.ksql.execution.streams.StreamJoinedFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -206,7 +207,8 @@ public class SchemaKTableTest {
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
-            mock(MaterializedFactory.class)
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
         )
     );
   }

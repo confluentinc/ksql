@@ -47,7 +47,7 @@ public final class RecordNode {
       @JsonProperty("window") final WindowData window
   ) {
     this.topicName = topicName == null ? "" : topicName;
-    this.key = key == null ? "" : key;
+    this.key = key;
     this.value = requireNonNull(value, "value");
     this.timestamp = Optional.ofNullable(timestamp);
     this.window = Optional.ofNullable(window);

@@ -582,6 +582,7 @@ public class SqlToJavaVisitor {
       }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Pair<String, Schema> visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
@@ -590,9 +591,7 @@ public class SqlToJavaVisitor {
       final Pair<String, Schema> left = process(node.getLeft(), context);
       final Pair<String, Schema> right = process(node.getRight(), context);
 
-      final Schema schema =
-          SchemaUtil.resolveBinaryOperatorResultType(
-              left.getRight(), right.getRight(), node.getOperator());
+      final Schema schema = expressionTypeManager.getExpressionSchema(node);
 
       if (DecimalUtil.isDecimal(schema)) {
         final String leftExpr = CastVisitor.getCast(
@@ -633,6 +632,7 @@ public class SqlToJavaVisitor {
       }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Pair<String, Schema> visitSearchedCaseExpression(
         final SearchedCaseExpression node,
@@ -646,7 +646,8 @@ public class SqlToJavaVisitor {
               process(whenClause.getResult(), context)
           ))
           .collect(Collectors.toList());
-      final Schema resultSchema = whenClauses.get(0).thenProcessResult.getRight();
+
+      final Schema resultSchema = expressionTypeManager.getExpressionSchema(node);
       final String resultSchemaString = SchemaUtil.getJavaType(resultSchema).getCanonicalName();
 
       final List<String> lazyWhenClause = whenClauses

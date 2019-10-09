@@ -42,6 +42,7 @@ public class SqlTypesTest {
 
   private static final ImmutableMap<Class<?>, Object> DEFAULTS = ImmutableMap
       .<Class<?>, Object>builder()
+      .put(SqlDecimal.class, SqlDecimal.of(1, 0))
       .build();
 
   private final Class<?> modelClass;

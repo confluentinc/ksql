@@ -237,46 +237,6 @@ public class DecimalUtilTest {
   }
 
   @Test
-  public void shouldConvertInteger() {
-    // When:
-    final Schema decimal = DecimalUtil.toDecimal(Schema.OPTIONAL_INT32_SCHEMA);
-
-    // Then:
-    assertThat(decimal, is(DecimalUtil.builder(10, 0).build()));
-  }
-
-  @Test
-  public void shouldConvertLong() {
-    // When:
-    final Schema decimal = DecimalUtil.toDecimal(Schema.OPTIONAL_INT64_SCHEMA);
-
-    // Then:
-    assertThat(decimal, is(DecimalUtil.builder(19, 0).build()));
-  }
-
-  @Test
-  public void shouldConvertDecimal() {
-    // Given:
-    final Schema given = DecimalUtil.builder(2, 2);
-
-    // When:
-    final Schema decimal = DecimalUtil.toDecimal(given);
-
-    // Then:
-    assertThat(decimal, sameInstance(given));
-  }
-
-  @Test
-  public void shouldThrowIfConvertString() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot convert schema of type STRING to decimal");
-
-    // When:
-    DecimalUtil.toDecimal(Schema.OPTIONAL_STRING_SCHEMA);
-  }
-
-  @Test
   public void shouldConvertIntegerToSqlDecimal() {
     // When:
     final SqlDecimal decimal = DecimalUtil.toSqlDecimal(Schema.OPTIONAL_INT32_SCHEMA);
@@ -304,16 +264,6 @@ public class DecimalUtilTest {
 
     // Then:
     assertThat(decimal, is(SqlTypes.decimal(2, 2)));
-  }
-
-  @Test
-  public void shouldThrowIfConvertStringToSqlDecimal() {
-    // Expect:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Cannot convert schema of type STRING to decimal");
-
-    // When:
-    DecimalUtil.toDecimal(Schema.OPTIONAL_STRING_SCHEMA);
   }
 
   @Test

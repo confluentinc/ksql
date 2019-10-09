@@ -75,7 +75,7 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
       }
     }
 
-    if (value instanceof Number) {
+    if (value instanceof Number && !(value instanceof Double)) {
       return optional(
           new BigDecimal(
               ((Number) value).doubleValue(),

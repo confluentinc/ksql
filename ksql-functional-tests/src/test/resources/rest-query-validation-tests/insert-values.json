@@ -67,6 +67,18 @@
       ]
     },
     {
+      "name": "should insert null key",
+      "statements": [
+        "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (ID) VALUES (10);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"ID": 10}}
+      ]
+    },
+    {
       "name": "rowkey should be set when stream has int key and only key specified in insert",
       "statements": [
         "CREATE STREAM TEST (ID INT) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
@@ -221,6 +233,18 @@
         "message": "Failed to insert values into 'TEST'. Expected ROWKEY and ID to match but got 10 and 5 respectively.",
         "status": 400
       }
+    },
+    {
+      "name": "should coerce numbers",
+      "statements": [
+        "CREATE STREAM TEST (I INT, BI BIGINT, D DOUBLE) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (I, BI, D) VALUES (1, 2, 3);"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"I": 1, "BI": 2, "D": 3.0}}
+      ]
     }
   ]
 }

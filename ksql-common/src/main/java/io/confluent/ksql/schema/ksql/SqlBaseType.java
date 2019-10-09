@@ -19,14 +19,28 @@ package io.confluent.ksql.schema.ksql;
  * The SQL types supported by KSQL.
  */
 public enum SqlBaseType {
-  BOOLEAN, INTEGER, BIGINT, DOUBLE, DECIMAL, STRING, ARRAY, MAP, STRUCT;
+  BOOLEAN, INTEGER, BIGINT, DECIMAL, DOUBLE, STRING, ARRAY, MAP, STRUCT;
 
+  /**
+   * @return {@code true} if numeric type.
+   */
   public boolean isNumber() {
-    // for now, conversions between DECIMAL and other numeric types is not supported
-    return this == INTEGER || this == BIGINT || this == DOUBLE;
+    return this == INTEGER || this == BIGINT || this == DECIMAL || this == DOUBLE;
   }
 
+  /**
+   * Test to see if this type can be up-cast to another.
+   *
+   * <p>This defines if KSQL supports <i>implicitly</i> converting one numeric type to another.
+   *
+   * <p>Types can always be upcast to themselves. Only numeric types can be upcast to different
+   * numeric types. Note: STRING to DECIMAL handling is not seen as up-casting, it's parsing.
+   *
+   * @param to the target type.
+   * @return true if this type can be upcast to the supplied type.
+   */
   public boolean canUpCast(final SqlBaseType to) {
-    return isNumber() && to.isNumber() && this.ordinal() <= to.ordinal();
+    return this.equals(to)
+        || (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
   }
 }

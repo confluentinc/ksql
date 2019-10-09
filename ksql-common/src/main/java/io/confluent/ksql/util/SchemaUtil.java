@@ -20,21 +20,15 @@ import static org.apache.avro.Schema.createArray;
 import static org.apache.avro.Schema.createMap;
 import static org.apache.avro.Schema.createUnion;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.ImmutableSortedMap;
-import com.google.common.collect.Ordering;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiPredicate;
 import org.apache.avro.LogicalTypes;
@@ -54,30 +48,14 @@ public final class SchemaUtil {
 
   public static final int ROWKEY_INDEX = 1;
 
-  private static final List<Schema.Type> ARITHMETIC_TYPES_LIST =
-      ImmutableList.of(
-          Schema.Type.INT8,
-          Schema.Type.INT16,
-          Schema.Type.INT32,
-          Schema.Type.INT64,
-          Schema.Type.FLOAT32,
-          Schema.Type.FLOAT64
-      );
-
-  private static final Set<Schema.Type> ARITHMETIC_TYPES =
-      ImmutableSet.copyOf(ARITHMETIC_TYPES_LIST);
-
-  private static final Ordering<Schema.Type> ARITHMETIC_TYPE_ORDERING = Ordering.explicit(
-      ARITHMETIC_TYPES_LIST
+  private static final Set<Schema.Type> ARITHMETIC_TYPES = ImmutableSet.of(
+      Type.INT8,
+      Type.INT16,
+      Type.INT32,
+      Type.INT64,
+      Type.FLOAT32,
+      Type.FLOAT64
   );
-
-  private static final NavigableMap<Schema.Type, Schema> TYPE_TO_SCHEMA =
-      ImmutableSortedMap.<Schema.Type, Schema>orderedBy(ARITHMETIC_TYPE_ORDERING)
-          .put(Schema.Type.INT32, Schema.OPTIONAL_INT32_SCHEMA)
-          .put(Schema.Type.INT64, Schema.OPTIONAL_INT64_SCHEMA)
-          .put(Schema.Type.FLOAT32, Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .put(Schema.Type.FLOAT64, Schema.OPTIONAL_FLOAT64_SCHEMA)
-          .build();
 
   private static final char FIELD_NAME_DELIMITER = '.';
 
@@ -200,7 +178,7 @@ public final class SchemaUtil {
     return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
   }
 
-  public static String getFieldNameWithNoAlias(final String fieldName) {
+  static String getFieldNameWithNoAlias(final String fieldName) {
     final int idx = fieldName.indexOf(FIELD_NAME_DELIMITER);
     if (idx < 0) {
       return fieldName;
@@ -209,85 +187,8 @@ public final class SchemaUtil {
     return fieldName.substring(idx + 1);
   }
 
-  public static Optional<String> getFieldNameAlias(final String fieldName) {
-    final int idx = fieldName.indexOf(FIELD_NAME_DELIMITER);
-    if (idx < 0) {
-      return Optional.empty();
-    }
-
-    return Optional.of(fieldName.substring(0, idx));
-  }
-
-  public static Schema resolveBinaryOperatorResultType(
-      final Schema left,
-      final Schema right,
-      final Operator operator
-  ) {
-    if (left.type() == Schema.Type.STRING && right.type() == Schema.Type.STRING) {
-      return Schema.OPTIONAL_STRING_SCHEMA;
-    }
-
-    if (DecimalUtil.isDecimal(left) || DecimalUtil.isDecimal(right)) {
-      if (left.type() != Schema.Type.FLOAT64 && right.type() != Schema.Type.FLOAT64) {
-        return resolveDecimalOperatorResultType(
-            DecimalUtil.toDecimal(left), DecimalUtil.toDecimal(right), operator);
-      }
-      return Schema.OPTIONAL_FLOAT64_SCHEMA;
-    }
-
-    if (!TYPE_TO_SCHEMA.containsKey(left.type()) || !TYPE_TO_SCHEMA.containsKey(right.type())) {
-      throw new KsqlException("Unsupported arithmetic types. " + left.type() + " " + right.type());
-    }
-
-    return TYPE_TO_SCHEMA.ceilingEntry(
-        ARITHMETIC_TYPE_ORDERING.max(left.type(), right.type())).getValue();
-  }
-
-  private static Schema resolveDecimalOperatorResultType(
-      final Schema left,
-      final Schema right,
-      final Operator operator
-  ) {
-    final int lPrecision = DecimalUtil.precision(left);
-    final int rPrecision = DecimalUtil.precision(right);
-    final int lScale = DecimalUtil.scale(left);
-    final int rScale = DecimalUtil.scale(right);
-
-    final int precision;
-    final int scale;
-    switch (operator) {
-      case ADD:
-      case SUBTRACT:
-        precision = Math.max(lScale, rScale)
-            + Math.max(lPrecision - lScale, rPrecision - rScale)
-            + 1;
-        scale = Math.max(lScale, rScale);
-        break;
-      case MULTIPLY:
-        precision = lPrecision + rPrecision + 1;
-        scale = lScale + rScale;
-        break;
-      case DIVIDE:
-        precision = lPrecision - lScale + rScale + Math.max(6, lScale + rPrecision + 1);
-        scale = Math.max(6, lScale + rPrecision + 1);
-        break;
-      case MODULUS:
-        precision = Math.min(lPrecision - lScale, rPrecision - rScale) + Math.max(lScale, rScale);
-        scale = Math.max(lScale, rScale);
-        break;
-      default:
-        throw new KsqlException("Unexpected operator type: " + operator);
-    }
-
-    return DecimalUtil.builder(precision, scale).build();
-  }
-
-  static boolean isNumber(final Schema.Type type) {
-    return ARITHMETIC_TYPES.contains(type);
-  }
-
   public static boolean isNumber(final Schema schema) {
-    return isNumber(schema.type()) || DecimalUtil.isDecimal(schema);
+    return ARITHMETIC_TYPES.contains(schema.type()) || DecimalUtil.isDecimal(schema);
   }
 
   public static Schema ensureOptional(final Schema schema) {

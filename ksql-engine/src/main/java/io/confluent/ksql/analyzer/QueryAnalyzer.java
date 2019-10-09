@@ -33,13 +33,16 @@ import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.TableFunctionExpressionRewriter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryAnalyzer {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Analyzer analyzer;
   private final MetaStore metaStore;
@@ -130,6 +133,24 @@ public class QueryAnalyzer {
     return aggregateAnalysis;
   }
 
+  public TableFunctionAnalysis analyzeTableFunctions(final Query query, final Analysis analysis) {
+    final TableFunctionAnalysis tableFunctionAnalysis = new TableFunctionAnalysis();
+    final ColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
+    final TableFunctionAnalyzer tableFunctionAnalyzer =
+        new TableFunctionAnalyzer(tableFunctionAnalysis, defaultArgument, metaStore);
+    final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
+        new TableFunctionExpressionRewriter(metaStore);
+
+    processSelectExpressionsForTableFunctionAnalysis(
+        analysis,
+        tableFunctionAnalysis,
+        tableFunctionAnalyzer,
+        tableFunctionExpressionRewriter
+    );
+
+    return tableFunctionAnalysis;
+  }
+
   private static void processHavingExpression(
       final Expression having,
       final MutableAggregateAnalysis aggregateAnalysis,
@@ -163,6 +184,21 @@ public class QueryAnalyzer {
 
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
+    }
+  }
+
+  private static void processSelectExpressionsForTableFunctionAnalysis(
+      final Analysis analysis,
+      final TableFunctionAnalysis tableFunctionAnalysis,
+      final TableFunctionAnalyzer tableFunctionAnalyzer,
+      final TableFunctionExpressionRewriter tableFunctionExpressionRewriter
+  ) {
+    for (final SelectExpression select : analysis.getSelectExpressions()) {
+      final Expression exp = select.getExpression();
+      tableFunctionAnalyzer.processSelect(exp);
+
+      tableFunctionAnalysis.addFinalSelectExpression(
+          ExpressionTreeRewriter.rewriteWith(tableFunctionExpressionRewriter::process, exp));
     }
   }
 

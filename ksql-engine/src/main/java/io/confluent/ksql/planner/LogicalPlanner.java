@@ -20,6 +20,7 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
+import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -30,6 +31,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -48,6 +50,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -59,22 +62,29 @@ public class LogicalPlanner {
   private final KsqlConfig ksqlConfig;
   private final Analysis analysis;
   private final AggregateAnalysisResult aggregateAnalysis;
+  private final TableFunctionAnalysis tableFunctionAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
       final Analysis analysis,
       final AggregateAnalysisResult aggregateAnalysis,
+      final TableFunctionAnalysis tableFunctionAnalysis,
       final FunctionRegistry functionRegistry
   ) {
     this.ksqlConfig = ksqlConfig;
     this.analysis = analysis;
     this.aggregateAnalysis = aggregateAnalysis;
+    this.tableFunctionAnalysis = tableFunctionAnalysis;
     this.functionRegistry = functionRegistry;
   }
 
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
+
+    if (!tableFunctionAnalysis.getTableFunctions().isEmpty()) {
+      currentNode = buildFlatMapNode(currentNode);
+    }
 
     if (analysis.getWhereExpression().isPresent()) {
       currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
@@ -212,8 +222,36 @@ public class LogicalPlanner {
         sourcePlanNode,
         schema,
         keyFieldName.map(ColumnRef::withoutSource),
-        analysis.getSelectExpressions()
+        getFinalSelectExpressions(schema)
     );
+  }
+
+  private List<SelectExpression> getFinalSelectExpressions(final LogicalSchema schema) {
+    if (!tableFunctionAnalysis.getTableFunctions().isEmpty()) {
+
+      final List<Expression> finalSelectExpressions =
+          tableFunctionAnalysis.getFinalSelectExpressions();
+
+      final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
+      if (finalSelectExpressions.size() != schema.value().size()) {
+        throw new RuntimeException(
+            "Incompatible aggregate schema, field count must match, "
+                + "selected field count:"
+                + finalSelectExpressions.size()
+                + " schema field count:"
+                + schema.value().size());
+      }
+      for (int i = 0; i < finalSelectExpressions.size(); i++) {
+        finalSelectExpressionList.add(SelectExpression.of(
+            schema.value().get(i).name(),
+            finalSelectExpressions.get(i)
+        ));
+      }
+
+      return finalSelectExpressionList;
+    } else {
+      return analysis.getSelectExpressions();
+    }
   }
 
   private static FilterNode buildFilterNode(
@@ -221,6 +259,13 @@ public class LogicalPlanner {
       final Expression filterExpression
   ) {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+  }
+
+  private FlatMapNode buildFlatMapNode(
+      final PlanNode sourcePlanNode
+  ) {
+    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode,
+        sourcePlanNode.getSchema(), tableFunctionAnalysis);
   }
 
   private PlanNode buildSourceNode() {

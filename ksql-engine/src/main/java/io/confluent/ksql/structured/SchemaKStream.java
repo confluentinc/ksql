@@ -21,6 +21,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -37,6 +38,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
+import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
@@ -85,7 +87,7 @@ public class SchemaKStream<K> {
 
   private static final String GROUP_BY_COLUMN_SEPARATOR = "|+|";
 
-  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
+  public enum Type {SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN}
 
   final KeyFormat keyFormat;
   final KeyField keyField;
@@ -535,8 +537,8 @@ public class SchemaKStream<K> {
     final LegacyField proposedLegacy = LegacyField.of(proposedKey.ref(), proposedKey.type());
 
     final KeyField resultantKeyField = isRowKey(columnRef)
-            ? keyField.withLegacy(proposedLegacy)
-            : KeyField.of(columnRef, proposedLegacy);
+        ? keyField.withLegacy(proposedLegacy)
+        : KeyField.of(columnRef, proposedLegacy);
 
     final boolean namesMatch = existingKey
         .map(kf -> kf.matches(proposedKey.ref()))
@@ -676,6 +678,27 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  public SchemaKStream<K> flatMap(
+      final LogicalSchema outputSchema,
+      final TableFunctionAnalysis tableFunctionAnalysis,
+      final QueryContext.Stacker contextStacker
+  ) {
+
+    final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
+        contextStacker,
+        sourceStep,
+        outputSchema,
+        tableFunctionAnalysis.getTableFunctions(),
+        functionRegistry,
+        getSchema(),
+        outputSchema
+    );
+
+    return new SchemaKStream<K>(step, keyFormat, keySerde, keyField,
+        sourceSchemaKStreams,
+        type, ksqlConfig, functionRegistry);
   }
 
   public ExecutionStep<?> getSourceStep() {

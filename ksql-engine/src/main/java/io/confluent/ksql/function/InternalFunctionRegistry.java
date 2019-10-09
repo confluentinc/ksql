@@ -34,6 +34,7 @@ import io.confluent.ksql.function.udf.string.LCaseKudf;
 import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
+import io.confluent.ksql.function.udtf.array.ExplodeIntegerArrayFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -52,6 +53,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   private final Object lock = new Object();
   private final Map<String, UdfFactory> udfs = new ConcurrentHashMap<>();
   private final Map<String, AggregateFunctionFactory> udafs = new ConcurrentHashMap<>();
+  private final Map<String, TableFunctionFactory> udtfs = new ConcurrentHashMap<>();
   private final FunctionNameValidator functionNameValidator = new FunctionNameValidator();
 
   public InternalFunctionRegistry() {
@@ -102,6 +104,10 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     return udafs.containsKey(functionName.toUpperCase());
   }
 
+  public boolean isTableFunction(final String functionName) {
+    return udtfs.containsKey(functionName.toUpperCase());
+  }
+
   @Override
   public KsqlAggregateFunction getAggregateFunction(
       final String functionName,
@@ -117,6 +123,19 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
+  public KsqlTableFunction getTableFunction(
+      final String functionName,
+      final Schema argumentType
+  ) {
+    final TableFunctionFactory udtfFactory = udtfs.get(functionName.toUpperCase());
+    if (udtfFactory == null) {
+      throw new KsqlException("No table function with name " + functionName + " exists!");
+    }
+
+    return udtfFactory.getProperTableFunction(Collections.singletonList(argumentType));
+  }
+
+  @Override
   public void addAggregateFunctionFactory(final AggregateFunctionFactory aggregateFunctionFactory) {
     final String functionName = aggregateFunctionFactory.getName().toUpperCase();
     validateFunctionName(functionName);
@@ -129,6 +148,23 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
       if (udafs.putIfAbsent(functionName, aggregateFunctionFactory) != null) {
         throw new KsqlException("Aggregate function already registered: " + functionName);
+      }
+    }
+  }
+
+  @Override
+  public void addTableFunctionFactory(final TableFunctionFactory tableFunctionFactory) {
+    final String functionName = tableFunctionFactory.getName().toUpperCase();
+    validateFunctionName(functionName);
+
+    synchronized (lock) {
+      if (udfs.containsKey(functionName)) {
+        throw new KsqlException(
+            "Table function already registered as non-aggregate: " + functionName);
+      }
+
+      if (udtfs.putIfAbsent(functionName, tableFunctionFactory) != null) {
+        throw new KsqlException("Table function already registered: " + functionName);
       }
     }
   }
@@ -180,6 +216,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addJsonFunctions();
       addStructFieldFetcher();
       addUdafFunctions();
+      addUdtfFunctions();
     }
 
     private void addStringFunctions() {
@@ -301,6 +338,10 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
       functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
+    }
+
+    private void addUdtfFunctions() {
+      functionRegistry.addTableFunctionFactory(new ExplodeIntegerArrayFunctionFactory());
     }
 
     private void addBuiltInFunction(final KsqlFunction ksqlFunction) {

@@ -18,6 +18,7 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -100,7 +101,10 @@ class QueryEngine {
 
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+    final TableFunctionAnalysis tableFunctionAnalysis =
+        queryAnalyzer.analyzeTableFunctions(query, analysis);
 
-    return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();
+    return new LogicalPlanner(config, analysis, aggAnalysis,
+        tableFunctionAnalysis, metaStore).buildPlan();
   }
 }

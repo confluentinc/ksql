@@ -302,7 +302,7 @@ public class AggregateNode extends PlanNode {
     for (int i = 0; i < aggregations.size(); i++) {
       final KsqlAggregateFunction aggregateFunction =
           UdafUtil.resolveAggregateFunction(functionRegistry, aggregations.get(i), inputSchema);
-      final ColumnName colName = ColumnName.aggregate(i);
+      final ColumnName colName = ColumnName.aggregateColumn(i);
       final SqlType fieldType = converter.toSqlType(
           useAggregate ? aggregateFunction.getAggregateType() : aggregateFunction.getReturnType()
       );

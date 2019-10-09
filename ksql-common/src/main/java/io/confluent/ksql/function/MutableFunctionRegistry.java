@@ -51,4 +51,6 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    * @throws KsqlException if a function, (of any type), with the same name exists.
    */
   void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory);
+
+  void addTableFunctionFactory(TableFunctionFactory tableFunctionFactory);
 }

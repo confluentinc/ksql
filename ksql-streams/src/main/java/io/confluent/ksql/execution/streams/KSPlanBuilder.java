@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
+import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
@@ -124,6 +125,12 @@ public final class KSPlanBuilder implements PlanBuilder {
       final StreamMapValues<K> streamMapValues) {
     final KStreamHolder<K> source = streamMapValues.getSource().build(this);
     return StreamMapValuesBuilder.build(source, streamMapValues, queryBuilder);
+  }
+
+  @Override
+  public <K> KStreamHolder<K> visitFlatMap(final StreamFlatMap<K> streamFlatMap) {
+    final KStreamHolder<K> source = streamFlatMap.getSource().build(this);
+    return StreamFlatMapBuilder.build(source, streamFlatMap, queryBuilder);
   }
 
   @Override

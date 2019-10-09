@@ -29,6 +29,7 @@ import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamAggregate;
 import io.confluent.ksql.execution.plan.StreamFilter;
+import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
@@ -47,6 +48,7 @@ import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -61,6 +63,7 @@ import org.apache.kafka.streams.kstream.KGroupedTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ExecutionStepFactory {
+
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
   private ExecutionStepFactory() {
   }
@@ -137,6 +140,26 @@ public final class ExecutionStepFactory {
         source,
         formats,
         topicName
+    );
+  }
+
+  public static <K> StreamFlatMap<K> streamFlatMap(
+      final QueryContext.Stacker stacker,
+      final ExecutionStep<KStreamHolder<K>> source,
+      final LogicalSchema resultSchema,
+      final List<FunctionCall> functionCalls,
+      final FunctionRegistry functionRegistry,
+      final LogicalSchema inputSchema,
+      final LogicalSchema outputSchema
+  ) {
+    final QueryContext queryContext = stacker.getQueryContext();
+    return new StreamFlatMap<>(
+        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        source,
+        functionCalls,
+        functionRegistry,
+        inputSchema,
+        outputSchema
     );
   }
 

@@ -24,9 +24,14 @@ import com.google.errorprone.annotations.Immutable;
 public final class ColumnName extends Name<ColumnName> {
 
   private static final String AGGREGATE_COLUMN_PREFIX = "KSQL_AGG_VARIABLE_";
+  private static final String UDTF_COLUMN_PREFIX = "KSQL_UDTF_VARIABLE_";
 
-  public static ColumnName aggregate(final int idx) {
+  public static ColumnName aggregateColumn(final int idx) {
     return of(AGGREGATE_COLUMN_PREFIX + idx);
+  }
+
+  public static ColumnName udtfColumn(final int idx) {
+    return of(UDTF_COLUMN_PREFIX + idx);
   }
 
   public static ColumnName of(final String name) {

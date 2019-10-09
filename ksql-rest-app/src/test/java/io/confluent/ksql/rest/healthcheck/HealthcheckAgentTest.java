@@ -29,7 +29,6 @@ import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.HealthcheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.rest.RestConfig;
 import java.net.URI;
@@ -54,8 +53,6 @@ public class HealthcheckAgentTest {
   }
 
   @Mock
-  private ServiceContext serviceContext;
-  @Mock
   private SimpleKsqlClient ksqlClient;
   @Mock
   private KsqlRestConfig restConfig;
@@ -67,14 +64,13 @@ public class HealthcheckAgentTest {
 
   @Before
   public void setUp() {
-    when(serviceContext.getKsqlClient()).thenReturn(ksqlClient);
     when(ksqlClient.makeKsqlRequest(eq(SERVER_URI), any())).thenReturn(successfulResponse);
     when(restConfig.getList(RestConfig.LISTENERS_CONFIG))
         .thenReturn(ImmutableList.of(SERVER_ADDRESS));
     when(successfulResponse.isSuccessful()).thenReturn(true);
     when(unSuccessfulResponse.isSuccessful()).thenReturn(false);
 
-    healthcheckAgent = new HealthcheckAgent(serviceContext, restConfig);
+    healthcheckAgent = new HealthcheckAgent(ksqlClient, restConfig);
   }
 
   @Test

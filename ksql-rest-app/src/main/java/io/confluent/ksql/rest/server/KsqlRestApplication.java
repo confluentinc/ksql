@@ -201,7 +201,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
-    config.register(HealthcheckResource.create(serviceContext, this.config));
+    config.register(HealthcheckResource.create(ksqlResource, serviceContext, this.config));
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
   }

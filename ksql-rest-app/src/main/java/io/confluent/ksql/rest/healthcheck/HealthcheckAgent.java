@@ -21,7 +21,7 @@ import io.confluent.ksql.rest.entity.HealthcheckResponse;
 import io.confluent.ksql.rest.entity.HealthcheckResponseDetail;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
-import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.SimpleKsqlClient;
 import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.net.URL;
@@ -38,11 +38,14 @@ public class HealthcheckAgent {
       new Check("kafka", "list topics extended;")
   );
 
-  private final ServiceContext serviceContext;
+  private final SimpleKsqlClient ksqlClient;
   private final URI serverEndpoint;
 
-  public HealthcheckAgent(final ServiceContext serviceContext, final KsqlRestConfig restConfig) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+  public HealthcheckAgent(
+      final SimpleKsqlClient ksqlClient,
+      final KsqlRestConfig restConfig
+  ) {
+    this.ksqlClient = Objects.requireNonNull(ksqlClient, "ksqlClient");
     this.serverEndpoint = getServerAddress(restConfig);
   }
 
@@ -61,7 +64,7 @@ public class HealthcheckAgent {
 
   private boolean isSuccessful(final String ksqlStatement) {
     final RestResponse<KsqlEntityList> response =
-        serviceContext.getKsqlClient().makeKsqlRequest(serverEndpoint, ksqlStatement);
+        ksqlClient.makeKsqlRequest(serverEndpoint, ksqlStatement);
     return response.isSuccessful();
   }
 

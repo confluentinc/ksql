@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
 import java.util.Set;
 
@@ -25,13 +26,13 @@ import java.util.Set;
 public class RunningQuery {
   private final String queryString;
   private final Set<String> sinks;
-  private final EntityQueryId id;
+  private final QueryId id;
 
   @JsonCreator
   public RunningQuery(
       @JsonProperty("statementText") final String queryString,
       @JsonProperty("sinks") final Set<String> sinks,
-      @JsonProperty("id") final EntityQueryId id
+      @JsonProperty("id") final QueryId id
   ) {
     this.queryString = queryString;
     this.sinks = sinks;
@@ -46,7 +47,7 @@ public class RunningQuery {
     return sinks;
   }
 
-  public EntityQueryId getId() {
+  public QueryId getId() {
     return id;
   }
 

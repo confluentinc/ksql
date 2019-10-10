@@ -212,6 +212,7 @@ public class ListSourceExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "SOURCE");
     final ExecuteResult result = engine.getEngine().execute(
+        engine.getServiceContext(),
         engine.configure("CREATE STREAM SINK AS SELECT * FROM source;")
     );
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()

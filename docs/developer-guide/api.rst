@@ -92,6 +92,28 @@ Your output should resemble:
      }
    }
 
+You can also check the health of your KSQL server via the ``/healthcheck`` resource:
+
+.. code:: bash
+
+   curl -sX GET "http://localhost:8088/healthcheck" | jq '.'
+
+Your output should resemble:
+
+.. codewithvars:: bash
+
+   {
+     "isHealthy": true,
+     "details": {
+       "metastore": {
+         "isHealthy": true
+       },
+       "kafka": {
+         "isHealthy": true
+       }
+     }
+   }
+
 Run a KSQL Statement
 --------------------
 

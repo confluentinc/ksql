@@ -82,7 +82,7 @@ use the ``curl`` command to query the ``/info`` endpoint:
 
 Your output should resemble:
 
-.. codewithvars:: bash
+.. codewithvars:: json
 
    {
      "KsqlServerInfo": {
@@ -100,7 +100,7 @@ You can also check the health of your KSQL server via the ``/healthcheck`` resou
 
 Your output should resemble:
 
-.. codewithvars:: bash
+.. codewithvars:: json
 
    {
      "isHealthy": true,

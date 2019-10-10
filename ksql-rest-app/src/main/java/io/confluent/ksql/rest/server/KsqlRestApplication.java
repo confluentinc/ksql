@@ -575,7 +575,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort)
+    );
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
@@ -632,7 +635,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statement, Collections.emptyMap(), ksqlConfig);
 
     try {
-      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(configured.get());
+      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(
+          ksqlEngine.getServiceContext(),
+          configured.get()
+      );
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;

@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Supplier;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -35,8 +36,6 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class HealthcheckResource {
   private final HealthcheckAgent healthcheckAgent;
-  private final Duration healthcheckInterval;
-  private final Supplier<Long> currentTimeSupplier;
   private final ResponseCache responseCache;
 
   @VisibleForTesting
@@ -46,9 +45,7 @@ public class HealthcheckResource {
       final Supplier<Long> currentTimeSupplier
   ) {
     this.healthcheckAgent = Objects.requireNonNull(healthcheckAgent, "healthcheckAgent");
-    this.healthcheckInterval = Objects.requireNonNull(healthcheckInterval, "healthcheckInterval");
-    this.currentTimeSupplier = Objects.requireNonNull(currentTimeSupplier, "currentTimeSupplier");
-    this.responseCache = new ResponseCache(currentTimeSupplier);
+    this.responseCache = new ResponseCache(currentTimeSupplier, healthcheckInterval);
   }
 
   @GET
@@ -57,17 +54,14 @@ public class HealthcheckResource {
   }
 
   private HealthcheckResponse getResponse() {
-    if (responseCache.isEmpty() || timeSinceLastResponse().compareTo(healthcheckInterval) > 0) {
-      final HealthcheckResponse response = healthcheckAgent.checkHealth();
-      responseCache.cache(response);
-      return response;
-    } else {
-      return responseCache.lastResponse();
+    final Optional<HealthcheckResponse> response = responseCache.get();
+    if (response.isPresent()) {
+      return response.get();
     }
-  }
 
-  private Duration timeSinceLastResponse() {
-    return Duration.ofMillis(currentTimeSupplier.get() - responseCache.lastTimestamp());
+    final HealthcheckResponse fresh = healthcheckAgent.checkHealth();
+    responseCache.cache(fresh);
+    return fresh;
   }
 
   public static HealthcheckResource create(
@@ -84,13 +78,19 @@ public class HealthcheckResource {
     );
   }
 
+  /* Caches a HealthcheckResponse for the specified duration */
   private static class ResponseCache {
     private final Supplier<Long> currentTimeSupplier;
+    private final Duration cacheDuration;
     private HealthcheckResponse response;
     private long timestamp;
 
-    ResponseCache(final Supplier<Long> currentTimeSupplier) {
+    ResponseCache(
+        final Supplier<Long> currentTimeSupplier,
+        final Duration cacheDuration
+    ) {
       this.currentTimeSupplier = Objects.requireNonNull(currentTimeSupplier, "currentTimeSupplier");
+      this.cacheDuration = Objects.requireNonNull(cacheDuration, "cacheDuration");
     }
 
     void cache(final HealthcheckResponse response) {
@@ -98,16 +98,16 @@ public class HealthcheckResource {
       this.timestamp = currentTimeSupplier.get();
     }
 
-    boolean isEmpty() {
-      return response == null;
+    Optional<HealthcheckResponse> get() {
+      if (response == null || timeSinceLastResponse().compareTo(cacheDuration) > 0) {
+        return Optional.empty();
+      } else {
+        return Optional.of(response);
+      }
     }
 
-    HealthcheckResponse lastResponse() {
-      return response;
-    }
-
-    long lastTimestamp() {
-      return timestamp;
+    private Duration timeSinceLastResponse() {
+      return Duration.ofMillis(currentTimeSupplier.get() - timestamp);
     }
   }
 }

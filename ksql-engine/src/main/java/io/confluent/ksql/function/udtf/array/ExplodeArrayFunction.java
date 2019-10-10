@@ -22,7 +22,7 @@ import org.apache.kafka.connect.data.Schema;
 
 public class ExplodeArrayFunction<T> extends BaseTableFunction<List<T>, T> {
 
-  ExplodeArrayFunction(
+  public ExplodeArrayFunction(
       final FunctionName functionName,
       final Schema outputType,
       final List<Schema> arguments,

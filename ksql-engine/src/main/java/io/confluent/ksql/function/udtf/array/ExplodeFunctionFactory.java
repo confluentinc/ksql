@@ -40,7 +40,7 @@ public class ExplodeFunctionFactory extends TableFunctionFactory {
 
   @SuppressWarnings("unchecked")
   @Override
-  public KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
+  public KsqlTableFunction<?, ?> createTableFunction(final List<Schema> argTypeList) {
     if (argTypeList.size() != 1) {
       throw new KsqlException("EXPLODE function should have one arguments.");
     }

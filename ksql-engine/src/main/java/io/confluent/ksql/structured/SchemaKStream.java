@@ -87,7 +87,7 @@ public class SchemaKStream<K> {
 
   private static final String GROUP_BY_COLUMN_SEPARATOR = "|+|";
 
-  public enum Type {SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN}
+  public enum Type { SOURCE, PROJECT, FILTER, AGGREGATE, SINK, REKEY, JOIN }
 
   final KeyFormat keyFormat;
   final KeyField keyField;

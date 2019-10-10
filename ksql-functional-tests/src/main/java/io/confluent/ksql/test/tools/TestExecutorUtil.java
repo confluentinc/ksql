@@ -311,7 +311,7 @@ public final class TestExecutorUtil {
 
     final ExecuteResult executeResult;
     try {
-      executeResult = executionContext.execute(reformatted);
+      executeResult = executionContext.execute(executionContext.getServiceContext(), reformatted);
     } catch (final KsqlStatementException statementException) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

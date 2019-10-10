@@ -197,14 +197,19 @@ public class KsqlContext implements AutoCloseable {
     final CustomExecutor executor =
         CustomExecutors.EXECUTOR_MAP.getOrDefault(
             configured.getStatement().getClass(),
-            (s, props) -> executionContext.execute(s));
+            (serviceContext, s, props) -> executionContext.execute(serviceContext, s));
 
-    return executor.apply(configured, mutableSessionPropertyOverrides);
+    return executor.apply(
+        executionContext.getServiceContext(),
+        configured,
+        mutableSessionPropertyOverrides
+    );
   }
 
   @FunctionalInterface
   private interface CustomExecutor {
     ExecuteResult apply(
+        ServiceContext serviceContext,
         ConfiguredStatement<?> statement,
         Map<String, Object> mutableSessionPropertyOverrides
     );
@@ -213,11 +218,11 @@ public class KsqlContext implements AutoCloseable {
   @SuppressWarnings("unchecked")
   private enum CustomExecutors {
 
-    SET_PROPERTY(SetProperty.class, (stmt, props) -> {
+    SET_PROPERTY(SetProperty.class, (serviceContext, stmt, props) -> {
       PropertyOverrider.set((ConfiguredStatement<SetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
     }),
-    UNSET_PROPERTY(UnsetProperty.class, (stmt, props) -> {
+    UNSET_PROPERTY(UnsetProperty.class, (serviceContext, stmt, props) -> {
       PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
     })
@@ -251,10 +256,11 @@ public class KsqlContext implements AutoCloseable {
     }
 
     public ExecuteResult execute(
+        final ServiceContext serviceContext,
         final ConfiguredStatement<?> statement,
         final Map<String, Object> mutableSessionPropertyOverrides
     ) {
-      return executor.apply(statement, mutableSessionPropertyOverrides);
+      return executor.apply(serviceContext, statement, mutableSessionPropertyOverrides);
     }
   }
 }

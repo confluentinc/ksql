@@ -123,9 +123,11 @@ public class KsqlContextTest {
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of("success"));
+    when(ksqlEngine.execute(any(), any())).thenReturn(ExecuteResult.of("success"));
 
     when(ksqlEngine.createSandbox(any())).thenReturn(sandbox);
+
+    when(ksqlEngine.getServiceContext()).thenReturn(serviceContext);
 
     when(sandbox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandbox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
@@ -163,9 +165,9 @@ public class KsqlContextTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(eq(STMT_0_WITH_SCHEMA));
+    inOrder.verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_0_WITH_SCHEMA));
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA));
+    inOrder.verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_1_WITH_SCHEMA));
   }
 
   @Test
@@ -179,10 +181,10 @@ public class KsqlContextTest {
 
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine, sandbox);
-    inOrder.verify(sandbox).execute(eq(STMT_0_WITH_SCHEMA));
-    inOrder.verify(sandbox).execute(eq(STMT_1_WITH_SCHEMA));
-    inOrder.verify(ksqlEngine).execute(eq(STMT_0_WITH_SCHEMA));
-    inOrder.verify(ksqlEngine).execute(eq(STMT_1_WITH_SCHEMA));
+    inOrder.verify(sandbox).execute(eq(sandbox.getServiceContext()), eq(STMT_0_WITH_SCHEMA));
+    inOrder.verify(sandbox).execute(eq(sandbox.getServiceContext()), eq(STMT_1_WITH_SCHEMA));
+    inOrder.verify(ksqlEngine).execute(eq(ksqlEngine.getServiceContext()), eq(STMT_0_WITH_SCHEMA));
+    inOrder.verify(ksqlEngine).execute(eq(ksqlEngine.getServiceContext()), eq(STMT_1_WITH_SCHEMA));
   }
 
   @Test
@@ -202,7 +204,7 @@ public class KsqlContextTest {
   @Test
   public void shouldThrowIfSandboxExecuteThrows() {
     // Given:
-    when(sandbox.execute(any()))
+    when(sandbox.execute(any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // Expect
@@ -216,7 +218,7 @@ public class KsqlContextTest {
   @Test
   public void shouldThrowIfExecuteThrows() {
     // Given:
-    when(ksqlEngine.execute(any()))
+    when(ksqlEngine.execute(any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // Expect
@@ -230,7 +232,7 @@ public class KsqlContextTest {
   @Test
   public void shouldNotExecuteAnyStatementsIfTryExecuteThrows() {
     // Given:
-    when(sandbox.execute(any()))
+    when(sandbox.execute(any(), any()))
         .thenThrow(new KsqlException("Bad tings happen"));
 
     // When:
@@ -241,13 +243,13 @@ public class KsqlContextTest {
     }
 
     // Then:
-    verify(ksqlEngine, never()).execute(any());
+    verify(ksqlEngine, never()).execute(any(), any());
   }
 
   @Test
   public void shouldStartPersistentQueries() {
     // Given:
-    when(ksqlEngine.execute(any()))
+    when(ksqlEngine.execute(any(), any()))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
@@ -260,7 +262,7 @@ public class KsqlContextTest {
   @Test
   public void shouldNotBlowUpOnSqlThatDoesNotResultInPersistentQueries() {
     // Given:
-    when(ksqlEngine.execute(any()))
+    when(ksqlEngine.execute(any(), any()))
         .thenReturn(ExecuteResult.of(transientQuery));
 
     // When:
@@ -291,7 +293,7 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine).execute(eq(STMT_0_WITH_SCHEMA));
+    verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_0_WITH_SCHEMA));
   }
 
   @Test
@@ -319,7 +321,7 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine).execute(eq(STMT_0_WITH_TOPIC));
+    verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_0_WITH_TOPIC));
   }
 
   @Test
@@ -360,7 +362,7 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine).execute(STMT_1_WITH_TOPIC);
+    verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_1_WITH_TOPIC));
   }
 
   @SuppressWarnings("unchecked")
@@ -382,10 +384,14 @@ public class KsqlContextTest {
     ksqlContext.sql("SQL;", ImmutableMap.of());
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(
-        PREPARED_STMT_0, ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
-        SOME_CONFIG
-    ));
+    verify(ksqlEngine, times(3)).execute(
+        ksqlEngine.getServiceContext(),
+        ConfiguredStatement.of(
+            PREPARED_STMT_0, ImmutableMap.of(
+                ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
+            ),
+            SOME_CONFIG
+        ));
   }
 
   @SuppressWarnings("unchecked")
@@ -407,9 +413,11 @@ public class KsqlContextTest {
     ksqlContext.sql("SQL;", ImmutableMap.of());
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(
-        PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
-    ));
+    verify(ksqlEngine, times(3)).execute(
+        ksqlEngine.getServiceContext(),
+        ConfiguredStatement.of(
+            PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
+        ));
   }
 
   @SuppressWarnings("unchecked")
@@ -433,8 +441,10 @@ public class KsqlContextTest {
     ksqlContext.sql("SQL;", properties);
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(
-        PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
-    ));
+    verify(ksqlEngine, times(3)).execute(
+        ksqlEngine.getServiceContext(),
+        ConfiguredStatement.of(
+            PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
+        ));
   }
 }

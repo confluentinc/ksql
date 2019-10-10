@@ -74,7 +74,7 @@ public class KsqlRestConfig extends RestConfig {
   public static final String KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG =
       KSQL_CONFIG_PREFIX + "healthcheck.interval.ms";
   private static final String KSQL_HEALTHCHECK_INTERVAL_MS_DOC =
-      "Minimum time between consecutive healthcheck evaluations. Healthcheck queries before "
+      "Minimum time between consecutive health check evaluations. Health check queries before "
           + "the interval has elapsed will receive cached responses.";
 
   private static final ConfigDef CONFIG_DEF;

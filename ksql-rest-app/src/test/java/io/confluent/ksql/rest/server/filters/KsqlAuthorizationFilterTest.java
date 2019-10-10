@@ -114,7 +114,7 @@ public class KsqlAuthorizationFilterTest {
   }
 
   @Test
-  public void filterShouldContinueOnUnauthorizedHealthcheckPath() {
+  public void filterShouldContinueOnUnauthorizedHealthCheckPath() {
     // Given:
     ContainerRequest request = givenRequestContext(userPrincipal, "GET", "healthcheck");
 

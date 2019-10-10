@@ -22,8 +22,8 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import io.confluent.ksql.rest.entity.HealthcheckResponse;
-import io.confluent.ksql.rest.healthcheck.HealthcheckAgent;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
+import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import java.time.Duration;
 import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
@@ -34,29 +34,29 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HealthcheckResourceTest {
+public class HealthCheckResourceTest {
 
   private static final Duration HEALTHCHECK_INTERVAL = Duration.ofMillis(15);
 
   @Mock
-  private HealthcheckAgent healthcheckAgent;
+  private HealthCheckAgent healthCheckAgent;
   @Mock
   private Supplier<Long> currentTimeSupplier;
   @Mock
-  private HealthcheckResponse response1;
+  private HealthCheckResponse response1;
   @Mock
-  private HealthcheckResponse response2;
-  private HealthcheckResource healthcheckResource;
+  private HealthCheckResponse response2;
+  private HealthCheckResource healthCheckResource;
 
   @Before
   public void setUp() {
-    when(healthcheckAgent.checkHealth())
+    when(healthCheckAgent.checkHealth())
         .thenReturn(response1)
         .thenReturn(response2);
     when(currentTimeSupplier.get()).thenReturn(1000L);
 
-    healthcheckResource = new HealthcheckResource(
-        healthcheckAgent,
+    healthCheckResource = new HealthCheckResource(
+        healthCheckAgent,
         HEALTHCHECK_INTERVAL,
         currentTimeSupplier
     );
@@ -65,12 +65,12 @@ public class HealthcheckResourceTest {
   @Test
   public void shouldCheckHealth() {
     // When:
-    final Response response = healthcheckResource.checkHealth();
+    final Response response = healthCheckResource.checkHealth();
 
     // Then:
-    verify(healthcheckAgent).checkHealth();
+    verify(healthCheckAgent).checkHealth();
     assertThat(response.getStatus(), is(200));
-    assertThat(response.getEntity(), instanceOf(HealthcheckResponse.class));
+    assertThat(response.getEntity(), instanceOf(HealthCheckResponse.class));
   }
 
   @Test
@@ -79,10 +79,10 @@ public class HealthcheckResourceTest {
     when(currentTimeSupplier.get())
         .thenReturn(1000L)  // time when first response is cached
         .thenReturn(1010L); // time of second checkHealth()
-    healthcheckResource.checkHealth();
+    healthCheckResource.checkHealth();
 
     // When:
-    final Response response = healthcheckResource.checkHealth();
+    final Response response = healthCheckResource.checkHealth();
 
     // Then:
     assertThat(response.getEntity(), sameInstance(response1));
@@ -95,10 +95,10 @@ public class HealthcheckResourceTest {
         .thenReturn(1000L)  // time when first response is cached
         .thenReturn(1020L)  // time of second checkHealth()
         .thenReturn(1020L); // time when second response is cached
-    healthcheckResource.checkHealth();
+    healthCheckResource.checkHealth();
 
     // When:
-    final Response response = healthcheckResource.checkHealth();
+    final Response response = healthCheckResource.checkHealth();
 
     // Then:
     assertThat(response.getEntity(), sameInstance(response2));

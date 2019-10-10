@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.HealthcheckResponse;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -40,7 +40,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class HealthcheckAgentTest {
+public class HealthCheckAgentTest {
 
   private static final String SERVER_ADDRESS = "http://serverhost:8088";
   private static URI SERVER_URI;
@@ -60,7 +60,7 @@ public class HealthcheckAgentTest {
   private RestResponse<KsqlEntityList> successfulResponse;
   @Mock
   private RestResponse<KsqlEntityList> unSuccessfulResponse;
-  private HealthcheckAgent healthcheckAgent;
+  private HealthCheckAgent healthCheckAgent;
 
   @Before
   public void setUp() {
@@ -70,13 +70,13 @@ public class HealthcheckAgentTest {
     when(successfulResponse.isSuccessful()).thenReturn(true);
     when(unSuccessfulResponse.isSuccessful()).thenReturn(false);
 
-    healthcheckAgent = new HealthcheckAgent(ksqlClient, restConfig);
+    healthCheckAgent = new HealthCheckAgent(ksqlClient, restConfig);
   }
 
   @Test
   public void shouldCheckHealth() {
     // When:
-    final HealthcheckResponse response = healthcheckAgent.checkHealth();
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
     verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any());
@@ -92,7 +92,7 @@ public class HealthcheckAgentTest {
         .thenReturn(unSuccessfulResponse);
 
     // When:
-    final HealthcheckResponse response = healthcheckAgent.checkHealth();
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
     assertThat(response.getDetails().get("metastore").getIsHealthy(), is(false));
@@ -106,7 +106,7 @@ public class HealthcheckAgentTest {
         .thenReturn(unSuccessfulResponse);
 
     // When:
-    final HealthcheckResponse response = healthcheckAgent.checkHealth();
+    final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
     assertThat(response.getDetails().get("kafka").getIsHealthy(), is(false));

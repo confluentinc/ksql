@@ -16,9 +16,9 @@
 package io.confluent.ksql.rest.server.resources;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.ksql.rest.entity.HealthcheckResponse;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.healthcheck.HealthcheckAgent;
+import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -34,18 +34,18 @@ import javax.ws.rs.core.Response;
 
 @Path("/healthcheck")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
-public class HealthcheckResource {
-  private final HealthcheckAgent healthcheckAgent;
+public class HealthCheckResource {
+  private final HealthCheckAgent healthCheckAgent;
   private final ResponseCache responseCache;
 
   @VisibleForTesting
-  HealthcheckResource(
-      final HealthcheckAgent healthcheckAgent,
-      final Duration healthcheckInterval,
+  HealthCheckResource(
+      final HealthCheckAgent healthCheckAgent,
+      final Duration healthCheckInterval,
       final Supplier<Long> currentTimeSupplier
   ) {
-    this.healthcheckAgent = Objects.requireNonNull(healthcheckAgent, "healthcheckAgent");
-    this.responseCache = new ResponseCache(currentTimeSupplier, healthcheckInterval);
+    this.healthCheckAgent = Objects.requireNonNull(healthCheckAgent, "healthCheckAgent");
+    this.responseCache = new ResponseCache(currentTimeSupplier, healthCheckInterval);
   }
 
   @GET
@@ -53,24 +53,24 @@ public class HealthcheckResource {
     return Response.ok(getResponse()).build();
   }
 
-  private HealthcheckResponse getResponse() {
-    final Optional<HealthcheckResponse> response = responseCache.get();
+  private HealthCheckResponse getResponse() {
+    final Optional<HealthCheckResponse> response = responseCache.get();
     if (response.isPresent()) {
       return response.get();
     }
 
-    final HealthcheckResponse fresh = healthcheckAgent.checkHealth();
+    final HealthCheckResponse fresh = healthCheckAgent.checkHealth();
     responseCache.cache(fresh);
     return fresh;
   }
 
-  public static HealthcheckResource create(
+  public static HealthCheckResource create(
       final KsqlResource ksqlResource,
       final ServiceContext serviceContext,
       final KsqlRestConfig restConfig
   ) {
-    return new HealthcheckResource(
-        new HealthcheckAgent(
+    return new HealthCheckResource(
+        new HealthCheckAgent(
             new ServerInternalKsqlClient(ksqlResource, serviceContext),
             restConfig),
         Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG)),
@@ -78,11 +78,11 @@ public class HealthcheckResource {
     );
   }
 
-  /* Caches a HealthcheckResponse for the specified duration */
+  /* Caches a HealthCheckResponse for the specified duration */
   private static class ResponseCache {
     private final Supplier<Long> currentTimeSupplier;
     private final Duration cacheDuration;
-    private HealthcheckResponse response;
+    private HealthCheckResponse response;
     private long timestamp;
 
     ResponseCache(
@@ -93,12 +93,12 @@ public class HealthcheckResource {
       this.cacheDuration = Objects.requireNonNull(cacheDuration, "cacheDuration");
     }
 
-    void cache(final HealthcheckResponse response) {
+    void cache(final HealthCheckResponse response) {
       this.response = response;
       this.timestamp = currentTimeSupplier.get();
     }
 
-    Optional<HealthcheckResponse> get() {
+    Optional<HealthCheckResponse> get() {
       if (response == null || timeSinceLastResponse().compareTo(cacheDuration) > 0) {
         return Optional.empty();
       } else {

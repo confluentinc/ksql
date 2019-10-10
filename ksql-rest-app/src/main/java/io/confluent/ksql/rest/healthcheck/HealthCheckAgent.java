@@ -17,8 +17,8 @@ package io.confluent.ksql.rest.healthcheck;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.HealthcheckResponse;
-import io.confluent.ksql.rest.entity.HealthcheckResponseDetail;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
+import io.confluent.ksql.rest.entity.HealthCheckResponseDetail;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.services.SimpleKsqlClient;
@@ -31,7 +31,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.config.ConfigException;
 
-public class HealthcheckAgent {
+public class HealthCheckAgent {
 
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
       new ExecuteStatementCheck("metastore", "list streams; list tables; list queries;"),
@@ -41,7 +41,7 @@ public class HealthcheckAgent {
   private final SimpleKsqlClient ksqlClient;
   private final URI serverEndpoint;
 
-  public HealthcheckAgent(
+  public HealthCheckAgent(
       final SimpleKsqlClient ksqlClient,
       final KsqlRestConfig restConfig
   ) {
@@ -49,17 +49,17 @@ public class HealthcheckAgent {
     this.serverEndpoint = getServerAddress(restConfig);
   }
 
-  public HealthcheckResponse checkHealth() {
-    final Map<String, HealthcheckResponseDetail> results = DEFAULT_CHECKS.stream()
+  public HealthCheckResponse checkHealth() {
+    final Map<String, HealthCheckResponseDetail> results = DEFAULT_CHECKS.stream()
         .collect(Collectors.toMap(
             Check::getName,
             check -> check.check(ksqlClient, serverEndpoint)
         ));
     final boolean allHealthy = results.values().stream()
-        .map(HealthcheckResponseDetail::getIsHealthy)
+        .map(HealthCheckResponseDetail::getIsHealthy)
         .reduce(Boolean::logicalAnd)
         .orElse(true);
-    return new HealthcheckResponse(allHealthy, results);
+    return new HealthCheckResponse(allHealthy, results);
   }
 
   private static URI getServerAddress(final KsqlRestConfig restConfig) {
@@ -86,7 +86,7 @@ public class HealthcheckAgent {
   private interface Check {
     String getName();
 
-    HealthcheckResponseDetail check(SimpleKsqlClient ksqlClient, URI serverEndpoint);
+    HealthCheckResponseDetail check(SimpleKsqlClient ksqlClient, URI serverEndpoint);
   }
 
   private static class ExecuteStatementCheck implements Check {
@@ -104,13 +104,13 @@ public class HealthcheckAgent {
     }
 
     @Override
-    public HealthcheckResponseDetail check(
+    public HealthCheckResponseDetail check(
         final SimpleKsqlClient ksqlClient,
         final URI serverEndpoint
     ) {
       final RestResponse<KsqlEntityList> response =
           ksqlClient.makeKsqlRequest(serverEndpoint, ksqlStatement);
-      return new HealthcheckResponseDetail(response.isSuccessful());
+      return new HealthCheckResponseDetail(response.isSuccessful());
     }
   }
 }

@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.server.filters;
 
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.server.resources.HealthcheckResource;
+import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
 import java.lang.reflect.Method;
@@ -42,7 +42,7 @@ public class KsqlAuthorizationFilter implements ContainerRequestFilter  {
 
   private static final Set<String> PATHS_WITHOUT_AUTHORIZATION = getPathsFrom(
       ServerMetadataResource.class,
-      HealthcheckResource.class
+      HealthCheckResource.class
   );
 
   private final KsqlAuthorizationProvider authorizationProvider;

@@ -30,7 +30,7 @@ import javax.ws.rs.core.Response;
 
 /**
  * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
- * over the network. Used by HealthcheckResource to bypass needing authentication credentials
+ * over the network. Used by HealthCheckResource to bypass needing authentication credentials
  * when submitting health check requests.
  */
 public class ServerInternalKsqlClient implements SimpleKsqlClient {

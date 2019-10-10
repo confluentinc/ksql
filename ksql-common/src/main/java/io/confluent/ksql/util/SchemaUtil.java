@@ -15,32 +15,22 @@
 
 package io.confluent.ksql.util;
 
-import static org.apache.avro.Schema.create;
-import static org.apache.avro.Schema.createArray;
-import static org.apache.avro.Schema.createMap;
-import static org.apache.avro.Schema.createUnion;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiPredicate;
-import org.apache.avro.LogicalTypes;
-import org.apache.avro.SchemaBuilder.FieldAssembler;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class SchemaUtil {
-
-  private static final String DEFAULT_NAMESPACE = "ksql";
 
   public static final ColumnName ROWKEY_NAME = ColumnName.of("ROWKEY");
   public static final ColumnName ROWTIME_NAME = ColumnName.of("ROWTIME");
@@ -100,85 +90,7 @@ public final class SchemaUtil {
     return prefix + fieldName;
   }
 
-  public static org.apache.avro.Schema buildAvroSchema(
-      final PersistenceSchema schema,
-      final String name
-  ) {
-    return buildAvroSchema(DEFAULT_NAMESPACE, name, schema.serializedSchema());
-  }
-
-  private static org.apache.avro.Schema buildAvroSchema(
-      final String namespace,
-      final String name,
-      final Schema schema
-  ) {
-    switch (schema.type()) {
-      case STRING:
-        return create(org.apache.avro.Schema.Type.STRING);
-      case BOOLEAN:
-        return create(org.apache.avro.Schema.Type.BOOLEAN);
-      case INT32:
-        return create(org.apache.avro.Schema.Type.INT);
-      case INT64:
-        return create(org.apache.avro.Schema.Type.LONG);
-      case FLOAT64:
-        return create(org.apache.avro.Schema.Type.DOUBLE);
-      case BYTES:
-        return createBytesSchema(schema);
-      case ARRAY:
-        return createArray(unionWithNull(buildAvroSchema(namespace, name, schema.valueSchema())));
-      case MAP:
-        return createMap(unionWithNull(buildAvroSchema(namespace, name, schema.valueSchema())));
-      case STRUCT:
-        return buildAvroSchemaFromStruct(namespace, name, schema);
-      default:
-        throw new KsqlException("Unsupported AVRO type: " + schema.type().name());
-    }
-  }
-
-  private static org.apache.avro.Schema createBytesSchema(
-      final Schema schema
-  ) {
-    DecimalUtil.requireDecimal(schema);
-    return LogicalTypes.decimal(DecimalUtil.precision(schema), DecimalUtil.scale(schema))
-        .addToSchema(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.BYTES));
-  }
-
-  private static org.apache.avro.Schema buildAvroSchemaFromStruct(
-      final String namespace,
-      final String name,
-      final Schema schema
-  ) {
-    final String avroName = avroify(name);
-    final FieldAssembler<org.apache.avro.Schema> fieldAssembler = org.apache.avro.SchemaBuilder
-        .record(avroName)
-        .namespace(namespace)
-        .fields();
-
-    for (final Field field : schema.fields()) {
-      final String fieldName = avroify(field.name());
-      final String fieldNamespace = namespace + "." + avroName;
-
-      fieldAssembler
-          .name(fieldName)
-          .type(unionWithNull(buildAvroSchema(fieldNamespace, fieldName, field.schema())))
-          .withDefault(null);
-    }
-
-    return fieldAssembler.endRecord();
-  }
-
-  private static String avroify(final String name) {
-    return name
-        .replace(".", "_")
-        .replace("-", "_");
-  }
-
-  private static org.apache.avro.Schema unionWithNull(final org.apache.avro.Schema schema) {
-    return createUnion(org.apache.avro.Schema.create(org.apache.avro.Schema.Type.NULL), schema);
-  }
-
-  static String getFieldNameWithNoAlias(final String fieldName) {
+  public static String getFieldNameWithNoAlias(final String fieldName) {
     final int idx = fieldName.indexOf(FIELD_NAME_DELIMITER);
     if (idx < 0) {
       return fieldName;

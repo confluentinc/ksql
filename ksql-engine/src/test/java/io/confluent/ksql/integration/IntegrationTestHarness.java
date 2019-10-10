@@ -29,6 +29,7 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.GenericRowSerDe;
+import io.confluent.ksql.serde.avro.AvroSchemas;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -36,7 +37,6 @@ import io.confluent.ksql.test.util.ConsumerTestUtil;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TestDataProvider;
 import java.time.Duration;
 import java.util.Arrays;
@@ -551,11 +551,14 @@ public final class IntegrationTestHarness extends ExternalResource {
     ).deserializer();
   }
 
-  public void ensureSchema(final String topicName, final PhysicalSchema schema) {
+  public void ensureSchema(
+      final String topicName,
+      final PhysicalSchema schema,
+      final KsqlConfig ksqlConfig) {
     final SchemaRegistryClient srClient = serviceContext.get().getSchemaRegistryClient();
     try {
-      final org.apache.avro.Schema avroSchema = SchemaUtil
-          .buildAvroSchema(schema.valueSchema(), "test-" + topicName);
+      final org.apache.avro.Schema avroSchema = AvroSchemas
+          .getAvroSchema(schema.valueSchema(), "test_" + topicName, ksqlConfig);
 
       srClient.register(topicName + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX, avroSchema);
     } catch (final Exception e) {

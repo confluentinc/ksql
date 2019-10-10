@@ -67,4 +67,11 @@ public class ClusterTerminateRequest {
     final ClusterTerminateRequest that = (ClusterTerminateRequest) o;
     return Objects.equals(deleteTopicList, that.deleteTopicList);
   }
+
+  @Override
+  public String toString() {
+    return "ClusterTerminateRequest{"
+        + "deleteTopicList=" + deleteTopicList
+        + '}';
+  }
 }

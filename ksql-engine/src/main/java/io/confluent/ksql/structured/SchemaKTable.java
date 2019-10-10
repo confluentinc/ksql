@@ -30,7 +30,6 @@ import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
@@ -39,7 +38,6 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
@@ -48,7 +46,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class SchemaKTable<K> extends SchemaKStream<K> {
@@ -58,7 +55,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKTable(
       final ExecutionStep<KTableHolder<K>> sourceTableStep,
       final KeyFormat keyFormat,
-      final KeySerde<K> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final Type type,
@@ -69,7 +65,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
         null,
         Objects.requireNonNull(sourceTableStep, "sourceTableStep").getProperties(),
         keyFormat,
-        keySerde,
         keyField,
         sourceSchemaKStreams,
         type,
@@ -86,8 +81,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final LogicalSchema outputSchema,
       final ValueFormat valueFormat,
       final Set<SerdeOption> options,
-      final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder builder
+      final QueryContext.Stacker contextStacker
   ) {
     final TableSink<K> step = ExecutionStepFactory.tableSink(
         contextStacker,
@@ -99,7 +93,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         keyField,
         sourceSchemaKStreams,
         type,
@@ -112,8 +105,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
-      final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder queryBuilder
+      final QueryContext.Stacker contextStacker
   ) {
     final TableFilter<K> step = ExecutionStepFactory.tableFilter(
         contextStacker,
@@ -123,7 +115,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         keyField,
         Collections.singletonList(this),
         Type.FILTER,
@@ -149,7 +140,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         selection.getKey(),
         Collections.singletonList(this),
         Type.PROJECT,
@@ -172,14 +162,10 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
-      final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder queryBuilder
+      final QueryContext.Stacker contextStacker
   ) {
 
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
-
-    final KeySerde<Struct> groupedKeySerde = keySerde
-        .rebind(StructKeyUtil.ROWKEY_SERIALIZED_SCHEMA);
 
     final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
     final LegacyField legacyKeyField = LegacyField.notInSchema(aggregateKeyName, SqlTypes.STRING);
@@ -196,7 +182,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKGroupedTable(
         step,
         groupedKeyFormat,
-        groupedKeySerde,
         KeyField.of(newKeyField, Optional.of(legacyKeyField)),
         Collections.singletonList(this),
         ksqlConfig,
@@ -219,7 +204,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         keyField,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
@@ -244,7 +228,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         keyField,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,
@@ -269,7 +252,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        keySerde,
         keyField,
         ImmutableList.of(this, schemaKTable),
         Type.JOIN,

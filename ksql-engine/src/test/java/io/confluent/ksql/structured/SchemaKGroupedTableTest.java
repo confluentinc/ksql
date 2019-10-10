@@ -18,7 +18,6 @@ package io.confluent.ksql.structured;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,31 +29,23 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
-import org.apache.kafka.streams.kstream.ValueMapper;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,16 +78,14 @@ public class SchemaKGroupedTableTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final MaterializedFactory materializedFactory = mock(MaterializedFactory.class);
-  private final QueryContext.Stacker queryContext = new QueryContext.Stacker().push("node");
+  private final QueryContext.Stacker queryContext
+      = new QueryContext.Stacker().push("node");
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.JSON));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  @Mock
-  private KeySerde<Struct> keySerde;
   @Mock
   private KsqlQueryBuilder queryBuilder;
 
@@ -116,7 +105,7 @@ public class SchemaKGroupedTableTest {
     // Given:
     final WindowExpression windowExp = mock(WindowExpression.class);
 
-    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable(materializedFactory);
+    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable();
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -138,7 +127,7 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldFailUnsupportedAggregateFunction() {
     // Given:
-    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable(materializedFactory);
+    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -158,26 +147,23 @@ public class SchemaKGroupedTableTest {
     );
   }
 
-  private SchemaKGroupedTable buildSchemaKGroupedTable(
-      final MaterializedFactory materializedFactory
-  ) {
+  private SchemaKGroupedTable buildSchemaKGroupedTable() {
     return new SchemaKGroupedTable(
         buildSourceTableStep(IN_SCHEMA),
         keyFormat,
-        keySerde,
         KeyField.of(
             IN_SCHEMA.value().get(0).ref(),
             IN_SCHEMA.value().get(0)),
         Collections.emptyList(),
         ksqlConfig,
-        functionRegistry,
-        materializedFactory);
+        functionRegistry
+    );
   }
 
   @Test
   public void shouldBuildStepForAggregate() {
     // Given:
-    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable(materializedFactory);
+    final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
     final SchemaKTable result = kGroupedTable.aggregate(
         AGG_SCHEMA,
@@ -210,7 +196,7 @@ public class SchemaKGroupedTableTest {
   @Test
   public void shouldReturnKTableWithOutputSchema() {
     // Given:
-    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable(materializedFactory);
+    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable();
 
     // When:
     final SchemaKTable result = groupedTable.aggregate(
@@ -231,7 +217,7 @@ public class SchemaKGroupedTableTest {
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnColumnCountMismatch() {
     // Given:
-    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable(materializedFactory);
+    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable();
 
     // When:
     groupedTable.aggregate(

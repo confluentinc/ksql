@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -53,11 +52,9 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
@@ -80,7 +77,6 @@ import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.utils.Utils;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
@@ -170,10 +166,6 @@ public class JoinNodeTest {
   private FunctionRegistry functionRegistry;
   @Mock
   private KafkaTopicClient mockKafkaTopicClient;
-  @Mock
-  private KeySerde<Struct> keySerde;
-  @Mock
-  private KeySerde<Struct> reboundKeySerde;
 
   @Before
   public void setUp() {
@@ -191,9 +183,6 @@ public class JoinNodeTest {
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
         new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
-    when(ksqlStreamBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-
-    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
 
     when(left.getAlias()).thenReturn(LEFT_ALIAS);
     when(right.getAlias()).thenReturn(RIGHT_ALIAS);
@@ -363,8 +352,7 @@ public class JoinNodeTest {
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
-        eq(CONTEXT_STACKER),
-        same(ksqlStreamBuilder)
+        eq(CONTEXT_STACKER)
     );
   }
 
@@ -395,8 +383,7 @@ public class JoinNodeTest {
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
-        eq(CONTEXT_STACKER),
-        same(ksqlStreamBuilder)
+        eq(CONTEXT_STACKER)
     );
   }
 
@@ -427,8 +414,7 @@ public class JoinNodeTest {
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
-        eq(CONTEXT_STACKER),
-        same(ksqlStreamBuilder)
+        eq(CONTEXT_STACKER)
     );
   }
 
@@ -568,8 +554,7 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
-        eq(CONTEXT_STACKER),
-        same(ksqlStreamBuilder)
+        eq(CONTEXT_STACKER)
     );
   }
 
@@ -598,8 +583,7 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
-        eq(CONTEXT_STACKER),
-        same(ksqlStreamBuilder)
+        eq(CONTEXT_STACKER)
     );
   }
 
@@ -628,8 +612,7 @@ public class JoinNodeTest {
         eq(JOIN_SCHEMA),
         eq(leftJoinField),
         eq(VALUE_FORMAT),
-        eq(CONTEXT_STACKER),
-        same(ksqlStreamBuilder)
+        eq(CONTEXT_STACKER)
     );
   }
 

@@ -18,58 +18,32 @@ package io.confluent.ksql.structured;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyType;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.streams.StreamJoinedFactory;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
-import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
-import io.confluent.ksql.execution.streams.AggregateParams;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.GroupedFactory;
-import io.confluent.ksql.execution.streams.JoinedFactory;
-import io.confluent.ksql.execution.streams.KSPlanBuilder;
-import io.confluent.ksql.execution.streams.KsqlValueJoiner;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
-import io.confluent.ksql.execution.streams.SqlPredicateFactory;
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -89,17 +63,12 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
-import io.confluent.ksql.serde.GenericRowSerDe;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
-import io.confluent.ksql.execution.streams.StreamsFactories;
 import io.confluent.ksql.structured.SchemaKStream.Type;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -107,27 +76,10 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import org.apache.kafka.common.serialization.Serde;
-import org.apache.kafka.common.serialization.Serdes;
-import org.apache.kafka.connect.data.ConnectSchema;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.StreamsBuilder;
-import org.apache.kafka.streams.kstream.Consumed;
-import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.Joined;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.KeyValueMapper;
-import org.apache.kafka.streams.kstream.Predicate;
-import org.apache.kafka.streams.kstream.StreamJoined;
-import org.apache.kafka.streams.kstream.ValueMapper;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -142,33 +94,14 @@ public class SchemaKStreamTest {
   private static final Expression COL1 =
       new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL1")));
 
-  private SchemaKStream initialSchemaKStream;
-
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-
-  private final Grouped grouped = Grouped.with(
-      "group", Serdes.String(), Serdes.String());
-  private final Joined joined = Joined.with(
-      Serdes.String(), Serdes.String(), Serdes.String(), "join");
-  private final StreamJoined streamJoined = StreamJoined.with(
-      Serdes.String(), Serdes.String(), Serdes.String()).withName("join");
   private final KeyField validJoinKeyField = KeyField.of(
       Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL1"))),
       metaStore.getSource(SourceName.of("TEST1"))
           .getKeyField()
           .legacy()
           .map(field -> field.withSource(SourceName.of("left"))));
-
-  private KStream secondKStream;
-  private KTable kTable;
-  private KsqlStream<?> ksqlStream;
-  private InternalFunctionRegistry functionRegistry;
-  private SchemaKStream secondSchemaKStream;
-  private SchemaKTable schemaKTable;
-  private Serde<GenericRow> leftSerde;
-  private Serde<GenericRow> rightSerde;
-  private LogicalSchema joinSchema;
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
@@ -180,22 +113,14 @@ public class SchemaKStreamTest {
       = new QueryContext.Stacker().push("node");
   private final QueryContext.Stacker childContextStacker = queryContext.push("child");
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
-  private PlanBuilder planBuilder;
 
-  @Mock
-  private GroupedFactory mockGroupedFactory;
-  @Mock
-  private JoinedFactory mockJoinedFactory;
-  @Mock
-  private MaterializedFactory mockMaterializedFactory;
-  @Mock
-  private StreamJoinedFactory mockStreamJoinedFactory;
-  @Mock
-  private KStream mockKStream;
-  @Mock
-  private KeySerde keySerde;
-  @Mock
-  private KeySerde reboundKeySerde;
+  private SchemaKStream initialSchemaKStream;
+  private SchemaKStream secondSchemaKStream;
+  private SchemaKTable schemaKTable;
+  private KsqlStream<?> ksqlStream;
+  private InternalFunctionRegistry functionRegistry;
+  private LogicalSchema joinSchema;
+
   @Mock
   private ExecutionStepProperties tableSourceProperties;
   @Mock
@@ -206,89 +131,33 @@ public class SchemaKStreamTest {
   private ExecutionStep sourceStep;
   @Mock
   private KsqlQueryBuilder queryBuilder;
-  @Mock
-  private KeySerdeFactory keySerdeFactory;
 
   @Before
   public void init() {
     functionRegistry = new InternalFunctionRegistry();
     ksqlStream = (KsqlStream) metaStore.getSource(SourceName.of("TEST1"));
-    final StreamsBuilder builder = new StreamsBuilder();
-
-    when(mockGroupedFactory.create(anyString(), any(Serde.class), any(Serde.class)))
-        .thenReturn(grouped);
-    when(mockJoinedFactory.create(any(), any(), any(), anyString())).thenReturn(joined);
-    when(mockStreamJoinedFactory.create(any(), any(), any(), anyString(), anyString())).thenReturn(streamJoined);
-
     final KsqlStream secondKsqlStream = (KsqlStream) metaStore.getSource(SourceName.of("ORDERS"));
-    secondKStream = builder
-        .stream(
-            secondKsqlStream.getKsqlTopic().getKafkaTopicName(),
-            Consumed.with(
-                Serdes.String(),
-                getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueConnectSchema())
-            ));
-
-    final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
-    kTable = builder.table(ksqlTable.getKsqlTopic().getKafkaTopicName(),
-        Consumed.with(
-            Serdes.String(),
-            getRowSerde(ksqlTable.getKsqlTopic(), ksqlTable.getSchema().valueConnectSchema())));
-
-    when(tableSourceStep.getProperties()).thenReturn(tableSourceProperties);
-    when(tableSourceProperties.getSchema()).thenReturn(ksqlTable.getSchema());
-    when(sourceStep.getProperties()).thenReturn(sourceProperties);
-
     secondSchemaKStream = buildSchemaKStreamForJoin(
         secondKsqlStream,
-        mock(ExecutionStep.class),
-        secondKStream
+        mock(ExecutionStep.class)
     );
-
-    leftSerde = getRowSerde(ksqlStream.getKsqlTopic(), ksqlStream.getSchema().valueConnectSchema());
-    rightSerde = getRowSerde(secondKsqlStream.getKsqlTopic(), secondKsqlStream.getSchema().valueConnectSchema());
-
-    when(tableSourceStep.build(any())).thenReturn(
-        KTableHolder.unmaterialized(kTable, keySerdeFactory)
-    );
+    final KsqlTable<?> ksqlTable = (KsqlTable) metaStore.getSource(SourceName.of("TEST2"));
+    when(tableSourceStep.getProperties()).thenReturn(tableSourceProperties);
+    when(tableSourceProperties.getSchema()).thenReturn(ksqlTable.getSchema());
     schemaKTable = new SchemaKTable(
         tableSourceStep,
         keyFormat,
-        keySerde,
         ksqlTable.getKeyField(),
         new ArrayList<>(),
         SchemaKStream.Type.SOURCE,
         ksqlConfig,
         functionRegistry);
-
-    joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
-
-    when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
-
+    when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(queryBuilder.getQueryId()).thenReturn(new QueryId("query"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
-
-    whenCreateJoined();
-
-    planBuilder = new KSPlanBuilder(
-        queryBuilder,
-        mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
-        new StreamsFactories(mockGroupedFactory, mockJoinedFactory, mockMaterializedFactory, mockStreamJoinedFactory)
-    );
-  }
-
-  private static Serde<GenericRow> getRowSerde(final KsqlTopic topic, final Schema schema) {
-    return GenericRowSerDe.from(
-        topic.getValueFormat().getFormatInfo(),
-        PersistenceSchema.from((ConnectSchema)schema, false),
-        new KsqlConfig(Collections.emptyMap()),
-        MockSchemaRegistryClient::new,
-        "test",
-        ProcessingLogContext.create());
+    joinSchema = getJoinSchema(ksqlStream.getSchema(), secondKsqlStream.getSchema());
   }
 
   @Test
@@ -313,7 +182,6 @@ public class SchemaKStreamTest {
         Column.of(ColumnName.of("COL2"), SqlTypes.STRING),
         Column.of(ColumnName.of("COL3"), SqlTypes.DOUBLE)
     ));
-
     assertThat(projectedSchemaKStream.getSourceSchemaKStreams().get(0), is(initialSchemaKStream));
   }
 
@@ -500,8 +368,8 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     assertThat(filteredSchemaKStream.getSchema().value(), contains(
@@ -529,8 +397,8 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     final StreamFilter step = (StreamFilter) filteredSchemaKStream.getSourceStep();
@@ -556,8 +424,8 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream filteredSchemaKStream = initialSchemaKStream.filter(
         filterNode.getPredicate(),
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     assertThat(
@@ -590,7 +458,6 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(rekeyedSchemaKStream.getKeyField(), is(expected));
-    assertThat(rekeyedSchemaKStream.getKeySerde(), is(reboundKeySerde));
   }
 
   @Test
@@ -643,8 +510,8 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.of(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL0")))));
@@ -663,8 +530,8 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     final KeyFormat expectedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
@@ -692,8 +559,8 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     final KeyFormat expectedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
@@ -724,8 +591,8 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         groupBy,
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
@@ -743,97 +610,12 @@ public class SchemaKStreamTest {
     final SchemaKGroupedStream groupedSchemaKStream = initialSchemaKStream.groupBy(
         valueFormat,
         ImmutableList.of(groupBy),
-        childContextStacker,
-        queryBuilder);
+        childContextStacker
+    );
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
     assertThat(groupedSchemaKStream.getKeyField().legacy().get().columnRef().name().name(), is("UCASE(TEST1.COL1)"));
-  }
-
-  @Test
-  public void shouldUseFactoryForGroupedWithoutRekey() {
-    // Given:
-    final KGroupedStream groupedStream = mock(KGroupedStream.class);
-    when(mockKStream.groupByKey(any(Grouped.class))).thenReturn(groupedStream);
-    final Expression keyExpression = new ColumnReferenceExp(ColumnRef.of(
-        ksqlStream.getName(),
-        ksqlStream.getKeyField().ref().get().name()
-    ));
-    final List<Expression> groupByExpressions = Collections.singletonList(keyExpression);
-    givenInitialSchemaKStreamUsesMocks();
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(leftSerde);
-
-    // When:
-    SchemaKGroupedStream result = initialSchemaKStream.groupBy(
-        valueFormat,
-        groupByExpressions,
-        childContextStacker,
-        queryBuilder);
-
-    // Then:
-    result.getSourceStep().build(planBuilder);
-    verify(mockGroupedFactory).create(
-        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
-        same(keySerde),
-        same(leftSerde)
-    );
-    verify(mockKStream).groupByKey(same(grouped));
-    final LogicalSchema logicalSchema = ksqlStream.getSchema().withAlias(ksqlStream.getName());
-    verify(queryBuilder).buildKeySerde(
-        FormatInfo.of(Format.KAFKA),
-        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
-        childContextStacker.getQueryContext()
-    );
-    verify(queryBuilder).buildValueSerde(
-        valueFormat.getFormatInfo(),
-        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
-        childContextStacker.getQueryContext()
-    );
-  }
-
-  @Test
-  public void shouldUseFactoryForGrouped() {
-    // Given:
-    when(mockKStream.filter(any(Predicate.class))).thenReturn(mockKStream);
-    final KGroupedStream groupedStream = mock(KGroupedStream.class);
-    when(mockKStream.groupBy(any(KeyValueMapper.class), any(Grouped.class)))
-        .thenReturn(groupedStream);
-    final Expression col0Expression =
-        new ColumnReferenceExp(ColumnRef.of(ksqlStream.getName(), ColumnName.of("COL0")));
-    final Expression col1Expression =
-        new ColumnReferenceExp(ColumnRef.of(ksqlStream.getName(), ColumnName.of("COL1")));
-    final List<Expression> groupByExpressions = Arrays.asList(col1Expression, col0Expression);
-    givenInitialSchemaKStreamUsesMocks();
-    when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(reboundKeySerde);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(leftSerde);
-
-    // When:
-    final SchemaKGroupedStream result = initialSchemaKStream.groupBy(
-        valueFormat,
-        groupByExpressions,
-        childContextStacker,
-        queryBuilder);
-
-    // Then:
-    result.getSourceStep().build(planBuilder);
-    verify(mockGroupedFactory).create(
-        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
-        same(reboundKeySerde),
-        same(leftSerde));
-    verify(mockKStream).groupBy(any(KeyValueMapper.class), same(grouped));
-    final LogicalSchema logicalSchema = ksqlStream.getSchema().withAlias(ksqlStream.getName());
-    verify(queryBuilder).buildKeySerde(
-        FormatInfo.of(Format.KAFKA),
-        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
-        childContextStacker.getQueryContext()
-    );
-    verify(queryBuilder).buildValueSerde(
-        valueFormat.getFormatInfo(),
-        PhysicalSchema.from(logicalSchema, SerdeOption.none()),
-        childContextStacker.getQueryContext()
-    );
   }
 
   @Test
@@ -845,8 +627,7 @@ public class SchemaKStreamTest {
     final SchemaKTable result = initialSchemaKStream.toTable(
         keyFormat,
         valueFormat,
-        childContextStacker,
-        queryBuilder
+        childContextStacker
     );
 
     // Then:
@@ -871,61 +652,12 @@ public class SchemaKStreamTest {
     final SchemaKTable result = initialSchemaKStream.toTable(
         keyFormat,
         valueFormat,
-        childContextStacker,
-        queryBuilder
+        childContextStacker
     );
 
     // Then:
     assertThat(result.getSchema(), is(initialSchemaKStream.getSchema()));
     assertThat(result.getKeyField(), is(initialSchemaKStream.getKeyField()));
-    assertThat(result.getKeySerde(), is(initialSchemaKStream.getKeySerde()));
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToStreamLeftJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
-    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
-    when(
-        mockKStream.leftJoin(
-            any(KStream.class),
-            any(KsqlValueJoiner.class),
-            any(JoinWindows.class),
-            any(StreamJoined.class))
-    ).thenReturn(mockKStream);
-    when(queryBuilder.buildValueSerde(any(), any(), any()))
-        .thenReturn(leftSerde)
-        .thenReturn(rightSerde);
-
-    // When:
-    final SchemaKStream joinedKStream = initialSchemaKStream
-        .leftJoin(
-            secondSchemaKStream,
-            joinSchema,
-            validJoinKeyField,
-            joinWindow,
-            valueFormat,
-            valueFormat,
-            childContextStacker,
-            queryBuilder
-        );
-
-    // Then:
-    joinedKStream.getSourceStep().build(planBuilder);
-    verifyCreateStreamJoined(rightSerde);
-    verify(mockKStream).leftJoin(
-        eq(secondKStream),
-        any(KsqlValueJoiner.class),
-        eq(joinWindow),
-        same(streamJoined)
-    );
-    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
-    assertEquals(joinSchema, joinedKStream.getSchema());
-    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
-    assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
-                 joinedKStream.sourceSchemaKStreams);
   }
 
   @FunctionalInterface
@@ -937,15 +669,14 @@ public class SchemaKStreamTest {
         JoinWindows joinWindows,
         ValueFormat leftFormat,
         ValueFormat rightFormat,
-        QueryContext.Stacker contextStacker,
-        KsqlQueryBuilder queryBuilder
+        QueryContext.Stacker contextStacker
     );
   }
 
   @Test
   public void shouldBuildStepForStreamStreamJoin() {
     // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
+    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
     final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
 
     final List<Pair<JoinType, StreamStreamJoin>> cases = ImmutableList.of(
@@ -962,8 +693,7 @@ public class SchemaKStreamTest {
           joinWindow,
           valueFormat,
           rightFormat,
-          childContextStacker,
-          queryBuilder
+          childContextStacker
       );
 
       // Then:
@@ -985,180 +715,6 @@ public class SchemaKStreamTest {
     }
   }
 
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToStreamInnerJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
-    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
-    when(
-        mockKStream.join(
-            any(KStream.class),
-            any(KsqlValueJoiner.class),
-            any(JoinWindows.class),
-            any(StreamJoined.class))
-    ).thenReturn(mockKStream);
-    when(queryBuilder.buildValueSerde(any(), any(), any()))
-        .thenReturn(leftSerde)
-        .thenReturn(rightSerde);
-
-    // When:
-    final SchemaKStream joinedKStream = initialSchemaKStream
-        .join(
-            secondSchemaKStream,
-            joinSchema,
-            validJoinKeyField,
-            joinWindow,
-            valueFormat,
-            valueFormat,
-            childContextStacker,
-            queryBuilder
-        );
-
-    // Then:
-    joinedKStream.getSourceStep().build(planBuilder);
-    verifyCreateStreamJoined(rightSerde);
-    verify(mockKStream).join(
-        eq(secondKStream),
-        any(KsqlValueJoiner.class),
-        eq(joinWindow),
-        same(streamJoined)
-    );
-
-    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
-    assertEquals(joinSchema, joinedKStream.getSchema());
-    Assert.assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
-    assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
-                 joinedKStream.sourceSchemaKStreams);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToStreamOuterJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
-    final JoinWindows joinWindow = JoinWindows.of(Duration.ofMillis(10L));
-    when(
-        mockKStream.outerJoin(
-            any(KStream.class),
-            any(KsqlValueJoiner.class),
-            any(JoinWindows.class),
-            any(StreamJoined.class))
-    ).thenReturn(mockKStream);
-    when(queryBuilder.buildValueSerde(any(), any(), any()))
-        .thenReturn(leftSerde)
-        .thenReturn(rightSerde);
-
-    // When:
-    final SchemaKStream joinedKStream = initialSchemaKStream
-        .outerJoin(
-            secondSchemaKStream,
-            joinSchema,
-            validJoinKeyField,
-            joinWindow,
-            valueFormat,
-            valueFormat,
-            childContextStacker,
-            queryBuilder
-        );
-
-    // Then:
-    joinedKStream.getSourceStep().build(planBuilder);
-    verifyCreateStreamJoined(rightSerde);
-    verify(mockKStream).outerJoin(
-        eq(secondKStream),
-        any(KsqlValueJoiner.class),
-        eq(joinWindow),
-        same(streamJoined)
-    );
-    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
-    assertEquals(joinSchema, joinedKStream.getSchema());
-    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
-    assertEquals(Arrays.asList(initialSchemaKStream, secondSchemaKStream),
-                 joinedKStream.sourceSchemaKStreams);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToTableLeftJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
-    when(
-        mockKStream.leftJoin(
-            any(KTable.class),
-            any(KsqlValueJoiner.class),
-            any(Joined.class))
-    ).thenReturn(mockKStream);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(leftSerde);
-
-    // When:
-    final SchemaKStream joinedKStream = initialSchemaKStream
-        .leftJoin(
-            schemaKTable,
-            joinSchema,
-            validJoinKeyField,
-            valueFormat,
-            childContextStacker,
-            queryBuilder
-        );
-
-    // Then:
-    joinedKStream.getSourceStep().build(planBuilder);
-    verifyCreateJoined(null);
-    verify(mockKStream).leftJoin(
-        eq(kTable),
-        any(KsqlValueJoiner.class),
-        same(joined));
-    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
-    assertEquals(joinSchema, joinedKStream.getSchema());
-    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
-    assertEquals(Arrays.asList(initialSchemaKStream, schemaKTable),
-                 joinedKStream.sourceSchemaKStreams);
-  }
-
-  @SuppressWarnings("unchecked")
-  @Test
-  public void shouldPerformStreamToTableInnerJoin() {
-    // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
-    when(
-        mockKStream.join(
-            any(KTable.class),
-            any(KsqlValueJoiner.class),
-            any(Joined.class))
-    ).thenReturn(mockKStream);
-    when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(leftSerde);
-
-    // When:
-    final SchemaKStream joinedKStream = initialSchemaKStream
-        .join(
-            schemaKTable,
-            joinSchema,
-            validJoinKeyField,
-            valueFormat,
-            childContextStacker,
-            queryBuilder
-        );
-
-    // Then:
-    joinedKStream.getSourceStep().build(planBuilder);
-    verifyCreateJoined(null);
-    verify(mockKStream).join(
-        eq(kTable),
-        any(KsqlValueJoiner.class),
-        same(joined)
-    );
-
-    assertThat(joinedKStream, instanceOf(SchemaKStream.class));
-    assertEquals(SchemaKStream.Type.JOIN, joinedKStream.type);
-    assertEquals(joinSchema, joinedKStream.getSchema());
-    assertThat(joinedKStream.getKeyField(), is(validJoinKeyField));
-    assertEquals(Arrays.asList(initialSchemaKStream, schemaKTable),
-                 joinedKStream.sourceSchemaKStreams);
-  }
   @FunctionalInterface
   private interface StreamTableJoin {
     SchemaKStream join(
@@ -1166,15 +722,14 @@ public class SchemaKStreamTest {
         LogicalSchema joinSchema,
         KeyField keyField,
         ValueFormat leftFormat,
-        QueryContext.Stacker contextStacker,
-        KsqlQueryBuilder queryBuilder
+        QueryContext.Stacker contextStacker
     );
   }
 
   @Test
   public void shouldBuildStepForStreamTableJoin() {
     // Given:
-    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream, mockKStream);
+    final SchemaKStream initialSchemaKStream = buildSchemaKStreamForJoin(ksqlStream);
 
     final List<Pair<JoinType, StreamTableJoin>> cases = ImmutableList.of(
         Pair.of(JoinType.LEFT, initialSchemaKStream::leftJoin),
@@ -1187,8 +742,7 @@ public class SchemaKStreamTest {
           joinSchema,
           validJoinKeyField,
           valueFormat,
-          childContextStacker,
-          queryBuilder
+          childContextStacker
       );
 
       // Then:
@@ -1220,7 +774,6 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        keySerde,
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("key")),
             simpleSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
         ImmutableList.of(parentSchemaKStream),
@@ -1245,7 +798,6 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        keySerde,
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("key")),
             simpleSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
@@ -1276,7 +828,6 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        keySerde,
         KeyField.of(
             ColumnRef.withoutSource(ColumnName.of("key")),
             simpleSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
@@ -1294,59 +845,23 @@ public class SchemaKStreamTest {
             + "\tparent 2 plan"));
   }
 
-  private void whenCreateJoined() {
-    when(
-        mockJoinedFactory.create(
-            any(Serde.class),
-            any(Serde.class),
-            any(),
-            anyString())
-    ).thenReturn(joined);
-  }
-
-  private void verifyCreateJoined(final Serde<GenericRow> rightSerde) {
-    verify(mockJoinedFactory).create(
-        same(keySerde),
-        same(leftSerde),
-        same(rightSerde),
-        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext()))
-    );
-  }
-
-  private void givenSourcePropertiesWithSchema(
-      final ExecutionStep sourceStep,
-      final LogicalSchema schema) {
+  private void givenSourcePropertiesWithSchema(final LogicalSchema schema) {
     reset(sourceProperties);
-    when(sourceStep.getSchema()).thenReturn(schema);
     when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceProperties.withQueryContext(any())).thenAnswer(
         i -> new DefaultExecutionStepProperties(schema, (QueryContext) i.getArguments()[0])
     );
   }
 
-  private void verifyCreateStreamJoined(final Serde<GenericRow> rightSerde) {
-    verify(mockStreamJoinedFactory).create(
-        same(keySerde),
-        same(leftSerde),
-        same(rightSerde),
-        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext())),
-        eq(StreamsUtil.buildOpName(childContextStacker.getQueryContext()))
-    );
-  }
-
   private SchemaKStream buildSchemaKStream(
       final LogicalSchema schema,
       final KeyField keyField,
-      final ExecutionStep sourceStep,
-      final KStream kStream) {
-    givenSourcePropertiesWithSchema(sourceStep, schema);
-    when(sourceStep.build(any()))
-        .thenReturn(new KStreamHolder(kStream, keySerdeFactory));
+      final ExecutionStep sourceStep) {
+    givenSourcePropertiesWithSchema(schema);
     return new SchemaKStream(
         sourceStep,
         sourceProperties,
         keyFormat,
-        keySerde,
         keyField,
         new ArrayList<>(),
         Type.SOURCE,
@@ -1369,31 +884,25 @@ public class SchemaKStreamTest {
     initialSchemaKStream = buildSchemaKStream(
         schema,
         keyFieldWithAlias,
-        sourceStep,
-        mockKStream
+        sourceStep
+    );
+  }
+
+  private SchemaKStream buildSchemaKStreamForJoin(final KsqlStream ksqlStream) {
+    return buildSchemaKStream(
+        ksqlStream.getSchema().withAlias(SourceName.of("test")),
+        ksqlStream.getKeyField().withAlias(SourceName.of("test")),
+        sourceStep
     );
   }
 
   private SchemaKStream buildSchemaKStreamForJoin(
       final KsqlStream ksqlStream,
-      final KStream kStream) {
+      final ExecutionStep sourceStep) {
     return buildSchemaKStream(
         ksqlStream.getSchema().withAlias(SourceName.of("test")),
         ksqlStream.getKeyField().withAlias(SourceName.of("test")),
-        sourceStep,
-        kStream
-    );
-  }
-
-  private SchemaKStream buildSchemaKStreamForJoin(
-      final KsqlStream ksqlStream,
-      final ExecutionStep sourceStep,
-      final KStream kStream) {
-    return buildSchemaKStream(
-        ksqlStream.getSchema().withAlias(SourceName.of("test")),
-        ksqlStream.getKeyField().withAlias(SourceName.of("test")),
-        sourceStep,
-        kStream
+        sourceStep
     );
   }
 
@@ -1420,11 +929,10 @@ public class SchemaKStreamTest {
         selectQuery,
         metaStore
     );
-    givenSourcePropertiesWithSchema(sourceStep, logicalPlan.getTheSourceNode().getSchema());
+    givenSourcePropertiesWithSchema(logicalPlan.getTheSourceNode().getSchema());
     initialSchemaKStream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        keySerde,
         logicalPlan.getTheSourceNode().getKeyField(),
         new ArrayList<>(),
         SchemaKStream.Type.SOURCE,

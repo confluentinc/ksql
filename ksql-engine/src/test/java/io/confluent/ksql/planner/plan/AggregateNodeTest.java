@@ -52,10 +52,8 @@ import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeySerde;
-import io.confluent.ksql.serde.WindowInfo;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
@@ -87,7 +85,6 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
 import org.apache.kafka.streams.kstream.Windowed;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -115,13 +112,6 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
-
-  @Before
-  public void setUp()  {
-    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
-    when(reboundKeySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
-    when(keySerde.rebind(any(PersistenceSchema.class))).thenReturn(reboundKeySerde);
-  }
 
   @Test
   public void shouldBuildSourceNode() {

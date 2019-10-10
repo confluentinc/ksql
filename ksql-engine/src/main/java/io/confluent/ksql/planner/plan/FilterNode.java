@@ -81,8 +81,7 @@ public class FilterNode extends PlanNode {
     return getSource().buildStream(builder)
         .filter(
             getPredicate(),
-            builder.buildNodeContext(getId().toString()),
-            builder
+            builder.buildNodeContext(getId().toString())
         );
   }
 }

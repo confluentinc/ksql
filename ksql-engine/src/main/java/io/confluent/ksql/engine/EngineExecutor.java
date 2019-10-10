@@ -48,7 +48,6 @@ import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
@@ -107,7 +106,7 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl -> executeDDL(plan));
+    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl -> executeDdl(plan));
     final Optional<PersistentQueryMetadata> queryMetadata =
         plan.getQueryPlan().map(qp -> executePersistentQuery(plan));
     return queryMetadata.map(ExecuteResult::of).orElseGet(() -> ExecuteResult.of(ddlResult.get()));
@@ -155,7 +154,7 @@ final class EngineExecutor {
       );
       final KsqlStructuredDataOutputNode outputNode =
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
-      final Optional<DdlCommand> ddlCommand = maybeCreateSinkDDL(
+      final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement.getStatementText(),
           outputNode,
           plans.physicalPlan.getKeyField());
@@ -214,7 +213,7 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<DdlCommand> maybeCreateSinkDDL(
+  private Optional<DdlCommand> maybeCreateSinkDdl(
       final String sql,
       final KsqlStructuredDataOutputNode outputNode,
       final KeyField keyField) {
@@ -245,7 +244,7 @@ final class EngineExecutor {
       );
     }
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient, ksqlConfig);
     return Optional.of(ddl);
   }
 
@@ -349,7 +348,7 @@ final class EngineExecutor {
     return visitor.getSourceNames();
   }
 
-  private String executeDDL(final KsqlPlan ksqlPlan) {
+  private String executeDdl(final KsqlPlan ksqlPlan) {
     final DdlCommand ddlCommand = ksqlPlan.getDdlCommand().get();
     final Optional<KeyField> keyField = ksqlPlan.getQueryPlan()
         .map(QueryPlan::getPhysicalPlan)

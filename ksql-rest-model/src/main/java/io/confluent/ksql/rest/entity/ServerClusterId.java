@@ -31,6 +31,9 @@ public final class ServerClusterId {
   private static final String KAFKA_CLUSTER = "kafka-cluster";
   private static final String KSQL_CLUSTER = "ksql-cluster";
 
+  // ID is unused for now, but it might be used later to include a URL that joins both, kafka and
+  // ksql, clusters names into one single string. This one URL string will be easier to pass
+  // through authorization commands to authorize access to this KSQL cluster.
   private static final String id = "";
   private final Map<String, Object> scope;
 
@@ -43,6 +46,8 @@ public final class ServerClusterId {
 
   public static ServerClusterId of(final String kafkaClusterId, final String ksqlClusterId) {
     return new ServerClusterId(ImmutableMap.of(
+        // 'path' is unused for now, but it might be used by Cloud environments that specify
+        // which account organization this cluster belongs to.
         "path", Collections.emptyList(),
         "clusters", ImmutableMap.of(
             KAFKA_CLUSTER, kafkaClusterId,

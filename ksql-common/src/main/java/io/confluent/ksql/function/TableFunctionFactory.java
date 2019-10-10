@@ -15,9 +15,7 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.util.DecimalUtil;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
@@ -26,27 +24,6 @@ import org.apache.kafka.connect.data.Schema;
 public abstract class TableFunctionFactory {
 
   private final UdfMetadata metadata;
-
-  // used in most numeric functions
-  protected static final List<List<Schema>> NUMERICAL_ARGS = ImmutableList
-      .<List<Schema>>builder()
-      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
-      .add(ImmutableList.of(DecimalUtil.builder(1, 1).build()))
-      .build();
-
-  public TableFunctionFactory(final String functionName) {
-    this(new UdfMetadata(
-        functionName,
-        "",
-        "confluent",
-        "",
-        KsqlFunction.INTERNAL_PATH,
-        false
-        )
-    );
-  }
 
   public TableFunctionFactory(final UdfMetadata metadata) {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");

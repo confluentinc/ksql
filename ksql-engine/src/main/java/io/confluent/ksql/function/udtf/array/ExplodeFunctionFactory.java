@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.function.udtf.array;
 
-import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -28,38 +28,32 @@ public class ExplodeFunctionFactory extends TableFunctionFactory {
 
   private static final FunctionName NAME = FunctionName.of("EXPLODE");
 
-  private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
-      .<List<Schema>>builder()
-      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
-      .build();
 
   public ExplodeFunctionFactory() {
-    super(NAME.name());
+    super(new UdfMetadata(NAME.name(),
+        "",
+        "Confluent",
+        "",
+        "",
+        false));
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
-    if (argTypeList.isEmpty()) {
-      throw new KsqlException("EXPLODE function should have two arguments.");
+    if (argTypeList.size() != 1) {
+      throw new KsqlException("EXPLODE function should have one arguments.");
     }
 
-    final Schema param = argTypeList.get(0);
-    if (param.type() != Type.ARRAY) {
-      throw new IllegalArgumentException("Only arrays supported for now");
+    final Schema schema = argTypeList.get(0);
+    if (schema.type() == Type.ARRAY) {
+      return new ExplodeArrayFunction(NAME, schema, argTypeList, "Explodes an array");
     }
-    final Schema valueSchema = param.valueSchema();
-    if (valueSchema.type() != Type.INT64) {
-      throw new IllegalArgumentException("Only arrays of bigint supported for now");
-    }
-
-
-    return new ExplodeIntegerArrayUdtf(NAME, valueSchema, argTypeList, "Explodes an array");
-
+    throw new KsqlException("Unsupported argument type for EXPLODE " + schema);
   }
 
   @Override
   public List<List<Schema>> supportedArgs() {
-    return SUPPORTED_TYPES;
+    return null;
   }
 }

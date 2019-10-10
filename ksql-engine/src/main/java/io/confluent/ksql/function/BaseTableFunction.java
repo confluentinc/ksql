@@ -19,7 +19,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
@@ -51,13 +50,6 @@ public abstract class BaseTableFunction<I, O> implements KsqlTableFunction<I, O>
     if (!outputType.isOptional()) {
       throw new IllegalArgumentException("KSQL only supports optional field types");
     }
-  }
-
-  public boolean hasSameArgTypes(final List<Schema> argTypeList) {
-    if (argTypeList == null) {
-      throw new KsqlException("Argument type list is null.");
-    }
-    return this.arguments.equals(argTypeList);
   }
 
   public FunctionName getFunctionName() {

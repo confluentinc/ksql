@@ -19,16 +19,11 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
-
 public interface KsqlTableFunction<I, O> extends FunctionSignature {
-
-  KsqlTableFunction<I, O> getInstance(TableFunctionArguments tableFunctionArguments);
 
   Schema getReturnType();
 
   SqlType returnType();
-
-  boolean hasSameArgTypes(List<Schema> argTypeList);
 
   List<O> flatMap(I currentValue);
 

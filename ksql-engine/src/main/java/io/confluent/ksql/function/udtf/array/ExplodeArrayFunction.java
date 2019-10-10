@@ -16,15 +16,13 @@
 package io.confluent.ksql.function.udtf.array;
 
 import io.confluent.ksql.function.BaseTableFunction;
-import io.confluent.ksql.function.KsqlTableFunction;
-import io.confluent.ksql.function.TableFunctionArguments;
 import io.confluent.ksql.name.FunctionName;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
-public class ExplodeIntegerArrayUdtf extends BaseTableFunction<List<Integer>, Integer> {
+public class ExplodeArrayFunction<T> extends BaseTableFunction<List<T>, T> {
 
-  public ExplodeIntegerArrayUdtf(
+  ExplodeArrayFunction(
       final FunctionName functionName,
       final Schema outputType,
       final List<Schema> arguments,
@@ -33,14 +31,7 @@ public class ExplodeIntegerArrayUdtf extends BaseTableFunction<List<Integer>, In
   }
 
   @Override
-  public KsqlTableFunction<List<Integer>, Integer> getInstance(
-      final TableFunctionArguments tableFunctionArguments) {
-    return new ExplodeIntegerArrayUdtf(functionName, getReturnType(),
-        getArguments(), getDescription());
-  }
-
-  @Override
-  public List<Integer> flatMap(final List<Integer> currentValue) {
+  public List<T> flatMap(final List<T> currentValue) {
     return currentValue;
   }
 

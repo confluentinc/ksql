@@ -52,7 +52,7 @@ public final class StubKafkaRecord {
     final SerdeSupplier<?> serdeSupplier = topic.getValueSerdeSupplier();
     final Record testRecord = new Record(
         topic,
-        producerRecord.key().toString(),
+        producerRecord.key() == null ? null : producerRecord.key().toString(),
         serdeSupplier instanceof AvroSerdeSupplier
             ? ((ValueSpec)producerRecord.value()).getSpec()
             : producerRecord.value(),

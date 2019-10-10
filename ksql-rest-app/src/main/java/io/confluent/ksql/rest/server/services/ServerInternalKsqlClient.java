@@ -28,6 +28,11 @@ import java.net.URI;
 import java.util.Collections;
 import javax.ws.rs.core.Response;
 
+/**
+ * A KSQL client implementation that sends requests to KsqlResource directly, rather than going
+ * over the network. Used by HealthcheckResource to bypass needing authentication credentials
+ * when submitting health check requests.
+ */
 public class ServerInternalKsqlClient implements SimpleKsqlClient {
 
   private static final String KSQL_PATH = "/ksql";

@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.CreateTopicsOptions;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.clients.admin.TopicDescriptionFactory;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
@@ -73,7 +72,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
               .mapToObj(
                   p -> new TopicPartitionInfo(p, node, replicas, Collections.emptyList()))
               .collect(Collectors.toList());
-      return TopicDescriptionFactory.create(
+      return new TopicDescription(
           topicName,
           false,
           partitionInfoList,

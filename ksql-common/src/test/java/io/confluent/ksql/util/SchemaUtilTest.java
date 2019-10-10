@@ -18,7 +18,6 @@ package io.confluent.ksql.util;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.GenericsUtil;

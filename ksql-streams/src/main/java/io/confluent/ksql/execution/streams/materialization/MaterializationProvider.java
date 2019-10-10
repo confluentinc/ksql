@@ -23,6 +23,7 @@ public interface MaterializationProvider {
   /**
    * Build a materialization in the context of a given query.
    *
+   * @param queryId the id to use for the query.
    * @param contextStacker the query context stacker.
    * @return the materialization.
    */

@@ -37,7 +37,6 @@ import io.confluent.ksql.test.util.ConsumerTestUtil;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.TestDataProvider;
 import java.time.Duration;
 import java.util.Arrays;

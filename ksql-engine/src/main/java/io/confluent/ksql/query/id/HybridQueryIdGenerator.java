@@ -26,18 +26,14 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class HybridQueryIdGenerator implements QueryIdGenerator {
 
-  private final SequentialQueryIdGenerator legacyGenerator;
   private final SpecificQueryIdGenerator newGenerator;
-  private AtomicReference<QueryIdGenerator> activeGenerator;
+  private final AtomicReference<QueryIdGenerator> activeGenerator;
 
   public HybridQueryIdGenerator() {
-    this(0L);
-  }
-
-  public HybridQueryIdGenerator(final long initialValue) {
-    this.legacyGenerator = new SequentialQueryIdGenerator(initialValue);
-    this.newGenerator = new SpecificQueryIdGenerator();
-    this.activeGenerator = new AtomicReference<>(this.legacyGenerator);
+    this(
+        new SequentialQueryIdGenerator(),
+        new SpecificQueryIdGenerator()
+    );
   }
 
   @VisibleForTesting
@@ -45,9 +41,8 @@ public class HybridQueryIdGenerator implements QueryIdGenerator {
       final SequentialQueryIdGenerator sequentialQueryIdGenerator,
       final SpecificQueryIdGenerator specificQueryIdGenerator
   ) {
-    this.legacyGenerator = sequentialQueryIdGenerator;
     this.newGenerator = specificQueryIdGenerator;
-    this.activeGenerator = new AtomicReference<>(this.legacyGenerator);
+    this.activeGenerator = new AtomicReference<>(sequentialQueryIdGenerator);
   }
 
   public void activateNewGenerator(final long nextId) {

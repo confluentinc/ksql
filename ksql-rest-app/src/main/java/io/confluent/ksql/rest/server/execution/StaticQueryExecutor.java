@@ -149,10 +149,11 @@ public final class StaticQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
+      final QueryId queryId = uniqueQueryId();
       final QueryContext.Stacker contextStacker = new Stacker();
 
       final Materialization mat = query
-          .getMaterialization(new QueryId("static-query"), contextStacker)
+          .getMaterialization(queryId, contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
@@ -195,6 +196,7 @@ public final class StaticQueryExecutor {
 
       final TableRowsEntity entity = new TableRowsEntity(
           statement.getStatementText(),
+          queryId,
           outputSchema,
           rows
       );
@@ -207,6 +209,10 @@ public final class StaticQueryExecutor {
           e
       );
     }
+  }
+
+  private static QueryId uniqueQueryId() {
+    return new QueryId("query_" + System.currentTimeMillis());
   }
 
   private static Analysis analyze(

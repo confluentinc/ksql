@@ -22,10 +22,10 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.test.utils.TestParsingUtil;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.FeatureMatcher;
@@ -100,7 +100,7 @@ public final class MetaStoreMatchers {
 
     public static Matcher<KeyField> hasName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<ColumnName>>(
-          is(name.map(TestParsingUtil::parseColumnRef).map(ColumnRef::name)),
+          is(name.map(ColumnReferenceParser::parse).map(ColumnRef::name)),
           "field with name",
           "name"
       ) {
@@ -113,7 +113,7 @@ public final class MetaStoreMatchers {
 
     public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {
       return new FeatureMatcher<KeyField, Optional<ColumnName>>(
-          is(name.map(TestParsingUtil::parseColumnRef).map(ColumnRef::name)),
+          is(name.map(ColumnReferenceParser::parse).map(ColumnRef::name)),
           "field with legacy name",
           "legacy name") {
         @Override

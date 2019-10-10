@@ -94,7 +94,6 @@ import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.Pair;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -458,7 +457,7 @@ public class SchemaKTableTest {
     assertThat(groupedSchemaKTable, instanceOf(SchemaKGroupedTable.class));
     assertThat(groupedSchemaKTable.getKeyField().ref(), is(Optional.empty()));
     assertThat(groupedSchemaKTable.getKeyField().legacy().map(LegacyField::columnRef),
-        is(Optional.of(ColumnRef.withoutSource(ColumnName.withoutValidation("TEST2.COL2|+|TEST2.COL1")))));
+        is(Optional.of(ColumnRef.withoutSource(ColumnName.of("TEST2.COL2|+|TEST2.COL1")))));
   }
 
   @Test

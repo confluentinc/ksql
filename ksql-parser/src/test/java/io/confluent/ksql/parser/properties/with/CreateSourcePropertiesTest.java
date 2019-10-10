@@ -97,7 +97,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getKeyField(), is(Optional.of("key")));
+    assertThat(properties.getKeyField(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("KEY")))));
   }
 
   @Test

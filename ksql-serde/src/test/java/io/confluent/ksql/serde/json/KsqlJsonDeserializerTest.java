@@ -54,17 +54,19 @@ public class KsqlJsonDeserializerTest {
   private static final String SOME_TOPIC = "bob";
 
   private static final String ORDERTIME = "ORDERTIME";
-  private static final String ORDERID = "ORDERID";
+  private static final String ORDERID = "@ORDERID";
   private static final String ITEMID = "ITEMID";
   private static final String ORDERUNITS = "ORDERUNITS";
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
+  private static final String CASE_SENSITIVE_FIELD = "caseField";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
       .field(ORDERID, Schema.OPTIONAL_INT64_SCHEMA)
       .field(ITEMID, Schema.OPTIONAL_STRING_SCHEMA)
       .field(ORDERUNITS, Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(CASE_SENSITIVE_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(ARRAYCOL, SchemaBuilder
           .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
@@ -82,6 +84,7 @@ public class KsqlJsonDeserializerTest {
       .put("orderunits", 10.0)
       .put("arraycol", ImmutableList.of(10.0, 20.0))
       .put("mapcol", Collections.singletonMap("key1", 10.0))
+      .put("caseField", 1L)
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -101,7 +104,8 @@ public class KsqlJsonDeserializerTest {
         .put(ITEMID, "Item_1")
         .put(ORDERUNITS, 10.0)
         .put(ARRAYCOL, ImmutableList.of(10.0, 20.0))
-        .put(MAPCOL, ImmutableMap.of("key1", 10.0));
+        .put(MAPCOL, ImmutableMap.of("key1", 10.0))
+        .put(CASE_SENSITIVE_FIELD, 1L);
 
     givenDeserializerForSchema(ORDER_SCHEMA);
   }
@@ -117,6 +121,22 @@ public class KsqlJsonDeserializerTest {
     // Then:
     assertThat(result, is(expectedOrder));
   }
+
+  @Test
+  public void shouldIgnoreDeserializeJsonObjectCaseMismatch() {
+    // Given:
+    Map<String, Object> anOrder = ImmutableMap.<String, Object>builder()
+        .put("CASEFIELD", 1L)
+        .build();
+    final byte[] bytes = serializeJson(anOrder);
+
+    // When:
+    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(new Struct(ORDER_SCHEMA)));
+  }
+
 
   @Test
   public void shouldCoerceFieldValues() {
@@ -225,6 +245,7 @@ public class KsqlJsonDeserializerTest {
         .put(ORDERUNITS, null)
         .put(ARRAYCOL, Arrays.asList(0.0, null))
         .put(MAPCOL, null)
+        .put(CASE_SENSITIVE_FIELD, null)
     ));
   }
 

@@ -44,7 +44,6 @@ import io.confluent.ksql.topic.TopicFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import io.confluent.ksql.util.StringUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
 import java.util.Objects;
@@ -152,8 +151,7 @@ public final class CreateSourceFactory {
       final CreateSource statement,
       final LogicalSchema schema) {
     if (statement.getProperties().getKeyField().isPresent()) {
-      final String name = statement.getProperties().getKeyField().get().toUpperCase();
-      final ColumnName columnName = ColumnName.of(StringUtil.cleanQuotes(name));
+      final ColumnName columnName = statement.getProperties().getKeyField().get().name();
       schema.findValueColumn(ColumnRef.withoutSource(columnName)).orElseThrow(
           () -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"

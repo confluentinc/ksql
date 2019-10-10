@@ -530,7 +530,7 @@ public class KsqlParserTest {
     assertThat(Iterables.get(result.getElements(), 0).getName(), equalTo(ColumnName.of("USERTIME")));
     assertThat(result.getProperties().getKafkaTopic(), equalTo("foo"));
     assertThat(result.getProperties().getValueFormat(), equalTo(Format.JSON));
-    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of("userid")));
+    assertThat(result.getProperties().getKeyField(), equalTo(Optional.of(ColumnRef.withoutSource(ColumnName.of("USERID")))));
   }
 
   @Test

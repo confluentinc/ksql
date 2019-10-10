@@ -32,6 +32,7 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -44,6 +45,7 @@ public final class ExplainExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<Explain> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

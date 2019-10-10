@@ -24,10 +24,10 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.CreateConnector;
 import io.confluent.ksql.parser.tree.CreateConnector.Type;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.rest.entity.CreateConnectorEntity;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -78,7 +78,7 @@ public class ConnectExecutorTest {
     givenSuccess();
 
     // When:
-    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+    ConnectExecutor.execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
     verify(connectClient).create("foo", ImmutableMap.of("foo", "bar"));
@@ -91,7 +91,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());
@@ -105,7 +105,7 @@ public class ConnectExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ConnectExecutor
-        .execute(CREATE_CONNECTOR_CONFIGURED, null, serviceContext);
+        .execute(CREATE_CONNECTOR_CONFIGURED, ImmutableMap.of(), null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());

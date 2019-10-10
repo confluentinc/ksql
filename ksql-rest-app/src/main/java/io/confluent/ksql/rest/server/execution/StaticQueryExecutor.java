@@ -113,6 +113,7 @@ public final class StaticQueryExecutor {
 
   public static void validate(
       final ConfiguredStatement<Query> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -139,6 +140,7 @@ public final class StaticQueryExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<Query> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.embedded;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.inOrder;
@@ -48,7 +45,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -364,43 +360,81 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine).execute(eq(STMT_1_WITH_TOPIC));
+    verify(ksqlEngine).execute(STMT_1_WITH_TOPIC);
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldSetProperty() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
+    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0, PARSED_STMT_0));
+
+    final PreparedStatement<SetProperty> set = PreparedStatement.of(
+        "SET SOMETHING",
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    );
+
     when(ksqlEngine.prepare(any()))
-        .thenReturn(
-            (PreparedStatement) PreparedStatement.of(
-                "SET SOMETHING",
-                new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
+        .thenReturn((PreparedStatement) set)
+        .thenReturn(PREPARED_STMT_0);
 
     // When:
-    ksqlContext.sql("SQL;", properties);
+    ksqlContext.sql("SQL;", ImmutableMap.of());
 
     // Then:
-    assertThat(properties, hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+    verify(ksqlEngine).execute(ConfiguredStatement.of(
+        PREPARED_STMT_0, ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+        SOME_CONFIG
+    ));
+  }
+
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldSetPropertyOnlyOnCommandsFollowingTheSetStatement() {
+    // Given:
+    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0, PARSED_STMT_0));
+
+    final PreparedStatement<SetProperty> set = PreparedStatement.of(
+        "SET SOMETHING",
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+    );
+
+    when(ksqlEngine.prepare(any()))
+        .thenReturn((PreparedStatement) PREPARED_STMT_0)
+        .thenReturn(set);
+
+    // When:
+    ksqlContext.sql("SQL;", ImmutableMap.of());
+
+    // Then:
+    verify(ksqlEngine).execute(ConfiguredStatement.of(
+        PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
+    ));
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldUnsetProperty() {
     // Given:
-    final Map<String, Object> properties = new HashMap<>();
-    properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+    when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(PARSED_STMT_0, PARSED_STMT_0));
+
+    final Map<String, Object> properties = ImmutableMap
+        .of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
+
+    final PreparedStatement<UnsetProperty> unset = PreparedStatement.of(
+        "UNSET SOMETHING",
+        new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
+
     when(ksqlEngine.prepare(any()))
-        .thenReturn(
-            (PreparedStatement) PreparedStatement.of(
-                "UNSET SOMETHING",
-                new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
+        .thenReturn((PreparedStatement) unset)
+        .thenReturn(PREPARED_STMT_0);
 
     // When:
     ksqlContext.sql("SQL;", properties);
 
     // Then:
-    assertThat(properties, not(hasEntry(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")));
+    verify(ksqlEngine).execute(ConfiguredStatement.of(
+        PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
+    ));
   }
 }

@@ -40,6 +40,7 @@ public class ListFunctionsExecutorTest {
     // When:
     final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
         engine.configure("LIST FUNCTIONS;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);

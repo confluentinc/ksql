@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,6 +35,7 @@ public final class ListFunctionsExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListFunctions> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

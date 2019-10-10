@@ -44,6 +44,7 @@ public class ListPropertiesExecutorTest {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -60,6 +61,7 @@ public class ListPropertiesExecutorTest {
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;")
             .withProperties(ImmutableMap.of("ksql.streams.auto.offset.reset", "latest")),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -75,6 +77,7 @@ public class ListPropertiesExecutorTest {
     // When:
     final PropertiesList properties = (PropertiesList) CustomExecutors.LIST_PROPERTIES.execute(
         engine.configure("LIST PROPERTIES;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);

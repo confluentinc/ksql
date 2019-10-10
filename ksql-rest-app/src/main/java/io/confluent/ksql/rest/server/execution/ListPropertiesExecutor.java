@@ -35,6 +35,7 @@ public final class ListPropertiesExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListProperties> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

@@ -128,6 +128,7 @@ public class RequestValidatorTest {
     // Then:
     verify(statementValidator, times(1)).validate(
         argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
+        eq(ImmutableMap.of()),
         eq(executionContext),
         any()
     );
@@ -156,7 +157,7 @@ public class RequestValidatorTest {
         ImmutableMap.of(CreateStream.class, statementValidator)
     );
     doThrow(new KsqlException("Fail"))
-        .when(statementValidator).validate(any(), any(), any());
+        .when(statementValidator).validate(any(), any(), any(), any());
 
     final List<ParsedStatement> statements =
         givenParsed(SOME_STREAM_SQL);
@@ -242,6 +243,7 @@ public class RequestValidatorTest {
     // Then:
     verify(statementValidator, times(1)).validate(
         argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
+        any(),
         eq(executionContext),
         any()
     );

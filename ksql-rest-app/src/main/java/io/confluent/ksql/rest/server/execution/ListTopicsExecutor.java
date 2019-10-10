@@ -53,6 +53,7 @@ public final class ListTopicsExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTopics> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

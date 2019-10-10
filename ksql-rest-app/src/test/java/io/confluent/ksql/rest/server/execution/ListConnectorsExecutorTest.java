@@ -87,7 +87,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, engine, serviceContext);
+        .execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -116,7 +116,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, engine, serviceContext);
+        .execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());
@@ -142,7 +142,7 @@ public class ListConnectorsExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = ListConnectorsExecutor
-        .execute(statement, engine, serviceContext);
+        .execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     assertThat("expected response!", entity.isPresent());

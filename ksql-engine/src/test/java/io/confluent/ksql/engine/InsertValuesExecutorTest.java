@@ -189,7 +189,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -208,7 +208,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
@@ -228,7 +228,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
@@ -249,7 +249,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -270,7 +270,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -290,7 +290,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -311,7 +311,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -330,7 +330,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -350,7 +350,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -370,7 +370,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -389,7 +389,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -416,7 +416,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -442,7 +442,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -472,7 +472,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectMessage("Failed to insert values into ");
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -493,7 +493,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -515,7 +515,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -539,7 +539,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -557,7 +557,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -574,7 +574,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -594,7 +594,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -611,7 +611,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
@@ -632,7 +632,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
@@ -652,7 +652,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerdeFactory).create(

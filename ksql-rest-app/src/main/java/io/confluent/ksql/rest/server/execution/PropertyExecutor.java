@@ -22,6 +22,7 @@ import io.confluent.ksql.properties.PropertyOverrider;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.Map;
 import java.util.Optional;
 
 public final class PropertyExecutor {
@@ -30,19 +31,21 @@ public final class PropertyExecutor {
 
   public static Optional<KsqlEntity> set(
       final ConfiguredStatement<SetProperty> statement,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    PropertyOverrider.set(statement);
+    PropertyOverrider.set(statement, mutableScopedProperties);
     return Optional.empty();
   }
 
   public static Optional<KsqlEntity> unset(
       final ConfiguredStatement<UnsetProperty> statement,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    PropertyOverrider.unset(statement);
+    PropertyOverrider.unset(statement, mutableScopedProperties);
     return Optional.empty();
   }
 

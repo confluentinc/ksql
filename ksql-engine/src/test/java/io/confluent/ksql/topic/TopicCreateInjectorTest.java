@@ -187,8 +187,8 @@ public class TopicCreateInjectorTest {
   @Test
   public void shouldGenerateNameWithCorrectPrefixFromOverrides() {
     // Given:
-    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
     overrides.put(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG, "prefix-");
+    givenStatement("CREATE STREAM x AS SELECT * FROM SOURCE;");
     config = new KsqlConfig(ImmutableMap.of(
         KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG, "nope"
     ));

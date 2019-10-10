@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicInfoExtended;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
@@ -63,6 +64,7 @@ public class ListTopicsExecutorTest {
     final KafkaTopicsList topicsList =
         (KafkaTopicsList) CustomExecutors.LIST_TOPICS.execute(
             engine.configure("LIST TOPICS;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             serviceContext
         ).orElseThrow(IllegalStateException::new);
@@ -100,6 +102,7 @@ public class ListTopicsExecutorTest {
     final KafkaTopicsListExtended topicsList =
         (KafkaTopicsListExtended) CustomExecutors.LIST_TOPICS.execute(
             engine.configure("LIST TOPICS EXTENDED;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             serviceContext
         ).orElseThrow(IllegalStateException::new);

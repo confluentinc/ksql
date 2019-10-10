@@ -136,6 +136,7 @@ public class InsertValuesExecutor {
 
   public void execute(
       final ConfiguredStatement<InsertValues> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

@@ -486,6 +486,28 @@ public class StandaloneExecutorTest {
   }
 
   @Test
+  public void shouldSetPropertyOnlyOnCommandsFollowingTheSetStatement() {
+    // Given:
+    final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET PROP",
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+
+    givenQueryFileParsesTo(cs, setProp);
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(ksqlEngine).execute(ConfiguredStatement.of(
+        cs,
+        ImmutableMap.of(),
+        ksqlConfig
+    ));
+  }
+
+  @Test
   public void shouldRunUnSetStatements() {
     // Given:
     final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET",

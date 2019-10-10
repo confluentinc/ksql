@@ -83,7 +83,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -107,6 +107,7 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
+            eq(ImmutableMap.of()),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -129,6 +130,7 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
+            eq(ImmutableMap.of()),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -155,6 +157,7 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of("x", "y"),
             ksqlConfig))),
+            any(),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -210,8 +213,8 @@ public class RequestHandlerTest {
     // Then:
     verify(customExecutor, times(1))
         .execute(
-            argThat(is(
-                configured(preparedStatementText(SOME_STREAM_SQL)))),
+            argThat(is(configured(preparedStatementText(SOME_STREAM_SQL)))),
+            any(),
             eq(ksqlEngine),
             eq(serviceContext)
         );
@@ -232,9 +235,10 @@ public class RequestHandlerTest {
         CreateStream.class, entity1, entity2);
     givenRequestHandler(ImmutableMap.of(CreateStream.class, customExecutor));
 
-    // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
+
+    // When:
     final KsqlEntityList result = handler.execute(serviceContext, statements, props);
 
     // Then:
@@ -261,6 +265,7 @@ public class RequestHandlerTest {
     final StatementExecutor<T> customExecutor = mock(StatementExecutor.class);
     when(customExecutor.execute(
         argThat(is(configured(preparedStatement(instanceOf(statementClass))))),
+        any(),
         eq(ksqlEngine),
         eq(serviceContext)
     ))
@@ -268,7 +273,7 @@ public class RequestHandlerTest {
     return customExecutor;
   }
 
-  private Matcher<KsqlEntityList> hasItems(final KsqlEntity... items) {
+  private static Matcher<KsqlEntityList> hasItems(final KsqlEntity... items) {
     return new TypeSafeMatcher<KsqlEntityList>() {
       @Override
       protected boolean matchesSafely(KsqlEntityList actual) {
@@ -290,5 +295,4 @@ public class RequestHandlerTest {
       }
     };
   }
-
 }

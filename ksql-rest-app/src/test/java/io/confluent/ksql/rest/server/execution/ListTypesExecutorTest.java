@@ -67,7 +67,9 @@ public class ListTypesExecutorTest {
         ConfiguredStatement.of(
             PreparedStatement.of("statement", new ListTypes(Optional.empty())),
             ImmutableMap.of(),
-            KSQL_CONFIG),
+            KSQL_CONFIG
+        ),
+        ImmutableMap.of(),
         context,
         null);
 

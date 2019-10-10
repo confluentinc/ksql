@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
@@ -57,7 +59,6 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.BiConsumer;
@@ -77,7 +78,6 @@ public class StandaloneExecutor implements Executable {
   private final String queriesFile;
   private final UdfLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
-  private final Map<String, Object> configProperties = new HashMap<>();
   private final boolean failOnNoQueries;
   private final VersionCheckerAgent versionChecker;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -93,15 +93,15 @@ public class StandaloneExecutor implements Executable {
       final VersionCheckerAgent versionChecker,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
   ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.processingLogConfig = Objects.requireNonNull(processingLogConfig, "processingLogConfig");
-    this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
-    this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
-    this.queriesFile = Objects.requireNonNull(queriesFile, "queriesFile");
-    this.udfLoader = Objects.requireNonNull(udfLoader, "udfLoader");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.processingLogConfig = requireNonNull(processingLogConfig, "processingLogConfig");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
+    this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
+    this.queriesFile = requireNonNull(queriesFile, "queriesFile");
+    this.udfLoader = requireNonNull(udfLoader, "udfLoader");
     this.failOnNoQueries = failOnNoQueries;
-    this.versionChecker = Objects.requireNonNull(versionChecker, "versionChecker");
-    this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
+    this.versionChecker = requireNonNull(versionChecker, "versionChecker");
+    this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
   }
 
   public void start() {
@@ -169,7 +169,7 @@ public class StandaloneExecutor implements Executable {
     final Injector injector = injectorFactory.apply(ksqlEngine, serviceContext);
     executeStatements(
         preparedStatements,
-        new StatementExecutor(ksqlEngine, injector, configProperties, ksqlConfig)
+        new StatementExecutor(ksqlEngine, injector, ksqlConfig)
     );
 
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
@@ -183,7 +183,6 @@ public class StandaloneExecutor implements Executable {
     final StatementExecutor sandboxExecutor = new StatementExecutor(
         sandboxEngine,
         injector,
-        new HashMap<>(configProperties),
         ksqlConfig
     );
 
@@ -263,20 +262,18 @@ public class StandaloneExecutor implements Executable {
     private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
     private final KsqlExecutionContext executionContext;
-    private final Map<String, Object> configProperties;
+    private final Map<String, Object> configOverrides = new HashMap<>();
     private final KsqlConfig ksqlConfig;
     private final Injector injector;
 
     private StatementExecutor(
         final KsqlExecutionContext executionContext,
         final Injector injector,
-        final Map<String, Object> configProperties,
         final KsqlConfig ksqlConfig
     ) {
-      this.executionContext = Objects.requireNonNull(executionContext, "executionContext");
-      this.configProperties = Objects.requireNonNull(configProperties, "configProperties");
-      this.injector = Objects.requireNonNull(injector, "injector");
-      this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+      this.executionContext = requireNonNull(executionContext, "executionContext");
+      this.injector = requireNonNull(injector, "injector");
+      this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     }
 
     /**
@@ -306,7 +303,7 @@ public class StandaloneExecutor implements Executable {
     ) {
       final PreparedStatement<?> prepared = executionContext.prepare(statement);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, configProperties, ksqlConfig);
+          prepared, configOverrides, ksqlConfig);
 
       return injector.inject(configured);
     }
@@ -328,11 +325,11 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handleSetProperty(final ConfiguredStatement<SetProperty> statement) {
-      PropertyOverrider.set(statement);
+      PropertyOverrider.set(statement, configOverrides);
     }
 
     private void handleUnsetProperty(final ConfiguredStatement<UnsetProperty> statement) {
-      PropertyOverrider.unset(statement);
+      PropertyOverrider.unset(statement, configOverrides);
     }
 
     private void handleExecutableDdl(final ConfiguredStatement<?> statement) {

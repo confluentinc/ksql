@@ -160,7 +160,8 @@ public class DescribeConnectorExecutorTest {
   @Test
   public void shouldDescribeKnownConnector() {
     // When:
-    final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     assertThat("Expected a response", entity.isPresent());
@@ -184,7 +185,8 @@ public class DescribeConnectorExecutorTest {
     when(topics.names()).thenReturn(fut);
 
     // When:
-    final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     assertThat("Expected a response", entity.isPresent());
@@ -202,7 +204,8 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(connectClient).status("connector");
@@ -217,7 +220,8 @@ public class DescribeConnectorExecutorTest {
     when(connectClient.describe(any())).thenReturn(ConnectResponse.failure("error", HttpStatus.SC_INTERNAL_SERVER_ERROR));
 
     // When:
-    final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(connectClient).status("connector");
@@ -234,7 +238,8 @@ public class DescribeConnectorExecutorTest {
     executor = new DescribeConnectorExecutor(connectorFactory);
 
     // When:
-    final Optional<KsqlEntity> entity = executor.execute(describeStatement, engine, serviceContext);
+    final Optional<KsqlEntity> entity = executor
+        .execute(describeStatement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     assertThat("Expected a response", entity.isPresent());

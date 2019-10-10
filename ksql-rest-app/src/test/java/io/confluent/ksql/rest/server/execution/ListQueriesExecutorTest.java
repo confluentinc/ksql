@@ -23,6 +23,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
@@ -49,6 +50,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         engine.configure("SHOW QUERIES;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -68,6 +70,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
+        ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -91,6 +94,7 @@ public class ListQueriesExecutorTest {
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
+        ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);

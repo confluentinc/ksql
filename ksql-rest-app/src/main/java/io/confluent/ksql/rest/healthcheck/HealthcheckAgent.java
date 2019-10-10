@@ -34,8 +34,8 @@ import org.apache.kafka.common.config.ConfigException;
 public class HealthcheckAgent {
 
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
-      new Check("metastore", "list streams; list tables; list queries;"),
-      new Check("kafka", "list topics extended;")
+      new ExecuteStatementCheck("metastore", "list streams; list tables; list queries;"),
+      new ExecuteStatementCheck("kafka", "list topics extended;")
   );
 
   private final SimpleKsqlClient ksqlClient;
@@ -53,19 +53,13 @@ public class HealthcheckAgent {
     final Map<String, HealthcheckResponseDetail> results = DEFAULT_CHECKS.stream()
         .collect(Collectors.toMap(
             Check::getName,
-            check -> new HealthcheckResponseDetail(isSuccessful(check.getKsqlStatement()))
+            check -> check.check(ksqlClient, serverEndpoint)
         ));
     final boolean allHealthy = results.values().stream()
         .map(HealthcheckResponseDetail::getIsHealthy)
         .reduce(Boolean::logicalAnd)
         .orElse(true);
     return new HealthcheckResponse(allHealthy, results);
-  }
-
-  private boolean isSuccessful(final String ksqlStatement) {
-    final RestResponse<KsqlEntityList> response =
-        ksqlClient.makeKsqlRequest(serverEndpoint, ksqlStatement);
-    return response.isSuccessful();
   }
 
   private static URI getServerAddress(final KsqlRestConfig restConfig) {
@@ -89,21 +83,34 @@ public class HealthcheckAgent {
     return new ConfigException(RestConfig.LISTENERS_CONFIG, serverAddresses, message);
   }
 
-  private static class Check {
+  private interface Check {
+    String getName();
+
+    HealthcheckResponseDetail check(SimpleKsqlClient ksqlClient, URI serverEndpoint);
+  }
+
+  private static class ExecuteStatementCheck implements Check {
     private final String name;
     private final String ksqlStatement;
 
-    Check(final String name, final String ksqlStatement) {
+    ExecuteStatementCheck(final String name, final String ksqlStatement) {
       this.name = Objects.requireNonNull(name, "name");
       this.ksqlStatement = Objects.requireNonNull(ksqlStatement, "ksqlStatement");
     }
 
-    String getName() {
+    @Override
+    public String getName() {
       return name;
     }
 
-    String getKsqlStatement() {
-      return ksqlStatement;
+    @Override
+    public HealthcheckResponseDetail check(
+        final SimpleKsqlClient ksqlClient,
+        final URI serverEndpoint
+    ) {
+      final RestResponse<KsqlEntityList> response =
+          ksqlClient.makeKsqlRequest(serverEndpoint, ksqlStatement);
+      return new HealthcheckResponseDetail(response.isSuccessful());
     }
   }
 }

@@ -133,8 +133,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getSchema(),
         getKsqlTopic().getValueFormat(),
         serdeOptions,
-        contextStacker,
-        builder
+        contextStacker
     );
   }
 

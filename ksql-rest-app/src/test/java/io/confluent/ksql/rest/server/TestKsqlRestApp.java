@@ -23,10 +23,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.Queries;
@@ -294,7 +294,7 @@ public class TestKsqlRestApp extends ExternalResource {
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
         .map(RunningQuery::getId)
-        .map(EntityQueryId::getId)
+        .map(QueryId::getId)
         .collect(Collectors.toSet());
   }
 

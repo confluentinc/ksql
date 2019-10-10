@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -129,11 +128,11 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceStream.withKeyField(any()))
         .thenReturn(resultStream);
-    when(resultStream.into(any(), any(), any(), any(), any(), any()))
+    when(resultStream.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
     when(resultStream.selectKey(any(), anyBoolean(), any()))
         .thenReturn((SchemaKStream) resultWithKeySelected);
-    when(resultWithKeySelected.into(any(), any(), any(), any(), any(), any()))
+    when(resultWithKeySelected.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
@@ -318,7 +317,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).into(any(), any(), eq(valueFormat), any(), any(), any());
+    verify(resultStream).into(any(), any(), eq(valueFormat), any(), any());
   }
 
   @Test
@@ -332,8 +331,7 @@ public class KsqlStructuredDataOutputNodeTest {
         eq(SCHEMA),
         eq(JSON_FORMAT),
         eq(SerdeOption.none()),
-        stackerCaptor.capture(),
-        same(ksqlStreamBuilder)
+        stackerCaptor.capture()
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),

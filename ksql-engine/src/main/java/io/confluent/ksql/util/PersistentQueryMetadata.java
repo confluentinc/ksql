@@ -19,8 +19,8 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.materialization.Materialization;
-import io.confluent.ksql.materialization.MaterializationProvider;
+import io.confluent.ksql.execution.streams.materialization.Materialization;
+import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;

@@ -17,24 +17,20 @@ package io.confluent.ksql.physical;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.plan.ExecutionStep;
-import io.confluent.ksql.materialization.MaterializationInfo;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
-import java.util.Optional;
 
 @Immutable
 public final class PhysicalPlan<T> {
   private final QueryId queryId;
   private final ExecutionStep<T> physicalPlan;
-  private final Optional<MaterializationInfo> materializationInfo;
   private final String planSummary;
   private final transient KeyField keyField;
 
   PhysicalPlan(
       final QueryId queryId,
       final ExecutionStep<T> physicalPlan,
-      final Optional<MaterializationInfo> materializationInfo,
       final String planSummary,
       final KeyField keyField
   ) {
@@ -42,7 +38,6 @@ public final class PhysicalPlan<T> {
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.planSummary = Objects.requireNonNull(planSummary, "planSummary");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
-    this.materializationInfo = Objects.requireNonNull(materializationInfo, "materializationInfo");
   }
 
   public ExecutionStep<?> getPhysicalPlan() {
@@ -59,9 +54,5 @@ public final class PhysicalPlan<T> {
 
   public QueryId getQueryId() {
     return queryId;
-  }
-
-  public Optional<MaterializationInfo> getMaterializationInfo() {
-    return materializationInfo;
   }
 }

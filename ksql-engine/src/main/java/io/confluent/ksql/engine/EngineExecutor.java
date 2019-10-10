@@ -48,7 +48,6 @@ import io.confluent.ksql.util.AvroUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
-
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.util.Map;
@@ -245,7 +244,7 @@ final class EngineExecutor {
       );
     }
     final SchemaRegistryClient srClient = serviceContext.getSchemaRegistryClient();
-    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient);
+    AvroUtil.throwOnInvalidSchemaEvolution(sql, ddl, srClient, ksqlConfig);
     return Optional.of(ddl);
   }
 
@@ -375,7 +374,6 @@ final class EngineExecutor {
         ksqlPlan.getStatementText(),
         physicalPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
-        physicalPlan.getMaterializationInfo(),
         queryPlan.getSources(),
         physicalPlan.getPhysicalPlan(),
         physicalPlan.getPlanSummary()

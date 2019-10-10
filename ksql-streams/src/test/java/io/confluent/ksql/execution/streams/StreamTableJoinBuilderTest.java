@@ -126,7 +126,7 @@ public class StreamTableJoinBuilderTest {
     when(left.build(any())).thenReturn(
         new KStreamHolder<>(leftKStream, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        new KTableHolder<>(rightKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -134,7 +134,8 @@ public class StreamTableJoinBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             joinedFactory,
-            mock(MaterializedFactory.class)
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
         )
     );
   }

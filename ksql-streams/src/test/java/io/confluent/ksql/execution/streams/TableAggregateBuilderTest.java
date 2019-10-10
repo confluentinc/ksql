@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,6 +36,8 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.AggregateMapInfo;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -171,7 +175,8 @@ public class TableAggregateBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
-            materializedFactory
+            materializedFactory,
+            mock(StreamJoinedFactory.class)
         )
     );
   }
@@ -236,5 +241,23 @@ public class TableAggregateBuilderTest {
 
     // Then:
     verify(aggregateParamsFactory).create(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);
+  }
+
+  @Test
+  public void shouldBuildMaterializationCorrectlyForAggregate() {
+    // When:
+    final KTableHolder<?> result = aggregate.build(planBuilder);
+
+    // Then:
+    assertThat(result.getMaterializationBuilder().isPresent(), is(true));
+    final MaterializationInfo info = result.getMaterializationBuilder().get().build();
+    assertThat(info.stateStoreName(), equalTo("agg-regate"));
+    assertThat(info.getSchema(), equalTo(INPUT_SCHEMA));
+    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
+    assertThat(info.getTransforms(), hasSize(1));
+    final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
+    assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
+    assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));
+    assertThat(aggMapInfo.getInfo().startingColumnIndex(), equalTo(2));
   }
 }

@@ -15,18 +15,13 @@
 
 package io.confluent.ksql.serde.avro;
 
-import static java.util.Objects.requireNonNull;
-
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Iterables;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.serde.connect.ConnectDataTranslator;
 import io.confluent.ksql.serde.connect.DataTranslator;
 import io.confluent.ksql.util.DecimalUtil;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -35,7 +30,6 @@ import java.util.Objects;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 
 /**
@@ -60,9 +54,8 @@ public class AvroDataTranslator implements DataTranslator {
   ) {
     this.ksqlSchema = throwOnInvalidSchema(Objects.requireNonNull(schema, "schema"));
 
-    this.avroCompatibleSchema = buildAvroCompatibleSchema(
-        this.ksqlSchema,
-        new Context(Collections.singleton(schemaFullName), useNamedMaps, true)
+    this.avroCompatibleSchema = AvroSchemas.getAvroCompatibleConnectSchema(
+        schema, schemaFullName, useNamedMaps
     );
 
     this.innerTranslator = new ConnectDataTranslator(avroCompatibleSchema);
@@ -104,129 +97,6 @@ public class AvroDataTranslator implements DataTranslator {
     }
 
     return struct;
-  }
-
-  private static final class Context {
-    private static final String DELIMITER = "_";
-
-    static final String MAP_KEY_NAME = "MapKey";
-    static final String MAP_VALUE_NAME = "MapValue";
-
-    private final Iterable<String> names;
-    private final boolean useNamedMaps;
-    private boolean root;
-
-    private Context(
-        final Iterable<String> names,
-        final boolean useNamedMaps,
-        final boolean root
-    ) {
-      this.names = requireNonNull(names, "names");
-      this.useNamedMaps = useNamedMaps;
-      this.root = root;
-    }
-
-    Context with(final String name) {
-      return new Context(Iterables.concat(names, ImmutableList.of(name)), useNamedMaps, root);
-    }
-
-    public String name() {
-      return String.join(DELIMITER, names);
-    }
-  }
-
-  private static String avroCompatibleFieldName(final Field field) {
-    // Currently the only incompatible field names expected are fully qualified
-    // column identifiers. Once quoted identifier support is introduced we will
-    // need to implement something more generic here.
-    return field.name().replace(".", "_");
-  }
-
-  private static Schema buildAvroCompatibleSchema(
-      final Schema schema,
-      final Context context
-  ) {
-    final boolean notRoot = !context.root;
-    context.root = false;
-
-    final SchemaBuilder schemaBuilder;
-    switch (schema.type()) {
-      default:
-        if (notRoot || !schema.isOptional()) {
-          return schema;
-        }
-
-        schemaBuilder = new SchemaBuilder(schema.type());
-        break;
-
-      case STRUCT:
-        schemaBuilder = buildAvroCompatibleStruct(schema, context);
-        break;
-
-      case ARRAY:
-        schemaBuilder = buildAvroCompatibleArray(schema, context);
-        break;
-
-      case MAP:
-        schemaBuilder = buildAvroCompatibleMap(schema, context);
-        break;
-    }
-
-    if (schema.isOptional() && notRoot) {
-      schemaBuilder.optional();
-    }
-
-    return schemaBuilder.build();
-  }
-
-  private static SchemaBuilder buildAvroCompatibleMap(
-      final Schema schema, final Context context
-  ) {
-    final Schema keySchema =
-        buildAvroCompatibleSchema(schema.keySchema(), context.with(Context.MAP_KEY_NAME));
-
-    final Schema valueSchema =
-        buildAvroCompatibleSchema(schema.valueSchema(), context.with(Context.MAP_VALUE_NAME));
-
-    final SchemaBuilder schemaBuilder = SchemaBuilder.map(
-        keySchema,
-        valueSchema
-    );
-
-    if (context.useNamedMaps) {
-      schemaBuilder.name(context.name());
-    }
-
-    return schemaBuilder;
-  }
-
-  private static SchemaBuilder buildAvroCompatibleArray(
-      final Schema schema,
-      final Context context
-  ) {
-    final Schema valueSchema = buildAvroCompatibleSchema(schema.valueSchema(), context);
-
-    return SchemaBuilder.array(valueSchema);
-  }
-
-  private static SchemaBuilder buildAvroCompatibleStruct(
-      final Schema schema,
-      final Context context
-  ) {
-    final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
-
-    if (schema.name() == null) {
-      schemaBuilder.name(context.name());
-    }
-
-    for (final Field f : schema.fields()) {
-      final String fieldName = avroCompatibleFieldName(f);
-      final Schema fieldSchema = buildAvroCompatibleSchema(f.schema(), context.with(f.name()));
-
-      schemaBuilder.field(fieldName, fieldSchema);
-    }
-
-    return schemaBuilder;
   }
 
   @SuppressWarnings("unchecked")

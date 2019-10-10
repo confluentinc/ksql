@@ -355,8 +355,7 @@ public class JoinNode extends PlanNode {
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
               getFormatForSource(joinNode.right),
-              contextStacker,
-              builder
+              contextStacker
           );
         case OUTER:
           return leftStream.outerJoin(
@@ -366,8 +365,7 @@ public class JoinNode extends PlanNode {
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
               getFormatForSource(joinNode.right),
-              contextStacker,
-              builder
+              contextStacker
           );
         case INNER:
           return leftStream.join(
@@ -377,8 +375,7 @@ public class JoinNode extends PlanNode {
               joinNode.withinExpression.get().joinWindow(),
               getFormatForSource(joinNode.left),
               getFormatForSource(joinNode.right),
-              contextStacker,
-              builder
+              contextStacker
           );
         default:
           throw new KsqlException("Invalid join type encountered: " + joinNode.joinType);
@@ -417,8 +414,7 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               getFormatForSource(joinNode.left),
-              contextStacker,
-              builder
+              contextStacker
           );
 
         case INNER:
@@ -427,8 +423,7 @@ public class JoinNode extends PlanNode {
               joinNode.schema,
               getJoinedKeyField(joinNode.left.getAlias(), leftStream.getKeyField()),
               getFormatForSource(joinNode.left),
-              contextStacker,
-              builder
+              contextStacker
           );
         case OUTER:
           throw new KsqlException("Full outer joins between streams and tables are not supported.");

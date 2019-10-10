@@ -11,6 +11,7 @@
  import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
  import io.confluent.ksql.execution.context.QueryContext;
  import io.confluent.ksql.execution.expression.tree.Expression;
+ import io.confluent.ksql.execution.materialization.MaterializationInfo;
  import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
  import io.confluent.ksql.execution.plan.ExecutionStep;
  import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -69,6 +70,8 @@ public class TableFilterBuilderTest {
   private Expression filterExpression;
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
+  @Mock
+  private MaterializationInfo.Builder materializationBuilder;
 
   private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
@@ -94,13 +97,15 @@ public class TableFilterBuilderTest {
     when(sourceKTable.filter(any())).thenReturn(filteredKTable);
     when(predicateFactory.create(any(), any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getPredicate()).thenReturn(predicate);
+    when(materializationBuilder.filter(any())).thenReturn(materializationBuilder);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
         queryContext
     );
     step = new TableFilter<>(properties, sourceStep, filterExpression);
     when(sourceStep.build(any())).thenReturn(
-        new KTableHolder<>(sourceKTable, keySerdeFactory));
+        KTableHolder.materialized(sourceKTable, keySerdeFactory, materializationBuilder))
+    ;
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
@@ -143,5 +148,14 @@ public class TableFilterBuilderTest {
 
     // Then:
     verify(processingLoggerFactory).getLogger("foo.bar.FILTER");
+  }
+
+  @Test
+  public void shouldFilterMaterialization() {
+    // When:
+    step.build(planBuilder);
+
+    // Then:
+    verify(materializationBuilder).filter(filterExpression);
   }
 }

@@ -145,8 +145,8 @@ public class DataSourceNode extends PlanNode {
     return schemaKStream.toTable(
         dataSource.getKsqlTopic().getKeyFormat(),
         dataSource.getKsqlTopic().getValueFormat(),
-        reduceContextStacker,
-        builder);
+        reduceContextStacker
+    );
   }
 
   interface SchemaKStreamFactory {

@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,6 +37,8 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
+import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.execution.materialization.MaterializationInfo.AggregateMapInfo;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -100,6 +104,12 @@ public class StreamAggregateBuilderTest {
       .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("RESULT0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("RESULT1"), SqlTypes.STRING)
+      .build();
+  private static final LogicalSchema OUTPUT_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("OUTPUT0"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("OUTPUT1"), SqlTypes.STRING)
       .build();
   private static final PhysicalSchema PHYSICAL_AGGREGATE_SCHEMA = PhysicalSchema.from(
       AGGREGATE_SCHEMA,
@@ -196,7 +206,8 @@ public class StreamAggregateBuilderTest {
         new StreamsFactories(
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
-            materializedFactory
+            materializedFactory,
+            mock(StreamJoinedFactory.class)
         )
     );
   }
@@ -208,7 +219,7 @@ public class StreamAggregateBuilderTest {
     when(groupedStream.aggregate(any(), any(), any(Materialized.class))).thenReturn(aggregated);
     when(aggregated.mapValues(any(ValueMapper.class))).thenReturn(aggregatedWithResults);
     aggregate = new StreamAggregate(
-        new DefaultExecutionStepProperties(INPUT_SCHEMA, CTX),
+        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -230,7 +241,7 @@ public class StreamAggregateBuilderTest {
   private void givenTumblingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(INPUT_SCHEMA, CTX),
+        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -243,7 +254,7 @@ public class StreamAggregateBuilderTest {
   private void givenHoppingWindowedAggregate() {
     givenTimeWindowedAggregate();
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(INPUT_SCHEMA, CTX),
+        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -267,7 +278,7 @@ public class StreamAggregateBuilderTest {
         .thenReturn(windowed);
     when(windowed.mapValues(any(ValueMapper.class))).thenReturn(windowedWithResults);
     windowedAggregate = new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(INPUT_SCHEMA, CTX),
+        new DefaultExecutionStepProperties(OUTPUT_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
@@ -291,6 +302,18 @@ public class StreamAggregateBuilderTest {
     inOrder.verify(groupedStream).aggregate(initializer, aggregator, materialized);
     inOrder.verify(aggregated).mapValues(resultMapper);
     inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldBuildMaterializationCorrectlyForUnwindowedAggregate() {
+    // Given:
+    givenUnwindowedAggregate();
+
+    // When:
+    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+
+    // Then:
+    assertCorrectMaterializationBuilder(result);
   }
 
   @Test
@@ -428,6 +451,18 @@ public class StreamAggregateBuilderTest {
     inOrder.verifyNoMoreInteractions();
   }
 
+  @Test
+  public void shouldBuildMaterializationCorrectlyForWindowedAggregate() {
+    // Given:
+    givenHoppingWindowedAggregate();
+
+    // When:
+    final KTableHolder<?> result = windowedAggregate.build(planBuilder);
+
+    // Then:
+    assertCorrectMaterializationBuilder(result);
+  }
+
   private List<Runnable> given() {
     return ImmutableList.of(
         this::givenHoppingWindowedAggregate,
@@ -542,5 +577,18 @@ public class StreamAggregateBuilderTest {
       assertThat(result.getTable(), is(windowedWithWindowBoundaries));
       verify(windowedWithResults).mapValues(windowSelectMapper);
     }
+  }
+
+  private void assertCorrectMaterializationBuilder(final KTableHolder<?> result) {
+    assertThat(result.getMaterializationBuilder().isPresent(), is(true));
+    final MaterializationInfo info = result.getMaterializationBuilder().get().build();
+    assertThat(info.stateStoreName(), equalTo("agg-regate"));
+    assertThat(info.getSchema(), equalTo(OUTPUT_SCHEMA));
+    assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
+    assertThat(info.getTransforms(), hasSize(1));
+    final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
+    assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
+    assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));
+    assertThat(aggMapInfo.getInfo().startingColumnIndex(), equalTo(2));
   }
 }

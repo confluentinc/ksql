@@ -56,7 +56,7 @@ public class FilterNodeTest {
     when(sourceNode.buildStream(any()))
         .thenReturn(schemaKStream);
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
-    when(schemaKStream.filter(any(), any(), any()))
+    when(schemaKStream.filter(any(), any()))
         .thenReturn(schemaKStream);
 
     when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
@@ -71,6 +71,6 @@ public class FilterNodeTest {
 
     // Then:
     verify(sourceNode).buildStream(ksqlStreamBuilder);
-    verify(schemaKStream).filter(predicate, stacker, ksqlStreamBuilder);
+    verify(schemaKStream).filter(predicate, stacker);
   }
 }

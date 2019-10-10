@@ -18,7 +18,6 @@ package io.confluent.ksql.structured;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
@@ -29,7 +28,6 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -45,7 +43,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.serde.WindowInfo;
@@ -53,8 +50,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Windowed;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -91,12 +86,6 @@ public class SchemaKGroupedStreamTest {
   @Mock
   private WindowExpression windowExp;
   @Mock
-  private MaterializedFactory materializedFactory;
-  @Mock
-  private KeySerde<Struct> keySerde;
-  @Mock
-  private KeySerde<Windowed<Struct>> windowedKeySerde;
-  @Mock
   private ExecutionStep sourceStep;
   @Mock
   private KeyFormat keyFormat;
@@ -116,16 +105,13 @@ public class SchemaKGroupedStreamTest {
     schemaGroupedStream = new SchemaKGroupedStream(
         sourceStep,
         keyFormat,
-        keySerde,
         keyField,
         sourceStreams,
         config,
-        functionRegistry,
-        materializedFactory
+        functionRegistry
     );
     when(windowExp.getKsqlWindowExpression()).thenReturn(KSQL_WINDOW_EXP);
     when(config.getBoolean(KsqlConfig.KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG)).thenReturn(false);
-    when(keySerde.rebind(any(WindowInfo.class))).thenReturn(windowedKeySerde);
   }
 
   @Test

@@ -64,11 +64,11 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.TopologyTestDriver;
-import org.apache.kafka.streams.test.ConsumerRecordFactory;
 import org.hamcrest.Matcher;
 import org.hamcrest.StringDescription;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("deprecation")
 public class TestExecutor implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
@@ -333,7 +333,8 @@ public class TestExecutor implements Closeable {
             : recordTopic.getValueSerializer(schemaRegistryClient);
 
     final Object key = getKey(inputRecord);
-    final ConsumerRecord<byte[], byte[]> consumerRecord = new ConsumerRecordFactory<>(
+    final ConsumerRecord<byte[], byte[]> consumerRecord =
+        new org.apache.kafka.streams.test.ConsumerRecordFactory<>(
         keySerializer,
         valueSerializer
     ).create(

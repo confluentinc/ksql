@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Optional;
 
 public final class ListTypesExecutor {
@@ -34,6 +35,7 @@ public final class ListTypesExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListTypes> configuredStatement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

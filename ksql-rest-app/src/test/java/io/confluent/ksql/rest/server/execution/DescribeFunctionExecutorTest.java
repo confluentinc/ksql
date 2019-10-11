@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -38,6 +39,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION CONCAT;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -63,6 +65,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION MAX;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);

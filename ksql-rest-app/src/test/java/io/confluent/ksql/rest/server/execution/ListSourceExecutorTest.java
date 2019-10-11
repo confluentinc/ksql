@@ -81,6 +81,7 @@ public class ListSourceExecutorTest {
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -111,6 +112,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS EXTENDED;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -145,6 +147,7 @@ public class ListSourceExecutorTest {
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -177,6 +180,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES EXTENDED;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -224,6 +228,7 @@ public class ListSourceExecutorTest {
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -251,6 +256,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE S;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -272,6 +278,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -328,6 +335,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS EXTENDED;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -347,6 +355,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_TABLES.execute(
         engine.configure("SHOW TABLES EXTENDED;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -365,6 +374,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE EXTENDED STREAM1;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);

@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.Map;
 import java.util.Optional;
 
 public final class DropConnectorExecutor {
@@ -31,6 +32,7 @@ public final class DropConnectorExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<DropConnector> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

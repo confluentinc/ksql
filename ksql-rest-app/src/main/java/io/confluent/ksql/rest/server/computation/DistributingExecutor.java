@@ -27,6 +27,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -61,9 +62,9 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
   @Override
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<Statement> statement,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
-  ) {
+      final ServiceContext serviceContext) {
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, serviceContext)
         .inject(statement);

@@ -29,6 +29,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.ConnectorConfig;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
@@ -41,6 +42,7 @@ public final class ListConnectorsExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListConnectors> configuredStatement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext
   ) {

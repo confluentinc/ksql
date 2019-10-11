@@ -63,6 +63,7 @@ public class QueryValidatorTest {
     // When:
     CustomValidators.QUERY_ENDPOINT.validate(
         query,
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );

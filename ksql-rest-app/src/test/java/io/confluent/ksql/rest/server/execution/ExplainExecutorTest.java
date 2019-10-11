@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
@@ -58,6 +59,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -77,6 +79,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -97,6 +100,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -116,6 +120,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -134,6 +139,7 @@ public class ExplainExecutorTest {
     // When:
     CustomExecutors.EXPLAIN.execute(
         engine.configure("Explain SHOW TOPICS;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );

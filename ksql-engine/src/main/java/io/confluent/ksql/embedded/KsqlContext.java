@@ -46,13 +46,13 @@ import io.confluent.ksql.util.QueryMetadata;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -123,23 +123,25 @@ public class KsqlContext implements AutoCloseable {
     return sql(sql, Collections.emptyMap());
   }
 
-  public List<QueryMetadata> sql(final String sql, final Map<String, Object> overriddenProperties) {
+  public List<QueryMetadata> sql(final String sql, final Map<String, ?> overriddenProperties) {
     final List<ParsedStatement> statements = ksqlEngine.parse(sql);
 
     final KsqlExecutionContext sandbox = ksqlEngine.createSandbox(ksqlEngine.getServiceContext());
+    final Map<String, Object> validationOverrides = new HashMap<>(overriddenProperties);
     for (ParsedStatement stmt : statements) {
       execute(
           sandbox,
           stmt,
           ksqlConfig,
-          overriddenProperties,
+          validationOverrides,
           injectorFactory.apply(sandbox, sandbox.getServiceContext()));
     }
 
     final List<QueryMetadata> queries = new ArrayList<>();
     final Injector injector = injectorFactory.apply(ksqlEngine, serviceContext);
+    final Map<String, Object> executionOverrides = new HashMap<>(overriddenProperties);
     for (final ParsedStatement parsed : statements) {
-      execute(ksqlEngine, parsed, ksqlConfig, overriddenProperties, injector)
+      execute(ksqlEngine, parsed, ksqlConfig, executionOverrides, injector)
           .getQuery()
           .ifPresent(queries::add);
     }
@@ -181,32 +183,42 @@ public class KsqlContext implements AutoCloseable {
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final Injector injector) {
+      final Map<String, Object> mutableSessionPropertyOverrides,
+      final Injector injector
+  ) {
     final PreparedStatement<?> prepared = executionContext.prepare(stmt);
-    final ConfiguredStatement<?> configured =
-        injector.inject(ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig));
+
+    final ConfiguredStatement<?> configured = injector.inject(ConfiguredStatement.of(
+        prepared,
+        mutableSessionPropertyOverrides,
+        ksqlConfig
+    ));
 
     final CustomExecutor executor =
         CustomExecutors.EXECUTOR_MAP.getOrDefault(
             configured.getStatement().getClass(),
-            executionContext::execute);
+            (s, props) -> executionContext.execute(s));
 
-    return executor.apply(configured);
+    return executor.apply(configured, mutableSessionPropertyOverrides);
   }
 
   @FunctionalInterface
-  private interface CustomExecutor extends Function<ConfiguredStatement<?>, ExecuteResult> { }
+  private interface CustomExecutor {
+    ExecuteResult apply(
+        ConfiguredStatement<?> statement,
+        Map<String, Object> mutableSessionPropertyOverrides
+    );
+  }
 
   @SuppressWarnings("unchecked")
   private enum CustomExecutors {
 
-    SET_PROPERTY(SetProperty.class, stmt -> {
-      PropertyOverrider.set((ConfiguredStatement<SetProperty>) stmt);
+    SET_PROPERTY(SetProperty.class, (stmt, props) -> {
+      PropertyOverrider.set((ConfiguredStatement<SetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
     }),
-    UNSET_PROPERTY(UnsetProperty.class, stmt -> {
-      PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) stmt);
+    UNSET_PROPERTY(UnsetProperty.class, (stmt, props) -> {
+      PropertyOverrider.unset((ConfiguredStatement<UnsetProperty>) stmt, props);
       return ExecuteResult.of("Successfully executed " + stmt.getStatement());
     })
     ;
@@ -238,9 +250,11 @@ public class KsqlContext implements AutoCloseable {
       return this::execute;
     }
 
-    public ExecuteResult execute(final ConfiguredStatement<?> statement) {
-      return executor.apply(statement);
+    public ExecuteResult execute(
+        final ConfiguredStatement<?> statement,
+        final Map<String, Object> mutableSessionPropertyOverrides
+    ) {
+      return executor.apply(statement, mutableSessionPropertyOverrides);
     }
-
   }
 }

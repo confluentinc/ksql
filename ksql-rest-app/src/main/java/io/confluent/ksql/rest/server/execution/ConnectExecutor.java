@@ -26,6 +26,7 @@ import io.confluent.ksql.services.ConnectClient;
 import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 
@@ -35,6 +36,7 @@ public final class ConnectExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<CreateConnector> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

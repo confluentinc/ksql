@@ -24,6 +24,7 @@ import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ public final class ListQueriesExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListQueries> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

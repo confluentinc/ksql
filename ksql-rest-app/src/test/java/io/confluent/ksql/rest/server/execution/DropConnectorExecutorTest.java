@@ -16,7 +16,8 @@
 package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -73,7 +74,7 @@ public class DropConnectorExecutorTest {
         .thenReturn(ConnectResponse.success("foo", HttpStatus.SC_OK));
 
     // When:
-    DropConnectorExecutor.execute(DROP_CONNECTOR_CONFIGURED, null, serviceContext);
+    DropConnectorExecutor.execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(),null, serviceContext);
 
     // Then:
     verify(connectClient).delete("foo");
@@ -87,7 +88,7 @@ public class DropConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> response = DropConnectorExecutor
-        .execute(DROP_CONNECTOR_CONFIGURED, null, serviceContext);
+        .execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(),null, serviceContext);
 
     // Then:
     assertThat("expected response", response.isPresent());
@@ -102,7 +103,7 @@ public class DropConnectorExecutorTest {
 
     // When:
     final Optional<KsqlEntity> entity = DropConnectorExecutor
-        .execute(DROP_CONNECTOR_CONFIGURED, null, serviceContext);
+        .execute(DROP_CONNECTOR_CONFIGURED, ImmutableMap.of(),null, serviceContext);
 
     // Then:
     assertThat("Expected non-empty response", entity.isPresent());

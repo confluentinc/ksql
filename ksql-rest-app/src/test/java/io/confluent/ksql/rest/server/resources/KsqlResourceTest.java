@@ -1303,6 +1303,25 @@ public class KsqlResourceTest {
   }
 
   @Test
+  public void shouldSetPropertyOnlyOnCommandsFollowingTheSetStatement() {
+    // Given:
+    final String csas = "CREATE STREAM " + streamName + " AS SELECT * FROM test_stream;";
+
+    // When:
+    makeMultipleRequest(
+        csas +
+            "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
+        CommandStatusEntity.class);
+
+    // Then:
+    verify(commandStore).enqueueCommand(
+        argThat(is(configured(
+            preparedStatementText(csas),
+            ImmutableMap.of(),
+            ksqlConfig))));
+  }
+
+  @Test
   public void shouldFailSetPropertyOnInvalidPropertyName() {
     // When:
     final KsqlErrorMessage response = makeFailingRequest(

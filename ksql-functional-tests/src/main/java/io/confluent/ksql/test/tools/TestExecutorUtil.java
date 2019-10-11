@@ -295,6 +295,7 @@ public final class TestExecutorUtil {
     if (prepared.getStatement() instanceof InsertValues) {
       StubInsertValuesExecutor.of(stubKafkaService).execute(
           (ConfiguredStatement<InsertValues>) configured,
+          overriddenProperties,
           executionContext,
           executionContext.getServiceContext()
       );

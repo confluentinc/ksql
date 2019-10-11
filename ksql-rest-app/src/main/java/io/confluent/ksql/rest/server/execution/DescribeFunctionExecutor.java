@@ -31,6 +31,7 @@ import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 
@@ -43,6 +44,7 @@ public final class DescribeFunctionExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<DescribeFunction> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {

@@ -43,8 +43,8 @@ public class PropertyExecutorTest {
 
     // When:
     CustomExecutors.SET_PROPERTY.execute(
-        engine.configure("SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';")
-            .withProperties(properties),
+        engine.configure("SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'none';"),
+        properties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -62,8 +62,8 @@ public class PropertyExecutorTest {
 
     // When:
     CustomExecutors.UNSET_PROPERTY.execute(
-        engine.configure("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';")
-            .withProperties(properties),
+        engine.configure("UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';"),
+        properties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -71,6 +71,4 @@ public class PropertyExecutorTest {
     // Then:
     assertThat(properties, not(hasKey(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)));
   }
-
-
 }

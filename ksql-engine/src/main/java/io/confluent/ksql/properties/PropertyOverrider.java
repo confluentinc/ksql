@@ -21,22 +21,29 @@ import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.util.Map;
 
 public final class PropertyOverrider {
 
   private PropertyOverrider() { }
 
-  public static void set(final ConfiguredStatement<SetProperty> statement) {
+  public static void set(
+      final ConfiguredStatement<SetProperty> statement,
+      final Map<String, Object> mutableProperties
+  ) {
     final SetProperty setProperty = statement.getStatement();
     throwIfInvalidProperty(setProperty.getPropertyName(), statement.getStatementText());
     throwIfInvalidPropertyValues(setProperty, statement);
-    statement.getOverrides().put(setProperty.getPropertyName(), setProperty.getPropertyValue());
+    mutableProperties.put(setProperty.getPropertyName(), setProperty.getPropertyValue());
   }
 
-  public static void unset(final ConfiguredStatement<UnsetProperty> statement) {
+  public static void unset(
+      final ConfiguredStatement<UnsetProperty> statement,
+      final Map<String, Object> mutableProperties
+  ) {
     final UnsetProperty unsetProperty = statement.getStatement();
     throwIfInvalidProperty(unsetProperty.getPropertyName(), statement.getStatementText());
-    statement.getOverrides().remove(unsetProperty.getPropertyName());
+    mutableProperties.remove(unsetProperty.getPropertyName());
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_INFERRED") // clone has side-effects

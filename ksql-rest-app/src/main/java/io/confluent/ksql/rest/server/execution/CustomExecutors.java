@@ -107,16 +107,18 @@ public enum CustomExecutors {
 
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<?> statement,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionCtx,
-      final ServiceContext serviceCtx) {
-    return executor.execute(statement, executionCtx, serviceCtx);
+      final ServiceContext serviceCtx
+  ) {
+    return executor.execute(statement, mutableScopedProperties, executionCtx, serviceCtx);
   }
 
   private static StatementExecutor insertValuesExecutor() {
     final InsertValuesExecutor executor = new InsertValuesExecutor();
 
-    return (statement, executionContext, serviceContext) -> {
-      executor.execute(statement, executionContext, serviceContext);
+    return (statement, sessionProperties, executionContext, serviceContext) -> {
+      executor.execute(statement, sessionProperties, executionContext, serviceContext);
       return Optional.empty();
     };
   }

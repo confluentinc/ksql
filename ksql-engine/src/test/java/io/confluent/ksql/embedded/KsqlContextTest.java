@@ -165,9 +165,9 @@ public class KsqlContextTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_0_WITH_SCHEMA));
+    inOrder.verify(ksqlEngine).execute(serviceContext, STMT_0_WITH_SCHEMA);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_1_WITH_SCHEMA));
+    inOrder.verify(ksqlEngine).execute(serviceContext, STMT_1_WITH_SCHEMA);
   }
 
   @Test
@@ -181,10 +181,10 @@ public class KsqlContextTest {
 
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine, sandbox);
-    inOrder.verify(sandbox).execute(eq(sandbox.getServiceContext()), eq(STMT_0_WITH_SCHEMA));
-    inOrder.verify(sandbox).execute(eq(sandbox.getServiceContext()), eq(STMT_1_WITH_SCHEMA));
-    inOrder.verify(ksqlEngine).execute(eq(ksqlEngine.getServiceContext()), eq(STMT_0_WITH_SCHEMA));
-    inOrder.verify(ksqlEngine).execute(eq(ksqlEngine.getServiceContext()), eq(STMT_1_WITH_SCHEMA));
+    inOrder.verify(sandbox).execute(sandbox.getServiceContext(), STMT_0_WITH_SCHEMA);
+    inOrder.verify(sandbox).execute(sandbox.getServiceContext(), STMT_1_WITH_SCHEMA);
+    inOrder.verify(ksqlEngine).execute(ksqlEngine.getServiceContext(), STMT_0_WITH_SCHEMA);
+    inOrder.verify(ksqlEngine).execute(ksqlEngine.getServiceContext(), STMT_1_WITH_SCHEMA);
   }
 
   @Test
@@ -362,7 +362,7 @@ public class KsqlContextTest {
     ksqlContext.sql("Some SQL", SOME_PROPERTIES);
 
     // Then:
-    verify(ksqlEngine).execute(eq(serviceContext), eq(STMT_1_WITH_TOPIC));
+    verify(ksqlEngine).execute(serviceContext, STMT_1_WITH_TOPIC);
   }
 
   @SuppressWarnings("unchecked")
@@ -384,8 +384,8 @@ public class KsqlContextTest {
     ksqlContext.sql("SQL;", ImmutableMap.of());
 
     // Then:
-    verify(ksqlEngine, times(3)).execute(
-        ksqlEngine.getServiceContext(),
+    verify(ksqlEngine).execute(
+        serviceContext,
         ConfiguredStatement.of(
             PREPARED_STMT_0, ImmutableMap.of(
                 ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"
@@ -413,8 +413,8 @@ public class KsqlContextTest {
     ksqlContext.sql("SQL;", ImmutableMap.of());
 
     // Then:
-    verify(ksqlEngine, times(3)).execute(
-        ksqlEngine.getServiceContext(),
+    verify(ksqlEngine).execute(
+        serviceContext,
         ConfiguredStatement.of(
             PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
         ));
@@ -441,8 +441,8 @@ public class KsqlContextTest {
     ksqlContext.sql("SQL;", properties);
 
     // Then:
-    verify(ksqlEngine, times(3)).execute(
-        ksqlEngine.getServiceContext(),
+    verify(ksqlEngine).execute(
+        serviceContext,
         ConfiguredStatement.of(
             PREPARED_STMT_0, ImmutableMap.of(), SOME_CONFIG
         ));

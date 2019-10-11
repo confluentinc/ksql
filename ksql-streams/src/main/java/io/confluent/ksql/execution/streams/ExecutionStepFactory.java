@@ -149,8 +149,7 @@ public final class ExecutionStepFactory {
       final LogicalSchema resultSchema,
       final List<FunctionCall> functionCalls,
       final FunctionRegistry functionRegistry,
-      final LogicalSchema inputSchema,
-      final LogicalSchema outputSchema
+      final LogicalSchema inputSchema
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFlatMap<>(
@@ -159,7 +158,7 @@ public final class ExecutionStepFactory {
         functionCalls,
         functionRegistry,
         inputSchema,
-        outputSchema
+        resultSchema
     );
   }
 

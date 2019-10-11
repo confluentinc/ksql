@@ -96,7 +96,7 @@ public final class AnalysisTestUtil {
     }
 
     TableFunctionAnalysis tableFunctionAnalysis() {
-      return queryAnalyzer.analyzeTableFunctions(query, analysis);
+      return queryAnalyzer.analyzeTableFunctions(analysis);
     }
   }
 }

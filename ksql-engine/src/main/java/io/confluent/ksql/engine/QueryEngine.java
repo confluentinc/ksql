@@ -102,7 +102,7 @@ class QueryEngine {
     final Analysis analysis = queryAnalyzer.analyze(query, sink);
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
     final TableFunctionAnalysis tableFunctionAnalysis =
-        queryAnalyzer.analyzeTableFunctions(query, analysis);
+        queryAnalyzer.analyzeTableFunctions(analysis);
 
     return new LogicalPlanner(config, analysis, aggAnalysis,
         tableFunctionAnalysis, metaStore).buildPlan();

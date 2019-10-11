@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.function.udtf.KudtfFlatMapper;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
@@ -27,14 +26,8 @@ public final class StreamFlatMapBuilder {
 
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
-      final StreamFlatMap<K> step,
-      final KsqlQueryBuilder queryBuilder) {
-
-    final KudtfFlatMapper flatMapper = new KudtfFlatMapper(step.getFunctionCalls(),
-        step.getInputSchema(),
-        step.getOutputSchema(), step.getFunctionRegistry());
-
-    return stream.withStream(stream.getStream().flatMapValues(flatMapper));
+      final StreamFlatMap<K> step) {
+    return stream.withStream(stream.getStream().flatMapValues(new KudtfFlatMapper(step)));
   }
 
 }

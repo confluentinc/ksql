@@ -19,11 +19,10 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.UdtfUtil;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
@@ -31,35 +30,27 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 
 public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<GenericRow>> {
 
-  private final List<FunctionCall> udtfCalls;
-  private final LogicalSchema inputSchema;
-  private final LogicalSchema outputSchema;
-  private final FunctionRegistry functionRegistry;
+  private final StreamFlatMap streamFlatMap;
 
-  public KudtfFlatMapper(
-      final List<FunctionCall> udtfCalls,
-      final LogicalSchema inputSchema,
-      final LogicalSchema outputSchema,
-      final FunctionRegistry functionRegistry
-  ) {
-    this.udtfCalls = udtfCalls;
-    this.inputSchema = inputSchema;
-    this.outputSchema = outputSchema;
-    this.functionRegistry = functionRegistry;
+  public KudtfFlatMapper(final StreamFlatMap streamFlatMap) {
+    this.streamFlatMap = streamFlatMap;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public Iterable<GenericRow> apply(final GenericRow row) {
 
-    // TODO this currently assumes function expression is a simple column ref expression
-    // if we want to support more complex expressions we can use CodeGenRunner stuff
-    // to evaluate expressions in a similar way to how SELECTs are evaluated.
-    final FunctionCall functionCall = udtfCalls.get(0);
+    /*
+    TODO this currently assumes function expression is a simple column ref expression
+     if we want to support more complex expressions we can use CodeGenRunner stuff
+     to evaluate expressions in a similar way to how SELECTs are evaluated.
+     */
+    final List<FunctionCall> functionCalls = streamFlatMap.getFunctionCalls();
+    final FunctionCall functionCall = functionCalls.get(0);
     final ColumnReferenceExp exp = (ColumnReferenceExp) functionCall.getArguments().get(0);
     final ColumnName columnName = exp.getReference().name();
     final ColumnRef ref = ColumnRef.withoutSource(columnName);
-    final OptionalInt indexInInput = inputSchema.valueColumnIndex(ref);
+    final OptionalInt indexInInput = streamFlatMap.getInputSchema().valueColumnIndex(ref);
     if (!indexInInput.isPresent()) {
       throw new IllegalArgumentException("Can't find input column " + columnName);
     }
@@ -67,9 +58,9 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
     // TODO we can cache all this (and above) so we don't look it up each time
     final List<Object> unexplodedValue = row.getColumnValue(indexInInput.getAsInt());
     final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
-        functionRegistry,
+        streamFlatMap.getFunctionRegistry(),
         functionCall,
-        inputSchema
+        streamFlatMap.getInputSchema()
     );
 
     final List<Object> list = tableFunction.flatMap(unexplodedValue);

@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.analyzer;
 
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
@@ -28,46 +26,38 @@ import java.util.Optional;
 class TableFunctionAnalyzer {
 
   private final TableFunctionAnalysis tableFunctionAnalysis;
-  private final ColumnReferenceExp defaultArgument;
   private final FunctionRegistry functionRegistry;
 
   TableFunctionAnalyzer(
       final TableFunctionAnalysis tableFunctionAnalysis,
-      final ColumnReferenceExp defaultArgument,
       final FunctionRegistry functionRegistry
   ) {
     this.tableFunctionAnalysis = Objects.requireNonNull(tableFunctionAnalysis, "aggregateAnalysis");
-    this.defaultArgument = Objects.requireNonNull(defaultArgument, "defaultArgument");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
   }
 
   void processSelect(final Expression expression) {
-    final AggregateVisitor visitor = new AggregateVisitor();
+    final TableFunctionVisitor visitor = new TableFunctionVisitor();
     visitor.process(expression, null);
   }
 
-  private final class AggregateVisitor extends TraversalExpressionVisitor<Void> {
+  private final class TableFunctionVisitor extends TraversalExpressionVisitor<Void> {
 
     private Optional<String> tableFunctionName = Optional.empty();
 
     @Override
-    public Void visitFunctionCall(final FunctionCall node, final Void context) {
-      final String functionName = node.getName().name();
+    public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
+      final String functionName = functionCall.getName().name();
       final boolean isTableFunction = functionRegistry.isTableFunction(functionName);
-
-      final FunctionCall functionCall = isTableFunction && node.getArguments().isEmpty()
-          ? new FunctionCall(node.getLocation(), node.getName(), ImmutableList.of(defaultArgument))
-          : node;
 
       if (isTableFunction) {
         if (tableFunctionName.isPresent()) {
-          throw new KsqlException("Aggregate functions can not be nested: "
+          throw new KsqlException("Table functions cannot be nested: "
               + tableFunctionName.get() + "(" + functionName + "())");
         }
 
         tableFunctionName = Optional.of(functionName);
 
-        //functionCall.getArguments().forEach(tableFunctionAnalysis::addAggregateFunctionArgument);
         tableFunctionAnalysis.addTableFunction(functionCall);
       }
 
@@ -77,15 +67,6 @@ class TableFunctionAnalyzer {
         tableFunctionName = Optional.empty();
       }
 
-      return null;
-    }
-
-    @Override
-    public Void visitColumnReference(
-        final ColumnReferenceExp node,
-        final Void context
-    ) {
-      tableFunctionAnalysis.addColumn(node);
       return null;
     }
   }

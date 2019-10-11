@@ -130,7 +130,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public <K> KStreamHolder<K> visitFlatMap(final StreamFlatMap<K> streamFlatMap) {
     final KStreamHolder<K> source = streamFlatMap.getSource().build(this);
-    return StreamFlatMapBuilder.build(source, streamFlatMap, queryBuilder);
+    return StreamFlatMapBuilder.build(source, streamFlatMap);
   }
 
   @Override

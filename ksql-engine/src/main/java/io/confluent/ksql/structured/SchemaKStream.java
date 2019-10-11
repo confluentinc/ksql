@@ -692,8 +692,7 @@ public class SchemaKStream<K> {
         outputSchema,
         tableFunctionAnalysis.getTableFunctions(),
         functionRegistry,
-        getSchema(),
-        outputSchema
+        getSchema()
     );
 
     return new SchemaKStream<K>(step, keyFormat, keySerde, keyField,

@@ -133,11 +133,10 @@ public class QueryAnalyzer {
     return aggregateAnalysis;
   }
 
-  public TableFunctionAnalysis analyzeTableFunctions(final Query query, final Analysis analysis) {
+  public TableFunctionAnalysis analyzeTableFunctions(final Analysis analysis) {
     final TableFunctionAnalysis tableFunctionAnalysis = new TableFunctionAnalysis();
-    final ColumnReferenceExp defaultArgument = analysis.getDefaultArgument();
     final TableFunctionAnalyzer tableFunctionAnalyzer =
-        new TableFunctionAnalyzer(tableFunctionAnalysis, defaultArgument, metaStore);
+        new TableFunctionAnalyzer(tableFunctionAnalysis, metaStore);
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
         new TableFunctionExpressionRewriter(metaStore);
 

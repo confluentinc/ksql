@@ -75,18 +75,20 @@ public final class KsqlEngineTestUtil {
   }
 
   public static List<QueryMetadata> execute(
+      final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    return execute(engine, sql, ksqlConfig, overriddenProperties, Optional.empty());
+    return execute(serviceContext, engine, sql, ksqlConfig, overriddenProperties, Optional.empty());
   }
 
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
    */
   public static List<QueryMetadata> execute(
+      final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,
       final KsqlConfig ksqlConfig,
@@ -100,7 +102,8 @@ public final class KsqlEngineTestUtil {
         .map(DefaultSchemaInjector::new);
 
     return statements.stream()
-        .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
+        .map(stmt ->
+            execute(serviceContext, engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
         .map(ExecuteResult::getQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -109,6 +112,7 @@ public final class KsqlEngineTestUtil {
 
   @SuppressWarnings({"rawtypes","unchecked"})
   private static ExecuteResult execute(
+      final ServiceContext serviceContext,
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
@@ -125,7 +129,7 @@ public final class KsqlEngineTestUtil {
     final ConfiguredStatement<?> reformatted =
         new SqlFormatInjector(executionContext).inject(withSchema);
     try {
-      return executionContext.execute(reformatted);
+      return executionContext.execute(serviceContext, reformatted);
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

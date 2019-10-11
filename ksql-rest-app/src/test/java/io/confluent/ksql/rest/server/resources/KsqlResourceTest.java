@@ -1845,7 +1845,7 @@ public class KsqlResourceTest {
 
   private Answer<?> executeAgainstEngine(final String sql) {
     return invocation -> {
-      KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, emptyMap());
+      KsqlEngineTestUtil.execute(serviceContext, ksqlEngine, sql, ksqlConfig, emptyMap());
       return null;
     };
   }
@@ -1889,8 +1889,13 @@ public class KsqlResourceTest {
   private List<PersistentQueryMetadata> createQueries(
       final String sql,
       final Map<String, Object> overriddenProperties) {
-    return KsqlEngineTestUtil.execute(ksqlEngine, sql, ksqlConfig, overriddenProperties)
-        .stream()
+    return KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        sql,
+        ksqlConfig,
+        overriddenProperties
+    ).stream()
         .map(PersistentQueryMetadata.class::cast)
         .collect(Collectors.toList());
   }
@@ -2009,7 +2014,13 @@ public class KsqlResourceTest {
       final Map<String, Object> overriddenProperties,
       final KsqlEntity entity) {
     final QueryMetadata queryMetadata = KsqlEngineTestUtil
-        .execute(ksqlEngine, ksqlQueryString, ksqlConfig, overriddenProperties).get(0);
+        .execute(
+            serviceContext,
+            ksqlEngine,
+            ksqlQueryString,
+            ksqlConfig,
+            overriddenProperties)
+        .get(0);
 
     validateQueryDescription(queryMetadata, overriddenProperties, entity);
   }

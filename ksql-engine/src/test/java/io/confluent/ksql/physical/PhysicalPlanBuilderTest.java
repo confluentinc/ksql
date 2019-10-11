@@ -628,6 +628,7 @@ public class PhysicalPlanBuilderTest {
 
   private List<QueryMetadata> execute(final String sql) {
     return KsqlEngineTestUtil.execute(
+        serviceContext,
         ksqlEngine,
         sql,
         ksqlConfig,

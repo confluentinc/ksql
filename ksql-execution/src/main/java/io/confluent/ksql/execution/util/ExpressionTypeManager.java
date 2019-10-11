@@ -52,18 +52,14 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
-import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
-import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,12 +69,6 @@ import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
 public class ExpressionTypeManager {
-
-  private static final SqlToConnectTypeConverter SQL_TO_CONNECT_SCHEMA_CONVERTER =
-      SchemaConverters.sqlToConnectConverter();
-
-  private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_SCHEMA_CONVERTER =
-      SchemaConverters.connectToSqlConverter();
 
   private final LogicalSchema schema;
   private final FunctionRegistry functionRegistry;
@@ -108,25 +98,26 @@ public class ExpressionTypeManager {
     return expressionTypeContext.getSqlType();
   }
 
-  static class ExpressionTypeContext {
+  private static class ExpressionTypeContext {
 
-    private Schema schema;
     private SqlType sqlType;
-
-    public Schema getSchema() {
-      return schema;
-    }
 
     SqlType getSqlType() {
       return sqlType;
     }
 
-    void setSchema(
-        final SqlType sqlType,
-        final Schema schema
-    ) {
+    Schema getSchema() {
+      return sqlType == null
+          ? null
+          : SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
+    }
+
+    void setSqlType(final SqlType sqlType) {
       this.sqlType = sqlType;
-      this.schema = schema;
+    }
+
+    void setSchema(final Schema schema) {
+      this.sqlType = SchemaConverters.connectToSqlConverter().toSqlType(schema);
     }
   }
 
@@ -138,14 +129,14 @@ public class ExpressionTypeManager {
         final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      final Schema leftType = expressionTypeContext.getSchema();
+      final SqlType leftType = expressionTypeContext.getSqlType();
+
       process(node.getRight(), expressionTypeContext);
-      final Schema rightType = expressionTypeContext.getSchema();
+      final SqlType rightType = expressionTypeContext.getSqlType();
 
-      final Schema schema = resolveArithmeticType(leftType, rightType, node.getOperator());
-      final SqlType sqlType = CONNECT_TO_SQL_SCHEMA_CONVERTER.toSqlType(schema);
+      final SqlType resultType = node.getOperator().resultType(leftType, rightType);
 
-      expressionTypeContext.setSchema(sqlType, schema);
+      expressionTypeContext.setSqlType(resultType);
       return null;
     }
 
@@ -163,7 +154,7 @@ public class ExpressionTypeManager {
         final NotExpression node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -178,9 +169,7 @@ public class ExpressionTypeManager {
             + "are supported: " + sqlType);
       }
 
-      final Schema castType = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(sqlType);
-
-      expressionTypeContext.setSchema(sqlType, castType);
+      expressionTypeContext.setSqlType(sqlType);
       return null;
     }
 
@@ -194,7 +183,7 @@ public class ExpressionTypeManager {
       process(node.getRight(), expressionTypeContext);
       final Schema rightSchema = expressionTypeContext.getSchema();
       ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
-      expressionTypeContext.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -203,7 +192,7 @@ public class ExpressionTypeManager {
         final BetweenPredicate node,
         final ExpressionTypeContext context
     ) {
-      context.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      context.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -216,8 +205,7 @@ public class ExpressionTypeManager {
           .orElseThrow(() ->
               new KsqlException(String.format("Invalid Expression %s.", node.toString())));
 
-      final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
-      expressionTypeContext.setSchema(schemaColumn.type(), schema);
+      expressionTypeContext.setSqlType(schemaColumn.type());
       return null;
     }
 
@@ -235,7 +223,7 @@ public class ExpressionTypeManager {
         final StringLiteral node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.STRING, Schema.OPTIONAL_STRING_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.STRING);
       return null;
     }
 
@@ -244,7 +232,7 @@ public class ExpressionTypeManager {
         final BooleanLiteral node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -253,7 +241,7 @@ public class ExpressionTypeManager {
         final LongLiteral node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.BIGINT, Schema.OPTIONAL_INT64_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BIGINT);
       return null;
     }
 
@@ -262,7 +250,7 @@ public class ExpressionTypeManager {
         final IntegerLiteral node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.INTEGER, Schema.OPTIONAL_INT32_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.INTEGER);
       return null;
     }
 
@@ -271,7 +259,7 @@ public class ExpressionTypeManager {
         final DoubleLiteral node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.DOUBLE, Schema.OPTIONAL_FLOAT64_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.DOUBLE);
       return null;
     }
 
@@ -280,7 +268,7 @@ public class ExpressionTypeManager {
         final NullLiteral node,
         final ExpressionTypeContext context
     ) {
-      context.setSchema(null, null);
+      context.setSqlType(null);
       return null;
     }
 
@@ -289,7 +277,7 @@ public class ExpressionTypeManager {
         final LikePredicate node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -298,7 +286,7 @@ public class ExpressionTypeManager {
         final IsNotNullPredicate node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -307,7 +295,7 @@ public class ExpressionTypeManager {
         final IsNullPredicate node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      expressionTypeContext.setSchema(SqlTypes.BOOLEAN, Schema.OPTIONAL_BOOLEAN_SCHEMA);
+      expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
     }
 
@@ -327,7 +315,6 @@ public class ExpressionTypeManager {
         final ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getBase(), expressionTypeContext);
-      final Schema arrayMapSchema = expressionTypeContext.getSchema();
       final SqlType arrayMapType = expressionTypeContext.getSqlType();
 
       final SqlType valueType;
@@ -339,7 +326,7 @@ public class ExpressionTypeManager {
         throw new UnsupportedOperationException("Unsupported container type: " + arrayMapType);
       }
 
-      expressionTypeContext.setSchema(valueType, arrayMapSchema.valueSchema());
+      expressionTypeContext.setSqlType(valueType);
       return null;
     }
 
@@ -361,11 +348,7 @@ public class ExpressionTypeManager {
         final KsqlAggregateFunction aggFunc = functionRegistry
             .getAggregateFunction(node.getName().name(), schema, args);
 
-        final Schema returnSchema = aggFunc.getReturnType();
-
-        final SqlType returnType = CONNECT_TO_SQL_SCHEMA_CONVERTER.toSqlType(returnSchema);
-
-        expressionTypeContext.setSchema(returnType, returnSchema);
+        expressionTypeContext.setSchema(aggFunc.getReturnType());
         return null;
       }
 
@@ -379,8 +362,7 @@ public class ExpressionTypeManager {
               node.getArguments().get(0).toString()));
         }
         final Schema returnSchema = firstArgSchema.field(fieldName).schema();
-        final SqlType returnType = CONNECT_TO_SQL_SCHEMA_CONVERTER.toSqlType(returnSchema);
-        expressionTypeContext.setSchema(returnType, returnSchema);
+        expressionTypeContext.setSchema(returnSchema);
       } else {
         final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
         final List<Schema> argTypes = new ArrayList<>();
@@ -389,8 +371,7 @@ public class ExpressionTypeManager {
           argTypes.add(expressionTypeContext.getSchema());
         }
         final Schema returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
-        final SqlType returnType = CONNECT_TO_SQL_SCHEMA_CONVERTER.toSqlType(returnSchema);
-        expressionTypeContext.setSchema(returnType, returnSchema);
+        expressionTypeContext.setSchema(returnSchema);
       }
       return null;
     }
@@ -466,13 +447,6 @@ public class ExpressionTypeManager {
         final ExpressionTypeContext expressionTypeContext
     ) {
       throw VisitorUtil.illegalState(this, whenClause);
-    }
-
-    private Schema resolveArithmeticType(
-        final Schema leftSchema,
-        final Schema rightSchema,
-        final Operator operator) {
-      return SchemaUtil.resolveBinaryOperatorResultType(leftSchema, rightSchema, operator);
     }
 
     private void validateSearchedCaseExpression(

@@ -105,4 +105,75 @@ public final class SqlDecimal extends SqlType {
   public String toString(final FormatOptions formatOptions) {
     return toString();
   }
+
+  /**
+   * Determine the decimal type should two decimals be added together.
+   *
+   * @param left the left side decimal.
+   * @param right the right side decimal.
+   * @return the resulting decimal type.
+   */
+  public static SqlDecimal add(final SqlDecimal left, final SqlDecimal right) {
+    final int precision = Math.max(left.scale, right.scale)
+        + Math.max(left.precision - left.scale, right.precision - right.scale)
+        + 1;
+
+    final int scale = Math.max(left.scale, right.scale);
+    return SqlDecimal.of(precision, scale);
+  }
+
+  /**
+   * Determine the decimal type should one decimal be subtracted from another.
+   *
+   * @param left the left side decimal.
+   * @param right the right side decimal.
+   * @return the resulting decimal type.
+   */
+  public static SqlDecimal subtract(final SqlDecimal left, final SqlDecimal right) {
+    return add(left, right);
+  }
+
+  /**
+   * Determine the decimal type should one decimal be multiplied by another.
+   *
+   * @param left the left side decimal.
+   * @param right the right side decimal.
+   * @return the resulting decimal type.
+   */
+  public static SqlDecimal multiply(final SqlDecimal left, final SqlDecimal right) {
+    final int precision = left.precision + right.precision + 1;
+    final int scale = left.scale + right.scale;
+    return SqlDecimal.of(precision, scale);
+  }
+
+  /**
+   * Determine the decimal type should one decimal be divided by another.
+   *
+   * @param left the left side decimal.
+   * @param right the right side decimal.
+   * @return the resulting decimal type.
+   */
+  public static SqlDecimal divide(final SqlDecimal left, final SqlDecimal right) {
+    final int precision = left.precision - left.scale + right.scale
+        + Math.max(6, left.scale + right.precision + 1);
+
+    final int scale = Math.max(6, left.scale + right.precision + 1);
+    return SqlDecimal.of(precision, scale);
+  }
+
+  /**
+   * Determine the decimal result type when calculating the remainder of dividing one decimal by
+   * another.
+   *
+   * @param left the left side decimal.
+   * @param right the right side decimal.
+   * @return the resulting decimal type.
+   */
+  public static SqlDecimal modulus(final SqlDecimal left, final SqlDecimal right) {
+    final int precision = Math.min(left.precision - left.scale, right.precision - right.scale)
+        + Math.max(left.scale, right.scale);
+
+    final int scale = Math.max(left.scale, right.scale);
+    return SqlDecimal.of(precision, scale);
+  }
 }

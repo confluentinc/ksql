@@ -193,8 +193,8 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", 1L, null);
-    final Record expected_1 = new Record(sinkTopic, "k1", "v1", 1L, null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(1L), null);
+    final Record expected_1 = new Record(sinkTopic, "k1", "v1", Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // Expect
@@ -214,7 +214,7 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", 1L, null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
 
     // Expect
@@ -235,8 +235,8 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", 123456719L, null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "different", 123456789L, null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(123456719L), null);
+    final Record expected_1 = new Record(sinkTopic, "k2", "different", Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // Expect
@@ -255,8 +255,8 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", 123456719L, null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "v2", 123456789L, null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(123456719L), null);
+    final Record expected_1 = new Record(sinkTopic, "k2", "v2", Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:

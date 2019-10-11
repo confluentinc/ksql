@@ -19,14 +19,11 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.GenericsUtil;
-import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import org.apache.kafka.connect.data.ConnectSchema;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -227,258 +224,19 @@ public class SchemaUtilTest {
   }
 
   @Test
-  public void shouldReturnNoAlias() {
-    assertThat(SchemaUtil.getFieldNameAlias("not-aliased"), is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldReturnAlias() {
-    assertThat(SchemaUtil.getFieldNameAlias("is.aliased"), is(Optional.of("is")));
-  }
-
-  @Test
-  public void shouldResolveIntAndLongSchemaToLong() {
-    assertThat(
-        SchemaUtil.resolveBinaryOperatorResultType(Schema.INT64_SCHEMA, Schema.INT32_SCHEMA, Operator.ADD).type(),
-        equalTo(Schema.Type.INT64));
-  }
-
-  @Test
-  public void shouldResolveIntAndIntSchemaToInt() {
-    assertThat(
-        SchemaUtil.resolveBinaryOperatorResultType(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA, Operator.ADD).type(),
-        equalTo(Schema.Type.INT32));
-  }
-
-  @Test
-  public void shouldResolveFloat64AndAnyNumberTypeToFloat() {
-    assertThat(
-        SchemaUtil.resolveBinaryOperatorResultType(Schema.INT32_SCHEMA, Schema.FLOAT64_SCHEMA, Operator.ADD).type(),
-        equalTo(Schema.Type.FLOAT64));
-    assertThat(
-        SchemaUtil.resolveBinaryOperatorResultType(Schema.FLOAT64_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA, Operator.ADD).type(),
-        equalTo(Schema.Type.FLOAT64));
-    assertThat(
-        SchemaUtil.resolveBinaryOperatorResultType(Schema.FLOAT32_SCHEMA, Schema.FLOAT64_SCHEMA, Operator.ADD).type(),
-        equalTo(Schema.Type.FLOAT64));
-  }
-
-  @Test
-  public void shouldResolveDecimalAddition() {
-    final Map<Pair<PrecisionScale, PrecisionScale>, PrecisionScale> inputToExpected =
-        ImmutableMap.<Pair<PrecisionScale, PrecisionScale>, PrecisionScale>builder()
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 1)), PrecisionScale.of(3, 1))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 2)), PrecisionScale.of(4, 2))
-            .put(Pair.of(PrecisionScale.of(2, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(4, 2))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(3, 2)), PrecisionScale.of(4, 2))
-            .put(Pair.of(PrecisionScale.of(3, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(4, 2))
-            .build();
-
-    inputToExpected.forEach((in, out) -> {
-      // Given:
-      final Schema d1 = DecimalUtil.builder(in.left.precision, in.left.scale).build();
-      final Schema d2 = DecimalUtil.builder(in.right.precision, in.right.scale).build();
-
-      // When:
-      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.ADD);
-
-      // Then:
-      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
-      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
-    });
-  }
-
-  @Test
-  public void shouldResolveDecimalSubtraction() {
-    final Map<Pair<PrecisionScale, PrecisionScale>, PrecisionScale> inputToExpected =
-        ImmutableMap.<Pair<PrecisionScale, PrecisionScale>, PrecisionScale>builder()
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 1)), PrecisionScale.of(3, 1))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 2)), PrecisionScale.of(4, 2))
-            .put(Pair.of(PrecisionScale.of(2, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(4, 2))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(3, 2)), PrecisionScale.of(4, 2))
-            .put(Pair.of(PrecisionScale.of(3, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(4, 2))
-            .build();
-
-    inputToExpected.forEach((in, out) -> {
-      // Given:
-      final Schema d1 = DecimalUtil.builder(in.left.precision, in.left.scale).build();
-      final Schema d2 = DecimalUtil.builder(in.right.precision, in.right.scale).build();
-
-      // When:
-      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.SUBTRACT);
-
-      // Then:
-      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
-      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
-    });
-  }
-
-  @Test
-  public void shouldResolveDecimalMultiply() {
-    final Map<Pair<PrecisionScale, PrecisionScale>, PrecisionScale> inputToExpected =
-        ImmutableMap.<Pair<PrecisionScale, PrecisionScale>, PrecisionScale>builder()
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 1)), PrecisionScale.of(5, 2))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 2)), PrecisionScale.of(5, 3))
-            .put(Pair.of(PrecisionScale.of(2, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(5, 3))
-            .put(Pair.of(PrecisionScale.of(3, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(6, 3))
-            .build();
-
-    inputToExpected.forEach((in, out) -> {
-      // Given:
-      final Schema d1 = DecimalUtil.builder(in.left.precision, in.left.scale).build();
-      final Schema d2 = DecimalUtil.builder(in.right.precision, in.right.scale).build();
-
-      // When:
-      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.MULTIPLY);
-
-      // Then:
-      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
-      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
-    });
-  }
-
-  @Test
-  public void shouldResolveDecimalDivide() {
-    final Map<Pair<PrecisionScale, PrecisionScale>, PrecisionScale> inputToExpected =
-        ImmutableMap.<Pair<PrecisionScale, PrecisionScale>, PrecisionScale>builder()
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 1)), PrecisionScale.of(8, 6))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 2)), PrecisionScale.of(9, 6))
-            .put(Pair.of(PrecisionScale.of(2, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(7, 6))
-            .put(Pair.of(PrecisionScale.of(3, 3), PrecisionScale.of(3, 3)), PrecisionScale.of(10, 7))
-            .put(Pair.of(PrecisionScale.of(3, 3), PrecisionScale.of(3, 2)), PrecisionScale.of(9, 7))
-            .build();
-
-    inputToExpected.forEach((in, out) -> {
-      // Given:
-      final Schema d1 = DecimalUtil.builder(in.left.precision, in.left.scale).build();
-      final Schema d2 = DecimalUtil.builder(in.right.precision, in.right.scale).build();
-
-      // When:
-      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.DIVIDE);
-
-      // Then:
-      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
-      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
-    });
-  }
-
-  @Test
-  public void shouldResolveDecimalMod() {
-    final Map<Pair<PrecisionScale, PrecisionScale>, PrecisionScale> inputToExpected =
-        ImmutableMap.<Pair<PrecisionScale, PrecisionScale>, PrecisionScale>builder()
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 1)), PrecisionScale.of(2, 1))
-            .put(Pair.of(PrecisionScale.of(2, 2), PrecisionScale.of(2, 1)), PrecisionScale.of(2, 2))
-            .put(Pair.of(PrecisionScale.of(2, 1), PrecisionScale.of(2, 2)), PrecisionScale.of(2, 2))
-            .put(Pair.of(PrecisionScale.of(3, 1), PrecisionScale.of(2, 2)), PrecisionScale.of(2, 2))
-            .build();
-
-    inputToExpected.forEach((in, out) -> {
-      // Given:
-      final Schema d1 = DecimalUtil.builder(in.left.precision, in.left.scale).build();
-      final Schema d2 = DecimalUtil.builder(in.right.precision, in.right.scale).build();
-
-      // When:
-      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.MODULUS);
-
-      // Then:
-      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
-      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
-    });
-  }
-
-  @Test
-  public void shouldResolveDecimalLongAdd() {
-    final Map<PrecisionScale, PrecisionScale> inputToExpected =
-        ImmutableMap.<PrecisionScale, PrecisionScale>builder()
-            .put(PrecisionScale.of(2, 1), PrecisionScale.of(21, 1))
-            .put(PrecisionScale.of(3, 3), PrecisionScale.of(23, 3))
-            .put(PrecisionScale.of(23, 0), PrecisionScale.of(24, 0))
-            .build();
-
-    inputToExpected.forEach((in, out) -> {
-      // Given:
-      final Schema d1 = DecimalUtil.builder(in.precision, in.scale).build();
-      final Schema d2 = Schema.OPTIONAL_INT64_SCHEMA;
-
-      // When:
-      final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.ADD);
-
-      // Then:
-      assertThat(String.format("precision: %s", in), DecimalUtil.precision(result), is(out.precision));
-      assertThat(String.format("scale: %s", in), DecimalUtil.scale(result), is(out.scale));
-    });
-  }
-
-  @Test
-  public void shouldResolveDecimalDoubleMath() {
-    // Given:
-    final Schema d1 = DecimalUtil.builder(15, 10).build();
-    final Schema d2 = Schema.OPTIONAL_FLOAT64_SCHEMA;
-
-    // When:
-    final Schema result = SchemaUtil.resolveBinaryOperatorResultType(d1, d2, Operator.ADD);
-
-    // Then:
-    assertThat(result, is(Schema.OPTIONAL_FLOAT64_SCHEMA));
-  }
-
-  private static class PrecisionScale {
-    final int precision;
-    final int scale;
-
-    static PrecisionScale of(final int precision, final int scale) {
-      return new PrecisionScale(precision, scale);
-    }
-
-    private PrecisionScale(final int precision, final int scale) {
-      this.precision = precision;
-      this.scale = scale;
-    }
-
-    @Override
-    public String toString() {
-      return "PrecisionScale{"
-          + "precision=" + precision
-          + ", scale=" + scale
-          + '}';
-    }
-  }
-
-  @Test
-  public void shouldResolveStringAndStringToString() {
-    assertThat(
-        SchemaUtil.resolveBinaryOperatorResultType(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA, Operator.ADD).type(),
-        equalTo(Schema.Type.STRING));
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowExceptionWhenResolvingStringWithAnythingElse() {
-    SchemaUtil.resolveBinaryOperatorResultType(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA, Operator.ADD);
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowExceptionWhenResolvingUnkonwnType() {
-    SchemaUtil.resolveBinaryOperatorResultType(Schema.BOOLEAN_SCHEMA, Schema.FLOAT64_SCHEMA, Operator.ADD);
-  }
-
-
-  @Test
   public void shouldPassIsNumberForInt() {
-    assertThat(SchemaUtil.isNumber(Schema.Type.INT32), is(true));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_INT32_SCHEMA), is(true));
     assertThat(SchemaUtil.isNumber(Schema.INT32_SCHEMA), is(true));
   }
 
   @Test
   public void shouldPassIsNumberForBigint() {
-    assertThat(SchemaUtil.isNumber(Schema.Type.INT64), is(true));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_INT64_SCHEMA), is(true));
     assertThat(SchemaUtil.isNumber(Schema.INT64_SCHEMA), is(true));
   }
 
   @Test
   public void shouldPassIsNumberForDouble() {
-    assertThat(SchemaUtil.isNumber(Schema.Type.FLOAT64), is(true));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_FLOAT64_SCHEMA), is(true));
     assertThat(SchemaUtil.isNumber(Schema.FLOAT64_SCHEMA), is(true));
   }
@@ -490,14 +248,12 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldFailIsNumberForBoolean() {
-    assertThat(SchemaUtil.isNumber(Schema.Type.BOOLEAN), is(false));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_BOOLEAN_SCHEMA), is(false));
     assertThat(SchemaUtil.isNumber(Schema.BOOLEAN_SCHEMA), is(false));
   }
 
   @Test
   public void shouldFailIsNumberForString() {
-    assertThat(SchemaUtil.isNumber(Schema.Type.STRING), is(false));
     assertThat(SchemaUtil.isNumber(Schema.OPTIONAL_STRING_SCHEMA), is(false));
     assertThat(SchemaUtil.isNumber(Schema.STRING_SCHEMA), is(false));
   }

@@ -18,11 +18,14 @@ package io.confluent.ksql.schema.ksql.types;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.Pair;
 import java.math.BigDecimal;
+import java.util.Map;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -133,5 +136,103 @@ public class SqlDecimalTest {
 
     // When:
     schema.validateValue(new BigDecimal("123.0"));
+  }
+
+  @Test
+  public void shouldResolveDecimalAddition() {
+    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> testCases =
+        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(3, 1))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(4, 2))
+            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
+            .put(Pair.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .build();
+
+    testCases.forEach((in, expected) -> {
+      // When:
+      final SqlDecimal result = SqlDecimal.add(in.left, in.right);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
+  }
+
+  @Test
+  public void shouldResolveDecimalSubtraction() {
+    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
+        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(3, 1))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(4, 2))
+            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(3, 2)), SqlTypes.decimal(4, 2))
+            .put(Pair.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(4, 2))
+            .build();
+
+    inputToExpected.forEach((in, expected) -> {
+      // When:
+      final SqlDecimal result = SqlDecimal.subtract(in.left, in.right);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
+  }
+
+  @Test
+  public void shouldResolveDecimalMultiply() {
+    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
+        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 2))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(5, 3))
+            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(5, 3))
+            .put(Pair.of(SqlTypes.decimal(3, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(6, 3))
+            .build();
+
+    inputToExpected.forEach((in, expected) -> {
+      // When:
+      final SqlDecimal result = SqlDecimal.multiply(in.left, in.right);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
+  }
+
+  @Test
+  public void shouldResolveDecimalDivide() {
+    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
+        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(8, 6))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(9, 6))
+            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(7, 6))
+            .put(Pair.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 3)), SqlTypes.decimal(10, 7))
+            .put(Pair.of(SqlTypes.decimal(3, 3), SqlTypes.decimal(3, 2)), SqlTypes.decimal(9, 7))
+            .build();
+
+    inputToExpected.forEach((in, expected) -> {
+      // When:
+      final SqlDecimal result = SqlDecimal.divide(in.left, in.right);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
+  }
+
+  @Test
+  public void shouldResolveDecimalMod() {
+    final Map<Pair<SqlDecimal, SqlDecimal>, SqlDecimal> inputToExpected =
+        ImmutableMap.<Pair<SqlDecimal, SqlDecimal>, SqlDecimal>builder()
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 1))
+            .put(Pair.of(SqlTypes.decimal(2, 2), SqlTypes.decimal(2, 1)), SqlTypes.decimal(2, 2))
+            .put(Pair.of(SqlTypes.decimal(2, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
+            .put(Pair.of(SqlTypes.decimal(3, 1), SqlTypes.decimal(2, 2)), SqlTypes.decimal(2, 2))
+            .build();
+
+    inputToExpected.forEach((in, expected) -> {
+      // When:
+      final SqlDecimal result = SqlDecimal.modulus(in.left, in.right);
+
+      // Then:
+      assertThat(result, is(expected));
+    });
   }
 }

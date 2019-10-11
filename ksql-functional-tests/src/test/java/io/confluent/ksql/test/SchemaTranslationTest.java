@@ -82,7 +82,7 @@ public class SchemaTranslationTest {
             topic,
             "test-key",
             avroToValueSpec(generator.generate(), avroSchema, true),
-            0,
+            Optional.of(0L),
             null
         )
     ).collect(Collectors.toList());
@@ -97,7 +97,7 @@ public class SchemaTranslationTest {
                 topic,
                 "test-key",
                 r.value(),
-                0,
+                Optional.of(0L),
                 null
             ))
         .collect(Collectors.toList());

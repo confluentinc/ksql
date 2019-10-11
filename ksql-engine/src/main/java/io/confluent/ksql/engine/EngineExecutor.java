@@ -106,7 +106,7 @@ final class EngineExecutor {
   }
 
   ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl -> executeDDL(plan));
+    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl -> executeDdl(plan));
     final Optional<PersistentQueryMetadata> queryMetadata =
         plan.getQueryPlan().map(qp -> executePersistentQuery(plan));
     return queryMetadata.map(ExecuteResult::of).orElseGet(() -> ExecuteResult.of(ddlResult.get()));
@@ -154,7 +154,7 @@ final class EngineExecutor {
       );
       final KsqlStructuredDataOutputNode outputNode =
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
-      final Optional<DdlCommand> ddlCommand = maybeCreateSinkDDL(
+      final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement.getStatementText(),
           outputNode,
           plans.physicalPlan.getKeyField());
@@ -213,7 +213,7 @@ final class EngineExecutor {
     }
   }
 
-  private Optional<DdlCommand> maybeCreateSinkDDL(
+  private Optional<DdlCommand> maybeCreateSinkDdl(
       final String sql,
       final KsqlStructuredDataOutputNode outputNode,
       final KeyField keyField) {
@@ -348,7 +348,7 @@ final class EngineExecutor {
     return visitor.getSourceNames();
   }
 
-  private String executeDDL(final KsqlPlan ksqlPlan) {
+  private String executeDdl(final KsqlPlan ksqlPlan) {
     final DdlCommand ddlCommand = ksqlPlan.getDdlCommand().get();
     final Optional<KeyField> keyField = ksqlPlan.getQueryPlan()
         .map(QueryPlan::getPhysicalPlan)

@@ -33,19 +33,9 @@ import org.apache.kafka.streams.kstream.internals.TimeWindow;
 public class Record {
   final Topic topic;
   private final String key;
-  final Object value;
-  final Optional<Long> timestamp;
+  private final Object value;
+  private final Optional<Long> timestamp;
   private final WindowData window;
-
-  public Record(
-      final Topic topic,
-      final String key,
-      final Object value,
-      final long timestamp,
-      final WindowData window
-  ) {
-    this(topic, key, value, Optional.of(timestamp), window);
-  }
 
   public Record(
       final Topic topic,

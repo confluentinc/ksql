@@ -233,7 +233,10 @@ public class KsqlRestApplicationTest {
 
     // Then:
     verify(commandQueue).isEmpty();
-    verify(sandBox).execute(argThat(configured(equalTo(logCreateStatement))));
+    verify(sandBox).execute(
+        argThat(equalTo(ksqlEngine.getServiceContext())),
+        argThat(configured(equalTo(logCreateStatement)))
+    );
     verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement), Collections.emptyMap(), ksqlConfig)));
   }
@@ -266,7 +269,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldNotCreateLogStreamIfValidationFails() {
     // Given:
-    when(sandBox.execute(any())).thenThrow(new KsqlException("error"));
+    when(sandBox.execute(any(), any())).thenThrow(new KsqlException("error"));
 
     // When:
     app.startKsql();

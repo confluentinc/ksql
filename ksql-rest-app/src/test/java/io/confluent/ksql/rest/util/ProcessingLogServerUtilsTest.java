@@ -185,7 +185,10 @@ public class ProcessingLogServerUtilsTest {
             config,
             ksqlConfig);
 
-    ksqlEngine.execute(ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig)
+    );
 
     // Then:
     assertThat(statement.getStatementText(), equalTo(
@@ -220,7 +223,10 @@ public class ProcessingLogServerUtilsTest {
             ),
             ksqlConfig);
 
-    ksqlEngine.execute(ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(statement, ImmutableMap.of(), ksqlConfig)
+    );
 
     // Then:
     assertThat(statement.getStatementText(),

@@ -54,7 +54,7 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
       return coerceDecimal(value, (SqlDecimal) targetType);
     }
 
-    if (!(value instanceof Number) || !valueSqlType.canUpCast(targetType.baseType())) {
+    if (!(value instanceof Number) || !valueSqlType.canImplicitlyCast(targetType.baseType())) {
       return Optional.empty();
     }
 

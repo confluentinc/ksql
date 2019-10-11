@@ -423,7 +423,11 @@ public class ExpressionTypeManagerTest {
         Optional.empty()
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("When operand schema should be boolean. Schema for ((TEST1.COL0 + 10)) is Schema{INT64}");
+    expectedException.expectMessage(
+        "When operand schema should be boolean."
+            + System.lineSeparator()
+            + "Schema for '(TEST1.COL0 + 10)' is BIGINT"
+    );
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -444,7 +448,13 @@ public class ExpressionTypeManagerTest {
         Optional.empty()
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid Case expression. Schemas for 'THEN' clauses should be the same. Result schema: Schema{STRING}. Schema for THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' is Schema{INT32}");
+    expectedException.expectMessage(
+        "Invalid Case expression. Schemas for all 'THEN' clauses should be the same."
+            + System.lineSeparator()
+            + "THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' has schema: INTEGER."
+            + System.lineSeparator()
+            + "Previous THEN expression(s) schema: STRING."
+    );
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -463,7 +473,13 @@ public class ExpressionTypeManagerTest {
         Optional.of(new BooleanLiteral("true"))
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid Case expression. Schema for the default clause should be the same as schema for THEN clauses. Result scheme: Schema{STRING}. Schema for default expression is Schema{BOOLEAN}");
+    expectedException.expectMessage(
+        "Invalid Case expression. Schema for the default clause should be the same as for 'THEN' clauses."
+            + System.lineSeparator()
+            + "THEN schema: STRING."
+            + System.lineSeparator()
+            + "DEFAULT schema: BOOLEAN."
+    );
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);

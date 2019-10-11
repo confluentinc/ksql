@@ -61,7 +61,7 @@ public enum Operator {
    */
   public SqlType resultType(final SqlType left, final SqlType right) {
     if (left.baseType().isNumber() && right.baseType().isNumber()) {
-      if (left.baseType().canUpCast(right.baseType())) {
+      if (left.baseType().canImplicitlyCast(right.baseType())) {
         if (right.baseType() != SqlBaseType.DECIMAL) {
           return right;
         }
@@ -69,7 +69,7 @@ public enum Operator {
         return binaryResolver.apply(toDecimal(left), (SqlDecimal) right);
       }
 
-      if (right.baseType().canUpCast(left.baseType())) {
+      if (right.baseType().canImplicitlyCast(left.baseType())) {
         if (left.baseType() != SqlBaseType.DECIMAL) {
           return left;
         }

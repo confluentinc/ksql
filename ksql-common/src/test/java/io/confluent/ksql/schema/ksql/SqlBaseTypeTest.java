@@ -56,7 +56,7 @@ public class SqlBaseTypeTest {
   public void shouldNotUpCastIfNotNumber() {
     nonNumberTypes().forEach(sqlType -> assertThat(
         sqlType + " should not upcast",
-        sqlType.canUpCast(SqlBaseType.DOUBLE),
+        sqlType.canImplicitlyCast(SqlBaseType.DOUBLE),
         is(false))
     );
   }
@@ -65,7 +65,7 @@ public class SqlBaseTypeTest {
   public void shouldUpCastIfNumber() {
     numberTypes().forEach(sqlType -> assertThat(
         sqlType + " should upcast",
-        sqlType.canUpCast(SqlBaseType.DOUBLE),
+        sqlType.canImplicitlyCast(SqlBaseType.DOUBLE),
         is(true))
     );
   }
@@ -73,43 +73,43 @@ public class SqlBaseTypeTest {
   @Test
   public void shouldUpCastToSelf() {
     allTypes().forEach(sqlType ->
-        assertThat(sqlType + " should upcast to self", sqlType.canUpCast(sqlType), is(true)));
+        assertThat(sqlType + " should upcast to self", sqlType.canImplicitlyCast(sqlType), is(true)));
   }
 
   @Test
   public void shouldUpCastInt() {
-    assertThat(SqlBaseType.INTEGER.canUpCast(SqlBaseType.BIGINT), is(true));
-    assertThat(SqlBaseType.INTEGER.canUpCast(SqlBaseType.DECIMAL), is(true));
-    assertThat(SqlBaseType.INTEGER.canUpCast(SqlBaseType.DOUBLE), is(true));
+    assertThat(SqlBaseType.INTEGER.canImplicitlyCast(SqlBaseType.BIGINT), is(true));
+    assertThat(SqlBaseType.INTEGER.canImplicitlyCast(SqlBaseType.DECIMAL), is(true));
+    assertThat(SqlBaseType.INTEGER.canImplicitlyCast(SqlBaseType.DOUBLE), is(true));
   }
 
   @Test
   public void shouldUpCastBigInt() {
-    assertThat(SqlBaseType.BIGINT.canUpCast(SqlBaseType.DECIMAL), is(true));
-    assertThat(SqlBaseType.BIGINT.canUpCast(SqlBaseType.DOUBLE), is(true));
+    assertThat(SqlBaseType.BIGINT.canImplicitlyCast(SqlBaseType.DECIMAL), is(true));
+    assertThat(SqlBaseType.BIGINT.canImplicitlyCast(SqlBaseType.DOUBLE), is(true));
   }
 
   @Test
   public void shouldUpCastDecimal() {
-    assertThat(SqlBaseType.DECIMAL.canUpCast(SqlBaseType.DOUBLE), is(true));
+    assertThat(SqlBaseType.DECIMAL.canImplicitlyCast(SqlBaseType.DOUBLE), is(true));
   }
 
   @Test
   public void shouldNotDownCastBigInt() {
-    assertThat(SqlBaseType.BIGINT.canUpCast(SqlBaseType.INTEGER), is(false));
+    assertThat(SqlBaseType.BIGINT.canImplicitlyCast(SqlBaseType.INTEGER), is(false));
   }
 
   @Test
   public void shouldNotDownCastDecimal() {
-    assertThat(SqlBaseType.DECIMAL.canUpCast(SqlBaseType.INTEGER), is(false));
-    assertThat(SqlBaseType.DECIMAL.canUpCast(SqlBaseType.BIGINT), is(false));
+    assertThat(SqlBaseType.DECIMAL.canImplicitlyCast(SqlBaseType.INTEGER), is(false));
+    assertThat(SqlBaseType.DECIMAL.canImplicitlyCast(SqlBaseType.BIGINT), is(false));
   }
 
   @Test
   public void shouldNotDownCastDouble() {
-    assertThat(SqlBaseType.DOUBLE.canUpCast(SqlBaseType.INTEGER), is(false));
-    assertThat(SqlBaseType.DOUBLE.canUpCast(SqlBaseType.BIGINT), is(false));
-    assertThat(SqlBaseType.DOUBLE.canUpCast(SqlBaseType.DECIMAL), is(false));
+    assertThat(SqlBaseType.DOUBLE.canImplicitlyCast(SqlBaseType.INTEGER), is(false));
+    assertThat(SqlBaseType.DOUBLE.canImplicitlyCast(SqlBaseType.BIGINT), is(false));
+    assertThat(SqlBaseType.DOUBLE.canImplicitlyCast(SqlBaseType.DECIMAL), is(false));
   }
 
   private static Stream<SqlBaseType> numberTypes() {

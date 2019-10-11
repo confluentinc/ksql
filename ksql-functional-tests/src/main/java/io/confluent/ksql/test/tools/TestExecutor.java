@@ -219,7 +219,7 @@ public class TestExecutor implements Closeable {
       final boolean ranWithInsertStatements
   ) {
     if (actual.size() != expected.size()) {
-      throw new KsqlException("Topic " + topicName + "Expected <" + expected.size()
+      throw new KsqlException("Topic " + topicName + ". Expected <" + expected.size()
           + "> records but it was <" + actual.size() + ">\n" + getActualsForErrorMessage(actual));
     }
 

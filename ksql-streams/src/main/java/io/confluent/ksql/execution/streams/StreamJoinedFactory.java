@@ -39,7 +39,7 @@ public interface StreamJoinedFactory {
             final String name,
             final String storeName) {
           return StreamJoined.with(keySerde, leftSerde, rightSerde)
-              .withName(name).withStoreName(storeName);
+              .withName(name);
         }
       };
     }

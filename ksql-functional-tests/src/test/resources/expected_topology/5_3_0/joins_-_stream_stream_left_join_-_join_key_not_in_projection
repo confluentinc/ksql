@@ -56,16 +56,16 @@ Topologies:
     Processor: KSTREAM-TRANSFORMVALUES-0000000005 (stores: [])
       --> Join-other-windowed
       <-- KSTREAM-MAPVALUES-0000000004
-    Processor: Join-other-windowed (stores: [Join-outer-other-join-store])
+    Processor: Join-other-windowed (stores: [KSTREAM-OUTEROTHER-0000000009-store])
       --> Join-outer-other-join
       <-- KSTREAM-TRANSFORMVALUES-0000000005
-    Processor: Join-this-windowed (stores: [Join-this-join-store])
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000008-store])
       --> Join-this-join
       <-- KSTREAM-TRANSFORMVALUES-0000000002
-    Processor: Join-outer-other-join (stores: [Join-this-join-store])
+    Processor: Join-outer-other-join (stores: [KSTREAM-JOINTHIS-0000000008-store])
       --> Join-merge
       <-- Join-other-windowed
-    Processor: Join-this-join (stores: [Join-outer-other-join-store])
+    Processor: Join-this-join (stores: [KSTREAM-OUTEROTHER-0000000009-store])
       --> Join-merge
       <-- Join-this-windowed
     Processor: Join-merge (stores: [])

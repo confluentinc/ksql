@@ -1,8 +1,8 @@
 {
   "tests": [
     {
-      "comment": "re-enable after KIP-479 is merged",
-      "enabled": false,
+      "comment": "Tests covering the use of Joins",
+      "enabled": true,
       "name": "stream stream left join",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -85,8 +85,8 @@
       }
     },
     {
-      "comment": "re-enable after KIP-479 is merged",
-      "enabled": false,
+      "comment": "Tests covering the use of Joins",
+      "enabled": true,
       "name": "stream stream left join - rekey",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -264,8 +264,8 @@
       }
     },
     {
-      "comment": "re-enable after KIP-479 is merged",
-      "enabled": false,
+      "comment": "Tests covering the use of Joins",
+      "enabled": true,
       "name": "stream stream inner join",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -324,8 +324,8 @@
       }
     },
     {
-      "comment": "re-enable after KIP-479 is merged",
-      "enabled": false,
+      "comment": "Tests covering the use of Joins",
+      "enabled": true,
       "name": "stream stream inner join all left fields some right",
       "format": ["AVRO", "JSON"],
       "statements": [
@@ -382,8 +382,8 @@
       }
     },
     {
-      "comment": "re-enable after KIP-479 is merged",
-      "enabled": false,
+      "comment": "Tests covering the use of Joins",
+      "enabled": true,
       "name": "stream stream inner join all fields",
       "format": ["AVRO", "JSON"],
       "statements": [

@@ -92,16 +92,16 @@ Topologies:
       --> Join-this-windowed
     Source: KSTREAM-SOURCE-0000000017 (topics: [Join-right-repartition])
       --> Join-other-windowed
-    Processor: Join-other-windowed (stores: [Join-outer-other-join-store])
+    Processor: Join-other-windowed (stores: [KSTREAM-OUTEROTHER-0000000021-store])
       --> Join-outer-other-join
       <-- KSTREAM-SOURCE-0000000017
-    Processor: Join-this-windowed (stores: [Join-this-join-store])
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000020-store])
       --> Join-this-join
       <-- KSTREAM-SOURCE-0000000014
-    Processor: Join-outer-other-join (stores: [Join-this-join-store])
+    Processor: Join-outer-other-join (stores: [KSTREAM-JOINTHIS-0000000020-store])
       --> Join-merge
       <-- Join-other-windowed
-    Processor: Join-this-join (stores: [Join-outer-other-join-store])
+    Processor: Join-this-join (stores: [KSTREAM-OUTEROTHER-0000000021-store])
       --> Join-merge
       <-- Join-this-windowed
     Processor: Join-merge (stores: [])

@@ -169,7 +169,7 @@ public class StandaloneExecutor implements Executable {
     final Injector injector = injectorFactory.apply(ksqlEngine, serviceContext);
     executeStatements(
         preparedStatements,
-        new StatementExecutor(ksqlEngine, injector, ksqlConfig)
+        new StatementExecutor(serviceContext, ksqlEngine, injector, ksqlConfig)
     );
 
     ksqlEngine.getPersistentQueries().forEach(QueryMetadata::start);
@@ -181,6 +181,7 @@ public class StandaloneExecutor implements Executable {
         sandboxEngine, sandboxEngine.getServiceContext());
 
     final StatementExecutor sandboxExecutor = new StatementExecutor(
+        sandboxEngine.getServiceContext(),
         sandboxEngine,
         injector,
         ksqlConfig
@@ -261,16 +262,19 @@ public class StandaloneExecutor implements Executable {
 
     private static final String SUPPORTED_STATEMENTS = generateSupportedMessage();
 
+    private final ServiceContext serviceContext;
     private final KsqlExecutionContext executionContext;
     private final Map<String, Object> configOverrides = new HashMap<>();
     private final KsqlConfig ksqlConfig;
     private final Injector injector;
 
     private StatementExecutor(
+        final ServiceContext serviceContext,
         final KsqlExecutionContext executionContext,
         final Injector injector,
         final KsqlConfig ksqlConfig
     ) {
+      this.serviceContext = requireNonNull(serviceContext, "serviceContext");
       this.executionContext = requireNonNull(executionContext, "executionContext");
       this.injector = requireNonNull(injector, "injector");
       this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
@@ -333,11 +337,11 @@ public class StandaloneExecutor implements Executable {
     }
 
     private void handleExecutableDdl(final ConfiguredStatement<?> statement) {
-      executionContext.execute(statement);
+      executionContext.execute(serviceContext, statement);
     }
 
     private void handlePersistentQuery(final ConfiguredStatement<?> statement) {
-      executionContext.execute(statement)
+      executionContext.execute(serviceContext, statement)
           .getQuery()
           .filter(q -> q instanceof PersistentQueryMetadata)
           .orElseThrow((() -> new KsqlStatementException(

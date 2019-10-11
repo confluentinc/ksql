@@ -684,7 +684,8 @@ public final class StaticQueryExecutor {
         "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
             + " KSQL currently only supports static queries on materialized aggregate tables."
             + " i.e. those created by a"
-            + " 'CREATE TABLE AS SELECT <fields> FROM <sources> GROUP BY <key>' style statement.");
+            + " 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
+            + "FROM <sources> GROUP BY <key>' style statement.");
   }
 
   private static KsqlException invalidWhereClauseException(

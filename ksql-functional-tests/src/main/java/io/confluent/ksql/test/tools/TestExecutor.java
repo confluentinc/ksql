@@ -417,7 +417,7 @@ public class TestExecutor implements Closeable {
         new StubKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
-        new DefaultConnectClient("http://localhost:8083"),
+        new DefaultConnectClient("http://localhost:8083", Optional.empty()),
         DisabledKsqlClient.instance()
     );
   }

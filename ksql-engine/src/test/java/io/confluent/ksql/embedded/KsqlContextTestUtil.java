@@ -28,6 +28,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.Injectors;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -57,7 +58,9 @@ public final class KsqlContextTestUtil {
         adminClient,
         kafkaTopicClient,
         () -> schemaRegistryClient,
-        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY))
+        new DefaultConnectClient(
+            ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
+            Optional.empty())
     );
 
     final String metricsPrefix = "instance-" + COUNTER.getAndIncrement() + "-";

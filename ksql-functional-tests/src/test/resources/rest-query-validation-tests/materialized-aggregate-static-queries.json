@@ -738,7 +738,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Table 'X' is not materialized. KSQL currently only supports static queries on materialized aggregate tables. i.e. those created by a 'CREATE TABLE AS SELECT <fields> FROM <sources> GROUP BY <key>' style statement.",
+        "message": "Table 'X' is not materialized. KSQL currently only supports static queries on materialized aggregate tables. i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> FROM <sources> GROUP BY <key>' style statement.",
         "status": 400
       }
     },

@@ -4,27 +4,27 @@
     {
       "name": "DELIMITED in/out",
       "statements": [
-        "CREATE STREAM TEST (dec DECIMAL(7,5)) WITH (kafka_topic='test', value_format='DELIMITED');",
+        "CREATE STREAM TEST (dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='DELIMITED');",
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": "10.12345"}
+        {"topic": "test", "key": 0, "value": "10.1234512345123451234"}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": "10.12345"}
+        {"topic": "TEST2", "key": 0, "value": "10.1234512345123451234"}
       ]
     },
     {
       "name": "AVRO in/out",
       "statements": [
-        "CREATE STREAM TEST (dec DECIMAL(7,5)) WITH (kafka_topic='test', value_format='AVRO');",
+        "CREATE STREAM TEST (dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='AVRO');",
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"DEC": "10.12345"}}
+        {"topic": "test", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
       ],
       "outputs": [
-        {"topic": "TEST2", "key": 0, "value": {"DEC": "10.12345"}}
+        {"topic": "TEST2", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
       ]
     },
     {
@@ -34,13 +34,14 @@
         "using awkward HEX strings to encode the bytes."
       ],
       "statements": [
-        "CREATE STREAM TEST (dec DECIMAL(7,5)) WITH (kafka_topic='test', value_format='JSON');",
+        "CREATE STREAM TEST (dec DECIMAL(21,19)) WITH (kafka_topic='test', value_format='JSON');",
         "CREATE STREAM TEST2 AS SELECT * FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test", "key": 0, "value": {"DEC": "10.12345"}}
+        {"topic": "test", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
       ],
       "outputs": [
+        {"topic": "TEST2", "key": 0, "value": {"DEC": "10.1234512345123451234"}}
       ]
     },
     {

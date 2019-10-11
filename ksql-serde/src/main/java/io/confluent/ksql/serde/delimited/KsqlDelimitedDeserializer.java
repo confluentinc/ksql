@@ -50,7 +50,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
   private final ConnectSchema schema;
   private final CSVFormat csvFormat;
 
-  KsqlDelimitedDeserializer(
+  public KsqlDelimitedDeserializer(
       final PersistenceSchema schema,
       final CSVFormat csvFormat
   ) {

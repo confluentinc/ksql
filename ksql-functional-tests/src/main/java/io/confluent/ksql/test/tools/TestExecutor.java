@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.matchers.JUnitMatchers.isThrowable;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -480,12 +481,12 @@ public class TestExecutor implements Closeable {
     final long actualTimestamp = actualProducerRecord.timestamp();
 
     final Object expectedKey = expectedRecord.key();
-    final Object expectedValue = expectedRecord.value();
+    final JsonNode expectedValue = expectedRecord.getJsonValue();
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
 
     final AssertionError error = new AssertionError(
         "Topic '" + topicName + "', message " + messageIndex
-            + ": Expected <" + expectedKey + ", " + expectedValue + "> "
+            + ": Expected <" + expectedKey + ", " + expectedValue.asText() + "> "
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 
@@ -493,7 +494,7 @@ public class TestExecutor implements Closeable {
       throw error;
     }
 
-    if (!Objects.equals(actualValue, expectedValue)) {
+    if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {
       throw error;
     }
 

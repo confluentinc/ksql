@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.tools;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.ksql.test.model.WindowData;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,17 +37,31 @@ public class Record {
   private final Object value;
   private final Optional<Long> timestamp;
   private final WindowData window;
+  private JsonNode jsonValue;
 
   public Record(
       final Topic topic,
       final String key,
       final Object value,
+      final JsonNode jsonValue,
+      final long timestamp,
+      final WindowData window
+  ) {
+    this(topic, key, value, jsonValue, Optional.of(timestamp), window);
+  }
+
+  public Record(
+      final Topic topic,
+      final String key,
+      final Object value,
+      final JsonNode jsonValue,
       final Optional<Long> timestamp,
       final WindowData window
   ) {
     this.topic = topic;
     this.key = key;
     this.value = value;
+    this.jsonValue = jsonValue;
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.window = window;
   }
@@ -103,5 +118,9 @@ public class Record {
 
   public Topic topic() {
     return topic;
+  }
+
+  public JsonNode getJsonValue() {
+    return jsonValue;
   }
 }

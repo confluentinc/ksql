@@ -16,7 +16,10 @@ package io.confluent.ksql.test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Maps;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.test.tools.TestCase;
@@ -30,6 +33,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericData.Record;
 
 final class EndToEndEngineTestUtil {
 
@@ -58,6 +62,7 @@ final class EndToEndEngineTestUtil {
     if (avro == null) {
       return null;
     }
+
     switch (schema.getType()) {
       case INT:
       case FLOAT:
@@ -79,7 +84,7 @@ final class EndToEndEngineTestUtil {
             Objects.equals(
                 schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
                 AvroData.MAP_ENTRY_TYPE_NAME)
-            ) {
+        ) {
           final org.apache.avro.Schema valueSchema
               = schema.getElementType().getField("value").schema();
           return ((List) avro).stream().collect(
@@ -125,6 +130,92 @@ final class EndToEndEngineTestUtil {
             .forEach(
                 s -> ret.put(s.getName().toUpperCase(), null));
         ret.put(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
+        return ret;
+      default:
+        throw new RuntimeException("Test cannot handle data of type: " + schema.getType());
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  static JsonNode avroToJson(
+      final Object avro,
+      final org.apache.avro.Schema schema,
+      final boolean toUpper
+  ) {
+    if (avro == null) {
+      return JsonNodeFactory.instance.nullNode();
+    }
+    switch (schema.getType()) {
+      case INT:
+        return JsonNodeFactory.instance.numberNode((int) avro);
+      case LONG:
+        return JsonNodeFactory.instance.numberNode((long) avro);
+      case FLOAT:
+        return JsonNodeFactory.instance.numberNode((float) avro);
+      case DOUBLE:
+        return JsonNodeFactory.instance.numberNode((double) avro);
+      case BOOLEAN:
+        return JsonNodeFactory.instance.booleanNode((boolean) avro);
+      case ENUM:
+      case STRING:
+        return JsonNodeFactory.instance.textNode(avro.toString());
+      case ARRAY:
+        if (schema.getElementType().getName().equals(AvroData.MAP_ENTRY_TYPE_NAME) ||
+            Objects.equals(
+                schema.getElementType().getProp(AvroData.CONNECT_INTERNAL_TYPE_NAME),
+                AvroData.MAP_ENTRY_TYPE_NAME)
+            ) {
+          final org.apache.avro.Schema valueSchema
+              = schema.getElementType().getField("value").schema();
+
+          final ObjectNode node = JsonNodeFactory.instance.objectNode();
+          ((List) avro).forEach(m -> {
+            final GenericData.Record record = (Record) m;
+            node.set(
+                record.get("key").toString(),
+                avroToJson(record.get("value"), valueSchema, toUpper));
+          });
+
+          return node;
+        }
+
+        final ArrayNode array = JsonNodeFactory.instance.arrayNode();
+        ((List) avro).stream()
+            .map(o -> avroToJson(o, schema.getElementType(), toUpper))
+            .forEach(j -> array.add((JsonNode) j));
+        return array;
+      case MAP:
+        final ObjectNode map = JsonNodeFactory.instance.objectNode();
+        ((Map<Object, Object>) avro).forEach(
+            (k, v) -> map.set(
+                k.toString(),
+                avroToJson(v, schema.getValueType(), toUpper)));
+        return map;
+      case RECORD:
+        final ObjectNode record = JsonNodeFactory.instance.objectNode();
+        schema.getFields().forEach(
+            f -> record.set(
+                toUpper ? f.name().toUpperCase() : f.name(),
+                avroToJson(
+                    ((GenericData.Record)avro).get(f.name()),
+                    f.schema(),
+                    toUpper)
+            )
+        );
+        return record;
+      case UNION:
+        final int pos = GenericData.get().resolveUnion(schema, avro);
+        final boolean hasNull = schema.getTypes().stream()
+            .anyMatch(s -> s.getType().equals(org.apache.avro.Schema.Type.NULL));
+        final JsonNode resolved = avroToJson(avro, schema.getTypes().get(pos), toUpper);
+        if (schema.getTypes().get(pos).getType().equals(org.apache.avro.Schema.Type.NULL)
+            || schema.getTypes().size() == 2 && hasNull) {
+          return resolved;
+        }
+
+        final ObjectNode ret = JsonNodeFactory.instance.objectNode();
+        schema.getTypes().forEach(s -> ret.set(s.getName().toUpperCase(), null));
+        ret.set(schema.getTypes().get(pos).getName().toUpperCase(), resolved);
         return ret;
       default:
         throw new RuntimeException("Test cannot handle data of type: " + schema.getType());

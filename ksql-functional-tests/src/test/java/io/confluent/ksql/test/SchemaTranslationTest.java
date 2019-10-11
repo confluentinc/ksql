@@ -1,5 +1,6 @@
 package io.confluent.ksql.test;
 
+import static io.confluent.ksql.test.EndToEndEngineTestUtil.avroToJson;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.avroToValueSpec;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildAvroSchema;
 import static io.confluent.ksql.test.EndToEndEngineTestUtil.buildTestName;
@@ -23,13 +24,13 @@ import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.avro.Schema;
 import org.junit.Test;
@@ -78,15 +79,21 @@ public class SchemaTranslationTest {
   private static List<Record> generateInputRecords(
       final Topic topic, final org.apache.avro.Schema avroSchema) {
     final Generator generator = new Generator(avroSchema, new Random());
-    return IntStream.range(0, 100).mapToObj(
-        i -> new Record(
-            topic,
-            "test-key",
-            avroToValueSpec(generator.generate(), avroSchema, true),
-            Optional.of(0L),
-            null
-        )
-    ).collect(Collectors.toList());
+    List<Record> list = new ArrayList<>();
+    for (int i = 0; i < 100; i++) {
+      final Object avro = generator.generate();
+      final JsonNode spec = avroToJson(avro, avroSchema, true);
+      Record record = new Record(
+          topic,
+          "test-key",
+          avroToValueSpec(avro, avroSchema, true),
+          spec,
+          Optional.of(0L),
+          null
+      );
+      list.add(record);
+    }
+    return list;
   }
 
   private static List<Record> getOutputRecords(
@@ -98,6 +105,7 @@ public class SchemaTranslationTest {
                 topic,
                 "test-key",
                 r.value(),
+                r.getJsonValue(),
                 Optional.of(0L),
                 null
             ))

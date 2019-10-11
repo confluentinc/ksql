@@ -123,7 +123,17 @@
     },
     {
       "name": "validate int elements OK",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "10"}],
+      "outputs": [{"topic": "OUTPUT", "value": "10"}]
+    },
+    {
+      "name": "validate int elements OK",
+      "format": ["KAFKA"],
       "statements": [
         "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -143,7 +153,17 @@
     },
     {
       "name": "validate bigint elements OK",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "10000000000"}],
+      "outputs": [{"topic": "OUTPUT", "value": "10000000000"}]
+    },
+    {
+      "name": "validate bigint elements OK",
+      "format": ["KAFKA"],
       "statements": [
         "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -163,7 +183,17 @@
     },
     {
       "name": "validate double elements OK",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "10.1"}],
+      "outputs": [{"topic": "OUTPUT", "value": "10.1"}]
+    },
+    {
+      "name": "validate double elements OK",
+      "format": ["KAFKA"],
       "statements": [
         "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"

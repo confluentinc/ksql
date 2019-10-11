@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -33,6 +34,7 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
+import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -325,7 +327,7 @@ public class RestTestExecutor implements Closeable {
     final Object actualValue = actual.value();
 
     final Object expectedKey = expected.key();
-    final Object expectedValue = expected.value();
+    final JsonNode expectedValue = expected.getJsonValue();
     final long expectedTimestamp = expected.timestamp().orElse(actualTimestamp);
 
     final AssertionError error = new AssertionError(
@@ -338,7 +340,7 @@ public class RestTestExecutor implements Closeable {
       throw error;
     }
 
-    if (!Objects.equals(actualValue, expectedValue)) {
+    if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {
       throw error;
     }
 

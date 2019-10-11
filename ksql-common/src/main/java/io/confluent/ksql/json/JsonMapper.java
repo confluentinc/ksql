@@ -31,5 +31,6 @@ public enum JsonMapper {
     mapper.registerModule(new StructSerializationModule());
     mapper.registerModule(new KsqlTypesSerializationModule());
     mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+    mapper.enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
   }
 }

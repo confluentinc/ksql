@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -16,57 +16,22 @@
 package io.confluent.ksql.function;
 
 import com.google.common.primitives.Primitives;
-import com.squareup.javapoet.CodeBlock;
 import java.lang.reflect.Array;
-import java.lang.reflect.Method;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@SuppressWarnings("WeakerAccess")
-public final class UdfTemplate {
+final class UdfArgCoercer {
 
-  private static final Logger LOG = LoggerFactory.getLogger(UdfTemplate.class);
-
-  private UdfTemplate() { }
-
-  static String generateCode(final Method method, final String obj) {
-    final Class<?>[] params = method.getParameterTypes();
-
-    final CodeBlock.Builder code = CodeBlock.builder();
-    for (int idx = 0; idx < params.length; idx++) {
-      final Class<?> param = params[idx];
-      code.addStatement("$T arg$L = ($T) $T.coerce(args, $T.class, $L)",
-                        Primitives.wrap(param),
-                        idx,
-                        Primitives.wrap(param),
-                        UdfTemplate.class,
-                        param,
-                        idx);
-    }
-
-    final String args = IntStream.range(0, params.length)
-        .mapToObj(i -> "arg" + i)
-        .collect(Collectors.joining(", "));
-
-    code.addStatement("return (($L) $L).$L($L)",
-        method.getDeclaringClass().getCanonicalName(), obj, method.getName(), args);
-
-    final String codeString = code.build().toString();
-    LOG.trace("Generated code:\n" + codeString);
-    return codeString;
+  private UdfArgCoercer() {
   }
 
-  public static <T> T coerce(
+  static <T> T coerceUdfArgs(
       final Object[] args,
       final Class<? extends T> clazz,
       final int index) {
     final Object arg = args[index];
-    return coerce(arg, clazz, index);
+    return coerceUdfArgs(arg, clazz, index);
   }
 
-  public static <T> T coerce(
+  static <T> T coerceUdfArgs(
       final Object arg,
       final Class<? extends T> clazz,
       final int index
@@ -101,7 +66,7 @@ public final class UdfTemplate {
       } catch (Exception e) {
         throw new KsqlFunctionException(
             String.format("Couldn't coerce string argument '\"args[%d]\"' to type %s",
-                          index, clazz));
+                index, clazz));
       }
     } else if (arg instanceof Number) {
       try {
@@ -109,7 +74,7 @@ public final class UdfTemplate {
       } catch (Exception e) {
         throw new KsqlFunctionException(
             String.format("Couldn't coerce numeric argument '\"args[%d]:(%s) %s\"' to type %s",
-                          index, arg.getClass(), arg, clazz));
+                index, arg.getClass(), arg, clazz));
       }
     } else {
       throw new KsqlFunctionException(
@@ -131,7 +96,7 @@ public final class UdfTemplate {
     final Class<?> componentType = arrayType.getComponentType();
     final Object val = Array.newInstance(componentType, length);
     for (int i = 0; i < length; i++) {
-      Array.set(val, i, coerce(Array.get(args, i), componentType, i));
+      Array.set(val, i, coerceUdfArgs(Array.get(args, i), componentType, i));
     }
     return (T) val;
   }

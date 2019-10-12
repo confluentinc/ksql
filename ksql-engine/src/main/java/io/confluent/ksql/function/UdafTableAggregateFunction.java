@@ -23,11 +23,10 @@ import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 
-@SuppressWarnings("unused") // used in generated code
-public abstract class GeneratedTableAggregateFunction<I, A, O>
-    extends GeneratedAggregateFunction<I, A, O> implements TableAggregationFunction<I, A, O> {
+public class UdafTableAggregateFunction<I, A, O>
+    extends UdafAggregateFunction<I, A, O> implements TableAggregationFunction<I, A, O> {
 
-  public GeneratedTableAggregateFunction(
+  public UdafTableAggregateFunction(
       final String functionName,
       final int udafIndex,
       final Udaf<I, A, O> udaf,
@@ -35,13 +34,14 @@ public abstract class GeneratedTableAggregateFunction<I, A, O>
       final Schema outputType,
       final List<Schema> arguments,
       final String description,
-      final Optional<Metrics> metrics) {
+      final Optional<Metrics> metrics,
+      final String method) {
     super(functionName, udafIndex, udaf, aggregateType, outputType, arguments, description,
-        metrics);
+        metrics, method);
   }
 
   @Override
   public A undo(final I valueToUndo, final A aggregateValue) {
-    return ((TableUdaf<I, A, O>) getUdaf()).undo(valueToUndo, aggregateValue);
+    return ((TableUdaf<I, A, O>)udaf).undo(valueToUndo, aggregateValue);
   }
 }

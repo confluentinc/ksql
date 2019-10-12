@@ -32,15 +32,15 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
-@SuppressWarnings({"unused", "WeakerAccess"}) // used in generated code
-public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, O> {
+@SuppressWarnings("WeakerAccess")
+public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, O> {
 
   protected Optional<Sensor> aggregateSensor;
   protected Optional<Sensor> mapSensor;
   protected Optional<Sensor> mergeSensor;
   protected Udaf<I, A, O> udaf;
 
-  protected GeneratedAggregateFunction(
+  protected UdafAggregateFunction(
       final String functionName,
       final int udafIndex,
       final Udaf<I, A, O> udaf,
@@ -48,25 +48,19 @@ public abstract class GeneratedAggregateFunction<I, A, O> extends BaseAggregateF
       final Schema outputType,
       final List<Schema> arguments,
       final String description,
-      final Optional<Metrics> metrics) {
+      final Optional<Metrics> metrics,
+      final String method) {
 
     super(functionName, udafIndex, udaf::initialize, aggregateType,
         outputType, arguments, description);
 
     this.udaf = udaf;
 
-    final String method = getSourceMethodName();
     final String aggSensorName = String.format("aggregate-%s-%s", functionName, method);
     final String mapSensorName = String.format("map-%s-%s", functionName, method);
     final String mergeSensorName = String.format("merge-%s-%s", functionName, method);
 
     initMetrics(metrics, functionName, method, aggSensorName, mapSensorName, mergeSensorName);
-  }
-
-  protected abstract String getSourceMethodName();
-
-  protected Udaf<I, A, O> getUdaf() {
-    return udaf;
   }
 
   private void initMetrics(

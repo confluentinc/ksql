@@ -30,6 +30,7 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
@@ -310,6 +311,55 @@ public class InternalFunctionRegistryTest {
     assertThat(functionRegistry.getAggregateFunction("my_aggregate",
         Schema.OPTIONAL_INT32_SCHEMA,
         AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
+  }
+
+  @Test
+  public void shouldAddTableFunction() {
+    functionRegistry.addTableFunctionFactory(
+        new TableFunctionFactory(new UdfMetadata("my_tablefunction",
+            "", "", "", "", false)) {
+          @Override
+          public KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList) {
+            return new KsqlTableFunction<Object, Object>() {
+              @Override
+              public Schema getReturnType() {
+                return null;
+              }
+
+              @Override
+              public SqlType returnType() {
+                return null;
+              }
+
+              @Override
+              public List<Object> flatMap(Object currentValue) {
+                return null;
+              }
+
+              @Override
+              public String getDescription() {
+                return null;
+              }
+
+              @Override
+              public FunctionName getFunctionName() {
+                return null;
+              }
+
+              @Override
+              public List<Schema> getArguments() {
+                return null;
+              }
+            };
+          }
+
+          @Override
+          protected List<List<Schema>> supportedArgs() {
+            return null;
+          }
+        });
+    assertThat(functionRegistry.getTableFunction("my_tablefunction",
+        Schema.OPTIONAL_INT32_SCHEMA), not(nullValue()));
   }
 
   @Test

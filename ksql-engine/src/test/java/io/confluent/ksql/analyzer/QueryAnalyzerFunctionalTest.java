@@ -28,19 +28,18 @@ import static org.hamcrest.Matchers.not;
 
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
@@ -48,6 +47,7 @@ import io.confluent.ksql.parser.tree.CreateTableAsSelect;
 import io.confluent.ksql.parser.tree.InsertInto;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
@@ -191,6 +191,28 @@ public class QueryAnalyzerFunctionalTest {
     assertThat(into.getName(), is(test0.getName()));
     assertThat(into.getKsqlTopic(), is(test0.getKsqlTopic()));
   }
+
+  @Test
+  public void shouldAnalyseTableFunctions() {
+
+    // Given:
+    final Query query = givenQuery("SELECT ID, EXPLODE(ARR1), EXPLODE(ARR2) FROM SENSOR_READINGS;");
+
+    // When:
+    final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
+    final TableFunctionAnalysis tableFunctionAnalysis = queryAnalyzer.analyzeTableFunctions(analysis);
+
+    // Then:
+    assertThat(tableFunctionAnalysis.getTableFunctions().size(), equalTo(2));
+    assertThat(tableFunctionAnalysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
+    assertThat(tableFunctionAnalysis.getTableFunctions().get(1).getName().name(), equalTo("EXPLODE"));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().size(), equalTo(3));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(0).toString(), equalTo("SENSOR_READINGS.ID"));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(1).toString(), equalTo("KSQL_UDTF_VARIABLE_0"));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(2).toString(), equalTo("KSQL_UDTF_VARIABLE_1"));
+  }
+
+  // TODO some more tests testing things like nested explodes
 
   @Test
   public void shouldAnalyseWindowedAggregate() {

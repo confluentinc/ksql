@@ -268,6 +268,35 @@ public final class MetaStoreFixture {
 
     metaStore.putSource(ksqlStream4);
 
+
+
+    final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("SENSOR_NAME"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ARR1"), SqlTypes.array(SqlTypes.BIGINT))
+        .valueColumn(ColumnName.of("ARR2"), SqlTypes.array(SqlTypes.STRING))
+        .build();
+
+    final KsqlTopic ksqlTopicSensorReadings = new KsqlTopic(
+        "sensor_readings_topic",
+        keyFormat,
+        valueFormat,
+        false
+    );
+
+    final KsqlStream<?> ksqlStreamSensorReadings = new KsqlStream<>(
+        "sqlexpression",
+        SourceName.of("SENSOR_READINGS"),
+        sensorReadingsSchema,
+        SerdeOption.none(),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID")),
+            sensorReadingsSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ID"))).get()),
+        timestampExtractionPolicy,
+        ksqlTopicSensorReadings
+    );
+
+    metaStore.putSource(ksqlStreamSensorReadings);
+
     return metaStore;
   }
 }

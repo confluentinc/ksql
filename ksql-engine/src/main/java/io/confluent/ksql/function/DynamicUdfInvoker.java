@@ -51,7 +51,8 @@ public class DynamicUdfInvoker implements UdfInvoker {
     try {
       final Object[] extractedArgs = extractArgs(args);
       for (int i = 0; i < extractedArgs.length; i++) {
-        extractedArgs[i] = UdfArgCoercer.coerceUdfArgs(args[i], method.getParameterTypes()[i], i);
+        extractedArgs[i] =
+            UdfArgCoercer.coerceUdfArgs(extractedArgs[i], method.getParameterTypes()[i], i);
       }
       return method.invoke(udf, extractedArgs);
     } catch (Exception e) {

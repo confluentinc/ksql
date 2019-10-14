@@ -345,7 +345,7 @@ public class UdfLoader {
             ((Configurable)actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
-          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf, method);
+          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
               theUdf,
               Time.SYSTEM)).orElse(theUdf);

@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.TypeVariable;
+import java.util.Arrays;
 
 /**
  * An implementation of UdfInvoker which invokes the UDF dynamically using reflection
@@ -48,12 +49,29 @@ public class DynamicUdfInvoker implements UdfInvoker {
   @Override
   public Object eval(final Object udf, final Object... args) {
     try {
-      for (int i = 0; i < args.length; i++) {
-        args[i] = UdfArgCoercer.coerceUdfArgs(args[i], method.getParameterTypes()[i], i);
+      final Object[] extractedArgs = extractArgs(args);
+      for (int i = 0; i < extractedArgs.length; i++) {
+        extractedArgs[i] = UdfArgCoercer.coerceUdfArgs(args[i], method.getParameterTypes()[i], i);
       }
-      return method.invoke(udf, args);
+      return method.invoke(udf, extractedArgs);
     } catch (Exception e) {
       throw new KsqlFunctionException("Failed to invoke udf " + method, e);
     }
+  }
+
+  // Method.invoke() is a pain and expects any varargs to be packaged up in a further Object[]
+  private Object[] extractArgs(final Object... source) {
+    if (!method.isVarArgs()) {
+      return source;
+    }
+
+    final Object[] args = new Object[method.getParameterCount()];
+    System.arraycopy(source, 0, args, 0, method.getParameterCount() - 1);
+
+    final int start = method.getParameterCount() - 1;
+    final Object[] varargs = Arrays.copyOfRange(source, start, source.length);
+    args[start] = varargs;
+
+    return args;
   }
 }

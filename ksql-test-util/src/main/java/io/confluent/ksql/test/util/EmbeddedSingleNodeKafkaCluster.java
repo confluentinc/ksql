@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +44,6 @@ import kafka.security.auth.PermissionType$;
 import kafka.security.auth.ResourceType$;
 import kafka.security.auth.SimpleAclAuthorizer;
 import kafka.server.KafkaConfig;
-import kafka.utils.ZKConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
@@ -68,6 +68,10 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(EmbeddedSingleNodeKafkaCluster.class);
+
+  public static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
+  // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
+  public static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
 
   public static final Credentials VALID_USER1 =
       new Credentials("valid_user_1", "some-password");
@@ -118,7 +122,13 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     brokerConfig.put("group.initial.rebalance.delay.ms", 100);
     broker = new KafkaEmbedded(effectiveBrokerConfigFrom());
     clientConfig.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers());
-    authorizer.configure(ImmutableMap.of(ZKConfig.ZkConnectProp(), zookeeperConnect()));
+
+    final ImmutableMap<String, Object> props = ImmutableMap.of(
+        KafkaConfig.ZkConnectProp(), zookeeperConnect(),
+        SimpleAclAuthorizer.ZkConnectionTimeOutProp(), (int) ZK_CONNECT_TIMEOUT.toMillis(),
+        SimpleAclAuthorizer.ZkSessionTimeOutProp(), (int) ZK_SESSION_TIMEOUT.toMillis()
+    );
+    authorizer.configure(props);
   }
 
   @Override
@@ -294,8 +304,22 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     effectiveConfig.put(KafkaConfig.OffsetsTopicPartitionsProp(), "2");
     // Shutdown quick:
     effectiveConfig.put(KafkaConfig.ControlledShutdownEnableProp(), false);
+    // Set ZK connect timeout high enough to give ZK time to build log file on build server:
+    effectiveConfig
+        .put(KafkaConfig.ZkConnectionTimeoutMsProp(), (int) ZK_CONNECT_TIMEOUT.toMillis());
+    // Set ZK session timeout high enough that slow build servers don't hit it:
+    effectiveConfig.put(KafkaConfig.ZkSessionTimeoutMsProp(), (int) ZK_SESSION_TIMEOUT.toMillis());
     // Explicitly set to be less that the default 30 second timeout of KSQL functional tests
     effectiveConfig.put(KafkaConfig.ControllerSocketTimeoutMsProp(), 20_000);
+    // Streams runs multiple consumers, so let's give them all a chance to join.
+    // (Tests run quicker and with a more stable consumer group):
+    effectiveConfig.put(KafkaConfig.GroupInitialRebalanceDelayMsProp(), 100);
+    // Stop people writing silly data in tests:
+    effectiveConfig.put(KafkaConfig.MessageMaxBytesProp(), 100_000);
+    // Stop logs being deleted due to retention limits:
+    effectiveConfig.put(KafkaConfig.LogRetentionTimeMillisProp(), -1);
+    // Stop logs marked for deletion from being deleted
+    effectiveConfig.put(KafkaConfig.LogDeleteDelayMsProp(), Long.MAX_VALUE);
     return effectiveConfig;
   }
 

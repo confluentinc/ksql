@@ -96,7 +96,7 @@ public class HealthCheckResource {
     }
 
     Optional<HealthCheckResponse> get() {
-      HealthCheckResponse response = cache.getIfPresent(KEY);
+      final HealthCheckResponse response = cache.getIfPresent(KEY);
       return response == null ? Optional.empty() : Optional.of(response);
     }
   }

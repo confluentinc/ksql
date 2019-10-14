@@ -158,9 +158,12 @@ public class JsonFormatTest {
     final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
-    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
-    KsqlEngineTestUtil.execute(ksqlEngine, usersTableStr, ksqlConfig, Collections.emptyMap());
-    KsqlEngineTestUtil.execute(ksqlEngine, messageStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext, ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext, ksqlEngine, usersTableStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext, ksqlEngine, messageStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   @After
@@ -238,7 +241,8 @@ public class JsonFormatTest {
 
   private void executePersistentQuery(final String queryString) {
     final QueryMetadata queryMetadata = KsqlEngineTestUtil
-        .execute(ksqlEngine, queryString, ksqlConfig, Collections.emptyMap()).get(0);
+        .execute(serviceContext, ksqlEngine, queryString, ksqlConfig, Collections.emptyMap())
+        .get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();

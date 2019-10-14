@@ -346,7 +346,13 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        ordersStreamStr,
+        ksqlConfig,
+        Collections.emptyMap()
+    );
   }
 
   private void executePersistentQuery(final String queryString,
@@ -354,7 +360,7 @@ public class SecureIntegrationTest {
     final String query = String.format(queryString, params);
 
     final QueryMetadata queryMetadata = KsqlEngineTestUtil
-        .execute(ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
+        .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

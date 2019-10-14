@@ -186,7 +186,11 @@ public class RecoveryTest {
           }
       );
 
-      this.statementExecutor = new StatementExecutor(ksqlEngine, hybridQueryIdGenerator);
+      this.statementExecutor = new StatementExecutor(
+          serviceContext,
+          ksqlEngine,
+          hybridQueryIdGenerator
+      );
 
       this.commandRunner = new CommandRunner(
           statementExecutor,

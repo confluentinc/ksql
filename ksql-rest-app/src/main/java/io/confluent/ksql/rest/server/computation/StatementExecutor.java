@@ -38,6 +38,7 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.util.QueryCapacityUtil;
+import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
@@ -64,6 +65,7 @@ public class StatementExecutor implements KsqlConfigurable {
 
   private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
 
+  private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
   private final StatementParser statementParser;
   private final HybridQueryIdGenerator queryIdGenerator;
@@ -76,10 +78,12 @@ public class StatementExecutor implements KsqlConfigurable {
   }
 
   public StatementExecutor(
+      final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final HybridQueryIdGenerator hybridQueryIdGenerator
   ) {
     this(
+        serviceContext,
         ksqlEngine,
         new StatementParser(ksqlEngine),
         hybridQueryIdGenerator
@@ -88,10 +92,12 @@ public class StatementExecutor implements KsqlConfigurable {
 
   @VisibleForTesting
   StatementExecutor(
+      final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,
       final HybridQueryIdGenerator hybridQueryIdGenerator
   ) {
+    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
     this.queryIdGenerator =
@@ -263,7 +269,7 @@ public class StatementExecutor implements KsqlConfigurable {
         ConfiguredStatement.of(statement, command.getOverwriteProperties(), mergedConfig);
 
     return ksqlEngine
-        .execute(configured)
+        .execute(serviceContext, configured)
         .getCommandResult()
         .get();
   }
@@ -292,7 +298,7 @@ public class StatementExecutor implements KsqlConfigurable {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       final ConfiguredStatement<?> configured =
           ConfiguredStatement.of(prepared, overriddenProperties, ksqlConfig);
-      ksqlEngine.execute(configured)
+      ksqlEngine.execute(serviceContext, configured)
           .getQuery()
           .ifPresent(queries::add);
     }
@@ -334,7 +340,7 @@ public class StatementExecutor implements KsqlConfigurable {
       queryIdGenerator.activateNewGenerator(offset);
     }
 
-    final QueryMetadata queryMetadata = ksqlEngine.execute(configured)
+    final QueryMetadata queryMetadata = ksqlEngine.execute(serviceContext, configured)
         .getQuery()
         .orElseThrow(() -> new IllegalStateException("Statement did not return a query"));
 

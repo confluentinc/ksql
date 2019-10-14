@@ -139,8 +139,18 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlEngine, statementParser, hybridQueryIdGenerator);
-    statementExecutorWithMocks = new StatementExecutor(mockEngine, mockParser, mockQueryIdGenerator);
+    statementExecutor = new StatementExecutor(
+        serviceContext,
+        ksqlEngine,
+        statementParser,
+        hybridQueryIdGenerator
+    );
+    statementExecutorWithMocks = new StatementExecutor(
+        serviceContext,
+        mockEngine,
+        mockParser,
+        mockQueryIdGenerator
+    );
 
     statementExecutor.configure(ksqlConfig);
     statementExecutorWithMocks.configure(ksqlConfig);
@@ -171,7 +181,12 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(mockEngine, mockParser, mockQueryIdGenerator);
+    statementExecutor = new StatementExecutor(
+        serviceContext,
+        mockEngine,
+        mockParser,
+        mockQueryIdGenerator
+    );
 
     // When:
     statementExecutor.handleStatement(queuedCommand);
@@ -180,7 +195,12 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleRestoreIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(mockEngine, mockParser, mockQueryIdGenerator);
+    statementExecutor = new StatementExecutor(
+        serviceContext,
+        mockEngine,
+        mockParser,
+        mockQueryIdGenerator
+    );
 
     // When:
     statementExecutor.handleRestore(queuedCommand);
@@ -229,7 +249,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final PreparedStatement<?> ddlStatement = realParser.parseSingleStatement(ddlText);
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(ddlStatement, emptyMap(), originalConfig);
-    ksqlEngine.execute(configuredStatement);
+    ksqlEngine.execute(serviceContext, configuredStatement);
 
     final PreparedStatement<Statement> csasStatement =
         realParser.parseSingleStatement(statementText);
@@ -254,7 +274,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
-    expect(mockEngine.execute(eq(configuredCsas)))
+    expect(mockEngine.execute(eq(serviceContext), eq(configuredCsas)))
         .andReturn(ExecuteResult.of(mockQueryMetadata));
     mockQueryMetadata.start();
     expectLastCall();
@@ -461,7 +481,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         .andReturn(csas);
     expect(mockMetaStore.getSource(SourceName.of(name))).andStubReturn(null);
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
-    expect(mockEngine.execute(eqConfigured(csas)))
+    expect(mockEngine.execute(eq(serviceContext), eqConfigured(csas)))
         .andReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
   }
@@ -484,7 +504,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockEngine.parse(eq(queryStatement))).andReturn(parsedStatements);
     expect(mockEngine.prepare(parsedStatements.get(0)))
         .andReturn((PreparedStatement)preparedStatement);
-    expect(mockEngine.execute(eqConfigured(preparedStatement)))
+    expect(mockEngine.execute(eq(serviceContext), eqConfigured(preparedStatement)))
         .andReturn(ExecuteResult.of(mockQuery));
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     return mockQuery;
@@ -528,7 +548,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     expectLastCall();
 
     expect(mockEngine
-        .execute(eqConfigured(PreparedStatement.of("DROP", mockDropStream))))
+        .execute(
+            eq(serviceContext),
+            eqConfigured(PreparedStatement.of("DROP", mockDropStream)))
+    )
         .andReturn(ExecuteResult.of("SUCCESS"));
     replayAll();
 
@@ -563,7 +586,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final DropStream mockDropStream = mockDropStream("foo");
     final PreparedStatement<DropStream> statement = PreparedStatement.of(drop, mockDropStream);
 
-    expect(mockEngine.execute(eqConfigured(statement)))
+    expect(mockEngine.execute(eq(serviceContext), eqConfigured(statement)))
         .andReturn(ExecuteResult.of("SUCCESS"));
     replayAll();
 

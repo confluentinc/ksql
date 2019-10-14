@@ -477,7 +477,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         restConfig.getCommandProducerProperties());
 
     final StatementExecutor statementExecutor =
-        new StatementExecutor(ksqlEngine, hybridQueryIdGenerator);
+        new StatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 

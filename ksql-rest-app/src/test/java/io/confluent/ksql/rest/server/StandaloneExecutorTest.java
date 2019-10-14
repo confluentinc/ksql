@@ -228,6 +228,8 @@ public class StandaloneExecutorTest {
   @Mock
   private ServiceContext serviceContext;
   @Mock
+  private ServiceContext sandBoxServiceContext;
+  @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
   private BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
@@ -256,15 +258,16 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of(persistentQuery));
+    when(ksqlEngine.execute(any(), any())).thenReturn(ExecuteResult.of(persistentQuery));
 
     when(ksqlEngine.createSandbox(any())).thenReturn(sandBox);
 
     when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(sandBox.execute(any())).thenReturn(ExecuteResult.of("success"));
-    when(sandBox.execute(CSAS_CFG_WITH_TOPIC))
+    when(sandBox.getServiceContext()).thenReturn(sandBoxServiceContext);
+    when(sandBox.execute(any(), any())).thenReturn(ExecuteResult.of("success"));
+    when(sandBox.execute(sandBoxServiceContext, CSAS_CFG_WITH_TOPIC))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     when(injectorFactory.apply(any(), any())).thenReturn(InjectorChain.of(sandBoxSchemaInjector, sandBoxTopicInjector));
@@ -445,7 +448,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -460,7 +463,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -479,6 +482,7 @@ public class StandaloneExecutorTest {
 
     // Then:
     verify(ksqlEngine).execute(
+        serviceContext,
         ConfiguredStatement.of(
             cs,
             ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
@@ -500,7 +504,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(
         cs,
         ImmutableMap.of(),
         ksqlConfig
@@ -527,7 +531,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -538,14 +542,14 @@ public class StandaloneExecutorTest {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
-    when(sandBox.execute(configured))
+    when(sandBox.execute(sandBoxServiceContext, configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -557,14 +561,14 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox.execute(configured))
+    when(sandBox.execute(sandBoxServiceContext, configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -576,14 +580,14 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(insertInto);
 
-    when(sandBox.execute(configured))
+    when(sandBox.execute(sandBoxServiceContext, configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -591,7 +595,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(sandBox.execute(any()))
+    when(sandBox.execute(any(), any()))
         .thenReturn(ExecuteResult.of("well, this is unexpected."));
 
     expectedException.expect(KsqlException.class);
@@ -606,7 +610,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(sandBox.execute(any()))
+    when(sandBox.execute(any(), any()))
         .thenReturn(ExecuteResult.of(nonPersistentQueryMd));
 
     expectedException.expect(KsqlException.class);
@@ -628,7 +632,7 @@ public class StandaloneExecutorTest {
   @Test(expected = RuntimeException.class)
   public void shouldThrowIfExecuteThrows() {
     // Given:
-    when(ksqlEngine.execute(any())).thenThrow(new RuntimeException("Boom!"));
+    when(ksqlEngine.execute(any(), any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
     standaloneExecutor.start();
@@ -668,7 +672,7 @@ public class StandaloneExecutorTest {
   public void shouldNotStartValidationPhaseQueries() {
     // Given:
     givenFileContainsAPersistentQuery();
-    when(sandBox.execute(any())).thenReturn(ExecuteResult.of(sandBoxQuery));
+    when(sandBox.execute(any(), any())).thenReturn(ExecuteResult.of(sandBoxQuery));
 
     // When:
     standaloneExecutor.start();
@@ -689,9 +693,9 @@ public class StandaloneExecutorTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(CFG_STMT_0);
+    inOrder.verify(ksqlEngine).execute(serviceContext, CFG_STMT_0);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(CFG_STMT_1);
+    inOrder.verify(ksqlEngine).execute(serviceContext, CFG_STMT_1);
   }
 
   @Test
@@ -729,8 +733,8 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(CFG_0_WITH_SCHEMA);
-    verify(ksqlEngine).execute(CFG_1_WITH_SCHEMA);
+    verify(sandBox).execute(sandBoxServiceContext, CFG_0_WITH_SCHEMA);
+    verify(ksqlEngine).execute(serviceContext, CFG_1_WITH_SCHEMA);
   }
 
   @Test
@@ -745,7 +749,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(CSAS_CFG_WITH_TOPIC);
+    verify(sandBox).execute(sandBoxServiceContext, CSAS_CFG_WITH_TOPIC);
   }
 
   private void givenExecutorWillFailOnNoQueries() {

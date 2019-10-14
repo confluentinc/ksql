@@ -56,9 +56,7 @@ public class HealthCheckAgent {
             check -> check.check(ksqlClient, serverEndpoint)
         ));
     final boolean allHealthy = results.values().stream()
-        .map(HealthCheckResponseDetail::getIsHealthy)
-        .reduce(Boolean::logicalAnd)
-        .orElse(true);
+        .allMatch(HealthCheckResponseDetail::getIsHealthy);
     return new HealthCheckResponse(allHealthy, results);
   }
 

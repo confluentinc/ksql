@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server.resources;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
@@ -25,7 +27,7 @@ import io.confluent.ksql.services.ServiceContext;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -41,11 +43,10 @@ public class HealthCheckResource {
   @VisibleForTesting
   HealthCheckResource(
       final HealthCheckAgent healthCheckAgent,
-      final Duration healthCheckInterval,
-      final Supplier<Long> currentTimeSupplier
+      final Duration healthCheckInterval
   ) {
     this.healthCheckAgent = Objects.requireNonNull(healthCheckAgent, "healthCheckAgent");
-    this.responseCache = new ResponseCache(currentTimeSupplier, healthCheckInterval);
+    this.responseCache = new ResponseCache(healthCheckInterval);
   }
 
   @GET
@@ -73,41 +74,30 @@ public class HealthCheckResource {
         new HealthCheckAgent(
             new ServerInternalKsqlClient(ksqlResource, serviceContext),
             restConfig),
-        Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG)),
-        System::currentTimeMillis
+        Duration.ofMillis(restConfig.getLong(KsqlRestConfig.KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG))
     );
   }
 
   /* Caches a HealthCheckResponse for the specified duration */
   private static class ResponseCache {
-    private final Supplier<Long> currentTimeSupplier;
-    private final Duration cacheDuration;
-    private HealthCheckResponse response;
-    private long timestamp;
+    private static final Boolean KEY = true;
 
-    ResponseCache(
-        final Supplier<Long> currentTimeSupplier,
-        final Duration cacheDuration
-    ) {
-      this.currentTimeSupplier = Objects.requireNonNull(currentTimeSupplier, "currentTimeSupplier");
-      this.cacheDuration = Objects.requireNonNull(cacheDuration, "cacheDuration");
+    private final Cache<Boolean, HealthCheckResponse> cache;
+
+    ResponseCache(final Duration cacheDuration) {
+      Objects.requireNonNull(cacheDuration, "cacheDuration");
+      this.cache = CacheBuilder.newBuilder()
+          .expireAfterWrite(cacheDuration.toMillis(), TimeUnit.MILLISECONDS)
+          .build();
     }
 
     void cache(final HealthCheckResponse response) {
-      this.response = response;
-      this.timestamp = currentTimeSupplier.get();
+      cache.put(KEY, response);
     }
 
     Optional<HealthCheckResponse> get() {
-      if (response == null || timeSinceLastResponse().compareTo(cacheDuration) > 0) {
-        return Optional.empty();
-      } else {
-        return Optional.of(response);
-      }
-    }
-
-    private Duration timeSinceLastResponse() {
-      return Duration.ofMillis(currentTimeSupplier.get() - timestamp);
+      HealthCheckResponse response = cache.getIfPresent(KEY);
+      return response == null ? Optional.empty() : Optional.of(response);
     }
   }
 }

@@ -25,7 +25,6 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import java.time.Duration;
-import java.util.function.Supplier;
 import javax.ws.rs.core.Response;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,12 +35,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class HealthCheckResourceTest {
 
-  private static final Duration HEALTHCHECK_INTERVAL = Duration.ofMillis(15);
-
   @Mock
   private HealthCheckAgent healthCheckAgent;
-  @Mock
-  private Supplier<Long> currentTimeSupplier;
   @Mock
   private HealthCheckResponse response1;
   @Mock
@@ -53,13 +48,8 @@ public class HealthCheckResourceTest {
     when(healthCheckAgent.checkHealth())
         .thenReturn(response1)
         .thenReturn(response2);
-    when(currentTimeSupplier.get()).thenReturn(1000L);
 
-    healthCheckResource = new HealthCheckResource(
-        healthCheckAgent,
-        HEALTHCHECK_INTERVAL,
-        currentTimeSupplier
-    );
+    healthCheckResource = new HealthCheckResource(healthCheckAgent, Duration.ofMillis(1000));
   }
 
   @Test
@@ -76,9 +66,6 @@ public class HealthCheckResourceTest {
   @Test
   public void shouldGetCachedResponse() {
     // Given:
-    when(currentTimeSupplier.get())
-        .thenReturn(1000L)  // time when first response is cached
-        .thenReturn(1010L); // time of second checkHealth()
     healthCheckResource.checkHealth();
 
     // When:
@@ -89,13 +76,11 @@ public class HealthCheckResourceTest {
   }
 
   @Test
-  public void shouldRecheckHealthIfCachedResponseExpired() {
+  public void shouldRecheckHealthIfCachedResponseExpired() throws Exception {
     // Given:
-    when(currentTimeSupplier.get())
-        .thenReturn(1000L)  // time when first response is cached
-        .thenReturn(1020L)  // time of second checkHealth()
-        .thenReturn(1020L); // time when second response is cached
+    healthCheckResource = new HealthCheckResource(healthCheckAgent, Duration.ofMillis(10));
     healthCheckResource.checkHealth();
+    Thread.sleep(11);
 
     // When:
     final Response response = healthCheckResource.checkHealth();

@@ -25,7 +25,6 @@ import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -121,10 +120,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   public SourceName getSinkName() {
     return sinkName;
-  }
-
-  public Format getResultTopicFormat() {
-    return resultTopic.getValueFormat().getFormat();
   }
 
   public String getSchemasDescription() {

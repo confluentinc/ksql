@@ -26,6 +26,7 @@ import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
 import java.time.Duration;
 import javax.ws.rs.core.Response;
+import org.apache.kafka.test.TestUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -80,12 +81,12 @@ public class HealthCheckResourceTest {
     // Given:
     healthCheckResource = new HealthCheckResource(healthCheckAgent, Duration.ofMillis(10));
     healthCheckResource.checkHealth();
-    Thread.sleep(11);
 
-    // When:
-    final Response response = healthCheckResource.checkHealth();
-
-    // Then:
-    assertThat(response.getEntity(), sameInstance(response2));
+    // When / Then:
+    TestUtils.waitForCondition(
+        () -> healthCheckResource.checkHealth().getEntity() == response2,
+        1000,
+        "Should receive response2 once response1 expires."
+    );
   }
 }

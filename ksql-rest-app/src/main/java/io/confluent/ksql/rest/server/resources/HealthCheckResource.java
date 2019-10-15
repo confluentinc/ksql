@@ -82,7 +82,7 @@ public class HealthCheckResource {
     final CacheLoader<Boolean, HealthCheckResponse> loader =
         new CacheLoader<Boolean, HealthCheckResponse>() {
           @Override
-          public HealthCheckResponse load(Boolean key) {
+          public HealthCheckResponse load(final Boolean key) {
             if (key != KEY) {
               throw new IllegalArgumentException("Unexpected response cache key: " + key);
             }

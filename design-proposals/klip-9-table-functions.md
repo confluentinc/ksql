@@ -154,11 +154,11 @@ We will implement the following built in table functions:
 
 * `EXPLODE(ARRAY<V>)` -> Results in `N` rows (where `N` is number of elements in array) each with a column
 of type `V` holding the value of the element
-* `EXPLODE(MAP<K, V>)` -> Results in `N` rows (where `N` is number of elements in map) each with a column
-holding a `STRUCT<key K, value V>` that contains the key and value.
-* `INDEX_EXPLODE(ARRAY<V>)` -> Results in `N` rows (where `N` is number of elements in array) each with a
-column of type `STRUCT<index INT, value V>` containing the index of the element from the original array
-and the value from the array.
+* `SORTED_PAIRS(MAP<K, V>)` -> Results in `N` rows (where `N` is number of entries in map), sorted by `K`
+* `UNSORTED_PAIRS(MAP<K, V>)` -> Results in `N` rows (where `N` is number of entries in map),
+in an undefined order
+* `SEQUENCE(start INT, end INT)` - Results in `start - end + 1` rows with an `INT` value from `start`
+to `end` exclusive.
 
 ### Implement framework of user defined table functions
 
@@ -180,10 +180,131 @@ functions.
 
 The following changes to the documentation will be made:
 
-* Update syntax reference for the new built-in functions
-* Add new section in the developer guide demonstrating how to use table functions to 'FlatMap'
-streams
-* Add a new KSQL example for table functions
+### Syntax reference
+
+The following section should be added to the syntax reference:
+
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+>| Function               | Example                   | Input Type | Description                                                         |
+>+========================+===========================+============+=====================================================================+
+>| EXPLODE                | ``EXPLODE(col1)``         | Array      | This function takes an Array and outputs one value for each of the  |
+>|                        |                           |            | elements of the array. The output values are of the type of the     |                                     |
+>|                        |                           |            | array elements.                                                     |
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+>| SERIES                 | ``SERIES(col1, col2)`     | INT, INT   | This function takes two ints - start and end and output a range of  |
+>|                        |                           |            | ints from start to end (exclusive).                                 |
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+>| SORTED_PAIRS           | ``SORTED_PAIRS(col1)`     | MAP        | This function takes a map and outputs a list of structs - one       |
+>|                        |                           |            | for each key, value pair in the map. The output is sorted by the    |
+>|                        |                           |            | natural ordering of the key before returning.                       |
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+>| UNSORTED_PAIRS         | ``UNSORTED_PAIRS(col1)`   | MAP        | This function takes a map and outputs a list of structs - one       |
+>|                        |                           |            | for each key, value pair in the map. The order of the pairs is      |
+>|                        |                           |            | undefined.                                                          |
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+
+### Developer Guide
+
+Add the following new section of the developer guide in `table-functions.rst`
+
+> .. _aggregate-streaming-data-with-ksql:
+>
+>Using Table Functions With KSQL
+>###############################
+>
+>A _table function_ is a function that returns a set of zero or more rows. Contrast this to a scalar
+>function which returns a single value.
+>
+>Table functions can be thought of as analagous to the `FlatMap` operation commonly found in
+>functional programming or stream processing frameworks such as Kafka Streams.
+>
+>Table functions are used in the SELECT clause of a query. They cause the query to potentially
+>output more than one row for each input value.
+>
+>The current implementation of table functions only allows a single column to be returned. This column
+>can be any valid KSQL type.
+>
+>Here's an example of the `EXPLODE` built-in table function which takes an ARRAY and outputs one value
+>for each element of the array:
+>
+>.. code:: sql
+>
+>  {sensor_id:12345 readings: [23, 56, 3, 76, 75]}
+>  {sensor_id:54321 readings: [12, 65, 38]}
+>
+>
+>The following stream:
+>
+>.. code:: sql
+>
+>  CREATE STREAM exploded_stream AS
+>    SELECT sensor_id, EXPLODE(readings) AS reading FROM batched_readings;
+>
+>Would emit:
+>
+>.. code:: sql
+>
+>  {sensor_id:12345 reading: 23}
+>  {sensor_id:12345 reading: 56}
+>  {sensor_id:12345 reading: 3}
+>  {sensor_id:12345 reading: 76}
+>  {sensor_id:12345 reading: 75}
+>  {sensor_id:54321 reading: 12}
+>  {sensor_id:54321 reading: 65}
+>  {sensor_id:54321 reading: 38}
+>
+>When scalar values are mixed with table function returns in a SELECT clause, the scalar values
+>(in the above example `sensor_id`) are copied for each value returned from the table function.
+>
+>You can also use multiple table functions in a SELECT clause. In this situation, the results of the
+>table functions are `zipped` together. The total number of rows returned is equal to the greatest
+>number of values returned from any of the table functions. If some of the functions return fewer
+>rows than others, the missing values are replaced with `null`.
+>
+>Here's an example that illustrates this.
+>
+>With the following input data:
+>
+>.. code:: sql
+>
+>  {country:'UK', customer_names: ['john', 'paul', 'george', 'ringo'], customer_ages: [23, 56, 3]}
+>  {country:'USA', customer_names: ['chad', 'chip', 'brad'], customer_ages: [56, 34, 76, 84, 56]}
+>
+>And the following stream:
+>
+>.. code:: sql
+>
+>  CREATE STREAM country_customers AS
+>    SELECT country, EXPLODE(customer_names) AS name, EXPLODE(customer_ages) AS age FROM country_batches;
+>
+>Would give:
+>
+>.. code:: sql
+>
+>  {country: 'UK', name: 'john', age: 23}
+>  {country: 'UK', name: 'paul', age: 56}
+>  {country: 'UK', name: 'george', age: 3}
+>  {country: 'UK', name: 'ringo', age: null}
+>  {country: 'USA', name: 'chad', age: 56}
+>  {country: 'USA', name: 'chip', age: 34}
+>  {country: 'USA', name: 'brad', age: 76}
+>  {country: 'USA', name: null, age: 84}
+>  {country: 'USA', name: null, age: 56}
+>
+>
+>Built-on Table Functions
+>========================
+>
+>KSQL comes with a set of built-in table functions. Please see the syntax reference for more
+>information.
+
+### Example of Table Function
+
+Add a new KSQL example for table functions
+
+### UDTFs
+
+Update the `implement-a-udf.rst` documentation to cover UDTFs too.
 
 # Compatibility Implications
 

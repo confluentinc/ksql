@@ -28,6 +28,7 @@ import io.confluent.ksql.services.ServiceContext;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.Nonnull;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -38,7 +39,7 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class HealthCheckResource {
 
-  private static final Boolean KEY = true;
+  private static final Boolean KEY = Boolean.TRUE;
 
   private final LoadingCache<Boolean, HealthCheckResponse> responseCache;
 
@@ -82,8 +83,8 @@ public class HealthCheckResource {
     final CacheLoader<Boolean, HealthCheckResponse> loader =
         new CacheLoader<Boolean, HealthCheckResponse>() {
           @Override
-          public HealthCheckResponse load(final Boolean key) {
-            if (key != KEY) {
+          public HealthCheckResponse load(@Nonnull final Boolean key) {
+            if (!key.equals(KEY)) {
               throw new IllegalArgumentException("Unexpected response cache key: " + key);
             }
             return healthCheckAgent.checkHealth();

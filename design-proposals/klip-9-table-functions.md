@@ -44,11 +44,11 @@ Please see the following links for further background information:
 
 We propose to support table functions in SELECT clauses in KSQL.
 
-There is [demand from KSQL users](https://github.com/confluentinc/ksql/issues/527) for a way to explode non scalar types such
-as ARRAY or MAP from columns in KSQL streams or tables into multiple rows. This is the main
+There is [demand from KSQL users](https://github.com/confluentinc/ksql/issues/527) for a way to explode
+ARRAYs from columns in KSQL streams or tables into multiple rows. This is the main
 motivation for proposing this feature.
 
-Table funtions would also be useful for other cases such as splitting a string into words, or any
+Table functions would also be useful for other cases such as splitting a string into words, or any
 case where you need to go from a single row to zero or more, for example, unaggregating data or
 duplicating rows.
 
@@ -82,6 +82,12 @@ CREATE STREAM exploded_stream AS
 
 Note that any scalar values in the select will be duplicated for each row in the output.
 
+We will also support multiple table functions in a SELECT clause. In this situation, the results of the
+table functions are `zipped` together.
+
+The total number of rows returned is equal to the greatest number of values returned from any of the
+ table functions. If some of the functions return fewer rows than others, the missing values are
+ replaced with `null`.
 
 ## What is in scope
 
@@ -89,17 +95,18 @@ We would like to implement
 
 * Table functions on the SELECT clause only
 * Multiple table functions on the SELECT clause
-* A set of built-in table functions such as EXPLODE (etc)
+* A set of built-in table functions including EXPLODE, SERIES, SORTED_PAIRS, UNSORTED_PAIRS
 * An ability for users to provide their own User Defined Table Functions (UDTFs) using annotations
-in a similar way to how UDFs and UDAFs are currently supported.
+in a similar way to how UDFs are currently supported using annotations.
 
 ## What is not in scope
 
 * Table functions on the FROM clause. We could allow table functions to take the place of other streams
 or tables in the FROM clause. We do not think there is much value in doing this as the main driver
 for this KLIP is in supporting `explode` functionality which is more simply implemented on the
-SELECT clause.
-* Table functions that output more than one column. Some databases support the flattening of an array
+SELECT clause. Also, expressing `zip` semantics using joins on a FROM clause would require new a new join
+type.
+* Table functions that output more than one column: Some databases support the flattening of an array
  of N STRUCT types into N rows of M columns, where there is one column for each field of the struct.
  Instead we propose that flattening an array of N structs will result in N rows with a single column
  of type STRUCT. The fields of the struct can then be extracted if necessary using a further CSAS
@@ -119,7 +126,7 @@ app thus allowing them to create richer KSQL applications.
 There will be no changes to the KSQL language or any existing public APIs or configuration files.
 
 We will introduce new annotations to allow users to mark their UDTFs, in a very similar way to
-UDAFs.
+UDFs.
 
 ## Design
 
@@ -127,7 +134,7 @@ UDAFs.
 
 We will need the following general plumbing to support table functions:
 
-* In a similar way to how UDAFs are currently supported we will need to create a 
+* In a similar way to how UDFs are currently supported we will need to create a 
 `KsqlTableFunction` which is a wrapper around the actual table function (whether built-in or
 generated). We'll also need to augment the function registry to manage the addition and retrieval
 of table functions.
@@ -147,6 +154,29 @@ returned from any of the table functions for that row. Any non table function va
 be duplicated for each row. For any table function that returned fewer than the greatest number of rows
 the values for that columnn will be `null`. For performance reasons, the FlatMap logic should cache any
  table functions for the columns to avoid them being looked up each time.
+ 
+### UDTF API
+
+Users will be able to implement their own table function by creating their classes containing
+methods annotated with `@Udtf`.
+
+A UDTF method can contain zero or more parameters, of any of the valid KSQL types mapped to Java.
+The return value must be a `List<T>` where T is any valid KSQL type mapped to Java. 
+
+```
+@UdtfDescription(name = "SplitSpring", author = "bob", description = "Splits a string into words")
+public class SplitString {
+
+    @Udtf(description="Splits a string into words")
+    public List<String> split(String input) {
+        return Arrays.asList(String.split("\\s+"));
+    }
+
+}
+
+```
+
+
 
 ### Implement set of built in table functions
 
@@ -159,14 +189,6 @@ of type `V` holding the value of the element
 in an undefined order
 * `SEQUENCE(start INT, end INT)` - Results in `start - end + 1` rows with an `INT` value from `start`
 to `end` exclusive.
-
-### Implement framework of user defined table functions
-
-We will introduce annotations `@UdtfFactory` and `@UdtfDescription` in a similar way to UDAFs.
-
-This will allow users to implement their own table functions which can be used in queries.
-
-We will implement the loading of any UDTFs from the classpath at startup of the server.
 
 ## Test plan
 

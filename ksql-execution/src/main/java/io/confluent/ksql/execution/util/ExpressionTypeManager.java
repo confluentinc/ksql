@@ -55,6 +55,7 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -64,6 +65,7 @@ import io.confluent.ksql.util.VisitorUtil;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
@@ -302,10 +304,32 @@ public class ExpressionTypeManager {
     @Override
     public Void visitSearchedCaseExpression(
         final SearchedCaseExpression node,
-        final ExpressionTypeContext expressionTypeContext
+        final ExpressionTypeContext context
     ) {
-      validateSearchedCaseExpression(node);
-      process(node.getWhenClauses().get(0).getResult(), expressionTypeContext);
+      final Optional<SqlType> whenType = validateWhenClauses(node.getWhenClauses(), context);
+
+      final Optional<SqlType> defaultType = node.getDefaultValue()
+          .map(ExpressionTypeManager.this::getExpressionSqlType);
+
+      if (whenType.isPresent() && defaultType.isPresent()) {
+        if (!whenType.get().equals(defaultType.get())) {
+          throw new KsqlException("Invalid Case expression. "
+              + "Type for the default clause should be the same as for 'THEN' clauses."
+              + System.lineSeparator()
+              + "THEN type: " + whenType.get() + "."
+              + System.lineSeparator()
+              + "DEFAULT type: " + defaultType.get() + "."
+          );
+        }
+
+        context.setSqlType(whenType.get());
+      } else if (whenType.isPresent()) {
+        context.setSqlType(whenType.get());
+      } else if (defaultType.isPresent()) {
+        context.setSqlType(defaultType.get());
+      } else {
+        throw new KsqlException("Invalid Case expression. All case branches have NULL type");
+      }
       return null;
     }
 
@@ -449,38 +473,46 @@ public class ExpressionTypeManager {
       throw VisitorUtil.illegalState(this, whenClause);
     }
 
-    private void validateSearchedCaseExpression(
-        final SearchedCaseExpression searchedCaseExpression) {
-      final Schema firstResultSchema = getExpressionSchema(
-          searchedCaseExpression.getWhenClauses().get(0).getResult());
-      searchedCaseExpression.getWhenClauses()
-          .forEach(whenClause -> validateWhenClause(whenClause, firstResultSchema));
-      searchedCaseExpression.getDefaultValue()
-          .map(ExpressionTypeManager.this::getExpressionSchema)
-          .filter(defaultSchema -> !firstResultSchema.equals(defaultSchema))
-          .ifPresent(badSchema -> {
-            throw new KsqlException("Invalid Case expression."
-                + " Schema for the default clause should be the same as schema for THEN clauses."
-                + " Result scheme: " + firstResultSchema + "."
-                + " Schema for default expression is " + badSchema);
-          });
-    }
+    private Optional<SqlType> validateWhenClauses(
+        final List<WhenClause> whenClauses,
+        final ExpressionTypeContext context
+    ) {
+      Optional<SqlType> previousResult = Optional.empty();
+      for (final WhenClause whenClause : whenClauses) {
+        process(whenClause.getOperand(), context);
 
-    private void validateWhenClause(final WhenClause whenClause,
-        final Schema expectedResultSchema) {
-      final Schema operandSchema = getExpressionSchema(whenClause.getOperand());
-      if (!operandSchema.equals(Schema.OPTIONAL_BOOLEAN_SCHEMA)) {
-        throw new KsqlException("When operand schema should be boolean. Schema for ("
-            + whenClause.getOperand() + ") is " + operandSchema);
+        final SqlType operandType = context.getSqlType();
+
+        if (operandType.baseType() != SqlBaseType.BOOLEAN) {
+          throw new KsqlException("WHEN operand type should be boolean."
+              + System.lineSeparator()
+              + "Type for '" + whenClause.getOperand() + "' is " + operandType
+          );
+        }
+
+        process(whenClause.getResult(), context);
+
+        final SqlType resultType = context.getSqlType();
+        if (resultType == null) {
+          continue; // `null` type
+        }
+
+        if (!previousResult.isPresent()) {
+          previousResult = Optional.of(resultType);
+          continue;
+        }
+
+        if (!previousResult.get().equals(resultType)) {
+          throw new KsqlException("Invalid Case expression. "
+              + "Type for all 'THEN' clauses should be the same."
+              + System.lineSeparator()
+              + "THEN expression '" + whenClause + "' has type: " + resultType + "."
+              + System.lineSeparator()
+              + "Previous THEN expression(s) type: " + previousResult.get() + ".");
+        }
       }
-      final Schema resultSchema = getExpressionSchema(whenClause.getResult());
-      if (!expectedResultSchema.equals(resultSchema)) {
-        throw new KsqlException("Invalid Case expression."
-            + " Schemas for 'THEN' clauses should be the same."
-            + " Result schema: " + expectedResultSchema + "."
-            + " Schema for THEN expression '" + whenClause + "'"
-            + " is " + resultSchema);
-      }
+
+      return previousResult;
     }
   }
 }

@@ -29,17 +29,15 @@ public enum SqlBaseType {
   }
 
   /**
-   * Test to see if this type can be up-cast to another.
+   * Test to see if this type can be <i>implicitly</i> cast to another.
    *
-   * <p>This defines if KSQL supports <i>implicitly</i> converting one numeric type to another.
-   *
-   * <p>Types can always be upcast to themselves. Only numeric types can be upcast to different
-   * numeric types. Note: STRING to DECIMAL handling is not seen as up-casting, it's parsing.
+   * <p>Types can always be cast to themselves. Only numeric types can be implicitly cast to other
+   * numeric types. Note: STRING to DECIMAL handling is not seen as casting: it's parsing.
    *
    * @param to the target type.
-   * @return true if this type can be upcast to the supplied type.
+   * @return true if this type can be implicitly cast to the supplied type.
    */
-  public boolean canUpCast(final SqlBaseType to) {
+  public boolean canImplicitlyCast(final SqlBaseType to) {
     return this.equals(to)
         || (isNumber() && to.isNumber() && this.ordinal() <= to.ordinal());
   }

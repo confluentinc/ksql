@@ -228,7 +228,7 @@ public class DefaultSqlValueCoercerTest {
       // Handled by parsing the string to a decimal:
       return true;
     }
-    return fromBaseType.canUpCast(toBaseType);
+    return fromBaseType.canImplicitlyCast(toBaseType);
   }
 
   private static List<SqlBaseType> supportedTypes() {

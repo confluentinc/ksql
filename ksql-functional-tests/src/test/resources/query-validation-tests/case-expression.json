@@ -28,7 +28,7 @@
     {
       "name": "searched case with arithmetic expression in result",
       "statements": [
-        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', key='orderid', value_format='JSON');",
+        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN orderid + 2 END AS case_resault FROM orders;"
       ],
       "inputs": [
@@ -43,7 +43,7 @@
     {
       "name": "searched case with null in when",
       "statements": [
-        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', key='orderid', value_format='JSON');",
+        "CREATE STREAM orders (orderid bigint, ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE STREAM S1 AS SELECT CASE WHEN orderunits > 2.0 THEN 'foo' ELSE 'default' END AS case_resault FROM orders;"
       ],
       "inputs": [
@@ -57,6 +57,66 @@
         {"topic": "S1", "value": {"CASE_RESAULT": "foo"}
         }
       ]
+    },
+    {
+      "name": "searched case returning null in first branch",
+      "statements": [
+        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN null WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_result FROM orders;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ORDERUNITS": 4.2}},
+        {"topic": "test_topic", "value": {"ORDERUNITS": 3.99}},
+        {"topic": "test_topic", "value": {"ORDERUNITS": 1.1}}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": {"CASE_RESULT": "large"}},
+        {"topic": "S1", "value": {"CASE_RESULT": "medium"}},
+        {"topic": "S1", "value": {"CASE_RESULT": null}}
+      ]
+    },
+    {
+      "name": "searched case returning null in later branch",
+      "statements": [
+        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN null ELSE 'large' END AS case_result FROM orders;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ORDERUNITS": 4.2}},
+        {"topic": "test_topic", "value": {"ORDERUNITS": 3.99}},
+        {"topic": "test_topic", "value": {"ORDERUNITS": 1.1}}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": {"CASE_RESULT": "large"}},
+        {"topic": "S1", "value": {"CASE_RESULT": null}},
+        {"topic": "S1", "value": {"CASE_RESULT": "small"}}
+      ]
+    },
+    {
+      "name": "searched case returning null in default branch",
+      "statements": [
+        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN 'small' ELSE null END AS case_result FROM orders;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"ORDERUNITS": 4.2}},
+        {"topic": "test_topic", "value": {"ORDERUNITS": 1.1}}
+      ],
+      "outputs": [
+        {"topic": "S1", "value": {"CASE_RESULT": null}},
+        {"topic": "S1", "value": {"CASE_RESULT": "small"}}
+      ]
+    },
+    {
+      "name": "searched case returning null in all branch",
+      "statements": [
+        "CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM S1 AS SELECT CASE WHEN orderunits < 2.0 THEN null ELSE null END AS case_result FROM orders;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Invalid Case expression. All case branches have NULL type"
+      }
     },
     {
       "name": "searched case expression with structs, multiple expression and the same type",

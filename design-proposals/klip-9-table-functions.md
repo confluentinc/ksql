@@ -176,8 +176,6 @@ public class SplitString {
 
 ```
 
-
-
 ### Implement set of built in table functions
 
 We will implement the following built in table functions:

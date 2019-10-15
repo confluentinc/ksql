@@ -38,7 +38,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StaticQueryExtecutorTest {
+public class StaticQueryExecutorTest {
 
   @Rule
   public final TemporaryEngine engine = new TemporaryEngine();

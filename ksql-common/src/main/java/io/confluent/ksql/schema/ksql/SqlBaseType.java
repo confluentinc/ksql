@@ -29,7 +29,7 @@ public enum SqlBaseType {
   }
 
   /**
-   * Test to see if this type can be <i>implicitly</i>u cast to another.
+   * Test to see if this type can be <i>implicitly</i> cast to another.
    *
    * <p>Types can always be cast to themselves. Only numeric types can be implicitly cast to other
    * numeric types. Note: STRING to DECIMAL handling is not seen as casting: it's parsing.

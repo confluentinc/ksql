@@ -6,6 +6,28 @@ Upgrading KSQL
 Upgrade one KSQL server at a time (i.e. rolling restart). The remaining KSQL servers should have sufficient spare
 capacity to take over temporarily for unavailable, restarting servers.
 
+Upgrading to KSQL 5.4
+-----------------------------------
+
+Notable changes in 5.4:
+
+* KSQL Server
+
+    * Query Id generation
+
+        * This version of KSQL includes a change to how query ids are generated for Persistent Queries
+          (INSERT INTO/CREATE STREAM AS SELECT/CREATE TABLE AS SELECT). Previously, query ids would be incremented
+          on every successful Persistent Query created. New query ids use the Kafka record offset of the query
+          creating command in the KSQL command topic.
+
+
+          In order to prevent inconsistent query ids, don't create new Persistent Queries while
+          upgrading your KSQL servers (5.3 or lower). Old running queries will retain their original id on restart,
+          while new queries will utilize the new id convention.
+
+          See `Github PR #3354 <https://github.com/confluentinc/ksql/pull/3354>`_ for more info.
+
+
 Upgrading from KSQL 5.2 to KSQL 5.3
 -----------------------------------
 

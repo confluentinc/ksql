@@ -424,9 +424,9 @@ public class ExpressionTypeManagerTest {
     );
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "WHEN operand schema should be boolean."
+        "WHEN operand type should be boolean."
             + System.lineSeparator()
-            + "Schema for '(TEST1.COL0 + 10)' is BIGINT"
+            + "Type for '(TEST1.COL0 + 10)' is BIGINT"
     );
 
     // When:
@@ -449,11 +449,11 @@ public class ExpressionTypeManagerTest {
     );
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Invalid Case expression. Schemas for all 'THEN' clauses should be the same."
+        "Invalid Case expression. Type for all 'THEN' clauses should be the same."
             + System.lineSeparator()
-            + "THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' has schema: INTEGER."
+            + "THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' has type: INTEGER."
             + System.lineSeparator()
-            + "Previous THEN expression(s) schema: STRING."
+            + "Previous THEN expression(s) type: STRING."
     );
 
     // When:
@@ -474,11 +474,11 @@ public class ExpressionTypeManagerTest {
     );
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Invalid Case expression. Schema for the default clause should be the same as for 'THEN' clauses."
+        "Invalid Case expression. Type for the default clause should be the same as for 'THEN' clauses."
             + System.lineSeparator()
-            + "THEN schema: STRING."
+            + "THEN type: STRING."
             + System.lineSeparator()
-            + "DEFAULT schema: BOOLEAN."
+            + "DEFAULT type: BOOLEAN."
     );
 
     // When:

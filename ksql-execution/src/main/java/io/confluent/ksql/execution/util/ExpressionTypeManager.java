@@ -314,11 +314,11 @@ public class ExpressionTypeManager {
       if (whenType.isPresent() && defaultType.isPresent()) {
         if (!whenType.get().equals(defaultType.get())) {
           throw new KsqlException("Invalid Case expression. "
-              + "Schema for the default clause should be the same as for 'THEN' clauses."
+              + "Type for the default clause should be the same as for 'THEN' clauses."
               + System.lineSeparator()
-              + "THEN schema: " + whenType.get() + "."
+              + "THEN type: " + whenType.get() + "."
               + System.lineSeparator()
-              + "DEFAULT schema: " + defaultType.get() + "."
+              + "DEFAULT type: " + defaultType.get() + "."
           );
         }
 
@@ -328,7 +328,7 @@ public class ExpressionTypeManager {
       } else if (defaultType.isPresent()) {
         context.setSqlType(defaultType.get());
       } else {
-        throw new KsqlException("Invalid Case expression. All case branches have NULL schema");
+        throw new KsqlException("Invalid Case expression. All case branches have NULL type");
       }
       return null;
     }
@@ -484,9 +484,9 @@ public class ExpressionTypeManager {
         final SqlType operandType = context.getSqlType();
 
         if (operandType.baseType() != SqlBaseType.BOOLEAN) {
-          throw new KsqlException("WHEN operand schema should be boolean."
+          throw new KsqlException("WHEN operand type should be boolean."
               + System.lineSeparator()
-              + "Schema for '" + whenClause.getOperand() + "' is " + operandType
+              + "Type for '" + whenClause.getOperand() + "' is " + operandType
           );
         }
 
@@ -504,11 +504,11 @@ public class ExpressionTypeManager {
 
         if (!previousResult.get().equals(resultType)) {
           throw new KsqlException("Invalid Case expression. "
-              + "Schemas for all 'THEN' clauses should be the same."
+              + "Type for all 'THEN' clauses should be the same."
               + System.lineSeparator()
-              + "THEN expression '" + whenClause + "' has schema: " + resultType + "."
+              + "THEN expression '" + whenClause + "' has type: " + resultType + "."
               + System.lineSeparator()
-              + "Previous THEN expression(s) schema: " + previousResult.get() + ".");
+              + "Previous THEN expression(s) type: " + previousResult.get() + ".");
         }
       }
 

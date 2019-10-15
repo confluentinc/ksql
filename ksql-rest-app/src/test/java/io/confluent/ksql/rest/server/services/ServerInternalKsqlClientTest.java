@@ -56,7 +56,7 @@ public class ServerInternalKsqlClientTest {
   @Before
   public void setUp() {
     when(response.getStatus()).thenReturn(Status.OK.getStatusCode());
-    when(response.readEntity(KsqlEntityList.class)).thenReturn(entities);
+    when(response.getEntity()).thenReturn(entities);
 
     ksqlClient = new ServerInternalKsqlClient(ksqlResource, serviceContext);
   }

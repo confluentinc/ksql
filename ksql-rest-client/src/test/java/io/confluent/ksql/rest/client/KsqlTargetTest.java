@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.KsqlRequest;
@@ -179,6 +180,22 @@ public class KsqlTargetTest {
     verify(invocationBuilder).get();
     verify(response).close();
     assertThat(result.get(), is(sameInstance(serverInfo)));
+  }
+
+  @Test
+  public void shouldGetServerHealth() {
+    // Given:
+    final HealthCheckResponse serverHealth = mock(HealthCheckResponse.class);
+    when(response.readEntity(HealthCheckResponse.class)).thenReturn(serverHealth);
+
+    // When:
+    final RestResponse<HealthCheckResponse> result = target.getServerHealth();
+
+    // Then:
+    verify(webTarget).path("/healthcheck");
+    verify(invocationBuilder).get();
+    verify(response).close();
+    assertThat(result.get(), is(sameInstance(serverHealth)));
   }
 
   @Test

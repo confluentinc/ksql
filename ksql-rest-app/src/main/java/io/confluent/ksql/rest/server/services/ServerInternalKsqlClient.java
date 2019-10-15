@@ -58,7 +58,7 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
     return KsqlClientUtil.toRestResponse(
         response,
         KSQL_PATH,
-        r -> r.readEntity(KsqlEntityList.class)
+        r -> (KsqlEntityList) r.getEntity()
     );
   }
 }

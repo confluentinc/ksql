@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import java.io.Closeable;
@@ -79,6 +80,10 @@ public class KsqlRestClient implements Closeable {
 
   public RestResponse<ServerInfo> getServerInfo() {
     return target().getServerInfo();
+  }
+
+  public RestResponse<HealthCheckResponse> getServerHealth() {
+    return target().getServerHealth();
   }
 
   public RestResponse<KsqlEntityList> makeKsqlRequest(final String ksql) {

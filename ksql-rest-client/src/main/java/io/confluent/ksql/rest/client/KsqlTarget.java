@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
+import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -67,6 +68,10 @@ public final class KsqlTarget {
 
   public RestResponse<ServerInfo> getServerInfo() {
     return get("/info", ServerInfo.class);
+  }
+
+  public RestResponse<HealthCheckResponse> getServerHealth() {
+    return get("/healthcheck", HealthCheckResponse.class);
   }
 
   public RestResponse<CommandStatuses> getStatuses() {

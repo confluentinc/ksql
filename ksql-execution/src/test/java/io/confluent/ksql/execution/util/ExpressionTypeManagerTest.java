@@ -424,7 +424,7 @@ public class ExpressionTypeManagerTest {
     );
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "When operand schema should be boolean."
+        "WHEN operand schema should be boolean."
             + System.lineSeparator()
             + "Schema for '(TEST1.COL0 + 10)' is BIGINT"
     );

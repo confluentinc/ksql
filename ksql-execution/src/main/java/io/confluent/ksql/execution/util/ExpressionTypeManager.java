@@ -484,7 +484,7 @@ public class ExpressionTypeManager {
         final SqlType operandType = context.getSqlType();
 
         if (operandType.baseType() != SqlBaseType.BOOLEAN) {
-          throw new KsqlException("When operand schema should be boolean."
+          throw new KsqlException("WHEN operand schema should be boolean."
               + System.lineSeparator()
               + "Schema for '" + whenClause.getOperand() + "' is " + operandType
           );

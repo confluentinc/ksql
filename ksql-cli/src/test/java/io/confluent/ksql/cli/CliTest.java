@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -119,6 +120,8 @@ public class CliTest {
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
   private static final String SERVER_OVERRIDE = "SERVER";
   private static final String SESSION_OVERRIDE = "SESSION";
+
+  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
 
   private static final Pattern WRITE_QUERIES = Pattern
       .compile(".*The following queries write into this source: \\[(.+)].*", Pattern.DOTALL);
@@ -779,7 +782,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldDescribeScalarFunction() throws Exception {
+  public void shouldDescribeScalarFunction() {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n"
             + "Author      : Confluent\n"
@@ -815,7 +818,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldDescribeOverloadedScalarFunction() throws Exception {
+  public void shouldDescribeOverloadedScalarFunction() {
     // Given:
     localCli.handleLine("describe function substring;");
 
@@ -847,7 +850,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldDescribeAggregateFunction() throws Exception {
+  public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
             "Name        : TOPK\n" +
             "Author      : confluent\n" +
@@ -868,7 +871,30 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintErrorIfCantFindFunction() throws Exception {
+  public void shouldExplainQueryId() {
+    // Given:
+    localCli.handleLine("CREATE STREAM " + streamName + " "
+        + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";");
+
+    final String queryId = extractQueryId(terminal.getOutputString());
+
+    final String explain = "EXPLAIN " + queryId + ";";
+
+    // When:
+    localCli.handleLine(explain);
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString(queryId));
+    assertThat(terminal.getOutputString(), containsString("Status"));
+    assertThat(terminal.getOutputString(),
+        either(containsString(": REBALANCING"))
+            .or(containsString("RUNNING")));
+
+    dropStream(streamName);
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantFindFunction() {
     localCli.handleLine("describe function foobar;");
 
     assertThat(terminal.getOutputString(),
@@ -876,19 +902,11 @@ public class CliTest {
   }
 
   @Test
-  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() throws Exception {
-    // Given:
-    final String csas =
-        "CREATE STREAM " + streamName + " "
-            + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";";
-
+  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() {
     // When:
-    localCli
-        .handleLine("set 'auto.offset.reset'='earliest'; " + csas);
+    localCli.handleLine("set 'auto.offset.reset'='earliest';");
 
     // Then:
-    dropStream(streamName);
-
     assertThat(terminal.getOutputString(),
         containsString("Successfully changed local property 'auto.offset.reset' to 'earliest'"));
   }
@@ -1082,7 +1100,9 @@ public class CliTest {
   }
 
   private void givenCommandSequenceNumber(
-      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+      final KsqlRestClient mockRestClient,
+      final long seqNum
+  ) {
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(seqNum);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong())).thenReturn(
         RestResponse.successful(
@@ -1093,7 +1113,9 @@ public class CliTest {
   }
 
   private void assertLastCommandSequenceNumber(
-      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+      final KsqlRestClient mockRestClient,
+      final long seqNum
+  ) {
     // Given:
     reset(mockRestClient);
     final String statementText = "list streams;";
@@ -1167,6 +1189,12 @@ public class CliTest {
       final Matcher<Iterable<? extends String>>... rows
   ) {
     return Matchers.contains(rows);
+  }
+
+  private static String extractQueryId(final String outputString) {
+    final java.util.regex.Matcher matcher = QUERY_ID_PATTERN.matcher(outputString);
+    assertThat("Could not find query id in: " + outputString, matcher.find());
+    return matcher.group(1);
   }
 
   private static class TestRowCaptor implements RowCaptor {

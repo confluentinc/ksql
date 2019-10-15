@@ -22,6 +22,7 @@ import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,17 +38,26 @@ public final class QueryDescriptionFactory {
           persistentQuery.getQueryId(),
           persistentQuery,
           ImmutableSet.of(persistentQuery.getSinkName()),
-          false
+          false,
+          Optional.of(persistentQuery.getState())
       );
     }
-    return create(new QueryId(""), queryMetadata, Collections.emptySet(), true);
+
+    return create(
+        new QueryId(""),
+        queryMetadata,
+        Collections.emptySet(),
+        true,
+        Optional.empty()
+    );
   }
 
   private static QueryDescription create(
       final QueryId id,
       final QueryMetadata queryMetadata,
       final Set<SourceName> sinks,
-      final boolean valueSchemaOnly
+      final boolean valueSchemaOnly,
+      final Optional<String> state
   ) {
     return new QueryDescription(
         id,
@@ -57,8 +67,8 @@ public final class QueryDescriptionFactory {
         sinks.stream().map(SourceName::name).collect(Collectors.toSet()),
         queryMetadata.getTopologyDescription(),
         queryMetadata.getExecutionPlan(),
-        queryMetadata.getOverriddenProperties()
+        queryMetadata.getOverriddenProperties(),
+        state
     );
   }
-
 }

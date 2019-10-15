@@ -44,14 +44,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ExplainExecutorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldExplainQueryId() {
     // Given:
     final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id");
+    when(metadata.getState()).thenReturn("Running");
 
     KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));
@@ -67,7 +70,6 @@ public class ExplainExecutorTest {
     // Then:
     assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata)));
   }
-
 
   @Test
   public void shouldExplainPersistentStatement() {

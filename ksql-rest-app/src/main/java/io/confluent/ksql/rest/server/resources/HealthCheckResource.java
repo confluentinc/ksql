@@ -16,8 +16,9 @@
 package io.confluent.ksql.rest.server.resources;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import io.confluent.ksql.rest.entity.HealthCheckResponse;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.healthcheck.HealthCheckAgent;
@@ -26,7 +27,6 @@ import io.confluent.ksql.rest.server.services.ServerInternalKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import java.time.Duration;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -37,16 +37,19 @@ import javax.ws.rs.core.Response;
 @Path("/healthcheck")
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class HealthCheckResource {
-  private final HealthCheckAgent healthCheckAgent;
-  private final ResponseCache responseCache;
+
+  private static final Boolean KEY = true;
+
+  private final LoadingCache<Boolean, HealthCheckResponse> responseCache;
 
   @VisibleForTesting
   HealthCheckResource(
       final HealthCheckAgent healthCheckAgent,
       final Duration healthCheckInterval
   ) {
-    this.healthCheckAgent = Objects.requireNonNull(healthCheckAgent, "healthCheckAgent");
-    this.responseCache = new ResponseCache(healthCheckInterval);
+    Objects.requireNonNull(healthCheckAgent, "healthCheckAgent");
+    Objects.requireNonNull(healthCheckInterval, "healthCheckInterval");
+    this.responseCache = createResponseCache(healthCheckAgent, healthCheckInterval);
   }
 
   @GET
@@ -55,14 +58,8 @@ public class HealthCheckResource {
   }
 
   private HealthCheckResponse getResponse() {
-    final Optional<HealthCheckResponse> response = responseCache.get();
-    if (response.isPresent()) {
-      return response.get();
-    }
-
-    final HealthCheckResponse fresh = healthCheckAgent.checkHealth();
-    responseCache.cache(fresh);
-    return fresh;
+    // This calls healthCheckAgent.checkHealth() if the cached result is expired
+    return responseCache.getUnchecked(KEY);
   }
 
   public static HealthCheckResource create(
@@ -78,26 +75,22 @@ public class HealthCheckResource {
     );
   }
 
-  /* Caches a HealthCheckResponse for the specified duration */
-  private static class ResponseCache {
-    private static final Boolean KEY = true;
-
-    private final Cache<Boolean, HealthCheckResponse> cache;
-
-    ResponseCache(final Duration cacheDuration) {
-      Objects.requireNonNull(cacheDuration, "cacheDuration");
-      this.cache = CacheBuilder.newBuilder()
-          .expireAfterWrite(cacheDuration.toMillis(), TimeUnit.MILLISECONDS)
-          .build();
-    }
-
-    void cache(final HealthCheckResponse response) {
-      cache.put(KEY, response);
-    }
-
-    Optional<HealthCheckResponse> get() {
-      final HealthCheckResponse response = cache.getIfPresent(KEY);
-      return response == null ? Optional.empty() : Optional.of(response);
-    }
+  private static LoadingCache<Boolean, HealthCheckResponse> createResponseCache(
+      final HealthCheckAgent healthCheckAgent,
+      final Duration cacheDuration
+  ) {
+    final CacheLoader<Boolean, HealthCheckResponse> loader =
+        new CacheLoader<Boolean, HealthCheckResponse>() {
+          @Override
+          public HealthCheckResponse load(Boolean key) {
+            if (key != KEY) {
+              throw new IllegalArgumentException("Unexpected response cache key: " + key);
+            }
+            return healthCheckAgent.checkHealth();
+          }
+        };
+    return CacheBuilder.newBuilder()
+        .expireAfterWrite(cacheDuration.toMillis(), TimeUnit.MILLISECONDS)
+        .build(loader);
   }
 }

@@ -88,6 +88,8 @@ public class UdfLoaderTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
@@ -353,9 +355,6 @@ public class UdfLoaderTest {
     assertThat(multiplyLoader, equalTo(getActualUdfClassLoader(toStringUdf)));
     assertThat(multiplyLoader, not(equalTo(PARENT_CLASS_LOADER)));
   }
-
-  @Rule
-  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void shouldAllowClassesWithSameFQCNInDifferentUDFJars() throws Exception {

@@ -118,9 +118,7 @@ public class UdfLoader {
               pluginDir);
           return;
         }
-        Files.find(pluginDir.toPath(), 1, (path, attributes) -> {
-          return path.toString().endsWith(".jar");
-        })
+        Files.find(pluginDir.toPath(), 1, (path, attributes) -> path.toString().endsWith(".jar"))
             .map(path -> UdfClassLoader.newClassLoader(path, parentClassLoader, blacklist))
             .forEach(classLoader -> loadUdfs(classLoader, Optional.of(classLoader.getJarPath())));
       } catch (final IOException e) {

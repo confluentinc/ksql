@@ -33,9 +33,12 @@ import org.apache.kafka.common.config.ConfigException;
 
 public class HealthCheckAgent {
 
+  public static final String METASTORE_CHECK_NAME = "metastore";
+  public static final String KAFKA_CHECK_NAME = "kafka";
+
   private static final List<Check> DEFAULT_CHECKS = ImmutableList.of(
-      new ExecuteStatementCheck("metastore", "list streams; list tables; list queries;"),
-      new ExecuteStatementCheck("kafka", "list topics extended;")
+      new ExecuteStatementCheck(METASTORE_CHECK_NAME, "list streams; list tables; list queries;"),
+      new ExecuteStatementCheck(KAFKA_CHECK_NAME, "list topics extended;")
   );
 
   private final SimpleKsqlClient ksqlClient;

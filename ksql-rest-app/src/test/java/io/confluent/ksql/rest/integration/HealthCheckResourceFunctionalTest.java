@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.KAFKA_CHECK_NAME;
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.METASTORE_CHECK_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
@@ -55,8 +57,8 @@ public class HealthCheckResourceFunctionalTest {
 
     // Then:
     assertThat("server should be healthy", response.getIsHealthy());
-    assertThat(response.getDetails().get("kafka").getIsHealthy(), is(true));
-    assertThat(response.getDetails().get("metastore").getIsHealthy(), is(true));
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
   }
 
   private static HealthCheckResponse checkServerHealth() {

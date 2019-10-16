@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.healthcheck;
 
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.KAFKA_CHECK_NAME;
+import static io.confluent.ksql.rest.healthcheck.HealthCheckAgent.METASTORE_CHECK_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
@@ -80,8 +82,8 @@ public class HealthCheckAgentTest {
 
     // Then:
     verify(ksqlClient, atLeastOnce()).makeKsqlRequest(eq(SERVER_URI), any());
-    assertThat(response.getDetails().get("metastore").getIsHealthy(), is(true));
-    assertThat(response.getDetails().get("kafka").getIsHealthy(), is(true));
+    assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(true));
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(true));
     assertThat(response.getIsHealthy(), is(true));
   }
 
@@ -95,7 +97,7 @@ public class HealthCheckAgentTest {
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
-    assertThat(response.getDetails().get("metastore").getIsHealthy(), is(false));
+    assertThat(response.getDetails().get(METASTORE_CHECK_NAME).getIsHealthy(), is(false));
     assertThat(response.getIsHealthy(), is(false));
   }
 
@@ -109,7 +111,7 @@ public class HealthCheckAgentTest {
     final HealthCheckResponse response = healthCheckAgent.checkHealth();
 
     // Then:
-    assertThat(response.getDetails().get("kafka").getIsHealthy(), is(false));
+    assertThat(response.getDetails().get(KAFKA_CHECK_NAME).getIsHealthy(), is(false));
     assertThat(response.getIsHealthy(), is(false));
   }
 }

@@ -573,90 +573,90 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldCompileFunctionWithMapArgument() throws Exception {
+  public void shouldInvokeFunctionWithMapArgument() throws Exception {
     final UdfInvoker udf = UdfLoader.createUdfInvoker(getClass().getMethod("udf", Map.class));
     assertThat(udf.eval(this, Collections.emptyMap()), equalTo("{}"));
   }
 
   @Test
-  public void shouldCompileFunctionWithListArgument() throws Exception {
+  public void shouldInvokeFunctionWithListArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", List.class));
     assertThat(udf.eval(this, Collections.emptyList()), equalTo("[]"));
   }
 
   @Test
-  public void shouldCompileFunctionWithDoubleArgument() throws Exception {
+  public void shouldInvokeFunctionWithDoubleArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", Double.class));
     assertThat(udf.eval(this, 1.0d), equalTo(1.0));
   }
 
   @Test
-  public void shouldCompileFunctionWithIntegerArgument() throws Exception {
+  public void shouldInvokeFunctionWithIntegerArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", Integer.class));
     assertThat(udf.eval(this, 1), equalTo(1));
   }
 
   @Test
-  public void shouldCompileFunctionWithLongArgument() throws Exception {
+  public void shouldInvokeFunctionWithLongArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", Long.class));
     assertThat(udf.eval(this, 1L), equalTo(1L));
   }
 
   @Test
-  public void shouldCompileFunctionWithBooleanArgument() throws Exception {
+  public void shouldInvokeFunctionWithBooleanArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", Boolean.class));
     assertThat(udf.eval(this, true), equalTo(true));
   }
 
   @Test
-  public void shouldCompileFunctionWithIntArgument() throws Exception {
+  public void shouldInvokeFunctionWithIntArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfPrimitive", int.class));
     assertThat(udf.eval(this, 1), equalTo(1));
   }
 
   @Test
-  public void shouldCompileFunctionWithIntVarArgs() throws Exception {
+  public void shouldInvokeFunctionWithIntVarArgs() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfPrimitive", int[].class));
     assertThat(udf.eval(this, 1, 1), equalTo(2));
   }
 
   @Test
-  public void shouldCompileFunctionWithPrimitiveLongArgument() throws Exception {
+  public void shouldInvokeFunctionWithPrimitiveLongArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfPrimitive", long.class));
     assertThat(udf.eval(this, 1), equalTo(1L));
   }
 
   @Test
-  public void shouldCompileFunctionWithPrimitiveDoubleArgument() throws Exception {
+  public void shouldInvokeFunctionWithPrimitiveDoubleArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfPrimitive", double.class));
     assertThat(udf.eval(this, 1), equalTo(1.0));
   }
 
   @Test
-  public void shouldCompileFunctionWithPrimitiveBooleanArgument() throws Exception {
+  public void shouldInvokeFunctionWithPrimitiveBooleanArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfPrimitive", boolean.class));
     assertThat(udf.eval(this, true), equalTo(true));
   }
 
   @Test
-  public void shouldCompileFunctionWithStringArgument() throws Exception {
+  public void shouldInvokeFunctionWithStringArgument() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", String.class));
     assertThat(udf.eval(this, "foo"), equalTo("foo"));
   }
 
   @Test
-  public void shouldCompileFunctionWithStringVarArgs() throws Exception {
+  public void shouldInvokeFunctionWithStringVarArgs() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udf", String[].class));
     assertThat(udf.eval(this, "foo", "bar"), equalTo("foobar"));
@@ -687,7 +687,7 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldCompileUdafWithMethodWithNoArgs() throws Exception {
+  public void shouldInvokeUdafWithMethodWithNoArgs() throws Exception {
     final UdafFactoryInvoker creator
         = createUdfLoader().createUdafFactoryInvoker(TestUdaf.class.getMethod("createSumLong"),
         FunctionName.of("test-udf"),
@@ -700,14 +700,14 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldCompileFunctionWithStructReturnValue() throws Exception {
+  public void shouldInvokeFunctionWithStructReturnValue() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfStruct", String.class));
     assertThat(udf.eval(this, "val"), equalTo(new Struct(STRUCT_SCHEMA).put("a", "val")));
   }
 
   @Test
-  public void shouldCompileFunctionWithStructParameter() throws Exception {
+  public void shouldInvokeFunctionWithStructParameter() throws Exception {
     final UdfInvoker udf = UdfLoader
         .createUdfInvoker(getClass().getMethod("udfStruct", Struct.class));
     assertThat(udf.eval(this, new Struct(STRUCT_SCHEMA).put("a", "val")), equalTo("val"));
@@ -728,7 +728,7 @@ public class UdfLoaderTest {
   }
 
   @Test
-  public void shouldCompileUdafWhenMethodHasArgs() throws Exception {
+  public void shouldInvokeUdafWhenMethodHasArgs() throws Exception {
     final UdafFactoryInvoker creator
         = createUdfLoader().createUdafFactoryInvoker(TestUdaf.class.getMethod("createSumLengthString",
         String.class),

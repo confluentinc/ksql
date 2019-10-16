@@ -26,7 +26,7 @@ public final class UdfLoaderUtil {
     new UdfLoader(functionRegistry,
         new File("src/test/resources/udf-example.jar"),
         UdfLoaderUtil.class.getClassLoader(),
-        value -> false, new UdfCompiler(Optional.empty()), Optional.empty(), true
+        value -> false, Optional.empty(), true
     )
         .load();
 

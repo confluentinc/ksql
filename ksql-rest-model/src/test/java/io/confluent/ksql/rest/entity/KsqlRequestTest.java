@@ -18,10 +18,12 @@ package io.confluent.ksql.rest.entity;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.json.JsonMapper;
@@ -200,6 +202,27 @@ public class KsqlRequestTest {
     // Then:
     assertThat(props.keySet(), hasItem(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG));
     assertThat(props.get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG), is("earliest"));
+  }
+
+  @Test
+  public void shouldHandleOverridesOfTypeList() {
+    // Given:
+    final KsqlRequest request = new KsqlRequest(
+        "sql",
+        ImmutableMap.of(
+            ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, ImmutableList.of("some.type")
+        ),
+        null
+    );
+
+    // When:
+    final Map<String, Object> props = request.getStreamsProperties();
+
+    // Then:
+    assertThat(
+        props,
+        hasEntry(ConsumerConfig.INTERCEPTOR_CLASSES_CONFIG, ImmutableList.of("some.type"))
+    );
   }
 
   private static String serialize(final KsqlRequest request) {

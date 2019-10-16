@@ -25,6 +25,7 @@ import io.confluent.ksql.properties.LocalPropertyParser;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -124,10 +125,21 @@ public class KsqlRequest {
 
   private static Object coerceType(final String key, final Object value) {
     try {
-      final String stringValue = value == null ? null : String.valueOf(value);
+      final String stringValue = value == null
+          ? null
+          : value instanceof List
+              ? listToString((List<?>) value)
+              : String.valueOf(value);
+
       return PROPERTY_PARSER.parse(key, stringValue);
     } catch (final Exception e) {
       throw new KsqlException("Failed to set '" + key + "' to '" + value + "'", e);
     }
+  }
+
+  private static String listToString(final List<?> value) {
+    return value.stream()
+        .map(e -> e == null ? null : e.toString())
+        .collect(Collectors.joining(","));
   }
 }

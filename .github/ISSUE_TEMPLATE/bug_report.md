@@ -20,7 +20,7 @@ Steps to reproduce the behavior, include:
 A clear and concise description of what you expected to happen.
 
 **Actual behaviour**
-A clear and concise description of what actually to happen, including:
+A clear and concise description of what actually happens, including:
 1. CLI output
 2. Error messages
 3. KSQL logs

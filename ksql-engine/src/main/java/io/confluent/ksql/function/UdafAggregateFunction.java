@@ -32,7 +32,6 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
-@SuppressWarnings("WeakerAccess")
 public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, O> {
 
   protected Optional<Sensor> aggregateSensor;

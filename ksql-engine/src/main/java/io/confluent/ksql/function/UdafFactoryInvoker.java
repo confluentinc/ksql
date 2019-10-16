@@ -25,6 +25,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
@@ -42,7 +43,7 @@ class UdafFactoryInvoker implements FunctionSignature {
 
   UdafFactoryInvoker(
       final Method method,
-      final String functionName,
+      final FunctionName functionName,
       final String description,
       final String inputSchema,
       final String aggregateSchema,
@@ -61,14 +62,15 @@ class UdafFactoryInvoker implements FunctionSignature {
     if (!Modifier.isStatic(method.getModifiers())) {
       throw new KsqlException("UDAF factory methods must be static " + method);
     }
-    final UdafTypes types = new UdafTypes(method, functionName, typeParser);
-    this.functionName = FunctionName.of(functionName);
-    this.aggregateArgType = types.getAggregateSchema(aggregateSchema);
-    this.aggregateReturnType = types.getOutputSchema(outputSchema);
-    this.metrics = metrics;
-    this.argTypes = Collections.singletonList(types.getInputSchema(inputSchema));
-    this.method = method;
-    this.description = description;
+    final UdafTypes types = new UdafTypes(method, functionName.name(), typeParser);
+    this.functionName = Objects.requireNonNull(functionName);
+    this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
+    this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
+    this.metrics = Objects.requireNonNull(metrics);
+    this.argTypes =
+        Collections.singletonList(types.getInputSchema(Objects.requireNonNull(inputSchema)));
+    this.method = Objects.requireNonNull(method);
+    this.description = Objects.requireNonNull(description);
   }
 
   @SuppressWarnings("unchecked")

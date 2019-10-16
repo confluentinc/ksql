@@ -16,7 +16,9 @@
 package io.confluent.ksql.function;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.google.common.primitives.Primitives;
 import java.lang.reflect.Array;
@@ -25,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -42,14 +43,14 @@ public class UdfArgCoercerTest {
 
     // Then:
     for (int i = 0; i < args.length; i++) {
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, int.class, i), Matchers.equalTo(1));
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, Integer.class, i), Matchers.equalTo(1));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, int.class, i), equalTo(1));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, Integer.class, i), equalTo(1));
 
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, long.class, i), Matchers.equalTo(1L));
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, Long.class, i), Matchers.equalTo(1L));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, long.class, i), equalTo(1L));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, Long.class, i), equalTo(1L));
 
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, double.class, i), Matchers.equalTo(1.0));
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, Double.class, i), Matchers.equalTo(1.0));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, double.class, i), equalTo(1.0));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, Double.class, i), equalTo(1.0));
     }
   }
 
@@ -59,14 +60,14 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{"1", "1.2", "true"};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, int.class, 0), Matchers.equalTo(1));
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Integer.class, 0), Matchers.equalTo(1));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, int.class, 0), equalTo(1));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Integer.class, 0), equalTo(1));
 
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, long.class, 0), Matchers.equalTo(1L));
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Long.class, 0), Matchers.equalTo(1L));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, long.class, 0), equalTo(1L));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Long.class, 0), equalTo(1L));
 
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, double.class, 1), Matchers.equalTo(1.2));
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Double.class, 1), Matchers.equalTo(1.2));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, double.class, 1), equalTo(1.2));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Double.class, 1), equalTo(1.2));
 
     assertThat(UdfArgCoercer.coerceUdfArgs(args, boolean.class, 2), is(true));
     assertThat(UdfArgCoercer.coerceUdfArgs(args, boolean.class, 2), is(true));
@@ -78,14 +79,14 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{null};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Integer.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Long.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Double.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, String.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Boolean.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Map.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, List.class, 0), Matchers.nullValue());
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Object[].class, 0), Matchers.nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Integer.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Long.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Double.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, String.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Boolean.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Map.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, List.class, 0), nullValue());
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Object[].class, 0), nullValue());
   }
 
   @Test
@@ -107,9 +108,9 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{new ArrayList<>(), new HashMap<>(), ""};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, List.class, 0), Matchers.equalTo(new ArrayList<>()));
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Map.class, 1), Matchers.equalTo(new HashMap<>()));
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, String.class, 2), Matchers.equalTo(""));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, List.class, 0), equalTo(new ArrayList<>()));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Map.class, 1), equalTo(new HashMap<>()));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, String.class, 2), equalTo(""));
   }
 
   @Test
@@ -118,7 +119,7 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{null};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Object[].class, 0), Matchers.equalTo(null));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Object[].class, 0), equalTo(null));
   }
 
   @Test
@@ -135,7 +136,7 @@ public class UdfArgCoercerTest {
 
     // Then:
     for (int i = 0; i < args.length; i++) {
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, args[i].getClass(), i), Matchers.equalTo(args[i]));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, args[i].getClass(), i), equalTo(args[i]));
     }
   }
 
@@ -153,7 +154,7 @@ public class UdfArgCoercerTest {
 
     // Then:
     for (int i = 0; i < args.length; i++) {
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, args[i].getClass(), i), Matchers.equalTo(args[i]));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, args[i].getClass(), i), equalTo(args[i]));
     }
   }
 
@@ -173,7 +174,7 @@ public class UdfArgCoercerTest {
     for (int i = 0; i < args.length; i++) {
       final Class<?> boxed = Primitives.wrap(args[i].getClass().getComponentType());
       final Class<?> boxedArray = Array.newInstance(boxed, 0).getClass();
-      assertThat(UdfArgCoercer.coerceUdfArgs(args, boxedArray, i), Matchers.equalTo(args[i]));
+      assertThat(UdfArgCoercer.coerceUdfArgs(args, boxedArray, i), equalTo(args[i]));
     }
   }
 
@@ -183,7 +184,7 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{new int[]{1}};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, double[].class, 0), Matchers.equalTo(new double[]{1}));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, double[].class, 0), equalTo(new double[]{1}));
   }
 
   @Test
@@ -192,7 +193,7 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{new List[]{new ArrayList()}};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, List[].class, 0), Matchers.equalTo(new List[]{new ArrayList<>()}));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, List[].class, 0), equalTo(new List[]{new ArrayList<>()}));
   }
 
   @Test
@@ -201,7 +202,7 @@ public class UdfArgCoercerTest {
     Object[] args = new Object[]{new Map[]{new HashMap<>()}};
 
     // Then:
-    assertThat(UdfArgCoercer.coerceUdfArgs(args, Map[].class, 0), Matchers.equalTo(new Map[]{new HashMap<>()}));
+    assertThat(UdfArgCoercer.coerceUdfArgs(args, Map[].class, 0), equalTo(new Map[]{new HashMap<>()}));
   }
 
   @Test

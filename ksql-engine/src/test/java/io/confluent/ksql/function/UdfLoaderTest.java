@@ -39,6 +39,7 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
@@ -689,7 +690,7 @@ public class UdfLoaderTest {
   public void shouldCompileUdafWithMethodWithNoArgs() throws Exception {
     final UdafFactoryInvoker creator
         = createUdfLoader().createUdafFactoryInvoker(TestUdaf.class.getMethod("createSumLong"),
-        "test-udf",
+        FunctionName.of("test-udf"),
         "desc",
         "",
         "",
@@ -716,7 +717,7 @@ public class UdfLoaderTest {
   public void shouldImplementTableAggregateFunctionWhenTableUdafClass() throws Exception {
     final UdafFactoryInvoker creator
         = createUdfLoader().createUdafFactoryInvoker(TestUdaf.class.getMethod("createSumLong"),
-        "test-udf",
+        FunctionName.of("test-udf"),
         "desc",
         "",
         "",
@@ -731,7 +732,7 @@ public class UdfLoaderTest {
     final UdafFactoryInvoker creator
         = createUdfLoader().createUdafFactoryInvoker(TestUdaf.class.getMethod("createSumLengthString",
         String.class),
-        "test-udf",
+        FunctionName.of("test-udf"),
         "desc",
         "",
         "",
@@ -750,7 +751,7 @@ public class UdfLoaderTest {
     final Metrics metrics = new Metrics();
     final UdafFactoryInvoker creator
         = createUdfLoader(Optional.of(metrics)).createUdafFactoryInvoker(TestUdaf.class.getMethod("createSumLong"),
-        "test-udf",
+        FunctionName.of("test-udf"),
         "desc",
         "",
         "",
@@ -777,7 +778,7 @@ public class UdfLoaderTest {
   public void shouldThrowIfUnsupportedInputType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(
         UdfLoaderTest.class.getMethod("invalidInputTypeUdaf"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -795,7 +796,7 @@ public class UdfLoaderTest {
     // When:
     createUdfLoader().createUdafFactoryInvoker(
         UdfLoaderTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -812,7 +813,7 @@ public class UdfLoaderTest {
     // When:
     createUdfLoader().createUdafFactoryInvoker(
         UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -829,7 +830,7 @@ public class UdfLoaderTest {
     // When:
     createUdfLoader().createUdafFactoryInvoker(
         UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -871,7 +872,7 @@ public class UdfLoaderTest {
         + "or io.confluent.ksql.function.udaf.TableUdaf. method='createBlah', functionName='test',"
         + " UDFClass='class io.confluent.ksql.function.UdfLoaderTest'");
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createBlah"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -881,7 +882,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithLongValTypeDoubleAggType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createLongDouble"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -891,7 +892,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithDoubleValTypeLongAggType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createDoubleLong"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -901,7 +902,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithIntegerValTypeStringAggType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createIntegerString"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -911,7 +912,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithStringValTypeIntegerAggType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createStringInteger"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -921,7 +922,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithBooleanValTypeListAggType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createBooleanList"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -931,7 +932,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithListValTypeBooleanAggType() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createListBoolean"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -941,7 +942,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithMapValMapAggTypes() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createMapMap"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -951,7 +952,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithMapValMapAggTypesAndFactoryArg() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createMapMap", int.class),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -961,7 +962,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldHandleUdafsWithStructStructTypes() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createStructStruct"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "STRUCT<A VARCHAR>",
         "STRUCT<B VARCHAR>",
@@ -971,7 +972,7 @@ public class UdfLoaderTest {
   @Test(expected = KsqlException.class)
   public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createBad"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",
@@ -981,7 +982,7 @@ public class UdfLoaderTest {
   @Test(expected = KsqlException.class)
   public void shouldThrowWhenUdafFactoryMethodIsntStatic() throws Exception {
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createNonStatic"),
-        "test",
+        FunctionName.of("test"),
         "desc",
         "",
         "",

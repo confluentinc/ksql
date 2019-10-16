@@ -199,7 +199,7 @@ public class UdfLoader {
                   path,
                   method.getDeclaringClass());
               return Optional.of(createUdafFactoryInvoker(method,
-                  udafAnnotation.name(),
+                  FunctionName.of(udafAnnotation.name()),
                   annotation.description(),
                   annotation.paramSchema(),
                   annotation.aggregateSchema(),
@@ -361,7 +361,7 @@ public class UdfLoader {
 
   UdafFactoryInvoker createUdafFactoryInvoker(
       final Method method,
-      final String functionName,
+      final FunctionName functionName,
       final String description,
       final String inputSchema,
       final String aggregateSchema,

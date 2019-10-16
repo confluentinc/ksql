@@ -82,13 +82,35 @@ use the ``curl`` command to query the ``/info`` endpoint:
 
 Your output should resemble:
 
-.. codewithvars:: bash
+.. codewithvars:: json
 
    {
      "KsqlServerInfo": {
        "version": "|release|",
        "kafkaClusterId": "j3tOi6E_RtO_TMH3gBmK7A",
        "ksqlServiceId": "default_"
+     }
+   }
+
+You can also check the health of your KSQL server via the ``/healthcheck`` resource:
+
+.. code:: bash
+
+   curl -sX GET "http://localhost:8088/healthcheck" | jq '.'
+
+Your output should resemble:
+
+.. codewithvars:: json
+
+   {
+     "isHealthy": true,
+     "details": {
+       "metastore": {
+         "isHealthy": true
+       },
+       "kafka": {
+         "isHealthy": true
+       }
      }
    }
 

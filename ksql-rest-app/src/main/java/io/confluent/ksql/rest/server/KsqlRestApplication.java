@@ -46,6 +46,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
+import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -201,6 +202,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
+    config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
   }

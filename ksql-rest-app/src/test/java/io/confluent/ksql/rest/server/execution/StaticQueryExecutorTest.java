@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.server.validation;
+package io.confluent.ksql.rest.server.execution;
 
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.entity.KsqlStatementErrorMessageMatchers.statement;
@@ -28,6 +28,7 @@ import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
@@ -37,10 +38,13 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class QueryValidatorTest {
+public class StaticQueryExecutorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public final ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public final TemporaryEngine engine = new TemporaryEngine();
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldThrowExceptionOnQueryEndpoint() {

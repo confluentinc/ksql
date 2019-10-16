@@ -46,10 +46,6 @@ public abstract class BaseTableFunction<I, O> implements KsqlTableFunction<I, O>
     this.arguments = Objects.requireNonNull(arguments, "arguments");
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
-
-    if (!outputType.isOptional()) {
-      throw new IllegalArgumentException("KSQL only supports optional field types");
-    }
   }
 
   public FunctionName getFunctionName() {

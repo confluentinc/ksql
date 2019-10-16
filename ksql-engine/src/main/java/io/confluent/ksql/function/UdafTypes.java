@@ -58,8 +58,11 @@ class UdafTypes {
   private final String invalidClassErrorMsg;
   private final SqlTypeParser sqlTypeParser;
 
-  UdafTypes(final Method method, final String functionInfo,
-      final SqlTypeParser sqlTypeParser) {
+  UdafTypes(
+      final Method method,
+      final String functionInfo,
+      final SqlTypeParser sqlTypeParser
+  ) {
     Objects.requireNonNull(method);
     this.functionInfo = Objects.requireNonNull(functionInfo);
     this.invalidClassErrorMsg = "class='%s'"
@@ -68,7 +71,7 @@ class UdafTypes {
     final AnnotatedParameterizedType annotatedReturnType
         = (AnnotatedParameterizedType) method.getAnnotatedReturnType();
     final ParameterizedType type = (ParameterizedType) annotatedReturnType.getType();
-    this.sqlTypeParser = sqlTypeParser;
+    this.sqlTypeParser = Objects.requireNonNull(sqlTypeParser);
 
     inputType = type.getActualTypeArguments()[0];
     aggregateType = type.getActualTypeArguments()[1];
@@ -77,12 +80,6 @@ class UdafTypes {
     validateTypes(inputType);
     validateTypes(aggregateType);
     validateTypes(outputType);
-  }
-
-  private void validateTypes(final Type t) {
-    if (isUnsupportedType((Class<?>) getRawType(t))) {
-      throw new KsqlException(String.format(invalidClassErrorMsg, t));
-    }
   }
 
   Schema getInputSchema(final String inSchema) {
@@ -104,6 +101,12 @@ class UdafTypes {
   Schema getOutputSchema(final String outSchema) {
     validateStructAnnotation(outputType, outSchema, "returnSchema");
     return getSchemaFromType(outputType, outSchema);
+  }
+
+  private void validateTypes(final Type t) {
+    if (isUnsupportedType((Class<?>) getRawType(t))) {
+      throw new KsqlException(String.format(invalidClassErrorMsg, t));
+    }
   }
 
   private void validateStructAnnotation(final Type type, final String schema, final String msg) {

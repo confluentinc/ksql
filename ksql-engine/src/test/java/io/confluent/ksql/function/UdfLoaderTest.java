@@ -868,9 +868,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws Exception {
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("UDAFs must implement io.confluent.ksql.function.udaf.Udaf "
-        + "or io.confluent.ksql.function.udaf.TableUdaf. method='createBlah', functionName='test',"
-        + " UDFClass='class io.confluent.ksql.function.UdfLoaderTest'");
+    expectedException.expectMessage("UDAFs must implement io.confluent.ksql.function.udaf.Udaf or io.confluent.ksql.function.udaf.TableUdaf. method='createBlah', functionName='`test`', UDFClass='class io.confluent.ksql.function.UdfLoaderTest");
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createBlah"),
         FunctionName.of("test"),
         "desc",
@@ -969,8 +967,14 @@ public class UdfLoaderTest {
         "STRUCT<B VARCHAR>");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws Exception {
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("class='class java.lang.Character' is not supported by UDAFs");
+
+
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createBad"),
         FunctionName.of("test"),
         "desc",
@@ -979,8 +983,13 @@ public class UdfLoaderTest {
         "");
   }
 
-  @Test(expected = KsqlException.class)
+  @Test
   public void shouldThrowWhenUdafFactoryMethodIsntStatic() throws Exception {
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UDAF factory methods must be static public io.confluent.ksql.function.udaf.Udaf");
+
     createUdfLoader().createUdafFactoryInvoker(UdfLoaderTest.class.getMethod("createNonStatic"),
         FunctionName.of("test"),
         "desc",

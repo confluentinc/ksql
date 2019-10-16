@@ -81,9 +81,10 @@ class UdafFactoryInvoker implements FunctionSignature {
       final Object arg = coerce(argType, initArgs.arg(i));
       factoryArgs[i] = arg;
     }
-    final KsqlAggregateFunction function;
+
     try {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
+      final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
         function = new UdafTableAggregateFunction(functionName.name(), initArgs.udafIndex(),
             udaf, aggregateArgType, aggregateReturnType, argTypes, description, metrics,
@@ -93,10 +94,10 @@ class UdafFactoryInvoker implements FunctionSignature {
             udaf, aggregateArgType, aggregateReturnType, argTypes, description, metrics,
             method.getName());
       }
+      return function;
     } catch (Exception e) {
       throw new KsqlException("Failed to invoke UDAF factory method", e);
     }
-    return function;
   }
 
   @Override

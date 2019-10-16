@@ -233,6 +233,24 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldSetMonitoringInterceptorConfigPropertiesByClientType() {
+    // Given:
+    final Map<String, String> props = ImmutableMap.of(
+        "ksql.streams.consumer.confluent.monitoring.interceptor.topic", "foo",
+        "producer.confluent.monitoring.interceptor.topic", "bar"
+    );
+
+    final KsqlConfig ksqlConfig = new KsqlConfig(props);
+
+    // When:
+    final Map<String, Object> result = ksqlConfig.getKsqlStreamConfigProps();
+
+    // Then:
+    assertThat(result.get("consumer.confluent.monitoring.interceptor.topic"), is("foo"));
+    assertThat(result.get("producer.confluent.monitoring.interceptor.topic"), is("bar"));
+  }
+
+  @Test
   public void shouldFilterPropertiesForWhichTypeUnknown() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap("you.shall.not.pass", "wizard"));
     assertThat(

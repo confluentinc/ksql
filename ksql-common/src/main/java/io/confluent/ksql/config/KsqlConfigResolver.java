@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.config;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
+
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -48,7 +50,7 @@ public class KsqlConfigResolver implements ConfigResolver {
   @Override
   public  Optional<ConfigItem> resolve(final String propertyName, final boolean strict) {
     if (propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)
-        && !propertyName.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)) {
+        && !propertyName.startsWith(KSQL_STREAMS_PREFIX)) {
       return resolveKsqlConfig(propertyName);
     }
 
@@ -59,7 +61,7 @@ public class KsqlConfigResolver implements ConfigResolver {
       final String propertyName,
       final boolean strict) {
 
-    final String key = stripPrefix(propertyName, KsqlConfig.KSQL_STREAMS_PREFIX);
+    final String key = stripPrefix(propertyName, KSQL_STREAMS_PREFIX);
 
     final Optional<ConfigItem> resolved = STREAM_CONFIG_DEFS
         .stream()
@@ -72,12 +74,9 @@ public class KsqlConfigResolver implements ConfigResolver {
       return resolved;
     }
 
-    if (key.startsWith(StreamsConfig.CONSUMER_PREFIX)
-        || key.startsWith(StreamsConfig.PRODUCER_PREFIX)) {
-      return Optional.empty();  // Unknown producer / consumer config
-    }
-
-    if (propertyName.startsWith(KsqlConfig.KSQL_STREAMS_PREFIX)) {
+    if (propertyName.startsWith(KSQL_STREAMS_PREFIX)
+        && !propertyName.startsWith(KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX)
+        && !propertyName.startsWith(KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX)) {
       return Optional.empty();  // Unknown streams config
     }
 

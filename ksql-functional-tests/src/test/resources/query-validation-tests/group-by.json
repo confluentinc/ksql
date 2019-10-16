@@ -203,6 +203,29 @@
       ]
     },
     {
+      "name": "fields (table->table) with suppression through config",
+      "statements": [
+        "CREATE TABLE TEST (AccountId INT, Amount DOUBLE) WITH (kafka_topic='input_topic', value_format='DELIMITED');",
+        "CREATE TABLE OUTPUT AS SELECT COUNT(1), SUM(Amount) FROM TEST GROUP BY AccountId;"
+      ],
+      "properties": {
+        "ksql.streams.cache.max.bytes.buffering": 10000000
+      },
+      "inputs": [
+        {"topic": "input_topic", "key": 1, "value": "1,106.0"},
+        {"topic": "input_topic", "key": 1, "value": "1,107.0"},
+        {"topic": "input_topic", "key": 2, "value": "1,10.0"},
+        {"topic": "input_topic", "key": 2, "value": "2,10.0"}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "1", "value": "1,106.0"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,107.0"},
+        {"topic": "OUTPUT", "key": "1", "value": "2,117.0"},
+        {"topic": "OUTPUT", "key": "1", "value": "1,107.0"},
+        {"topic": "OUTPUT", "key": "2", "value": "1,10.0"}
+      ]
+    },
+    {
       "name": "field with re-key (stream->table)",
       "statements": [
         "CREATE STREAM TEST (data VARCHAR) WITH (kafka_topic='test_topic', value_format='DELIMITED');",

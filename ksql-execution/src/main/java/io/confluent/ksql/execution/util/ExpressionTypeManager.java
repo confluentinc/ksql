@@ -383,11 +383,7 @@ public class ExpressionTypeManager {
         final KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName().name(), schema);
 
-        final Schema returnSchema = tableFunction.getReturnType();
-
-        final SqlType returnType = CONNECT_TO_SQL_SCHEMA_CONVERTER.toSqlType(returnSchema);
-
-        expressionTypeContext.setSchema(returnType, returnSchema);
+        expressionTypeContext.setSchema(tableFunction.getReturnType());
         return null;
       }
 

@@ -695,7 +695,7 @@ public class SchemaKStream<K> {
         getSchema()
     );
 
-    return new SchemaKStream<K>(step, keyFormat, keySerde, keyField,
+    return new SchemaKStream<K>(step, keyFormat, keyField,
         sourceSchemaKStreams,
         type, ksqlConfig, functionRegistry);
   }

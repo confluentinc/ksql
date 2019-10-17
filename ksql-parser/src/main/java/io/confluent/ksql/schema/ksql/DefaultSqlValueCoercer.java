@@ -41,11 +41,12 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .put(SqlBaseType.DOUBLE, Number::doubleValue)
           .build();
 
-  public <T> Optional<T> coerce(final Object value, final SqlType targetType) {
+  @Override
+  public Optional<Object> coerce(final Object value, final SqlType targetType) {
     return doCoerce(value, targetType);
   }
 
-  private static <T> Optional<T> doCoerce(final Object value, final SqlType targetType) {
+  private static Optional<Object> doCoerce(final Object value, final SqlType targetType) {
     if (targetType.baseType() == SqlBaseType.ARRAY) {
       return coerceArray(value, (SqlArray) targetType);
     }
@@ -62,7 +63,7 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
         .toSqlType(value.getClass());
 
     if (valueSqlType.equals(targetType.baseType())) {
-      return optional(value);
+      return Optional.of(value);
     }
 
     if (targetType.baseType() == SqlBaseType.DECIMAL) {
@@ -74,10 +75,10 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
-    return optional(result);
+    return Optional.of(result);
   }
 
-  private static <T> Optional<T> coerceArray(final Object value, final SqlArray targetType) {
+  private static Optional<Object> coerceArray(final Object value, final SqlArray targetType) {
     if (!(value instanceof List<?>)) {
       return Optional.empty();
     }
@@ -92,10 +93,10 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
       coerced.add(coercedEl.get());
     }
 
-    return optional(coerced.build());
+    return Optional.of(coerced.build());
   }
 
-  private static <T> Optional<T> coerceMap(final Object value, final SqlMap targetType) {
+  private static Optional<Object> coerceMap(final Object value, final SqlMap targetType) {
     if (!(value instanceof Map<?, ?>)) {
       return Optional.empty();
     }
@@ -111,16 +112,16 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
       coerced.put(coercedKey.get(), coercedValue.get());
     }
 
-    return optional(coerced);
+    return Optional.of(coerced);
   }
 
-  private static <T> Optional<T> coerceDecimal(final Object value, final SqlDecimal targetType) {
+  private static Optional<Object> coerceDecimal(final Object value, final SqlDecimal targetType) {
     final int precision = targetType.getPrecision();
     final int scale = targetType.getScale();
 
     if (value instanceof String) {
       try {
-        return optional(new BigDecimal((String) value, new MathContext(precision))
+        return Optional.of(new BigDecimal((String) value, new MathContext(precision))
             .setScale(scale, RoundingMode.UNNECESSARY));
       } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
@@ -128,7 +129,7 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     if (value instanceof Number && !(value instanceof Double)) {
-      return optional(
+      return Optional.of(
           new BigDecimal(
               ((Number) value).doubleValue(),
               new MathContext(precision))
@@ -136,10 +137,5 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     return Optional.empty();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T> Optional<T> optional(final Object value) {
-    return Optional.of((T)value);
   }
 }

@@ -16,6 +16,8 @@
 
 package io.confluent.ksql.test.model;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
@@ -33,6 +35,7 @@ import java.util.Optional;
 public final class TestCaseNode {
 
   private final String name;
+  private final VersionBoundsNode versionBounds;
   private final List<String> formats;
   private final List<RecordNode> inputs;
   private final List<RecordNode> outputs;
@@ -43,8 +46,10 @@ public final class TestCaseNode {
   private final Optional<PostConditionsNode> postConditions;
   private final boolean enabled;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public TestCaseNode(
       @JsonProperty("name") final String name,
+      @JsonProperty("versions") final Optional<VersionBoundsNode> versionBounds,
       @JsonProperty("format") final List<String> formats,
       @JsonProperty("inputs") final List<RecordNode> inputs,
       @JsonProperty("outputs") final List<RecordNode> outputs,
@@ -55,8 +60,10 @@ public final class TestCaseNode {
       @JsonProperty("post") final PostConditionsNode postConditions,
       @JsonProperty("enabled") final Boolean enabled
   ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     this.name = name == null ? "" : name;
     this.formats = immutableCopyOf(formats);
+    this.versionBounds = requireNonNull(versionBounds).orElse(VersionBoundsNode.allVersions());
     this.statements = immutableCopyOf(statements);
     this.inputs = immutableCopyOf(inputs);
     this.outputs = immutableCopyOf(outputs);
@@ -75,6 +82,10 @@ public final class TestCaseNode {
 
   public String name() {
     return name;
+  }
+
+  public VersionBoundsNode versionBounds() {
+    return versionBounds;
   }
 
   public List<String> formats() {

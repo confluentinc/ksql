@@ -66,6 +66,8 @@ public final class TestCaseBuilder {
     );
 
     try {
+      final VersionBounds versionBounds = test.versionBounds().build();
+
       final List<String> statements = TestCaseBuilderUtil.buildStatements(
           test.statements(),
           explicitFormat
@@ -99,7 +101,7 @@ public final class TestCaseBuilder {
       return new TestCase(
           testPath,
           testName,
-          Optional.empty(),
+          versionBounds,
           test.properties(),
           topics.values(),
           inputRecords,

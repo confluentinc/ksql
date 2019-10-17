@@ -375,6 +375,9 @@
     },
     {
       "name": "stream stream inner join all fields",
+      "versions": {
+        "max": "5.3"
+      },
       "format": ["AVRO", "JSON"],
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar) WITH (kafka_topic='left_topic', value_format='{FORMAT}', key='ID');",
@@ -1188,6 +1191,9 @@
         "There are explicit tests for JSON and AVRO, rather than making use of the 'format's node,",
         "as the internal topic schema differs between the formats"
       ],
+      "versions": {
+        "max": "5.3"
+      },
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='JSON', key='ID');",
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='JSON', key='ID');",
@@ -1232,6 +1238,9 @@
         "There are explicit tests for JSON and AVRO, rather than making use of the 'format's node,",
         "as the internal topic schema differs between the formats"
       ],
+      "versions": {
+        "max": "5.3"
+      },
       "statements": [
         "CREATE STREAM TEST (ID bigint, NAME varchar, VALUE bigint) WITH (kafka_topic='test_topic', value_format='AVRO', key='ID');",
         "CREATE TABLE TEST_TABLE (ID bigint, F1 varchar, F2 bigint) WITH (kafka_topic='test_table', value_format='AVRO', key='ID');",

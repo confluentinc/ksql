@@ -29,7 +29,6 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.After;
@@ -58,7 +57,7 @@ public class TestExecutorUtilTest {
 
     serviceContext = TestExecutor.getServiceContext();
     ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
-    ksqlConfig = new KsqlConfig(TestExecutor.getConfigs(Collections.emptyMap()));
+    ksqlConfig = new KsqlConfig(TestExecutor.baseConfig());
     stubKafkaService = StubKafkaService.create();
   }
 

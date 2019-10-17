@@ -49,7 +49,6 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -72,9 +71,23 @@ import org.hamcrest.StringDescription;
 public class TestExecutor implements Closeable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
+  private static final ImmutableMap<String, Object> BASE_CONFIG = ImmutableMap
+      .<String, Object>builder()
+      .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
+      .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
+      .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
+      .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
+      .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
+      .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
+      .put(
+          KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
+          KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
+      .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all")
+      .build();
+
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
-  private final Map<String, Object> config = getConfigs(new HashMap<>());
+  private final Map<String, Object> config = baseConfig();
   private final StubKafkaService stubKafkaService;
   private final TopologyBuilder topologyBuilder;
   private final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
@@ -438,25 +451,8 @@ public class TestExecutor implements Closeable {
     );
   }
 
-  static Map<String, Object> getConfigs(final Map<String, Object> additionalConfigs) {
-
-    final ImmutableMap.Builder<String, Object> mapBuilder = ImmutableMap.<String, Object>builder()
-        .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
-        .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
-        .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-        .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
-        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
-        .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-        .put(
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-            KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
-        .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all");
-
-    if (additionalConfigs != null) {
-      mapBuilder.putAll(additionalConfigs);
-    }
-    return mapBuilder.build();
-
+  public static Map<String, Object> baseConfig() {
+    return BASE_CONFIG;
   }
 
   private static void writeInputIntoTopics(

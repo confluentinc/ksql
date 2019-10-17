@@ -245,6 +245,18 @@
       "outputs": [
         {"topic": "test_topic", "key": null, "value": {"I": 1, "BI": 2, "D": 3.0}}
       ]
+    },
+    {
+      "name": "should handle arbitrary expressions",
+      "statements": [
+        "CREATE STREAM TEST (I INT, A ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "INSERT INTO TEST (I, A) VALUES ((1 - 1), AS_ARRAY(1, 2, 3));"
+      ],
+      "inputs": [
+      ],
+      "outputs": [
+        {"topic": "test_topic", "key": null, "value": {"I": 0, "A": [1, 2, 3]}}
+      ]
     }
   ]
 }

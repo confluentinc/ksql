@@ -23,6 +23,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -56,6 +58,8 @@ public class DefaultSqlValueCoercerTest {
       .put(SqlBaseType.DECIMAL, SqlTypes.decimal(2, 1))
       .put(SqlBaseType.DOUBLE, SqlTypes.DOUBLE)
       .put(SqlBaseType.STRING, SqlTypes.STRING)
+      .put(SqlBaseType.ARRAY, SqlArray.of(SqlTypes.BIGINT))
+      .put(SqlBaseType.MAP, SqlMap.of(SqlTypes.BIGINT))
       .build();
 
   private static final Map<SqlBaseType, Object> INSTANCES = ImmutableMap
@@ -66,6 +70,8 @@ public class DefaultSqlValueCoercerTest {
       .put(SqlBaseType.DECIMAL, BigDecimal.ONE)
       .put(SqlBaseType.DOUBLE, 3.0D)
       .put(SqlBaseType.STRING, "4.1")
+      .put(SqlBaseType.ARRAY, ImmutableList.of(1L, 2L))
+      .put(SqlBaseType.MAP, ImmutableMap.of("foo", 1L))
       .build();
 
   private DefaultSqlValueCoercer coercer;
@@ -76,16 +82,6 @@ public class DefaultSqlValueCoercerTest {
   @Before
   public void setUp() {
     coercer = new DefaultSqlValueCoercer();
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowOnArray() {
-    coercer.coerce(ImmutableList.of(), SqlTypes.array(SqlTypes.STRING));
-  }
-
-  @Test(expected = KsqlException.class)
-  public void shouldThrowOnMap() {
-    coercer.coerce(ImmutableMap.of(), SqlTypes.map(SqlTypes.STRING));
   }
 
   @Test(expected = KsqlException.class)
@@ -165,6 +161,40 @@ public class DefaultSqlValueCoercerTest {
   public void shouldNotCoerceToDouble() {
     assertThat(coercer.coerce(true, SqlTypes.DOUBLE), is(Optional.empty()));
     assertThat(coercer.coerce("1", SqlTypes.DOUBLE), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldCoerceToArray() {
+    final SqlType arrayType = SqlTypes.array(SqlTypes.DOUBLE);
+    assertThat(coercer.coerce(ImmutableList.of(1), arrayType), is(Optional.of(ImmutableList.of(1d))));
+    assertThat(coercer.coerce(ImmutableList.of(1L), arrayType), is(Optional.of(ImmutableList.of(1d))));
+    assertThat(coercer.coerce(ImmutableList.of(1.1), arrayType), is(Optional.of(ImmutableList.of(1.1d))));
+  }
+
+  @Test
+  public void shouldNotCoerceToArray() {
+    final SqlType arrayType = SqlTypes.array(SqlTypes.DOUBLE);
+    assertThat(coercer.coerce(true, arrayType), is(Optional.empty()));
+    assertThat(coercer.coerce(1L, arrayType), is(Optional.empty()));
+    assertThat(coercer.coerce("foo", arrayType), is(Optional.empty()));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1), arrayType), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldCoerceToMap() {
+    final SqlType mapType = SqlTypes.map(SqlTypes.DOUBLE);
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1), mapType), is(Optional.of(ImmutableMap.of("foo", 1d))));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1L), mapType), is(Optional.of(ImmutableMap.of("foo", 1d))));
+    assertThat(coercer.coerce(ImmutableMap.of("foo", 1.1), mapType), is(Optional.of(ImmutableMap.of("foo", 1.1d))));
+  }
+
+  @Test
+  public void shouldNotCoerceToMap() {
+    final SqlType mapType = SqlTypes.map(SqlTypes.DOUBLE);
+    assertThat(coercer.coerce(true, mapType), is(Optional.empty()));
+    assertThat(coercer.coerce(1L, mapType), is(Optional.empty()));
+    assertThat(coercer.coerce("foo", mapType), is(Optional.empty()));
+    assertThat(coercer.coerce(ImmutableList.of("foo"), mapType), is(Optional.empty()));
   }
 
   @Test

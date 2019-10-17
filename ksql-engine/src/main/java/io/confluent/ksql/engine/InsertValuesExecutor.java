@@ -16,15 +16,17 @@
 package io.confluent.ksql.engine;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.Literal;
-import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -63,6 +65,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpStatus;
 import org.apache.kafka.clients.producer.Producer;
@@ -190,7 +193,12 @@ public class InsertValuesExecutor {
     }
 
     try {
-      final RowData row = extractRow(insertValues, dataSource);
+      final RowData row = extractRow(
+          insertValues,
+          dataSource,
+          executionContext.getMetaStore(),
+          config);
+
       final byte[] key = serializeKey(row.key, dataSource, config, serviceContext);
       final byte[] value = serializeValue(row.value, dataSource, config, serviceContext);
 
@@ -226,7 +234,9 @@ public class InsertValuesExecutor {
 
   private RowData extractRow(
       final InsertValues insertValues,
-      final DataSource<?> dataSource
+      final DataSource<?> dataSource,
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig config
   ) {
     final List<ColumnName> columns = insertValues.getColumns().isEmpty()
         ? implicitColumns(dataSource, insertValues.getValues())
@@ -234,7 +244,8 @@ public class InsertValuesExecutor {
 
     final LogicalSchema schema = dataSource.getSchema();
 
-    final Map<ColumnName, Object> values = resolveValues(insertValues, columns, schema);
+    final Map<ColumnName, Object> values = resolveValues(
+        insertValues, columns, schema, functionRegistry, config);
 
     handleExplicitKeyField(values, dataSource.getKeyField());
 
@@ -306,7 +317,9 @@ public class InsertValuesExecutor {
   private static Map<ColumnName, Object> resolveValues(
       final InsertValues insertValues,
       final List<ColumnName> columns,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final KsqlConfig config
   ) {
     final Map<ColumnName, Object> values = new HashMap<>();
     for (int i = 0; i < columns.size(); i++) {
@@ -314,7 +327,8 @@ public class InsertValuesExecutor {
       final SqlType columnType = columnType(column, schema);
       final Expression valueExp = insertValues.getValues().get(i);
 
-      final Object value = new ExpressionResolver(columnType, column)
+      final Object value =
+          new ExpressionResolver(columnType, column, schema, functionRegistry, config)
           .process(valueExp, null);
 
       values.put(column, value);
@@ -482,26 +496,39 @@ public class InsertValuesExecutor {
 
     private final SqlType fieldType;
     private final ColumnName fieldName;
+    private final LogicalSchema schema;
     private final SqlValueCoercer defaultSqlValueCoercer = new DefaultSqlValueCoercer();
+    private final FunctionRegistry functionRegistry;
+    private final KsqlConfig config;
 
-    ExpressionResolver(final SqlType fieldType, final ColumnName fieldName) {
+    ExpressionResolver(
+        final SqlType fieldType,
+        final ColumnName fieldName,
+        final LogicalSchema schema,
+        final FunctionRegistry functionRegistry,
+        final KsqlConfig config
+    ) {
       this.fieldType = Objects.requireNonNull(fieldType, "fieldType");
       this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
+      this.schema = Objects.requireNonNull(schema, "schema");
+      this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+      this.config = Objects.requireNonNull(config, "config");
     }
 
     @Override
-    protected String visitExpression(final Expression expression, final Void context) {
-      throw new KsqlException(
-          "Only Literals are supported for INSERT INTO. Got: "
-              + expression + " for field " + fieldName);
-    }
+    protected Object visitExpression(final Expression expression, final Void context) {
+      final ExpressionMetadata metadata =
+          Iterables.getOnlyElement(
+              CodeGenRunner.compileExpressions(
+                  Stream.of(expression),
+                  "insert value",
+                  schema,
+                  config,
+                  functionRegistry)
+          );
 
-    @Override
-    protected Object visitLiteral(final Literal node, final Void context) {
-      final Object value = node.getValue();
-      if (node instanceof NullLiteral || value == null) {
-        return null;
-      }
+      // we expect no column references, so we can pass in an empty generic row
+      final Object value = metadata.evaluate(new GenericRow());
 
       return defaultSqlValueCoercer.coerce(value, fieldType)
           .orElseThrow(() -> {

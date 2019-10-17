@@ -158,7 +158,7 @@ groupingExpressions
     ;
 
 values
-    : '(' (literal (',' literal)*)? ')'
+    : '(' (expression (',' expression)*)? ')'
     ;
 
 /*

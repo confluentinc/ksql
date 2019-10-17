@@ -15,13 +15,19 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -36,10 +42,19 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .build();
 
   public <T> Optional<T> coerce(final Object value, final SqlType targetType) {
-    if (targetType.baseType() == SqlBaseType.ARRAY
-        || targetType.baseType() == SqlBaseType.MAP
-        || targetType.baseType() == SqlBaseType.STRUCT
-    ) {
+    return doCoerce(value, targetType);
+  }
+
+  private static <T> Optional<T> doCoerce(final Object value, final SqlType targetType) {
+    if (targetType.baseType() == SqlBaseType.ARRAY) {
+      return coerceArray(value, (SqlArray) targetType);
+    }
+
+    if (targetType.baseType() == SqlBaseType.MAP) {
+      return coerceMap(value, (SqlMap) targetType);
+    }
+
+    if (targetType.baseType() == SqlBaseType.STRUCT) {
       throw new KsqlException("Unsupported SQL type: " + targetType.baseType());
     }
 
@@ -60,6 +75,43 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
 
     final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
     return optional(result);
+  }
+
+  private static <T> Optional<T> coerceArray(final Object value, final SqlArray targetType) {
+    if (!(value instanceof List<?>)) {
+      return Optional.empty();
+    }
+
+    final List<?> list = (List<?>) value;
+    final ImmutableList.Builder<Object> coerced = ImmutableList.builder();
+    for (final Object el : list) {
+      final Optional<Object> coercedEl = doCoerce(el, targetType.getItemType());
+      if (!coercedEl.isPresent()) {
+        return Optional.empty();
+      }
+      coerced.add(coercedEl.get());
+    }
+
+    return optional(coerced.build());
+  }
+
+  private static <T> Optional<T> coerceMap(final Object value, final SqlMap targetType) {
+    if (!(value instanceof Map<?, ?>)) {
+      return Optional.empty();
+    }
+
+    final Map<?, ?> map = (Map<?, ?>) value;
+    final HashMap<Object, Object> coerced = new HashMap<>();
+    for (final Map.Entry entry : map.entrySet()) {
+      final Optional<Object> coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
+      final Optional<Object> coercedValue = doCoerce(entry.getValue(), targetType.getValueType());
+      if (!coercedKey.isPresent() || !coercedValue.isPresent()) {
+        return Optional.empty();
+      }
+      coerced.put(coercedKey.get(), coercedValue.get());
+    }
+
+    return optional(coerced);
   }
 
   private static <T> Optional<T> coerceDecimal(final Object value, final SqlDecimal targetType) {

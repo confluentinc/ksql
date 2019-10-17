@@ -29,9 +29,11 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -43,6 +45,7 @@ import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
@@ -50,6 +53,8 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -100,6 +105,15 @@ public class InsertValuesExecutorTest {
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
       .valueColumn(COL0, SqlTypes.STRING)
       .build();
+
+  private static final LogicalSchema SINGLE_ARRAY_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("COL0"), SqlArray.of(SqlTypes.INTEGER))
+      .build();
+
+  private static final LogicalSchema SINGLE_MAP_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("COL0"), SqlMap.of(SqlTypes.INTEGER))
+      .build();
+
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(COL0, SqlTypes.STRING)
@@ -431,6 +445,74 @@ public class InsertValuesExecutorTest {
             "str", 0, 2L, 3.0, true, "str", new BigDecimal(1.2, new MathContext(2))))
         );
 
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleNegativeValueExpression() {
+    // Given:
+    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of(ColumnName.of("COL0")));
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of(
+            new StringLiteral("str"),
+            ArithmeticUnaryExpression.negative(Optional.empty(), new LongLiteral(1))
+        )
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", -1L)));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleUdfs() {
+    // Given:
+    givenDataSourceWithSchema(SINGLE_ARRAY_SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0"),
+        ImmutableList.of(
+            new FunctionCall(
+                FunctionName.of("AS_ARRAY"),
+                ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))))
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(ImmutableList.of(1, 2))));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleNestedUdfs() {
+    // Given:
+    givenDataSourceWithSchema(SINGLE_MAP_SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0"),
+        ImmutableList.of(
+            new FunctionCall(
+                FunctionName.of("AS_MAP"),
+                ImmutableList.of(
+                    new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new StringLiteral("foo"))),
+                    new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new IntegerLiteral(1)))
+                ))
+        )
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(ImmutableMap.of("foo", 1))));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
   }
 

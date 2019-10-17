@@ -88,14 +88,43 @@ table functions are `zipped` together.
 The total number of rows returned is equal to the greatest number of values returned from any of the
  table functions. If some of the functions return fewer rows than others, the missing values are
  replaced with `null`.
+ 
+Here's an example of two table function results being zipped together:
 
+With the following input data:
+
+```
+{country:'UK', customer_names: ['john', 'paul', 'george', 'ringo'], customer_ages: [23, 56, 3]}
+{country:'USA', customer_names: ['chad', 'chip', 'brad'], customer_ages: [56, 34, 76, 84, 56]}
+```
+And the following stream:
+
+```
+CREATE STREAM country_customers AS
+    SELECT country, EXPLODE(customer_names) AS name, EXPLODE(customer_ages) AS age FROM country_batches;
+```
+Would give:
+
+```
+{country: 'UK', name: 'john', age: 23}
+{country: 'UK', name: 'paul', age: 56}
+{country: 'UK', name: 'george', age: 3}
+{country: 'UK', name: 'ringo', age: null}
+{country: 'USA', name: 'chad', age: 56}
+{country: 'USA', name: 'chip', age: 34}
+{country: 'USA', name: 'brad', age: 76}
+{country: 'USA', name: null, age: 84}
+{country: 'USA', name: null, age: 56}
+```
+ 
 ## What is in scope
 
 We would like to implement
 
 * Table functions on the SELECT clause only
 * Multiple table functions on the SELECT clause
-* A set of built-in table functions including EXPLODE, SERIES, SORTED_PAIRS, UNSORTED_PAIRS
+* Implementation of the built-in table function EXPLODE
+* A set of built-in scalar functions including ENTRIES and SERIES (see design section)
 * An ability for users to provide their own User Defined Table Functions (UDTFs) using annotations
 in a similar way to how UDFs are currently supported using annotations.
 
@@ -176,17 +205,26 @@ public class SplitString {
 
 ```
 
+UDTFs will support `@UdtfDescription` and `@UdtfSchemaProvider` in a similar way to UDFs.
+
 ### Implement set of built in table functions
 
 We will implement the following built in table functions:
 
 * `EXPLODE(ARRAY<V>)` -> Results in `N` rows (where `N` is number of elements in array) each with a column
 of type `V` holding the value of the element
-* `SORTED_PAIRS(MAP<K, V>)` -> Results in `N` rows (where `N` is number of entries in map), sorted by `K`
-* `UNSORTED_PAIRS(MAP<K, V>)` -> Results in `N` rows (where `N` is number of entries in map),
-in an undefined order
-* `SEQUENCE(start INT, end INT)` - Results in `start - end + 1` rows with an `INT` value from `start`
-to `end` exclusive.
+
+
+### Implement set of built-in scalar functions
+
+We will implement the following set of built-in scalar functions that will be helpful when used
+with the `EXPLODE` table function:
+
+* `ENTRIES(map MAP<K, V>, sorted BOOLEAN) ARRAY<STRUCT<K, V>>` -> Convert a Map to an array of key value
+pairs. If `sorted` is true then the entries are sorted by the natural ordering of `K` otherwise
+the entries will be in an undefined order.
+* `SEQUENCE(start INT, end INT) ARARAY<INT>` - Results in an array of `start - end + 1` values with an `INT` value from `start`
+to `end` exclusive. We will also create a `BIGINT` version of this.
 
 ## Test plan
 
@@ -320,7 +358,8 @@ Add the following new section of the developer guide in `table-functions.rst`
 
 ### Example of Table Function
 
-Add a new KSQL example for table functions
+Add a new KSQL example for table functions in the
+[KSQL examples](https://docs.confluent.io/current/ksql/docs/tutorials/examples.html):
 
 ### UDTFs
 

@@ -152,6 +152,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
   public static final String KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY =
       "ksql.query.stream.groupby.rowkey.repartition";
+  public static final String KSQL_INJECT_LEGACY_MAP_VALUES_NODE =
+      "ksql.query.inject.legacy.map.values.node";
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
@@ -290,6 +292,15 @@ public class KsqlConfig extends AbstractConfig {
               Optional.empty(),
               "Ensures legacy queries that perform a 'GROUP BY ROWKEY' continue to "
                   + "perform an unnecessary repartition step"
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_INJECT_LEGACY_MAP_VALUES_NODE,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              Optional.empty(),
+              "Ensures legacy queries maintian the same topology"
           )
   );
 

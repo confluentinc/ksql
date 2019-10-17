@@ -7,7 +7,7 @@ This doc contains answers frequently asked questions. Answers are broken down in
 
 ## Basics
 
-
+Coming soon...
 
 ## Aggregations
 
@@ -18,30 +18,33 @@ Inspired by [this SO question](https://stackoverflow.com/questions/58358784/ksql
 #### Example
 
 ```sql
--- Given:
--- Create Trades table - ROWKEY stores the TradeId:
-create table Trades(TradeId string, AccountId string, Amount double) with (KAFKA_TOPIC = 'TradeHistory', VALUE_FORMAT = 'JSON');
+-- Given:x
+-- Create Trades table:
+create table Trades(TradeId string, AccountId string, Amount double) with (KAFKA_TOPIC = 'TradeHistory', VALUE_FORMAT = 'JSON', PARTITIONS=1, KEY='TradeId');
 
 -- Run this in a different console to see the results of the aggregation:
+-- pre version 5.4:
 select AccountId, count(*) as Count, sum(Amount) as Total from Trades group by AccountId;
+-- post version 5.4:
+select AccountId, count(*) as Count, sum(Amount) as Total from Trades group by AccountId EMIT CHANGES;
 
 -- When we:
-INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t1', 'acc1', 106.0);
+INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t1', 'acc1', 106.0);
 
 -- Then the above select window outputs:
 -- AccountId | Count | Sum
    acc1 | 1 | 106.0 
 
 -- When we:
-INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t1', 'acc1', 107.0);
+INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t1', 'acc1', 107.0);
 
--- Then the above select window outputs:
+-- Then the above select window may output:
 -- AccountId | Count | Sum
    acc1 | 0 | 0.0
    acc1 | 1 | 107.0
 ```
 
-The question is _why_ does the second insert result in _two_ output events, rather than one?
+If you run this example locally you may get the two output rows shown above when you insert the update to the trade `t1`, or you may only see the last row. The question is _why_ does the second insert potentially result in _two_ output events, rather than one?
 
 #### Answer
 
@@ -59,7 +62,7 @@ Why does KSQL do this? Well, to help understand what might at first look like st
 
 ```sql
 -- When we insert with different tradeId, but same AccountId:
-INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t2', 'acc1', 10.0);
+INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t2', 'acc1', 10.0);
 
 -- Then select window will output
 -- Single row as this the above is an insert of a new row, so no undo to do
@@ -69,7 +72,7 @@ INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t2', 'acc1', 10.0);
    acc1 | 2 | 117.0 
 
 -- When we update the new trade to reference a different AccountId:
-INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t2', 'acc3', 10.0);
+INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t2', 'acc3', 10.0);
 
 -- Then the above select window outputs:
 -- First KSQL undoes the old value for tradeId 2:
@@ -87,7 +90,12 @@ INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t2', 'acc3', 10.0);
 Hopefully, the above example makes the behaviour seem a little less strange. 
 Undoing the old value is important to ensure the aggregate values are correct.
 The behaviour only _seems_ strange when the old and new values both affect the same aggregate row. 
+
+By default, KSQL is configured to buffer results for _up to_ 2 seconds, or 10MB of data, before flushing the results to Kafka. This is why you may see a slight delay on the output when inserting values in this example.  If both output rows are buffered together then KSQL will suppress the first result. This is why you often do not see the intermediate row being output.  The configurations `commit.interval.ms` and `cache.max.bytes.buffering`, which are set to 2 seconds and 10MB, respectively, can be used to tune this behaviour. Setting either of these settings to zero will cause KSQL to always output all intermediate results.
+
 We have a [Github issue](https://github.com/confluentinc/ksql/issues/3560) to enhance KSQL to make use of Kafka Stream's Suppression functionality, 
-which would allow user control over how results are materialized, and avoid the intermediate output when the old and new values affect the same aggregate row.
+which would allow user better control over how results are materialized, and avoid the intermediate output when the old and new values affect the same aggregate row.
 
 ## Joins
+
+Coming soon...

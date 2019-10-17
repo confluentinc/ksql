@@ -346,13 +346,6 @@ public class InsertValuesExecutor {
     }
   }
 
-  private static void throwOnTableMissingRowKey(final Map<ColumnName, ?> values) {
-    final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
-    if (rowKeyValue == null) {
-      throw new KsqlException("Value for ROWKEY is required for tables");
-    }
-  }
-
   private static SqlType columnType(final ColumnName column, final LogicalSchema schema) {
     return schema
         .findColumn(ColumnRef.withoutSource(column))

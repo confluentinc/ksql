@@ -126,8 +126,47 @@ public class KsqlConfigResolverTest {
   }
 
   @Test
-  public void shouldNotFindUnknownConsumerProperty() {
-    assertNotFound(StreamsConfig.CONSUMER_PREFIX + "you.won't.find.me...right");
+  public void shouldNotFindUnknownConsumerPropertyIfStrict() {
+    // Given:
+    final String configName = StreamsConfig.CONSUMER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(resolver.resolve(configName, true), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldFindUnknownConsumerPropertyIfNotStrict() {
+    // Given:
+    final String configName = StreamsConfig.CONSUMER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(resolver.resolve(configName, false), is(unresolvedItem(configName)));
+  }
+
+  @Test
+  public void shouldNotFindUnknownStreamsPrefixedConsumerPropertyIfStrict() {
+    // Given:
+    final String configName = KsqlConfig.KSQL_STREAMS_PREFIX
+        + StreamsConfig.CONSUMER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(resolver.resolve(configName, true), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldFindUnknownStreamsPrefixedConsumerPropertyIfNotStrict() {
+    // Given:
+    final String configName = StreamsConfig.CONSUMER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(
+        resolver.resolve(KsqlConfig.KSQL_STREAMS_PREFIX + configName, false),
+        is(unresolvedItem(configName))
+    );
   }
 
   @Test
@@ -159,8 +198,47 @@ public class KsqlConfigResolverTest {
   }
 
   @Test
-  public void shouldNotFindUnknownProducerProperty() {
-    assertNotFound(StreamsConfig.PRODUCER_PREFIX + "you.won't.find.me...right");
+  public void shouldNotFindUnknownProducerPropertyIfStrict() {
+    // Given:
+    final String configName = StreamsConfig.PRODUCER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(resolver.resolve(configName, true), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldFindUnknownProducerPropertyIfNotStrict() {
+    // Given:
+    final String configName = StreamsConfig.PRODUCER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(resolver.resolve(configName, false), is(unresolvedItem(configName)));
+  }
+
+  @Test
+  public void shouldNotFindUnknownStreamsPrefixedProducerPropertyIfStrict() {
+    // Given:
+    final String configName = KsqlConfig.KSQL_STREAMS_PREFIX
+        + StreamsConfig.PRODUCER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(resolver.resolve(configName, true), is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldFindUnknownStreamsPrefixedProducerPropertyIfNotStrict() {
+    // Given:
+    final String configName = StreamsConfig.PRODUCER_PREFIX
+        + "custom.interceptor.config";
+
+    // Then:
+    assertThat(
+        resolver.resolve(KsqlConfig.KSQL_STREAMS_PREFIX + configName, false),
+        is(unresolvedItem(configName))
+    );
   }
 
   @Test

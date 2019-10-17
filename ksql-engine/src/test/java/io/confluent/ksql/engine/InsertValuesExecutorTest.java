@@ -451,7 +451,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNegativeValueExpression() {
     // Given:
-    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of(ColumnName.of("COL0")));
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(ColumnName.of("COL0")));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
@@ -473,7 +473,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleUdfs() {
     // Given:
-    givenDataSourceWithSchema(SINGLE_ARRAY_SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SINGLE_ARRAY_SCHEMA, SerdeOption.none(), Optional.empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0"),
@@ -494,7 +494,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleNestedUdfs() {
     // Given:
-    givenDataSourceWithSchema(SINGLE_MAP_SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SINGLE_MAP_SCHEMA, SerdeOption.none(), Optional.empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0"),

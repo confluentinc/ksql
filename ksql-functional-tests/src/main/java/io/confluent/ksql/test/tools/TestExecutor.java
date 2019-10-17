@@ -77,7 +77,6 @@ public class TestExecutor implements Closeable {
       .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
       .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
       .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
-      .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
       .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
       .put(
           KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
@@ -87,7 +86,7 @@ public class TestExecutor implements Closeable {
 
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
-  private final Map<String, Object> config = baseConfig();
+  private final Map<String, ?> config = baseConfig();
   private final StubKafkaService stubKafkaService;
   private final TopologyBuilder topologyBuilder;
   private final Function<TopologyTestDriver, Set<String>> internalTopicsAccessor;
@@ -451,8 +450,11 @@ public class TestExecutor implements Closeable {
     );
   }
 
-  public static Map<String, Object> baseConfig() {
-    return BASE_CONFIG;
+  public static Map<String, ?> baseConfig() {
+    return ImmutableMap.<String, Object>builder()
+        .putAll(BASE_CONFIG)
+        .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
+        .build();
   }
 
   private static void writeInputIntoTopics(

@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.NullLiteral;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.InsertValues;
@@ -237,6 +238,11 @@ public class InsertValuesExecutor {
 
     handleExplicitKeyField(values, dataSource.getKeyField());
 
+    if (dataSource.getDataSourceType() == DataSourceType.KTABLE
+        && values.get(SchemaUtil.ROWKEY_NAME) == null) {
+      throw new KsqlException("Value for ROWKEY is required for tables");
+    }
+
     final long ts = (long) values.getOrDefault(SchemaUtil.ROWTIME_NAME, clock.getAsLong());
 
     final Struct key = buildKey(schema, values);
@@ -337,6 +343,13 @@ public class InsertValuesExecutor {
             "Expected ROWKEY and %s to match but got %s and %s respectively.",
             key.toString(FormatOptions.noEscape()), rowKeyValue, keyValue));
       }
+    }
+  }
+
+  private static void throwOnTableMissingRowKey(final Map<ColumnName, ?> values) {
+    final Object rowKeyValue = values.get(SchemaUtil.ROWKEY_NAME);
+    if (rowKeyValue == null) {
+      throw new KsqlException("Value for ROWKEY is required for tables");
     }
   }
 

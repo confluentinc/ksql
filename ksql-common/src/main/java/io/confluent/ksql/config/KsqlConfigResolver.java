@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.config;
 
+import static io.confluent.ksql.util.KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 
 import com.google.common.collect.ImmutableList;
@@ -49,7 +50,7 @@ public class KsqlConfigResolver implements ConfigResolver {
 
   @Override
   public  Optional<ConfigItem> resolve(final String propertyName, final boolean strict) {
-    if (propertyName.startsWith(KsqlConfig.KSQL_CONFIG_PROPERTY_PREFIX)
+    if (propertyName.startsWith(KSQL_CONFIG_PROPERTY_PREFIX)
         && !propertyName.startsWith(KSQL_STREAMS_PREFIX)) {
       return resolveKsqlConfig(propertyName);
     }

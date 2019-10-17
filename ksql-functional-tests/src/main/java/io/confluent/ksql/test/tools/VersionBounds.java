@@ -24,7 +24,7 @@ import java.util.Optional;
  * Pojo for holding the bounds for which a test is valid
  */
 @Immutable
-public class VersionBounds {
+public final class VersionBounds {
 
   private final Range<KsqlVersion> range;
 

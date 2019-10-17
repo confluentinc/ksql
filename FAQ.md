@@ -29,14 +29,14 @@ select AccountId, count(*) as Count, sum(Amount) as Total from Trades group by A
 select AccountId, count(*) as Count, sum(Amount) as Total from Trades group by AccountId EMIT CHANGES;
 
 -- When we:
-INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t1', 'acc1', 106.0);
+INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t1', 'acc1', 106.0);
 
 -- Then the above select window outputs:
 -- AccountId | Count | Sum
    acc1 | 1 | 106.0 
 
 -- When we:
-INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t1', 'acc1', 107.0);
+INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t1', 'acc1', 107.0);
 
 -- Then the above select window may output:
 -- AccountId | Count | Sum
@@ -62,7 +62,7 @@ Why does KSQL do this? Well, to help understand what might at first look like st
 
 ```sql
 -- When we insert with different tradeId, but same AccountId:
-INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t2', 'acc1', 10.0);
+INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t2', 'acc1', 10.0);
 
 -- Then select window will output
 -- Single row as this the above is an insert of a new row, so no undo to do
@@ -72,7 +72,7 @@ INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t2', 'acc1', 10.0);
    acc1 | 2 | 117.0 
 
 -- When we update the new trade to reference a different AccountId:
-INSERT INTO Trades (RowKey, AccountId, Amount) VALUES ('t2', 'acc3', 10.0);
+INSERT INTO Trades (TradeId, AccountId, Amount) VALUES ('t2', 'acc3', 10.0);
 
 -- Then the above select window outputs:
 -- First KSQL undoes the old value for tradeId 2:

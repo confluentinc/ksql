@@ -146,6 +146,11 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
             "Aggregate function already registered as non-aggregate: " + functionName);
       }
 
+      if (udtfs.containsKey(functionName)) {
+        throw new KsqlException(
+            "Aggregate function already registered as table function: " + functionName);
+      }
+
       if (udafs.putIfAbsent(functionName, aggregateFunctionFactory) != null) {
         throw new KsqlException("Aggregate function already registered: " + functionName);
       }
@@ -161,6 +166,11 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       if (udfs.containsKey(functionName)) {
         throw new KsqlException(
             "Table function already registered as non-aggregate: " + functionName);
+      }
+
+      if (udafs.containsKey(functionName)) {
+        throw new KsqlException(
+            "Table function already registered as aggregate: " + functionName);
       }
 
       if (udtfs.putIfAbsent(functionName, tableFunctionFactory) != null) {

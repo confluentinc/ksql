@@ -51,9 +51,4 @@ public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
   Function<A, O> getResultMapper();
 
   String getDescription();
-
-  @Override
-  default boolean isVariadic() {
-    return false;
-  }
 }

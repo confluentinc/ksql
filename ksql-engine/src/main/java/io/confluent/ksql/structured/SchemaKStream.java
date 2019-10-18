@@ -685,7 +685,6 @@ public class SchemaKStream<K> {
       final TableFunctionAnalysis tableFunctionAnalysis,
       final QueryContext.Stacker contextStacker
   ) {
-
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
         contextStacker,
         sourceStep,
@@ -695,7 +694,10 @@ public class SchemaKStream<K> {
         getSchema()
     );
 
-    return new SchemaKStream<K>(step, keyFormat, keyField,
+    return new SchemaKStream<K>(
+        step,
+        keyFormat,
+        keyField,
         sourceSchemaKStreams,
         type, ksqlConfig, functionRegistry);
   }

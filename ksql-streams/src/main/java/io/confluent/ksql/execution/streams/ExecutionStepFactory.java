@@ -157,8 +157,7 @@ public final class ExecutionStepFactory {
         source,
         functionCalls,
         functionRegistry,
-        inputSchema,
-        resultSchema
+        inputSchema
     );
   }
 

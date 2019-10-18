@@ -28,7 +28,6 @@ public class ExplodeFunctionFactory extends TableFunctionFactory {
 
   private static final FunctionName NAME = FunctionName.of("EXPLODE");
 
-
   public ExplodeFunctionFactory() {
     super(new UdfMetadata(NAME.name(),
         "",
@@ -47,7 +46,8 @@ public class ExplodeFunctionFactory extends TableFunctionFactory {
 
     final Schema schema = argTypeList.get(0);
     if (schema.type() == Type.ARRAY) {
-      return new ExplodeArrayFunction(NAME, schema, argTypeList, "Explodes an array");
+      return new ExplodeTableFunction(NAME, schema.valueSchema(), argTypeList,
+          "Explodes an array");
     }
     throw new KsqlException("Unsupported argument type for EXPLODE " + schema);
   }

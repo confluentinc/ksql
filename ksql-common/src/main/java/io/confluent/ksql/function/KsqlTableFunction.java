@@ -25,12 +25,7 @@ public interface KsqlTableFunction<I, O> extends FunctionSignature {
 
   SqlType returnType();
 
-  List<O> flatMap(I currentValue);
+  List<O> flatMap(I input);
 
   String getDescription();
-
-  @Override
-  default boolean isVariadic() {
-    return false;
-  }
 }

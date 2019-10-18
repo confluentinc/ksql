@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 public class TableFunctionAnalysis {
 
@@ -30,7 +31,7 @@ public class TableFunctionAnalysis {
   }
 
   void addTableFunction(final FunctionCall functionCall) {
-    tableFunctions.add(functionCall);
+    tableFunctions.add(Objects.requireNonNull(functionCall));
   }
 
   public List<Expression> getFinalSelectExpressions() {
@@ -38,7 +39,7 @@ public class TableFunctionAnalysis {
   }
 
   void addFinalSelectExpression(final Expression selectExpression) {
-    this.selectExpressions.add(selectExpression);
+    this.selectExpressions.add(Objects.requireNonNull(selectExpression));
   }
 
 }

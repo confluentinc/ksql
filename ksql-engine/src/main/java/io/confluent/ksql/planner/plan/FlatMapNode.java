@@ -50,8 +50,8 @@ public class FlatMapNode extends PlanNode {
   ) {
     super(id, source.getNodeOutputType());
     this.source = Objects.requireNonNull(source, "source");
-    this.schema = schema;
-    this.tableFunctionAnalysis = tableFunctionAnalysis;
+    this.schema = Objects.requireNonNull(schema);
+    this.tableFunctionAnalysis = Objects.requireNonNull(tableFunctionAnalysis);
   }
 
   @Override
@@ -98,7 +98,7 @@ public class FlatMapNode extends PlanNode {
         tableFunctionAnalysis, contextStacker);
   }
 
-  private LogicalSchema buildLogicalSchema(
+  private static LogicalSchema buildLogicalSchema(
       final LogicalSchema inputSchema,
       final FunctionRegistry functionRegistry,
       final TableFunctionAnalysis tableFunctionAnalysis
@@ -108,8 +108,8 @@ public class FlatMapNode extends PlanNode {
 
     // We copy all the original columns to the output schema
     schemaBuilder.keyColumns(inputSchema.key());
-    for (int i = 0; i < cols.size(); i++) {
-      schemaBuilder.valueColumn(cols.get(i));
+    for (Column col: cols) {
+      schemaBuilder.valueColumn(col);
     }
 
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();

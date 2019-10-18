@@ -31,22 +31,19 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   final List<FunctionCall> functionCalls;
   final FunctionRegistry functionRegistry;
   final LogicalSchema inputSchema;
-  final LogicalSchema outputSchema;
 
   public StreamFlatMap(
       final ExecutionStepProperties properties,
       final ExecutionStep<KStreamHolder<K>> source,
       final List<FunctionCall> functionCalls,
       final FunctionRegistry functionRegistry,
-      final LogicalSchema inputSchema,
-      final LogicalSchema outputSchema
+      final LogicalSchema inputSchema
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.functionCalls = functionCalls;
     this.functionRegistry = functionRegistry;
     this.inputSchema = inputSchema;
-    this.outputSchema = outputSchema;
   }
 
   @Override
@@ -81,7 +78,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   public LogicalSchema getOutputSchema() {
-    return outputSchema;
+    return properties.getSchema();
   }
 
   @Override

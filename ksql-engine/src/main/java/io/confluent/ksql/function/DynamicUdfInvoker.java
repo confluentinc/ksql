@@ -15,10 +15,10 @@
 
 package io.confluent.ksql.function;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.TypeVariable;
-import java.util.Arrays;
 
 /**
  * An implementation of UdfInvoker which invokes the UDF dynamically using reflection
@@ -50,17 +50,15 @@ public class DynamicUdfInvoker implements UdfInvoker {
   public Object eval(final Object udf, final Object... args) {
     try {
       final Object[] extractedArgs = extractArgs(args);
-      for (int i = 0; i < extractedArgs.length; i++) {
-        extractedArgs[i] =
-            UdfArgCoercer.coerceUdfArgs(extractedArgs[i], method.getParameterTypes()[i], i);
-      }
       return method.invoke(udf, extractedArgs);
     } catch (Exception e) {
       throw new KsqlFunctionException("Failed to invoke udf " + method, e);
     }
   }
 
-  // Method.invoke() is a pain and expects any varargs to be packaged up in a further Object[]
+  /*
+  Method.invoke() is a pain and expects any varargs to be packaged up in a further Object[]
+   */
   private Object[] extractArgs(final Object... source) {
     if (!method.isVarArgs()) {
       return source;
@@ -70,8 +68,14 @@ public class DynamicUdfInvoker implements UdfInvoker {
     System.arraycopy(source, 0, args, 0, method.getParameterCount() - 1);
 
     final int start = method.getParameterCount() - 1;
-    final Object[] varargs = Arrays.copyOfRange(source, start, source.length);
-    args[start] = varargs;
+    final Class<?> componentType = method.getParameterTypes()[start].getComponentType();
+
+    // Need to convert to array of component type - Method.invoke requires this
+    final Object val = Array.newInstance(componentType, source.length - start);
+    for (int i = start; i < source.length; i++) {
+      Array.set(val, i - start, source[i]);
+    }
+    args[start] = val;
 
     return args;
   }

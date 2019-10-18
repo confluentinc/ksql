@@ -35,7 +35,7 @@ public class LongTopkKudafTest {
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
   private final AggregateFunctionInitArguments args =
-      new AggregateFunctionInitArguments(0, "3");
+      new AggregateFunctionInitArguments(0, 3);
       
   @Before
   public void setup() {

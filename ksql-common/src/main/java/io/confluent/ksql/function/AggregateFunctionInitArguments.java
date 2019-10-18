@@ -22,42 +22,24 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Represents a list of initial arguments for the creation of a UDAF
- * {@link io.confluent.ksql.function.KsqlAggregateFunction}
+ * Represents a list of initial arguments for the creation of a UDAF {@link
+ * io.confluent.ksql.function.KsqlAggregateFunction}
  *
  * <p>The initial arguments are always constants.
  */
 public class AggregateFunctionInitArguments {
 
   private final int udafIndex;
-  private final List<String> initArgs;
+  private final List<Object> initArgs;
 
   public static final AggregateFunctionInitArguments EMPTY_ARGS =
       new AggregateFunctionInitArguments();
 
-  private AggregateFunctionInitArguments() {
-    this.udafIndex = 0;
-    this.initArgs = Collections.emptyList();
-  }
-
-  public static AggregateFunctionInitArguments ofFunctionArgs(final int index,
-      final List<String> initArgs) {
-    /*
-    The first argument to an aggregate function is the value being aggregated, the
-    arguments after that are the actual init arguments (constants).
-    So we remove the first argument as it's not an init argument.
-    The args can also be empty (e.g. in the case of COUNT(*)
-    */
-    return new AggregateFunctionInitArguments(index, Objects.requireNonNull(
-        initArgs.size() < 2 ? Collections.emptyList() : initArgs.subList(1, initArgs.size())
-    ));
-  }
-
-  public AggregateFunctionInitArguments(final int index, final String... initArgs) {
+  public AggregateFunctionInitArguments(final int index, final Object... initArgs) {
     this(index, Arrays.asList(initArgs));
   }
 
-  private AggregateFunctionInitArguments(final int index, final List<String> initArgs) {
+  public AggregateFunctionInitArguments(final int index, final List<Object> initArgs) {
     this.udafIndex = index;
     this.initArgs = Objects.requireNonNull(initArgs);
 
@@ -66,12 +48,21 @@ public class AggregateFunctionInitArguments {
     }
   }
 
+  private AggregateFunctionInitArguments() {
+    this.udafIndex = 0;
+    this.initArgs = Collections.emptyList();
+  }
+
   public int udafIndex() {
     return udafIndex;
   }
 
-  public String arg(final int i) {
+  public Object arg(final int i) {
     return initArgs.get(i);
+  }
+
+  public List<Object> args() {
+    return initArgs;
   }
 
   public void ensureArgCount(final int expectedCount, final String functionName) {

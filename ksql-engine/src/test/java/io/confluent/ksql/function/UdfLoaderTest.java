@@ -366,12 +366,14 @@ public class UdfLoaderTest {
         new File(pluginDir, "udf-isolated.jar").toPath());
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
         pluginDir,
         PARENT_CLASS_LOADER,
         value -> false,
         Optional.empty(),
-        true);
+        true)
+        ;
 
     udfLoader.load();
 

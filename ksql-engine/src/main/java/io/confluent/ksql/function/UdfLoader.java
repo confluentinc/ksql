@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
@@ -80,7 +81,6 @@ public class UdfLoader {
   private final File pluginDir;
   private final ClassLoader parentClassLoader;
   private final Predicate<String> blacklist;
-  private final UdfCompiler compiler;
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private final Optional<Metrics> metrics;
   private final boolean loadCustomerUdfs;
@@ -92,7 +92,6 @@ public class UdfLoader {
       final File pluginDir,
       final ClassLoader parentClassLoader,
       final Predicate<String> blacklist,
-      final UdfCompiler compiler,
       final Optional<Metrics> metrics,
       final boolean loadCustomerUdfs
   ) {
@@ -102,7 +101,6 @@ public class UdfLoader {
     this.parentClassLoader = Objects.requireNonNull(parentClassLoader,
         "parentClassLoader can't be null");
     this.blacklist = Objects.requireNonNull(blacklist, "blacklist can't be null");
-    this.compiler = Objects.requireNonNull(compiler, "compiler can't be null");
     this.metrics = Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
     this.typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
@@ -139,11 +137,10 @@ public class UdfLoader {
       //method must be public and annotated with @Udf
       for (Method m: theClass.getDeclaredMethods()) {
         if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
-          handleUdfAnnotation(
+          processUdfAnnotation(
               theClass,
               udfDescription,
               m,
-              parentClassLoader,
               KsqlFunction.INTERNAL_PATH
           );
         }
@@ -173,16 +170,14 @@ public class UdfLoader {
         .matchClassesWithMethodAnnotation(Udf.class,
             processMethodAnnotation(loader, pathLoadedFrom))
         .matchClassesWithAnnotation(UdafDescription.class,
-            handleUdafAnnotation(loader, pathLoadedFrom))
+            handleUdafAnnotation(pathLoadedFrom))
         .scan();
   }
 
-  private ClassAnnotationMatchProcessor handleUdafAnnotation(final ClassLoader loader,
-      final String path
-  ) {
+  private ClassAnnotationMatchProcessor handleUdafAnnotation(final String path) {
     return (theClass) -> {
       final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
-      final List<UdafCreator> argCreators
+      final List<UdafFactoryInvoker> argCreators
           = Arrays.stream(theClass.getMethods())
           .filter(method -> method.getAnnotation(UdafFactory.class) != null)
           .filter(method -> {
@@ -203,9 +198,8 @@ public class UdfLoader {
                   udafAnnotation.name(),
                   path,
                   method.getDeclaringClass());
-              return Optional.of(compiler.compileAggregate(method,
-                  loader,
-                  udafAnnotation.name(),
+              return Optional.of(createUdafFactoryInvoker(method,
+                  FunctionName.of(udafAnnotation.name()),
                   annotation.description(),
                   annotation.paramSchema(),
                   annotation.aggregateSchema(),
@@ -219,7 +213,7 @@ public class UdfLoader {
                   path,
                   e);
             }
-            return Optional.<UdafCreator>empty();
+            return Optional.<UdafFactoryInvoker>empty();
           }).filter(Optional::isPresent)
           .map(Optional::get)
           .collect(Collectors.toList());
@@ -250,7 +244,7 @@ public class UdfLoader {
       LOGGER.info("Adding UDF name='{}' from path={}", annotation.name(), path);
       final Method method = (Method) executable;
       try {
-        handleUdfAnnotation(theClass, annotation, method, loader, path);
+        processUdfAnnotation(theClass, annotation, method, path);
       } catch (final KsqlException e) {
         if (parentClassLoader == loader) {
           throw e;
@@ -264,18 +258,16 @@ public class UdfLoader {
     };
   }
 
-  private void handleUdfAnnotation(
+  private void processUdfAnnotation(
       final Class<?> theClass,
       final UdfDescription annotation,
       final Method method,
-      final ClassLoader classLoader,
       final String path
   ) {
     LOGGER.info("Adding UDF name='{}' from class={}", annotation.name(), theClass);
-    final UdfInvoker udf = UdfCompiler.compile(method, classLoader);
-    addFunction(theClass, annotation, method, udf, path);
+    final UdfInvoker invoker = createUdfInvoker(method);
+    addFunction(theClass, annotation, method, invoker, path);
   }
-
 
   private void addFunction(final Class theClass,
       final UdfDescription classLevelAnnotation,
@@ -353,7 +345,7 @@ public class UdfLoader {
             ((Configurable)actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
-          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf, method);
+          final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);
           return metrics.<Kudf>map(m -> new UdfMetricProducer(m.getSensor(sensorName),
               theUdf,
               Time.SYSTEM)).orElse(theUdf);
@@ -362,6 +354,22 @@ public class UdfLoader {
         method.isVarArgs()));
   }
 
+  @VisibleForTesting
+  public static UdfInvoker createUdfInvoker(final Method method) {
+    return new DynamicUdfInvoker(method);
+  }
+
+  UdafFactoryInvoker createUdafFactoryInvoker(
+      final Method method,
+      final FunctionName functionName,
+      final String description,
+      final String inputSchema,
+      final String aggregateSchema,
+      final String outputSchema
+  ) {
+    return new UdafFactoryInvoker(method, functionName, description, inputSchema,
+        aggregateSchema, outputSchema, typeParser, metrics);
+  }
 
   private static Object instantiateUdfClass(
       final Method method,
@@ -504,7 +512,6 @@ public class UdfLoader {
         pluginDir,
         Thread.currentThread().getContextClassLoader(),
         new Blacklist(new File(pluginDir, "resource-blacklist.txt")),
-        new UdfCompiler(metrics),
         metrics,
         loadCustomerUdfs
     );

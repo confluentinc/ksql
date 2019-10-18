@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.function;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -44,11 +45,12 @@ public final class UdafUtil {
     try {
       final ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
-      final List<Expression> functionArgs = functionCall.getArguments();
-      final Schema argumentType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
+
+      final Schema argumentType =
+          expressionTypeManager.getExpressionSchema(functionCall.getArguments().get(0));
 
       // UDAFs only support one non-constant argument, and that argument must be a column reference
-      final Expression arg = functionArgs.get(0);
+      final Expression arg = functionCall.getArguments().get(0);
       final OptionalInt udafIndex;
       if (arg instanceof ColumnReferenceExp) {
         udafIndex = schema.valueColumnIndex(((ColumnReferenceExp) arg).getReference());
@@ -56,23 +58,45 @@ public final class UdafUtil {
         // assume that it is a column reference with no alias
         udafIndex = schema.valueColumnIndex(ColumnRef.withoutSource(ColumnName.of(arg.toString())));
       }
+      if (!udafIndex.isPresent()) {
+        throw new KsqlException("Could not find column for expression: " + arg);
+      }
 
-      // args from index 1+ are all constants, such as in TopkKudaf
-      final List<String> args = functionArgs
-          .stream()
-          .map(Expression::toString)
-          .collect(Collectors.toList());
+      final AggregateFunctionInitArguments aggregateFunctionInitArguments =
+          createAggregateFunctionInitArgs(udafIndex.getAsInt(), functionCall);
 
       return functionRegistry.getAggregateFunction(
           functionCall.getName().name(),
           argumentType,
-          AggregateFunctionInitArguments.ofFunctionArgs(
-              udafIndex.orElseThrow(
-                  () -> new KsqlException("Could not find column for expression: " + arg)),
-              args)
+          aggregateFunctionInitArguments
       );
     } catch (final Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }
   }
+
+  public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
+      final int udafIndex,
+      final FunctionCall functionCall
+  ) {
+    // args from index > 0 are all literals
+    final List<Object> args = functionCall.getArguments()
+        .stream()
+        .skip(1)
+        .map(expr -> {
+          if (expr instanceof Literal) {
+            return (Literal)expr;
+          } else {
+            throw new KsqlException(
+                "Aggregate function initialisation arguments must be literals"
+            );
+          }
+        })
+        .map(Literal::getValue)
+        .collect(Collectors.toList());
+
+    return new AggregateFunctionInitArguments(udafIndex, args);
+  }
+
+
 }

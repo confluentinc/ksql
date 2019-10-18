@@ -39,7 +39,7 @@ public class IntTopkKudafTest {
   private KsqlAggregateFunction<Integer, List<Integer>, List<Integer>> topkKudaf;
 
   private AggregateFunctionInitArguments createArgs(int k) {
-    return new AggregateFunctionInitArguments(0, String.valueOf(k));
+    return new AggregateFunctionInitArguments(0, k);
   }
 
   @SuppressWarnings("unchecked")

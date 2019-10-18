@@ -26,6 +26,6 @@ public class TopKDistinctTestUtils {
     return (TopkDistinctKudaf<T>) new TopkDistinctAggFunctionFactory()
         .createAggregateFunction(
             Collections.singletonList(schema),
-            new AggregateFunctionInitArguments(0, String.valueOf(topk)));
+            new AggregateFunctionInitArguments(0, topk));
   }
 }

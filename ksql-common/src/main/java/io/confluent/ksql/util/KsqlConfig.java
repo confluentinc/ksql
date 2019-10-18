@@ -775,7 +775,7 @@ public class KsqlConfig extends AbstractConfig {
     return Collections.unmodifiableMap(allPropsCleaned);
   }
 
-  public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
+  public KsqlConfig cloneWithPropertyOverwrite(final Map<String, ?> props) {
     final Map<String, Object> cloneProps = new HashMap<>(originals());
     cloneProps.putAll(props);
     final Map<String, ConfigValue> streamConfigProps =
@@ -784,7 +784,7 @@ public class KsqlConfig extends AbstractConfig {
     return new KsqlConfig(ConfigGeneration.CURRENT, cloneProps, streamConfigProps);
   }
 
-  public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
+  public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, ?> props) {
     final KsqlConfig originalConfig = new KsqlConfig(ConfigGeneration.LEGACY, props);
     final Map<String, Object> mergedProperties = new HashMap<>(originals());
     COMPATIBLY_BREAKING_CONFIG_DEFS.stream()

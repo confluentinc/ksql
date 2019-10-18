@@ -45,7 +45,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.kafka.clients.admin.TopicDescription;
-import org.apache.kafka.clients.admin.TopicDescriptionFactory;
 import org.apache.kafka.common.Node;
 import org.apache.kafka.common.TopicPartitionInfo;
 import org.apache.kafka.common.acl.AclOperation;
@@ -168,7 +167,7 @@ public class SandboxedKafkaTopicClientTest {
           .describeTopic("some topic");
 
       // Then:
-      assertThat(result, is(TopicDescriptionFactory.create(
+      assertThat(result, is(new TopicDescription(
           "some topic",
           false,
           topicPartitions(2, 3),
@@ -186,7 +185,7 @@ public class SandboxedKafkaTopicClientTest {
 
       // Then:
       assertThat(result.keySet(), contains("some topic"));
-      assertThat(result.get("some topic"), is(TopicDescriptionFactory.create(
+      assertThat(result.get("some topic"), is(new TopicDescription(
           "some topic",
           false,
           topicPartitions(2, 3),

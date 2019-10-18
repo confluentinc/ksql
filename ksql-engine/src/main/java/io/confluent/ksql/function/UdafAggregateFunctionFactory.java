@@ -23,11 +23,11 @@ import org.apache.kafka.connect.data.Schema;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
 
-  private final UdfIndex<UdafCreator> udfIndex;
+  private final UdfIndex<UdafFactoryInvoker> udfIndex;
 
   UdafAggregateFunctionFactory(
       final UdfMetadata metadata,
-      final List<UdafCreator> factoryList
+      final List<UdafFactoryInvoker> factoryList
   ) {
     super(metadata);
     udfIndex = new UdfIndex<>(metadata.getName());
@@ -39,7 +39,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
       final List<Schema> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
-    final UdafCreator creator = udfIndex.getFunction(argTypeList);
+    final UdafFactoryInvoker creator = udfIndex.getFunction(argTypeList);
     if (creator == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="
@@ -53,7 +53,7 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
   public synchronized List<List<Schema>> supportedArgs() {
     return udfIndex.values()
         .stream()
-        .map(UdafCreator::getArguments)
+        .map(UdafFactoryInvoker::getArguments)
         .collect(Collectors.toList());
   }
 }

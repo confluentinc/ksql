@@ -42,7 +42,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   private static final AggregateFunctionInitArguments DEFAULT_INIT_ARGS =
-      new AggregateFunctionInitArguments(0, "1");
+      new AggregateFunctionInitArguments(0, 1);
 
   @Override
   public KsqlAggregateFunction createAggregateFunction(
@@ -52,7 +52,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
     if (argumentType.isEmpty()) {
       throw new KsqlException("TOPK function should have two arguments.");
     }
-    final int tkValFromArg = Integer.parseInt(initArgs.arg(0));
+    final int tkValFromArg = (Integer)(initArgs.arg(0));
     final Schema argSchema = argumentType.get(0);
     switch (argSchema.type()) {
       case INT32:

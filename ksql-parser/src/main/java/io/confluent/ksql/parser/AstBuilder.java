@@ -352,7 +352,7 @@ public class AstBuilder {
           targetLocation,
           SourceName.of(targetName),
           columns,
-          visit(context.values().expression(), Expression.class));
+          visit(context.values().valueExpression(), Expression.class));
     }
 
     @Override

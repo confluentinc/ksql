@@ -32,5 +32,5 @@ public interface SqlValueCoercer {
    * @param targetSchema the target SQL type.
    * @return the coerced value if the value could be coerced, {@link Optional#empty()} otherwise.
    */
-  Optional<Object> coerce(Object value, SqlType targetSchema);
+  Optional<?> coerce(Object value, SqlType targetSchema);
 }

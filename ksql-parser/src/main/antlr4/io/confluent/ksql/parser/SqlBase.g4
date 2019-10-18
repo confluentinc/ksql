@@ -158,7 +158,7 @@ groupingExpressions
     ;
 
 values
-    : '(' (expression (',' expression)*)? ')'
+    : '(' (valueExpression (',' valueExpression)*)? ')'
     ;
 
 /*

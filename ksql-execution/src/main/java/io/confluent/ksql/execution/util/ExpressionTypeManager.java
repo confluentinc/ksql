@@ -46,6 +46,7 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -66,7 +67,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
@@ -364,10 +364,8 @@ public class ExpressionTypeManager {
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
             : getExpressionSchema(node.getArguments().get(0));
 
-        final List<String> sargs =
-            node.getArguments().stream().map(Object::toString).collect(Collectors.toList());
         final AggregateFunctionInitArguments args =
-            AggregateFunctionInitArguments.ofFunctionArgs(0, sargs);
+            UdafUtil.createAggregateFunctionInitArgs(0, node);
 
         final KsqlAggregateFunction aggFunc = functionRegistry
             .getAggregateFunction(node.getName().name(), schema, args);

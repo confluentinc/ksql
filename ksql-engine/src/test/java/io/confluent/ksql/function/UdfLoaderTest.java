@@ -48,7 +48,9 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -66,6 +68,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -90,6 +93,8 @@ public class UdfLoaderTest {
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
@@ -351,6 +356,40 @@ public class UdfLoaderTest {
     final ClassLoader multiplyLoader = getActualUdfClassLoader(multiplyUdf);
     assertThat(multiplyLoader, equalTo(getActualUdfClassLoader(toStringUdf)));
     assertThat(multiplyLoader, not(equalTo(PARENT_CLASS_LOADER)));
+  }
+
+  @Test
+  public void shouldAllowClassesWithSameFQCNInDifferentUDFJars() throws Exception {
+
+    File pluginDir = tempFolder.newFolder();
+    Files.copy(Paths.get("src/test/resources/udf-example.jar"),
+        new File(pluginDir, "udf-example.jar").toPath());
+    Files.copy(Paths.get("src/test/resources/udf-isolated.jar"),
+        new File(pluginDir, "udf-isolated.jar").toPath());
+
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
+        pluginDir,
+        PARENT_CLASS_LOADER,
+        value -> false,
+        Optional.empty(),
+        true)
+        ;
+
+    udfLoader.load();
+
+    final UdfFactory multiply = functionRegistry.getUdfFactory("multiply");
+    final UdfFactory multiply2 = functionRegistry.getUdfFactory("multiply2");
+
+    final Kudf multiplyUdf = multiply.getFunction(Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
+        .newInstance(ksqlConfig);
+
+    final Kudf multiply2Udf = multiply2.getFunction(Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
+        .newInstance(ksqlConfig);
+
+    assertThat(multiplyUdf.evaluate(2, 2), equalTo(4L));
+    assertThat(multiply2Udf.evaluate(2, 2), equalTo(5L));
   }
 
   @Test

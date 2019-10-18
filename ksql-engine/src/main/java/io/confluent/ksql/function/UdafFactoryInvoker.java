@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import com.google.common.primitives.Primitives;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.name.FunctionName;
@@ -29,7 +28,6 @@ import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Struct;
 
 class UdafFactoryInvoker implements FunctionSignature {
 
@@ -75,13 +73,7 @@ class UdafFactoryInvoker implements FunctionSignature {
 
   @SuppressWarnings("unchecked")
   KsqlAggregateFunction createFunction(final AggregateFunctionInitArguments initArgs) {
-    final Object[] factoryArgs = new Object[initArgs.argsSize()];
-    for (int i = 0; i < factoryArgs.length; i++) {
-      final Class<?> argType = method.getParameterTypes()[i];
-      final Object arg = coerce(argType, initArgs.arg(i));
-      factoryArgs[i] = arg;
-    }
-
+    final Object[] factoryArgs = initArgs.args().toArray();
     try {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
       final KsqlAggregateFunction function;
@@ -115,28 +107,4 @@ class UdafFactoryInvoker implements FunctionSignature {
     return false;
   }
 
-  private static Object coerce(
-      final Class<?> clazz,
-      final String arg) {
-    if (Integer.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Integer.valueOf(arg);
-    } else if (Long.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Long.valueOf(arg);
-    } else if (Double.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Double.valueOf(arg);
-    } else if (Float.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Float.valueOf(arg);
-    } else if (Byte.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Byte.valueOf(arg);
-    } else if (Short.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Short.valueOf(arg);
-    } else if (Boolean.class.isAssignableFrom(Primitives.wrap(clazz))) {
-      return Boolean.valueOf(arg);
-    } else if (String.class.isAssignableFrom(clazz)) {
-      return arg;
-    } else if (Struct.class.isAssignableFrom(clazz)) {
-      return arg;
-    }
-    throw new KsqlFunctionException("Unsupported udaf argument type: " + clazz);
-  }
 }

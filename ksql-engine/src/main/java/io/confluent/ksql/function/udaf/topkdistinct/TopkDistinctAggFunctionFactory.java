@@ -42,6 +42,9 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
     super(NAME);
   }
 
+  private static final AggregateFunctionInitArguments DEFAULT_INIT_ARGS =
+      new AggregateFunctionInitArguments(0, 1);
+
   @SuppressWarnings("unchecked")
   @Override
   public KsqlAggregateFunction createAggregateFunction(
@@ -50,7 +53,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
-    final int tkValFromArg = Integer.parseInt(initArgs.arg(0));
+    final int tkValFromArg = (Integer)(initArgs.arg(0));
     final Schema argSchema = argTypeList.get(0);
     switch (argSchema.type()) {
       case INT32:
@@ -72,5 +75,10 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   @Override
   public List<List<Schema>> supportedArgs() {
     return SUPPORTED_TYPES;
+  }
+
+  @Override
+  public AggregateFunctionInitArguments getDefaultArguments() {
+    return DEFAULT_INIT_ARGS;
   }
 }

@@ -81,10 +81,6 @@ public final class TopologyFileGenerator {
     private TopologyFileGenerator() {
     }
 
-    public static void main(final String[] args) throws Exception {
-        generateTopologies(findBaseDir());
-    }
-
     static Path findBaseDir() {
         Path path = Paths.get("./ksql-functional-tests");
         if (Files.exists(path)) {
@@ -97,6 +93,10 @@ public final class TopologyFileGenerator {
         throw new RuntimeException("Failed to determine location of expected topologies directory. "
             + "App should be run with current directory set to either the root of the repo or the "
             + "root of the ksql-functional-tests module");
+    }
+
+    static void generateTopologies() throws Exception {
+        generateTopologies(findBaseDir());
     }
 
     static void generateTopologies(final Path base) throws Exception {

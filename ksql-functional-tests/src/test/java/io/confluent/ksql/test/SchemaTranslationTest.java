@@ -18,6 +18,7 @@ import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.TestCase;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.VersionBounds;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
 import java.nio.file.Path;
@@ -177,7 +178,7 @@ public class SchemaTranslationTest {
         return Stream.of(new TestCase(
             testPath,
             name,
-            Optional.empty(),
+            VersionBounds.allVersions(),
             Collections.emptyMap(),
             ImmutableList.of(srcTopic, OUTPUT_TOPIC),
             inputRecords,

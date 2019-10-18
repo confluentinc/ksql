@@ -34,7 +34,7 @@ public class TestCase implements VersionedTest {
 
   private final Path testPath;
   private final String name;
-  private final Optional<KsqlVersion> ksqlVersion;
+  private final VersionBounds versionBounds;
   private final Map<String, Object> properties;
   private final Collection<Topic> topics;
   private final List<Record> inputRecords;
@@ -43,13 +43,13 @@ public class TestCase implements VersionedTest {
   private final Optional<Matcher<Throwable>> expectedException;
   private List<String> generatedTopologies;
   private List<String> generatedSchemas;
-  private Optional<TopologyAndConfigs> expectedTopology = Optional.empty();
+  private final Optional<TopologyAndConfigs> expectedTopology;
   private final PostConditions postConditions;
 
   public TestCase(
       final Path testPath,
       final String name,
-      final Optional<KsqlVersion> ksqlVersion,
+      final VersionBounds versionBounds,
       final Map<String, Object> properties,
       final Collection<Topic> topics,
       final List<Record> inputRecords,
@@ -58,33 +58,78 @@ public class TestCase implements VersionedTest {
       final Optional<Matcher<Throwable>> expectedException,
       final PostConditions postConditions
   ) {
-    this.topics = topics;
-    this.inputRecords = inputRecords;
-    this.outputRecords = outputRecords;
-    this.testPath = testPath;
-    this.name = name;
-    this.ksqlVersion = Objects.requireNonNull(ksqlVersion, "ksqlVersion");
-    this.properties = ImmutableMap.copyOf(properties);
-    this.statements = statements;
-    this.expectedException = requireNonNull(expectedException, "expectedException");
-    this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
-  }
-
-  public TestCase withVersion(final KsqlVersion version) {
-    final String newName = name + "-" + version.getName();
-    final TestCase copy = new TestCase(
+    this(
         testPath,
-        newName,
-        Optional.of(version),
+        name,
+        versionBounds,
         properties,
         topics,
         inputRecords,
         outputRecords,
         statements,
         expectedException,
-        postConditions);
+        postConditions,
+        Optional.empty()
+    );
+  }
+
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
+  private TestCase(
+      final Path testPath,
+      final String name,
+      final VersionBounds versionBounds,
+      final Map<String, Object> properties,
+      final Collection<Topic> topics,
+      final List<Record> inputRecords,
+      final List<Record> outputRecords,
+      final List<String> statements,
+      final Optional<Matcher<Throwable>> expectedException,
+      final PostConditions postConditions,
+      final Optional<TopologyAndConfigs> expectedTopology
+  ) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
+    this.topics = topics;
+    this.inputRecords = inputRecords;
+    this.outputRecords = outputRecords;
+    this.testPath = testPath;
+    this.name = name;
+    this.versionBounds = Objects.requireNonNull(versionBounds, "versionBounds");
+    this.properties = ImmutableMap.copyOf(properties);
+    this.statements = statements;
+    this.expectedException = requireNonNull(expectedException, "expectedException");
+    this.expectedTopology = requireNonNull(expectedTopology, "expectedTopology");
+    this.postConditions = Objects.requireNonNull(postConditions, "postConditions");
+  }
+
+  @Override
+  public VersionBounds getVersionBounds() {
+    return versionBounds;
+  }
+
+  public TestCase withExpectedTopology(
+      final KsqlVersion version,
+      final TopologyAndConfigs expectedTopology
+  ) {
+    if (!versionBounds.contains(version)) {
+      throw new IllegalArgumentException("Test does not support supplied version: " + version);
+    }
+
+    final String newName = name + "-" + version.getName();
+    final TestCase copy = new TestCase(
+        testPath,
+        newName,
+        versionBounds,
+        properties,
+        topics,
+        inputRecords,
+        outputRecords,
+        statements,
+        expectedException,
+        postConditions,
+        Optional.of(expectedTopology)
+    );
+
     copy.generatedTopologies = generatedTopologies;
-    copy.expectedTopology = expectedTopology;
     copy.generatedSchemas = generatedSchemas;
     return copy;
   }
@@ -111,10 +156,6 @@ public class TestCase implements VersionedTest {
     return generatedTopologies;
   }
 
-  public void setExpectedTopology(final TopologyAndConfigs expectedTopology) {
-    this.expectedTopology = Optional.of(expectedTopology);
-  }
-
   public Optional<TopologyAndConfigs> getExpectedTopology() {
     return expectedTopology;
   }
@@ -131,10 +172,6 @@ public class TestCase implements VersionedTest {
     return expectedTopology
         .flatMap(TopologyAndConfigs::getConfigs)
         .orElseGet(HashMap::new);
-  }
-
-  public Optional<KsqlVersion> getKsqlVersion() {
-    return ksqlVersion;
   }
 
   public Map<String, Object> properties() {

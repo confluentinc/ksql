@@ -59,6 +59,7 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
   private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final KsqlVersion CURRENT_VERSION = KsqlVersion.current();
 
   private final String topologyChecksDir;
   private final TestLoader<T> innerLoader;
@@ -173,15 +174,24 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
       final List<TopologiesAndVersion> expectedTopologies
   ) {
     Stream.Builder<T> builder = Stream.builder();
-    builder = builder.add(test);
+    if (test.getVersionBounds().contains(CURRENT_VERSION)) {
+      builder.add(test);
+    }
 
     for (final TopologiesAndVersion topologies : expectedTopologies) {
+      if (!test.getVersionBounds().contains(topologies.getVersion())) {
+        continue;
+      }
+
       final TopologyAndConfigs topologyAndConfigs =
           topologies.getTopology(formatQueryName(test.getName()));
       // could be null if the testCase has expected errors, no topology or configs saved
       if (topologyAndConfigs != null) {
-        final T versionedTest = (T) test.withVersion(topologies.getVersion());
-        versionedTest.setExpectedTopology(topologyAndConfigs);
+        final T versionedTest = (T) test.withExpectedTopology(
+            topologies.getVersion(),
+            topologyAndConfigs
+        );
+
         builder = builder.add(versionedTest);
       }
     }
@@ -208,7 +218,7 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
     }
   }
 
-  public static TopologyAndConfigs readTopologyFile(
+  private static TopologyAndConfigs readTopologyFile(
       final String file,
       final ObjectReader objectReader
   ) {

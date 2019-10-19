@@ -649,16 +649,16 @@ public class SqlFormatterTest {
   }
 
   @Test
-  public void shouldNotParseArbitraryExpressions() {
+  public void shouldParseArbitraryExpressions() {
     // Given:
     final String statementString = "INSERT INTO ADDRESS VALUES (2 + 1);";
-
-    // Expect:
-    expectedException.expect(ParseFailedException.class);
-    expectedException.expectMessage("mismatched input");
+    final Statement statement = KsqlParserTestUtil.buildSingleAst(statementString, metaStore).getStatement();
 
     // When:
-    KsqlParserTestUtil.buildSingleAst(statementString, metaStore);
+    final String result = SqlFormatter.formatSql(statement);
+
+    // Then:
+    assertThat(result, is("INSERT INTO ADDRESS VALUES ((2 + 1))"));
   }
 
   @Test

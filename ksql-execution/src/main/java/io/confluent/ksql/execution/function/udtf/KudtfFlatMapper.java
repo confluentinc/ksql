@@ -65,9 +65,10 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
 
     final List<Object> list = tableFunction.flatMap(unexplodedValue);
 
+    // TODO please note that this is not an optimised final implementation
     final List<GenericRow> rows = new ArrayList<>();
     for (Object val : list) {
-      final ArrayList<Object> arrayList = new ArrayList<>(row.getColumns());
+      final List<Object> arrayList = new ArrayList<>(row.getColumns());
       arrayList.add(val);
       // The exploded result columns always go at the end
       rows.add(new GenericRow(arrayList));

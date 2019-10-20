@@ -28,9 +28,9 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
 
-  final List<FunctionCall> functionCalls;
-  final FunctionRegistry functionRegistry;
-  final LogicalSchema inputSchema;
+  private final List<FunctionCall> functionCalls;
+  private final FunctionRegistry functionRegistry;
+  private final LogicalSchema inputSchema;
 
   public StreamFlatMap(
       final ExecutionStepProperties properties,

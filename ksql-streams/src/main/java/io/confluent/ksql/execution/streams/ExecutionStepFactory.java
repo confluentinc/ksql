@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -48,7 +49,6 @@ import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -147,17 +147,13 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
       final LogicalSchema resultSchema,
-      final List<FunctionCall> functionCalls,
-      final FunctionRegistry functionRegistry,
-      final LogicalSchema inputSchema
+      final TableFunctionApplier functionHolder
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFlatMap<>(
         new DefaultExecutionStepProperties(resultSchema, queryContext),
         source,
-        functionCalls,
-        functionRegistry,
-        inputSchema
+        functionHolder
     );
   }
 

@@ -21,6 +21,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Encapsulates data that's been extracted from a query related to table functions.
+ */
 public class TableFunctionAnalysis {
 
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
@@ -30,16 +33,15 @@ public class TableFunctionAnalysis {
     return Collections.unmodifiableList(tableFunctions);
   }
 
-  void addTableFunction(final FunctionCall functionCall) {
-    tableFunctions.add(Objects.requireNonNull(functionCall));
-  }
-
   public List<Expression> getFinalSelectExpressions() {
     return selectExpressions;
+  }
+
+  void addTableFunction(final FunctionCall functionCall) {
+    tableFunctions.add(Objects.requireNonNull(functionCall));
   }
 
   void addFinalSelectExpression(final Expression selectExpression) {
     this.selectExpressions.add(Objects.requireNonNull(selectExpression));
   }
-
 }

@@ -15,9 +15,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -27,23 +25,16 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
-
-  private final List<FunctionCall> functionCalls;
-  private final FunctionRegistry functionRegistry;
-  private final LogicalSchema inputSchema;
+  private final TableFunctionApplier functionHolder;
 
   public StreamFlatMap(
       final ExecutionStepProperties properties,
       final ExecutionStep<KStreamHolder<K>> source,
-      final List<FunctionCall> functionCalls,
-      final FunctionRegistry functionRegistry,
-      final LogicalSchema inputSchema
+      final TableFunctionApplier functionHolder
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
-    this.functionCalls = functionCalls;
-    this.functionRegistry = functionRegistry;
-    this.inputSchema = inputSchema;
+    this.functionHolder = functionHolder;
   }
 
   @Override
@@ -56,46 +47,17 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
     return Collections.singletonList(source);
   }
 
-  public ExecutionStep<KStreamHolder<K>> getSource() {
-    return source;
-  }
-
   @Override
   public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitFlatMap(this);
   }
 
-  public List<FunctionCall> getFunctionCalls() {
-    return functionCalls;
+  public TableFunctionApplier getFunctionHolder() {
+    return functionHolder;
   }
 
-  public FunctionRegistry getFunctionRegistry() {
-    return functionRegistry;
+  public ExecutionStep<KStreamHolder<K>> getSource() {
+    return source;
   }
 
-  public LogicalSchema getInputSchema() {
-    return inputSchema;
-  }
-
-  public LogicalSchema getOutputSchema() {
-    return properties.getSchema();
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    final StreamFlatMap<?> that = (StreamFlatMap<?>) o;
-    return Objects.equals(properties, that.properties)
-        && Objects.equals(source, that.source);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(properties, source);
-  }
 }

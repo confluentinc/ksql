@@ -23,6 +23,10 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Analyses a query and extracts data related to table functions - the data is returned in an
+ * instance of {@code TableFunctionAnalysis}
+ */
 class TableFunctionAnalyzer {
 
   private final TableFunctionAnalysis tableFunctionAnalysis;

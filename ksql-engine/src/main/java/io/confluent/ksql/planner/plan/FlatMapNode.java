@@ -35,6 +35,10 @@ import java.util.List;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
+/**
+ * A node in the logical plan which represents a flat map operation - transforming a single row
+ * into zero or more rows.
+ */
 @Immutable
 public class FlatMapNode extends PlanNode {
 

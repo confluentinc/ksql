@@ -283,7 +283,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
-        projectNode.getProjectSelectExpressions(),
+        projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder
     );
@@ -308,7 +308,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
-        projectNode.getProjectSelectExpressions(),
+        projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder
     );
@@ -320,7 +320,7 @@ public class SchemaKTableTest {
             ExecutionStepFactory.tableMapValues(
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
-                projectNode.getProjectSelectExpressions(),
+                projectNode.getSelectExpressions(),
                 queryBuilder
             )
         )
@@ -337,7 +337,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
-        projectNode.getProjectSelectExpressions(),
+        projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder
     );
@@ -846,7 +846,7 @@ public class SchemaKTableTest {
     );
 
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    return projectNode.getProjectSelectExpressions();
+    return projectNode.getSelectExpressions();
   }
 
   private PlanNode buildLogicalPlan(final String query) {

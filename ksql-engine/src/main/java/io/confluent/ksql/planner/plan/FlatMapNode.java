@@ -20,6 +20,7 @@ import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.function.UdtfUtil;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -75,6 +76,11 @@ public class FlatMapNode extends PlanNode {
 
   public PlanNode getSource() {
     return source;
+  }
+
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return tableFunctionAnalysis.getFinalSelectExpressions();
   }
 
   @Override

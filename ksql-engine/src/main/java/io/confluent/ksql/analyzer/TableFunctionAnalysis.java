@@ -14,8 +14,8 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -27,13 +27,13 @@ import java.util.Objects;
 public class TableFunctionAnalysis {
 
   private final List<FunctionCall> tableFunctions = new ArrayList<>();
-  private final List<Expression> selectExpressions = new ArrayList<>();
+  private final List<SelectExpression> selectExpressions = new ArrayList<>();
 
   public List<FunctionCall> getTableFunctions() {
     return Collections.unmodifiableList(tableFunctions);
   }
 
-  public List<Expression> getFinalSelectExpressions() {
+  public List<SelectExpression> getFinalSelectExpressions() {
     return selectExpressions;
   }
 
@@ -41,7 +41,7 @@ public class TableFunctionAnalysis {
     tableFunctions.add(Objects.requireNonNull(functionCall));
   }
 
-  void addFinalSelectExpression(final Expression selectExpression) {
+  void addFinalSelectExpression(final SelectExpression selectExpression) {
     this.selectExpressions.add(Objects.requireNonNull(selectExpression));
   }
 }

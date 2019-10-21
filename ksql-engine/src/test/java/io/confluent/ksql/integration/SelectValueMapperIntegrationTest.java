@@ -83,7 +83,7 @@ public class SelectValueMapperIntegrationTest {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     return SelectValueMapperFactory.create(
         selectExpressions,

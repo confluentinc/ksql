@@ -177,6 +177,11 @@ public class AggregateNode extends PlanNode {
   }
 
   @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return Collections.emptyList();
+  }
+
+  @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitAggregate(this, context);
   }

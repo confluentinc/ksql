@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -31,16 +32,19 @@ public class FilterNode extends PlanNode {
 
   private final PlanNode source;
   private final Expression predicate;
+  private final List<SelectExpression> selectExpressions;
 
   public FilterNode(
       final PlanNodeId id,
       final PlanNode source,
-      final Expression predicate
+      final Expression predicate,
+      final List<SelectExpression> selectExpressions
   ) {
     super(id, source.getNodeOutputType());
 
     this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");
+    this.selectExpressions = selectExpressions;
   }
 
   public Expression getPredicate() {
@@ -60,6 +64,11 @@ public class FilterNode extends PlanNode {
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of(source);
+  }
+
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
   }
 
   public PlanNode getSource() {

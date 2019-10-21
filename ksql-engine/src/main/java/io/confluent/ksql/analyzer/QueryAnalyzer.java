@@ -197,7 +197,10 @@ public class QueryAnalyzer {
       tableFunctionAnalyzer.processSelect(exp);
 
       tableFunctionAnalysis.addFinalSelectExpression(
-          ExpressionTreeRewriter.rewriteWith(tableFunctionExpressionRewriter::process, exp));
+          SelectExpression.of(
+              select.getAlias(),
+              ExpressionTreeRewriter.rewriteWith(
+                  tableFunctionExpressionRewriter::process, exp)));
     }
   }
 

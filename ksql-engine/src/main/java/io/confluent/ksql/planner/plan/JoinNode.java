@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
@@ -59,9 +60,11 @@ public class JoinNode extends PlanNode {
   private final ColumnRef rightJoinFieldName;
   private final KeyField keyField;
   private final Optional<WithinExpression> withinExpression;
+  private final List<SelectExpression> selectExpressions;
 
   public JoinNode(
       final PlanNodeId id,
+      final List<SelectExpression> selectExpressions,
       final JoinType joinType,
       final DataSourceNode left,
       final DataSourceNode right,
@@ -76,6 +79,7 @@ public class JoinNode extends PlanNode {
     this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
+    this.selectExpressions = selectExpressions;
 
     final Column leftKeyCol = validateSchemaColumn(leftJoinFieldName, left.getSchema());
     validateSchemaColumn(rightJoinFieldName, right.getSchema());
@@ -105,6 +109,11 @@ public class JoinNode extends PlanNode {
   @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitJoin(this, context);
+  }
+
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
   }
 
   public DataSourceNode getLeft() {

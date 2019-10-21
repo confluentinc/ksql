@@ -138,7 +138,8 @@ public class DataSourceNodeTest {
   private final DataSourceNode node = new DataSourceNode(
       PLAN_NODE_ID,
       SOME_SOURCE,
-      SOME_SOURCE.getName()
+      SOME_SOURCE.getName(),
+      Collections.emptyList()
   );
 
   private final QueryId queryId = new QueryId("source-test");
@@ -285,7 +286,8 @@ public class DataSourceNodeTest {
     final DataSourceNode node = new DataSourceNode(
         PLAN_NODE_ID,
         table,
-        table.getName());
+        table.getName(),
+        Collections.emptyList());
 
     final SchemaKStream result = buildStream(node);
     assertThat(result.getClass(), equalTo(SchemaKTable.class));
@@ -438,7 +440,8 @@ public class DataSourceNodeTest {
     return new DataSourceNode(
         realNodeId,
         dataSource,
-        SourceName.of("t")
+        SourceName.of("t"),
+        Collections.emptyList()
     );
   }
 
@@ -449,6 +452,7 @@ public class DataSourceNodeTest {
         PLAN_NODE_ID,
         dataSource,
         SourceName.of("name"),
+        Collections.emptyList(),
         schemaKStreamFactory
     );
   }

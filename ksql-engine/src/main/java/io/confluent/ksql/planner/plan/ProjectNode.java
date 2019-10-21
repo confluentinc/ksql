@@ -89,7 +89,8 @@ public class ProjectNode extends PlanNode {
     return keyField;
   }
 
-  public List<SelectExpression> getProjectSelectExpressions() {
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
     return projectExpressions;
   }
 
@@ -102,7 +103,7 @@ public class ProjectNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return getSource().buildStream(builder)
         .select(
-            getProjectSelectExpressions(),
+            getSelectExpressions(),
             builder.buildNodeContext(getId().toString()),
             builder
         );

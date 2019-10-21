@@ -50,7 +50,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicyFactory;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.BiFunction;
@@ -222,43 +221,16 @@ public class LogicalPlanner {
         sourcePlanNode,
         schema,
         keyFieldName.map(ColumnRef::withoutSource),
-        getFinalSelectExpressions(schema)
+        sourcePlanNode.getSelectExpressions()
     );
-  }
-
-  private List<SelectExpression> getFinalSelectExpressions(final LogicalSchema schema) {
-    if (!tableFunctionAnalysis.getTableFunctions().isEmpty()) {
-
-      final List<Expression> finalSelectExpressions =
-          tableFunctionAnalysis.getFinalSelectExpressions();
-
-      final List<SelectExpression> finalSelectExpressionList = new ArrayList<>();
-      if (finalSelectExpressions.size() != schema.value().size()) {
-        throw new RuntimeException(
-            "Incompatible aggregate schema, field count must match, "
-                + "selected field count:"
-                + finalSelectExpressions.size()
-                + " schema field count:"
-                + schema.value().size());
-      }
-      for (int i = 0; i < finalSelectExpressions.size(); i++) {
-        finalSelectExpressionList.add(SelectExpression.of(
-            schema.value().get(i).name(),
-            finalSelectExpressions.get(i)
-        ));
-      }
-
-      return finalSelectExpressionList;
-    } else {
-      return analysis.getSelectExpressions();
-    }
   }
 
   private static FilterNode buildFilterNode(
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
-    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression,
+        sourcePlanNode.getSelectExpressions());
   }
 
   private FlatMapNode buildFlatMapNode(
@@ -287,17 +259,20 @@ public class LogicalPlanner {
     final DataSourceNode leftSourceNode = new DataSourceNode(
         new PlanNodeId("KafkaTopic_Left"),
         left.getDataSource(),
-        left.getAlias()
+        left.getAlias(),
+        analysis.getSelectExpressions()
     );
 
     final DataSourceNode rightSourceNode = new DataSourceNode(
         new PlanNodeId("KafkaTopic_Right"),
         right.getDataSource(),
-        right.getAlias()
+        right.getAlias(),
+        analysis.getSelectExpressions()
     );
 
     return new JoinNode(
         new PlanNodeId("Join"),
+        analysis.getSelectExpressions(),
         joinInfo.get().getType(),
         leftSourceNode,
         rightSourceNode,
@@ -316,7 +291,8 @@ public class LogicalPlanner {
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),
-        dataSource.getAlias()
+        dataSource.getAlias(),
+        analysis.getSelectExpressions()
     );
   }
 

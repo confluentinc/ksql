@@ -203,10 +203,10 @@ public class QueryAnalyzerFunctionalTest {
     final TableFunctionAnalysis tableFunctionAnalysis = queryAnalyzer.analyzeTableFunctions(analysis);
 
     // Then:
-    assertThat(tableFunctionAnalysis.getTableFunctions().size(), equalTo(2));
+    assertThat(tableFunctionAnalysis.getTableFunctions(), hasSize(2));
     assertThat(tableFunctionAnalysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
     assertThat(tableFunctionAnalysis.getTableFunctions().get(1).getName().name(), equalTo("EXPLODE"));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().size(), equalTo(3));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions(), hasSize(3));
     assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(0).toString(), equalTo("SENSOR_READINGS.ID"));
     assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(1).toString(), equalTo("KSQL_UDTF_VARIABLE_0"));
     assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(2).toString(), equalTo("KSQL_UDTF_VARIABLE_1"));

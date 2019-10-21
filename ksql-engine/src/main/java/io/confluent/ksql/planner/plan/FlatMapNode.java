@@ -123,7 +123,7 @@ public class FlatMapNode extends PlanNode {
       final KsqlTableFunction tableFunction =
           UdtfUtil.resolveTableFunction(functionRegistry,
               tableFunctionAnalysis.getTableFunctions().get(i), inputSchema);
-      final ColumnName colName = ColumnName.udtfColumn(i);
+      final ColumnName colName = ColumnName.generatedColumnName(i);
       final SqlType fieldType = converter.toSqlType(tableFunction.getReturnType());
       schemaBuilder.valueColumn(colName, fieldType);
     }

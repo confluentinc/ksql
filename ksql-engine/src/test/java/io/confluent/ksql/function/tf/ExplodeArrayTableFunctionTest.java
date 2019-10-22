@@ -16,6 +16,7 @@
 package io.confluent.ksql.function.tf;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.KsqlTableFunction;
@@ -33,32 +34,44 @@ public class ExplodeArrayTableFunctionTest {
   private ExplodeFunctionFactory factory;
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     factory = new ExplodeFunctionFactory();
   }
 
   @Test
-  public void shouldFlatMapArray() {
-    List<Integer> input = Arrays.asList(1, 2, 3, 4, 5, 6);
-    testFlatMap(input);
+  @SuppressWarnings("unchecked")
+  public void shouldCreateTableFunction() {
+    KsqlTableFunction<Integer, Integer> tf =
+        (KsqlTableFunction<Integer, Integer>)factory.createTableFunction(intListParamTypes());
+    assertThat(tf, is(notNullValue()));
   }
 
   @Test
-  public void shouldFlatMapEmptyArray() {
-    testFlatMap(Collections.emptyList());
-  }
-
   @SuppressWarnings("unchecked")
-  private void testFlatMap(List<Integer> input) {
-    KsqlTableFunction<List<Integer>, Integer> tf =
-        (KsqlTableFunction<List<Integer>, Integer>)factory.createTableFunction(intListParamTypes());
+  public void shouldFlatMapArray() {
+    List<Integer> input = Arrays.asList(1, 2, 3, 4, 5, 6);
+    KsqlTableFunction<Integer, Integer> tf = createTableFunction();
     List<Integer> output = tf.flatMap(input);
     assertThat(input, is(output));
   }
 
-  private List<Schema> intListParamTypes() {
+  @Test
+  @SuppressWarnings("unchecked")
+  public void shouldFlatMapEmptyArray() {
+    List<Integer> input = Collections.emptyList();
+    KsqlTableFunction<Integer, Integer> tf = createTableFunction();
+    List<Integer> output = tf.flatMap(input);
+    assertThat(input, is(output));
+  }
+
+  private static List<Schema> intListParamTypes() {
     Schema schema = SchemaBuilder.array(SchemaBuilder.OPTIONAL_INT32_SCHEMA).build();
     return Collections.singletonList(schema);
   }
 
+  @SuppressWarnings("unchecked")
+  private KsqlTableFunction<Integer, Integer> createTableFunction() {
+    return (KsqlTableFunction<Integer, Integer>)factory.createTableFunction(intListParamTypes());
+  }
 }

@@ -448,7 +448,7 @@ public class InternalFunctionRegistryTest {
           }
 
           @Override
-          public List<Object> flatMap(Object currentValue) {
+          public List<Object> flatMap(List<Object> currentValue) {
             return null;
           }
 

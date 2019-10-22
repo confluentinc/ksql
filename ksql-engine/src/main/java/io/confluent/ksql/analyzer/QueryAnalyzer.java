@@ -145,6 +145,10 @@ public class QueryAnalyzer {
         tableFunctionExpressionRewriter
     );
 
+    if (tableFunctionAnalysis.getTableFunctions().size() > 1) {
+      throw new KsqlException("Only one table function per query currently is supported");
+    }
+
     return tableFunctionAnalysis;
   }
 

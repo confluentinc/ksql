@@ -23,9 +23,11 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Supplier;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
+@Immutable
 public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFunction<I, A, O> {
 
   private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER

@@ -21,8 +21,10 @@ import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Objects;
+import jdk.nashorn.internal.ir.annotations.Immutable;
 import org.apache.kafka.connect.data.Schema;
 
+@Immutable
 public abstract class BaseTableFunction<I, O> implements KsqlTableFunction<I, O> {
 
   private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER

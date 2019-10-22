@@ -34,6 +34,8 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.ProducerTransactionManagerFactory;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
@@ -98,6 +100,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
+  private final ProducerTransactionManagerFactory producerTransactionManagerFactory;
   private RequestValidator validator;
   private RequestHandler handler;
 
@@ -107,7 +110,8 @@ public class KsqlResource implements KsqlConfigurable {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final KsqlAuthorizationValidator authorizationValidator
+      final KsqlAuthorizationValidator authorizationValidator,
+      final ProducerTransactionManagerFactory producerTransactionManagerFactory
   ) {
     this(
         ksqlEngine,
@@ -115,7 +119,8 @@ public class KsqlResource implements KsqlConfigurable {
         distributedCmdResponseTimeout,
         activenessRegistrar,
         Injectors.DEFAULT,
-        authorizationValidator
+        authorizationValidator,
+        producerTransactionManagerFactory
     );
   }
 
@@ -125,7 +130,8 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final KsqlAuthorizationValidator authorizationValidator
+      final KsqlAuthorizationValidator authorizationValidator,
+      final ProducerTransactionManagerFactory producerTransactionManagerFactory
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -136,6 +142,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
+    this.producerTransactionManagerFactory = Objects.requireNonNull(
+        producerTransactionManagerFactory, "producerTransactionManagerFactory");
   }
 
   @Override
@@ -182,7 +190,12 @@ public class KsqlResource implements KsqlConfigurable {
     ensureValidPatterns(request.getDeleteTopicList());
     try {
       return Response.ok(
-          handler.execute(serviceContext, TERMINATE_CLUSTER, request.getStreamsProperties())
+          handler.execute(
+              serviceContext,
+              TERMINATE_CLUSTER,
+              request.getStreamsProperties(),
+              producerTransactionManagerFactory.createProducerTransactionManager()
+          )
       ).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
@@ -208,6 +221,13 @@ public class KsqlResource implements KsqlConfigurable {
           distributedCmdResponseTimeout);
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+
+      final ProducerTransactionManager producerTransactionManager =
+          producerTransactionManagerFactory.createProducerTransactionManager();
+
+      producerTransactionManager.begin();
+      producerTransactionManager.waitForCommandRunner();
+
       validator.validate(
           SandboxedServiceContext.create(serviceContext),
           statements,
@@ -218,8 +238,11 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlEntityList entities = handler.execute(
           serviceContext,
           statements,
-          request.getStreamsProperties()
+          request.getStreamsProperties(),
+          producerTransactionManager
       );
+
+      producerTransactionManager.commit();
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;
@@ -229,6 +252,7 @@ public class KsqlResource implements KsqlConfigurable {
       return ErrorResponseUtil.generateResponse(
           e, Errors.badRequest(e));
     } catch (final Exception e) {
+      e.printStackTrace();
       return ErrorResponseUtil.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }

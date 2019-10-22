@@ -142,6 +142,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final List<KsqlServerPrecondition> preconditions;
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
+  private final ProducerTransactionManagerFactory producerTransactionManagerFactory;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -168,7 +169,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final ProcessingLogContext processingLogContext,
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
-      final Consumer<KsqlConfig> rocksDBConfigSetterHandler
+      final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
+      final ProducerTransactionManagerFactory producerTransactionManagerFactory
   ) {
     super(config);
 
@@ -191,6 +193,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
+    this.producerTransactionManagerFactory =
+        requireNonNull(producerTransactionManagerFactory, "producerTransactionManagerFactory");
   }
 
   @Override
@@ -276,7 +280,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext.getConfig(),
         ksqlConfigNoPort,
         ksqlEngine,
-        commandStore
+        commandStore,
+        producerTransactionManagerFactory
     );
 
     commandRunner.processPriorCommands();
@@ -467,13 +472,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopic = KsqlInternalTopicUtils.getTopicName(
+    final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
     final CommandStore commandStore = CommandStore.Factory.create(
-        commandTopic,
-        restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties());
+        commandTopicName,
+        restConfig.getCommandConsumerProperties());
 
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
@@ -501,25 +505,36 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         authorizationValidator
     );
 
-    final KsqlResource ksqlResource = new KsqlResource(
-        ksqlEngine,
-        commandStore,
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
-        versionChecker::updateLastRequestTime,
-        authorizationValidator
-    );
-
     final List<String> managedTopics = new LinkedList<>();
-    managedTopics.add(commandTopic);
+    managedTopics.add(commandTopicName);
     if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
+
     final CommandRunner commandRunner = new CommandRunner(
         statementExecutor,
         commandStore,
         maxStatementRetries,
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
         serverState
+    );
+
+    final ProducerTransactionManagerFactory producerTransactionManagerFactory =
+        new ProducerTransactionManagerFactory(
+            commandTopicName,
+            ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+            commandRunner,
+            restConfig.getCommandConsumerProperties(),
+            restConfig.getCommandProducerProperties()
+    );
+
+    final KsqlResource ksqlResource = new KsqlResource(
+        ksqlEngine,
+        commandStore,
+        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        versionChecker::updateLastRequestTime,
+        authorizationValidator,
+        producerTransactionManagerFactory
     );
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
@@ -554,7 +569,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext,
         preconditions,
         configurables,
-        rocksDBConfigSetterHandler
+        rocksDBConfigSetterHandler,
+        producerTransactionManagerFactory
     );
   }
 
@@ -621,12 +637,18 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final ProcessingLogConfig config,
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
-      final CommandQueue commandQueue
+      final CommandQueue commandQueue,
+      final ProducerTransactionManagerFactory producerTransactionManagerFactory
   ) {
     if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
         || !commandQueue.isEmpty()) {
       return;
     }
+
+    final ProducerTransactionManager producerTransactionManager =
+        producerTransactionManagerFactory.createProducerTransactionManager();
+
+    producerTransactionManager.begin();
 
     final PreparedStatement<?> statement = ProcessingLogServerUtils
         .processingLogStreamCreateStatement(config, ksqlConfig);
@@ -643,7 +665,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       return;
     }
 
-    commandQueue.enqueueCommand(configured.get());
+    commandQueue.enqueueCommand(configured.get(), producerTransactionManager);
+    producerTransactionManager.commit();
   }
 
   /**

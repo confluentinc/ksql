@@ -59,6 +59,8 @@ public class CommandRunner implements Closeable {
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
 
+  private long numCommandProcessed;
+
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
@@ -91,6 +93,7 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
+    this.numCommandProcessed = 0;
   }
 
   /**
@@ -136,6 +139,9 @@ public class CommandRunner implements Closeable {
             WakeupException.class
         )
     );
+
+    numCommandProcessed = restoreCommands.size();
+
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
@@ -170,6 +176,7 @@ public class CommandRunner implements Closeable {
         log.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
+        numCommandProcessed++;
         log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
       }
     };
@@ -202,6 +209,10 @@ public class CommandRunner implements Closeable {
 
     clusterTerminator.terminateCluster(deleteTopicList);
     log.info("The KSQL server was terminated.");
+  }
+
+  public long getNumCommandProcessed() {
+    return numCommandProcessed;
   }
 
   private class Runner implements Runnable {

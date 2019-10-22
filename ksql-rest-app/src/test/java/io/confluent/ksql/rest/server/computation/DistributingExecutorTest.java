@@ -39,6 +39,7 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -84,6 +85,7 @@ public class DistributingExecutorTest {
   @Mock KsqlAuthorizationValidator authorizationValidator;
   @Mock KsqlExecutionContext executionContext;
   @Mock MetaStore metaStore;
+  @Mock ProducerTransactionManager producerTransactionManager;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -93,7 +95,7 @@ public class DistributingExecutorTest {
     scnCounter = new AtomicLong();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(queue.enqueueCommand(any())).thenReturn(status);
+    when(queue.enqueueCommand(any(), any(ProducerTransactionManager.class))).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
@@ -106,6 +108,7 @@ public class DistributingExecutorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         authorizationValidator
     );
+    distributor.setTransactionManager(producerTransactionManager);
   }
 
   @Test
@@ -114,7 +117,7 @@ public class DistributingExecutorTest {
     distributor.execute(EMPTY_STATEMENT, ImmutableMap.of(), executionContext, serviceContext);
 
     // Then:
-    verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT));
+    verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT), any());
   }
 
   @Test
@@ -148,7 +151,7 @@ public class DistributingExecutorTest {
   public void shouldThrowExceptionOnFailureToEnqueue() {
     // Given:
     final KsqlException cause = new KsqlException("fail");
-    when(queue.enqueueCommand(any())).thenThrow(cause);
+    when(queue.enqueueCommand(any(), any(ProducerTransactionManager.class))).thenThrow(cause);
 
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("x", new ListProperties(Optional.empty()));

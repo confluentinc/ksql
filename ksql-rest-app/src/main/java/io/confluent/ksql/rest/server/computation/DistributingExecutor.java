@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
 import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
@@ -45,6 +46,8 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
 
+  private ProducerTransactionManager producerTransactionManager;
+
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
@@ -64,7 +67,8 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
       final ConfiguredStatement<Statement> statement,
       final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext) {
+      final ServiceContext serviceContext
+  ) {
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, serviceContext)
         .inject(statement);
@@ -72,10 +76,17 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
     checkAuthorization(injected, serviceContext, executionContext);
 
     try {
-      final QueuedCommandStatus queuedCommandStatus = commandQueue.enqueueCommand(injected);
+      if (producerTransactionManager == null) {
+        throw new RuntimeException("Transaction manager for distributing executor not set");
+      }
+
+      final QueuedCommandStatus queuedCommandStatus =
+          commandQueue.enqueueCommand(injected, producerTransactionManager);
+
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
+      producerTransactionManager = null;
       return Optional.of(new CommandStatusEntity(
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
@@ -87,6 +98,10 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);
     }
+  }
+
+  public void setTransactionManager(final ProducerTransactionManager producerTransactionManager) {
+    this.producerTransactionManager = producerTransactionManager;
   }
 
   private void checkAuthorization(

@@ -23,6 +23,7 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -73,14 +74,20 @@ public class RequestHandler {
   public KsqlEntityList execute(
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
-      final Map<String, Object> propertyOverrides
+      final Map<String, Object> propertyOverrides,
+      final ProducerTransactionManager producerTransactionManager
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       if (prepared.getStatement() instanceof RunScript) {
-        final KsqlEntityList result = executeRunScript(serviceContext, prepared, propertyOverrides);
+        final KsqlEntityList result = executeRunScript(
+            serviceContext,
+            prepared,
+            propertyOverrides,
+            producerTransactionManager
+        );
         if (!result.isEmpty()) {
           // This is to maintain backwards compatibility until we deprecate
           // RunScript in the next major release - the expected behavior was
@@ -90,8 +97,13 @@ public class RequestHandler {
       } else {
         final ConfiguredStatement<?> configured = ConfiguredStatement.of(
             prepared, scopedPropertyOverrides, ksqlConfig);
-        executeStatement(serviceContext, configured, scopedPropertyOverrides, entities)
-            .ifPresent(entities::add);
+        executeStatement(
+            serviceContext,
+            configured,
+            scopedPropertyOverrides,
+            entities,
+            producerTransactionManager
+        ).ifPresent(entities::add);
       }
     }
     return entities;
@@ -102,13 +114,18 @@ public class RequestHandler {
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
       final Map<String, Object> mutableScopedProperties,
-      final KsqlEntityList entities
+      final KsqlEntityList entities,
+      final ProducerTransactionManager producerTransactionManager
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, distributor);
+
+    if (executor instanceof DistributingExecutor) {
+      ((DistributingExecutor) executor).setTransactionManager(producerTransactionManager);
+    }
 
     return executor.execute(
         configured,
@@ -121,7 +138,9 @@ public class RequestHandler {
   private KsqlEntityList executeRunScript(
       final ServiceContext serviceContext,
       final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides) {
+      final Map<String, Object> propertyOverrides,
+      final ProducerTransactionManager producerTransactionManager
+  ) {
     final String sql = (String) propertyOverrides
         .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
 
@@ -130,6 +149,11 @@ public class RequestHandler {
           "Request is missing script content", statement.getStatementText());
     }
 
-    return execute(serviceContext, ksqlEngine.parse(sql), propertyOverrides);
+    return execute(
+        serviceContext,
+        ksqlEngine.parse(sql),
+        propertyOverrides,
+        producerTransactionManager
+    );
   }
 }

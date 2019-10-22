@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -41,6 +42,8 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.ProducerTransactionManagerFactory;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -72,6 +75,7 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 
 public class RecoveryTest {
 
@@ -85,8 +89,23 @@ public class RecoveryTest {
   private final HybridQueryIdGenerator hybridQueryIdGenerator =
       new HybridQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
+  @Mock
+  private final ProducerTransactionManagerFactory producerTransactionManagerFactory =
+      mock(ProducerTransactionManagerFactory.class);
+  @Mock
+  private final ProducerTransactionManager producerTransactionManager =
+      mock(ProducerTransactionManager.class);
+
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
+
+
+  @Before
+  public void setup() {
+    when(producerTransactionManagerFactory.createProducerTransactionManager()).thenReturn(
+        producerTransactionManager
+    );
+  }
 
   @After
   public void tearDown() {
@@ -116,7 +135,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
+    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement, final ProducerTransactionManager producerTransactionManager) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
@@ -177,14 +196,6 @@ public class RecoveryTest {
       this.fakeCommandQueue = new FakeCommandQueue(commandLog);
       serverState = new ServerState();
       serverState.setReady();
-      this.ksqlResource = new KsqlResource(
-          ksqlEngine,
-          fakeCommandQueue,
-          Duration.ofMillis(0),
-          ()->{},
-          (sc, metastore, statement) -> {
-          }
-      );
 
       this.statementExecutor = new InteractiveStatementExecutor(
           serviceContext,
@@ -198,6 +209,15 @@ public class RecoveryTest {
           1,
           mock(ClusterTerminator.class),
           serverState
+      );
+
+      this.ksqlResource = new KsqlResource(
+          ksqlEngine,
+          fakeCommandQueue,
+          Duration.ofMillis(0),
+          ()->{},
+          (sc, metastore, statement) -> { },
+          producerTransactionManagerFactory
       );
 
       this.statementExecutor.configure(ksqlConfig);

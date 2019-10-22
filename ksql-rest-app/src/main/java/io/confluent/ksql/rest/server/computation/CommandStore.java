@@ -19,6 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
+import io.confluent.ksql.rest.server.ProducerTransactionManager;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
@@ -53,11 +54,10 @@ public class CommandStore implements CommandQueue, Closeable {
 
     public static CommandStore create(
         final String commandTopicName,
-        final Map<String, Object> kafkaConsumerProperties,
-        final Map<String, Object> kafkaProducerProperties
+        final Map<String, Object> kafkaConsumerProperties
     ) {
       return new CommandStore(
-          new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
+          new CommandTopic(commandTopicName, kafkaConsumerProperties),
           new CommandIdAssigner(),
           new SequenceNumberFutureStore()
       );
@@ -98,7 +98,10 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
+  public QueuedCommandStatus enqueueCommand(
+      final ConfiguredStatement<?> statement,
+      final ProducerTransactionManager producerTransactionManager
+  ) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
 
     // new commands that generate queries will use the new query id generation method from now on
@@ -126,7 +129,7 @@ public class CommandStore implements CommandQueue, Closeable {
     );
     try {
       final RecordMetadata recordMetadata =
-          commandTopic.send(commandId, command);
+          producerTransactionManager.send(commandId, command);
       return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);

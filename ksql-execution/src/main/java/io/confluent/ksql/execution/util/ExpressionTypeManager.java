@@ -47,7 +47,6 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.UdafUtil;
-import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
@@ -57,8 +56,10 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
@@ -216,8 +217,23 @@ public class ExpressionTypeManager {
         final DereferenceExpression node,
         final ExpressionTypeContext expressionTypeContext
     ) {
-      throw new IllegalArgumentException("Dereferenced expressions should have been rewritten to "
-          + FetchFieldFromStruct.FUNCTION_NAME + " by this point");
+      process(node.getBase(), expressionTypeContext);
+      final SqlType sqlType = expressionTypeContext.getSqlType();
+      if (!(sqlType instanceof SqlStruct)) {
+        throw new IllegalStateException("Expected STRUCT type, got: " + sqlType);
+      }
+
+      final SqlStruct structType = (SqlStruct)sqlType;
+      final String fieldName = node.getFieldName();
+
+      final Field structField = structType
+          .field(fieldName)
+          .orElseThrow(() -> new KsqlException(
+              "Could not find field '" + fieldName + "' in '" + node.getBase() + "'.")
+          );
+
+      expressionTypeContext.setSqlType(structField.type());
+      return null;
     }
 
     @Override
@@ -374,27 +390,20 @@ public class ExpressionTypeManager {
         return null;
       }
 
-      if (node.getName().name().equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
-        process(node.getArguments().get(0), expressionTypeContext);
-        final Schema firstArgSchema = expressionTypeContext.getSchema();
-        final String fieldName = ((StringLiteral) node.getArguments().get(1)).getValue();
-        if (firstArgSchema.field(fieldName) == null) {
-          throw new KsqlException(String.format("Could not find field %s in %s.",
-              fieldName,
-              node.getArguments().get(0).toString()));
-        }
-        final Schema returnSchema = firstArgSchema.field(fieldName).schema();
-        expressionTypeContext.setSchema(returnSchema);
-      } else {
-        final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
-        final List<Schema> argTypes = new ArrayList<>();
-        for (final Expression expression : node.getArguments()) {
-          process(expression, expressionTypeContext);
-          argTypes.add(expressionTypeContext.getSchema());
-        }
-        final Schema returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
-        expressionTypeContext.setSchema(returnSchema);
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
+      if (udfFactory.isInternal()) {
+        throw new KsqlException(
+            "Can't find any functions with the name '" + node.getName().name() + "'");
       }
+
+      final List<Schema> argTypes = new ArrayList<>();
+      for (final Expression expression : node.getArguments()) {
+        process(expression, expressionTypeContext);
+        argTypes.add(expressionTypeContext.getSchema());
+      }
+
+      final Schema returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
+      expressionTypeContext.setSchema(returnSchema);
       return null;
     }
 

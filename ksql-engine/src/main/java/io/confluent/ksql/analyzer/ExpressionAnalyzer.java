@@ -19,6 +19,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.Cast;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IsNotNullPredicate;
@@ -122,6 +123,15 @@ class ExpressionAnalyzer {
         final Object context
     ) {
       throwOnUnknownField(node.getReference());
+      return null;
+    }
+
+    @Override
+    public Object visitDereferenceExpression(
+        final DereferenceExpression node,
+        final Object context
+    ) {
+      process(node.getBase(), context);
       return null;
     }
 

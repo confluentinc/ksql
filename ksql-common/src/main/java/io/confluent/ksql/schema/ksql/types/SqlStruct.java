@@ -28,6 +28,7 @@ import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Immutable
@@ -50,6 +51,12 @@ public final class SqlStruct extends SqlType {
 
   public List<Field> fields() {
     return fields;
+  }
+
+  public Optional<Field> field(final String name) {
+    return fields.stream()
+        .filter(f -> f.name().equals(name))
+        .findFirst();
   }
 
   @Override

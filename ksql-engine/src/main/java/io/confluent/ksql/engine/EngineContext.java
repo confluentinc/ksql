@@ -17,11 +17,9 @@ package io.confluent.ksql.engine;
 
 import static java.util.Objects.requireNonNull;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
-import io.confluent.ksql.engine.rewrite.StatementRewriteForStruct;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -32,7 +30,6 @@ import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.query.id.QueryIdGenerator;
@@ -66,7 +63,6 @@ final class EngineContext {
   private final KsqlParser parser;
   private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-  private final StatementRewriteForStruct rewriter;
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -81,20 +77,17 @@ final class EngineContext {
         metaStore,
         queryIdGenerator,
         onQueryCloseCallback,
-        new DefaultKsqlParser(),
-        new StatementRewriteForStruct()
+        new DefaultKsqlParser()
     );
   }
 
-  @VisibleForTesting
-  EngineContext(
+  private EngineContext(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
       final MutableMetaStore metaStore,
       final QueryIdGenerator queryIdGenerator,
       final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback,
-      final KsqlParser parser,
-      final StatementRewriteForStruct rewriter
+      final KsqlParser parser
   ) {
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
     this.metaStore = requireNonNull(metaStore, "metaStore");
@@ -105,7 +98,6 @@ final class EngineContext {
     this.persistentQueries = new ConcurrentHashMap<>();
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
     this.parser = requireNonNull(parser, "parser");
-    this.rewriter = requireNonNull(rewriter, "rewriter");
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -147,11 +139,7 @@ final class EngineContext {
 
   PreparedStatement<?> prepare(final ParsedStatement stmt) {
     try {
-      final PreparedStatement<?> prepared = parser.prepare(stmt, metaStore);
-
-      final Statement rewritten = rewriter.rewriteForStruct(prepared.getStatement());
-
-      return PreparedStatement.of(stmt.getStatementText(), rewritten);
+      return parser.prepare(stmt, metaStore);
     } catch (final KsqlException e) {
       throw e;
     } catch (final Exception e) {

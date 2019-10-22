@@ -63,7 +63,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -154,7 +153,7 @@ public class SqlToJavaVisitor {
   }
 
   @VisibleForTesting
-  public SqlToJavaVisitor(
+  SqlToJavaVisitor(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
       final Function<ColumnRef, String> colRefToCodeName,
@@ -306,18 +305,27 @@ public class SqlToJavaVisitor {
       return new Pair<>(colRefToCodeName.apply(fieldName), schema);
     }
 
+    @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     @Override
     public Pair<String, Schema> visitDereferenceExpression(
         final DereferenceExpression node,
         final Void context
     ) {
-      throw new UnsupportedOperationException(
-          "DereferenceExpression should have been resolved by now");
-    }
+      final String instanceName = funNameToCodeName
+          .apply(FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME));
 
-    private String formatQualifiedName(final ColumnRef name) {
-      // for now, we don't escape anything in SqlToJavaVisitor
-      return name.toString(FormatOptions.of(word -> false));
+      final Schema functionReturnSchema = expressionTypeManager.getExpressionSchema(node);
+      final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
+
+      final String arguments =
+          process(node.getBase(), context).getLeft()
+          + ", "
+          + process(new StringLiteral(node.getFieldName()), context).getLeft();
+
+      final String codeString = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + arguments + "))";
+
+      return new Pair<>(codeString, functionReturnSchema);
     }
 
     public Pair<String, Schema> visitLongLiteral(
@@ -356,10 +364,8 @@ public class SqlToJavaVisitor {
     @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     private Schema getFunctionReturnSchema(
         final FunctionCall node,
-        final String functionName) {
-      if (functionName.equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
-        return expressionTypeManager.getExpressionSchema(node);
-      }
+        final String functionName
+    ) {
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
       final List<Schema> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSchema)

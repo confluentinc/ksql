@@ -10,27 +10,23 @@
         "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) VAL FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": [1, 2]}},
-        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": [3, 4]}}
+        {"topic": "test_topic", "key": 0, "value": {"MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": 1, "value": {"MY_ARR": [3, 4]}},
+        {"topic": "test_topic", "key": 2, "value": {"MY_ARR": [5]}},
+        {"topic": "test_topic", "key": 3, "value": {"MY_ARR": []}},
+        {"topic": "test_topic", "key": 4, "value": {"MY_ARR": [6]}},
+        {"topic": "test_topic", "key": 5, "value": {"MY_ARR":  null}},
+        {"topic": "test_topic", "key": 6, "value": {"MY_ARR": [7]}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": {"VAL": 1}},
         {"topic": "OUTPUT", "key": "0", "value": {"VAL": 2}},
         {"topic": "OUTPUT", "key": "1", "value": {"VAL": 3}},
-        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 4}}
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 4}},
+        {"topic": "OUTPUT", "key": "2", "value": {"VAL": 5}},
+        {"topic": "OUTPUT", "key": "4", "value": {"VAL": 6}},
+        {"topic": "OUTPUT", "key": "6", "value": {"VAL": 7}}
       ]
-    },
-    {
-      "name": "explode empty array",
-      "statements": [
-        "CREATE STREAM TEST (MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) VAL FROM TEST;"
-      ],
-      "inputs": [
-        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": []}},
-        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": []}}
-      ],
-      "outputs": []
     },
     {
       "name": "explode shouldn't accept map",

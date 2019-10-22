@@ -234,80 +234,7 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldAddAggregateFunction() {
-    functionRegistry.addAggregateFunctionFactory(
-        new AggregateFunctionFactory("my_aggregate") {
-          @Override
-          public KsqlAggregateFunction createAggregateFunction(final List<Schema> argTypeList,
-              final AggregateFunctionInitArguments initArgs) {
-            return new KsqlAggregateFunction() {
-
-              @Override
-              public FunctionName getFunctionName() {
-                return FunctionName.of("my_aggregate");
-              }
-
-              @Override
-              public Supplier getInitialValueSupplier() {
-                return null;
-              }
-
-              @Override
-              public int getArgIndexInValue() {
-                return 0;
-              }
-
-              @Override
-              public Schema getAggregateType() {
-                return null;
-              }
-
-              @Override
-              public SqlType aggregateType() {
-                return null;
-              }
-
-              @Override
-              public Schema getReturnType() {
-                return null;
-              }
-
-              @Override
-              public SqlType returnType() {
-                return null;
-              }
-
-              @Override
-              public Object aggregate(final Object currentValue, final Object aggregateValue) {
-                return null;
-              }
-
-              @Override
-              public Merger getMerger() {
-                return null;
-              }
-
-              @Override
-              public Function getResultMapper() {
-                return null;
-              }
-
-              @Override
-              public List<Schema> getArguments() {
-                return argTypeList;
-              }
-
-              @Override
-              public String getDescription() {
-                return null;
-              }
-            };
-          }
-
-          @Override
-          public List<List<Schema>> supportedArgs() {
-            return ImmutableList.of();
-          }
-        });
+    functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
     assertThat(functionRegistry.getAggregateFunction("my_aggregate",
         Schema.OPTIONAL_INT32_SCHEMA,
         AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
@@ -315,49 +242,7 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldAddTableFunction() {
-    functionRegistry.addTableFunctionFactory(
-        new TableFunctionFactory(new UdfMetadata("my_tablefunction",
-            "", "", "", "", false)) {
-          @Override
-          public KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList) {
-            return new KsqlTableFunction<Object, Object>() {
-              @Override
-              public Schema getReturnType() {
-                return null;
-              }
-
-              @Override
-              public SqlType returnType() {
-                return null;
-              }
-
-              @Override
-              public List<Object> flatMap(Object currentValue) {
-                return null;
-              }
-
-              @Override
-              public String getDescription() {
-                return null;
-              }
-
-              @Override
-              public FunctionName getFunctionName() {
-                return null;
-              }
-
-              @Override
-              public List<Schema> getArguments() {
-                return null;
-              }
-            };
-          }
-
-          @Override
-          protected List<List<Schema>> supportedArgs() {
-            return null;
-          }
-        });
+    functionRegistry.addTableFunctionFactory(createTableFunctionFactory());
     assertThat(functionRegistry.getTableFunction("my_tablefunction",
         Schema.OPTIONAL_INT32_SCHEMA), not(nullValue()));
   }
@@ -468,5 +353,126 @@ public class InternalFunctionRegistryTest {
 
   private void givenUdfFactoryRegistered() {
     functionRegistry.ensureFunctionFactory(UdfLoaderUtil.createTestUdfFactory(func));
+  }
+
+  private static AggregateFunctionFactory createAggregateFunctionFactory() {
+    return new AggregateFunctionFactory("my_aggregate") {
+      @Override
+      public KsqlAggregateFunction createAggregateFunction(final List<Schema> argTypeList,
+          final AggregateFunctionInitArguments initArgs) {
+        return new KsqlAggregateFunction() {
+
+          @Override
+          public FunctionName getFunctionName() {
+            return FunctionName.of("my_aggregate");
+          }
+
+          @Override
+          public Supplier getInitialValueSupplier() {
+            return null;
+          }
+
+          @Override
+          public int getArgIndexInValue() {
+            return 0;
+          }
+
+          @Override
+          public Schema getAggregateType() {
+            return null;
+          }
+
+          @Override
+          public SqlType aggregateType() {
+            return null;
+          }
+
+          @Override
+          public Schema getReturnType() {
+            return null;
+          }
+
+          @Override
+          public SqlType returnType() {
+            return null;
+          }
+
+          @Override
+          public Object aggregate(final Object currentValue, final Object aggregateValue) {
+            return null;
+          }
+
+          @Override
+          public Merger getMerger() {
+            return null;
+          }
+
+          @Override
+          public Function getResultMapper() {
+            return null;
+          }
+
+          @Override
+          public List<Schema> getArguments() {
+            return argTypeList;
+          }
+
+          @Override
+          public String getDescription() {
+            return null;
+          }
+        };
+      }
+
+      @Override
+      public List<List<Schema>> supportedArgs() {
+        return ImmutableList.of();
+      }
+    };
+  }
+
+  private static TableFunctionFactory createTableFunctionFactory() {
+    return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
+        "", "", "", "", false)) {
+      @Override
+      public KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList) {
+        return new KsqlTableFunction<Object, Object>() {
+          @Override
+          public Schema getReturnType() {
+            return null;
+          }
+
+          @Override
+          public SqlType returnType() {
+            return null;
+          }
+
+          @Override
+          public List<Object> flatMap(Object currentValue) {
+            return null;
+          }
+
+          @Override
+          public String getDescription() {
+            return null;
+          }
+
+          @Override
+          public FunctionName getFunctionName() {
+            return null;
+          }
+
+          @Override
+          public List<Schema> getArguments() {
+            return null;
+          }
+        };
+      }
+
+      @Override
+      protected List<List<Schema>> supportedArgs() {
+        return null;
+      }
+    };
   }
 }

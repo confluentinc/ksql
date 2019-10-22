@@ -62,6 +62,10 @@ The project uses [GoogleStyle](https://google.github.io/styleguide/javaguide.htm
 You can install this code style into your IDE to make things more automatic:
  * [IntelliJ code style xml file](https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml)
  * [Eclipse code style xml file](https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml)
+ 
+In addition the project has the following style rules over and above the standard Google rules:
+
+**Final fields, parameters and local variables**
 
 In addition, the project also uses `final` fields, parameters and local variables for new code submissions.
 IntelliJ's code generation can be configured to do this automatically:
@@ -71,6 +75,72 @@ IntelliJ's code generation can be configured to do this automatically:
      Tick:
      - Make generated local variables final
      - Make generated parameters final
+     
+**Null checking of method or function parameters**
+
+If arguments to a constructor set members of the object, or if arguments to a method
+change internal state, e.g. adding an item to a list, they should be checked for null, e.g.
+
+```
+public class MyObject {
+
+    private final String name;
+    private final List<String> myList = new ArrayList<>();
+
+    public MyObject(final String name) {
+        this.name = Objects.requireNonNull(name, "name");
+    }
+
+    public void addItem(final String item) {
+        myList.add(Objects.requireNotNull(item, "item"));
+    }
+}
+
+```
+
+**No TODOs in code**
+
+Please don't leave any TODOs in the code
+
+**New line for each method or constructor parameter**
+
+Methods or constructors should be defined with each parameter on a new line.
+
+```
+public void doSomething(
+    final String name,
+    final int age,
+    final boolean human
+) {
+    // body of method
+}
+
+```
+
+**Private static methods**
+
+Private methods that don't use object state should be declared as static.
+
+**No else after if branch that returns**
+
+If an if branch returns, then omit the else clause:
+
+```
+if (x == 3) {
+    return true;
+}
+return false;
+```
+
+Don't do this:
+
+```
+if (x == 3) {
+    return true;
+} else {
+    return false;
+}
+```
 
 #### Static code analysis
 

@@ -34,7 +34,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
-    this.functionHolder = functionHolder;
+    this.functionHolder = Objects.requireNonNull(functionHolder);
   }
 
   @Override

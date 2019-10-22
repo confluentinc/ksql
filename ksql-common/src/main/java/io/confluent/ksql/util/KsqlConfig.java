@@ -650,6 +650,8 @@ public class KsqlConfig extends AbstractConfig {
             .defaultCacheMaxBytesBufferingConfig);
     streamsConfigDefaults.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, KsqlConstants
         .defaultNumberOfStreamsThreads);
+    streamsConfigDefaults.put(StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG, KsqlConstants
+        .defaultNumberOfStandbyReplicas);
     if (!getBooleanConfig(FAIL_ON_DESERIALIZATION_ERROR_CONFIG, false)) {
       streamsConfigDefaults.put(
           StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG,

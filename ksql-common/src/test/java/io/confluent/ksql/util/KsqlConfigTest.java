@@ -110,6 +110,14 @@ public class KsqlConfigTest {
   }
 
   @Test
+  public void shouldEnableStandbyReplicasByDefault() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
+    final Object result = ksqlConfig.getKsqlStreamConfigProps()
+        .get(StreamsConfig.NUM_STANDBY_REPLICAS_CONFIG);
+    assertThat(result, equalTo(1));
+  }
+
+  @Test
   public void shouldSetStreamsConfigConsumerUnprefixedProperties() {
     final KsqlConfig ksqlConfig = new KsqlConfig(Collections.singletonMap(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
     final Object result = ksqlConfig.getKsqlStreamConfigProps().get(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);

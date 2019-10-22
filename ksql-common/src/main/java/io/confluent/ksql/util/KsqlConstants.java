@@ -38,6 +38,7 @@ public final class KsqlConstants {
   public static final long defaultCommitIntervalMsConfig = 2000;
   public static final long defaultCacheMaxBytesBufferingConfig = 10000000;
   public static final int defaultNumberOfStreamsThreads = 4;
+  public static final int defaultNumberOfStandbyReplicas = 1;
 
   public static final String LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT = "ksql.run.script.statements";
 

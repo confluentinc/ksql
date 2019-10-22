@@ -374,7 +374,7 @@ public class ExpressionTypeManager {
         return null;
       }
 
-      if (node.getName().name().equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
+      if (node.getName().equals(FetchFieldFromStruct.FUNCTION_NAME)) {
         process(node.getArguments().get(0), expressionTypeContext);
         final Schema firstArgSchema = expressionTypeContext.getSchema();
         final String fieldName = ((StringLiteral) node.getArguments().get(1)).getValue();

@@ -15,13 +15,19 @@
 
 package io.confluent.ksql.schema.ksql;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -35,23 +41,30 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
           .put(SqlBaseType.DOUBLE, Number::doubleValue)
           .build();
 
-  public <T> Optional<T> coerce(final Object value, final SqlType targetType) {
-    if (targetType.baseType() == SqlBaseType.ARRAY
-        || targetType.baseType() == SqlBaseType.MAP
-        || targetType.baseType() == SqlBaseType.STRUCT
-    ) {
-      throw new KsqlException("Unsupported SQL type: " + targetType.baseType());
+  @Override
+  public Optional<?> coerce(final Object value, final SqlType targetType) {
+    return doCoerce(value, targetType);
+  }
+
+  private static Optional<?> doCoerce(final Object value, final SqlType targetType) {
+    switch (targetType.baseType()) {
+      case DECIMAL:
+        return coerceDecimal(value, (SqlDecimal) targetType);
+      case ARRAY:
+        return coerceArray(value, (SqlArray) targetType);
+      case MAP:
+        return coerceMap(value, (SqlMap) targetType);
+      case STRUCT:
+        throw new KsqlException("Unsupported SQL type: " + targetType.baseType());
+      default:
+        break;
     }
 
     final SqlBaseType valueSqlType = SchemaConverters.javaToSqlConverter()
         .toSqlType(value.getClass());
 
     if (valueSqlType.equals(targetType.baseType())) {
-      return optional(value);
-    }
-
-    if (targetType.baseType() == SqlBaseType.DECIMAL) {
-      return coerceDecimal(value, (SqlDecimal) targetType);
+      return Optional.of(value);
     }
 
     if (!(value instanceof Number) || !valueSqlType.canImplicitlyCast(targetType.baseType())) {
@@ -59,16 +72,53 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     final Number result = UPCASTER.get(targetType.baseType()).apply((Number) value);
-    return optional(result);
+    return Optional.of(result);
   }
 
-  private static <T> Optional<T> coerceDecimal(final Object value, final SqlDecimal targetType) {
+  private static Optional<?> coerceArray(final Object value, final SqlArray targetType) {
+    if (!(value instanceof List<?>)) {
+      return Optional.empty();
+    }
+
+    final List<?> list = (List<?>) value;
+    final ImmutableList.Builder<Object> coerced = ImmutableList.builder();
+    for (final Object el : list) {
+      final Optional<?> coercedEl = doCoerce(el, targetType.getItemType());
+      if (!coercedEl.isPresent()) {
+        return Optional.empty();
+      }
+      coerced.add(coercedEl.get());
+    }
+
+    return Optional.of(coerced.build());
+  }
+
+  private static Optional<?> coerceMap(final Object value, final SqlMap targetType) {
+    if (!(value instanceof Map<?, ?>)) {
+      return Optional.empty();
+    }
+
+    final Map<?, ?> map = (Map<?, ?>) value;
+    final HashMap<Object, Object> coerced = new HashMap<>();
+    for (final Map.Entry entry : map.entrySet()) {
+      final Optional<?> coercedKey = doCoerce(entry.getKey(), SqlTypes.STRING);
+      final Optional<?> coercedValue = doCoerce(entry.getValue(), targetType.getValueType());
+      if (!coercedKey.isPresent() || !coercedValue.isPresent()) {
+        return Optional.empty();
+      }
+      coerced.put(coercedKey.get(), coercedValue.get());
+    }
+
+    return Optional.of(coerced);
+  }
+
+  private static Optional<?> coerceDecimal(final Object value, final SqlDecimal targetType) {
     final int precision = targetType.getPrecision();
     final int scale = targetType.getScale();
 
     if (value instanceof String) {
       try {
-        return optional(new BigDecimal((String) value, new MathContext(precision))
+        return Optional.of(new BigDecimal((String) value, new MathContext(precision))
             .setScale(scale, RoundingMode.UNNECESSARY));
       } catch (final NumberFormatException e) {
         throw new KsqlException("Cannot coerce value to DECIMAL: " + value, e);
@@ -76,7 +126,7 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     if (value instanceof Number && !(value instanceof Double)) {
-      return optional(
+      return Optional.of(
           new BigDecimal(
               ((Number) value).doubleValue(),
               new MathContext(precision))
@@ -84,10 +134,5 @@ public final class DefaultSqlValueCoercer implements SqlValueCoercer {
     }
 
     return Optional.empty();
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <T> Optional<T> optional(final Object value) {
-    return Optional.of((T)value);
   }
 }

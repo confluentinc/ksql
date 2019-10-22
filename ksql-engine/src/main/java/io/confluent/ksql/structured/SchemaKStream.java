@@ -690,7 +690,6 @@ public class SchemaKStream<K> {
       final TableFunctionAnalysis tableFunctionAnalysis,
       final QueryContext.Stacker contextStacker
   ) {
-    // TODO support complex column expressions
     final FunctionCall functionCall = tableFunctionAnalysis.getTableFunctions().get(0);
     final ColumnReferenceExp exp = (ColumnReferenceExp) functionCall.getArguments().get(0);
     final ColumnName columnName = exp.getReference().name();
@@ -704,7 +703,6 @@ public class SchemaKStream<K> {
         functionCall,
         getSchema()
     );
-    // TODO support multiple table functions
     final TableFunctionApplier functionHolder =
         new TableFunctionApplier(tableFunction, indexInInput.getAsInt());
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(

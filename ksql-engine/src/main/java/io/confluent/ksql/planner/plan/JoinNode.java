@@ -79,7 +79,7 @@ public class JoinNode extends PlanNode {
     this.leftJoinFieldName = Objects.requireNonNull(leftJoinFieldName, "leftJoinFieldName");
     this.rightJoinFieldName = Objects.requireNonNull(rightJoinFieldName, "rightJoinFieldName");
     this.withinExpression = Objects.requireNonNull(withinExpression, "withinExpression");
-    this.selectExpressions = selectExpressions;
+    this.selectExpressions = Objects.requireNonNull(selectExpressions, "selectExpressions");
 
     final Column leftKeyCol = validateSchemaColumn(leftJoinFieldName, left.getSchema());
     validateSchemaColumn(rightJoinFieldName, right.getSchema());

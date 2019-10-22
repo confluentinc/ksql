@@ -73,7 +73,7 @@ public class DataSourceNode extends PlanNode {
     super(id, dataSource.getDataSourceType());
     this.dataSource = requireNonNull(dataSource, "dataSource");
     this.alias = requireNonNull(alias, "alias");
-    this.selectExpressions = selectExpressions;
+    this.selectExpressions = requireNonNull(selectExpressions, "selectExpressions");
 
     // DataSourceNode copies implicit and key fields into the value schema
     // It users a KS valueMapper to add the key fields

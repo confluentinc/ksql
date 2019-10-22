@@ -44,7 +44,8 @@ public class FilterNode extends PlanNode {
 
     this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");
-    this.selectExpressions = selectExpressions;
+    this.selectExpressions =
+        Objects.requireNonNull(selectExpressions, "selectExpressions");
   }
 
   public Expression getPredicate() {

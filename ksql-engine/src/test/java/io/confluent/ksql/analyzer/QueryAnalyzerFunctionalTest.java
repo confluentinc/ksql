@@ -207,13 +207,11 @@ public class QueryAnalyzerFunctionalTest {
     assertThat(tableFunctionAnalysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
     assertThat(tableFunctionAnalysis.getTableFunctions().get(1).getName().name(), equalTo("EXPLODE"));
     assertThat(tableFunctionAnalysis.getFinalSelectExpressions(), hasSize(3));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(0).toString(), equalTo("SENSOR_READINGS.ID"));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(1).toString(), equalTo("KSQL_UDTF_VARIABLE_0"));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(2).toString(), equalTo("KSQL_UDTF_VARIABLE_1"));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(0).getExpression().toString(), equalTo("SENSOR_READINGS.ID"));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(1).getExpression().toString(), equalTo("KSQL_COL_0"));
+    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(2).getExpression().toString(), equalTo("KSQL_COL_1"));
   }
-
-  // TODO some more tests testing things like nested explodes
-
+  
   @Test
   public void shouldAnalyseWindowedAggregate() {
     // Given:

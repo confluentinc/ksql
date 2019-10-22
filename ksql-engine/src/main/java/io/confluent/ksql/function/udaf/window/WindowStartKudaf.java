@@ -20,6 +20,7 @@ import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.UdafDescription;
 import io.confluent.ksql.function.udaf.UdafFactory;
 import io.confluent.ksql.function.udaf.placeholder.PlaceholderTableUdaf;
+import io.confluent.ksql.util.KsqlConstants;
 
 /**
  * A placeholder KUDAF for extracting window start times.
@@ -29,7 +30,7 @@ import io.confluent.ksql.function.udaf.placeholder.PlaceholderTableUdaf;
  * @see WindowSelectMapper
  */
 @SuppressWarnings("WeakerAccess") // Invoked via reflection.
-@UdafDescription(name = "WindowStart", author = "Confluent",
+@UdafDescription(name = "WindowStart", author = KsqlConstants.CONFLUENT_AUTHOR,
     description = "Returns the window start time, in milliseconds, for the given record. "
         + "If the given record is not part of a window the function will return NULL.")
 public final class WindowStartKudaf {

@@ -36,6 +36,7 @@ import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.function.udtf.array.ExplodeFunctionFactory;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -226,7 +227,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       final UdfMetadata metadata = new UdfMetadata(
           ksqlFunction.getFunctionName().name(),
           ksqlFunction.getDescription(),
-          "Confluent",
+          KsqlConstants.CONFLUENT_AUTHOR,
           "",
           KsqlFunction.INTERNAL_PATH,
           internal

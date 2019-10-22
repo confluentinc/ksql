@@ -19,6 +19,7 @@ import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
@@ -31,7 +32,7 @@ public class ExplodeFunctionFactory extends TableFunctionFactory {
   public ExplodeFunctionFactory() {
     super(new UdfMetadata(NAME.name(),
         "",
-        "Confluent",
+        KsqlConstants.CONFLUENT_AUTHOR,
         "",
         "",
         false));

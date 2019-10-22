@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.streams.materialization.Row;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
@@ -33,6 +34,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;
@@ -48,6 +50,14 @@ public class TableRowsEntityFactoryTest {
       .keyColumn(ColumnName.of("k1"), SqlTypes.BOOLEAN)
       .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("v1"), SqlTypes.BOOLEAN)
+      .build();
+
+  private static final LogicalSchema SCHEMA_NULL = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("v2"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("v3"), SqlTypes.BOOLEAN)
       .build();
 
   @Test
@@ -98,6 +108,27 @@ public class TableRowsEntityFactoryTest {
     assertThat(output, hasSize(2));
     assertThat(output.get(0), contains("x", now.toEpochMilli(), true));
     assertThat(output.get(1), contains("y", now.toEpochMilli(), now.toEpochMilli(), false));
+  }
+
+  @Test
+  public void shouldSupportNullColumn() {
+    // Given:
+    final List<Object> newColumns = new ArrayList<>();
+    newColumns.add(null);
+    newColumns.add(null);
+    newColumns.add(null);
+    newColumns.add(null);
+    GenericRow row = new GenericRow(newColumns);
+
+    final Builder<Row> builder = ImmutableList.builder();
+    builder.add(Row.of(SCHEMA_NULL, StructKeyUtil.asStructKey("k"), row));
+
+    // When:
+    final List<List<?>> output = TableRowsEntityFactory.createRows(builder.build());
+
+    // Then:
+    assertThat(output, hasSize(1));
+    assertThat(output.get(0), contains("k", null, null, null, null));
   }
 
   @Test

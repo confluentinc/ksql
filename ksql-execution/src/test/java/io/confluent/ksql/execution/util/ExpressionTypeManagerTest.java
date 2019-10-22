@@ -101,21 +101,12 @@ public class ExpressionTypeManagerTest {
   @Before
   public void init() {
     expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry);
-  }
 
-  private void givenUdfWithNameAndReturnType(final String name, final Schema returnType) {
-    givenUdfWithNameAndReturnType(name ,returnType, udfFactory, function);
-  }
+    final UdfFactory internalFactory = mock(UdfFactory.class);
+    when(internalFactory.isInternal()).thenReturn(true);
 
-  private void givenUdfWithNameAndReturnType(
-      final String name,
-      final Schema returnType,
-      final UdfFactory factory,
-      final KsqlFunction function) {
-    when(functionRegistry.isAggregate(name)).thenReturn(false);
-    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
-    when(factory.getFunction(anyList())).thenReturn(function);
-    when(function.getReturnType(anyList())).thenReturn(returnType);
+    when(functionRegistry.getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME))
+        .thenReturn(internalFactory);
   }
 
   @Test
@@ -310,7 +301,8 @@ public class ExpressionTypeManagerTest {
     );
 
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -552,5 +544,20 @@ public class ExpressionTypeManagerTest {
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  private void givenUdfWithNameAndReturnType(final String name, final Schema returnType) {
+    givenUdfWithNameAndReturnType(name ,returnType, udfFactory, function);
+  }
+
+  private void givenUdfWithNameAndReturnType(
+      final String name,
+      final Schema returnType,
+      final UdfFactory factory,
+      final KsqlFunction function) {
+    when(functionRegistry.isAggregate(name)).thenReturn(false);
+    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
+    when(factory.getFunction(anyList())).thenReturn(function);
+    when(function.getReturnType(anyList())).thenReturn(returnType);
   }
 }

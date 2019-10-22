@@ -134,7 +134,7 @@ public class QueryAnalyzer {
   }
 
   public TableFunctionAnalysis analyzeTableFunctions(final Analysis analysis) {
-    final TableFunctionAnalysis tableFunctionAnalysis = new TableFunctionAnalysis();
+    final MutableTableFunctionAnalysis tableFunctionAnalysis = new MutableTableFunctionAnalysis();
     final TableFunctionAnalyzer tableFunctionAnalyzer =
         new TableFunctionAnalyzer(tableFunctionAnalysis, metaStore);
     final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
@@ -188,7 +188,7 @@ public class QueryAnalyzer {
 
   private static void processSelectExpressionsForTableFunctionAnalysis(
       final Analysis analysis,
-      final TableFunctionAnalysis tableFunctionAnalysis,
+      final MutableTableFunctionAnalysis tableFunctionAnalysis,
       final TableFunctionAnalyzer tableFunctionAnalyzer,
       final TableFunctionExpressionRewriter tableFunctionExpressionRewriter
   ) {

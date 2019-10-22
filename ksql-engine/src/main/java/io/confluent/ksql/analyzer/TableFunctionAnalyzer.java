@@ -29,11 +29,11 @@ import java.util.Optional;
  */
 class TableFunctionAnalyzer {
 
-  private final TableFunctionAnalysis tableFunctionAnalysis;
+  private final MutableTableFunctionAnalysis tableFunctionAnalysis;
   private final FunctionRegistry functionRegistry;
 
   TableFunctionAnalyzer(
-      final TableFunctionAnalysis tableFunctionAnalysis,
+      final MutableTableFunctionAnalysis tableFunctionAnalysis,
       final FunctionRegistry functionRegistry
   ) {
     this.tableFunctionAnalysis = Objects.requireNonNull(tableFunctionAnalysis, "aggregateAnalysis");

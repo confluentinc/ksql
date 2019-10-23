@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -102,11 +103,23 @@ public final class ExpectedRecordComparator {
     if (actualValue instanceof Double) {
       return expected.doubleValue() == (Double) actualValue;
     }
-    if (actualValue instanceof BigDecimal && !(expectedValue.isBigDecimal())) {
-      // only allow this to pass if we deserialized a double as a big decimal
-      // in ValueSpecJsonSerdeSupplier#Deserializer. if we were expecting a big
-      // decimal than it should be encoded as a string and go to #compareText
-      return expected.doubleValue() == ((BigDecimal) actualValue).doubleValue();
+    if (actualValue instanceof BigDecimal) {
+      if (!expected.isBigDecimal()) {
+        // we don't want to risk comparing a BigDecimal with something of
+        // lower precision
+        return false;
+      }
+
+      expected.isBigDecimal();
+      try {
+        return expected.decimalValue()
+            .setScale(((BigDecimal) actualValue).scale(), RoundingMode.UNNECESSARY)
+            .equals(actualValue);
+      } catch (final ArithmeticException e) {
+        // the scale of the expected value cannot match the scale of the actual value
+        // without rounding
+        return false;
+      }
     }
     return false;
   }

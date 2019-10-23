@@ -202,7 +202,7 @@ public class TestExecutorTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Expected <2> records but it was <1>\n"
         + "Actual records: \n"
-        + "<k1, v1> with timestamp=123456719");
+        + "<k1, \"v1\"> with timestamp=123456719");
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -222,8 +222,8 @@ public class TestExecutorTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Expected <1> records but it was <2>\n"
         + "Actual records: \n"
-        + "<k1, v1> with timestamp=123456719 \n"
-        + "<k2, v2> with timestamp=123456789");
+        + "<k1, \"v1\"> with timestamp=123456719 \n"
+        + "<k2, \"v2\"> with timestamp=123456789");
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -243,7 +243,7 @@ public class TestExecutorTest {
     // Expect
     expectedException.expect(AssertionError.class);
     expectedException.expectMessage(
-        "Expected <k2, different> with timestamp=123456789 but was <k2, v2> with timestamp=123456789");
+        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789");
 
     // When:
     executor.buildAndExecuteQuery(testCase);

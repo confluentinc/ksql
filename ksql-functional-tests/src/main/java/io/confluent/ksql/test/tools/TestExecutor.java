@@ -261,8 +261,12 @@ public class TestExecutor implements Closeable {
   }
 
   private static String getProducerRecordInString(final ProducerRecord<?, ?> producerRecord) {
+    final Object value = producerRecord.value() instanceof String
+        ? "\"" + producerRecord.value() + "\""
+        : producerRecord.value();
+
     return "<" + producerRecord.key() + ", "
-        + producerRecord.value() + "> with timestamp="
+        + value + "> with timestamp="
         + producerRecord.timestamp();
   }
 
@@ -486,7 +490,7 @@ public class TestExecutor implements Closeable {
 
     final AssertionError error = new AssertionError(
         "Topic '" + topicName + "', message " + messageIndex
-            + ": Expected <" + expectedKey + ", " + expectedValue.asText() + "> "
+            + ": Expected <" + expectedKey + ", " + expectedValue + "> "
             + "with timestamp=" + expectedTimestamp
             + " but was " + getProducerRecordInString(actualProducerRecord));
 

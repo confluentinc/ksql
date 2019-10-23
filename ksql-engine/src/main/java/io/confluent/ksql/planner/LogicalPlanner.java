@@ -82,7 +82,7 @@ public class LogicalPlanner {
     PlanNode currentNode = buildSourceNode();
 
     if (!tableFunctionAnalysis.getTableFunctions().isEmpty()) {
-      currentNode = buildFlatMapNode(currentNode);
+      currentNode = buildFlatMapNode(currentNode, functionRegistry);
     }
 
     if (analysis.getWhereExpression().isPresent()) {
@@ -186,7 +186,8 @@ public class LogicalPlanner {
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression.equals(groupBy)
             && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
-            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()));
+            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()),
+        sourcePlanNode);
 
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
@@ -213,7 +214,8 @@ public class LogicalPlanner {
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression instanceof ColumnReferenceExp
-            && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName)
+            && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName),
+        sourcePlanNode
     );
 
     return new ProjectNode(
@@ -234,10 +236,11 @@ public class LogicalPlanner {
   }
 
   private FlatMapNode buildFlatMapNode(
-      final PlanNode sourcePlanNode
+      final PlanNode sourcePlanNode,
+      final FunctionRegistry functionRegistry
   ) {
     return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode,
-        sourcePlanNode.getSchema(), tableFunctionAnalysis);
+        sourcePlanNode.getSchema(), tableFunctionAnalysis, functionRegistry);
   }
 
   private PlanNode buildSourceNode() {
@@ -297,10 +300,11 @@ public class LogicalPlanner {
   }
 
   private Optional<ColumnName> getSelectAliasMatching(
-      final BiFunction<Expression, ColumnName, Boolean> matcher
+      final BiFunction<Expression, ColumnName, Boolean> matcher,
+      final PlanNode sourcePlanNode
   ) {
-    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final SelectExpression select = analysis.getSelectExpressions().get(i);
+    for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
+      final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);
 
       if (matcher.apply(select.getExpression(), select.getAlias())) {
         return Optional.of(select.getAlias());
@@ -324,8 +328,8 @@ public class LogicalPlanner {
 
     builder.keyColumns(keyColumns);
 
-    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final SelectExpression select = analysis.getSelectExpressions().get(i);
+    for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
+      final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);
 
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(select.getExpression());

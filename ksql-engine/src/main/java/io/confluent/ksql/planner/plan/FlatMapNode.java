@@ -44,24 +44,31 @@ import javax.annotation.concurrent.Immutable;
 public class FlatMapNode extends PlanNode {
 
   private final PlanNode source;
-  private final LogicalSchema schema;
   private final TableFunctionAnalysis tableFunctionAnalysis;
+  private final LogicalSchema outputSchema;
 
   public FlatMapNode(
       final PlanNodeId id,
       final PlanNode source,
-      final LogicalSchema schema,
-      final TableFunctionAnalysis tableFunctionAnalysis
+      final LogicalSchema inputSchema,
+      final TableFunctionAnalysis tableFunctionAnalysis,
+      final FunctionRegistry functionRegistry
   ) {
     super(id, source.getNodeOutputType());
     this.source = Objects.requireNonNull(source, "source");
-    this.schema = Objects.requireNonNull(schema);
+    Objects.requireNonNull(inputSchema);
     this.tableFunctionAnalysis = Objects.requireNonNull(tableFunctionAnalysis);
+
+    outputSchema = buildLogicalSchema(
+        inputSchema,
+        functionRegistry,
+        tableFunctionAnalysis
+    );
   }
 
   @Override
   public LogicalSchema getSchema() {
-    return schema;
+    return outputSchema;
   }
 
   @Override
@@ -97,12 +104,6 @@ public class FlatMapNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
 
     final QueryContext.Stacker contextStacker = builder.buildNodeContext(getId().toString());
-
-    final LogicalSchema outputSchema = buildLogicalSchema(
-        getSchema(),
-        builder.getFunctionRegistry(),
-        tableFunctionAnalysis
-    );
 
     return getSource().buildStream(builder).flatMap(outputSchema,
         tableFunctionAnalysis, contextStacker);

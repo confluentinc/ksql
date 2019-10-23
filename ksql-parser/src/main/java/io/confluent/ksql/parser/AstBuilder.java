@@ -596,7 +596,7 @@ public class AstBuilder {
                   dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
         } else {
 
-          alias = ColumnName.generatedColumnName(selectItemIndex);
+          alias = ColumnName.generatedColumnAlias(selectItemIndex);
         }
       }
       selectItemIndex++;

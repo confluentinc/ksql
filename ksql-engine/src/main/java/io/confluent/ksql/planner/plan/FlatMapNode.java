@@ -142,7 +142,7 @@ public class FlatMapNode extends PlanNode {
           UdtfUtil.resolveTableFunction(functionRegistry,
               analysis.getTableFunctions().get(i), inputSchema
           );
-      final ColumnName colName = ColumnName.generatedColumnName(i);
+      final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
       final SqlType fieldType = converter.toSqlType(tableFunction.getReturnType());
       schemaBuilder.valueColumn(colName, fieldType);
     }
@@ -182,7 +182,7 @@ public class FlatMapNode extends PlanNode {
     ) {
       final String functionName = node.getName().name();
       if (functionRegistry.isTableFunction(functionName)) {
-        final ColumnName varName = ColumnName.generatedColumnName(variableIndex);
+        final ColumnName varName = ColumnName.synthesisedSchemaColumn(variableIndex);
         variableIndex++;
         return Optional.of(
             new ColumnReferenceExp(node.getLocation(), ColumnRef.of(Optional.empty(), varName)));

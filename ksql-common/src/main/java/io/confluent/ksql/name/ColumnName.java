@@ -24,14 +24,27 @@ import com.google.errorprone.annotations.Immutable;
 public final class ColumnName extends Name<ColumnName> {
 
   private static final String AGGREGATE_COLUMN_PREFIX = "KSQL_AGG_VARIABLE_";
-  private static final String GENERATED_COLUMN_PREFIX = "KSQL_COL_";
-
+  private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL_";
+  private static final String SYNTHESISED_COLUMN_PREFIX = "KSQL_SYNTH_";
+  
   public static ColumnName aggregateColumn(final int idx) {
     return of(AGGREGATE_COLUMN_PREFIX + idx);
   }
 
-  public static ColumnName generatedColumnName(final int idx) {
-    return ColumnName.of(GENERATED_COLUMN_PREFIX + idx);
+  /**
+   * Where the user hasn't specified an alias for an expression in a SELECT we generate them
+   * using this method. This value is exposed to the user in the output schema
+   */
+  public static ColumnName generatedColumnAlias(final int idx) {
+    return ColumnName.of(GENERATED_ALIAS_PREFIX + idx);
+  }
+
+  /**
+   * Used to generate a column name in an intermediate schema, e.g. for a column to hold
+   * values of a table function. These are never exposed to the user
+   */
+  public static ColumnName synthesisedSchemaColumn(final int idx) {
+    return ColumnName.of(SYNTHESISED_COLUMN_PREFIX + idx);
   }
 
   public static ColumnName of(final String name) {

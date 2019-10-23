@@ -310,7 +310,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-          FunctionName.of(JsonExtractStringKudf.NAME),
+          JsonExtractStringKudf.FUNCTION_NAME,
           JsonExtractStringKudf.class
       ));
 
@@ -371,7 +371,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
                   SchemaBuilder.struct().optional().build(),
                   Schema.STRING_SCHEMA
               ),
-              FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
+              FetchFieldFromStruct.FUNCTION_NAME,
               FetchFieldFromStruct.class
           ),
           true

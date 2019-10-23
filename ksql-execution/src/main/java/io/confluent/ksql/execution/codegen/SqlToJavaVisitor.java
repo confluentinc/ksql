@@ -343,7 +343,7 @@ public class SqlToJavaVisitor {
 
       final String instanceName = funNameToCodeName.apply(functionName);
 
-      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName.name());
+      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
       final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, context).getLeft())
@@ -356,11 +356,11 @@ public class SqlToJavaVisitor {
     @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     private Schema getFunctionReturnSchema(
         final FunctionCall node,
-        final String functionName) {
-      if (functionName.equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
+        final FunctionName functionName) {
+      if (functionName.equals(FetchFieldFromStruct.FUNCTION_NAME)) {
         return expressionTypeManager.getExpressionSchema(node);
       }
-      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName.name());
       final List<Schema> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSchema)
           .collect(Collectors.toList());

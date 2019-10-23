@@ -305,7 +305,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldHandleRewrittenStruct() {
     final Expression expression = new FunctionCall(
-        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
     );
     assertThat(
@@ -319,7 +319,7 @@ public class ExpressionTypeManagerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not find field ZIP in TEST1.COL6.");
     final Expression expression = new FunctionCall(
-        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(ADDRESS, new StringLiteral("ZIP"))
     );
     expressionTypeManager.getExpressionSqlType(expression);
@@ -336,7 +336,7 @@ public class ExpressionTypeManagerTest {
     final Expression arrayRef = new SubscriptExpression(TestExpressions.COL0,
         new IntegerLiteral(1));
     final Expression expression = new FunctionCall(
-        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(arrayRef, new StringLiteral("IN0"))
     );
 
@@ -356,7 +356,7 @@ public class ExpressionTypeManagerTest {
         .build();
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
     final Expression structRef = new FunctionCall(
-        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(TestExpressions.COL0, new StringLiteral("IN0"))
     );
     final Expression expression = new SubscriptExpression(structRef, new IntegerLiteral(1));

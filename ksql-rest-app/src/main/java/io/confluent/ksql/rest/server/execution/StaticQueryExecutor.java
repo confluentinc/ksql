@@ -680,12 +680,16 @@ public final class StaticQueryExecutor {
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
-    return new KsqlException(
-        "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
-            + " KSQL currently only supports static queries on materialized aggregate tables."
-            + " i.e. those created by a"
-            + " 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
-            + "FROM <sources> GROUP BY <key>' style statement.");
+    return new KsqlException("Pull query: "
+        + "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
+        + " KSQL currently only supports pull queries on materialized aggregate tables."
+        + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
+        + "FROM <sources> GROUP BY <key>' style statement."
+        + System.lineSeparator()
+        + "Did you mean to execute a push query? "
+        + "Push queries were the only queries supported before v5.4.0. "
+        + "If so, add `EMIT CHANGES` to the end of your query."
+    );
   }
 
   private static KsqlException invalidWhereClauseException(

@@ -992,7 +992,7 @@ public class AstBuilder {
       final ColumnName columnName = reference.name();
       if (dataSourceExtractor.isJoin()) {
         if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-          throw new KsqlException("Field '" + columnName.name() + "' is ambiguous.");
+          throw new KsqlException("Column '" + columnName.name() + "' is ambiguous.");
         }
 
         if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
@@ -1011,7 +1011,7 @@ public class AstBuilder {
 
         throw new InvalidColumnReferenceException(
             getLocation(Iterables.getLast(context.identifier())),
-            "Field '" + columnName.name() + "' cannot be resolved."
+            "Column '" + columnName.name() + "' cannot be resolved."
         );
       }
 

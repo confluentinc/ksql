@@ -496,7 +496,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'INPUT.UNKNOWN' cannot be resolved."
+        "message": "Column 'INPUT.UNKNOWN' cannot be resolved."
       }
     },
     {
@@ -508,7 +508,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'UNKNOWN' cannot be resolved"
+        "message": "Column 'UNKNOWN' cannot be resolved"
       }
     },
     {
@@ -532,7 +532,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'F0' is ambiguous."
+        "message": "Column 'F0' is ambiguous."
       }
     }
   ]

@@ -38,9 +38,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class QueryAnalyzer {
-  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final Analyzer analyzer;
   private final MetaStore metaStore;

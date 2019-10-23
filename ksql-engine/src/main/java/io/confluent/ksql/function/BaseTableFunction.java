@@ -15,13 +15,13 @@
 
 package io.confluent.ksql.function;
 
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Objects;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 import org.apache.kafka.connect.data.Schema;
 
 @Immutable

@@ -52,7 +52,7 @@ public abstract class PlanNode {
   public abstract KeyField getKeyField();
 
   public abstract List<PlanNode> getSources();
-
+  
   public abstract List<SelectExpression> getSelectExpressions();
 
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {

@@ -29,6 +29,20 @@
       ]
     },
     {
+      "name": "udfs with table functions and no aliases, verifies intermediate generated column names don't clash with aliases",
+      "statements": [
+        "CREATE STREAM TEST (MY_ARR ARRAY<BIGINT>, F1 BIGINT, F2 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ABS(F1), EXPLODE(MY_ARR), ABS(F2) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F1": 1, "F2": 2, "MY_ARR": [1, 2]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1.0, "KSQL_COL_1": 1, "KSQL_COL_2": 2.0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1.0, "KSQL_COL_1": 2, "KSQL_COL_2": 2.0}}
+      ]
+    },
+    {
       "name": "explode shouldn't accept map",
       "statements": [
         "CREATE STREAM TEST (MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",

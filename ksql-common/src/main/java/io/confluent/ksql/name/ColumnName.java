@@ -26,7 +26,7 @@ public final class ColumnName extends Name<ColumnName> {
   private static final String AGGREGATE_COLUMN_PREFIX = "KSQL_AGG_VARIABLE_";
   private static final String GENERATED_ALIAS_PREFIX = "KSQL_COL_";
   private static final String SYNTHESISED_COLUMN_PREFIX = "KSQL_SYNTH_";
-  
+
   public static ColumnName aggregateColumn(final int idx) {
     return of(AGGREGATE_COLUMN_PREFIX + idx);
   }

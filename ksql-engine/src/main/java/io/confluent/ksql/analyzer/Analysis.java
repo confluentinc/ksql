@@ -23,6 +23,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -66,6 +67,7 @@ public class Analysis {
   private Optional<Expression> havingExpression = Optional.empty();
   private OptionalInt limitClause = OptionalInt.empty();
   private CreateSourceAsProperties withProperties = CreateSourceAsProperties.none();
+  private final List<FunctionCall> tableFunctions = new ArrayList<>();
 
   public Analysis(final ResultMaterialization resultMaterialization) {
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
@@ -204,6 +206,14 @@ public class Analysis {
 
   public CreateSourceAsProperties getProperties() {
     return withProperties;
+  }
+
+  void addTableFunction(final FunctionCall functionCall) {
+    this.tableFunctions.add(functionCall);
+  }
+
+  public List<FunctionCall> getTableFunctions() {
+    return tableFunctions;
   }
 
   @Immutable

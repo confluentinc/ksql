@@ -131,27 +131,6 @@ public class QueryAnalyzer {
     return aggregateAnalysis;
   }
 
-  public TableFunctionAnalysis analyzeTableFunctions(final Analysis analysis) {
-    final MutableTableFunctionAnalysis tableFunctionAnalysis = new MutableTableFunctionAnalysis();
-    final TableFunctionAnalyzer tableFunctionAnalyzer =
-        new TableFunctionAnalyzer(tableFunctionAnalysis, metaStore);
-    final TableFunctionExpressionRewriter tableFunctionExpressionRewriter =
-        new TableFunctionExpressionRewriter(metaStore);
-
-    processSelectExpressionsForTableFunctionAnalysis(
-        analysis,
-        tableFunctionAnalysis,
-        tableFunctionAnalyzer,
-        tableFunctionExpressionRewriter
-    );
-
-    if (tableFunctionAnalysis.getTableFunctions().size() > 1) {
-      throw new KsqlException("Only one table function per query currently is supported");
-    }
-
-    return tableFunctionAnalysis;
-  }
-
   private static void processHavingExpression(
       final Expression having,
       final MutableAggregateAnalysis aggregateAnalysis,
@@ -185,24 +164,6 @@ public class QueryAnalyzer {
 
       aggregateAnalysis.addFinalSelectExpression(
           ExpressionTreeRewriter.rewriteWith(aggregateExpressionRewriter::process, exp));
-    }
-  }
-
-  private static void processSelectExpressionsForTableFunctionAnalysis(
-      final Analysis analysis,
-      final MutableTableFunctionAnalysis tableFunctionAnalysis,
-      final TableFunctionAnalyzer tableFunctionAnalyzer,
-      final TableFunctionExpressionRewriter tableFunctionExpressionRewriter
-  ) {
-    for (final SelectExpression select : analysis.getSelectExpressions()) {
-      final Expression exp = select.getExpression();
-      tableFunctionAnalyzer.processSelect(exp);
-
-      tableFunctionAnalysis.addFinalSelectExpression(
-          SelectExpression.of(
-              select.getAlias(),
-              ExpressionTreeRewriter.rewriteWith(
-                  tableFunctionExpressionRewriter::process, exp)));
     }
   }
 

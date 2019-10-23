@@ -200,14 +200,10 @@ public class QueryAnalyzerFunctionalTest {
 
     // When:
     final Analysis analysis = queryAnalyzer.analyze(query, Optional.empty());
-    final TableFunctionAnalysis tableFunctionAnalysis = queryAnalyzer.analyzeTableFunctions(analysis);
 
     // Then:
-    assertThat(tableFunctionAnalysis.getTableFunctions(), hasSize(1));
-    assertThat(tableFunctionAnalysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions(), hasSize(2));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(0).getExpression().toString(), equalTo("SENSOR_READINGS.ID"));
-    assertThat(tableFunctionAnalysis.getFinalSelectExpressions().get(1).getExpression().toString(), equalTo("KSQL_COL_0"));
+    assertThat(analysis.getTableFunctions(), hasSize(1));
+    assertThat(analysis.getTableFunctions().get(0).getName().name(), equalTo("EXPLODE"));
   }
   
   @Test

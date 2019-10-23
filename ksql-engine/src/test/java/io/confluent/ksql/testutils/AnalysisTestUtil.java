@@ -21,7 +21,6 @@ import static org.hamcrest.Matchers.hasSize;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
@@ -56,7 +55,6 @@ public final class AnalysisTestUtil {
         ksqlConfig,
         analyzer.analysis,
         analyzer.aggregateAnalysis(),
-        analyzer.tableFunctionAnalysis(),
         metaStore);
 
     return logicalPlanner.buildPlan();
@@ -93,10 +91,6 @@ public final class AnalysisTestUtil {
 
     AggregateAnalysisResult aggregateAnalysis() {
       return queryAnalyzer.analyzeAggregate(query, analysis);
-    }
-
-    TableFunctionAnalysis tableFunctionAnalysis() {
-      return queryAnalyzer.analyzeTableFunctions(analysis);
     }
   }
 }

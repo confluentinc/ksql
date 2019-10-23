@@ -20,7 +20,6 @@ import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.Analysis.AliasedDataSource;
 import io.confluent.ksql.analyzer.Analysis.Into;
 import io.confluent.ksql.analyzer.Analysis.JoinInfo;
-import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -61,27 +60,24 @@ public class LogicalPlanner {
   private final KsqlConfig ksqlConfig;
   private final Analysis analysis;
   private final AggregateAnalysisResult aggregateAnalysis;
-  private final TableFunctionAnalysis tableFunctionAnalysis;
   private final FunctionRegistry functionRegistry;
 
   public LogicalPlanner(
       final KsqlConfig ksqlConfig,
       final Analysis analysis,
       final AggregateAnalysisResult aggregateAnalysis,
-      final TableFunctionAnalysis tableFunctionAnalysis,
       final FunctionRegistry functionRegistry
   ) {
     this.ksqlConfig = ksqlConfig;
     this.analysis = analysis;
     this.aggregateAnalysis = aggregateAnalysis;
-    this.tableFunctionAnalysis = tableFunctionAnalysis;
     this.functionRegistry = functionRegistry;
   }
 
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
 
-    if (!tableFunctionAnalysis.getTableFunctions().isEmpty()) {
+    if (!analysis.getTableFunctions().isEmpty()) {
       currentNode = buildFlatMapNode(currentNode, functionRegistry);
     }
 
@@ -240,7 +236,7 @@ public class LogicalPlanner {
       final FunctionRegistry functionRegistry
   ) {
     return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode,
-        sourcePlanNode.getSchema(), tableFunctionAnalysis, functionRegistry);
+        sourcePlanNode.getSchema(), functionRegistry, analysis);
   }
 
   private PlanNode buildSourceNode() {

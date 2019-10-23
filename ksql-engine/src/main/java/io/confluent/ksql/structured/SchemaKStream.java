@@ -21,7 +21,6 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -687,11 +686,10 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> flatMap(
       final LogicalSchema outputSchema,
-      final TableFunctionAnalysis tableFunctionAnalysis,
+      final FunctionCall functionCall,
       final QueryContext.Stacker contextStacker
   ) {
-    final FunctionCall functionCall = tableFunctionAnalysis.getTableFunctions().get(0);
-    final ColumnReferenceExp exp = (ColumnReferenceExp) functionCall.getArguments().get(0);
+    final ColumnReferenceExp exp = (ColumnReferenceExp)functionCall.getArguments().get(0);
     final ColumnName columnName = exp.getReference().name();
     final ColumnRef ref = ColumnRef.withoutSource(columnName);
     final OptionalInt indexInInput = getSchema().valueColumnIndex(ref);

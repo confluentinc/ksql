@@ -18,7 +18,6 @@ package io.confluent.ksql.engine;
 import io.confluent.ksql.analyzer.AggregateAnalysisResult;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.analyzer.TableFunctionAnalysis;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
@@ -60,8 +59,28 @@ class QueryEngine {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
-        "processingLogContext");
+        "processingLogContext"
+    );
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
+  }
+
+  static OutputNode buildQueryLogicalPlan(
+      final Query query,
+      final Optional<Sink> sink,
+      final MetaStore metaStore,
+      final KsqlConfig config
+  ) {
+    final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
+
+    final Set<SerdeOption> defaultSerdeOptions = SerdeOptions.buildDefaults(config);
+
+    final QueryAnalyzer queryAnalyzer =
+        new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
+
+    final Analysis analysis = queryAnalyzer.analyze(query, sink);
+    final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
+
+    return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();
   }
 
   PhysicalPlan<?> buildPhysicalPlan(
@@ -84,27 +103,5 @@ class QueryEngine {
     );
 
     return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
-  }
-
-  static OutputNode buildQueryLogicalPlan(
-      final Query query,
-      final Optional<Sink> sink,
-      final MetaStore metaStore,
-      final KsqlConfig config
-  ) {
-    final String outputPrefix = config.getString(KsqlConfig.KSQL_OUTPUT_TOPIC_NAME_PREFIX_CONFIG);
-
-    final Set<SerdeOption> defaultSerdeOptions = SerdeOptions.buildDefaults(config);
-
-    final QueryAnalyzer queryAnalyzer =
-        new QueryAnalyzer(metaStore, outputPrefix, defaultSerdeOptions);
-
-    final Analysis analysis = queryAnalyzer.analyze(query, sink);
-    final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
-    final TableFunctionAnalysis tableFunctionAnalysis =
-        queryAnalyzer.analyzeTableFunctions(analysis);
-
-    return new LogicalPlanner(config, analysis, aggAnalysis,
-        tableFunctionAnalysis, metaStore).buildPlan();
   }
 }

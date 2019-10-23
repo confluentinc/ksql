@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.planner.plan;
 
+import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.verifyProcessorNode;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -60,11 +62,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlBareOutputNodeTest {
 
-  private static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
-  private static final String SOURCE_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000001";
-  private static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
-  private static final String FILTER_NODE = "KSTREAM-FILTER-0000000003";
-  private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000004";
+  private static final String FILTER_NODE = "KSTREAM-FILTER-0000000002";
+  private static final String FILTER_MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000003";
   private static final String SIMPLE_SELECT_WITH_FILTER = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
 
   private SchemaKStream stream;
@@ -106,21 +105,14 @@ public class KsqlBareOutputNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(SOURCE_MAPVALUES_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
-  }
-
-  @Test
-  public void shouldBuildMapNode() {
-    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(SOURCE_MAPVALUES_NODE),
-        Collections.singletonList(SOURCE_NODE),
-        Collections.singletonList(TRANSFORM_NODE));
   }
 
   @Test
   public void shouldBuildTransformNode() {
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(TRANSFORM_NODE);
-    verifyProcessorNode(node, Collections.singletonList(SOURCE_MAPVALUES_NODE), Collections.singletonList(FILTER_NODE));
+    verifyProcessorNode(node, Collections.singletonList(SOURCE_NODE), Collections.singletonList(FILTER_NODE));
   }
 
   @Test

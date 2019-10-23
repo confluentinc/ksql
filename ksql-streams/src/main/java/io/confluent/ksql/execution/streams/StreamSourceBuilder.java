@@ -14,10 +14,11 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
-import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -25,14 +26,15 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.KeySerde;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.function.Function;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.ValueMapperWithKey;
-import org.apache.kafka.streams.kstream.ValueTransformer;
-import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.apache.kafka.streams.kstream.Window;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.SessionWindow;
@@ -47,55 +49,73 @@ public final class StreamSourceBuilder {
       final KsqlQueryBuilder queryBuilder,
       final StreamSource streamSource
   ) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
     final KeyFormat keyFormat = streamSource.getFormats().getKeyFormat();
-    final ExecutionStepProperties properties = streamSource.getProperties();
+    if (keyFormat.getWindowInfo().isPresent()) {
+      throw new IllegalArgumentException("Windowed source");
+    }
+
+    final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
+
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
+
+    final KeySerde<Struct> keySerde = queryBuilder.buildKeySerde(
+        keyFormat.getFormatInfo(),
+        physicalSchema,
+        streamSource.getProperties().getQueryContext()
+    );
+
     final Consumed<Struct, GenericRow> consumed = buildSourceConsumed(
         streamSource,
-        queryBuilder.buildKeySerde(
-            keyFormat.getFormatInfo(),
-            physicalSchema,
-            properties.getQueryContext()
-        ),
+        keySerde,
         valueSerde
     );
+
     final KStream<Struct, GenericRow> kstream = buildKStream(
         streamSource,
         queryBuilder,
         consumed,
-        nonWindowedValueMapper(streamSource.getSourceSchema())
+        nonWindowedRowKeyGenerator(streamSource.getSourceSchema())
     );
+
     return new KStreamHolder<>(
         kstream,
         (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
     );
   }
 
-  public static KStreamHolder<Windowed<Struct>> buildWindowed(
+  static KStreamHolder<Windowed<Struct>> buildWindowed(
       final KsqlQueryBuilder queryBuilder,
       final WindowedStreamSource streamSource
   ) {
-    final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
-    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
     final KeyFormat keyFormat = streamSource.getFormats().getKeyFormat();
-    final ExecutionStepProperties properties = streamSource.getProperties();
+    if (!keyFormat.getWindowInfo().isPresent()) {
+      throw new IllegalArgumentException("Not windowed source");
+    }
+
+    final PhysicalSchema physicalSchema = getPhysicalSchema(streamSource);
+
+    final Serde<GenericRow> valueSerde = getValueSerde(queryBuilder, streamSource, physicalSchema);
+
+    final KeySerde<Windowed<Struct>> keySerde = queryBuilder.buildKeySerde(
+        keyFormat.getFormatInfo(),
+        keyFormat.getWindowInfo().get(),
+        physicalSchema,
+        streamSource.getProperties().getQueryContext()
+    );
+
     final Consumed<Windowed<Struct>, GenericRow> consumed = buildSourceConsumed(
         streamSource,
-        queryBuilder.buildKeySerde(
-            keyFormat.getFormatInfo(),
-            keyFormat.getWindowInfo().get(),
-            physicalSchema,
-            properties.getQueryContext()
-        ),
+        keySerde,
         valueSerde
     );
+
     final KStream<Windowed<Struct>, GenericRow> kstream = buildKStream(
         streamSource,
         queryBuilder,
         consumed,
-        windowedMapper(streamSource.getSourceSchema())
+        windowedRowKeyGenerator(streamSource.getSourceSchema())
     );
+
     return new KStreamHolder<>(
         kstream,
         (fmt, schema, ctx) -> queryBuilder.buildKeySerde(
@@ -129,15 +149,22 @@ public final class StreamSourceBuilder {
       final AbstractStreamSource streamSource,
       final KsqlQueryBuilder queryBuilder,
       final Consumed<K, GenericRow> consumed,
-      final ValueMapperWithKey<K, GenericRow, GenericRow> mapper) {
-    return queryBuilder.getStreamsBuilder()
-        // 1. Create a KStream on the changelog topic.
-        .stream(streamSource.getTopicName(), consumed)
-        // 2. mapValues to add the ROWKEY column
-        .mapValues(mapper)
-        // 3. transformValues to add the ROWTIME column. transformValues is required to access the
-        //    streams ProcessorContext which has the timestamp for the record.
-        .transformValues(new AddTimestampColumn());
+      final Function<K, String> rowKeyGenerator
+  ) {
+    // for really old topologies, we must inject a dummy step to sure state store names,
+    // which use the node id in the store name, stay consistent:
+    final boolean legacy = queryBuilder.getKsqlConfig()
+        .getBoolean(KsqlConfig.KSQL_INJECT_LEGACY_MAP_VALUES_NODE);
+
+    KStream<K, GenericRow> stream = queryBuilder.getStreamsBuilder()
+        .stream(streamSource.getTopicName(), consumed);
+
+    if (legacy) {
+      stream = stream.mapValues(value -> value);
+    }
+
+    return stream
+        .transformValues(new AddKeyAndTimestampColumns<>(rowKeyGenerator));
   }
 
   private static <K> Consumed<K, GenericRow> buildSourceConsumed(
@@ -163,49 +190,67 @@ public final class StreamSourceBuilder {
     return schema.keyConnectSchema().fields().get(0);
   }
 
-  private static ValueMapperWithKey<Windowed<Struct>, GenericRow, GenericRow> windowedMapper(
-      final LogicalSchema schema) {
+  private static Function<Windowed<Struct>, String> windowedRowKeyGenerator(
+      final LogicalSchema schema
+  ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
-    return (keyStruct, row) -> {
-      if (row != null) {
-        final Window window = keyStruct.window();
-        final long start = window.start();
-        final String end = window instanceof SessionWindow ? String.valueOf(window.end()) : "-";
-        final Object key = keyStruct.key().get(keyField);
-        final String rowKey = String.format("%s : Window{start=%d end=%s}", key, start, end);
-        row.getColumns().add(0, rowKey);
+
+    return windowedKey -> {
+      if (windowedKey == null) {
+        return null;
       }
-      return row;
+
+      final Window window = windowedKey.window();
+      final long start = window.start();
+      final String end = window instanceof SessionWindow ? String.valueOf(window.end()) : "-";
+      final Object key = windowedKey.key().get(keyField);
+      return String.format("%s : Window{start=%d end=%s}", key, start, end);
     };
   }
 
-  private static ValueMapperWithKey<Struct, GenericRow, GenericRow> nonWindowedValueMapper(
-      final LogicalSchema schema) {
+  private static Function<Struct, String> nonWindowedRowKeyGenerator(
+      final LogicalSchema schema
+  ) {
     final org.apache.kafka.connect.data.Field keyField = getKeySchemaSingleField(schema);
-    return (key, row) -> {
-      if (row != null) {
-        row.getColumns().add(0, key.get(keyField));
+    return key -> {
+      if (key == null) {
+        return null;
       }
-      return row;
+
+      final Object k = key.get(keyField);
+      return k == null
+          ? null
+          : k.toString();
     };
   }
 
-  private static class AddTimestampColumn
-      implements ValueTransformerSupplier<GenericRow, GenericRow> {
+  private static class AddKeyAndTimestampColumns<K>
+      implements ValueTransformerWithKeySupplier<K, GenericRow, GenericRow> {
+
+    private final Function<K, String> rowKeyGenerator;
+
+    AddKeyAndTimestampColumns(final Function<K, String> rowKeyGenerator) {
+      this.rowKeyGenerator = requireNonNull(rowKeyGenerator, "rowKeyGenerator");
+    }
+
     @Override
-    public ValueTransformer<GenericRow, GenericRow> get() {
-      return new ValueTransformer<GenericRow, GenericRow>() {
-        ProcessorContext processorContext;
+    public ValueTransformerWithKey<K, GenericRow, GenericRow> get() {
+      return new ValueTransformerWithKey<K, GenericRow, GenericRow>() {
+        private ProcessorContext processorContext;
+
         @Override
         public void init(final ProcessorContext processorContext) {
-          this.processorContext = processorContext;
+          this.processorContext = requireNonNull(processorContext, "processorContext");
         }
 
         @Override
-        public GenericRow transform(final GenericRow row) {
-          if (row != null) {
-            row.getColumns().add(0, processorContext.timestamp());
+        public GenericRow transform(final K key, final GenericRow row) {
+          if (row == null) {
+            return row;
           }
+
+          row.getColumns().add(0, processorContext.timestamp());
+          row.getColumns().add(1, rowKeyGenerator.apply(key));
           return row;
         }
 

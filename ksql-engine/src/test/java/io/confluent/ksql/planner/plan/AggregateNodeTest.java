@@ -16,8 +16,8 @@
 package io.confluent.ksql.planner.plan;
 
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
-import static io.confluent.ksql.planner.plan.PlanTestUtil.MAPVALUES_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
+import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
 import static io.confluent.ksql.util.LimitedProxyBuilder.methodParams;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -83,8 +83,7 @@ import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
-import org.apache.kafka.streams.kstream.ValueTransformerSupplier;
-import org.apache.kafka.streams.kstream.Windowed;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -102,10 +101,6 @@ public class AggregateNodeTest {
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private KeySerde<Struct> keySerde;
-  @Mock
-  private KeySerde<Struct> reboundKeySerde;
-  @Mock
-  private KeySerde<Windowed<Struct>> windowedKeySerde;
   @Captor
   private ArgumentCaptor<QueryContext> queryContextCaptor;
 
@@ -121,11 +116,16 @@ public class AggregateNodeTest {
         + "WHERE col0 > 100 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), SOURCE_NODE);
-    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(MAPVALUES_NODE)));
-    assertThat(node.topicSet(), equalTo(ImmutableSet.of("test1")));
+    final TopologyDescription.Source sourceNode = (TopologyDescription.Source)
+        getNodeByName(builder.build(), SOURCE_NODE);
+
+    final List<String> successors = sourceNode.successors().stream()
+        .map(TopologyDescription.Node::name)
+        .collect(Collectors.toList());
+
+    assertThat(sourceNode.predecessors(), equalTo(Collections.emptySet()));
+    assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
+    assertThat(sourceNode.topicSet(), equalTo(ImmutableSet.of("test1")));
   }
 
   @SuppressWarnings("unchecked")
@@ -215,10 +215,10 @@ public class AggregateNodeTest {
     buildRequireRekey();
 
     // Then:
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
     assertThat(node.topicSet(), containsInAnyOrder("Aggregate-groupby-repartition"));
   }
 
@@ -235,15 +235,15 @@ public class AggregateNodeTest {
     );
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
         builder.build(),
-        "KSTREAM-SOURCE-0000000010");
+        "KSTREAM-SOURCE-0000000009");
     final List<String> successors = node.successors().stream()
         .map(TopologyDescription.Node::name)
         .collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
+    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000006")));
     assertThat(
         node.topicSet(),
-        hasItem(containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000006")));
+        hasItem(containsString("KSTREAM-AGGREGATE-STATE-STORE-0000000005")));
     assertThat(node.topicSet(), hasItem(containsString("-repartition")));
   }
 
@@ -259,15 +259,15 @@ public class AggregateNodeTest {
         )
     );
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000006");
-    assertThat(node.stores(), hasItem(equalTo("KSTREAM-AGGREGATE-STATE-STORE-0000000005")));
+        builder.build(), "KSTREAM-AGGREGATE-0000000005");
+    assertThat(node.stores(), hasItem(equalTo("KSTREAM-AGGREGATE-STATE-STORE-0000000004")));
   }
 
   @Test
   public void shouldHaveKsqlNameForAggregationStateStore() {
     build();
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
-        builder.build(), "KSTREAM-AGGREGATE-0000000005");
+        builder.build(), "KSTREAM-AGGREGATE-0000000004");
     assertThat(node.stores(), hasItem(equalTo("Aggregate-aggregate")));
   }
 
@@ -279,8 +279,8 @@ public class AggregateNodeTest {
         + "GROUP BY col1 EMIT CHANGES;");
 
     // Then:
-    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000007");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000009");
+    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000006");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(source.topicSet(), hasItem(sink.topic()));
   }
@@ -439,7 +439,7 @@ public class AggregateNodeTest {
 
       private final Map<ValueMapper, FakeKStream> mapValues = new IdentityHashMap<>();
       private final Map<ValueMapperWithKey, FakeKStream> mapValuesWithKey = new IdentityHashMap<>();
-      private final Map<ValueTransformerSupplier, FakeKStream> transformValues = new IdentityHashMap<>();
+      private final Map<ValueTransformerWithKeySupplier, FakeKStream> transformValues = new IdentityHashMap<>();
       private final Map<Predicate, FakeKStream> filter = new IdentityHashMap<>();
       private final Map<Grouped, FakeKGroupedStream> groupByKey = new IdentityHashMap<>();
 
@@ -448,7 +448,7 @@ public class AggregateNodeTest {
             .forward("mapValues", methodParams(ValueMapper.class), this)
             .forward("mapValues", methodParams(ValueMapperWithKey.class), this)
             .forward("transformValues",
-                methodParams(ValueTransformerSupplier.class, String[].class), this)
+                methodParams(ValueTransformerWithKeySupplier.class, String[].class), this)
             .forward("filter", methodParams(Predicate.class), this)
             .forward("groupByKey", methodParams(Grouped.class), this)
             .forward("groupBy", methodParams(KeyValueMapper.class, Grouped.class), this)
@@ -471,7 +471,7 @@ public class AggregateNodeTest {
 
       @SuppressWarnings("unused") // Invoked via reflection.
       private KStream transformValues(
-          final ValueTransformerSupplier valueTransformerSupplier,
+          final ValueTransformerWithKeySupplier valueTransformerSupplier,
           final String... stateStoreNames
       ) {
         final FakeKStream stream = new FakeKStream();

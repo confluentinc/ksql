@@ -16,6 +16,7 @@ package io.confluent.ksql.planner.plan;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasSize;
 
 import java.util.List;
 import java.util.Map;
@@ -23,13 +24,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
+import org.apache.kafka.streams.TopologyDescription.Node;
 
 
 public final class PlanTestUtil {
 
-  static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000002";
+  static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000001";
   static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
-  static final String MAPVALUES_NODE = "KSTREAM-MAPVALUES-0000000001";
 
   private PlanTestUtil() {
   }
@@ -43,7 +44,9 @@ public final class PlanTestUtil {
     final Set<TopologyDescription.Subtopology> subtopologies = description.subtopologies();
     final List<TopologyDescription.Node> nodes = subtopologies.stream().flatMap(subtopology -> subtopology.nodes().stream()).collect(Collectors.toList());
     final Map<String, List<TopologyDescription.Node>> nodesByName = nodes.stream().collect(Collectors.groupingBy(TopologyDescription.Node::name));
-    return nodesByName.get(nodeName).get(0);
+    final List<Node> nodesWithName = nodesByName.get(nodeName);
+    assertThat("looking for:" + nodeName + "\ntopology: " + description, nodesWithName, hasSize(1));
+    return nodesWithName.get(0);
   }
 
   public static void verifyProcessorNode(

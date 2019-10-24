@@ -50,6 +50,7 @@ public class RecordTest {
         topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         null
     );
@@ -67,6 +68,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         new WindowData(100L, 1000L, "TIME"));
 
@@ -83,6 +85,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         new WindowData(100L, 1000L, "SESSION"));
 
@@ -99,6 +102,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         null);
 
@@ -116,6 +120,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         new WindowData(100L, 1000L, "TIME"));
 
@@ -133,6 +138,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         new WindowData(100L, 1000L, "SESSION"));
 
@@ -150,6 +156,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         null);
 
@@ -167,6 +174,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         new WindowData(100L, 1000L, "TIME"));
 
@@ -187,6 +195,7 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
+        null,
         Optional.of(1000L),
         new WindowData(100L, 1000L, "SESSION"));
 

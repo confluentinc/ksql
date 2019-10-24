@@ -60,6 +60,7 @@ public final class StubInsertValuesExecutor {
                   stubKafkaService.getTopic(record.topic()),
                   new String(record.key(), StandardCharsets.UTF_8),
                   value,
+                  null,
                   Optional.of(record.timestamp()),
                   null
               ),

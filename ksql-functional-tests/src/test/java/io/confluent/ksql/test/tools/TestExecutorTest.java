@@ -21,6 +21,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -193,15 +194,15 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_0 = kafkaRecord(sinkTopic, 123456719L, "k1", "v1");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(1L), null);
-    final Record expected_1 = new Record(sinkTopic, "k1", "v1", Optional.of(1L), null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
+    final Record expected_1 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // Expect
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Expected <2> records but it was <1>\n"
         + "Actual records: \n"
-        + "<k1, v1> with timestamp=123456719");
+        + "<k1, \"v1\"> with timestamp=123456719");
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -214,15 +215,15 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(1L), null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", null, Optional.of(1L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0));
 
     // Expect
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Expected <1> records but it was <2>\n"
         + "Actual records: \n"
-        + "<k1, v1> with timestamp=123456719 \n"
-        + "<k2, v2> with timestamp=123456789");
+        + "<k1, \"v1\"> with timestamp=123456719 \n"
+        + "<k2, \"v2\"> with timestamp=123456789");
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -235,14 +236,14 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(123456719L), null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "different", Optional.of(123456789L), null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
+    final Record expected_1 = new Record(sinkTopic, "k2", "different", TextNode.valueOf("different"), Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // Expect
     expectedException.expect(AssertionError.class);
     expectedException.expectMessage(
-        "Expected <k2, different> with timestamp=123456789 but was <k2, v2> with timestamp=123456789");
+        "Expected <k2, \"different\"> with timestamp=123456789 but was <k2, \"v2\"> with timestamp=123456789");
 
     // When:
     executor.buildAndExecuteQuery(testCase);
@@ -255,8 +256,8 @@ public class TestExecutorTest {
     final StubKafkaRecord actual_1 = kafkaRecord(sinkTopic, 123456789L, "k2", "v2");
     when(kafkaService.readRecords("sink_topic")).thenReturn(ImmutableList.of(actual_0, actual_1));
 
-    final Record expected_0 = new Record(sinkTopic, "k1", "v1", Optional.of(123456719L), null);
-    final Record expected_1 = new Record(sinkTopic, "k2", "v2", Optional.of(123456789L), null);
+    final Record expected_0 = new Record(sinkTopic, "k1", "v1", TextNode.valueOf("v1"), Optional.of(123456719L), null);
+    final Record expected_1 = new Record(sinkTopic, "k2", "v2", TextNode.valueOf("v2"), Optional.of(123456789L), null);
     when(testCase.getOutputRecords()).thenReturn(ImmutableList.of(expected_0, expected_1));
 
     // When:

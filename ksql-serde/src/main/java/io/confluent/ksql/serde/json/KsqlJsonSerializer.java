@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
-import java.util.Collections;
 import java.util.Map;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Serializer;
+import org.apache.kafka.connect.json.DecimalFormat;
 import org.apache.kafka.connect.json.JsonConverter;
+import org.apache.kafka.connect.json.JsonConverterConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +35,10 @@ public class KsqlJsonSerializer implements Serializer<Object> {
 
   public KsqlJsonSerializer(final PersistenceSchema physicalSchema) {
     this.jsonConverter = new JsonConverter();
-    this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
+    this.jsonConverter.configure(ImmutableMap.of(
+        JsonConverterConfig.SCHEMAS_ENABLE_CONFIG, false,
+        JsonConverterConfig.DECIMAL_FORMAT_CONFIG, DecimalFormat.NUMERIC.name()
+    ), false);
     this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
   }
 

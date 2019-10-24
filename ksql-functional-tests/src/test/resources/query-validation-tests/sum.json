@@ -201,14 +201,14 @@
       "inputs": [
         {"topic": "test_topic", "key": 0, "value": {"value":[1.0, 1.0]}},
         {"topic": "test_topic", "key": 0, "value": {"value":[2.0, 2.0]}},
-        {"topic": "test_topic", "key": 0, "value": {"value":[9223372036854775807.0, 1.0]}},
+        {"topic": "test_topic", "key": 0, "value": {"value":[922337203685.0, 1.0]}},
         {"topic": "test_topic", "key": 0, "value": {"value":[1.0, 1.0, null]}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":2.0}},
         {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":6.0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":9223372036854775814.0}},
-        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":9223372036854775816.0}}
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":922337203692.0}},
+        {"topic": "OUTPUT", "key": 0, "value": {"SUM_VAL":922337203694.0}}
       ]
     },
     {

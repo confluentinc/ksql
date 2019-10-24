@@ -148,10 +148,12 @@ public final class DecimalUtil {
     } catch (final ArithmeticException e) {
       throw new KsqlException(
           String.format(
-              "Cannot fit decimal '%s' into DECIMAL(%d, %d) without rounding.",
+              "Cannot fit decimal '%s' into DECIMAL(%d, %d) without rounding. (Requires %d,%d)",
               value.toPlainString(),
               precision,
-              scale));
+              scale,
+              value.precision(),
+              value.scale()));
     }
   }
 

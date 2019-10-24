@@ -15,34 +15,53 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.collect.ImmutableMap;
-import com.google.gson.Gson;
+import com.google.common.collect.Streams;
 import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
+import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.json.JsonConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class KsqlJsonDeserializer implements Deserializer<Object> {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger LOG = LoggerFactory.getLogger(KsqlJsonDeserializer.class);
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(word -> false);
+  private static final ObjectMapper MAPPER = new ObjectMapper()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
+  private static final ObjectMapper SORTED_MAPPER = new ObjectMapper()
+      .enable(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS);
 
   private static final Map<Schema.Type, Function<JsonValueContext, Object>> HANDLERS = ImmutableMap
       .<Schema.Type, Function<JsonValueContext, Object>>builder()
@@ -57,17 +76,12 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       .put(Type.BYTES, KsqlJsonDeserializer::enforceValidBytes)
       .build();
 
-  private final Gson gson;
   private final PersistenceSchema physicalSchema;
-  private final JsonConverter jsonConverter;
 
-  KsqlJsonDeserializer(
+  public KsqlJsonDeserializer(
       final PersistenceSchema physicalSchema
   ) {
-    this.gson = new Gson();
     this.physicalSchema = JsonSerdeUtils.validateSchema(physicalSchema);
-    this.jsonConverter = new JsonConverter();
-    this.jsonConverter.configure(Collections.singletonMap("schemas.enable", false), false);
   }
 
   @Override
@@ -89,20 +103,28 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   }
 
   private Object deserialize(final byte[] bytes) {
-    final SchemaAndValue schemaAndValue = jsonConverter.toConnectData("topic", bytes);
-    return enforceFieldType(this, physicalSchema.serializedSchema(), schemaAndValue.value());
+    try {
+      if (bytes == null) {
+        return null;
+      }
+
+      final JsonNode value = MAPPER.readTree(bytes);
+      return enforceFieldType(this, physicalSchema.serializedSchema(), value);
+    } catch (IOException e) {
+      throw new SerializationException(e);
+    }
   }
 
   private static Object enforceFieldType(
       final KsqlJsonDeserializer deserializer,
       final Schema schema,
-      final Object columnVal
+      final JsonNode columnVal
   ) {
     return enforceFieldType(new JsonValueContext(deserializer, schema, columnVal));
   }
 
   private static Object enforceFieldType(final JsonValueContext context) {
-    if (context.val == null) {
+    if (context.val == null || context.val instanceof NullNode) {
       return null;
     }
 
@@ -115,41 +137,71 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
   }
 
   private static String processString(final JsonValueContext context) {
-    if (context.val instanceof Map) {
-      return context.deserializer.gson.toJson(context.val);
+    if (context.val instanceof ObjectNode) {
+      try {
+        // this ensure sorted order, there's an issue with Jackson where just enabling
+        // SORT_PROPERTIES_ALPHABETICALLY does not work if it is not a POJO-backed
+        // JSON object
+        return SORTED_MAPPER.writeValueAsString(
+            SORTED_MAPPER.treeToValue(context.val, Object.class)
+        );
+      } catch (JsonProcessingException e) {
+        throw new KsqlException("Unexpected inability to write value as string: " + context.val);
+      }
     }
-    return context.val.toString();
+    if (context.val instanceof ArrayNode) {
+      return Streams.stream(context.val.elements())
+          .map(val -> processString(
+              new JsonValueContext(context.deserializer, context.schema, val)
+          ))
+          .collect(Collectors.joining(", ", "[", "]"));
+    }
+    return context.val.asText();
   }
 
   private static Object enforceValidBytes(final JsonValueContext context) {
-    // before we implement JSON Decimal support, we need to update Connect
+    final BigDecimal decimal;
+    final boolean isDecimal = DecimalUtil.isDecimal(context.schema);
+    if (isDecimal && context.val instanceof NumericNode) {
+      decimal = context.val.decimalValue();
+      DecimalUtil.ensureFit(decimal, context.schema);
+      return decimal;
+    } else if (isDecimal && context.val instanceof TextNode) {
+      decimal = new BigDecimal(context.val.textValue());
+      DecimalUtil.ensureFit(decimal, context.schema);
+      return decimal;
+    }
     throw invalidConversionException(context.val, context.schema);
   }
 
   private static List<?> enforceElementTypeForArray(final JsonValueContext context) {
-    if (!(context.val instanceof List)) {
+    if (!(context.val instanceof ArrayNode)) {
       throw invalidConversionException(context.val, context.schema);
     }
 
-    final List<?> list = (List<?>) context.val;
+    final ArrayNode list = (ArrayNode) context.val;
     final List<Object> array = new ArrayList<>(list.size());
-    for (final Object item : list) {
+    for (final JsonNode item : list) {
       array.add(enforceFieldType(context.deserializer, context.schema.valueSchema(), item));
     }
     return array;
   }
 
   private static Map<String, Object> enforceKeyAndValueTypeForMap(final JsonValueContext context) {
-    if (!(context.val instanceof Map)) {
+    if (!(context.val instanceof ObjectNode)) {
       throw invalidConversionException(context.val, context.schema);
     }
 
-    final Map<?, ?> map = (Map<?, ?>) context.val;
+    final ObjectNode map = (ObjectNode) context.val;
     final Map<String, Object> ksqlMap = new HashMap<>(map.size());
-    for (final Map.Entry<?, ?> e : map.entrySet()) {
+    for (Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+      final Entry<String, JsonNode> e = it.next();
       ksqlMap.put(
           enforceFieldType(
-              context.deserializer, Schema.OPTIONAL_STRING_SCHEMA, e.getKey()).toString(),
+              context.deserializer,
+              Schema.OPTIONAL_STRING_SCHEMA,
+              new TextNode(e.getKey()))
+              .toString(),
           enforceFieldType(
               context.deserializer, context.schema.valueSchema(), e.getValue())
       );
@@ -157,16 +209,14 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     return ksqlMap;
   }
 
-  @SuppressWarnings("unchecked")
   private static Struct enforceFieldTypesForStruct(final JsonValueContext context) {
-    if (!(context.val instanceof Map)) {
+    if (!(context.val instanceof ObjectNode)) {
       throw invalidConversionException(context.val, context.schema);
     }
 
     final Struct columnStruct = new Struct(context.schema);
-    final Map<String, ?> jsonFields = (Map<String, ?>) context.val;
-
-    final Map<String, ?> upperCasedFields = upperCaseKeys(jsonFields);
+    final ObjectNode jsonFields = (ObjectNode) context.val;
+    final Map<String, JsonNode> upperCasedFields = upperCaseKeys(jsonFields);
 
     for (Field ksqlField : context.schema.fields()) {
       // the "case insensitive" strategy leverages that all KSQL fields are internally
@@ -174,7 +224,7 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       // during parsing. any ksql fields that are case insensitive, therefore, will be matched
       // in this case insensitive field map without modification but the quoted fields will not
       // (unless they were all uppercase to start off with, which is expected to match)
-      final Object fieldValue = ObjectUtils.defaultIfNull(
+      final JsonNode fieldValue = ObjectUtils.defaultIfNull(
           jsonFields.get(ksqlField.name()),
           upperCasedFields.get(ksqlField.name()));
 
@@ -190,9 +240,10 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
     return columnStruct;
   }
 
-  private static Map<String, ?> upperCaseKeys(final Map<String, ?> map) {
-    final Map<String, Object> result = new HashMap<>(map.size());
-    for (final Map.Entry<String, ?> entry : map.entrySet()) {
+  private static Map<String, JsonNode> upperCaseKeys(final ObjectNode map) {
+    final Map<String, JsonNode> result = new HashMap<>(map.size());
+    for (Iterator<Entry<String, JsonNode>> it = map.fields(); it.hasNext(); ) {
+      final Entry<String, JsonNode> entry = it.next();
       // what happens if we have two fields with the same name and different case?
       result.put(entry.getKey().toUpperCase(), entry.getValue());
     }
@@ -217,12 +268,12 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
 
     private final KsqlJsonDeserializer deserializer;
     private final Schema schema;
-    private final Object val;
+    private final JsonNode val;
 
     JsonValueContext(
         final KsqlJsonDeserializer deserializer,
         final Schema schema,
-        final Object val
+        final JsonNode val
     ) {
       this.deserializer = Objects.requireNonNull(deserializer);
       this.schema = Objects.requireNonNull(schema, "schema");

@@ -16,9 +16,6 @@
 package io.confluent.ksql.test.tools.stubs;
 
 import io.confluent.ksql.test.model.WindowData;
-import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.ValueSpec;
-import io.confluent.ksql.test.serde.avro.AvroSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import java.util.Objects;
@@ -49,13 +46,11 @@ public final class StubKafkaRecord {
       final ProducerRecord<?,?> producerRecord) {
     Objects.requireNonNull(producerRecord);
     Objects.requireNonNull(topic, "topic");
-    final SerdeSupplier<?> serdeSupplier = topic.getValueSerdeSupplier();
     final Record testRecord = new Record(
         topic,
         Objects.toString(producerRecord.key()),
-        serdeSupplier instanceof AvroSerdeSupplier
-            ? ((ValueSpec)producerRecord.value()).getSpec()
-            : producerRecord.value(),
+        producerRecord.value(),
+        null,
         Optional.of(producerRecord.timestamp()),
         getWindowData(producerRecord)
     );

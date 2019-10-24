@@ -21,7 +21,6 @@ import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import io.confluent.kafka.serializers.KafkaAvroSerializer;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.serde.ValueSpec;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
@@ -191,9 +190,6 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     @SuppressWarnings("unchecked")
     private static GenericRecord getAvroRecord(final Object spec, final Schema schema) {
       final GenericRecord record = new GenericData.Record(schema);
-      if (spec instanceof ValueSpec) {
-        return getAvroRecord(((ValueSpec) spec).getSpec(), schema);
-      }
       final Map<String, String> caseInsensitiveFieldNames
           = getUppercaseKeyToActualKey((Map) spec);
       for (final org.apache.avro.Schema.Field field : schema.getFields()) {
@@ -276,11 +272,10 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
-      return new ValueSpec(
-          avroToValueSpec(
-              avroObject,
-              new org.apache.avro.Schema.Parser().parse(schemaString),
-              false));
+      return avroToValueSpec(
+          avroObject,
+          new org.apache.avro.Schema.Parser().parse(schemaString),
+          false);
     }
 
     // CHECKSTYLE_RULES.OFF: CyclomaticComplexity

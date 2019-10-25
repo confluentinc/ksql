@@ -27,36 +27,36 @@ import java.util.function.Predicate;
 public class StaticQueryValidator implements QueryValidator {
 
   private static final String NEW_QUERY_SYNTAX_HELP = " "
-      + "Did you mean to execute a continuous query? Add an 'EMIT CHANGES' clause to do so."
+      + "Did you mean to execute a push query? Add an 'EMIT CHANGES' clause to do so."
       + System.lineSeparator()
       + System.lineSeparator()
       + "Query syntax in KSQL has changed. There are now two broad categories of queries:"
       + System.lineSeparator()
-      + "- Static queries: query the current state of the system, return a result, and terminate "
+      + "- Pull queries: query the current state of the system, return a result, and terminate "
       + "the query."
       + System.lineSeparator()
-      + "- Streaming queries: query the state of the system in motion and continue to output "
+      + "- Push queries: query the state of the system in motion and continue to output "
       + "results until they meet a LIMIT clause condition or the user terminates the query."
       + System.lineSeparator()
       + System.lineSeparator()
-      + "Use 'EMIT CHANGES' to indicate that a query is continuous and outputs all changes. "
-      + "To convert a static query into a streaming query, which was the default behavior in older "
+      + "'EMIT CHANGES' is used to to indicate a query is a push query. "
+      + "To convert a pull query into a push query, which was the default behavior in older "
       + "versions of KSQL, add `EMIT CHANGES` to the end of the statement before any LIMIT clause."
       + System.lineSeparator()
       + System.lineSeparator()
-      + "For example, the following are static queries:"
+      + "For example, the following are pull queries:"
       + System.lineSeparator()
       + "\t'SELECT * FROM X WHERE ROWKEY=Y;' (non-windowed table)"
       + System.lineSeparator()
       + "\t'SELECT * FROM X WHERE ROWKEY=Y AND WINDOWSTART>=Z;' (windowed table)"
       + System.lineSeparator()
       + System.lineSeparator()
-      + "The following is a streaming query:"
+      + "The following is a push query:"
       + System.lineSeparator()
       + "\t'SELECT * FROM X EMIT CHANGES;'"
       + System.lineSeparator()
       + System.lineSeparator()
-      + "Note: Persistent queries, like `CREATE TABLE AS ...`, have an implicit "
+      + "Note: Persistent queries, e.g. `CREATE TABLE AS ...`, have an implicit "
       + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements.";
 
   private static final List<Rule> RULES = ImmutableList.of(

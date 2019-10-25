@@ -183,7 +183,7 @@ public class ExpressionAnalyzerTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Field 'source-column' cannot be resolved.");
+        "Column 'source-column' cannot be resolved.");
 
     // When:
     analyzer.analyzeExpression(expression, true);

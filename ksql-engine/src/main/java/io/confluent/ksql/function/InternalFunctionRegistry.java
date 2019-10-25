@@ -85,6 +85,9 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     if (udafs.containsKey(functionName)) {
       throw new KsqlException("UdfFactory already registered as aggregate: " + functionName);
     }
+    if (udtfs.containsKey(functionName)) {
+      throw new KsqlException("UdfFactory already registered as table function: " + functionName);
+    }
 
     final UdfFactory existing = udfs.putIfAbsent(functionName, factory);
     if (existing != null && !existing.matches(factory)) {

@@ -88,7 +88,7 @@ public class ExpressionAnalyzerTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Field 'something.WINDOWSTART' cannot be resolved.");
+        "Column 'something.WINDOWSTART' cannot be resolved.");
 
     // When:
     analyzer.analyzeExpression(expression, false);
@@ -142,7 +142,7 @@ public class ExpressionAnalyzerTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Field 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
+        "Column 'just-name' is ambiguous. Could be any of: multiple.just-name, sources.just-name");
 
     // When:
     analyzer.analyzeExpression(expression, true);
@@ -161,7 +161,7 @@ public class ExpressionAnalyzerTest {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
-        "Field 'just-name' cannot be resolved.");
+        "Column 'just-name' cannot be resolved.");
 
     // When:
     analyzer.analyzeExpression(expression, true);

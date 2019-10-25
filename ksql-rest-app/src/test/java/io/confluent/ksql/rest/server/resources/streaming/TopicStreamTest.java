@@ -114,7 +114,7 @@ public class TopicStreamTest {
 
     final String json =
         "{    \"name\": \"myrecord\"," +
-        "    \"type\": \"record\"" +
+        "    \"aDecimal\": 1.1234512345123451234" +
         "}";
 
     // When:
@@ -123,7 +123,7 @@ public class TopicStreamTest {
     // Then:
     assertThat(result.format, is(Format.JSON));
     assertThat(result.formatted,
-               is("{\"ROWTIME\":-1,\"ROWKEY\":\"key\",\"name\":\"myrecord\",\"type\":\"record\"}\n"));
+               is("{\"ROWTIME\":-1,\"ROWKEY\":\"key\",\"name\":\"myrecord\",\"aDecimal\":1.1234512345123451234}\n"));
   }
 
   @Test

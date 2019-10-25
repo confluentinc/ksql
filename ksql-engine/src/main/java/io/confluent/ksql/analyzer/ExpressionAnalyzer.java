@@ -122,7 +122,7 @@ class ExpressionAnalyzer {
         final ColumnReferenceExp node,
         final Object context
     ) {
-      throwOnUnknownField(node.getReference());
+      throwOnUnknownColumn(node.getReference());
       return null;
     }
 
@@ -135,7 +135,7 @@ class ExpressionAnalyzer {
       return null;
     }
 
-    private void throwOnUnknownField(final ColumnRef name) {
+    private void throwOnUnknownColumn(final ColumnRef name) {
       // check all sources
       final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(
           ColumnRef.withoutSource(name.name())
@@ -146,7 +146,7 @@ class ExpressionAnalyzer {
           return;
         }
 
-        throw new KsqlException("Field '" + name.toString(FormatOptions.noEscape())
+        throw new KsqlException("Column '" + name.toString(FormatOptions.noEscape())
             + "' cannot be resolved.");
       }
 
@@ -162,7 +162,7 @@ class ExpressionAnalyzer {
             .sorted()
             .collect(Collectors.joining(", "));
 
-        throw new KsqlException("Field '" + name.name().name() + "' is ambiguous. "
+        throw new KsqlException("Column '" + name.name().name() + "' is ambiguous. "
             + "Could be any of: " + possibilities);
       }
     }

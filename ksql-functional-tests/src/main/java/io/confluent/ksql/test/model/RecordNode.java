@@ -75,6 +75,7 @@ public final class RecordNode {
         topic,
         key.orElse(null),
         recordValue,
+        value,
         timestamp,
         window.orElse(null)
     );

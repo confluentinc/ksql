@@ -220,19 +220,8 @@ public class DataSourceNodeTest {
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(realBuilder.build(), PlanTestUtil.SOURCE_NODE);
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.MAPVALUES_NODE)));
+    assertThat(successors, equalTo(Collections.singletonList(PlanTestUtil.TRANSFORM_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("topic")));
-  }
-
-  @Test
-  public void shouldBuildMapNode() {
-    // When:
-    realStream = buildStream(node);
-
-    // Then:
-    verifyProcessorNode((TopologyDescription.Processor) getNodeByName(realBuilder.build(), PlanTestUtil.MAPVALUES_NODE),
-        Collections.singletonList(PlanTestUtil.SOURCE_NODE),
-        Collections.singletonList(PlanTestUtil.TRANSFORM_NODE));
   }
 
   @Test
@@ -243,7 +232,7 @@ public class DataSourceNodeTest {
     // Then:
     final TopologyDescription.Processor node = (TopologyDescription.Processor) getNodeByName(
         realBuilder.build(), PlanTestUtil.TRANSFORM_NODE);
-    verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.MAPVALUES_NODE), Collections.emptyList());
+    verifyProcessorNode(node, Collections.singletonList(PlanTestUtil.SOURCE_NODE), Collections.emptyList());
   }
 
   @Test
@@ -343,7 +332,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildSourceStreamWithCorrectParams() {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
@@ -370,7 +358,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildSourceStreamWithCorrectParamsWhenBuildingTable() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();
@@ -395,7 +382,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildTableByConvertingFromStream() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();
@@ -409,7 +395,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildTableWithCorrectContext() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();

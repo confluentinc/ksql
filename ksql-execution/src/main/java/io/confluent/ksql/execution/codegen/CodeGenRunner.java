@@ -221,7 +221,7 @@ public class CodeGenRunner {
       );
 
       final KsqlFunction function = functionRegistry
-          .getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME)
+          .getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name())
           .getFunction(argumentTypes);
 
       spec.addFunction(

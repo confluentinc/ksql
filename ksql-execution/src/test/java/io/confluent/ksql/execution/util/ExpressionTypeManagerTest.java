@@ -105,7 +105,7 @@ public class ExpressionTypeManagerTest {
     final UdfFactory internalFactory = mock(UdfFactory.class);
     when(internalFactory.isInternal()).thenReturn(true);
 
-    when(functionRegistry.getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME))
+    when(functionRegistry.getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name()))
         .thenReturn(internalFactory);
   }
 
@@ -296,7 +296,7 @@ public class ExpressionTypeManagerTest {
   public void shouldThrowOnFetchFieldFromStructFunctionCall() {
     // Given:
     final Expression expression = new FunctionCall(
-        FunctionName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
     );
 

@@ -78,7 +78,7 @@ public class LogicalPlanner {
     PlanNode currentNode = buildSourceNode();
 
     if (!analysis.getTableFunctions().isEmpty()) {
-      currentNode = buildFlatMapNode(currentNode, functionRegistry);
+      currentNode = buildFlatMapNode(currentNode);
     }
 
     if (analysis.getWhereExpression().isPresent()) {
@@ -218,8 +218,7 @@ public class LogicalPlanner {
         new PlanNodeId("Project"),
         sourcePlanNode,
         schema,
-        keyFieldName.map(ColumnRef::withoutSource),
-        sourcePlanNode.getSelectExpressions()
+        keyFieldName.map(ColumnRef::withoutSource)
     );
   }
 
@@ -227,16 +226,11 @@ public class LogicalPlanner {
       final PlanNode sourcePlanNode,
       final Expression filterExpression
   ) {
-    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression,
-        sourcePlanNode.getSelectExpressions());
+    return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
   }
 
-  private FlatMapNode buildFlatMapNode(
-      final PlanNode sourcePlanNode,
-      final FunctionRegistry functionRegistry
-  ) {
-    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode,
-        sourcePlanNode.getSchema(), functionRegistry, analysis);
+  private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {
+    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, functionRegistry, analysis);
   }
 
   private PlanNode buildSourceNode() {

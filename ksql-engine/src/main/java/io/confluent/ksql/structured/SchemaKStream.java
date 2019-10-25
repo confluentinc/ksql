@@ -714,7 +714,9 @@ public class SchemaKStream<K> {
         keyFormat,
         keyField,
         sourceSchemaKStreams,
-        type, ksqlConfig, functionRegistry);
+        type,
+        ksqlConfig,
+        functionRegistry);
   }
 
   public ExecutionStep<?> getSourceStep() {

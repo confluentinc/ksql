@@ -19,6 +19,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.apache.kafka.streams.kstream.ValueMapper;
 
 /**
@@ -30,7 +31,7 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
   private final TableFunctionApplier functionHolder;
 
   public KudtfFlatMapper(final TableFunctionApplier functionHolder) {
-    this.functionHolder = functionHolder;
+    this.functionHolder = Objects.requireNonNull(functionHolder);
   }
 
   @Override

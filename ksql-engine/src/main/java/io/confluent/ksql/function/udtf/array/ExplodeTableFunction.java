@@ -21,7 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
-public class ExplodeTableFunction<T> extends BaseTableFunction<T, T> {
+public class ExplodeTableFunction<T> extends BaseTableFunction<List<T>, T> {
 
   public ExplodeTableFunction(
       final FunctionName functionName,

@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.structured.SchemaKStream;
-import java.util.Collections;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,7 +61,7 @@ public class FilterNodeTest {
 
     when(ksqlStreamBuilder.buildNodeContext(nodeId.toString())).thenReturn(stacker);
 
-    node = new FilterNode(nodeId, sourceNode, predicate, Collections.emptyList());
+    node = new FilterNode(nodeId, sourceNode, predicate);
   }
 
   @Test

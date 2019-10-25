@@ -37,15 +37,13 @@ public class FilterNode extends PlanNode {
   public FilterNode(
       final PlanNodeId id,
       final PlanNode source,
-      final Expression predicate,
-      final List<SelectExpression> selectExpressions
+      final Expression predicate
   ) {
     super(id, source.getNodeOutputType());
 
     this.source = Objects.requireNonNull(source, "source");
     this.predicate = Objects.requireNonNull(predicate, "predicate");
-    this.selectExpressions =
-        Objects.requireNonNull(selectExpressions, "selectExpressions");
+    this.selectExpressions = ImmutableList.copyOf(source.getSelectExpressions());
   }
 
   public Expression getPredicate() {

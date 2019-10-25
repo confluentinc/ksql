@@ -81,6 +81,7 @@ public class ProjectNodeTest {
     when(source.getKeyField()).thenReturn(SOURCE_KEY_FIELD);
     when(source.buildStream(any())).thenReturn((SchemaKStream) stream);
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
+    when(source.getSelectExpressions()).thenReturn(ImmutableList.of(SELECT_0, SELECT_1));
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
     when(stream.select(anyList(), any(), any())).thenReturn((SchemaKStream) stream);
 
@@ -88,31 +89,30 @@ public class ProjectNodeTest {
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))),
-        ImmutableList.of(SELECT_0, SELECT_1));
+        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))));
   }
 
   @Test(expected = KsqlException.class)
   public void shouldThrowIfSchemaSizeDoesntMatchProjection() {
+    when(source.getSelectExpressions()).thenReturn(ImmutableList.of(SELECT_0));
     new ProjectNode(
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))),
-        ImmutableList.of(SELECT_0)); // <-- not enough expressions
+        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME)))); // <-- not enough expressions
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowOnSchemaSelectNameMismatch() {
+    when(source.getSelectExpressions()).thenReturn(ImmutableList.of(
+        SelectExpression.of(ColumnName.of("wrongName"), TRUE_EXPRESSION),
+        SELECT_1
+    ));
     projectNode = new ProjectNode(
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME))),
-        ImmutableList.of(
-            SelectExpression.of(ColumnName.of("wrongName"), TRUE_EXPRESSION),
-            SELECT_1
-        )
+        Optional.of(ColumnRef.withoutSource(ColumnName.of(KEY_FIELD_NAME)))
     );
   }
 
@@ -140,12 +140,12 @@ public class ProjectNodeTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldThrowIfKeyFieldNameNotInSchema() {
+    when(source.getSelectExpressions()).thenReturn(ImmutableList.of(SELECT_0, SELECT_1));
     new ProjectNode(
         NODE_ID,
         source,
         SCHEMA,
-        Optional.of(ColumnRef.withoutSource(ColumnName.of("Unknown Key Field"))),
-        ImmutableList.of(SELECT_0, SELECT_1));
+        Optional.of(ColumnRef.withoutSource(ColumnName.of("Unknown Key Field"))));
   }
 
   @Test

@@ -18,6 +18,7 @@ import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.function.KsqlTableFunction;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Applies a table function on a row to get a list of values
@@ -28,7 +29,7 @@ public class TableFunctionApplier {
   private final int argColumnIndex;
 
   public TableFunctionApplier(final KsqlTableFunction tableFunction, final int argColumnIndex) {
-    this.tableFunction = tableFunction;
+    this.tableFunction = Objects.requireNonNull(tableFunction);
     this.argColumnIndex = argColumnIndex;
   }
 

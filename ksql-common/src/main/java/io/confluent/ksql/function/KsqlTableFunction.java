@@ -25,7 +25,7 @@ public interface KsqlTableFunction<I, O> extends FunctionSignature {
 
   SqlType returnType();
 
-  List<O> flatMap(List<I> input);
+  List<O> flatMap(I input);
 
   String getDescription();
 }

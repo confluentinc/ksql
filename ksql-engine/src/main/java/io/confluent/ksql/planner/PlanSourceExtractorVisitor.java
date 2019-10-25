@@ -50,7 +50,7 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
   }
 
   protected R visitProject(final ProjectNode node, final C context) {
-    return process(node.getSources().get(0), context);
+    return process(node.getSource(), context);
   }
 
   protected R visitDataSourceNode(final DataSourceNode node, final C context) {

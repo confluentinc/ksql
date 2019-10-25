@@ -62,17 +62,15 @@ public class FlatMapNode extends PlanNode {
   public FlatMapNode(
       final PlanNodeId id,
       final PlanNode source,
-      final LogicalSchema inputSchema,
       final FunctionRegistry functionRegistry,
       final Analysis analysis
   ) {
     super(id, source.getNodeOutputType());
     this.source = Objects.requireNonNull(source, "source");
-    Objects.requireNonNull(inputSchema);
     this.analysis = Objects.requireNonNull(analysis);
     this.functionRegistry = functionRegistry;
     this.finalSelectExpressions = buildFinalSelectExpressions();
-    outputSchema = buildLogicalSchema(inputSchema);
+    outputSchema = buildLogicalSchema(source.getSchema());
     if (analysis.getTableFunctions().size() > 1) {
       throw new KsqlException("Only one table function per query currently is supported");
     }

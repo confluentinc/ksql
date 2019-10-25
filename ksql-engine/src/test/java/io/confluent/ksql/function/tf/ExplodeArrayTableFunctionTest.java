@@ -51,7 +51,7 @@ public class ExplodeArrayTableFunctionTest {
   @SuppressWarnings("unchecked")
   public void shouldFlatMapArray() {
     List<Integer> input = Arrays.asList(1, 2, 3, 4, 5, 6);
-    KsqlTableFunction<Integer, Integer> tf = createTableFunction();
+    KsqlTableFunction tf = createTableFunction();
     List<Integer> output = tf.flatMap(input);
     assertThat(input, is(output));
   }
@@ -60,7 +60,7 @@ public class ExplodeArrayTableFunctionTest {
   @SuppressWarnings("unchecked")
   public void shouldFlatMapEmptyArray() {
     List<Integer> input = Collections.emptyList();
-    KsqlTableFunction<Integer, Integer> tf = createTableFunction();
+    KsqlTableFunction tf = createTableFunction();
     List<Integer> output = tf.flatMap(input);
     assertThat(input, is(output));
   }
@@ -71,7 +71,7 @@ public class ExplodeArrayTableFunctionTest {
   }
 
   @SuppressWarnings("unchecked")
-  private KsqlTableFunction<Integer, Integer> createTableFunction() {
-    return (KsqlTableFunction<Integer, Integer>)factory.createTableFunction(intListParamTypes());
+  private KsqlTableFunction<List<Integer>, Integer> createTableFunction() {
+    return (KsqlTableFunction<List<Integer>, Integer>)factory.createTableFunction(intListParamTypes());
   }
 }

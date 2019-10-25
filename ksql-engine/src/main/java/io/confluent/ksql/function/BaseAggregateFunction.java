@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function;
 
-import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
@@ -27,7 +26,6 @@ import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
-@Immutable
 public abstract class BaseAggregateFunction<I, A, O> implements KsqlAggregateFunction<I, A, O> {
 
   private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER

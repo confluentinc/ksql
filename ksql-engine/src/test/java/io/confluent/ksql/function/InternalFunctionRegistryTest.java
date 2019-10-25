@@ -436,7 +436,7 @@ public class InternalFunctionRegistryTest {
         "", "", "", "", false)) {
       @Override
       public KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList) {
-        return new KsqlTableFunction<Object, Object>() {
+        return new KsqlTableFunction<List<Object>, Object>() {
           @Override
           public Schema getReturnType() {
             return null;

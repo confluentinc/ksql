@@ -34,6 +34,16 @@ public interface FunctionRegistry {
   boolean isAggregate(String functionName);
 
   /**
+   * Test if the supplied {@code functionName} is a table function.
+   *
+   * <p>Note: unknown functions result in {@code false} return value.
+   *
+   * @param functionName the name of the function to test
+   * @return {@code true} if it is a table function, {@code false} otherwise.
+   */
+  boolean isTableFunction(String functionName);
+
+  /**
    * Get the factory for a UDF.
    *
    * @param functionName the name of the function.
@@ -71,6 +81,8 @@ public interface FunctionRegistry {
    */
   KsqlAggregateFunction<?, ?, ?> getAggregateFunction(String functionName, Schema argumentType,
       AggregateFunctionInitArguments initArgs);
+
+  KsqlTableFunction<?, ?> getTableFunction(String functionName, Schema argumentType);
 
   /**
    * @return all UDF factories.

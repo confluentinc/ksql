@@ -853,7 +853,7 @@ public class CliTest {
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
             "Name        : TOPK\n" +
-            "Author      : confluent\n" +
+            "Author      : Confluent\n" +
             "Type        : aggregate\n" +
             "Jar         : internal\n" +
             "Variations  : \n";

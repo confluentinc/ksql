@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -38,7 +39,14 @@ public abstract class AggregateFunctionFactory {
       .build();
 
   public AggregateFunctionFactory(final String functionName) {
-    this(new UdfMetadata(functionName, "", "confluent", "", KsqlFunction.INTERNAL_PATH, false));
+    this(new UdfMetadata(
+        functionName,
+        "",
+        KsqlConstants.CONFLUENT_AUTHOR,
+        "",
+        KsqlFunction.INTERNAL_PATH,
+        false
+    ));
   }
 
   public AggregateFunctionFactory(final UdfMetadata metadata) {

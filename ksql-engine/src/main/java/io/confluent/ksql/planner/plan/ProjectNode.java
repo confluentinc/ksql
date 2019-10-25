@@ -43,15 +43,13 @@ public class ProjectNode extends PlanNode {
       final PlanNodeId id,
       final PlanNode source,
       final LogicalSchema schema,
-      final Optional<ColumnRef> keyFieldName,
-      final List<SelectExpression> projectExpressions
+      final Optional<ColumnRef> keyFieldName
   ) {
     super(id, source.getNodeOutputType());
 
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
-    this.projectExpressions = ImmutableList
-        .copyOf(requireNonNull(projectExpressions, "projectExpressions"));
+    this.projectExpressions = ImmutableList.copyOf(source.getSelectExpressions());
     this.keyField = KeyField.of(
         requireNonNull(keyFieldName, "keyFieldName"),
         source.getKeyField().legacy())
@@ -89,7 +87,8 @@ public class ProjectNode extends PlanNode {
     return keyField;
   }
 
-  public List<SelectExpression> getProjectSelectExpressions() {
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
     return projectExpressions;
   }
 
@@ -102,7 +101,7 @@ public class ProjectNode extends PlanNode {
   public SchemaKStream<?> buildStream(final KsqlQueryBuilder builder) {
     return getSource().buildStream(builder)
         .select(
-            getProjectSelectExpressions(),
+            getSelectExpressions(),
             builder.buildNodeContext(getId().toString()),
             builder
         );

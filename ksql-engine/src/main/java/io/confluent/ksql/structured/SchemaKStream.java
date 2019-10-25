@@ -28,6 +28,9 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.function.UdtfUtil;
+import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -37,6 +40,7 @@ import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamFilter;
+import io.confluent.ksql.execution.plan.StreamFlatMap;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.execution.plan.StreamMapValues;
@@ -49,6 +53,7 @@ import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
@@ -69,6 +74,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
@@ -535,8 +541,8 @@ public class SchemaKStream<K> {
     final LegacyField proposedLegacy = LegacyField.of(proposedKey.ref(), proposedKey.type());
 
     final KeyField resultantKeyField = isRowKey(columnRef)
-            ? keyField.withLegacy(proposedLegacy)
-            : KeyField.of(columnRef, proposedLegacy);
+        ? keyField.withLegacy(proposedLegacy)
+        : KeyField.of(columnRef, proposedLegacy);
 
     final boolean namesMatch = existingKey
         .map(kf -> kf.matches(proposedKey.ref()))
@@ -676,6 +682,41 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
+  }
+
+  public SchemaKStream<K> flatMap(
+      final LogicalSchema outputSchema,
+      final FunctionCall functionCall,
+      final QueryContext.Stacker contextStacker
+  ) {
+    final ColumnReferenceExp exp = (ColumnReferenceExp)functionCall.getArguments().get(0);
+    final ColumnName columnName = exp.getReference().name();
+    final ColumnRef ref = ColumnRef.withoutSource(columnName);
+    final OptionalInt indexInInput = getSchema().valueColumnIndex(ref);
+    if (!indexInInput.isPresent()) {
+      throw new IllegalArgumentException("Can't find input column " + columnName);
+    }
+    final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
+        functionRegistry,
+        functionCall,
+        getSchema()
+    );
+    final TableFunctionApplier functionHolder =
+        new TableFunctionApplier(tableFunction, indexInInput.getAsInt());
+    final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
+        contextStacker,
+        sourceStep,
+        outputSchema,
+        functionHolder
+    );
+    return new SchemaKStream<K>(
+        step,
+        keyFormat,
+        keyField,
+        sourceSchemaKStreams,
+        type,
+        ksqlConfig,
+        functionRegistry);
   }
 
   public ExecutionStep<?> getSourceStep() {

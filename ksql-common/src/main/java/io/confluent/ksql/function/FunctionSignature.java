@@ -38,7 +38,9 @@ public interface FunctionSignature {
    * @return whether or not to consider the final argument in
    *         {@link #getArguments()} as variadic
    */
-  boolean isVariadic();
+  default boolean isVariadic() {
+    return false;
+  }
 
 
 }

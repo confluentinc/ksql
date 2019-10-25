@@ -26,6 +26,7 @@ import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
@@ -516,6 +517,7 @@ class Analyzer {
         } else if (selectItem instanceof SingleColumn) {
           final SingleColumn column = (SingleColumn) selectItem;
           addSelectItem(column.getExpression(), column.getAlias());
+          visitTableFunctions(column.getExpression());
         } else {
           throw new IllegalArgumentException(
               "Unsupported SelectItem type: " + selectItem.getClass().getName());
@@ -625,6 +627,41 @@ class Analyzer {
 
       analysis.addSelectItem(exp, columnName);
       analysis.addSelectColumnRefs(columnRefs);
+    }
+
+    private void visitTableFunctions(final Expression expression) {
+      final TableFunctionVisitor visitor = new TableFunctionVisitor();
+      visitor.process(expression, null);
+    }
+
+    private final class TableFunctionVisitor extends TraversalExpressionVisitor<Void> {
+
+      private Optional<String> tableFunctionName = Optional.empty();
+
+      @Override
+      public Void visitFunctionCall(final FunctionCall functionCall, final Void context) {
+        final String functionName = functionCall.getName().name();
+        final boolean isTableFunction = metaStore.isTableFunction(functionName);
+
+        if (isTableFunction) {
+          if (tableFunctionName.isPresent()) {
+            throw new KsqlException("Table functions cannot be nested: "
+                + tableFunctionName.get() + "(" + functionName + "())");
+          }
+
+          tableFunctionName = Optional.of(functionName);
+
+          analysis.addTableFunction(functionCall);
+        }
+
+        super.visitFunctionCall(functionCall, context);
+
+        if (isTableFunction) {
+          tableFunctionName = Optional.empty();
+        }
+
+        return null;
+      }
     }
   }
 

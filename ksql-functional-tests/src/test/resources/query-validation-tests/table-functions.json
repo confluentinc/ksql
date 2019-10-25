@@ -1,0 +1,102 @@
+{
+  "comments": [
+    "Tests applicable to table functions in general - we use EXPLODE here but we could use any table table function"
+  ],
+  "tests": [
+    {
+      "name": "table function as last select",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ID, EXPLODE(MY_ARR) VAL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": [3, 4]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"ID":  0, "VAL": 1}},
+        {"topic": "OUTPUT", "key": "0", "value": {"ID":  0, "VAL": 2}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID":  1, "VAL": 3}},
+        {"topic": "OUTPUT", "key": "1", "value": {"ID":  1, "VAL": 4}}
+      ]
+    },
+    {
+      "name": "table function as first select",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) AS VAL, ID FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": [3, 4]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"VAL": 1, "ID":  0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"VAL": 2, "ID":  0}},
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 3, "ID":  1}},
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 4, "ID":  1}}
+      ]
+    },
+    {
+      "name": "table function with non selected columns",
+      "statements": [
+        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) AS VAL, ID FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": [3, 4]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"VAL": 1, "ID":  0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"VAL": 2, "ID":  0}},
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 3, "ID":  1}},
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 4, "ID":  1}}
+      ]
+    },
+    {
+      "name": "table function with no other selected columns",
+      "statements": [
+        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) AS VAL FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": [3, 4]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"VAL": 1}},
+        {"topic": "OUTPUT", "key": "0", "value": {"VAL": 2}},
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 3}},
+        {"topic": "OUTPUT", "key": "1", "value": {"VAL": 4}}
+      ]
+    },
+    {
+      "name": "table function with no alias",
+      "statements": [
+        "CREATE STREAM TEST (FOO BIGINT, ID BIGINT, MY_ARR ARRAY<BIGINT>, BAR BIGINT) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "MY_ARR": [1, 2]}},
+        {"topic": "test_topic", "key": 1, "value": {"ID":  1, "MY_ARR": [3, 4]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 2}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 3}},
+        {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 4}}
+      ]
+    },
+    {
+      "name": "table function shouldn't be in FROM clause",
+      "statements": [
+        "CREATE STREAM TEST (ID BIGINT, MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', KEY='ID', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM EXPLODE(MY_ARR);"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException"
+      }
+    }
+  ]
+}

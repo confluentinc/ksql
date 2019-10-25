@@ -127,7 +127,7 @@ public class UdfLoader {
 
   // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
   void loadUdfFromClass(final Class<?>... udfClass) {
-    for (final Class<?> theClass: udfClass) {
+    for (final Class<?> theClass : udfClass) {
       //classes must be annotated with @UdfDescription
       final UdfDescription udfDescription = theClass.getAnnotation(UdfDescription.class);
       if (udfDescription == null) {
@@ -135,7 +135,7 @@ public class UdfLoader {
             + "be annotated with @UdfDescription.", theClass.getName()));
       }
       //method must be public and annotated with @Udf
-      for (Method m: theClass.getDeclaredMethods()) {
+      for (Method m : theClass.getDeclaredMethods()) {
         if (m.isAnnotationPresent(Udf.class) && Modifier.isPublic(m.getModifiers())) {
           processUdfAnnotation(
               theClass,
@@ -342,7 +342,7 @@ public class UdfLoader {
         ksqlConfig -> {
           final Object actualUdf = instantiateUdfClass(method, classLevelAnnotation);
           if (actualUdf instanceof Configurable) {
-            ((Configurable)actualUdf)
+            ((Configurable) actualUdf)
                 .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
           }
           final PluggableUdf theUdf = new PluggableUdf(udf, actualUdf);

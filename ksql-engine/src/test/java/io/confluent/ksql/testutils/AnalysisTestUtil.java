@@ -54,7 +54,7 @@ public final class AnalysisTestUtil {
     final LogicalPlanner logicalPlanner = new LogicalPlanner(
         ksqlConfig,
         analyzer.analysis,
-        analyzer.aggregateAnalys(),
+        analyzer.aggregateAnalysis(),
         metaStore);
 
     return logicalPlanner.buildPlan();
@@ -89,7 +89,7 @@ public final class AnalysisTestUtil {
       return statements.get(0).getStatement();
     }
 
-    AggregateAnalysisResult aggregateAnalys() {
+    AggregateAnalysisResult aggregateAnalysis() {
       return queryAnalyzer.analyzeAggregate(query, analysis);
     }
   }

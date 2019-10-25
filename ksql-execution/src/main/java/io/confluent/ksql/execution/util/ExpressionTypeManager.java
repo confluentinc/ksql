@@ -51,6 +51,7 @@ import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -387,6 +388,18 @@ public class ExpressionTypeManager {
             .getAggregateFunction(node.getName().name(), schema, args);
 
         expressionTypeContext.setSchema(aggFunc.getReturnType());
+        return null;
+      }
+
+      if (functionRegistry.isTableFunction(node.getName().name())) {
+        final Schema schema = node.getArguments().isEmpty()
+            ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
+            : getExpressionSchema(node.getArguments().get(0));
+
+        final KsqlTableFunction tableFunction = functionRegistry
+            .getTableFunction(node.getName().name(), schema);
+
+        expressionTypeContext.setSchema(tableFunction.getReturnType());
         return null;
       }
 

@@ -18,6 +18,7 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -51,6 +52,8 @@ public abstract class PlanNode {
   public abstract KeyField getKeyField();
 
   public abstract List<PlanNode> getSources();
+  
+  public abstract List<SelectExpression> getSelectExpressions();
 
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitPlan(this, context);

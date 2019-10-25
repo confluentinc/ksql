@@ -174,6 +174,10 @@ public class QueryAnalyzer {
       return;
     }
 
+    if (!analysis.getTableFunctions().isEmpty()) {
+      throw new KsqlException("Table functions cannot be used with aggregations.");
+    }
+
     if (aggregateAnalysis.getAggregateFunctions().isEmpty()) {
       throw new KsqlException(
           "GROUP BY requires columns using aggregate functions in SELECT clause.");

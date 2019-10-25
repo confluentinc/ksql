@@ -63,6 +63,17 @@
         "type": "io.confluent.ksql.util.KsqlException",
         "message": "Only one table function per query currently is supported"
       }
+    },
+    {
+      "name": "shouldn't be able to have table functions with aggregation",
+      "statements": [
+        "CREATE STREAM TEST (VAL INT, MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE TABLE OUTPUT AS SELECT VAL, EXPLODE(MY_MAP), COUNT(*) FROM TEST GROUP BY VAL;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Table functions cannot be used with aggregations."
+      }
     }
   ]
 }

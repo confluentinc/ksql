@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql.types;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.DataException;
 import io.confluent.ksql.schema.ksql.FormatOptions;
@@ -26,7 +27,9 @@ import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.types.KsqlStruct;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,14 +42,16 @@ public final class SqlStruct extends SqlType {
   private static final String EMPTY_STRUCT = PREFIX + " " + POSTFIX;
 
   private final ImmutableList<Field> fields;
+  private final ImmutableMap<String, Field> byName;
 
   public static Builder builder() {
     return new Builder();
   }
 
-  private SqlStruct(final List<Field> fields) {
+  private SqlStruct(final List<Field> fields, final Map<String, Field> byName) {
     super(SqlBaseType.STRUCT);
     this.fields = ImmutableList.copyOf(requireNonNull(fields, "fields"));
+    this.byName = ImmutableMap.copyOf(requireNonNull(byName, "byName"));
   }
 
   public List<Field> fields() {
@@ -54,9 +59,7 @@ public final class SqlStruct extends SqlType {
   }
 
   public Optional<Field> field(final String name) {
-    return fields.stream()
-        .filter(f -> f.name().equals(name))
-        .findFirst();
+    return Optional.ofNullable(byName.get(name));
   }
 
   @Override
@@ -119,13 +122,18 @@ public final class SqlStruct extends SqlType {
   public static final class Builder {
 
     private final List<Field> fields = new ArrayList<>();
+    private final Map<String, Field> byName = new HashMap<>();
 
     public Builder field(final String fieldName, final SqlType fieldType) {
       return field(Field.of(fieldName, fieldType));
     }
 
     public Builder field(final Field field) {
-      throwOnDuplicateFieldName(field);
+      if (byName.putIfAbsent(field.name(), field) != null) {
+        throw new KsqlException("Duplicate field names found in STRUCT: "
+            + "'" + byName.get(field.name()) + "' and '" + field + "'");
+      }
+
       fields.add(field);
       return this;
     }
@@ -136,17 +144,7 @@ public final class SqlStruct extends SqlType {
     }
 
     public SqlStruct build() {
-      return new SqlStruct(fields);
-    }
-
-    private void throwOnDuplicateFieldName(final Field other) {
-      fields.stream()
-          .filter(f -> f.name().equals(other.name()))
-          .findAny()
-          .ifPresent(duplicate -> {
-            throw new KsqlException("Duplicate field names found in STRUCT: "
-                + "'" + duplicate + "' and '" + other + "'");
-          });
+      return new SqlStruct(fields, byName);
     }
   }
 }

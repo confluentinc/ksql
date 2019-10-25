@@ -392,6 +392,7 @@ public class ExpressionTypeManager {
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
       if (udfFactory.isInternal()) {
+        // Internal UDFs, e.g. FetchFieldFromStruct, should not be used directly by users:
         throw new KsqlException(
             "Can't find any functions with the name '" + node.getName().name() + "'");
       }

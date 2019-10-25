@@ -96,16 +96,14 @@ public class SchemaTranslationTest {
     return list;
   }
 
-  private static List<Record> getOutputRecords(
-      final Topic topic, final List<Record> inputRecords,
-      final org.apache.avro.Schema avroSchema) {
+  private static List<Record> getOutputRecords(final Topic topic, final List<Record> inputRecords) {
     return inputRecords.stream()
         .map(
             r -> new Record(
                 topic,
                 "test-key",
                 r.value(),
-                r.getJsonValue(),
+                r.getJsonValue().orElse(null),
                 Optional.of(0L),
                 null
             ))
@@ -171,7 +169,7 @@ public class SchemaTranslationTest {
         );
 
         final List<Record> inputRecords = generateInputRecords(srcTopic, schema);
-        final List<Record> outputRecords = getOutputRecords(OUTPUT_TOPIC, inputRecords, schema);
+        final List<Record> outputRecords = getOutputRecords(OUTPUT_TOPIC, inputRecords);
 
         final String csasStatement = schema.getFields()
             .stream()

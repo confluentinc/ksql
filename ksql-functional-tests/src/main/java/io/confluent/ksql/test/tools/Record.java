@@ -37,7 +37,7 @@ public class Record {
   private final Object value;
   private final Optional<Long> timestamp;
   private final WindowData window;
-  private JsonNode jsonValue;
+  private Optional<JsonNode> jsonValue;
 
   public Record(
       final Topic topic,
@@ -61,7 +61,7 @@ public class Record {
     this.topic = topic;
     this.key = key;
     this.value = value;
-    this.jsonValue = jsonValue;
+    this.jsonValue = Optional.ofNullable(jsonValue);
     this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     this.window = window;
   }
@@ -120,7 +120,7 @@ public class Record {
     return topic;
   }
 
-  public JsonNode getJsonValue() {
+  public Optional<JsonNode> getJsonValue() {
     return jsonValue;
   }
 }

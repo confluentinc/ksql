@@ -202,7 +202,6 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
       return record;
     }
 
-    @SuppressWarnings("unchecked")
     // A map entry will be serialized as an avro object with two fields, key and value.
     private static GenericRecord getAvroRecordForMapEntry(
         final Map.Entry<?, ?> spec,
@@ -384,7 +383,6 @@ public class ValueSpecAvroSerdeSupplier implements SerdeSupplier<Object> {
     }
   }
 
-  @SuppressWarnings("unchecked")
   private static Map<String, String> getUppercaseKeyToActualKey(final Map<String, ?> record) {
     return record.entrySet().stream().collect(Collectors.toMap(
         entry -> entry.getKey().toUpperCase(),

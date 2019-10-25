@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
+@SuppressWarnings("UnstableApiUsage")
 public class KsqlJsonDeserializer implements Deserializer<Object> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 

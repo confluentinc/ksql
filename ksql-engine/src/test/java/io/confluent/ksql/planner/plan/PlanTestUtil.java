@@ -27,7 +27,7 @@ import org.apache.kafka.streams.TopologyDescription;
 import org.apache.kafka.streams.TopologyDescription.Node;
 
 
-public final class PlanTestUtil {
+final class PlanTestUtil {
 
   static final String TRANSFORM_NODE = "KSTREAM-TRANSFORMVALUES-0000000001";
   static final String SOURCE_NODE = "KSTREAM-SOURCE-0000000000";
@@ -35,7 +35,7 @@ public final class PlanTestUtil {
   private PlanTestUtil() {
   }
 
-  public static TopologyDescription.Node getNodeByName(
+  static TopologyDescription.Node getNodeByName(
       final Topology topology,
       final String nodeName
   ) {
@@ -49,7 +49,7 @@ public final class PlanTestUtil {
     return nodesWithName.get(0);
   }
 
-  public static void verifyProcessorNode(
+  static void verifyProcessorNode(
       final TopologyDescription.Processor node,
       final List<String> expectedPredecessors,
       final List<String> expectedSuccessors

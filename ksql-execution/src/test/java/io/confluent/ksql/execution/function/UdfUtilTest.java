@@ -202,17 +202,17 @@ public class UdfUtilTest {
   }
 
   // following methods not invoked but used to test conversion from type -> schema
-  @SuppressWarnings({"unused", "WeakerAccess"})
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
   public <T> T genericType() {
     return null;
   }
 
-  @SuppressWarnings({"unused", "WeakerAccess"})
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
   public <T> List<T> genericArrayType() {
     return null;
   }
 
-  @SuppressWarnings({"unused", "WeakerAccess"})
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
   public <T> Map<String, T> genericMapType() {
     return null;
   }

@@ -334,7 +334,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildSourceStreamWithCorrectParams() {
     // Given:
     when(dataSource.getDataSourceType()).thenReturn(DataSourceType.KSTREAM);
@@ -361,7 +360,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildSourceStreamWithCorrectParamsWhenBuildingTable() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();
@@ -386,7 +384,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildTableByConvertingFromStream() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();
@@ -400,7 +397,6 @@ public class DataSourceNodeTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldBuildTableWithCorrectContext() {
     // Given:
     final DataSourceNode node = buildNodeWithMockSource();

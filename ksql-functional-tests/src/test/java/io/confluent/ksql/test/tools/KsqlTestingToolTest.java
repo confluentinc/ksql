@@ -92,7 +92,7 @@ public class KsqlTestingToolTest {
   }
 
   @Test
-  public void shouldUseAndCloseTestExecutor() throws Exception {
+  public void shouldUseAndCloseTestExecutor() {
     // Given:
     final TestCase testCase = mock(TestCase.class);
     final TestExecutor testExecutor = mock(TestExecutor.class);

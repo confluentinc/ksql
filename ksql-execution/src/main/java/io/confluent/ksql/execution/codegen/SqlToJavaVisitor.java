@@ -63,7 +63,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -154,7 +153,7 @@ public class SqlToJavaVisitor {
   }
 
   @VisibleForTesting
-  public SqlToJavaVisitor(
+  SqlToJavaVisitor(
       final LogicalSchema schema,
       final FunctionRegistry functionRegistry,
       final Function<ColumnRef, String> colRefToCodeName,
@@ -306,18 +305,27 @@ public class SqlToJavaVisitor {
       return new Pair<>(colRefToCodeName.apply(fieldName), schema);
     }
 
+    @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     @Override
     public Pair<String, Schema> visitDereferenceExpression(
         final DereferenceExpression node,
         final Void context
     ) {
-      throw new UnsupportedOperationException(
-          "DereferenceExpression should have been resolved by now");
-    }
+      final String instanceName = funNameToCodeName
+          .apply(FetchFieldFromStruct.FUNCTION_NAME);
 
-    private String formatQualifiedName(final ColumnRef name) {
-      // for now, we don't escape anything in SqlToJavaVisitor
-      return name.toString(FormatOptions.of(word -> false));
+      final Schema functionReturnSchema = expressionTypeManager.getExpressionSchema(node);
+      final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
+
+      final String arguments =
+          process(node.getBase(), context).getLeft()
+          + ", "
+          + process(new StringLiteral(node.getFieldName()), context).getLeft();
+
+      final String codeString = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + arguments + "))";
+
+      return new Pair<>(codeString, functionReturnSchema);
     }
 
     public Pair<String, Schema> visitLongLiteral(
@@ -338,12 +346,13 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, Schema> visitFunctionCall(
         final FunctionCall node,
-        final Void context) {
+        final Void context
+    ) {
       final FunctionName functionName = node.getName();
 
       final String instanceName = funNameToCodeName.apply(functionName);
 
-      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
+      final Schema functionReturnSchema = getFunctionReturnSchema(node);
       final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, context).getLeft())
@@ -355,12 +364,9 @@ public class SqlToJavaVisitor {
 
     @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     private Schema getFunctionReturnSchema(
-        final FunctionCall node,
-        final FunctionName functionName) {
-      if (functionName.equals(FetchFieldFromStruct.FUNCTION_NAME)) {
-        return expressionTypeManager.getExpressionSchema(node);
-      }
-      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName.name());
+        final FunctionCall node
+    ) {
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
       final List<Schema> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSchema)
           .collect(Collectors.toList());
@@ -399,13 +405,11 @@ public class SqlToJavaVisitor {
     }
 
     private String nullCheckPrefix(final ComparisonExpression.Type type) {
-      switch (type) {
-        case IS_DISTINCT_FROM:
-          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
-              + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
-        default:
-          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
+      if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
+        return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
+            + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
       }
+      return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
     }
 
     private String visitStringComparisonExpression(final ComparisonExpression.Type type) {

@@ -15,12 +15,14 @@
 
 package io.confluent.ksql.analyzer;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
@@ -28,6 +30,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
@@ -159,6 +162,28 @@ public class ExpressionAnalyzerTest {
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage(
         "Column 'just-name' cannot be resolved.");
+
+    // When:
+    analyzer.analyzeExpression(expression, true);
+  }
+
+  @Test
+  public void shouldThrowOnUnknownStructColumn() {
+    // Given:
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new ColumnReferenceExp(
+            ColumnRef.withoutSource(ColumnName.of("source-column"))
+        ),
+        "theFieldName"
+    );
+
+    when(sourceSchemas.sourcesWithField(any())).thenReturn(ImmutableSet.of());
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Column 'source-column' cannot be resolved.");
 
     // When:
     analyzer.analyzeExpression(expression, true);

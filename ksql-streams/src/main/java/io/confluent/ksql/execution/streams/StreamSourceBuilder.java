@@ -260,25 +260,4 @@ public final class StreamSourceBuilder {
       };
     }
   }
-
-  public static KeySerde<Windowed<Struct>> getWindowedKeySerde(
-      final KsqlQueryBuilder ksqlQueryBuilder,
-      final AbstractStreamSource<?> streamSource) {
-    return ksqlQueryBuilder.buildKeySerde(
-        streamSource.getFormats().getKeyFormat().getFormatInfo(),
-        streamSource.getFormats().getKeyFormat().getWindowInfo().get(),
-        getPhysicalSchema(streamSource),
-        streamSource.getProperties().getQueryContext()
-    );
-  }
-
-  public static KeySerde<Struct> getKeySerde(
-      final KsqlQueryBuilder ksqlQueryBuilder,
-      final AbstractStreamSource<?> streamSource) {
-    return ksqlQueryBuilder.buildKeySerde(
-        streamSource.getFormats().getKeyFormat().getFormatInfo(),
-        getPhysicalSchema(streamSource),
-        streamSource.getProperties().getQueryContext()
-    );
-  }
 }

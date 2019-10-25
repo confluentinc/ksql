@@ -91,6 +91,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("UnstableApiUsage")
 @RunWith(MockitoJUnitRunner.class)
 public class AggregateNodeTest {
 
@@ -197,7 +198,7 @@ public class AggregateNodeTest {
         KSQL_CONFIG.overrideBreakingConfigsWithOriginalValues(
             ImmutableMap.of(
                 KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                String.valueOf(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF))));
+                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)));
 
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
@@ -215,7 +216,8 @@ public class AggregateNodeTest {
     buildRequireRekey();
 
     // Then:
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
+    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
+        builder.build(), "KSTREAM-SOURCE-0000000008");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
@@ -279,8 +281,10 @@ public class AggregateNodeTest {
         + "GROUP BY col1 EMIT CHANGES;");
 
     // Then:
-    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(), "KSTREAM-SINK-0000000006");
-    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000008");
+    final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(),
+        "KSTREAM-SINK-0000000006");
+    final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(
+        builder.build(), "KSTREAM-SOURCE-0000000008");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(source.topicSet(), hasItem(sink.topic()));
   }
@@ -384,7 +388,6 @@ public class AggregateNodeTest {
     return buildQuery(buildAggregateNode(queryString), ksqlConfig);
   }
 
-  @SuppressWarnings("unchecked")
   private SchemaKStream buildQuery(final AggregateNode aggregateNode, final KsqlConfig ksqlConfig) {
     when(ksqlStreamBuilder.getQueryId()).thenReturn(queryId);
     when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
@@ -430,7 +433,7 @@ public class AggregateNodeTest {
               stream.mapValues.keySet().stream(),
               stream.groupStreams()
                   .flatMap(FakeKGroupedStream::tables)
-                  .flatMap(t -> t.tables())
+                  .flatMap(FakeKTable::tables)
                   .flatMap(t -> t.mapValues.keySet().stream())
           )).collect(Collectors.toList());
     }

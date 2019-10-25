@@ -57,7 +57,6 @@ public final class StubKafkaRecord {
     return new StubKafkaRecord(testRecord, producerRecord);
   }
 
-  @SuppressWarnings("unchecked")
   private static WindowData getWindowData(
       final ProducerRecord<?,?> producerRecord) {
     if (producerRecord.key() instanceof Windowed) {

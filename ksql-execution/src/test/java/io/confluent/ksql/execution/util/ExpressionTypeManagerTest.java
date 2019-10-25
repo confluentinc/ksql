@@ -101,21 +101,12 @@ public class ExpressionTypeManagerTest {
   @Before
   public void init() {
     expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry);
-  }
 
-  private void givenUdfWithNameAndReturnType(final String name, final Schema returnType) {
-    givenUdfWithNameAndReturnType(name ,returnType, udfFactory, function);
-  }
+    final UdfFactory internalFactory = mock(UdfFactory.class);
+    when(internalFactory.isInternal()).thenReturn(true);
 
-  private void givenUdfWithNameAndReturnType(
-      final String name,
-      final Schema returnType,
-      final UdfFactory factory,
-      final KsqlFunction function) {
-    when(functionRegistry.isAggregate(name)).thenReturn(false);
-    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
-    when(factory.getFunction(anyList())).thenReturn(function);
-    when(function.getReturnType(anyList())).thenReturn(returnType);
+    when(functionRegistry.getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name()))
+        .thenReturn(internalFactory);
   }
 
   @Test
@@ -287,7 +278,7 @@ public class ExpressionTypeManagerTest {
   }
 
   @Test
-  public void shouldThrowOnStructFieldDereference() {
+  public void shouldHandleStructFieldDereference() {
     // Given:
     final Expression expression = new DereferenceExpression(
         Optional.empty(),
@@ -295,33 +286,42 @@ public class ExpressionTypeManagerTest {
         "STREET"
     );
 
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(result, is(SqlTypes.STRING));
+  }
+
+  @Test
+  public void shouldThrowOnFetchFieldFromStructFunctionCall() {
+    // Given:
+    final Expression expression = new FunctionCall(
+        FetchFieldFromStruct.FUNCTION_NAME,
+        ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
+    );
+
     // Then:
-    expectedException.expect(IllegalArgumentException.class);
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'");
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
   }
 
   @Test
-  public void shouldHandleRewrittenStruct() {
-    final Expression expression = new FunctionCall(
-        FetchFieldFromStruct.FUNCTION_NAME,
-        ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
-    );
-    assertThat(
-        expressionTypeManager.getExpressionSqlType(expression),
-        equalTo(SqlTypes.BIGINT)
-    );
-  }
-
-  @Test
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find field ZIP in TEST1.COL6.");
-    final Expression expression = new FunctionCall(
-        FetchFieldFromStruct.FUNCTION_NAME,
-        ImmutableList.of(ADDRESS, new StringLiteral("ZIP"))
+    // Given:
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL6"))),
+        "ZIP"
     );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not find field 'ZIP' in 'TEST1.COL6'.");
+
+    // When:
     expressionTypeManager.getExpressionSqlType(expression);
   }
 
@@ -329,19 +329,24 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForStructDereferenceInArray() {
     // Given:
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
+
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(TEST1, COL0, SqlTypes.array(inner))
         .build();
+
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
-    final Expression arrayRef = new SubscriptExpression(TestExpressions.COL0,
-        new IntegerLiteral(1));
-    final Expression expression = new FunctionCall(
-        FetchFieldFromStruct.FUNCTION_NAME,
-        ImmutableList.of(arrayRef, new StringLiteral("IN0"))
+
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new SubscriptExpression(TestExpressions.COL0, new IntegerLiteral(1)),
+        "IN0"
     );
 
-    // When/Then:
-    assertThat(expressionTypeManager.getExpressionSqlType(expression), is(SqlTypes.INTEGER));
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.INTEGER));
   }
 
   @Test
@@ -351,18 +356,26 @@ public class ExpressionTypeManagerTest {
         .struct()
         .field("IN0", SqlTypes.array(SqlTypes.INTEGER))
         .build();
+
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(TEST1, COL0, inner)
         .build();
+
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
-    final Expression structRef = new FunctionCall(
-        FetchFieldFromStruct.FUNCTION_NAME,
-        ImmutableList.of(TestExpressions.COL0, new StringLiteral("IN0"))
+
+    final Expression structRef = new DereferenceExpression(
+        Optional.empty(),
+        new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+        "IN0"
     );
+
     final Expression expression = new SubscriptExpression(structRef, new IntegerLiteral(1));
 
-    // When/Then:
-    assertThat(expressionTypeManager.getExpressionSqlType(expression), is(SqlTypes.INTEGER));
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.INTEGER));
   }
 
   @Test
@@ -531,5 +544,20 @@ public class ExpressionTypeManagerTest {
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  private void givenUdfWithNameAndReturnType(final String name, final Schema returnType) {
+    givenUdfWithNameAndReturnType(name ,returnType, udfFactory, function);
+  }
+
+  private void givenUdfWithNameAndReturnType(
+      final String name,
+      final Schema returnType,
+      final UdfFactory factory,
+      final KsqlFunction function) {
+    when(functionRegistry.isAggregate(name)).thenReturn(false);
+    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
+    when(factory.getFunction(anyList())).thenReturn(function);
+    when(function.getReturnType(anyList())).thenReturn(returnType);
   }
 }

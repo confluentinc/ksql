@@ -15,12 +15,15 @@
 
 package io.confluent.ksql.execution.codegen;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
+import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -207,6 +210,28 @@ public class CodeGenRunner {
       return null;
     }
 
+    @SuppressWarnings("deprecation")
+    @Override
+    public Void visitDereferenceExpression(final DereferenceExpression node, final Void context) {
+      process(node.getBase(), null);
+
+      final List<Schema> argumentTypes = ImmutableList.of(
+          expressionTypeManager.getExpressionSchema(node.getBase()),
+          Schema.OPTIONAL_STRING_SCHEMA
+      );
+
+      final KsqlFunction function = functionRegistry
+          .getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name())
+          .getFunction(argumentTypes);
+
+      spec.addFunction(
+          function.getFunctionName(),
+          function.newInstance(ksqlConfig)
+      );
+
+      return null;
+    }
+
     private Column getRequiredColumn(final ColumnRef target) {
       return schema.findValueColumn(target)
           .orElseThrow(() -> new RuntimeException(
@@ -215,5 +240,4 @@ public class CodeGenRunner {
                   + ", schema: " + schema.value()));
     }
   }
-
 }

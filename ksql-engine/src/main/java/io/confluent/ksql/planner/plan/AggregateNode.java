@@ -177,6 +177,11 @@ public class AggregateNode extends PlanNode {
   }
 
   @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return Collections.emptyList();
+  }
+
+  @Override
   public <C, R> R accept(final PlanVisitor<C, R> visitor, final C context) {
     return visitor.visitAggregate(this, context);
   }
@@ -302,7 +307,7 @@ public class AggregateNode extends PlanNode {
     for (int i = 0; i < aggregations.size(); i++) {
       final KsqlAggregateFunction aggregateFunction =
           UdafUtil.resolveAggregateFunction(functionRegistry, aggregations.get(i), inputSchema);
-      final ColumnName colName = ColumnName.aggregate(i);
+      final ColumnName colName = ColumnName.aggregateColumn(i);
       final SqlType fieldType = converter.toSqlType(
           useAggregate ? aggregateFunction.getAggregateType() : aggregateFunction.getReturnType()
       );

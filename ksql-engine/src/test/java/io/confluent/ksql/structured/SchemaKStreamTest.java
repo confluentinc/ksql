@@ -168,7 +168,7 @@ public class SchemaKStreamTest {
 
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
@@ -191,7 +191,7 @@ public class SchemaKStreamTest {
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
@@ -219,7 +219,7 @@ public class SchemaKStreamTest {
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -238,7 +238,7 @@ public class SchemaKStreamTest {
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -257,7 +257,7 @@ public class SchemaKStreamTest {
     final PlanNode logicalPlan = givenInitialKStreamOf(
         "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -275,7 +275,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -292,7 +292,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col0, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -310,7 +310,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf("SELECT col2, col3 FROM test1 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -325,7 +325,7 @@ public class SchemaKStreamTest {
     // Given:
     final PlanNode logicalPlan = givenInitialKStreamOf("SELECT * FROM test4 EMIT CHANGES;");
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
-    final List<SelectExpression> selectExpressions = projectNode.getProjectSelectExpressions();
+    final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
     // When:
     final SchemaKStream result = initialSchemaKStream
@@ -344,7 +344,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
-        projectNode.getProjectSelectExpressions(),
+        projectNode.getSelectExpressions(),
         childContextStacker,
         queryBuilder);
 

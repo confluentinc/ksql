@@ -31,7 +31,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.serde.SerdeOption;
-import io.confluent.ksql.util.AggregateExpressionRewriter;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Map;
@@ -173,6 +172,10 @@ public class QueryAnalyzer {
   ) {
     if (!query.getGroupBy().isPresent()) {
       return;
+    }
+
+    if (!analysis.getTableFunctions().isEmpty()) {
+      throw new KsqlException("Table functions cannot be used with aggregations.");
     }
 
     if (aggregateAnalysis.getAggregateFunctions().isEmpty()) {

@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
@@ -51,24 +52,29 @@ public class DataSourceNode extends PlanNode {
   private final LogicalSchemaWithMetaAndKeyFields schema;
   private final KeyField keyField;
   private final SchemaKStreamFactory schemaKStreamFactory;
+  private final List<SelectExpression> selectExpressions;
 
   public DataSourceNode(
       final PlanNodeId id,
       final DataSource<?> dataSource,
-      final SourceName alias
+      final SourceName alias,
+      final List<SelectExpression> selectExpressions
   ) {
-    this(id, dataSource, alias, SchemaKStream::forSource);
+    this(id, dataSource, alias, selectExpressions, SchemaKStream::forSource);
   }
 
   DataSourceNode(
       final PlanNodeId id,
       final DataSource<?> dataSource,
       final SourceName alias,
+      final List<SelectExpression> selectExpressions,
       final SchemaKStreamFactory schemaKStreamFactory
   ) {
     super(id, dataSource.getDataSourceType());
     this.dataSource = requireNonNull(dataSource, "dataSource");
     this.alias = requireNonNull(alias, "alias");
+    this.selectExpressions =
+        ImmutableList.copyOf(requireNonNull(selectExpressions, "selectExpressions"));
 
     // DataSourceNode copies implicit and key fields into the value schema
     // It users a KS valueMapper to add the key fields
@@ -119,6 +125,11 @@ public class DataSourceNode extends PlanNode {
   @Override
   public List<PlanNode> getSources() {
     return ImmutableList.of();
+  }
+
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return selectExpressions;
   }
 
   @Override

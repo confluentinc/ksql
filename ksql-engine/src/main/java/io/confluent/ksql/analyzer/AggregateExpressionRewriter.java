@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter;
 import io.confluent.ksql.engine.rewrite.ExpressionTreeRewriter.Context;
@@ -45,7 +45,7 @@ public class AggregateExpressionRewriter
       final ExpressionTreeRewriter.Context<Void> context) {
     final String functionName = node.getName().name();
     if (functionRegistry.isAggregate(functionName)) {
-      final ColumnName aggVarName = ColumnName.aggregate(aggVariableIndex);
+      final ColumnName aggVarName = ColumnName.aggregateColumn(aggVariableIndex);
       aggVariableIndex++;
       return Optional.of(
           new ColumnReferenceExp(node.getLocation(), ColumnRef.withoutSource(aggVarName)));

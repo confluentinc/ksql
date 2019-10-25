@@ -30,6 +30,7 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.KsqlBareOutputNode;
 import io.confluent.ksql.planner.plan.KsqlStructuredDataOutputNode;
@@ -75,6 +76,10 @@ public class LogicalPlanner {
 
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
+
+    if (!analysis.getTableFunctions().isEmpty()) {
+      currentNode = buildFlatMapNode(currentNode);
+    }
 
     if (analysis.getWhereExpression().isPresent()) {
       currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
@@ -177,7 +182,8 @@ public class LogicalPlanner {
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression.equals(groupBy)
             && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWTIME_NAME.name())
-            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()));
+            && !SchemaUtil.isFieldName(alias.name(), SchemaUtil.ROWKEY_NAME.name()),
+        sourcePlanNode);
 
     return new AggregateNode(
         new PlanNodeId("Aggregate"),
@@ -204,15 +210,15 @@ public class LogicalPlanner {
 
     final Optional<ColumnName> keyFieldName = getSelectAliasMatching((expression, alias) ->
         expression instanceof ColumnReferenceExp
-            && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName)
+            && ((ColumnReferenceExp) expression).getReference().equals(sourceKeyFieldName),
+        sourcePlanNode
     );
 
     return new ProjectNode(
         new PlanNodeId("Project"),
         sourcePlanNode,
         schema,
-        keyFieldName.map(ColumnRef::withoutSource),
-        analysis.getSelectExpressions()
+        keyFieldName.map(ColumnRef::withoutSource)
     );
   }
 
@@ -221,6 +227,10 @@ public class LogicalPlanner {
       final Expression filterExpression
   ) {
     return new FilterNode(new PlanNodeId("Filter"), sourcePlanNode, filterExpression);
+  }
+
+  private FlatMapNode buildFlatMapNode(final PlanNode sourcePlanNode) {
+    return new FlatMapNode(new PlanNodeId("FlatMap"), sourcePlanNode, functionRegistry, analysis);
   }
 
   private PlanNode buildSourceNode() {
@@ -242,17 +252,20 @@ public class LogicalPlanner {
     final DataSourceNode leftSourceNode = new DataSourceNode(
         new PlanNodeId("KafkaTopic_Left"),
         left.getDataSource(),
-        left.getAlias()
+        left.getAlias(),
+        analysis.getSelectExpressions()
     );
 
     final DataSourceNode rightSourceNode = new DataSourceNode(
         new PlanNodeId("KafkaTopic_Right"),
         right.getDataSource(),
-        right.getAlias()
+        right.getAlias(),
+        analysis.getSelectExpressions()
     );
 
     return new JoinNode(
         new PlanNodeId("Join"),
+        analysis.getSelectExpressions(),
         joinInfo.get().getType(),
         leftSourceNode,
         rightSourceNode,
@@ -271,15 +284,17 @@ public class LogicalPlanner {
     return new DataSourceNode(
         new PlanNodeId("KsqlTopic"),
         dataSource.getDataSource(),
-        dataSource.getAlias()
+        dataSource.getAlias(),
+        analysis.getSelectExpressions()
     );
   }
 
   private Optional<ColumnName> getSelectAliasMatching(
-      final BiFunction<Expression, ColumnName, Boolean> matcher
+      final BiFunction<Expression, ColumnName, Boolean> matcher,
+      final PlanNode sourcePlanNode
   ) {
-    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final SelectExpression select = analysis.getSelectExpressions().get(i);
+    for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
+      final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);
 
       if (matcher.apply(select.getExpression(), select.getAlias())) {
         return Optional.of(select.getAlias());
@@ -303,8 +318,8 @@ public class LogicalPlanner {
 
     builder.keyColumns(keyColumns);
 
-    for (int i = 0; i < analysis.getSelectExpressions().size(); i++) {
-      final SelectExpression select = analysis.getSelectExpressions().get(i);
+    for (int i = 0; i < sourcePlanNode.getSelectExpressions().size(); i++) {
+      final SelectExpression select = sourcePlanNode.getSelectExpressions().get(i);
 
       final SqlType expressionType = expressionTypeManager
           .getExpressionSqlType(select.getExpression());

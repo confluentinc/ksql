@@ -32,12 +32,12 @@ public class TableFunctionApplier {
   public TableFunctionApplier(final KsqlTableFunction tableFunction,
       final ExpressionMetadata expressionMetadata) {
     this.tableFunction = Objects.requireNonNull(tableFunction);
-    this.expressionMetadata = expressionMetadata;
+    this.expressionMetadata = Objects.requireNonNull(expressionMetadata);
   }
 
   @SuppressWarnings("unchecked")
   List<Object> apply(final GenericRow row) {
-    final Object val = expressionMetadata.evaluate(row);
-    return tableFunction.flatMap(val);
+    final Object unexplodedVal = expressionMetadata.evaluate(row);
+    return tableFunction.flatMap(unexplodedVal);
   }
 }

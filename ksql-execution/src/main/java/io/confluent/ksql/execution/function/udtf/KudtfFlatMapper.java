@@ -37,18 +37,14 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
 
   @Override
   public Iterable<GenericRow> apply(final GenericRow row) {
-    final List<List<Object>> explodedList = new ArrayList<>(tableFunctionAppliers.size());
+    final List<Iterator<Object>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
     for (TableFunctionApplier applier: tableFunctionAppliers) {
       final List<Object> exploded = applier.apply(row);
-      explodedList.add(exploded);
+      iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }
     final List<GenericRow> rows = new ArrayList<>(maxLength);
-    final List<Iterator<Object>> iters = new ArrayList<>();
-    for (List<Object> exploded: explodedList) {
-      iters.add(exploded.iterator());
-    }
     for (int i = 0; i < maxLength; i++) {
       final List<Object> newRow = new ArrayList<>(row.getColumns());
       for (Iterator<Object> iter: iters) {

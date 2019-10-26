@@ -115,6 +115,21 @@
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 3, "KSQL_COL_1": 20}},
         {"topic": "OUTPUT", "key": "1", "value": {"KSQL_COL_0": 4, "KSQL_COL_1": null}}
       ]
+    },
+    {
+      "name": "table functions with complex expressions",
+      "statements": [
+        "CREATE STREAM TEST (F0 INT, F1 INT, F2 INT, F3 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT F0, EXPLODE(AS_ARRAY(ABS(F1 + F2), ABS(F2 + F3), ABS(F3 + F1))) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"ID":  0, "F0": 1, "F1": 10, "F2": 11, "F3":  12}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 1, "KSQL_COL_1": 21.0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 1, "KSQL_COL_1": 23.0}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 1, "KSQL_COL_1": 22.0}}
+      ]
     }
   ]
 }

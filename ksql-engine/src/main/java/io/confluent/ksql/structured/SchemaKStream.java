@@ -23,6 +23,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.codegen.CodeGenRunner;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
@@ -75,7 +77,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
@@ -690,22 +691,20 @@ public class SchemaKStream<K> {
       final List<FunctionCall> tableFunctions,
       final QueryContext.Stacker contextStacker
   ) {
-    final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>();
+    final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>(tableFunctions.size());
+    final CodeGenRunner codeGenRunner =
+        new CodeGenRunner(getSchema(), ksqlConfig, functionRegistry);
     for (FunctionCall functionCall: tableFunctions) {
-      final ColumnReferenceExp exp = (ColumnReferenceExp)functionCall.getArguments().get(0);
-      final ColumnName columnName = exp.getReference().name();
-      final ColumnRef ref = ColumnRef.withoutSource(columnName);
-      final OptionalInt indexInInput = getSchema().valueColumnIndex(ref);
-      if (!indexInInput.isPresent()) {
-        throw new IllegalArgumentException("Can't find input column " + columnName);
-      }
+      final Expression expression = functionCall.getArguments().get(0);
+      final ExpressionMetadata expressionMetadata =
+          codeGenRunner.buildCodeGenFromParseTree(expression, "Table function");
       final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
           functionRegistry,
           functionCall,
           getSchema()
       );
       final TableFunctionApplier tableFunctionApplier =
-          new TableFunctionApplier(tableFunction, indexInInput.getAsInt());
+          new TableFunctionApplier(tableFunction, expressionMetadata);
       tableFunctionAppliers.add(tableFunctionApplier);
     }
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(

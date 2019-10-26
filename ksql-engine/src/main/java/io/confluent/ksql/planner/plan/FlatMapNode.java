@@ -39,7 +39,6 @@ import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -71,9 +70,6 @@ public class FlatMapNode extends PlanNode {
     this.functionRegistry = functionRegistry;
     this.finalSelectExpressions = buildFinalSelectExpressions();
     outputSchema = buildLogicalSchema(source.getSchema());
-    if (analysis.getTableFunctions().size() > 1) {
-      throw new KsqlException("Only one table function per query currently is supported");
-    }
   }
 
   @Override
@@ -117,7 +113,7 @@ public class FlatMapNode extends PlanNode {
 
     return getSource().buildStream(builder).flatMap(
         outputSchema,
-        analysis.getTableFunctions().get(0),
+        analysis.getTableFunctions(),
         contextStacker
     );
   }

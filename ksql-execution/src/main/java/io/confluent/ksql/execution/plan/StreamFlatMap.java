@@ -25,16 +25,16 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
-  private final TableFunctionApplier functionHolder;
+  private final List<TableFunctionApplier> tableFunctionAppliers;
 
   public StreamFlatMap(
       final ExecutionStepProperties properties,
       final ExecutionStep<KStreamHolder<K>> source,
-      final TableFunctionApplier functionHolder
+      final List<TableFunctionApplier> tableFunctionAppliers
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
-    this.functionHolder = Objects.requireNonNull(functionHolder);
+    this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
   }
 
   @Override
@@ -52,8 +52,8 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
     return builder.visitFlatMap(this);
   }
 
-  public TableFunctionApplier getFunctionHolder() {
-    return functionHolder;
+  public List<TableFunctionApplier> getTableFunctionAppliers() {
+    return tableFunctionAppliers;
   }
 
   public ExecutionStep<KStreamHolder<K>> getSource() {

@@ -147,13 +147,13 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
       final LogicalSchema resultSchema,
-      final TableFunctionApplier functionHolder
+      final List<TableFunctionApplier> tableFunctionAppliers
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFlatMap<>(
         new DefaultExecutionStepProperties(resultSchema, queryContext),
         source,
-        functionHolder
+        tableFunctionAppliers
     );
   }
 

@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -52,6 +53,7 @@ import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -87,7 +89,8 @@ public class QueryAnalyzerFunctionalTest {
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
-  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+  private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+  private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(functionRegistry);
   private final QueryAnalyzer queryAnalyzer =
       new QueryAnalyzer(metaStore, "prefix-~", SerdeOption.none());
 
@@ -194,6 +197,14 @@ public class QueryAnalyzerFunctionalTest {
 
   @Test
   public void shouldAnalyseTableFunctions() {
+
+    // We need to load udfs for this
+    UdfLoader loader = new UdfLoader(functionRegistry, new File(""),
+        Thread.currentThread().getContextClassLoader(),
+        s -> false,
+        Optional.empty(), true
+    );
+    loader.load();
 
     // Given:
     final Query query = givenQuery("SELECT ID, EXPLODE(ARR1) FROM SENSOR_READINGS;");

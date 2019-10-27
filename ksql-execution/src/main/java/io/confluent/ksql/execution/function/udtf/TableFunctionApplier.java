@@ -27,17 +27,21 @@ import java.util.Objects;
 @Immutable
 public class TableFunctionApplier {
   private final KsqlTableFunction tableFunction;
-  private final ExpressionMetadata expressionMetadata;
+  private final List<ExpressionMetadata> expressionMetadataList;
 
   public TableFunctionApplier(final KsqlTableFunction tableFunction,
-      final ExpressionMetadata expressionMetadata) {
+      final List<ExpressionMetadata> expressionMetadataList
+  ) {
     this.tableFunction = Objects.requireNonNull(tableFunction);
-    this.expressionMetadata = Objects.requireNonNull(expressionMetadata);
+    this.expressionMetadataList = Objects.requireNonNull(expressionMetadataList);
   }
 
-  @SuppressWarnings("unchecked")
-  List<Object> apply(final GenericRow row) {
-    final Object unexplodedVal = expressionMetadata.evaluate(row);
-    return tableFunction.flatMap(unexplodedVal);
+  List<?> apply(final GenericRow row) {
+    final Object[] args = new Object[expressionMetadataList.size()];
+    int i = 0;
+    for (ExpressionMetadata expressionMetadata : expressionMetadataList) {
+      args[i++] = expressionMetadata.evaluate(row);
+    }
+    return tableFunction.apply(args);
   }
 }

@@ -101,7 +101,7 @@ public final class UdfUtil {
     if (type instanceof TypeVariable) {
       schema = GenericsUtil.generic(((TypeVariable) type).getName());
     } else {
-      schema = typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+      schema = typeToSchema.getOrDefault(type, () -> handleParameterizedType(type)).get();
       if (schema.name() == null) {
         schema.name(name);
       }
@@ -111,7 +111,7 @@ public final class UdfUtil {
     return schema.build();
   }
 
-  private static SchemaBuilder handleParametrizedType(final Type type) {
+  private static SchemaBuilder handleParameterizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
@@ -139,6 +139,7 @@ public final class UdfUtil {
               ((GenericArrayType) type).getGenericComponentType().getTypeName()
           ).build());
     }
+
     throw new KsqlException("Type inference is not supported for: " + type);
   }
 }

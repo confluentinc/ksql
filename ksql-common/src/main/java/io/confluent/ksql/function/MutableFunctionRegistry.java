@@ -23,13 +23,13 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    * Ensure the supplied function factory is registered.
    *
    * <p>The method will register the factory if a factory with the same name is not already
-   * registered. If a factory with the same name is already registered the method will throw
-   * if the two factories not are equivalent, (see {@link UdfFactory#matches(UdfFactory)}.
+   * registered. If a factory with the same name is already registered the method will throw if the
+   * two factories not are equivalent, (see {@link UdfFactory#matches(UdfFactory)}.
    *
    * @param factory the factory to register.
    * @return the udf factory.
    * @throws KsqlException if a UDAF function with the same name exists, or if an incompatible UDF
-   *     function factory already exists.
+   *                       function factory already exists.
    */
   UdfFactory ensureFunctionFactory(UdfFactory factory);
 
@@ -52,5 +52,11 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    */
   void addAggregateFunctionFactory(AggregateFunctionFactory aggregateFunctionFactory);
 
+  /**
+   * Register a table function factory.
+   *
+   * @param tableFunctionFactory the factory to register
+   * @throws KsqlException if a function, (of any type), with the same name exists.
+   */
   void addTableFunctionFactory(TableFunctionFactory tableFunctionFactory);
 }

@@ -613,97 +613,98 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldInvokeFunctionWithMapArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader.createUdfInvoker(getClass().getMethod("udf", Map.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", Map.class));
     assertThat(udf.eval(this, Collections.emptyMap()), equalTo("{}"));
   }
 
   @Test
   public void shouldInvokeFunctionWithListArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", List.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", List.class));
     assertThat(udf.eval(this, Collections.emptyList()), equalTo("[]"));
   }
 
   @Test
   public void shouldInvokeFunctionWithDoubleArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", Double.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", Double.class));
     assertThat(udf.eval(this, 1.0d), equalTo(1.0));
   }
 
   @Test
   public void shouldInvokeFunctionWithIntegerArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", Integer.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", Integer.class));
     assertThat(udf.eval(this, 1), equalTo(1));
   }
 
   @Test
   public void shouldInvokeFunctionWithLongArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", Long.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", Long.class));
     assertThat(udf.eval(this, 1L), equalTo(1L));
   }
 
   @Test
   public void shouldInvokeFunctionWithBooleanArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", Boolean.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", Boolean.class));
     assertThat(udf.eval(this, true), equalTo(true));
   }
 
   @Test
   public void shouldInvokeFunctionWithIntArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfPrimitive", int.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", int.class));
     assertThat(udf.eval(this, 1), equalTo(1));
   }
 
   @Test
   public void shouldInvokeFunctionWithIntVarArgs() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfPrimitive", int[].class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", int[].class));
     assertThat(udf.eval(this, 1, 1), equalTo(2));
   }
 
   @Test
   public void shouldInvokeFunctionWithPrimitiveLongArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfPrimitive", long.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", long.class));
     assertThat(udf.eval(this, 1), equalTo(1L));
   }
 
   @Test
   public void shouldInvokeFunctionWithPrimitiveDoubleArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfPrimitive", double.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", double.class));
     assertThat(udf.eval(this, 1), equalTo(1.0));
   }
 
   @Test
   public void shouldInvokeFunctionWithPrimitiveBooleanArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfPrimitive", boolean.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", boolean.class));
     assertThat(udf.eval(this, true), equalTo(true));
   }
 
   @Test
   public void shouldInvokeFunctionWithStringArgument() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", String.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", String.class));
     assertThat(udf.eval(this, "foo"), equalTo("foo"));
   }
 
   @Test
   public void shouldInvokeFunctionWithStringVarArgs() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udf", String[].class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udf", String[].class));
     assertThat(udf.eval(this, "foo", "bar"), equalTo("foobar"));
   }
 
   @Test
   public void shouldHandleMethodsWithMultipleArguments() throws Exception {
-    final UdfInvoker udf = UdfLoader.createUdfInvoker(
+    final FunctionInvoker udf = UdfLoader.createFunctionInvoker(
         getClass().getMethod("multi", int.class, long.class, double.class));
 
     assertThat(udf.eval(this, 1, 2, 3), equalTo(6.0));
@@ -711,7 +712,7 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldHandleMethodsWithGenericArguments() throws Exception {
-    final UdfInvoker udf = UdfLoader.createUdfInvoker(
+    final FunctionInvoker udf = UdfLoader.createFunctionInvoker(
         getClass().getMethod("generic", int.class, Object.class));
 
     assertThat(udf.eval(this, 1, "hi"), equalTo("hi"));
@@ -719,7 +720,7 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldHandleMethodsWithParameterizedGenericArguments() throws Exception {
-    final UdfInvoker udf = UdfLoader.createUdfInvoker(
+    final FunctionInvoker udf = UdfLoader.createFunctionInvoker(
         getClass().getMethod("generic", int.class, List.class));
 
     assertThat(udf.eval(this, 1, ImmutableList.of("hi")), equalTo("hi"));
@@ -740,15 +741,15 @@ public class UdfLoaderTest {
 
   @Test
   public void shouldInvokeFunctionWithStructReturnValue() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfStruct", String.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfStruct", String.class));
     assertThat(udf.eval(this, "val"), equalTo(new Struct(STRUCT_SCHEMA).put("a", "val")));
   }
 
   @Test
   public void shouldInvokeFunctionWithStructParameter() throws Exception {
-    final UdfInvoker udf = UdfLoader
-        .createUdfInvoker(getClass().getMethod("udfStruct", Struct.class));
+    final FunctionInvoker udf = UdfLoader
+        .createFunctionInvoker(getClass().getMethod("udfStruct", Struct.class));
     assertThat(udf.eval(this, new Struct(STRUCT_SCHEMA).put("a", "val")), equalTo("val"));
   }
 
@@ -809,7 +810,7 @@ public class UdfLoaderTest {
 
   @Test(expected = KsqlException.class)
   public void shouldThrowIfUnsupportedArgumentType() throws Exception {
-    UdfLoader.createUdfInvoker(
+    UdfLoader.createFunctionInvoker(
         getClass().getMethod("udf", Set.class));
   }
 
@@ -880,16 +881,18 @@ public class UdfLoaderTest {
   @Test
   public void shouldThrowIfArrayWithoutVarArgs() throws Exception {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array)");
-    UdfLoader.createUdfInvoker(
+    expectedException
+        .expectMessage("Invalid function method signature (contains non var-arg array)");
+    UdfLoader.createFunctionInvoker(
         getClass().getMethod("invalidUdf", int[].class));
   }
 
   @Test
   public void shouldThrowIfArrayAndVarArgs() throws Exception {
     expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("Invalid UDF method signature (contains non var-arg array):");
-    UdfLoader.createUdfInvoker(
+    expectedException
+        .expectMessage("Invalid function method signature (contains non var-arg array):");
+    UdfLoader.createFunctionInvoker(
         getClass().getMethod("invalidUdf", int[].class, int[].class));
   }
 
@@ -898,9 +901,9 @@ public class UdfLoaderTest {
       throws Exception {
     expectedException.expect(KsqlFunctionException.class);
     expectedException
-        .expectMessage("Failed to invoke udf");
-    final UdfInvoker udf =
-        UdfLoader.createUdfInvoker(getClass().getMethod("udfPrimitive", double.class));
+        .expectMessage("Failed to invoke function");
+    final FunctionInvoker udf =
+        UdfLoader.createFunctionInvoker(getClass().getMethod("udfPrimitive", double.class));
     udf.eval(this, (Double)null);
   }
 

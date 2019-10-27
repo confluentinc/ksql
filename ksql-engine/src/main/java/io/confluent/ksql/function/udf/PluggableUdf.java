@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.function.udf;
 
-import io.confluent.ksql.function.UdfInvoker;
+import io.confluent.ksql.function.FunctionInvoker;
 import io.confluent.ksql.security.ExtensionSecurityManager;
 import java.util.Objects;
 
@@ -27,11 +27,11 @@ import java.util.Objects;
  */
 public class PluggableUdf implements Kudf {
 
-  private final UdfInvoker udf;
+  private final FunctionInvoker udf;
   private final Object actualUdf;
 
   public PluggableUdf(
-      final UdfInvoker udfInvoker,
+      final FunctionInvoker udfInvoker,
       final Object actualUdf
   ) {
     this.udf = Objects.requireNonNull(udfInvoker, "udfInvoker");

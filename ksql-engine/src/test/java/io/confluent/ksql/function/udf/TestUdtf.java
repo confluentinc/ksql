@@ -63,7 +63,7 @@ public class TestUdtf {
             String.valueOf(b.values().iterator().next()),
             s.values().iterator().next(),
             bd.values().iterator().next().toString(),
-            bd.values().iterator().next().toString()
+            struct.values().iterator().next().toString()
         );
   }
 

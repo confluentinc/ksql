@@ -868,7 +868,7 @@ public class CodeGenRunnerTest {
         // test
         assertThat(columns, equalTo(Collections.singletonList("doStuffLongLongString")));
     }
-    
+
     private List<Object> executeExpression(final String query,
                                            final Map<Integer, Object> inputValues) {
         final Analysis analysis = analyzeQuery(query, metaStore);

@@ -244,7 +244,8 @@ public class InternalFunctionRegistryTest {
   public void shouldAddTableFunction() {
     functionRegistry.addTableFunctionFactory(createTableFunctionFactory());
     assertThat(functionRegistry.getTableFunction("my_tablefunction",
-        Schema.OPTIONAL_INT32_SCHEMA), not(nullValue()));
+        ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA)
+    ), not(nullValue()));
   }
 
   @Test
@@ -435,8 +436,8 @@ public class InternalFunctionRegistryTest {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
         "", "", "", "", false)) {
       @Override
-      public KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList) {
-        return new KsqlTableFunction<List<Object>, Object>() {
+      public KsqlTableFunction createTableFunction(List<Schema> argTypeList) {
+        return new KsqlTableFunction() {
           @Override
           public Schema getReturnType() {
             return null;
@@ -448,7 +449,7 @@ public class InternalFunctionRegistryTest {
           }
 
           @Override
-          public List<Object> flatMap(List<Object> currentValue) {
+          public List<?> apply(Object... args) {
             return null;
           }
 

@@ -88,11 +88,11 @@ public interface FunctionRegistry {
    * Get a table function.
    *
    * @param functionName the name of the function.
-   * @param argumentType the schema of the argument or {@link #DEFAULT_FUNCTION_ARG_SCHEMA}.
+   * @param argumentTypes the schemas of the arguments.
    * @return the function instance.
    * @throws KsqlException on unknown table function, or on unsupported {@code argumentType}.
    */
-  KsqlTableFunction<?, ?> getTableFunction(String functionName, Schema argumentType);
+  KsqlTableFunction getTableFunction(String functionName, List<Schema> argumentTypes);
 
   /**
    * @return all UDF factories.

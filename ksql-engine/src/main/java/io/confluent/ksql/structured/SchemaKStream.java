@@ -695,16 +695,20 @@ public class SchemaKStream<K> {
     final CodeGenRunner codeGenRunner =
         new CodeGenRunner(getSchema(), ksqlConfig, functionRegistry);
     for (FunctionCall functionCall: tableFunctions) {
-      final Expression expression = functionCall.getArguments().get(0);
-      final ExpressionMetadata expressionMetadata =
-          codeGenRunner.buildCodeGenFromParseTree(expression, "Table function");
+      final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
+          functionCall.getArguments().size());
+      for (Expression expression : functionCall.getArguments()) {
+        final ExpressionMetadata expressionMetadata =
+            codeGenRunner.buildCodeGenFromParseTree(expression, "Table function");
+        expressionMetadataList.add(expressionMetadata);
+      }
       final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
           functionRegistry,
           functionCall,
           getSchema()
       );
       final TableFunctionApplier tableFunctionApplier =
-          new TableFunctionApplier(tableFunction, expressionMetadata);
+          new TableFunctionApplier(tableFunction, expressionMetadataList);
       tableFunctionAppliers.add(tableFunctionApplier);
     }
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(

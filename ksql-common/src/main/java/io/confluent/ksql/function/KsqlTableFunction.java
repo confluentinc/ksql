@@ -19,13 +19,13 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
-public interface KsqlTableFunction<I, O> extends FunctionSignature {
+public interface KsqlTableFunction extends FunctionSignature {
 
   Schema getReturnType();
 
   SqlType returnType();
 
-  List<O> flatMap(I input);
+  List<?> apply(Object... args);
 
   String getDescription();
 }

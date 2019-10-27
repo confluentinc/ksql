@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.function;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
@@ -22,6 +23,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 public final class UdtfUtil {
@@ -30,7 +32,7 @@ public final class UdtfUtil {
   }
 
   @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
-  public static KsqlTableFunction<?, ?> resolveTableFunction(
+  public static KsqlTableFunction resolveTableFunction(
       final FunctionRegistry functionRegistry,
       final FunctionCall functionCall,
       final LogicalSchema schema
@@ -38,10 +40,13 @@ public final class UdtfUtil {
     final ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
     final List<Expression> functionArgs = functionCall.getArguments();
-    final Schema expressionType = expressionTypeManager.getExpressionSchema(functionArgs.get(0));
+    final List<Schema> argTypes = functionArgs.isEmpty()
+        ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
+        : functionArgs.stream().map(expressionTypeManager::getExpressionSchema)
+            .collect(Collectors.toList());
     return functionRegistry.getTableFunction(
         functionCall.getName().name(),
-        expressionType
+        argTypes
     );
   }
 }

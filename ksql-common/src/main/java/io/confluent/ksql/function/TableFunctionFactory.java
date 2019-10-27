@@ -29,7 +29,7 @@ public abstract class TableFunctionFactory {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract KsqlTableFunction<?, ?> createTableFunction(List<Schema> argTypeList);
+  public abstract KsqlTableFunction createTableFunction(List<Schema> argTypeList);
 
   protected abstract List<List<Schema>> supportedArgs();
 

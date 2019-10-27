@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.util;
 
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -69,6 +70,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
@@ -392,9 +394,10 @@ public class ExpressionTypeManager {
       }
 
       if (functionRegistry.isTableFunction(node.getName().name())) {
-        final Schema schema = node.getArguments().isEmpty()
-            ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
-            : getExpressionSchema(node.getArguments().get(0));
+        final List<Schema> schema = node.getArguments().isEmpty()
+            ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
+            : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSchema)
+                .collect(Collectors.toList());
 
         final KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName().name(), schema);

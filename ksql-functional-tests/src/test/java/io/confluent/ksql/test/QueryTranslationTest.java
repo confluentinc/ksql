@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.loader.JsonTestLoader;
 import io.confluent.ksql.test.loader.TestFile;
@@ -31,6 +32,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.Test;
@@ -48,11 +50,14 @@ public class QueryTranslationTest {
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
+  private static Set<String> EXCLUDED_TESTS = ImmutableSet
+      .of("query-validation-tests/scratch.json");
 
   @Parameterized.Parameters(name = "{0}")
   public static Collection<Object[]> data() {
     return ExpectedTopologiesTestLoader.of(testFileLoader(), TOPOLOGY_CHECKS_DIR)
         .load()
+        .filter(testCase -> !EXCLUDED_TESTS.contains(testCase.getTestFile()))
         .map(testCase -> new Object[]{testCase.getName(), testCase})
         .collect(Collectors.toCollection(ArrayList::new));
   }

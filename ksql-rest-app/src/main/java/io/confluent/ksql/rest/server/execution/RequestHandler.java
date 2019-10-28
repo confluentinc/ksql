@@ -23,7 +23,7 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -75,7 +75,7 @@ public class RequestHandler {
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides,
-      final ProducerTransactionManager producerTransactionManager
+      final TransactionalProducer transactionalProducer
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
@@ -86,7 +86,7 @@ public class RequestHandler {
             serviceContext,
             prepared,
             propertyOverrides,
-            producerTransactionManager
+                transactionalProducer
         );
         if (!result.isEmpty()) {
           // This is to maintain backwards compatibility until we deprecate
@@ -102,7 +102,7 @@ public class RequestHandler {
             configured,
             scopedPropertyOverrides,
             entities,
-            producerTransactionManager
+                transactionalProducer
         ).ifPresent(entities::add);
       }
     }
@@ -115,7 +115,7 @@ public class RequestHandler {
       final ConfiguredStatement<T> configured,
       final Map<String, Object> mutableScopedProperties,
       final KsqlEntityList entities,
-      final ProducerTransactionManager producerTransactionManager
+      final TransactionalProducer transactionalProducer
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
@@ -124,7 +124,7 @@ public class RequestHandler {
         customExecutors.getOrDefault(statementClass, distributor);
 
     if (executor instanceof DistributingExecutor) {
-      ((DistributingExecutor) executor).setTransactionManager(producerTransactionManager);
+      ((DistributingExecutor) executor).setTransactionManager(transactionalProducer);
     }
 
     return executor.execute(
@@ -139,7 +139,7 @@ public class RequestHandler {
       final ServiceContext serviceContext,
       final PreparedStatement<?> statement,
       final Map<String, Object> propertyOverrides,
-      final ProducerTransactionManager producerTransactionManager
+      final TransactionalProducer transactionalProducer
   ) {
     final String sql = (String) propertyOverrides
         .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
@@ -153,7 +153,7 @@ public class RequestHandler {
         serviceContext,
         ksqlEngine.parse(sql),
         propertyOverrides,
-        producerTransactionManager
+            transactionalProducer
     );
   }
 }

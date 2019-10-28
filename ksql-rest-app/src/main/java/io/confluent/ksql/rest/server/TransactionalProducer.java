@@ -36,7 +36,7 @@ import org.apache.kafka.common.TopicPartition;
 /**
  * Used to handle transactional writes to the command topic
  */
-public class ProducerTransactionManager {
+public class TransactionalProducer {
 
   private final TopicPartition commandTopicPartition;
   private final String commandTopicName;
@@ -45,7 +45,7 @@ public class ProducerTransactionManager {
   private final Producer<CommandId, Command> commandProducer;
   private final CommandRunner commandRunner;
 
-  public ProducerTransactionManager(
+  public TransactionalProducer(
       final String commandTopicName,
       final CommandRunner commandRunner,
       final Map<String, Object> kafkaConsumerProperties,
@@ -72,7 +72,7 @@ public class ProducerTransactionManager {
   }
 
   @VisibleForTesting
-  ProducerTransactionManager(
+  TransactionalProducer(
       final String commandTopicName,
       final CommandRunner commandRunner,
       final Consumer<CommandId, Command> commandConsumer,

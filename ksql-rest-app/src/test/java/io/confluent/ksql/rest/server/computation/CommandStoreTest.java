@@ -35,7 +35,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -94,7 +94,7 @@ public class CommandStoreTest {
   @Mock
   private CommandIdAssigner commandIdAssigner;
   @Mock
-  private ProducerTransactionManager producerTransactionManager;
+  private TransactionalProducer transactionalProducer;
 
   private ConfiguredStatement<?> configured;
 
@@ -113,7 +113,7 @@ public class CommandStoreTest {
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
 
-    when(producerTransactionManager.send(any(), any())).thenReturn(recordMetadata);
+    when(transactionalProducer.send(any(), any())).thenReturn(recordMetadata);
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
@@ -135,44 +135,44 @@ public class CommandStoreTest {
   public void shouldFailEnqueueIfCommandWithSameIdRegistered() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
 
     expectedException.expect(IllegalStateException.class);
 
     // When:
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
   }
 
   @Test
   public void shouldCleanupCommandStatusOnProduceError() {
     // Given:
-    when(producerTransactionManager.send(any(), any()))
+    when(transactionalProducer.send(any(), any()))
         .thenThrow(new RuntimeException("oops"))
         .thenReturn(recordMetadata);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Could not write the statement 'test-statement' into the command topic.");
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
 
     // When:
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
   }
 
   @Test
   public void shouldEnqueueNewAfterHandlingExistingCommand() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
     commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
 
     // Should:
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
   }
 
   @Test
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    when(producerTransactionManager.send(any(), any())).thenAnswer(
+    when(transactionalProducer.send(any(), any())).thenAnswer(
         invocation -> {
           final QueuedCommand queuedCommand = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
           assertThat(queuedCommand.getCommandId(), equalTo(commandId));
@@ -186,10 +186,10 @@ public class CommandStoreTest {
     );
 
     // When:
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
 
     // Then:
-    verify(producerTransactionManager).send(any(), any());
+    verify(transactionalProducer).send(any(), any());
   }
 
   @Test
@@ -213,20 +213,20 @@ public class CommandStoreTest {
   @Test
   public void shouldDistributeCommand() {
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    when(producerTransactionManager.send(any(), any())).thenReturn(recordMetadata);
+    when(transactionalProducer.send(any(), any())).thenReturn(recordMetadata);
 
     // When:
-    commandStore.enqueueCommand(configured, producerTransactionManager);
+    commandStore.enqueueCommand(configured, transactionalProducer);
 
     // Then:
-    verify(producerTransactionManager).send(same(commandId), any());
+    verify(transactionalProducer).send(same(commandId), any());
   }
 
   @Test
   public void shouldIncludeCommandSequenceNumberInSuccessfulQueuedCommandStatus() {
     // When:
     final QueuedCommandStatus commandStatus =
-        commandStore.enqueueCommand(configured, producerTransactionManager);
+        commandStore.enqueueCommand(configured, transactionalProducer);
 
     // Then:
     assertThat(commandStatus.getCommandSequenceNumber(), equalTo(recordMetadata.offset()));

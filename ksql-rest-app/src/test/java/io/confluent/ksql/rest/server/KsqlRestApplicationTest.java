@@ -127,9 +127,9 @@ public class KsqlRestApplicationTest {
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
-  private ProducerTransactionManagerFactory producerTransactionManagerFactory;
+  private TransactionalProducerFactory transactionalProducerFactory;
   @Mock
-  private ProducerTransactionManager producerTransactionManager;
+  private TransactionalProducer transactionalProducer;
   private PreparedStatement<?> logCreateStatement;
   private KsqlRestApplication app;
 
@@ -151,15 +151,15 @@ public class KsqlRestApplicationTest {
     when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement)preparedStatement);
 
     when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any(), any(ProducerTransactionManager.class)))
+    when(commandQueue.enqueueCommand(any(), any(TransactionalProducer.class)))
         .thenReturn(queuedCommandStatus);
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
-    when(producerTransactionManagerFactory.createProducerTransactionManager()).
-        thenReturn(producerTransactionManager);
+    when(transactionalProducerFactory.createProducerTransactionManager()).
+        thenReturn(transactionalProducer);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
         processingLogConfig,
@@ -185,7 +185,7 @@ public class KsqlRestApplicationTest {
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
         rocksDBConfigSetterHandler,
-        producerTransactionManagerFactory
+            transactionalProducerFactory
     );
   }
 
@@ -246,7 +246,7 @@ public class KsqlRestApplicationTest {
     );
     verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement), Collections.emptyMap(), ksqlConfig)),
-        any(ProducerTransactionManager.class));
+        any(TransactionalProducer.class));
   }
 
   @Test
@@ -259,7 +259,7 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(ProducerTransactionManager.class));
+    verify(commandQueue, never()).enqueueCommand(any(), any(TransactionalProducer.class));
   }
 
   @Test
@@ -271,7 +271,7 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(ProducerTransactionManager.class));
+    verify(commandQueue, never()).enqueueCommand(any(), any(TransactionalProducer.class));
   }
 
   @Test
@@ -283,7 +283,7 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(ProducerTransactionManager.class));
+    verify(commandQueue, never()).enqueueCommand(any(), any(TransactionalProducer.class));
   }
 
   @Test
@@ -296,7 +296,7 @@ public class KsqlRestApplicationTest {
     inOrder.verify(commandQueue).start();
     inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement))),
-        any(ProducerTransactionManager.class));
+        any(TransactionalProducer.class));
   }
 
   @Test
@@ -309,7 +309,7 @@ public class KsqlRestApplicationTest {
     inOrder.verify(topicClient).createTopic(eq(LOG_TOPIC_NAME), anyInt(), anyShort());
     inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement))),
-        any(ProducerTransactionManager.class));
+        any(TransactionalProducer.class));
   }
 
   @Test
@@ -344,7 +344,7 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(commandQueue, serverState);
     inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement))),
-        any(ProducerTransactionManager.class));
+        any(TransactionalProducer.class));
     inOrder.verify(serverState).setReady();
   }
 

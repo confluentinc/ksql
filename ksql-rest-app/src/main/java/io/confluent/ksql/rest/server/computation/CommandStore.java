@@ -19,7 +19,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
@@ -100,7 +100,7 @@ public class CommandStore implements CommandQueue, Closeable {
   @Override
   public QueuedCommandStatus enqueueCommand(
       final ConfiguredStatement<?> statement,
-      final ProducerTransactionManager producerTransactionManager
+      final TransactionalProducer transactionalProducer
   ) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
 
@@ -129,7 +129,7 @@ public class CommandStore implements CommandQueue, Closeable {
     );
     try {
       final RecordMetadata recordMetadata =
-          producerTransactionManager.send(commandId, command);
+          transactionalProducer.send(commandId, command);
       return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);

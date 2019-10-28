@@ -35,14 +35,13 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ProducerTransactionManagerTest {
+public class TransactionalProducerTest {
 
   private static final String COMMAND_TOPIC_NAME = "foo";
   @Mock
@@ -52,7 +51,7 @@ public class ProducerTransactionManagerTest {
   @Mock
   private CommandRunner commandRunner;
 
-  private ProducerTransactionManager producerTransactionManager;
+  private TransactionalProducer transactionalProducer;
 
   @Mock
   private Future<RecordMetadata> future;
@@ -70,7 +69,7 @@ public class ProducerTransactionManagerTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    producerTransactionManager = new ProducerTransactionManager(
+    transactionalProducer = new TransactionalProducer(
         COMMAND_TOPIC_NAME,
         commandRunner,
         commandConsumer,
@@ -82,7 +81,7 @@ public class ProducerTransactionManagerTest {
   @Test
   public void shouldAssignCorrectPartitionToConsumerAndBeginTransaction() {
     // When:
-    producerTransactionManager.begin();
+    transactionalProducer.begin();
 
     // Then:
     verify(commandConsumer)
@@ -94,7 +93,7 @@ public class ProducerTransactionManagerTest {
   @Test
   public void shouldCloseAllResources() {
     // When:
-    producerTransactionManager.close();
+    transactionalProducer.close();
 
     //Then:
     verify(commandProducer).abortTransaction();
@@ -105,7 +104,7 @@ public class ProducerTransactionManagerTest {
   @Test
   public void shouldSendCommandCorrectly() throws Exception {
     // When
-    producerTransactionManager.send(commandId1, command1);
+    transactionalProducer.send(commandId1, command1);
 
     // Then
     verify(commandProducer).send(new ProducerRecord<>(COMMAND_TOPIC_NAME, 0, commandId1, command1));
@@ -121,7 +120,7 @@ public class ProducerTransactionManagerTest {
     expectedException.expectMessage("Send was unsuccessful!");
 
     // When
-    producerTransactionManager.send(commandId1, command1);
+    transactionalProducer.send(commandId1, command1);
   }
 
   @Test
@@ -134,7 +133,7 @@ public class ProducerTransactionManagerTest {
             "java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
 
     // When
-    producerTransactionManager.send(commandId1, command1);
+    transactionalProducer.send(commandId1, command1);
   }
 
   @Test
@@ -145,13 +144,13 @@ public class ProducerTransactionManagerTest {
     expectedException.expectMessage("InterruptedException");
 
     // When
-    producerTransactionManager.send(commandId1, command1);
+    transactionalProducer.send(commandId1, command1);
   }
 
   @Test
   public void shouldCommitTransaction() {
     // When:
-    producerTransactionManager.commit();
+    transactionalProducer.commit();
 
     //Then:
     verify(commandProducer).commitTransaction();

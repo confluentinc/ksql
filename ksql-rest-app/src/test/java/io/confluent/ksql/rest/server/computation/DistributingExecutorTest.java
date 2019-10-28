@@ -39,7 +39,7 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -85,7 +85,8 @@ public class DistributingExecutorTest {
   @Mock KsqlAuthorizationValidator authorizationValidator;
   @Mock KsqlExecutionContext executionContext;
   @Mock MetaStore metaStore;
-  @Mock ProducerTransactionManager producerTransactionManager;
+  @Mock
+  TransactionalProducer transactionalProducer;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -95,7 +96,7 @@ public class DistributingExecutorTest {
     scnCounter = new AtomicLong();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(queue.enqueueCommand(any(), any(ProducerTransactionManager.class))).thenReturn(status);
+    when(queue.enqueueCommand(any(), any(TransactionalProducer.class))).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
@@ -108,7 +109,7 @@ public class DistributingExecutorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         authorizationValidator
     );
-    distributor.setTransactionManager(producerTransactionManager);
+    distributor.setTransactionManager(transactionalProducer);
   }
 
   @Test
@@ -151,7 +152,7 @@ public class DistributingExecutorTest {
   public void shouldThrowExceptionOnFailureToEnqueue() {
     // Given:
     final KsqlException cause = new KsqlException("fail");
-    when(queue.enqueueCommand(any(), any(ProducerTransactionManager.class))).thenThrow(cause);
+    when(queue.enqueueCommand(any(), any(TransactionalProducer.class))).thenThrow(cause);
 
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("x", new ListProperties(Optional.empty()));

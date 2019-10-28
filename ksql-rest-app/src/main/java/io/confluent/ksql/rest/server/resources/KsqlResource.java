@@ -34,8 +34,8 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.ProducerTransactionManager;
-import io.confluent.ksql.rest.server.ProducerTransactionManagerFactory;
+import io.confluent.ksql.rest.server.TransactionalProducer;
+import io.confluent.ksql.rest.server.TransactionalProducerFactory;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
@@ -100,7 +100,7 @@ public class KsqlResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
-  private final ProducerTransactionManagerFactory producerTransactionManagerFactory;
+  private final TransactionalProducerFactory transactionalProducerFactory;
   private RequestValidator validator;
   private RequestHandler handler;
 
@@ -111,7 +111,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final KsqlAuthorizationValidator authorizationValidator,
-      final ProducerTransactionManagerFactory producerTransactionManagerFactory
+      final TransactionalProducerFactory transactionalProducerFactory
   ) {
     this(
         ksqlEngine,
@@ -120,7 +120,7 @@ public class KsqlResource implements KsqlConfigurable {
         activenessRegistrar,
         Injectors.DEFAULT,
         authorizationValidator,
-        producerTransactionManagerFactory
+            transactionalProducerFactory
     );
   }
 
@@ -131,7 +131,7 @@ public class KsqlResource implements KsqlConfigurable {
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
       final KsqlAuthorizationValidator authorizationValidator,
-      final ProducerTransactionManagerFactory producerTransactionManagerFactory
+      final TransactionalProducerFactory transactionalProducerFactory
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -142,8 +142,8 @@ public class KsqlResource implements KsqlConfigurable {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
-    this.producerTransactionManagerFactory = Objects.requireNonNull(
-        producerTransactionManagerFactory, "producerTransactionManagerFactory");
+    this.transactionalProducerFactory = Objects.requireNonNull(
+            transactionalProducerFactory, "producerTransactionManagerFactory");
   }
 
   @Override
@@ -194,7 +194,7 @@ public class KsqlResource implements KsqlConfigurable {
               serviceContext,
               TERMINATE_CLUSTER,
               request.getStreamsProperties(),
-              producerTransactionManagerFactory.createProducerTransactionManager()
+              transactionalProducerFactory.createProducerTransactionManager()
           )
       ).build();
     } catch (final Exception e) {
@@ -222,11 +222,11 @@ public class KsqlResource implements KsqlConfigurable {
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
 
-      final ProducerTransactionManager producerTransactionManager =
-          producerTransactionManagerFactory.createProducerTransactionManager();
+      final TransactionalProducer transactionalProducer =
+          transactionalProducerFactory.createProducerTransactionManager();
 
-      producerTransactionManager.begin();
-      producerTransactionManager.waitForCommandRunner();
+      transactionalProducer.begin();
+      transactionalProducer.waitForCommandRunner();
 
       validator.validate(
           SandboxedServiceContext.create(serviceContext),
@@ -239,10 +239,10 @@ public class KsqlResource implements KsqlConfigurable {
           serviceContext,
           statements,
           request.getStreamsProperties(),
-          producerTransactionManager
+          transactionalProducer
       );
 
-      producerTransactionManager.commit();
+      transactionalProducer.commit();
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;
@@ -252,7 +252,6 @@ public class KsqlResource implements KsqlConfigurable {
       return ErrorResponseUtil.generateResponse(
           e, Errors.badRequest(e));
     } catch (final Exception e) {
-      e.printStackTrace();
       return ErrorResponseUtil.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }

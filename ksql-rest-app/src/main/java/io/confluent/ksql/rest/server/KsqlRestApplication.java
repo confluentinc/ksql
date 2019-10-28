@@ -142,7 +142,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
   private final List<KsqlServerPrecondition> preconditions;
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
-  private final ProducerTransactionManagerFactory producerTransactionManagerFactory;
+  private final TransactionalProducerFactory transactionalProducerFactory;
 
   public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
@@ -170,7 +170,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final List<KsqlServerPrecondition> preconditions,
       final List<KsqlConfigurable> configurables,
       final Consumer<KsqlConfig> rocksDBConfigSetterHandler,
-      final ProducerTransactionManagerFactory producerTransactionManagerFactory
+      final TransactionalProducerFactory transactionalProducerFactory
   ) {
     super(config);
 
@@ -193,8 +193,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     this.configurables = requireNonNull(configurables, "configurables");
     this.rocksDBConfigSetterHandler =
         requireNonNull(rocksDBConfigSetterHandler, "rocksDBConfigSetterHandler");
-    this.producerTransactionManagerFactory =
-        requireNonNull(producerTransactionManagerFactory, "producerTransactionManagerFactory");
+    this.transactionalProducerFactory =
+        requireNonNull(transactionalProducerFactory, "producerTransactionManagerFactory");
   }
 
   @Override
@@ -281,7 +281,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfigNoPort,
         ksqlEngine,
         commandStore,
-        producerTransactionManagerFactory
+            transactionalProducerFactory
     );
 
     commandRunner.processPriorCommands();
@@ -519,8 +519,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         serverState
     );
 
-    final ProducerTransactionManagerFactory producerTransactionManagerFactory =
-        new ProducerTransactionManagerFactory(
+    final TransactionalProducerFactory transactionalProducerFactory =
+        new TransactionalProducerFactory(
             commandTopicName,
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
             commandRunner,
@@ -534,7 +534,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         authorizationValidator,
-        producerTransactionManagerFactory
+            transactionalProducerFactory
     );
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
@@ -570,7 +570,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         preconditions,
         configurables,
         rocksDBConfigSetterHandler,
-        producerTransactionManagerFactory
+            transactionalProducerFactory
     );
   }
 
@@ -638,17 +638,17 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue,
-      final ProducerTransactionManagerFactory producerTransactionManagerFactory
+      final TransactionalProducerFactory transactionalProducerFactory
   ) {
     if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
         || !commandQueue.isEmpty()) {
       return;
     }
 
-    final ProducerTransactionManager producerTransactionManager =
-        producerTransactionManagerFactory.createProducerTransactionManager();
+    final TransactionalProducer transactionalProducer =
+        transactionalProducerFactory.createProducerTransactionManager();
 
-    producerTransactionManager.begin();
+    transactionalProducer.begin();
 
     final PreparedStatement<?> statement = ProcessingLogServerUtils
         .processingLogStreamCreateStatement(config, ksqlConfig);
@@ -665,8 +665,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       return;
     }
 
-    commandQueue.enqueueCommand(configured.get(), producerTransactionManager);
-    producerTransactionManager.commit();
+    commandQueue.enqueueCommand(configured.get(), transactionalProducer);
+    transactionalProducer.commit();
   }
 
   /**

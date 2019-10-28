@@ -20,7 +20,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.server.ProducerTransactionManager;
+import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
@@ -46,7 +46,7 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
 
-  private ProducerTransactionManager producerTransactionManager;
+  private TransactionalProducer transactionalProducer;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
@@ -76,17 +76,17 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
     checkAuthorization(injected, serviceContext, executionContext);
 
     try {
-      if (producerTransactionManager == null) {
+      if (transactionalProducer == null) {
         throw new RuntimeException("Transaction manager for distributing executor not set");
       }
 
       final QueuedCommandStatus queuedCommandStatus =
-          commandQueue.enqueueCommand(injected, producerTransactionManager);
+          commandQueue.enqueueCommand(injected, transactionalProducer);
 
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
-      producerTransactionManager = null;
+      transactionalProducer = null;
       return Optional.of(new CommandStatusEntity(
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
@@ -100,8 +100,8 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
     }
   }
 
-  public void setTransactionManager(final ProducerTransactionManager producerTransactionManager) {
-    this.producerTransactionManager = producerTransactionManager;
+  public void setTransactionManager(final TransactionalProducer transactionalProducer) {
+    this.transactionalProducer = transactionalProducer;
   }
 
   private void checkAuthorization(

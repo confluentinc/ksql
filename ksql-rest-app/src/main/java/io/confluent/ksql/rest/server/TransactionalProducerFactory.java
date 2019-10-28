@@ -20,13 +20,13 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerConfig;
 
-public class ProducerTransactionManagerFactory {
+public class TransactionalProducerFactory {
   private final String commandTopicName;
   private final CommandRunner commandRunner;
   private final Map<String, Object> kafkaConsumerProperties;
   private final Map<String, Object> kafkaProducerProperties;
 
-  public ProducerTransactionManagerFactory(
+  public TransactionalProducerFactory(
       final String commandTopicName,
       final String transactionId,
       final CommandRunner commandRunner,
@@ -46,8 +46,8 @@ public class ProducerTransactionManagerFactory {
     );
   }
 
-  public ProducerTransactionManager createProducerTransactionManager() {
-    return new ProducerTransactionManager(
+  public TransactionalProducer createProducerTransactionManager() {
+    return new TransactionalProducer(
         commandTopicName,
         commandRunner,
         kafkaConsumerProperties,

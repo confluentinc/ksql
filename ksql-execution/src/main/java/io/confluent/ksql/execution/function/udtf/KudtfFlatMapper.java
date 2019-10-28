@@ -35,6 +35,10 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
     this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
   }
 
+  /*
+  This function zips results from multiple table functions together as described in KLIP-9
+  in the design-proposals directory
+   */
   @Override
   public Iterable<GenericRow> apply(final GenericRow row) {
     final List<Iterator<Object>> iters = new ArrayList<>(tableFunctionAppliers.size());

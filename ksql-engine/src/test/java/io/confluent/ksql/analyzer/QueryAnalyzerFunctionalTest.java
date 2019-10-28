@@ -34,7 +34,7 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
@@ -199,7 +199,7 @@ public class QueryAnalyzerFunctionalTest {
   public void shouldAnalyseTableFunctions() {
 
     // We need to load udfs for this
-    UdfLoader loader = new UdfLoader(functionRegistry, new File(""),
+    UserFunctionLoader loader = new UserFunctionLoader(functionRegistry, new File(""),
         Thread.currentThread().getContextClassLoader(),
         s -> false,
         Optional.empty(), true

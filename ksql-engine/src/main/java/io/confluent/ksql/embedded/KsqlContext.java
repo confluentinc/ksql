@@ -23,7 +23,7 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -78,7 +78,7 @@ public class KsqlContext implements AutoCloseable {
     final ServiceContext serviceContext =
         ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    UdfLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
+    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ".").load();
     final ServiceInfo serviceInfo = ServiceInfo.create(ksqlConfig);
     final KsqlEngine engine = new KsqlEngine(
         serviceContext,

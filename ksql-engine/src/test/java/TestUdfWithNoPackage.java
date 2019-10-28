@@ -18,7 +18,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.FunctionInvoker;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.FunctionLoaderUtils;
 import org.junit.Test;
 
 public class TestUdfWithNoPackage {
@@ -35,7 +35,7 @@ public class TestUdfWithNoPackage {
 
     // When:
     // motivated by https://github.com/square/javapoet/pull/723
-    final FunctionInvoker udf = UdfLoader
+    final FunctionInvoker udf = FunctionLoaderUtils
         .createFunctionInvoker(getClass().getMethod("udf"));
 
     // Then:

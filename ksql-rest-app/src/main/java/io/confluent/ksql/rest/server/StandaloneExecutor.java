@@ -21,7 +21,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -76,7 +76,7 @@ public class StandaloneExecutor implements Executable {
   private final KsqlConfig ksqlConfig;
   private final KsqlEngine ksqlEngine;
   private final String queriesFile;
-  private final UdfLoader udfLoader;
+  private final UserFunctionLoader udfLoader;
   private final CountDownLatch shutdownLatch = new CountDownLatch(1);
   private final boolean failOnNoQueries;
   private final VersionCheckerAgent versionChecker;
@@ -88,7 +88,7 @@ public class StandaloneExecutor implements Executable {
       final KsqlConfig ksqlConfig,
       final KsqlEngine ksqlEngine,
       final String queriesFile,
-      final UdfLoader udfLoader,
+      final UserFunctionLoader udfLoader,
       final boolean failOnNoQueries,
       final VersionCheckerAgent versionChecker,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory

@@ -32,6 +32,9 @@ import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Loads user defined table functions (UDTFs)
+ */
 class UdtfLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UdtfLoader.class);

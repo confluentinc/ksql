@@ -37,6 +37,10 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Coordinates the loading of UDFs, UDAFs and UDTFs. The actual loading of the functions is done in
+ * of the specific function loader classes
+ */
 public class UserFunctionLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UserFunctionLoader.class);

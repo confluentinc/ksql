@@ -46,6 +46,9 @@ import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * Utility class for loading different types of user defined funcrions
+ */
 public final class FunctionLoaderUtils {
 
   private static final String UDF_METRIC_GROUP = "ksql-udf";

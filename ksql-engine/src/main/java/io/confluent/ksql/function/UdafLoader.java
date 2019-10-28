@@ -30,6 +30,9 @@ import org.apache.kafka.common.metrics.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Loads user defined aggregate functions (UDAFs)
+ */
 class UdafLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UdafLoader.class);

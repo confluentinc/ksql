@@ -89,6 +89,19 @@
       "outputs": [
         {"topic": "JOINED", "key": "1", "value": { "field!": "A"}}
       ]
+    },
+    {
+      "name": "source names requiring quotes",
+      "statements": [
+        "CREATE STREAM `foo-source` (id VARCHAR) WITH (kafka_topic='foo-source', value_format='JSON');",
+        "CREATE STREAM `foo-too` AS SELECT * FROM `foo-source`;"
+      ],
+      "inputs": [
+        {"topic": "foo-source", "value": {"id": "1"}}
+      ],
+      "outputs": [
+        {"topic": "foo-too", "value": {"ID": "1"}}
+      ]
     }
   ]
 }

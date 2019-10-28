@@ -25,6 +25,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.SqlBaseBaseVisitor;
 import io.confluent.ksql.parser.SqlBaseParser;
+import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstNode;
 import io.confluent.ksql.parser.tree.Table;
@@ -117,25 +118,26 @@ public class DataSourceExtractor {
     public AstNode visitTableName(final SqlBaseParser.TableNameContext context) {
       return new Table(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())));
+          ParserUtil.getSourceName(context.sourceName())
+      );
     }
 
     @Override
     public AstNode visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
       final Table table = (Table) visit(context.relationPrimary());
 
-      final String alias;
+      final SourceName alias;
       switch (context.children.size()) {
         case 1:
-          alias = table.getName().name().toUpperCase();
+          alias = table.getName();
           break;
 
         case 2:
-          alias = context.children.get(1).getText().toUpperCase();
+          alias = ParserUtil.getSourceName((SourceNameContext) context.children.get(1));
           break;
 
         case 3:
-          alias = context.children.get(2).getText().toUpperCase();
+          alias = ParserUtil.getSourceName((SourceNameContext) context.children.get(2));
           break;
 
         default:
@@ -146,8 +148,8 @@ public class DataSourceExtractor {
       }
 
       if (!isJoin) {
-        fromAlias = SourceName.of(alias);
-        fromName = SourceName.of(table.getName().name().toUpperCase());
+        fromAlias = alias;
+        fromName = table.getName();
         if (metaStore.getSource(fromName) == null) {
           throw new KsqlException(table.getName().name() + " does not exist.");
         }
@@ -155,7 +157,7 @@ public class DataSourceExtractor {
         return null;
       }
 
-      return new AliasedRelation(getLocation(context), table, SourceName.of(alias.toUpperCase()));
+      return new AliasedRelation(getLocation(context), table, alias);
     }
 
     @Override

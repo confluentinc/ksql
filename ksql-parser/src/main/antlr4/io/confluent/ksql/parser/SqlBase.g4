@@ -40,7 +40,7 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
-    | DESCRIBE EXTENDED? identifier                                         #showColumns
+    | DESCRIBE EXTENDED? sourceName                                         #showColumns
     | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
     | PRINT (identifier| STRING) printClause                                #printTopic
@@ -48,22 +48,22 @@ statement
     | TERMINATE QUERY? identifier                                           #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | CREATE STREAM (IF NOT EXISTS)? identifier
+    | CREATE STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
-    | CREATE STREAM (IF NOT EXISTS)? identifier
+    | CREATE STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query
                                        (PARTITION BY identifier)?           #createStreamAs
-    | CREATE TABLE (IF NOT EXISTS)? identifier
+    | CREATE TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
-    | CREATE TABLE (IF NOT EXISTS)? identifier
+    | CREATE TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
-    | INSERT INTO identifier query (PARTITION BY identifier)?               #insertInto
-    | INSERT INTO identifier (columns)? VALUES values                       #insertValues
-    | DROP STREAM (IF EXISTS)? identifier (DELETE TOPIC)?                   #dropStream
-    | DROP TABLE (IF EXISTS)? identifier (DELETE TOPIC)?                    #dropTable
+    | INSERT INTO sourceName query (PARTITION BY identifier)?               #insertInto
+    | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
+    | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
+    | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
     | DROP CONNECTOR identifier                                             #dropConnector
     | EXPLAIN  (statement | identifier)                                     #explain
     | RUN SCRIPT STRING                                                     #runScript
@@ -200,7 +200,7 @@ joinCriteria
     ;
 
 aliasedRelation
-    : relationPrimary (AS? identifier)?
+    : relationPrimary (AS? sourceName)?
     ;
 
 columns
@@ -208,7 +208,7 @@ columns
     ;
 
 relationPrimary
-    : identifier                                                   #tableName
+    : sourceName                                                  #tableName
     ;
 
 expression
@@ -302,6 +302,10 @@ identifier
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+sourceName
+    : identifier
     ;
 
 number

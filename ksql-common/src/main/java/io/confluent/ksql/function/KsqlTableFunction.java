@@ -19,6 +19,10 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * A wrapper around the actual table function which provides methods to get return type and
+ * description, and allows the function to be invoked.
+ */
 public interface KsqlTableFunction extends FunctionSignature {
 
   Schema getReturnType();

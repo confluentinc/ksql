@@ -20,6 +20,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * A table function factory used for creating user defined table functions.
+ */
 public class UdtfTableFunctionFactory extends TableFunctionFactory {
 
   private final UdfIndex<KsqlTableFunction> udtfIndex;

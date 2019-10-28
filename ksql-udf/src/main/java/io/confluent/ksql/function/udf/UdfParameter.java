@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.PARAMETER})
 /*
- * Optionally, applied to @Udf function parameters.
+ * Optionally, applied to @Udf or @Udtf function parameters.
  */
 public @interface UdfParameter {
 

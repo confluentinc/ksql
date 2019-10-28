@@ -21,7 +21,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.TypeVariable;
 
 /**
- * An implementation of UdfInvoker which invokes the UDF dynamically using reflection
+ * An implementation of UdfInvoker which invokes the UDF using reflection
  */
 public class DynamicFunctionInvoker implements FunctionInvoker {
 

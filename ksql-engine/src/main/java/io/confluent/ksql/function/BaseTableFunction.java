@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * Abstract base class for table functions
+ */
 @Immutable
 public abstract class BaseTableFunction implements KsqlTableFunction {
 

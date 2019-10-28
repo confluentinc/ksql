@@ -244,7 +244,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       addJsonFunctions();
       addStructFieldFetcher();
       addUdafFunctions();
-      addUdtfFunctions();
     }
 
     private void addStringFunctions() {
@@ -390,10 +389,6 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
       functionRegistry.addAggregateFunctionFactory(new TopKAggregateFunctionFactory());
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
-    }
-
-    private void addUdtfFunctions() {
-      //functionRegistry.addTableFunctionFactory(new ExplodeFunctionFactory());
     }
 
     private void addBuiltInFunction(final KsqlFunction ksqlFunction) {

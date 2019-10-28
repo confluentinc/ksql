@@ -80,7 +80,8 @@ public interface FunctionRegistry {
    * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
    */
   KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
-      String functionName, Schema argumentType,
+      String functionName,
+      Schema argumentType,
       AggregateFunctionInitArguments initArgs
   );
 

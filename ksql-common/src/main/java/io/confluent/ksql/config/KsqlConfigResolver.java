@@ -77,7 +77,8 @@ public class KsqlConfigResolver implements ConfigResolver {
 
     if (propertyName.startsWith(KSQL_STREAMS_PREFIX)
         && !propertyName.startsWith(KSQL_STREAMS_PREFIX + StreamsConfig.PRODUCER_PREFIX)
-        && !propertyName.startsWith(KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX)) {
+        && !propertyName.startsWith(KSQL_STREAMS_PREFIX + StreamsConfig.CONSUMER_PREFIX)
+        && !propertyName.startsWith(KSQL_STREAMS_PREFIX + StreamsConfig.TOPIC_PREFIX)) {
       return Optional.empty();  // Unknown streams config
     }
 

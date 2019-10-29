@@ -554,17 +554,23 @@ When deploying KSQL to production, the following settings are recommended in you
     # Server's internal topics. Note: the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.internal.topic.replicas=3
 
-    # For better fault tolerance and durability, set the replication factor for
-    # the internal topics that Kafka Streams creates for some queries.
-    # Note: the value 3 requires at least 3 brokers in your Kafka cluster.
+    # Configure underlying Kafka Streams internal topics in order to achieve better fault tolerance and
+    # durability, even in the face of Kafka broker failures. Highly recommended for mission critical applications.
+    # Note that value 3 requires at least 3 brokers in your kafka cluster.
     ksql.streams.replication.factor=3
+    ksql.streams.producer.acks=all
+    ksql.streams.topic.min.insync.replicas=2
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.
+    # Note that the path below needs to be replaced with the actual value
     ksql.streams.state.dir=/some/non-temporary-storage-path/
 
     # Bump the number of replicas for state storage for stateful operations
     # like aggregations and joins. By having two replicas (one main and one
     # standby) recovery from node failures is quicker since the state doesn't
-    # have to be rebuilt from scratch.
+    # have to be rebuilt from scratch. This configuration is also essential for
+    # pull queries to be highly available during node failures.
     ksql.streams.num.standby.replicas=1
+
+For your convenience, a sample file is provided at ``<path-to-ksql-repo>/config/ksql-production-server.properties``

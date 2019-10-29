@@ -16,6 +16,7 @@ package io.confluent.ksql.execution.function.udtf;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.function.KsqlTableFunction;
 import java.util.List;
 import java.util.Objects;
@@ -26,16 +27,17 @@ import java.util.Objects;
 @Immutable
 public class TableFunctionApplier {
   private final KsqlTableFunction tableFunction;
-  private final int argColumnIndex;
+  private final ExpressionMetadata expressionMetadata;
 
-  public TableFunctionApplier(final KsqlTableFunction tableFunction, final int argColumnIndex) {
+  public TableFunctionApplier(final KsqlTableFunction tableFunction,
+      final ExpressionMetadata expressionMetadata) {
     this.tableFunction = Objects.requireNonNull(tableFunction);
-    this.argColumnIndex = argColumnIndex;
+    this.expressionMetadata = Objects.requireNonNull(expressionMetadata);
   }
 
   @SuppressWarnings("unchecked")
   List<Object> apply(final GenericRow row) {
-    final List<Object> unexplodedValue = row.getColumnValue(argColumnIndex);
-    return tableFunction.flatMap(unexplodedValue);
+    final Object unexplodedVal = expressionMetadata.evaluate(row);
+    return tableFunction.flatMap(unexplodedVal);
   }
 }

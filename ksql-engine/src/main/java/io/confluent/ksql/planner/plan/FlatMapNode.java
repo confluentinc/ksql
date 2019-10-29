@@ -27,6 +27,7 @@ import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.function.UdtfUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.metastore.model.KeyField;
@@ -44,6 +45,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
+import org.apache.kafka.connect.data.Schema;
 
 /**
  * A node in the logical plan which represents a flat map operation - transforming a single row into
@@ -130,14 +132,23 @@ public class FlatMapNode extends PlanNode {
 
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        inputSchema, functionRegistry);
+
     // And add new columns representing the exploded values at the end
     for (int i = 0; i < analysis.getTableFunctions().size(); i++) {
+      final FunctionCall functionCall = analysis.getTableFunctions().get(i);
       final KsqlTableFunction tableFunction =
           UdtfUtil.resolveTableFunction(functionRegistry,
-              analysis.getTableFunctions().get(i), inputSchema
+              functionCall, inputSchema
           );
       final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
-      final SqlType fieldType = converter.toSqlType(tableFunction.getReturnType());
+      final List<Schema> argTypes = new ArrayList<>(functionCall.getArguments().size());
+      for (Expression expression : functionCall.getArguments()) {
+        final SqlType argType = expressionTypeManager.getExpressionSqlType(expression);
+        argTypes.add(SchemaConverters.sqlToConnectConverter().toConnectSchema(argType));
+      }
+      final SqlType fieldType = converter.toSqlType(tableFunction.getReturnType(argTypes));
       schemaBuilder.valueColumn(colName, fieldType);
     }
 

@@ -17,8 +17,6 @@ package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
-import io.confluent.ksql.function.udf.Udf;
-import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -178,16 +176,15 @@ public final class FunctionLoaderUtils {
   static Function<List<Schema>, Schema> handleUdfReturnSchema(
       final Class theClass,
       final Schema javaReturnSchema,
-      final Udf udfAnnotation,
-      final UdfDescription descAnnotation
+      final String schemaProviderFunctionName,
+      final String functionName
   ) {
-    final String schemaProviderName = udfAnnotation.schemaProvider();
-
-    if (!schemaProviderName.equals("")) {
-      return handleUdfSchemaProviderAnnotation(schemaProviderName, theClass, descAnnotation);
+    if (!schemaProviderFunctionName.equals("")) {
+      return handleUdfSchemaProviderAnnotation(
+          schemaProviderFunctionName, theClass, functionName);
     } else if (DecimalUtil.isDecimal(javaReturnSchema)) {
       throw new KsqlException(String.format("Cannot load UDF %s. BigDecimal return type "
-          + "is not supported without a schema provider method.", descAnnotation.name()));
+          + "is not supported without a schema provider method.", functionName));
     }
 
     return ignored -> javaReturnSchema;
@@ -196,19 +193,19 @@ public final class FunctionLoaderUtils {
   private static Function<List<Schema>, Schema> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,
       final Class theClass,
-      final UdfDescription annotation
+      final String functionName
   ) {
     // throws exception if cannot find method
     final Method m = findSchemaProvider(theClass, schemaProviderName);
     final Object instance = FunctionLoaderUtils
-        .instantiateFunctionInstance(theClass, annotation.name());
+        .instantiateFunctionInstance(theClass, functionName);
 
     return parameterSchemas -> {
       final List<SqlType> parameterTypes = parameterSchemas.stream()
           .map(p -> SchemaConverters.connectToSqlConverter().toSqlType(p))
           .collect(Collectors.toList());
       return SchemaConverters.sqlToConnectConverter().toConnectSchema(invokeSchemaProviderMethod(
-          instance, m, parameterTypes, annotation));
+          instance, m, parameterTypes, functionName));
     };
   }
 
@@ -236,7 +233,7 @@ public final class FunctionLoaderUtils {
       final Object instance,
       final Method m,
       final List<SqlType> args,
-      final UdfDescription annotation
+      final String functionName
   ) {
     try {
       return (SqlType) m.invoke(instance, args);
@@ -244,7 +241,7 @@ public final class FunctionLoaderUtils {
         | InvocationTargetException e) {
       throw new KsqlException(String.format("Cannot invoke the schema provider "
               + "method %s for UDF %s. ",
-          m.getName(), annotation.name()
+          m.getName(), functionName
       ), e);
     }
   }

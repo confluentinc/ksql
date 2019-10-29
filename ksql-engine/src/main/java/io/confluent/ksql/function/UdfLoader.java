@@ -46,17 +46,20 @@ public class UdfLoader {
   private final Optional<Metrics> metrics;
   private final SqlTypeParser typeParser;
   private final ClassLoader parentClassLoader;
+  private final boolean throwExceptionOnLoadFailure;
 
   UdfLoader(
       final MutableFunctionRegistry functionRegistry,
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser,
-      final ClassLoader parentClassLoader
+      final ClassLoader parentClassLoader,
+      final boolean throwExceptionOnLoadFailure
   ) {
     this.functionRegistry = functionRegistry;
     this.metrics = metrics;
     this.typeParser = typeParser;
     this.parentClassLoader = parentClassLoader;
+    this.throwExceptionOnLoadFailure = throwExceptionOnLoadFailure;
   }
 
   // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
@@ -65,14 +68,13 @@ public class UdfLoader {
   void loadUdfFromClass(final Class<?>... udfClasses) {
     for (final Class<?> theClass : udfClasses) {
       loadUdfFromClass(
-          theClass, KsqlFunction.INTERNAL_PATH, theClass.getClassLoader());
+          theClass, KsqlFunction.INTERNAL_PATH);
     }
   }
 
   void loadUdfFromClass(
       final Class<?> theClass,
-      final String path,
-      final ClassLoader loader
+      final String path
   ) {
     final UdfDescription udfDescriptionAnnotation = theClass.getAnnotation(UdfDescription.class);
     if (udfDescriptionAnnotation == null) {
@@ -108,8 +110,7 @@ public class UdfLoader {
                 sensorName, udfClass
             ));
           } catch (final KsqlException e) {
-            if (parentClassLoader == loader) {
-              // This only seems to be done for tests, dubious code
+            if (throwExceptionOnLoadFailure) {
               throw e;
             } else {
               LOGGER.warn(
@@ -154,8 +155,8 @@ public class UdfLoader {
         FunctionLoaderUtils.handleUdfReturnSchema(
             theClass,
             javaReturnSchema,
-            udfAnnotation,
-            udfDescriptionAnnotation
+            udfAnnotation.schemaProvider(),
+            udfDescriptionAnnotation.name()
         ),
         javaReturnSchema,
         parameters,

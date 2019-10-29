@@ -121,11 +121,9 @@ public class RequestHandler {
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
-        customExecutors.getOrDefault(statementClass, distributor);
-
-    if (executor instanceof DistributingExecutor) {
-      ((DistributingExecutor) executor).setTransactionManager(transactionalProducer);
-    }
+        customExecutors.getOrDefault(statementClass, 
+            (stmt, props, ctx, svcCtx) ->
+                distributor.execute(stmt, props, ctx, svcCtx, transactionalProducer));
 
     return executor.execute(
         configured,

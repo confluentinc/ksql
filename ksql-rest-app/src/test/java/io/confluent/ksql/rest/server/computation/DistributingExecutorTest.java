@@ -109,13 +109,12 @@ public class DistributingExecutorTest {
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
         authorizationValidator
     );
-    distributor.setTransactionManager(transactionalProducer);
   }
 
   @Test
   public void shouldEnqueueSuccessfulCommand() throws InterruptedException {
     // When:
-    distributor.execute(EMPTY_STATEMENT, ImmutableMap.of(), executionContext, serviceContext);
+    distributor.execute(EMPTY_STATEMENT, ImmutableMap.of(), executionContext, serviceContext, transactionalProducer);
 
     // Then:
     verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT), any());
@@ -124,7 +123,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldInferSchemas() {
     // When:
-    distributor.execute(EMPTY_STATEMENT, ImmutableMap.of(), executionContext, serviceContext);
+    distributor.execute(EMPTY_STATEMENT, ImmutableMap.of(), executionContext, serviceContext, transactionalProducer);
 
     // Then:
     verify(schemaInjector, times(1)).inject(eq(EMPTY_STATEMENT));
@@ -138,7 +137,8 @@ public class DistributingExecutorTest {
             EMPTY_STATEMENT,
             ImmutableMap.of(),
             executionContext,
-            serviceContext
+            serviceContext,
+            transactionalProducer
         )
             .orElseThrow(null);
 
@@ -170,7 +170,7 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext);
+    distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext, transactionalProducer);
   }
 
   @Test
@@ -187,7 +187,7 @@ public class DistributingExecutorTest {
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext);
+    distributor.execute(configured, ImmutableMap.of(), executionContext, serviceContext, transactionalProducer);
   }
 
   @Test
@@ -205,7 +205,7 @@ public class DistributingExecutorTest {
     expectedException.expect(KsqlTopicAuthorizationException.class);
 
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext);
+    distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext, transactionalProducer);
   }
 
   @Test
@@ -224,6 +224,6 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
 
     // When:
-    distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext);
+    distributor.execute(configured, ImmutableMap.of(), executionContext, userServiceContext, transactionalProducer);
   }
 }

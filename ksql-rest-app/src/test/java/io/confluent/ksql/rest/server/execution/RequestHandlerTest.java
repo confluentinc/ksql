@@ -86,7 +86,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -135,7 +135,8 @@ public class RequestHandlerTest {
             ksqlConfig))),
             eq(ImmutableMap.of()),
             eq(ksqlEngine),
-            eq(serviceContext)
+            eq(serviceContext),
+            eq(transactionalProducer)
         );
   }
 
@@ -163,7 +164,8 @@ public class RequestHandlerTest {
             ksqlConfig))),
             any(),
             eq(ksqlEngine),
-            eq(serviceContext)
+            eq(serviceContext),
+            eq(transactionalProducer)
         );
   }
 

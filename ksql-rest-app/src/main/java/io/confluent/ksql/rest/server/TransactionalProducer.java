@@ -104,15 +104,15 @@ public class TransactionalProducer {
       while (commandRunner.getLastProcessedOffset() < endOffset) {
         Thread.sleep(1000);
 
-        if (retries == 60) {
+        if (retries == 30) {
           throw new RuntimeException("commandRunner has not processed all commands in topic");
         }
         retries++;
       }
     } catch (Exception exception) {
       throw new RuntimeException(
-              "Error while waiting for commandRunner to process command topic:",
-              exception
+          "Error while waiting for commandRunner to process command topic:",
+          exception
       );
     }
   }

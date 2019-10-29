@@ -21,7 +21,6 @@ import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TransactionalProducer;
-import io.confluent.ksql.rest.server.execution.StatementExecutor;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -39,14 +38,12 @@ import java.util.function.BiFunction;
  * duration for the command to be executed remotely if configured with a
  * {@code distributedCmdResponseTimeout}.
  */
-public class DistributingExecutor implements StatementExecutor<Statement> {
+public class DistributingExecutor {
 
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
-
-  private TransactionalProducer transactionalProducer;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
@@ -62,12 +59,12 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
   }
 
-  @Override
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<Statement> statement,
       final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext
+      final ServiceContext serviceContext,
+      final TransactionalProducer transactionalProducer
   ) {
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, serviceContext)
@@ -86,7 +83,6 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
-      transactionalProducer = null;
       return Optional.of(new CommandStatusEntity(
           injected.getStatementText(),
           queuedCommandStatus.getCommandId(),
@@ -98,10 +94,6 @@ public class DistributingExecutor implements StatementExecutor<Statement> {
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);
     }
-  }
-
-  public void setTransactionManager(final TransactionalProducer transactionalProducer) {
-    this.transactionalProducer = transactionalProducer;
   }
 
   private void checkAuthorization(

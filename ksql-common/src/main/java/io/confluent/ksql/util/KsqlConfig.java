@@ -506,7 +506,7 @@ public class KsqlConfig extends AbstractConfig {
             Type.SHORT,
             (short) 1,
             ConfigDef.Importance.LOW,
-            "The minimum number of insyc replicas for the internal topics of KSQL server."
+            "The minimum number of insync replicas for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,

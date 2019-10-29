@@ -19,18 +19,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import java.util.List;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 public class RangeTest {
 
   private Range rangeUdf = new Range();
-
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldComputeIntRange() {
@@ -45,6 +39,12 @@ public class RangeTest {
   @Test
   public void shouldComputeEmptyIntRange() {
     List<Integer> range = rangeUdf.rangeInt(5, 5);
+    assertThat(range, hasSize(0));
+  }
+
+  @Test
+  public void shouldComputeEmptyIntRangeWhenEndLessThanStart() {
+    List<Integer> range = rangeUdf.rangeInt(5, 0);
     assertThat(range, hasSize(0));
   }
 
@@ -65,10 +65,9 @@ public class RangeTest {
   }
 
   @Test
-  public void shouldThrowOnInvalidRange() {
-    expectedException.expect(KsqlFunctionException.class);
-    expectedException.expectMessage("endExclusive must be >= startInclusive");
-    rangeUdf.rangeLong(10, 9);
+  public void shouldComputeEmptyLongRangeWhenEndLessThanStart() {
+    List<Long> range = rangeUdf.rangeLong(5, 0);
+    assertThat(range, hasSize(0));
   }
 
 }

@@ -36,48 +36,52 @@ import org.apache.kafka.connect.data.Struct;
 @UdfDescription(name = "ENTRIES", description = "Construct an array from the entries in a map")
 public class Entries {
 
-  private static final Schema INT_STRUCT_SCHEMA = buildStructSchema(Schema.INT32_SCHEMA);
-  private static final Schema BIGINT_STRUCT_SCHEMA = buildStructSchema(Schema.INT64_SCHEMA);
-  private static final Schema DOUBLE_STRUCT_SCHEMA = buildStructSchema(Schema.FLOAT64_SCHEMA);
-  private static final Schema BOOLEAN_STRUCT_SCHEMA = buildStructSchema(Schema.BOOLEAN_SCHEMA);
-  private static final Schema STRING_STRUCT_SCHEMA = buildStructSchema(Schema.STRING_SCHEMA);
+  private static final Schema INT_STRUCT_SCHEMA = buildStructSchema(Schema.OPTIONAL_INT32_SCHEMA);
+  private static final Schema BIGINT_STRUCT_SCHEMA = buildStructSchema(
+      Schema.OPTIONAL_INT64_SCHEMA);
+  private static final Schema DOUBLE_STRUCT_SCHEMA = buildStructSchema(
+      Schema.OPTIONAL_FLOAT64_SCHEMA);
+  private static final Schema BOOLEAN_STRUCT_SCHEMA = buildStructSchema(
+      Schema.OPTIONAL_BOOLEAN_SCHEMA);
+  private static final Schema STRING_STRUCT_SCHEMA = buildStructSchema(
+      Schema.OPTIONAL_STRING_SCHEMA);
   private static final String KEY_FIELD_NAME = "K";
   private static final String VALUE_FIELD_NAME = "V";
 
   private static Schema buildStructSchema(final Schema valueSchema) {
-    return SchemaBuilder.struct().field(KEY_FIELD_NAME, Schema.STRING_SCHEMA)
-        .field(VALUE_FIELD_NAME, valueSchema).build();
+    return SchemaBuilder.struct().field(KEY_FIELD_NAME, Schema.OPTIONAL_STRING_SCHEMA)
+        .field(VALUE_FIELD_NAME, valueSchema).optional().build();
   }
 
-  @Udf
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V INT>>")
   public List<Struct> entriesInt(
       @UdfParameter final Map<String, Integer> map, @UdfParameter final boolean sorted
   ) {
     return entries(map, INT_STRUCT_SCHEMA, sorted);
   }
 
-  @Udf
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V BIGINT>>")
   public List<Struct> entriesBigInt(
       @UdfParameter final Map<String, Long> map, @UdfParameter final boolean sorted
   ) {
     return entries(map, BIGINT_STRUCT_SCHEMA, sorted);
   }
 
-  @Udf
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V DOUBLE>>")
   public List<Struct> entriesDouble(
       @UdfParameter final Map<String, Double> map, @UdfParameter final boolean sorted
   ) {
     return entries(map, DOUBLE_STRUCT_SCHEMA, sorted);
   }
 
-  @Udf
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V BOOLEAN>>")
   public List<Struct> entriesBoolean(
       @UdfParameter final Map<String, Boolean> map, @UdfParameter final boolean sorted
   ) {
     return entries(map, BOOLEAN_STRUCT_SCHEMA, sorted);
   }
 
-  @Udf
+  @Udf(schema = "ARRAY<STRUCT<K STRING, V STRING>>")
   public List<Struct> entriesString(
       @UdfParameter final Map<String, String> map, @UdfParameter final boolean sorted
   ) {

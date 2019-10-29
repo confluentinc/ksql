@@ -1,0 +1,54 @@
+{
+  "comments": [
+    "Tests covering the use of the array returning UDFs."
+  ],
+  "tests": [
+    {
+      "name": "entries sorted",
+      "statements": [
+        "CREATE STREAM TEST (INTMAP MAP<STRING, INT>, BIGINTMAP MAP<STRING, BIGINT>, DOUBLEMAP MAP<STRING, DOUBLE>, BOOLEANMAP MAP<STRING, BOOLEAN>, STRINGMAP MAP<STRING, STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT ENTRIES(INTMAP, TRUE), ENTRIES(BIGINTMAP, TRUE), ENTRIES(DOUBLEMAP, TRUE), ENTRIES(BOOLEANMAP, TRUE), ENTRIES(STRINGMAP, TRUE) FROM TEST;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic", "key": 1, "value": {
+          "INTMAP": {"K1": 1, "K2": 2, "K3": 3},
+          "BIGINTMAP": {"K1": 1, "K2": 2, "K3": 3},
+          "DOUBLEMAP": {"K1": 1.0, "K2": 2.0, "K3": 3.0},
+          "BOOLEANMAP": {"K1": true, "K2": false, "K3": true},
+          "STRINGMAP": {"K1": "V1", "K2": "V2", "K3": "V3"}
+        }
+        }
+      ],
+      "outputs": [
+        {
+          "topic": "OUTPUT", "key": 1,
+          "value": {
+            "KSQL_COL_0": [{"K": "K1", "V": 1}, {"K": "K2", "V": 2}, {"K": "K3", "V": 3}],
+            "KSQL_COL_1": [{"K": "K1", "V": 1}, {"K": "K2", "V": 2}, {"K": "K3", "V": 3}],
+            "KSQL_COL_2": [{"K": "K1", "V": 1.0}, {"K": "K2", "V": 2.0}, {"K": "K3", "V": 3.0}],
+            "KSQL_COL_3": [{"K": "K1", "V": true}, {"K": "K2", "V": false}, {"K": "K3", "V": true}],
+            "KSQL_COL_4": [{"K": "K1", "V": "V1"}, {"K": "K2", "V": "V2"}, {"K": "K3", "V": "V3"}]
+          }
+        }
+      ]
+    },
+    {
+      "name": "range",
+      "statements": [
+        "CREATE STREAM TEST (F0 INT, F1 INT, F2 BIGINT, F3 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT RANGE(F0, F1), RANGE(F2, F3) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 4, "F2": 0, "F3": 4}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 4, "F2": 4, "F3": 4}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 0, "F2": 4, "F3": 0}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3], "KSQL_COL_1": [0, 1, 2, 3]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [], "KSQL_COL_1": []}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [], "KSQL_COL_1": []}}
+      ]
+    }
+  ]
+}

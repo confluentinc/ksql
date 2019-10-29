@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.function.udf.array;
 
-import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
@@ -34,22 +33,14 @@ public class Range {
   public List<Integer> rangeInt(
       @UdfParameter final int startInclusive, @UdfParameter final int endExclusive
   ) {
-    checkBounds(startInclusive, endExclusive);
     return IntStream.range(startInclusive, endExclusive).boxed().collect(Collectors.toList());
   }
 
   @Udf
   public List<Long> rangeLong(
-      @UdfParameter final int startInclusive, @UdfParameter final int endExclusive
+      @UdfParameter final long startInclusive, @UdfParameter final long endExclusive
   ) {
-    checkBounds(startInclusive, endExclusive);
     return LongStream.range(startInclusive, endExclusive).boxed().collect(Collectors.toList());
-  }
-
-  private void checkBounds(final int startInclusive, final int endExclusive) {
-    if (endExclusive < startInclusive) {
-      throw new KsqlFunctionException("endExclusive must be >= startInclusive");
-    }
   }
 
 }

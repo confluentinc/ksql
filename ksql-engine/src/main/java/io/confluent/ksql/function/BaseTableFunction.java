@@ -24,8 +24,11 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
+/**
+ * Abstract base class for table functions
+ */
 @Immutable
-public abstract class BaseTableFunction<I, O> implements KsqlTableFunction<I, O> {
+public abstract class BaseTableFunction implements KsqlTableFunction {
 
   private static final ConnectToSqlTypeConverter CONNECT_TO_SQL_CONVERTER
       = SchemaConverters.connectToSqlConverter();

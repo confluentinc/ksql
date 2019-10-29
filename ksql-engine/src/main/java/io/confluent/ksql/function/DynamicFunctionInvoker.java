@@ -21,19 +21,19 @@ import java.lang.reflect.Method;
 import java.lang.reflect.TypeVariable;
 
 /**
- * An implementation of UdfInvoker which invokes the UDF dynamically using reflection
+ * An implementation of UdfInvoker which invokes the UDF using reflection
  */
-public class DynamicUdfInvoker implements UdfInvoker {
+public class DynamicFunctionInvoker implements FunctionInvoker {
 
   private final Method method;
 
-  DynamicUdfInvoker(final Method method) {
+  DynamicFunctionInvoker(final Method method) {
     final Class<?>[] types = method.getParameterTypes();
     for (int i = 0; i < types.length; i++) {
       if (method.getParameterTypes()[i].isArray()
           && (!method.isVarArgs() || i != method.getParameterCount() - 1)) {
         throw new KsqlFunctionException(
-            "Invalid UDF method signature (contains non var-arg array): " + method);
+            "Invalid function method signature (contains non var-arg array): " + method);
       }
       if (method.getGenericParameterTypes()[i] instanceof TypeVariable
           || method.getGenericParameterTypes()[i] instanceof GenericArrayType) {
@@ -52,7 +52,7 @@ public class DynamicUdfInvoker implements UdfInvoker {
       final Object[] extractedArgs = extractArgs(args);
       return method.invoke(udf, extractedArgs);
     } catch (Exception e) {
-      throw new KsqlFunctionException("Failed to invoke udf " + method, e);
+      throw new KsqlFunctionException("Failed to invoke function " + method, e);
     }
   }
 

@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.benchmark;
 
-import io.confluent.ksql.function.UdfInvoker;
+import io.confluent.ksql.function.FunctionInvoker;
 import io.confluent.ksql.function.UdfLoader;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import java.lang.reflect.Method;
@@ -71,7 +71,7 @@ public class UdfInvokerBenchmark {
 
     private PluggableUdf createPluggableUdf(final Method method) {
       try {
-        final UdfInvoker invoker = UdfLoader.createUdfInvoker(method);
+        final FunctionInvoker invoker = UdfLoader.createFunctionInvoker(method);
         return new PluggableUdf(invoker, this);
       } catch (Exception e) {
         throw new RuntimeException(e);

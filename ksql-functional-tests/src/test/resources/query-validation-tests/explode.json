@@ -50,7 +50,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Unsupported argument type for EXPLODE Schema{MAP}"
+        "message": "Function 'explode' does not accept parameters of types:[MAP<VARCHAR, INT>]"
       }
     },
     {
@@ -63,6 +63,22 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Table functions cannot be used with aggregations."
       }
+    },
+    {
+      "name": "explode different types",
+      "statements": [
+        "CREATE STREAM TEST (F0 ARRAY<INT>, F1 ARRAY<BIGINT>, F2 ARRAY<DOUBLE>, F3 ARRAY<BOOLEAN>, F4 ARRAY<STRING>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT EXPLODE(F0), EXPLODE(F1), EXPLODE(F2), EXPLODE(F3), EXPLODE(F4) FROM TEST;"
+      ],
+      "inputs": [
+        {
+          "topic": "test_topic", "key": 0, "value": {"F0": [1, 2], "F1": [2, 3], "F2": [3.1, 4.1], "F3": [true, false], "F4": ["foo", "bar"]}
+        }
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 2, "KSQL_COL_2": 3.1, "KSQL_COL_3": true, "KSQL_COL_4": "foo"}},
+        {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 2, "KSQL_COL_1": 3, "KSQL_COL_2": 4.1, "KSQL_COL_3": false, "KSQL_COL_4": "bar"}}
+      ]
     }
   ]
 }

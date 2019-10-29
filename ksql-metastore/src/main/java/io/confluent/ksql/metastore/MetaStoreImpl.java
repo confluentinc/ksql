@@ -223,11 +223,11 @@ public final class MetaStoreImpl implements MutableMetaStore {
     return functionRegistry.getAggregateFunction(functionName, argumentType, initArgs);
   }
 
-  public KsqlTableFunction<?, ?> getTableFunction(
+  public KsqlTableFunction getTableFunction(
       final String functionName,
-      final Schema argumentType
+      final List<Schema> argumentTypes
   ) {
-    return functionRegistry.getTableFunction(functionName, argumentType);
+    return functionRegistry.getTableFunction(functionName, argumentTypes);
   }
 
   @Override

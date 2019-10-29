@@ -16,9 +16,9 @@
 package io.confluent.ksql.function;
 
 /**
- * This interface is used to invoke UDFs
+ * This interface is used to invoke UDFs and UDTFs
  */
-public interface UdfInvoker {
+public interface FunctionInvoker {
 
   /**
    * Call onto an UDF instance with the expected args. This is providing

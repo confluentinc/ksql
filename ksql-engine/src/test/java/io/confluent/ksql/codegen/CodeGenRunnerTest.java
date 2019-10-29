@@ -61,6 +61,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -100,6 +101,7 @@ public class CodeGenRunnerTest {
             .struct()
             .field("A", SqlTypes.STRING)
             .build())
+        .valueColumn(ColumnName.of("COL16"), SqlTypes.decimal(10, 10))
         .valueColumn(ColumnName.of(COL_INVALID_JAVA), SqlTypes.BIGINT)
         .build();
 
@@ -117,7 +119,8 @@ public class CodeGenRunnerTest {
     private static final int MAP_INDEX1 = 11;
     private static final int MAP_INDEX2 = 12;
     private static final int STRUCT_INDEX = 15;
-    private static final int INVALID_JAVA_IDENTIFIER_INDEX = 16;
+    private static final int DECIMAL_INDEX = 16;
+    private static final int INVALID_JAVA_IDENTIFIER_INDEX = 17;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
         .toConnectSchema(
@@ -133,6 +136,7 @@ public class CodeGenRunnerTest {
         ImmutableList.of("one", "two"),
         ImmutableList.of(ImmutableList.of("1", "2"), ImmutableList.of("3")),
         new Struct(STRUCT_SCHEMA).put("A", "VALUE"),
+        new BigDecimal("12345.6789"),
         (long) INVALID_JAVA_IDENTIFIER_INDEX);
 
     @Rule

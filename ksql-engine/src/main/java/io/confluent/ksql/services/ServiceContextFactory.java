@@ -21,16 +21,16 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.function.Supplier;
-import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
 import org.apache.kafka.streams.processor.internals.DefaultKafkaClientSupplier;
 
 public final class ServiceContextFactory {
-  private ServiceContextFactory() {}
+
+  private ServiceContextFactory() { }
 
   public static ServiceContext create(
       final KsqlConfig ksqlConfig,
-      final SimpleKsqlClient ksqlClient
+      final Supplier<SimpleKsqlClient> ksqlClient
   ) {
     return create(
         ksqlConfig,
@@ -48,19 +48,16 @@ public final class ServiceContextFactory {
       final KafkaClientSupplier kafkaClientSupplier,
       final Supplier<SchemaRegistryClient> srClientFactory,
       final ConnectClient connectClient,
-      final SimpleKsqlClient ksqlClient
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
   ) {
-    final Admin adminClient = kafkaClientSupplier.getAdmin(
-        ksqlConfig.getKsqlAdminClientConfigProps()
-    );
 
     return new DefaultServiceContext(
         kafkaClientSupplier,
-        adminClient,
-        new KafkaTopicClientImpl(adminClient),
+        () -> kafkaClientSupplier
+            .getAdmin(ksqlConfig.getKsqlAdminClientConfigProps()),
         srClientFactory,
-        connectClient,
-        ksqlClient
+        () -> connectClient,
+        ksqlClientSupplier
     );
   }
 }

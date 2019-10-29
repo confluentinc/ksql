@@ -1,0 +1,236 @@
+site_name: ksqlDB
+site_url: https://docs.ksqldb.io
+site_description: ksqlDB documentation
+site_author: Confluent
+copyright: Copyright &copy; 2019 <a href="https://www.confluent.io/">Confluent</a>.
+# google_analytics: ['UA-27795084-5', 'mkdocs.org']
+
+repo_url: https://github.com/confluentinc/ksql
+edit_uri: ""
+#docs_dir: docs-md
+
+theme:
+    #name: mkdocs
+    name: readthedocs
+    highlightjs: true
+    hljs_languages:
+        - yaml
+        - xml
+        - java
+        - javascript
+        - bash
+        - json
+        - properties
+        - sql
+        - scala
+
+nav:
+    - Home: index.md
+    - Concepts: 
+        - ksqlDB Concepts: concepts/index.md
+        - ksqlDB Architecture: concepts/ksql-architecture.md
+        - ksqlDB and Kafka Streams: concepts/ksql-and-kafka-streams.md
+        - Time and Windows in ksqlDB: concepts/time-and-windows-in-ksql-queries.md
+        # - Push and Pull Queries (TODO)
+        # - Schema: Data types and formats (TODO: refactored from old syntax reference)
+        # - Schema Evolution with ksqlDB and Avro (TODO)
+        # - Materialized views (TODO)
+        # - Functions: Built-in functions (TODO)
+        # - Functions: UDF/UDAFs (TODO)
+        # - Connect to external systems Import data from external sources (TODO)
+        # - Connect to external systems Exporting data to external sinks (TODO)
+
+    - Operate ksqlDB:
+        - ksqlDB Operations: operations.md
+        - ksqlDB Capacity Planning: capacity-planning.md
+        - ksqlDB Changelog: changelog.md
+        - Frequently Asked Questions: faq.md
+        - Troubleshoot ksqlDB Operations: troubleshoot-ksql.md
+        - Install and Upgrade:
+            - Install ksqlDB: installation/index.md
+            - Configure ksqlDB CLI: installation/cli-config.md
+            - Install ksqlDB with Docker: installation/install-ksql-with-docker.md
+            - Install ksqlDB locally: installation/installing.md
+            - Upgrade ksqlDB: installation/upgrading.md
+            - Check the Health of a ksqlDB Server: installation/check-ksql-server-health.md
+            - Server Configuration:
+                - Configure ksqlDB Server: installation/server-config/index.md
+                - Configure Avro and Confluent Schema Registry for ksqlDB: installation/server-config/avro-schema.md
+                - ksqlDB Configuration Parameter Reference: installation/server-config/config-reference.md
+                - Integrate ksqlDB with Confluent Control Center: installation/server-config/integrate-ksql-with-confluent-control-center.md
+                - Configure Security for ksqlDB: installation/server-config/security.md
+                
+    - Reference:
+        - ksqlDB Syntax Reference:
+            - ksqlDB Syntax Reference: developer-guide/syntax-reference.md # old reference topic
+            - Aggregate Functions: developer-guide/ksqldb-reference/aggregate-functions.md
+            - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
+            - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
+            - CREATE STREAM AS SELECT: developer-guide/ksqldb-reference/create-stream-as-select.md
+            - CREATE TABLE AS SELECT: developer-guide/ksqldb-reference/create-table-as-select.md
+            - DESCRIBE: developer-guide/ksqldb-reference/describe.md
+            - DESCRIBE FUNCTION: developer-guide/ksqldb-reference/describe-function.md
+            - DROP STREAM: developer-guide/ksqldb-reference/drop-stream.md
+            - DROP TABLE: developer-guide/ksqldb-reference/drop-table.md
+            - EXPLAIN: developer-guide/ksqldb-reference/explain.md
+            - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
+            - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
+            - Key Requirements: developer-guide/ksqldb-reference/key-requirements.md
+            - Operators: developer-guide/ksqldb-reference/operators.md            
+            - PRINT: developer-guide/ksqldb-reference/print.md
+            - RUN SCRIPT: developer-guide/ksqldb-reference/run-script.md
+            - Scalar Functions: developer-guide/ksqldb-reference/scalar-functions.md
+            - SELECT (Push Query): developer-guide/ksqldb-reference/select-push-query.md
+            - SELECT (Pull Query): developer-guide/ksqldb-reference/select-pull-query.md
+            - SHOW FUNCTIONS: developer-guide/ksqldb-reference/show-functions.md
+            - SHOW PROPERTIES: developer-guide/ksqldb-reference/show-properties.md
+            - SHOW QUERIES: developer-guide/ksqldb-reference/show-queries.md
+            - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
+            - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
+            - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
+            - SPOOL: developer-guide/ksqldb-reference/spool.md
+            - TERMINATE: developer-guide/ksqldb-reference/terminate.md
+        - ksqlDB REST API Reference: 
+            - ksqlDB REST API Reference: developer-guide/ksqldb-rest-api/api.md # old reference topic
+            - Run a KSQL Statement (/ksql): developer-guide/ksqldb-rest-api/ksql-endpoint.md
+            - Run A Query And Stream Back The Output (/query endpoint): developer-guide/ksqldb-rest-api/query-endpoint.md
+            - Get the Status of a CREATE, DROP, or TERMINATE (/status endpoint): developer-guide/ksqldb-rest-api/status-endpoint.md
+            - Terminate a Cluster (/ksql/terminate endpoint): developer-guide/ksqldb-rest-api/terminate-endpoint.md
+
+        - ksqlDB Custom Function Reference (UDF and UDAF): developer-guide/udf.md        
+        - Serialization: developer-guide/serialization.md
+        - ksqlDB Processing Log: developer-guide/processing-log.md
+        - ksqlDB-Connect Integration: developer-guide/ksql-connect.md
+        - ksqlDB Testing Tool: developer-guide/ksql-testing-tool.md        
+        # - Processing Guarantees: TODO
+
+    - How To:
+        - ksqlDB Developer Guide: developer-guide/index.md # may go away
+        - Generate Custom Test Data by Using the ksql-datagen Tool: tutorials/generate-custom-test-data.md    
+        - Aggregate Streaming Data With ksqlDB: developer-guide/aggregate-streaming-data.md
+        - Create a ksqlDB Stream: developer-guide/create-a-stream.md
+        - Create a ksqlDB Table: developer-guide/create-a-table.md
+        - Implement a User-defined Function (UDF and UDAF): developer-guide/implement-a-udf.md
+        - Join Event Streams with ksqlDB: developer-guide/join-streams-and-tables.md
+        - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
+        - Query With Structured Data: developer-guide/query-with-structured-data.md
+        - Transform a Stream With ksqlDB: developer-guide/transform-a-stream-with-ksql.md
+        - Example ksqlDB queris: tutorials/examples.md
+        - Troubleshoot ksqlDB queries: troubleshoot-ksql.md
+
+    - Tutorials:
+        - ksqlDB Tutorials and Examples: tutorials//index.md
+        - ksqlDB Quick Start: quickstart.md # This should go away
+        - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center: tutorials/basics-control-center.md
+        - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md
+        - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md
+        - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
+        - Integrate with PostgresDB: tutorials/connect-integration.md
+
+    # - Home: index.md
+    # - Concepts: 
+    #     - KSQL Concepts: concepts/index.md
+    #     - KSQL Architecture: concepts/ksql-architecture.md
+    #     - KSQL and Kafka Streams: concepts/ksql-and-kafka-streams.md
+    #     - Time and Windows in KSQL: concepts/time-and-windows-in-ksql-queries.md
+    # - Developer Guide:
+    #     - KSQL Developer Guide: developer-guide/index.md
+    #     - Aggregate Streaming Data With KSQL: developer-guide/aggregate-streaming-data.md
+    #     - KSQL REST API Reference: developer-guide/api.md
+    #     - Create a KSQL Stream: developer-guide/create-a-stream.md
+    #     - Create a KSQL Table: developer-guide/create-a-table.md
+    #     - Implement a User-defined Function (UDF and UDAF): developer-guide/implement-a-udf.md
+    #     - Join Event Streams with KSQL: developer-guide/join-streams-and-tables.md
+    #     - KSQL-Connect Integration: developer-guide/ksql-connect.md
+    #     - KSQL Testing Tool: developer-guide/ksql-testing-tool.md
+    #     - KSQL Processing Log: developer-guide/processing-log.md
+    #     - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
+    #     - Query With Structured Data: developer-guide/query-with-structured-data.md
+    #     - KSQL Serialization: developer-guide/serialization.md
+    #     - KSQL Syntax Reference: developer-guide/syntax-reference.md
+    #     - Transform a Stream With KSQL: developer-guide/transform-a-stream-with-ksql.md
+    #     - KSQL Custom Function Reference (UDF and UDAF): developer-guide/udf.md
+    # - Install and Upgrade:
+    #     - Install KSQL: installation/index.md
+    #     - Check the Health of a KSQL Server: installation/check-ksql-server-health.md
+    #     - Configure KSQL CLI: installation/cli-config.md
+    #     - Install KSQL with Docker: installation/install-ksql-with-docker.md
+    #     - Install KSQL: installation/installing.md
+    #     - Upgrade KSQL: installation/upgrading.md
+    #     - Server Configuration:
+    #         - Configure KSQL Server: installation/server-config/index.md
+    #         - Configure Avro and Confluent Schema Registry for KSQL: installation/server-config/avro-schema.md
+    #         - KSQL Configuration Parameter Reference: installation/server-config/config-reference.md
+    #         - Integrate KSQL with Confluent Control Center: installation/server-config/integrate-ksql-with-confluent-control-center.md
+    #         - Configure Security for KSQL: installation/server-config/security.md
+    # - Operate KSQL:
+    #     - KSQL Operations: operations.md
+    #     - KSQL Capacity Planning: capacity-planning.md
+    #     - KSQL Changelog: changelog.md
+    #     - Frequently Asked Questions: faq.md
+    #     - Troubleshoot KSQL: troubleshoot-ksql.md
+    # - Tutorials:
+    #     - KSQL Tutorials and Examples: tutorials//index.md
+    #     - KSQL Quick Start: quickstart.md
+    #     - Write Streaming Queries Against Apache Kafka® Using KSQL and Confluent Control Center: tutorials/basics-control-center.md
+    #     - Write Streaming Queries Against Apache Kafka® Using KSQL and Confluent Control Center (Docker): tutorials/basics-docker.md
+    #     - Write Streaming Queries Against Apache Kafka® Using KSQL and Confluent Control Center (Local): tutorials/basics-local.md
+    #     - Clickstream Data Analysis Pipeline Using KSQL (Docker): tutorials/clickstream-docker.md
+    #     - Integrate with PostgresDB: tutorials/connect-integration.md
+    #     - KSQL Examples: tutorials/examples.md
+    #     - Generate Custom Test Data by Using the ksql-datagen Tool: tutorials/generate-custom-test-data.md
+
+        # extra_css:
+        #     - css/extra.css
+
+markdown_extensions:
+    - toc:
+        permalink: 
+    - admonition
+    - def_list
+    - mdx_gh_links:
+        user: JimGalasyn
+        repo: ksqldb
+
+plugins:
+    - search
+    - git-revision-date # Must come before the macros plugin    
+    - macros
+
+extra:
+    site:
+        # Product-related string tokens
+        aktm: Apache Kafka®
+        ak: Kafka
+        c3short: Control Center
+        c3: Confluent Control Center
+        ccloud: Confluent Cloud
+        ccloudent: Confluent Cloud Enterprise
+        community: This is a community component of Confluent Platform.
+        confluentcli: Confluent CLI
+        cp: Confluent Platform
+        crepfull: Confluent Replicator
+        crep: Replicator
+        crestlong: Confluent REST Proxy
+        crest: REST Proxy
+        cs: Confluent Server
+        kcat: kafkacat
+        kconnectlong: Kafka Connect
+        kconnect: Connect
+        ksqlui: preview KSQL web interface
+        kstreams: Kafka Streams
+        srccloud: Confluent Cloud Schema Registry
+        srlong: Confluent Schema Registry
+        sr: Schema Registry
+        streaming: Event Streaming Platform
+        zkfull: Apache ZooKeeper™
+        zk: ZooKeeper
+
+        # Build-related string tokens
+        kafkaversion: 2.3
+        kafkarelease: 5.3.1-ccs
+        ksqldbversion: 0.6.0
+        release: 5.3.1
+        releasepostbranch: 5.3.1-post
+        scalaversion: 2.12
+        version: 5.3

@@ -48,6 +48,14 @@ public final class ListFunctionsExecutor {
             FunctionType.scalar))
         .collect(Collectors.toList());
 
+    all.addAll(functionRegistry.listTableFunctions().stream()
+        .filter(factory -> !factory.isInternal())
+        .map(factory -> new SimpleFunctionInfo(
+            factory.getName().toUpperCase(),
+            FunctionType.table
+        ))
+        .collect(Collectors.toList()));
+
     all.addAll(functionRegistry.listAggregateFunctions().stream()
         .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(

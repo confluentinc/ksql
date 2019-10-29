@@ -871,6 +871,49 @@ public class CliTest {
   }
 
   @Test
+  public void shouldDescribeTableFunction() {
+    final String expectedOutput =
+        "Name        : EXPLODE\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "Type        : table\n"
+            + "Jar         : internal\n"
+            + "Variations  : ";
+
+    localCli.handleLine("describe function explode;");
+    final String outputString = terminal.getOutputString();
+    assertThat(outputString, containsString(expectedOutput));
+
+    // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
+    final String expectedVariation =
+        "Variation   : EXPLODE(input ARRAY<DOUBLE>)\n"
+            + "\tReturns     : DOUBLE\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "\n"
+            + "\tVariation   : EXPLODE(input ARRAY<BOOLEAN>)\n"
+            + "\tReturns     : BOOLEAN\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "\n"
+            + "\tVariation   : EXPLODE(input ARRAY<DECIMAL(1, 0)>)\n"
+            + "\tReturns     : DECIMAL(1, 0)\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "\n"
+            + "\tVariation   : EXPLODE(input ARRAY<VARCHAR>)\n"
+            + "\tReturns     : VARCHAR\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "\n"
+            + "\tVariation   : EXPLODE(input ARRAY<BIGINT>)\n"
+            + "\tReturns     : BIGINT\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "\n"
+            + "\tVariation   : EXPLODE(input ARRAY<INT>)\n"
+            + "\tReturns     : INT\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+
+    assertThat(outputString, containsString(expectedVariation));
+  }
+
+  @Test
   public void shouldExplainQueryId() {
     // Given:
     localCli.handleLine("CREATE STREAM " + streamName + " "

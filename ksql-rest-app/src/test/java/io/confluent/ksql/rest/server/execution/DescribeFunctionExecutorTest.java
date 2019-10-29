@@ -85,4 +85,30 @@ public class DescribeFunctionExecutorTest {
     });
   }
 
+  @Test
+  public void shouldDescribeUDTF() {
+    // When:
+    final FunctionDescriptionList functionList = (FunctionDescriptionList)
+        CustomExecutors.DESCRIBE_FUNCTION.execute(
+            engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
+            ImmutableMap.of(),
+            engine.getEngine(),
+            engine.getServiceContext()
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+      @Override
+      protected boolean matchesSafely(FunctionDescriptionList item) {
+        return functionList.getName().equals("TEST_UDTF1")
+            && functionList.getType().equals(FunctionType.table);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(functionList.getName());
+      }
+    });
+  }
+
 }

@@ -18,19 +18,20 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Schema;
 
-public abstract class TableFunctionFactory {
+public class TableFunctionFactory {
+
+  private final UdfIndex<KsqlTableFunction> udtfIndex;
 
   private final UdfMetadata metadata;
 
   public TableFunctionFactory(final UdfMetadata metadata) {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
+    this.udtfIndex = new UdfIndex<>(metadata.getName());
   }
-
-  public abstract KsqlTableFunction createTableFunction(List<Schema> argTypeList);
-
-  protected abstract List<List<Schema>> supportedArgs();
 
   public String getName() {
     return metadata.getName();
@@ -55,4 +56,24 @@ public abstract class TableFunctionFactory {
   public boolean isInternal() {
     return metadata.isInternal();
   }
+
+  public synchronized void eachFunction(final Consumer<KsqlTableFunction> consumer) {
+    udtfIndex.values().forEach(consumer);
+  }
+
+  public KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
+    return udtfIndex.getFunction(argTypeList);
+  }
+
+  protected List<List<Schema>> supportedArgs() {
+    return udtfIndex.values()
+        .stream()
+        .map(KsqlTableFunction::getArguments)
+        .collect(Collectors.toList());
+  }
+
+  void addFunction(final KsqlTableFunction tableFunction) {
+    udtfIndex.addFunction(tableFunction);
+  }
+
 }

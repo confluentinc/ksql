@@ -690,8 +690,7 @@ public class SchemaKStream<K> {
       final List<FunctionCall> tableFunctions,
       final QueryContext.Stacker contextStacker
   ) {
-    final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>();
-    for (FunctionCall functionCall: tableFunctions) {
+    for (final FunctionCall functionCall: tableFunctions) {
       final ColumnReferenceExp exp = (ColumnReferenceExp)functionCall.getArguments().get(0);
       final ColumnName columnName = exp.getReference().name();
       final ColumnRef ref = ColumnRef.withoutSource(columnName);
@@ -699,22 +698,14 @@ public class SchemaKStream<K> {
       if (!indexInInput.isPresent()) {
         throw new IllegalArgumentException("Can't find input column " + columnName);
       }
-      final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
-          functionRegistry,
-          functionCall,
-          getSchema()
-      );
-      final TableFunctionApplier tableFunctionApplier =
-          new TableFunctionApplier(tableFunction, indexInInput.getAsInt());
-      tableFunctionAppliers.add(tableFunctionApplier);
     }
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
         contextStacker,
         sourceStep,
         outputSchema,
-        tableFunctionAppliers
+        tableFunctions
     );
-    return new SchemaKStream<K>(
+    return new SchemaKStream<>(
         step,
         keyFormat,
         keyField,

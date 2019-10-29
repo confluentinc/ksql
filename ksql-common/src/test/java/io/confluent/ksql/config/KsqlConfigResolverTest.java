@@ -25,6 +25,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigDef.ConfigKey;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -90,6 +91,13 @@ public class KsqlConfigResolverTest {
     assertThat(resolver.resolve(
         KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, true),
         is(resolvedItem(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, STREAMS_CONFIG_DEF)));
+  }
+
+  @Test
+  public void shouldReturnUnresolvedForTopicPrefixedStreamsConfig() {
+    final String prop = StreamsConfig.TOPIC_PREFIX + TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG;
+    assertThat(resolver.resolve(
+        KsqlConfig.KSQL_STREAMS_PREFIX + prop, false), is(unresolvedItem(prop)));
   }
 
   @Test

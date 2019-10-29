@@ -38,6 +38,7 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.common.config.SslConfigs;
+import org.apache.kafka.common.config.TopicConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.junit.Rule;
 import org.junit.Test;
@@ -170,6 +171,29 @@ public class KsqlConfigTest {
 
     assertThat(ksqlConfig.getKsqlStreamConfigProps()
             .get(ProducerConfig.BUFFER_MEMORY_CONFIG),
+        is(nullValue()));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigTopicUnprefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, 2));
+    final Object result = ksqlConfig.getKsqlStreamConfigProps().get(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG);
+    assertThat(result, equalTo(2));
+  }
+
+  @Test
+  public void shouldSetStreamsConfigKsqlTopicPrefixedProperties() {
+    final KsqlConfig ksqlConfig = new KsqlConfig(
+        Collections.singletonMap(
+            KsqlConfig.KSQL_STREAMS_PREFIX + StreamsConfig.TOPIC_PREFIX + TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, 2));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(StreamsConfig.TOPIC_PREFIX + TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG),
+        equalTo(2));
+
+    assertThat(ksqlConfig.getKsqlStreamConfigProps()
+            .get(TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG),
         is(nullValue()));
   }
 

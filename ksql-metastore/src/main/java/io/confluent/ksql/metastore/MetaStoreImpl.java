@@ -20,6 +20,7 @@ import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlTableFunction;
+import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.SourceName;
@@ -241,8 +242,18 @@ public final class MetaStoreImpl implements MutableMetaStore {
   }
 
   @Override
+  public TableFunctionFactory getTableFunctionFactory(final String functionName) {
+    return functionRegistry.getTableFunctionFactory(functionName);
+  }
+
+  @Override
   public List<AggregateFunctionFactory> listAggregateFunctions() {
     return functionRegistry.listAggregateFunctions();
+  }
+
+  @Override
+  public List<TableFunctionFactory> listTableFunctions() {
+    return functionRegistry.listTableFunctions();
   }
 
   private Stream<SourceInfo> streamSources(final Set<SourceName> sourceNames) {

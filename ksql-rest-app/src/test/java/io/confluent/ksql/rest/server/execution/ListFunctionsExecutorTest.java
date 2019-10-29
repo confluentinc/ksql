@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import java.util.Collection;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,6 +38,7 @@ public class ListFunctionsExecutorTest {
 
   @Test
   public void shouldListFunctions() {
+
     // When:
     final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
         engine.configure("LIST FUNCTIONS;"),
@@ -46,12 +48,16 @@ public class ListFunctionsExecutorTest {
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(functionList.getFunctions(), hasItems(
+    Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
+    assertThat(functions, hasItems(
         new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.scalar),
         new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.scalar),
         new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
         new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
-        new SimpleFunctionInfo("MAX", FunctionType.aggregate)));
+        new SimpleFunctionInfo("MAX", FunctionType.aggregate),
+        new SimpleFunctionInfo("TEST_UDTF1", FunctionType.table),
+        new SimpleFunctionInfo("TEST_UDTF2", FunctionType.table)
+    ));
 
     assertThat("shouldn't contain internal functions", functionList.getFunctions(),
         not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.scalar))));

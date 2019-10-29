@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
@@ -56,6 +57,11 @@ public final class DescribeFunctionExecutor {
           describeAggregateFunction(executionContext, functionName, statement.getStatementText()));
     }
 
+    if (executionContext.getMetaStore().isTableFunction(functionName)) {
+      return Optional.of(
+          describeTableFunction(executionContext, functionName, statement.getStatementText()));
+    }
+
     return Optional.of(
         describeNonAggregateFunction(executionContext, functionName, statement.getStatementText()));
   }
@@ -82,6 +88,34 @@ public final class DescribeFunctionExecutor {
         aggregateFactory.getPath(),
         listBuilder.build(),
         FunctionType.aggregate
+    );
+  }
+
+  private static FunctionDescriptionList describeTableFunction(
+      final KsqlExecutionContext executionContext,
+      final String functionName,
+      final String statementText
+  ) {
+    final TableFunctionFactory tableFunctionFactory = executionContext.getMetaStore()
+        .getTableFunctionFactory(functionName);
+
+    final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
+
+    tableFunctionFactory.eachFunction(func -> listBuilder.add(
+        getFunctionInfo(
+            func.getArguments(),
+            func.getReturnType(func.getArguments()), func.getDescription(), func.isVariadic()
+        )));
+
+    return new FunctionDescriptionList(
+        statementText,
+        tableFunctionFactory.getName().toUpperCase(),
+        tableFunctionFactory.getDescription(),
+        tableFunctionFactory.getAuthor(),
+        tableFunctionFactory.getVersion(),
+        tableFunctionFactory.getPath(),
+        listBuilder.build(),
+        FunctionType.table
     );
   }
 

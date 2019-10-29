@@ -15,4 +15,4 @@
 
 package io.confluent.ksql.rest.entity;
 
-public enum FunctionType { scalar, aggregate }
+public enum FunctionType {scalar, aggregate, table}

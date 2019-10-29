@@ -207,7 +207,16 @@
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "0", "value": {"KSQL_COL_0": 1, "KSQL_COL_1": 2, "KSQL_COL_2": 3.1, "KSQL_COL_3": true, "KSQL_COL_4": "foo", "KSQL_COL_5": 123.456, "KSQL_COL_6": {"A": "bar"}}}
-      ]
+      ],
+      "post": {
+        "sources": [
+          {
+            "name": "OUTPUT",
+            "type": "stream",
+            "valueSchema": "STRUCT<KSQL_COL_0 INT, KSQL_COL_1 BIGINT, KSQL_COL_2 DOUBLE, KSQL_COL_3 BOOLEAN, KSQL_COL_4 STRING, KSQL_COL_5 DECIMAL(30, 10), KSQL_COL_6 STRUCT<A VARCHAR>>"
+          }
+        ]
+      }
     }
   ]
 }

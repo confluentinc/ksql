@@ -18,6 +18,8 @@ package io.confluent.ksql.function.udf;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -92,14 +94,19 @@ public class TestUdtf {
     return ImmutableList.of(s);
   }
 
-  @Udtf(schema = "DECIMAL(10, 10)")
-  public List<BigDecimal> listBigDecimalReturn(BigDecimal bd) {
+  @Udtf(schemaProvider = "provideSchema")
+  public List<BigDecimal> listBigDecimalReturnWithSchemaProvider(BigDecimal bd) {
     return ImmutableList.of(bd);
   }
 
   @Udtf(schema = "STRUCT<A VARCHAR>")
   public List<Struct> listStructReturn(@UdfParameter(schema = "STRUCT<A VARCHAR>") Struct struct) {
     return ImmutableList.of(struct);
+  }
+
+  @UdfSchemaProvider
+  public SqlType provideSchema(final List<SqlType> params) {
+    return SqlDecimal.of(30, 10);
   }
 
 }

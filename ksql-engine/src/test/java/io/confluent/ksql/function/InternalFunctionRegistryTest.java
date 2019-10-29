@@ -90,6 +90,9 @@ public class InternalFunctionRegistryTest {
   @Mock
   private AggregateFunctionFactory udafFactory;
 
+  @Mock
+  private KsqlTableFunction tableFunction;
+
   @Before
   public void setUp() {
     when(udfFactory.getName()).thenReturn(UDF_NAME);
@@ -432,42 +435,12 @@ public class InternalFunctionRegistryTest {
     };
   }
 
-  private static TableFunctionFactory createTableFunctionFactory() {
+  private TableFunctionFactory createTableFunctionFactory() {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
         "", "", "", "", false)) {
       @Override
       public KsqlTableFunction createTableFunction(List<Schema> argTypeList) {
-        return new KsqlTableFunction() {
-          @Override
-          public Schema getReturnType() {
-            return null;
-          }
-
-          @Override
-          public SqlType returnType() {
-            return null;
-          }
-
-          @Override
-          public List<?> apply(Object... args) {
-            return null;
-          }
-
-          @Override
-          public String getDescription() {
-            return null;
-          }
-
-          @Override
-          public FunctionName getFunctionName() {
-            return null;
-          }
-
-          @Override
-          public List<Schema> getArguments() {
-            return null;
-          }
-        };
+        return tableFunction;
       }
 
       @Override

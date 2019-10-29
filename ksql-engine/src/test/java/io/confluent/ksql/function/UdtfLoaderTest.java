@@ -16,22 +16,39 @@
 package io.confluent.ksql.function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.udtf.Udtf;
+import io.confluent.ksql.function.udtf.UdtfDescription;
+import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlException;
 import java.io.File;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 public class UdtfLoaderTest {
 
   private static final ClassLoader PARENT_CLASS_LOADER = UdtfLoaderTest.class.getClassLoader();
 
   private static final FunctionRegistry FUNC_REG = initializeFunctionRegistry();
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
+
 
   @Test
   public void shouldLoadSimpleParams() {
@@ -51,7 +68,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
   }
 
   @Test
@@ -72,7 +89,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
   }
 
   @Test
@@ -96,7 +113,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
   }
 
   @Test
@@ -109,7 +126,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
   }
 
   @Test
@@ -122,7 +139,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_INT64_SCHEMA));
   }
 
   @Test
@@ -135,7 +152,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
   }
 
   @Test
@@ -148,7 +165,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
   }
 
   @Test
@@ -161,11 +178,11 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
   }
 
   @Test
-  public void shouldLoadListBigDecimalReturnWithSchemaAnnotation() {
+  public void shouldLoadListBigDecimalReturnWithSchemaProvider() {
 
     // Given:
     final List<Schema> args = ImmutableList.of(DECIMAL_SCHEMA);
@@ -174,7 +191,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(DecimalUtil.builder(10, 10).build()));
+    assertThat(function.getReturnType(args), equalTo(DecimalUtil.builder(30, 10).build()));
   }
 
   @Test
@@ -187,7 +204,7 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(STRUCT_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(STRUCT_SCHEMA));
   }
 
   @Test
@@ -200,7 +217,92 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(), equalTo(STRUCT_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(STRUCT_SCHEMA));
+  }
+
+  @Test
+  public void shouldNotLoadUdfWithWrongReturnValue() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    final UdtfLoader udtfLoader = new UdtfLoader(
+        functionRegistry, Optional.empty(), typeParser, true
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException
+        .expectMessage(
+            is("UDTF functions must return a List. Class io.confluent.ksql.function.UdtfLoaderTest$UdtfBadReturnValue Method badReturn"));
+
+    // When:
+    udtfLoader.loadUdtfFromClass(UdtfBadReturnValue.class, KsqlFunction.INTERNAL_PATH);
+  }
+
+  @Test
+  public void shouldNotLoadUdfWithRawListReturn() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    final UdtfLoader udtfLoader = new UdtfLoader(
+        functionRegistry, Optional.empty(), typeParser, true
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException
+        .expectMessage(
+            is("UDTF functions must return a parameterized List. Class io.confluent.ksql.function.UdtfLoaderTest$RawListReturn Method badReturn"));
+
+    // When:
+    udtfLoader.loadUdtfFromClass(RawListReturn.class, KsqlFunction.INTERNAL_PATH);
+  }
+
+  @Test
+  public void shouldNotLoadUdfWithBigDecimalWithNoSchemaProvider() {
+    // Given:
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    final UdtfLoader udtfLoader = new UdtfLoader(
+        functionRegistry, Optional.empty(), typeParser, true
+    );
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException
+        .expectMessage(
+            startsWith(
+                "Cannot load UDF noSchemaProviderBigDecimal. BigDecimal return type is not supported without a schema provider method"));
+
+    // When:
+    udtfLoader.loadUdtfFromClass(NoSchemaProviderWithBigDecimal.class, KsqlFunction.INTERNAL_PATH);
+  }
+
+  @UdtfDescription(name = "badReturnUdtf", description = "whatever")
+  static class UdtfBadReturnValue {
+
+    @Udtf
+    public Map<String, String> badReturn(int foo) {
+      return new HashMap<>();
+    }
+  }
+
+  @UdtfDescription(name = "rawListReturn", description = "whatever")
+  static class RawListReturn {
+
+    @Udtf
+    public List badReturn(int foo) {
+      return new ArrayList();
+    }
+  }
+
+  @UdtfDescription(name = "noSchemaProviderBigDecimal", description = "whatever")
+  static class NoSchemaProviderWithBigDecimal {
+
+    @Udtf
+    public List<BigDecimal> badReturn(int foo) {
+      return new ArrayList<>();
+    }
   }
 
   private static final Schema STRUCT_SCHEMA =

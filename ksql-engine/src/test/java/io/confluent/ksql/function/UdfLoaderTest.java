@@ -90,6 +90,9 @@ public class UdfLoaderTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
+  private static final Schema STRUCT_SCHEMA =
+      SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
+
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
@@ -1330,8 +1333,5 @@ public class UdfLoaderTest {
       return SqlDecimal.of(2, 1);
     }
   }
-
-  private static final Schema STRUCT_SCHEMA =
-      SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
 
 }

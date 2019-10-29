@@ -18,7 +18,6 @@ package io.confluent.ksql.function.udtf.array;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.util.KsqlConstants;
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,11 +52,6 @@ public class Explode {
 
   @Udtf
   public List<String> explodeString(final List<String> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<BigDecimal> explodeBigDecimal(final List<BigDecimal> input) {
     return explode(input);
   }
 

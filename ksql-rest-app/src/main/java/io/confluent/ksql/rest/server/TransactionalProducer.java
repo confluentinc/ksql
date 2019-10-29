@@ -101,7 +101,7 @@ public class TransactionalProducer {
 
     try {
       int retries = 0;
-      while (commandRunner.getNumCommandProcessed() < endOffset) {
+      while (commandRunner.getLastProcessedOffset() < endOffset) {
         Thread.sleep(1000);
 
         if (retries == 60) {

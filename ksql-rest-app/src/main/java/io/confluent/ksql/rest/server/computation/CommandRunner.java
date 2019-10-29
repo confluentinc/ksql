@@ -59,7 +59,7 @@ public class CommandRunner implements Closeable {
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
 
-  private long numCommandProcessed;
+  private long lastProcessedOffset;
 
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
@@ -93,7 +93,7 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.numCommandProcessed = 0;
+    this.lastProcessedOffset = 0;
   }
 
   /**
@@ -140,7 +140,7 @@ public class CommandRunner implements Closeable {
         )
     );
 
-    numCommandProcessed = restoreCommands.size();
+    lastProcessedOffset = restoreCommands.get(restoreCommands.size() - 1).getOffset();
 
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
@@ -176,7 +176,7 @@ public class CommandRunner implements Closeable {
         log.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        numCommandProcessed++;
+        lastProcessedOffset = queuedCommand.getOffset();
         log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
       }
     };
@@ -211,8 +211,8 @@ public class CommandRunner implements Closeable {
     log.info("The KSQL server was terminated.");
   }
 
-  public long getNumCommandProcessed() {
-    return numCommandProcessed;
+  public long getLastProcessedOffset() {
+    return lastProcessedOffset;
   }
 
   private class Runner implements Runnable {

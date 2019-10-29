@@ -51,10 +51,12 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlInternalTopicUtilsTest {
   private static final String TOPIC_NAME = "topic";
   private static final short NREPLICAS = 2;
+  private static final short INSYNC_REPLICAS = 1;
 
   private final Map<String, ?> commandTopicConfig = ImmutableMap.of(
       TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE,
-      TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE);
+      TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
+      TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, INSYNC_REPLICAS);
 
   @Mock
   private KafkaTopicClient topicClient;
@@ -66,10 +68,9 @@ public class KsqlInternalTopicUtilsTest {
 
   @Before
   public void setUp() {
-    when(ksqlConfig.originals()).thenReturn(
-        ImmutableMap.of(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY, NREPLICAS)
-    );
     when(ksqlConfig.getShort(KsqlConfig.KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY)).thenReturn(NREPLICAS);
+    when(ksqlConfig.getShort(
+        KsqlConfig.KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY)).thenReturn(INSYNC_REPLICAS);
     when(topicClient.isTopicExists(TOPIC_NAME)).thenReturn(false);
   }
 
@@ -171,7 +172,7 @@ public class KsqlInternalTopicUtilsTest {
   }
 
   @Test
-  public void hsouldNotFailIfTopicIsOverreplicated() {
+  public void shouldNotFailIfTopicIsOverreplicated() {
     // Given:
     whenTopicExistsWith(1, NREPLICAS + 1);
 

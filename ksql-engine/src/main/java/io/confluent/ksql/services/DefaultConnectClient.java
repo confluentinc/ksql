@@ -227,7 +227,9 @@ public class DefaultConnectClient implements ConnectClient {
           .withStopStrategy(StopStrategies.stopAfterAttempt(MAX_ATTEMPTS))
           .withWaitStrategy(WaitStrategies.exponentialWait())
           .retryIfResult(
-              result -> result == null || result.httpCode() >= HttpStatus.SC_INTERNAL_SERVER_ERROR)
+              result -> result == null
+                  || result.httpCode() >= HttpStatus.SC_INTERNAL_SERVER_ERROR
+                  || result.httpCode() == HttpStatus.SC_CONFLICT)
           .retryIfException()
           .build()
           .call(action);

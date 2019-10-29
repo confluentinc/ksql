@@ -102,6 +102,14 @@ public abstract class RestResponse<R> {
     public R getResponse() {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String toString() {
+      return "Erroneous{"
+          + "statusCode=" + getStatusCode()
+          + ", errorMessage=" + errorMessage
+          + '}';
+    }
   }
 
   private static final class Successful<R> extends RestResponse<R> {
@@ -146,6 +154,14 @@ public abstract class RestResponse<R> {
     @Override
     public int hashCode() {
       return Objects.hash(getResponse(), getStatusCode());
+    }
+
+    @Override
+    public String toString() {
+      return "Successful{"
+          + "statusCode=" + getStatusCode()
+          + ", response=" + response
+          + '}';
     }
   }
 }

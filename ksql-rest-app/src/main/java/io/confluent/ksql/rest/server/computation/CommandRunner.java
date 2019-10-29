@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
  * issued before being initialized, and then delegating their execution to a
- * {@link StatementExecutor}. Also responsible for taking care of any exceptions that occur in the
- * process.
+ * {@link InteractiveStatementExecutor}. 
+ * Also responsible for taking care of any exceptions that occur in the process.
  */
 public class CommandRunner implements Closeable {
 
@@ -51,7 +51,7 @@ public class CommandRunner implements Closeable {
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
 
-  private final StatementExecutor statementExecutor;
+  private final InteractiveStatementExecutor interactiveStatementExecutor;
   private final CommandQueue commandStore;
   private final ExecutorService executor;
   private volatile boolean closed = false;
@@ -60,14 +60,14 @@ public class CommandRunner implements Closeable {
   private final ServerState serverState;
 
   public CommandRunner(
-      final StatementExecutor statementExecutor,
+      final InteractiveStatementExecutor interactiveStatementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
       final ServerState serverState
   ) {
     this(
-        statementExecutor,
+        interactiveStatementExecutor,
         commandStore,
         maxRetries,
         clusterTerminator,
@@ -78,14 +78,15 @@ public class CommandRunner implements Closeable {
 
   @VisibleForTesting
   CommandRunner(
-      final StatementExecutor statementExecutor,
+      final InteractiveStatementExecutor interactiveStatementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
       final ExecutorService executor,
       final ServerState serverState
   ) {
-    this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
+    this.interactiveStatementExecutor = Objects.requireNonNull(
+        interactiveStatementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
     this.maxRetries = maxRetries;
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
@@ -132,11 +133,11 @@ public class CommandRunner implements Closeable {
             maxRetries,
             STATEMENT_RETRY_MS,
             MAX_STATEMENT_RETRY_MS,
-            () -> statementExecutor.handleRestore(command),
+            () -> interactiveStatementExecutor.handleRestore(command),
             WakeupException.class
         )
     );
-    final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
+    final KsqlEngine ksqlEngine = interactiveStatementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
@@ -169,7 +170,7 @@ public class CommandRunner implements Closeable {
       if (closed) {
         log.info("Execution aborted as system is closing down");
       } else {
-        statementExecutor.handleStatement(queuedCommand);
+        interactiveStatementExecutor.handleStatement(queuedCommand);
         log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
       }
     };

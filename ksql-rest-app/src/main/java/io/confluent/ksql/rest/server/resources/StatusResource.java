@@ -20,7 +20,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import java.util.Optional;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,15 +33,16 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StatusResource {
 
-  private final StatementExecutor statementExecutor;
+  private final InteractiveStatementExecutor interactiveStatementExecutor;
 
-  public StatusResource(final StatementExecutor statementExecutor) {
-    this.statementExecutor = statementExecutor;
+  public StatusResource(final InteractiveStatementExecutor interactiveStatementExecutor) {
+    this.interactiveStatementExecutor = interactiveStatementExecutor;
   }
 
   @GET
   public Response getAllStatuses() {
-    return Response.ok(CommandStatuses.fromFullStatuses(statementExecutor.getStatuses())).build();
+    return Response.ok(
+        CommandStatuses.fromFullStatuses(interactiveStatementExecutor.getStatuses())).build();
   }
 
   @GET
@@ -52,7 +53,7 @@ public class StatusResource {
       @PathParam("action") final String action) {
     final CommandId commandId = new CommandId(type, entity, action);
 
-    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
+    final Optional<CommandStatus> commandStatus = interactiveStatementExecutor.getStatus(commandId);
 
     if (!commandStatus.isPresent()) {
       return Errors.notFound("Command not found");

@@ -47,7 +47,7 @@ import org.mockito.stubbing.Answer;
 public class CommandRunnerTest {
 
   @Mock
-  private StatementExecutor statementExecutor;
+  private InteractiveStatementExecutor interactiveStatementExecutor;
   @Mock
   private CommandStore commandStore;
   @Mock
@@ -72,7 +72,7 @@ public class CommandRunnerTest {
 
   @Before
   public void setup() {
-    when(statementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
+    when(interactiveStatementExecutor.getKsqlEngine()).thenReturn(ksqlEngine);
 
     when(command.getStatement()).thenReturn("something that is not terminate");
     when(clusterTerminate.getStatement())
@@ -85,7 +85,7 @@ public class CommandRunnerTest {
     givenQueuedCommands(queuedCommand1, queuedCommand2, queuedCommand3);
 
     commandRunner = new CommandRunner(
-        statementExecutor,
+        interactiveStatementExecutor,
         commandStore,
         1,
         clusterTerminator,
@@ -102,10 +102,10 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand1));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand2));
-    inOrder.verify(statementExecutor).handleRestore(eq(queuedCommand3));
+    final InOrder inOrder = inOrder(interactiveStatementExecutor);
+    inOrder.verify(interactiveStatementExecutor).handleRestore(eq(queuedCommand1));
+    inOrder.verify(interactiveStatementExecutor).handleRestore(eq(queuedCommand2));
+    inOrder.verify(interactiveStatementExecutor).handleRestore(eq(queuedCommand3));
   }
 
   @Test
@@ -121,7 +121,7 @@ public class CommandRunnerTest {
     verify(serverState).setTerminating();
     verify(commandStore).close();
     verify(clusterTerminator).terminateCluster(anyList());
-    verify(statementExecutor, never()).handleRestore(any());
+    verify(interactiveStatementExecutor, never()).handleRestore(any());
   }
 
   @Test
@@ -134,7 +134,7 @@ public class CommandRunnerTest {
     commandRunner.processPriorCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(any());
+    verify(interactiveStatementExecutor, never()).handleRestore(any());
   }
 
   @Test
@@ -146,10 +146,10 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    final InOrder inOrder = inOrder(statementExecutor);
-    inOrder.verify(statementExecutor).handleStatement(queuedCommand1);
-    inOrder.verify(statementExecutor).handleStatement(queuedCommand2);
-    inOrder.verify(statementExecutor).handleStatement(queuedCommand3);
+    final InOrder inOrder = inOrder(interactiveStatementExecutor);
+    inOrder.verify(interactiveStatementExecutor).handleStatement(queuedCommand1);
+    inOrder.verify(interactiveStatementExecutor).handleStatement(queuedCommand2);
+    inOrder.verify(interactiveStatementExecutor).handleStatement(queuedCommand3);
   }
 
   @Test
@@ -162,22 +162,22 @@ public class CommandRunnerTest {
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(queuedCommand1);
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
-    verify(statementExecutor, never()).handleRestore(queuedCommand3);
+    verify(interactiveStatementExecutor, never()).handleRestore(queuedCommand1);
+    verify(interactiveStatementExecutor, never()).handleRestore(queuedCommand2);
+    verify(interactiveStatementExecutor, never()).handleRestore(queuedCommand3);
   }
 
   @Test
   public void shouldEarlyOutOnShutdown() {
     // Given:
     givenQueuedCommands(queuedCommand1, queuedCommand2);
-    doAnswer(closeRunner()).when(statementExecutor).handleStatement(queuedCommand1);
+    doAnswer(closeRunner()).when(interactiveStatementExecutor).handleStatement(queuedCommand1);
 
     // When:
     commandRunner.fetchAndRunCommands();
 
     // Then:
-    verify(statementExecutor, never()).handleRestore(queuedCommand2);
+    verify(interactiveStatementExecutor, never()).handleRestore(queuedCommand2);
   }
 
   @Test

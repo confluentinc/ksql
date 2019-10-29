@@ -43,7 +43,7 @@ import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
 import io.confluent.ksql.rest.server.resources.HealthCheckResource;
@@ -475,12 +475,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());
 
-    final StatementExecutor statementExecutor =
-        new StatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
+    final InteractiveStatementExecutor interactiveStatementExecutor =
+        new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 
-    final StatusResource statusResource = new StatusResource(statementExecutor);
+    final StatusResource statusResource = new StatusResource(interactiveStatementExecutor);
     final VersionCheckerAgent versionChecker
         = versionCheckerFactory.apply(ksqlEngine::hasActiveQueries);
 
@@ -515,7 +515,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
     final CommandRunner commandRunner = new CommandRunner(
-        statementExecutor,
+        interactiveStatementExecutor,
         commandStore,
         maxStatementRetries,
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
@@ -530,7 +530,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final List<KsqlConfigurable> configurables = ImmutableList.of(
         ksqlResource,
         streamedQueryResource,
-        statementExecutor
+        interactiveStatementExecutor
     );
 
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =

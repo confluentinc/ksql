@@ -922,7 +922,7 @@ in the KSQL server log (ksql.log) . The error would look something like:
 
 ::
 
-    [2018-07-04 12:37:28,602] ERROR Failed to handle: Command{statement='create stream pageviews_ts as select tostring(viewtime) from pageviews;', overwriteProperties={}} (io.confluent.ksql.rest.server.computation.StatementExecutor:210)
+    [2018-07-04 12:37:28,602] ERROR Failed to handle: Command{statement='create stream pageviews_ts as select tostring(viewtime) from pageviews;', overwriteProperties={}} (io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor:218)
     io.confluent.ksql.util.KsqlException: Can't find any functions with the name 'TOSTRING'
 
 

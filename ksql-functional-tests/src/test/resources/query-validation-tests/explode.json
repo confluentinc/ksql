@@ -54,17 +54,6 @@
       }
     },
     {
-      "name": "shouldn't handle more than one table function",
-      "statements": [
-        "CREATE STREAM TEST (MY_ARR ARRAY<BIGINT>) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT EXPLODE(MY_ARR), EXPLODE(MY_ARR) VAL FROM TEST;"
-      ],
-      "expectedException": {
-        "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Only one table function per query currently is supported"
-      }
-    },
-    {
       "name": "shouldn't be able to have table functions with aggregation",
       "statements": [
         "CREATE STREAM TEST (VAL INT, MY_MAP MAP<INT, INT>) WITH (kafka_topic='test_topic', value_format='JSON');",

@@ -70,6 +70,7 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -686,28 +687,32 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> flatMap(
       final LogicalSchema outputSchema,
-      final FunctionCall functionCall,
+      final List<FunctionCall> tableFunctions,
       final QueryContext.Stacker contextStacker
   ) {
-    final ColumnReferenceExp exp = (ColumnReferenceExp)functionCall.getArguments().get(0);
-    final ColumnName columnName = exp.getReference().name();
-    final ColumnRef ref = ColumnRef.withoutSource(columnName);
-    final OptionalInt indexInInput = getSchema().valueColumnIndex(ref);
-    if (!indexInInput.isPresent()) {
-      throw new IllegalArgumentException("Can't find input column " + columnName);
+    final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>();
+    for (FunctionCall functionCall: tableFunctions) {
+      final ColumnReferenceExp exp = (ColumnReferenceExp)functionCall.getArguments().get(0);
+      final ColumnName columnName = exp.getReference().name();
+      final ColumnRef ref = ColumnRef.withoutSource(columnName);
+      final OptionalInt indexInInput = getSchema().valueColumnIndex(ref);
+      if (!indexInInput.isPresent()) {
+        throw new IllegalArgumentException("Can't find input column " + columnName);
+      }
+      final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
+          functionRegistry,
+          functionCall,
+          getSchema()
+      );
+      final TableFunctionApplier tableFunctionApplier =
+          new TableFunctionApplier(tableFunction, indexInInput.getAsInt());
+      tableFunctionAppliers.add(tableFunctionApplier);
     }
-    final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
-        functionRegistry,
-        functionCall,
-        getSchema()
-    );
-    final TableFunctionApplier functionHolder =
-        new TableFunctionApplier(tableFunction, indexInInput.getAsInt());
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
         contextStacker,
         sourceStep,
         outputSchema,
-        functionHolder
+        tableFunctionAppliers
     );
     return new SchemaKStream<K>(
         step,

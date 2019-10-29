@@ -28,7 +28,7 @@ public final class StreamFlatMapBuilder {
       final KStreamHolder<K> stream,
       final StreamFlatMap<K> step) {
     return stream.withStream(stream.getStream().flatMapValues(
-        new KudtfFlatMapper(step.getFunctionHolder())));
+        new KudtfFlatMapper(step.getTableFunctionAppliers())));
   }
 
 }

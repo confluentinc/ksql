@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.function.udtf;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.ValueMapper;
@@ -28,20 +29,36 @@ import org.apache.kafka.streams.kstream.ValueMapper;
 @Immutable
 public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<GenericRow>> {
 
-  private final TableFunctionApplier functionHolder;
+  private final List<TableFunctionApplier> tableFunctionAppliers;
 
-  public KudtfFlatMapper(final TableFunctionApplier functionHolder) {
-    this.functionHolder = Objects.requireNonNull(functionHolder);
+  public KudtfFlatMapper(final List<TableFunctionApplier> tableFunctionAppliers) {
+    this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
   }
 
+  /*
+  This function zips results from multiple table functions together as described in KLIP-9
+  in the design-proposals directory
+   */
   @Override
   public Iterable<GenericRow> apply(final GenericRow row) {
-    final List<Object> exploded = functionHolder.apply(row);
-    final List<GenericRow> rows = new ArrayList<>(exploded.size());
-    for (Object val : exploded) {
-      final List<Object> arrayList = new ArrayList<>(row.getColumns());
-      arrayList.add(val);
-      rows.add(new GenericRow(arrayList));
+    final List<Iterator<Object>> iters = new ArrayList<>(tableFunctionAppliers.size());
+    int maxLength = 0;
+    for (TableFunctionApplier applier: tableFunctionAppliers) {
+      final List<Object> exploded = applier.apply(row);
+      iters.add(exploded.iterator());
+      maxLength = Math.max(maxLength, exploded.size());
+    }
+    final List<GenericRow> rows = new ArrayList<>(maxLength);
+    for (int i = 0; i < maxLength; i++) {
+      final List<Object> newRow = new ArrayList<>(row.getColumns());
+      for (Iterator<Object> iter: iters) {
+        if (iter.hasNext()) {
+          newRow.add(iter.next());
+        } else {
+          newRow.add(null);
+        }
+      }
+      rows.add(new GenericRow(newRow));
     }
     return rows;
   }

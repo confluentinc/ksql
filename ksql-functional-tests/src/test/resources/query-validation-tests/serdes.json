@@ -245,7 +245,7 @@
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]},
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
           "format": "AVRO"
         }
       ],

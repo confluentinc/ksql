@@ -17,7 +17,6 @@ package io.confluent.ksql.function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
@@ -221,7 +220,7 @@ public class UdtfLoaderTest {
   }
 
   @Test
-  public void shouldNotLoadUdfWithWrongReturnValue() {
+  public void shouldNotLoadUdtfWithWrongReturnValue() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
@@ -240,7 +239,7 @@ public class UdtfLoaderTest {
   }
 
   @Test
-  public void shouldNotLoadUdfWithRawListReturn() {
+  public void shouldNotLoadUdtfWithRawListReturn() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
@@ -259,7 +258,7 @@ public class UdtfLoaderTest {
   }
 
   @Test
-  public void shouldNotLoadUdfWithBigDecimalWithNoSchemaProvider() {
+  public void shouldNotLoadUdtfWithBigDecimalReturnAndNoSchemaProvider() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
@@ -271,13 +270,12 @@ public class UdtfLoaderTest {
     expectedException.expect(KsqlException.class);
     expectedException
         .expectMessage(
-            startsWith(
-                "Cannot load UDF noSchemaProviderBigDecimal. BigDecimal return type is not supported without a schema provider method"));
+            is("Cannot load UDF bigDecimalNoSchemaProvider. BigDecimal return type is not supported without a schema provider method."));
 
     // When:
-    udtfLoader.loadUdtfFromClass(NoSchemaProviderWithBigDecimal.class, KsqlFunction.INTERNAL_PATH);
+    udtfLoader.loadUdtfFromClass(BigDecimalNoSchemaProvider.class, KsqlFunction.INTERNAL_PATH);
   }
-
+  
   @UdtfDescription(name = "badReturnUdtf", description = "whatever")
   static class UdtfBadReturnValue {
 
@@ -296,12 +294,12 @@ public class UdtfLoaderTest {
     }
   }
 
-  @UdtfDescription(name = "noSchemaProviderBigDecimal", description = "whatever")
-  static class NoSchemaProviderWithBigDecimal {
+  @UdtfDescription(name = "bigDecimalNoSchemaProvider", description = "whatever")
+  static class BigDecimalNoSchemaProvider {
 
     @Udtf
     public List<BigDecimal> badReturn(int foo) {
-      return new ArrayList<>();
+      return ImmutableList.of(new BigDecimal("123"));
     }
   }
 

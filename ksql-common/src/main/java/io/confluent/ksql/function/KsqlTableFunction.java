@@ -30,7 +30,7 @@ import org.apache.kafka.connect.data.Schema;
 public class KsqlTableFunction extends KsqlFunctionBase {
 
   private final FunctionInvoker invoker;
-  private final Object udf;
+  private final Object udtf;
 
   public KsqlTableFunction(
       final Function<List<Schema>, Schema> returnSchemaProvider,
@@ -39,16 +39,16 @@ public class KsqlTableFunction extends KsqlFunctionBase {
       final List<Schema> arguments,
       final String description,
       final FunctionInvoker functionInvoker,
-      final Object udf
+      final Object udtf
   ) {
     super(returnSchemaProvider, outputType, arguments, functionName, description,
         "", false
     );
     this.invoker = Objects.requireNonNull(functionInvoker, "functionInvoker");
-    this.udf = Objects.requireNonNull(udf, "udf");
+    this.udtf = Objects.requireNonNull(udtf, "udtf");
   }
 
   public List<?> apply(final Object... args) {
-    return (List<?>) invoker.eval(udf, args);
+    return (List<?>) invoker.eval(udtf, args);
   }
 }

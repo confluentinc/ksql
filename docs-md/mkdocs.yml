@@ -31,10 +31,11 @@ nav:
         - ksqlDB Architecture: concepts/ksql-architecture.md
         - ksqlDB and Kafka Streams: concepts/ksql-and-kafka-streams.md
         - Time and Windows in ksqlDB: concepts/time-and-windows-in-ksql-queries.md
-        # - Push and Pull Queries (TODO)
+        - Collections (TODO): concepts/collections.md 
+        - Materialized Views (TODO): concepts/materialized-views.md
+        - Push and Pull Queries (TODO): concepts/push-and-pull-queries.md
         # - Schema: Data types and formats (TODO: refactored from old syntax reference)
         # - Schema Evolution with ksqlDB and Avro (TODO)
-        # - Materialized views (TODO)
         # - Functions: Built-in functions (TODO)
         # - Functions: UDF/UDAFs (TODO)
         # - Connect to external systems Import data from external sources (TODO)

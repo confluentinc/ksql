@@ -8,8 +8,13 @@ description: KSQL
 KSQL
 ====
 
-What Is KSQL?
--------------
+What Is ksqlDB?
+---------------
+
+ksqlDB is a distributed, eventually consistent event streaming database that
+makes it easy to build streaming apps. There are three core categories that
+are foundational to building an app: collections, materialized views, and
+queries.
 
 KSQL is the streaming SQL engine for {{ site.aktm }}. It provides an
 easy-to-use yet powerful interactive SQL interface for stream processing

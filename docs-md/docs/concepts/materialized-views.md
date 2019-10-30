@@ -17,7 +17,7 @@ you can chain materialized views together to create many representations
 of the same data. Materialized views are especially useful for maintaining
 aggregated tables of data.
 
-TODO: exapand on this
+TODO: expand on this
 
 How to create a materialized view over an existing collection.
 How to create a materialized view from another materialized view.

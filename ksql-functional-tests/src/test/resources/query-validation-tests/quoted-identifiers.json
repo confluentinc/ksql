@@ -94,7 +94,7 @@
       "name": "source names requiring quotes",
       "statements": [
         "CREATE STREAM `foo-source` (id VARCHAR) WITH (kafka_topic='foo-source', value_format='JSON');",
-        "CREATE STREAM `foo-too` AS SELECT * FROM `foo-source`;"
+        "CREATE STREAM `foo-too` AS SELECT `foo-source`.id FROM `foo-source`;"
       ],
       "inputs": [
         {"topic": "foo-source", "value": {"id": "1"}}

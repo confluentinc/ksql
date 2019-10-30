@@ -1648,6 +1648,13 @@ Scalar functions
 |                        |                                                                           | function is 1-indexed. ELT is the complement to   |
 |                        |                                                                           | FIELD.                                            |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| ENTRIES                | ``ENTRIES(map MAP, sorted BOOLEAN)``                                      | Constructs an array of structs from the entries in|
+|                        |                                                                           | a map. Each struct has a field with name ``K``    |
+|                        |                                                                           | containing the key which is a String and a        |
+|                        |                                                                           | field with name ``V`` holding the value.          |
+|                        |                                                                           | If ``sorted`` is true the entries will be sorted  |
+|                        |                                                                           | by key.                                           |
++------------------------|---------------------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``                             | Given a string column in JSON format, extract     |
 |                        |                                                                           | the field that matches.                           |
 |                        |                                                                           |                                                   |
@@ -1733,6 +1740,16 @@ Scalar functions
 |                        |                                                                           | will return ``My Test -nnn``.                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| RANGE                  |  ``GENERATE_SERIES(start, end)``                                          | Constructs an array of values between             |
+|                        |                                                                           | ``start`` and ``end`` (inclusive).                |
+|                        |                                                                           | Parameters can be ``INT`` or ``BIGINT``.          |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| RANGE                  |  ``GENERATE_SERIES(start, end, step)``                                    | Constructs an array of values between             |
+|                        |                                                                           | ``start`` and ``end`` (inclusive) with a specified|
+|                        |                                                                           | step size. Step can be positive or negative.      |
+|                        |                                                                           | Parameters ``start`` and ``end`` can be ``INT`` or|
+|                        |                                                                           | ``BIGINT``. Parameter ``step`` must be an ``INT``.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
 |                        |                                                                           | with a new string.                                |
@@ -1992,6 +2009,23 @@ Aggregate functions
 For more information, see :ref:`aggregate-streaming-data-with-ksql`.
 
 .. _ksql_key_requirements:
+
+
+.. _ksql_table_functions:
+
+===============
+Table functions
+===============
+
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+>| Function               | Example                   | Input Type | Description                                                         |
+>+========================+===========================+============+=====================================================================+
+>| EXPLODE                | ``EXPLODE(col1)``         | Array      | This function takes an Array and outputs one value for each of the  |
+>|                        |                           |            | elements of the array. The output values have the same type as the  |                                     |
+>|                        |                           |            | array elements.                                                     |
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+
+For more information, see :ref:`table-functions`.
 
 ================
 Key Requirements

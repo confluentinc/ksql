@@ -1,7 +1,7 @@
 .. _ksql-udfs:
 
-KSQL Custom Function Reference (UDF and UDAF)
-=============================================
+KSQL Custom Function Reference (UDF, UDAF and UDTF)
+===================================================
 
 KSQL has many built-in functions that help with processing records in
 streaming data, like ABS and SUM. Functions are used within a KSQL query
@@ -24,20 +24,24 @@ Stateful aggregate function (UDAF)
     enables aggregating results. When you implement a custom aggregate function,
     it's called a *User-Defined Aggregate Function (UDAF)*.
 
-.. note:: Tabular functions, which take one input row and return *N* output
-          values, aren't supported.
+Table function (UDTF)
+    A table function that takes one input row and returns zero or more output rows.
+    No state is retained between function calls. When you implement a custom
+    table function, it's called a *User-Defined Table Function (UDTF)*.
 
 Implement a Custom Function
 *************************** 
 
 Follow these steps to create your custom functions:
 
-#. Write your UDF or UDAF class in Java.
+#. Write your UDF, UDAF or UDTF class in Java.
 
    * If your Java class is a UDF, mark it with the ``@UdfDescription`` and
      ``@Udf`` annotations.
    * If your class is a UDAF, mark it with the ``@UdafDescription`` and
      ``@UdafFactory`` annotations.
+   * If your class is a UDTF, mark it with the ``@UdtfDescription`` and
+     ``@UdtfFactory`` annotations.
 
    For more information, see :ref:`example-udf-class` and :ref:`example-udaf-class`. 
 
@@ -51,19 +55,21 @@ Follow these steps to create your custom functions:
 
 For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
 
-=======================
-Creating UDFs and UDAFs
-=======================
+==============================
+Creating UDFs, UDAFs and UDTFs
+==============================
 
-KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAFs) via custom jars that are
+KSQL supports creating User Defined Scalar Functions (UDFs), User Defined Aggregate Functions (UDAFs) and
+ User Defined Table Functions (UDTFs) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
 At start up time KSQL scans the jars in the directory looking for any classes that annotated
-with ``@UdfDescription`` (UDF) or ``@UdafDescription`` (UDAF).
+with ``@UdfDescription`` (UDF), ``@UdafDescription`` (UDAF) or ``@UdtfDescription`` (UDTF).
 Classes annotated with ``@UdfDescription`` are scanned for any public methods that are annotated
 with ``@Udf``. Classes annotated with ``@UdafDescription`` are scanned for any public static methods
-that are annotated with ``@UdafFactory``. Each UD(A)F that is found is parsed and, if successful, loaded into KSQL.
+that are annotated with ``@UdafFactory``. Classes annotated with ``@UdtfDescription`` are scanned for any public methods
+that are annotated with ``@Udtf``. Each function that is found is parsed and, if successful, loaded into KSQL.
 
-Each UD(A)F instance has its own child-first ``ClassLoader`` that is isolated from other UD(A)Fs. If you
+Each function instance has its own child-first ``ClassLoader`` that is isolated from other functions. If you
 need to use any third-party libraries with your UDFs then they should also be part of your jar, i.e.,
 you should create an "uber-jar". The classes in your uber-jar will be loaded in preference to any
 classes on the KSQL classpath excluding anything vital to the running of KSQL, i.e., classes that are
@@ -723,7 +729,7 @@ The types supported by UDFs are currently limited to:
 Deploying
 =========
 
-To deploy your UD(A)Fs you need to create a jar containing all of the classes required by the UD(A)Fs.
+To deploy your user defined functions you need to create a jar containing all of the classes required by the functions.
 If you depend on third-party libraries then this should be an uber-jar containing those libraries.
 Once the jar is created you need to deploy it to each KSQL server instance. The jar should be copied
 to the ``ext/`` directory that is part of the KSQL distribution. The ``ext/`` directory can be configured
@@ -753,7 +759,7 @@ correct jars installed.
 Usage
 =====
 
-Once your UD(A)Fs are deployed you can call them in the same way you would invoke any of the KSQL
+Once your functions are deployed you can call them in the same way you would invoke any of the KSQL
 built-in functions. The function names are case-insensitive. For example, using the ``multiply`` example above:
 
 .. code:: sql
@@ -800,7 +806,7 @@ Security Manager
 ----------------
 
 By default KSQL installs a simple java security manager for UD(A)F execution. The security manager
-blocks attempts by any UD(A)Fs to fork processes from the KSQL server. It also prevents them from
+blocks attempts by any functions to fork processes from the KSQL server. It also prevents them from
 calling ``System.exit(..)``.
 
 The security manager can be disabled by setting ``ksql.udf.enable.security.manager`` to false.

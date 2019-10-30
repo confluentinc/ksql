@@ -212,15 +212,15 @@ public class UdtfLoaderTest {
 
   private static FunctionRegistry initializeFunctionRegistry() {
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader pluginLoader = createUdfLoader(functionRegistry);
+    final UserFunctionLoader pluginLoader = createUdfLoader(functionRegistry);
     pluginLoader.load();
     return functionRegistry;
   }
 
-  private static UdfLoader createUdfLoader(
+  private static UserFunctionLoader createUdfLoader(
       final MutableFunctionRegistry functionRegistry
   ) {
-    return new UdfLoader(
+    return new UserFunctionLoader(
         functionRegistry,
         new File("src/test/resources/udf-example.jar"),
         PARENT_CLASS_LOADER,

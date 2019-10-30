@@ -39,7 +39,7 @@ import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -216,7 +216,7 @@ public class StandaloneExecutorTest {
   @Mock
   private KsqlExecutionContext sandBox;
   @Mock
-  private UdfLoader udfLoader;
+  private UserFunctionLoader udfLoader;
   @Mock
   private PersistentQueryMetadata persistentQuery;
   @Mock

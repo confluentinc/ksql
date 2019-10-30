@@ -23,11 +23,12 @@ import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
@@ -45,24 +46,20 @@ public class UdfLoader {
   private final MutableFunctionRegistry functionRegistry;
   private final Optional<Metrics> metrics;
   private final SqlTypeParser typeParser;
-  private final ClassLoader parentClassLoader;
   private final boolean throwExceptionOnLoadFailure;
 
   UdfLoader(
       final MutableFunctionRegistry functionRegistry,
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser,
-      final ClassLoader parentClassLoader,
       final boolean throwExceptionOnLoadFailure
   ) {
     this.functionRegistry = functionRegistry;
     this.metrics = metrics;
     this.typeParser = typeParser;
-    this.parentClassLoader = parentClassLoader;
     this.throwExceptionOnLoadFailure = throwExceptionOnLoadFailure;
   }
 
-  // Does not handle customer udfs, i.e the loader is the ParentClassLoader and path is internal
   // This method is only used from tests
   @VisibleForTesting
   void loadUdfFromClass(final Class<?>... udfClasses) {
@@ -102,35 +99,36 @@ public class UdfLoader {
 
     functionRegistry.ensureFunctionFactory(factory);
 
-    Arrays.stream(theClass.getMethods())
-        .filter(method -> method.getAnnotation(Udf.class) != null)
-        .map(method -> {
-          try {
-            return Optional.of(createFunction(theClass, udfDescriptionAnnotation, method, path,
-                sensorName, udfClass
-            ));
-          } catch (final KsqlException e) {
-            if (throwExceptionOnLoadFailure) {
-              throw e;
-            } else {
-              LOGGER.warn(
-                  "Failed to add UDF to the MetaStore. name={} method={}",
-                  udfDescriptionAnnotation.name(),
-                  method,
-                  e
-              );
-            }
+    for (Method method : theClass.getMethods()) {
+      final Udf udfAnnotation = method.getAnnotation(Udf.class);
+      if (udfAnnotation != null) {
+        final KsqlFunction function;
+        try {
+          function = createFunction(theClass, udfDescriptionAnnotation, udfAnnotation, method, path,
+              sensorName, udfClass
+          );
+        } catch (final KsqlException e) {
+          if (throwExceptionOnLoadFailure) {
+            throw e;
+          } else {
+            LOGGER.warn(
+                "Failed to add UDF to the MetaStore. name={} method={}",
+                udfDescriptionAnnotation.name(),
+                method,
+                e
+            );
+            continue;
           }
-          return Optional.<KsqlFunction>empty();
-        })
-        .filter(Optional::isPresent)
-        .map(Optional::get)
-        .forEach(factory::addFunction);
+        }
+        factory.addFunction(function);
+      }
+    }
   }
 
   private KsqlFunction createFunction(
       final Class theClass,
       final UdfDescription udfDescriptionAnnotation,
+      final Udf udfAnnotation,
       final Method method,
       final String path,
       final String sensorName,
@@ -140,7 +138,6 @@ public class UdfLoader {
     FunctionLoaderUtils
         .instantiateFunctionInstance(method.getDeclaringClass(), udfDescriptionAnnotation.name());
     final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
-    final Udf udfAnnotation = method.getAnnotation(Udf.class);
     final String functionName = udfDescriptionAnnotation.name();
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
@@ -151,33 +148,47 @@ public class UdfLoader {
     final Schema javaReturnSchema = FunctionLoaderUtils
         .getReturnType(method, udfAnnotation.schema(), typeParser);
 
-    return KsqlFunction.create(
-        FunctionLoaderUtils.handleUdfReturnSchema(
+    final Function<List<Schema>, Schema> schemaProviderFunction = FunctionLoaderUtils
+        .handleUdfReturnSchema(
             theClass,
             javaReturnSchema,
             udfAnnotation.schemaProvider(),
             udfDescriptionAnnotation.name()
-        ),
+        );
+
+    return KsqlFunction.create(
+        schemaProviderFunction,
         javaReturnSchema,
         parameters,
         FunctionName.of(functionName.toUpperCase()),
         udfClass,
-        ksqlConfig -> {
-          final Object actualUdf = FunctionLoaderUtils.instantiateFunctionInstance(
-              method.getDeclaringClass(), udfDescriptionAnnotation.name());
-          if (actualUdf instanceof Configurable) {
-            ((Configurable) actualUdf)
-                .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
-          }
-          final PluggableUdf theUdf = new PluggableUdf(invoker, actualUdf);
-          return metrics.<Kudf>map(m -> new UdfMetricProducer(
-              m.getSensor(sensorName),
-              theUdf,
-              Time.SYSTEM
-          )).orElse(theUdf);
-        }, udfAnnotation.description(),
+        getUdfFactory(method, udfDescriptionAnnotation, functionName, invoker, sensorName),
+        udfAnnotation.description(),
         path,
         method.isVarArgs()
     );
+  }
+
+  private Function<KsqlConfig, Kudf> getUdfFactory(
+      final Method method,
+      final UdfDescription udfDescriptionAnnotation,
+      final String functionName,
+      final FunctionInvoker invoker,
+      final String sensorName
+  ) {
+    return ksqlConfig -> {
+      final Object actualUdf = FunctionLoaderUtils.instantiateFunctionInstance(
+          method.getDeclaringClass(), udfDescriptionAnnotation.name());
+      if (actualUdf instanceof Configurable) {
+        ((Configurable) actualUdf)
+            .configure(ksqlConfig.getKsqlFunctionsConfigProps(functionName));
+      }
+      final PluggableUdf theUdf = new PluggableUdf(invoker, actualUdf);
+      return metrics.<Kudf>map(m -> new UdfMetricProducer(
+          m.getSensor(sensorName),
+          theUdf,
+          Time.SYSTEM
+      )).orElse(theUdf);
+    };
   }
 }

@@ -1993,6 +1993,23 @@ For more information, see :ref:`aggregate-streaming-data-with-ksql`.
 
 .. _ksql_key_requirements:
 
+
+.. _ksql_table_functions:
+
+===============
+Table functions
+===============
+
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+>| Function               | Example                   | Input Type | Description                                                         |
+>+========================+===========================+============+=====================================================================+
+>| EXPLODE                | ``EXPLODE(col1)``         | Array      | This function takes an Array and outputs one value for each of the  |
+>|                        |                           |            | elements of the array. The output values are of the type of the     |                                     |
+>|                        |                           |            | array elements.                                                     |
+>+------------------------+---------------------------+------------+---------------------------------------------------------------------+
+
+For more information, see :ref:`table-functions`.
+
 ================
 Key Requirements
 ================

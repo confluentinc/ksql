@@ -671,7 +671,8 @@ public class AstBuilder {
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       return new TerminateQuery(
           getLocation(context),
-          ParserUtil.getIdentifierText(context.identifier())
+          // use case sensitive parsing here to maintain backwards compatibility
+          ParserUtil.getIdentifierText(true, context.identifier())
       );
     }
 

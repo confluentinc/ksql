@@ -75,7 +75,7 @@ public interface FunctionRegistry {
    * <code>KsqlAggregateFunction</code> instance.
    *
    * @param functionName the name of the function.
-   * @param argumentType the schema of the argument or {@link #DEFAULT_FUNCTION_ARG_SCHEMA}.
+   * @param argumentType the schema of the argument.
    * @return the function instance.
    * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
    */

@@ -23,7 +23,8 @@ public final class UdfLoaderUtil {
   private UdfLoaderUtil() {}
 
   public static FunctionRegistry load(final MutableFunctionRegistry functionRegistry) {
-    new UdfLoader(functionRegistry,
+    new UserFunctionLoader(
+        functionRegistry,
         new File("src/test/resources/udf-example.jar"),
         UdfLoaderUtil.class.getClassLoader(),
         value -> false, Optional.empty(), true

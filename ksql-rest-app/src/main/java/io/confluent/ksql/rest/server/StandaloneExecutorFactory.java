@@ -21,7 +21,7 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
@@ -72,7 +72,7 @@ public final class StandaloneExecutorFactory {
         KsqlConfig ksqlConfig,
         KsqlEngine ksqlEngine,
         String queriesFile,
-        UdfLoader udfLoader,
+        UserFunctionLoader udfLoader,
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
         BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
@@ -117,8 +117,8 @@ public final class StandaloneExecutorFactory {
         ServiceInfo.create(ksqlConfig),
         new SequentialQueryIdGenerator());
 
-    final UdfLoader udfLoader =
-        UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);
+    final UserFunctionLoader udfLoader =
+        UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir);
 
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);

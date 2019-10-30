@@ -7,7 +7,7 @@ copyright: Copyright &copy; 2019 <a href="https://www.confluent.io/">Confluent</
 
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
-docs_dir: docs-md/docs
+docs_dir: docs
 
 theme:
     # name: mkdocs

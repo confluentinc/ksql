@@ -72,6 +72,7 @@ import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
+import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -240,7 +241,7 @@ public class AstBuilder {
 
       return new CreateTable(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
+          ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
@@ -257,7 +258,7 @@ public class AstBuilder {
 
       return new CreateStream(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
+          ParserUtil.getSourceName(context.sourceName()),
           TableElements.of(elements),
           context.EXISTS() != null,
           CreateSourceProperties.from(properties)
@@ -272,11 +273,11 @@ public class AstBuilder {
 
       return new CreateStreamAsSelect(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier(0))),
+          ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties),
-          getPartitionBy(context.identifier(1))
+          getPartitionBy(context.identifier())
       );
     }
 
@@ -288,7 +289,7 @@ public class AstBuilder {
 
       return new CreateTableAsSelect(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
+          ParserUtil.getSourceName(context.sourceName()),
           query,
           context.EXISTS() != null,
           CreateSourceAsProperties.from(properties)
@@ -312,8 +313,8 @@ public class AstBuilder {
     @Override
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
 
-      final SourceName targetName = SourceName.of(getIdentifierText(context.identifier(0)));
-      final Optional<NodeLocation> targetLocation = getLocation(context.identifier(0));
+      final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
 
       final DataSource<?> target = getSource(targetName, targetLocation);
 
@@ -329,13 +330,13 @@ public class AstBuilder {
           getLocation(context),
           targetName,
           query,
-          getPartitionBy(context.identifier(1)));
+          getPartitionBy(context.identifier()));
     }
 
     @Override
     public Node visitInsertValues(final InsertValuesContext context) {
-      final String targetName = getIdentifierText(context.identifier());
-      final Optional<NodeLocation> targetLocation = getLocation(context.identifier());
+      final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
+      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
 
       final List<ColumnName> columns;
       if (context.columns() != null) {
@@ -350,7 +351,7 @@ public class AstBuilder {
 
       return new InsertValues(
           targetLocation,
-          SourceName.of(targetName),
+          targetName,
           columns,
           visit(context.values().valueExpression(), Expression.class));
     }
@@ -359,7 +360,7 @@ public class AstBuilder {
     public Node visitDropTable(final SqlBaseParser.DropTableContext context) {
       return new DropTable(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
+          ParserUtil.getSourceName(context.sourceName()),
           context.EXISTS() != null,
           context.DELETE() != null
       );
@@ -369,7 +370,7 @@ public class AstBuilder {
     public Node visitDropStream(final SqlBaseParser.DropStreamContext context) {
       return new DropStream(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
+          ParserUtil.getSourceName(context.sourceName()),
           context.EXISTS() != null,
           context.DELETE() != null
       );
@@ -670,7 +671,8 @@ public class AstBuilder {
     public Node visitTerminateQuery(final SqlBaseParser.TerminateQueryContext context) {
       return new TerminateQuery(
           getLocation(context),
-          context.identifier().getText()
+          // use case sensitive parsing here to maintain backwards compatibility
+          ParserUtil.getIdentifierText(true, context.identifier())
       );
     }
 
@@ -678,7 +680,7 @@ public class AstBuilder {
     public Node visitShowColumns(final SqlBaseParser.ShowColumnsContext context) {
       return new ShowColumns(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier())),
+          ParserUtil.getSourceName(context.sourceName()),
           context.EXTENDED() != null
       );
     }
@@ -781,19 +783,19 @@ public class AstBuilder {
     public Node visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
       final Relation child = (Relation) visit(context.relationPrimary());
 
-      final String alias;
+      final SourceName alias;
       switch (context.children.size()) {
         case 1:
           final Table table = (Table) visit(context.relationPrimary());
-          alias = table.getName().name();
+          alias = table.getName();
           break;
 
         case 2:
-          alias = context.children.get(1).getText();
+          alias = ParserUtil.getSourceName((SourceNameContext) context.children.get(1));
           break;
 
         case 3:
-          alias = context.children.get(2).getText();
+          alias = ParserUtil.getSourceName((SourceNameContext) context.children.get(2));
           break;
 
         default:
@@ -803,14 +805,14 @@ public class AstBuilder {
           );
       }
 
-      return new AliasedRelation(getLocation(context), child, SourceName.of(alias.toUpperCase()));
+      return new AliasedRelation(getLocation(context), child, alias);
     }
 
     @Override
     public Node visitTableName(final SqlBaseParser.TableNameContext context) {
       return new Table(
           getLocation(context),
-          SourceName.of(ParserUtil.getIdentifierText(context.identifier()))
+          ParserUtil.getSourceName(context.sourceName())
       );
     }
 

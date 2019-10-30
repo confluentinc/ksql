@@ -76,6 +76,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElements;
+import io.confluent.ksql.parser.tree.TerminateQuery;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -457,6 +458,29 @@ public class KsqlParserTest {
 
     KsqlParserTestUtil.buildSingleAst("SELECT C2 as ROWKEY FROM test1 t1;", metaStore);
   }
+
+  @Test
+  public void shouldThrowOnNonAlphanumericSourceName() {
+    // Expect:
+    expectedException.expect(ParseFailedException.class);
+    expectedException.expectMessage("Got: 'foo!bar'");
+
+    // When:
+    KsqlParserTestUtil.buildSingleAst(
+        "CREATE STREAM `foo!bar` WITH (kafka_topic='foo', value_format='AVRO');",
+        metaStore);
+  }
+
+  @Test
+  public void shouldAllowEscapedTerminateQuery() {
+    // When:
+    final PreparedStatement<TerminateQuery> statement = KsqlParserTestUtil
+        .buildSingleAst("TERMINATE QUERY `CSAS-foo_2`;", metaStore);
+
+    // Then:
+    assertThat(statement.getStatement().getQueryId().getId(), is("CSAS-foo_2"));
+  }
+
 
   @Test
   public void testSelectAllJoin() {

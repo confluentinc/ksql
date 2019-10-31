@@ -22,10 +22,12 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
+import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.parser.tree.ListFunctions;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.ListTopics;
+import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -208,12 +210,24 @@ public class KsqlResource implements KsqlConfigurable {
           distributedCmdResponseTimeout);
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
-      validator.validate(
-          SandboxedServiceContext.create(serviceContext),
-          statements,
-          request.getStreamsProperties(),
-          request.getKsql()
-      );
+
+      boolean isPullQuery = false;
+      for (ParsedStatement statement: statements) {
+        final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
+        final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
+        if (statementClass.equals(Query.class)) {
+          isPullQuery = true;
+        }
+      }
+
+      if (!isPullQuery) {
+        validator.validate(
+            SandboxedServiceContext.create(serviceContext),
+            statements,
+            request.getStreamsProperties(),
+            request.getKsql()
+        );
+      }
 
       final KsqlEntityList entities = handler.execute(
           serviceContext,

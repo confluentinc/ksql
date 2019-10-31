@@ -29,10 +29,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.TimeoutException;
 
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
@@ -60,9 +62,8 @@ public class CommandRunner implements Closeable {
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
+  private final SequenceNumberFutureStore offsetProcessedFutureStore;
   
-  private AtomicLong commandConsumerOffset;
-
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
@@ -95,7 +96,7 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.commandConsumerOffset = new AtomicLong(0L);
+    this.offsetProcessedFutureStore = new SequenceNumberFutureStore();
   }
 
   /**
@@ -147,9 +148,8 @@ public class CommandRunner implements Closeable {
 
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
-    final long currentOffset = commandStore.getConsumerPosition();
     if (commands.isEmpty()) {
-      commandConsumerOffset.set(currentOffset);
+      completeSatisfiedSequenceNumberFutures();
       return;
     }
     final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
@@ -166,7 +166,7 @@ public class CommandRunner implements Closeable {
 
       executeStatement(command);
     }
-    commandConsumerOffset.set(currentOffset);
+    completeSatisfiedSequenceNumberFutures();
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
@@ -211,8 +211,32 @@ public class CommandRunner implements Closeable {
     log.info("The KSQL server was terminated.");
   }
 
-  public long getCommandConsumerOffset() {
-    return commandConsumerOffset.get();
+  public void ensureProcessedPastOffset(final long seqNum, final Duration timeout)
+      throws InterruptedException, TimeoutException {
+    final CompletableFuture<Void> future =
+        offsetProcessedFutureStore.getFutureForSequenceNumber(seqNum);
+    try {
+      future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+    } catch (final ExecutionException e) {
+      if (e.getCause() instanceof RuntimeException) {
+        throw (RuntimeException) e.getCause();
+      }
+      throw new RuntimeException(
+          "Error waiting for commandRunner to process commandTopic up to offset "
+              + seqNum, e.getCause());
+    } catch (final TimeoutException e) {
+      throw new TimeoutException(
+          String.format(
+              "Timeout reached while waiting for commandRunner to process up to offset %d."
+              + "(Timeout: %d ms)",
+              seqNum,
+          timeout.toMillis()));
+    }
+  }
+
+  private void completeSatisfiedSequenceNumberFutures() {
+    offsetProcessedFutureStore.completeFuturesUpToAndIncludingSequenceNumber(
+        commandStore.getConsumerPosition() - 1);
   }
 
   private class Runner implements Runnable {

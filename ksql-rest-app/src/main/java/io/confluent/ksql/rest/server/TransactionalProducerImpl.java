@@ -16,20 +16,25 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
+
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
+
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.KafkaException;
@@ -100,22 +105,21 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   }
 
   public void waitForConsumer() {
-    final long endOffset = getEndOffset();
     try {
-      int retries = 0;
-      while (commandRunner.getCommandConsumerOffset() < endOffset) {
-        Thread.sleep(1000);
-
-        if (retries == 30) {
-          throw new RuntimeException("commandRunner has not processed all commands in topic");
-        }
-        retries++;
-      }
-    } catch (Exception exception) {
-      throw new RuntimeException(
-          "Error while waiting for commandRunner to process command topic:",
-          exception
-      );
+      final long endOffset = getEndOffset();
+      
+      // timeout hardcoded for now
+      commandRunner.ensureProcessedPastOffset(endOffset - 1, Duration.ofMillis(5000));
+    } catch (final InterruptedException e) {
+      final String errorMsg = 
+          "Interrupted while waiting for commandRunner to process command topic";
+      throw new KsqlRestException(
+          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
+    } catch (final TimeoutException e) {
+      final String errorMsg =
+          "Timeout while waiting for commandRunner to process command topic";
+      throw new KsqlRestException(
+          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
     }
   }
 

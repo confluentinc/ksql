@@ -72,7 +72,6 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -108,9 +107,7 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.common.errors.AuthorizationException;
-import org.apache.kafka.common.errors.OutOfOrderSequenceException;
-import org.apache.kafka.common.errors.ProducerFencedException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
@@ -478,9 +475,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
+    final Map<String, Object> consumerConfigs = restConfig.getCommandConsumerProperties();
+    consumerConfigs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,
-        restConfig.getCommandConsumerProperties());
+        consumerConfigs);
 
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
@@ -527,7 +527,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             commandTopicName,
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
             commandRunner,
-            restConfig.getCommandConsumerProperties(),
+            consumerConfigs,
             restConfig.getCommandProducerProperties()
     );
 
@@ -648,7 +648,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       return;
     }
     final TransactionalProducer transactionalProducer =
-            transactionalProducerFactory.createProducerTransactionManager();
+        transactionalProducerFactory.createProducerTransactionManager();
     try {
       transactionalProducer.begin();
   

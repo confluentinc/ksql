@@ -31,6 +31,8 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
+import io.confluent.ksql.rest.entity.CommandStatusEntity;
+import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
@@ -220,29 +222,7 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
-
-      final TransactionalProducer transactionalProducer =
-          transactionalProducerFactory.createProducerTransactionManager();
-
-      transactionalProducer.begin();
-      transactionalProducer.waitForConsumer();
-
-      validator.validate(
-          SandboxedServiceContext.create(serviceContext),
-          statements,
-          request.getStreamsProperties(),
-          request.getKsql()
-      );
-
-      final KsqlEntityList entities = handler.execute(
-          serviceContext,
-          statements,
-          request.getStreamsProperties(),
-          transactionalProducer
-      );
-
-      transactionalProducer.commit();
+      final KsqlEntityList entities = handleTransactionalProduce(serviceContext, request);
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;
@@ -255,6 +235,43 @@ public class KsqlResource implements KsqlConfigurable {
       return ErrorResponseUtil.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
     }
+  }
+
+  private KsqlEntityList handleTransactionalProduce(
+      final ServiceContext serviceContext,
+      final KsqlRequest request
+  ) {
+    final TransactionalProducer transactionalProducer =
+        transactionalProducerFactory.createProducerTransactionManager();
+    transactionalProducer.begin();
+    final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+    final KsqlEntityList entities;
+
+    try {
+      transactionalProducer.waitForConsumer();
+
+      validator.validate(
+          SandboxedServiceContext.create(serviceContext),
+          statements,
+          request.getStreamsProperties(),
+          request.getKsql()
+      );
+
+      entities = handler.execute(
+          serviceContext,
+          statements,
+          request.getStreamsProperties(),
+          transactionalProducer
+      );
+
+      transactionalProducer.commit();
+    } catch (Exception e) {
+      transactionalProducer.abort();
+      LOG.error("Aborted transactional produce for: " + request);
+      throw e;
+    }
+    transactionalProducer.close();
+    return entities;
   }
 
   private void throwIfNotConfigured() {

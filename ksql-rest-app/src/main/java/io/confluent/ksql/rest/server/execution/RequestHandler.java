@@ -118,7 +118,10 @@ public class RequestHandler {
       final TransactionalProducer transactionalProducer
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
-    commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
+
+    // currently this needs to be commented out since this check will fail since the commandRunner consumer
+    // can't poll the non-comitted records.
+    // commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, 

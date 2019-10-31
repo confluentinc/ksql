@@ -36,37 +36,13 @@ import java.util.List;
 public class Explode {
 
   @Udtf
-  public List<Long> explodeLong(final List<Long> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<Integer> explodeInt(final List<Integer> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<Double> explodeDouble(final List<Double> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<Boolean> explodeBoolean(final List<Boolean> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<String> explodeString(final List<String> input) {
-    return explode(input);
+  public <T> List<T> explode(final List<T> list) {
+    return list == null ? Collections.emptyList() : list;
   }
 
   @Udtf(schemaProvider = "provideSchema")
   public List<BigDecimal> explodeBigDecimal(final List<BigDecimal> input) {
     return explode(input);
-  }
-
-  private <T> List<T> explode(final List<T> list) {
-    return list == null ? Collections.emptyList() : list;
   }
 
   @UdfSchemaProvider

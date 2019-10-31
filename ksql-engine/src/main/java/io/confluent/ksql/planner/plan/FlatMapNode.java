@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * A node in the logical plan which represents a flat map operation - transforming a single row into
@@ -143,12 +142,7 @@ public class FlatMapNode extends PlanNode {
               functionCall, inputSchema
           );
       final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
-      final List<Schema> argTypes = new ArrayList<>(functionCall.getArguments().size());
-      for (Expression expression : functionCall.getArguments()) {
-        final SqlType argType = expressionTypeManager.getExpressionSqlType(expression);
-        argTypes.add(SchemaConverters.sqlToConnectConverter().toConnectSchema(argType));
-      }
-      final SqlType fieldType = converter.toSqlType(tableFunction.getReturnType(argTypes));
+      final SqlType fieldType = expressionTypeManager.getExpressionSqlType(functionCall);
       schemaBuilder.valueColumn(colName, fieldType);
     }
 

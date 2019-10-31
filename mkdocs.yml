@@ -92,12 +92,12 @@ nav:
             - SPOOL: developer-guide/ksqldb-reference/spool.md
             - TERMINATE: developer-guide/ksqldb-reference/terminate.md
         - ksqlDB REST API Reference: 
-            - ksqlDB REST API Reference: developer-guide/ksqldb-rest-api/api.md # old reference topic
+            - ksqlDB REST API Reference: developer-guide/api.md # old reference topic
+            - Get the Status of a CREATE, DROP, or TERMINATE (/status endpoint): developer-guide/ksqldb-rest-api/status-endpoint.md
+            - Get the Status of a KSQL Server (/info endpoint): developer-guide/ksqldb-rest-api/info-endpoint.md 
             - Run a KSQL Statement (/ksql): developer-guide/ksqldb-rest-api/ksql-endpoint.md
             - Run A Query And Stream Back The Output (/query endpoint): developer-guide/ksqldb-rest-api/query-endpoint.md
-            - Get the Status of a CREATE, DROP, or TERMINATE (/status endpoint): developer-guide/ksqldb-rest-api/status-endpoint.md
             - Terminate a Cluster (/ksql/terminate endpoint): developer-guide/ksqldb-rest-api/terminate-endpoint.md
-
         - ksqlDB Custom Function Reference (UDF and UDAF): developer-guide/udf.md        
         - Serialization: developer-guide/serialization.md
         - ksqlDB Processing Log: developer-guide/processing-log.md

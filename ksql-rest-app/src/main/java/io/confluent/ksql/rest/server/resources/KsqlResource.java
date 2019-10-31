@@ -120,7 +120,7 @@ public class KsqlResource implements KsqlConfigurable {
         activenessRegistrar,
         Injectors.DEFAULT,
         authorizationValidator,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
   }
 
@@ -226,7 +226,7 @@ public class KsqlResource implements KsqlConfigurable {
           transactionalProducerFactory.createProducerTransactionManager();
 
       transactionalProducer.begin();
-      transactionalProducer.waitForCommandRunner();
+      transactionalProducer.waitForConsumer();
 
       validator.validate(
           SandboxedServiceContext.create(serviceContext),

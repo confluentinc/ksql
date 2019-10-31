@@ -73,10 +73,6 @@ public class DistributingExecutor {
     checkAuthorization(injected, serviceContext, executionContext);
 
     try {
-      if (transactionalProducer == null) {
-        throw new RuntimeException("Transaction manager for distributing executor not set");
-      }
-
       final QueuedCommandStatus queuedCommandStatus =
           commandQueue.enqueueCommand(injected, transactionalProducer);
 

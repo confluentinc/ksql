@@ -191,6 +191,10 @@ public class CommandStore implements CommandQueue, Closeable {
     }
   }
 
+  public long getConsumerPosition() {
+    return commandTopic.getCommandTopicConsumerPosition();
+  }
+  
   public boolean isEmpty() {
     return commandTopic.getEndOffset() == 0;
   }

@@ -32,6 +32,8 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,8 +60,8 @@ public class CommandRunner implements Closeable {
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
-
-  private long lastProcessedOffset;
+  
+  private AtomicLong commandConsumerOffset;
 
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
@@ -93,7 +95,7 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.lastProcessedOffset = 0;
+    this.commandConsumerOffset = new AtomicLong(0L);
   }
 
   /**
@@ -139,19 +141,17 @@ public class CommandRunner implements Closeable {
             WakeupException.class
         )
     );
-
-    lastProcessedOffset = restoreCommands.get(restoreCommands.size() - 1).getOffset();
-
     final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
+    final long currentOffset = commandStore.getConsumerPosition();
     if (commands.isEmpty()) {
+      commandConsumerOffset.set(currentOffset);
       return;
     }
-
     final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
     if (terminateCmd.isPresent()) {
       terminateCluster(terminateCmd.get().getCommand());
@@ -166,6 +166,7 @@ public class CommandRunner implements Closeable {
 
       executeStatement(command);
     }
+    commandConsumerOffset.set(currentOffset);
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
@@ -176,7 +177,6 @@ public class CommandRunner implements Closeable {
         log.info("Execution aborted as system is closing down");
       } else {
         statementExecutor.handleStatement(queuedCommand);
-        lastProcessedOffset = queuedCommand.getOffset();
         log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
       }
     };
@@ -211,8 +211,8 @@ public class CommandRunner implements Closeable {
     log.info("The KSQL server was terminated.");
   }
 
-  public long getLastProcessedOffset() {
-    return lastProcessedOffset;
+  public long getCommandConsumerOffset() {
+    return commandConsumerOffset.get();
   }
 
   private class Runner implements Runnable {

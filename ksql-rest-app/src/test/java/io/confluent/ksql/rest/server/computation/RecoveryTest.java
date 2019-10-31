@@ -170,6 +170,11 @@ public class RecoveryTest {
     }
 
     @Override
+    public long getConsumerPosition() {
+      return 0L;
+    }
+    
+    @Override
     public boolean isEmpty() {
       return commandLog.isEmpty();
     }

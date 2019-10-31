@@ -46,6 +46,11 @@ public interface CommandQueue extends Closeable {
   );
 
   /**
+   * Documentation on this
+   */
+  //  TransactionalProducer createTransactionalProducer();
+  
+  /**
    * Polls the Queue for any commands that have been enqueued since the last
    * invocation to this method.
    *
@@ -82,6 +87,11 @@ public interface CommandQueue extends Closeable {
    * @return whether or not there are any enqueued commands
    */
   boolean isEmpty();
+
+  /**
+   * @return the next record offset that will be fetched
+   */
+  long getConsumerPosition();
 
   /**
    * Cause any blocked {@link #getNewCommands(Duration)} calls to return early.

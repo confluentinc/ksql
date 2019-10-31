@@ -102,7 +102,7 @@ public class RequestHandler {
             configured,
             scopedPropertyOverrides,
             entities,
-                transactionalProducer
+            transactionalProducer
         ).ifPresent(entities::add);
       }
     }
@@ -151,7 +151,7 @@ public class RequestHandler {
         serviceContext,
         ksqlEngine.parse(sql),
         propertyOverrides,
-            transactionalProducer
+        transactionalProducer
     );
   }
 }

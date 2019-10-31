@@ -47,7 +47,7 @@ public class TransactionalProducerFactory {
   }
 
   public TransactionalProducer createProducerTransactionManager() {
-    return new TransactionalProducer(
+    return new TransactionalProducerImpl(
         commandTopicName,
         commandRunner,
         kafkaConsumerProperties,

@@ -114,7 +114,8 @@ public final class KsqlInternalTopicUtils {
         ImmutableMap.of(
             TopicConfig.RETENTION_MS_CONFIG, requiredTopicRetention,
             TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
-            TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInsyncReplica
+            TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, minInsyncReplica,
+            TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, false
         )
     );
   }

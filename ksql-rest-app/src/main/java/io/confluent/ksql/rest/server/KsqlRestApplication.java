@@ -108,6 +108,9 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.OutOfOrderSequenceException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
@@ -281,7 +284,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfigNoPort,
         ksqlEngine,
         commandStore,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
 
     commandRunner.processPriorCommands();
@@ -534,7 +537,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         authorizationValidator,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
@@ -644,29 +647,28 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         || !commandQueue.isEmpty()) {
       return;
     }
-
     final TransactionalProducer transactionalProducer =
-        transactionalProducerFactory.createProducerTransactionManager();
-
-    transactionalProducer.begin();
-
-    final PreparedStatement<?> statement = ProcessingLogServerUtils
-        .processingLogStreamCreateStatement(config, ksqlConfig);
-    final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
-        statement, Collections.emptyMap(), ksqlConfig);
-
+            transactionalProducerFactory.createProducerTransactionManager();
     try {
+      transactionalProducer.begin();
+  
+      final PreparedStatement<?> statement = ProcessingLogServerUtils
+          .processingLogStreamCreateStatement(config, ksqlConfig);
+      final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
+          statement, Collections.emptyMap(), ksqlConfig);
+    
       ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(
           ksqlEngine.getServiceContext(),
           configured.get()
       );
-    } catch (final KsqlException e) {
+      commandQueue.enqueueCommand(configured.get(), transactionalProducer);
+      transactionalProducer.commit();
+    } catch (final Exception e) {
       log.warn("Failed to create processing log stream", e);
+      transactionalProducer.abort();
       return;
     }
-
-    commandQueue.enqueueCommand(configured.get(), transactionalProducer);
-    transactionalProducer.commit();
+    transactionalProducer.close();
   }
 
   /**

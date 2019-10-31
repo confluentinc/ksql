@@ -69,7 +69,7 @@ public class TransactionalProducerTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    transactionalProducer = new TransactionalProducer(
+    transactionalProducer = new TransactionalProducerImpl(
         COMMAND_TOPIC_NAME,
         commandRunner,
         commandConsumer,

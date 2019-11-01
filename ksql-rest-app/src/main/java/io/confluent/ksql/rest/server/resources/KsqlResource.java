@@ -209,23 +209,12 @@ public class KsqlResource implements KsqlConfigurable {
 
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
 
-      // boolean isPullQuery = false;
-      // for (ParsedStatement statement: statements) {
-      // final PreparedStatement<?> prepared = ksqlEngine.prepare(statement);
-      // final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
-      // if (statementClass.equals(Query.class)) {
-      // isPullQuery = true;
-      // }
-      // }
-      //
-      //if (!isPullQuery) {
       validator.validate(
           SandboxedServiceContext.create(serviceContext),
           statements,
           request.getStreamsProperties(),
           request.getKsql()
       );
-      // }
 
       final KsqlEntityList entities = handler.execute(
           serviceContext,

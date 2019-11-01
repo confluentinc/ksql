@@ -106,14 +106,15 @@ public class RequestValidator {
     int numPersistentQueries = 0;
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(parsed);
-      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, scopedPropertyOverrides, ksqlConfig);
 
       final Class<? extends Statement> statementClass = prepared.getStatement().getClass();
       if (statementClass.equals(Query.class)
           && ((Query) prepared.getStatement()).isStatic()) {
         continue;
       }
+
+      final ConfiguredStatement<?> configured = ConfiguredStatement.of(
+          prepared, scopedPropertyOverrides, ksqlConfig);
 
       numPersistentQueries += (prepared.getStatement() instanceof RunScript)
           ? validateRunScript(serviceContext, configured, scopedPropertyOverrides, ctx)

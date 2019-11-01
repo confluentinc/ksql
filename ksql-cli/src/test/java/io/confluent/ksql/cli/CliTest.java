@@ -871,6 +871,33 @@ public class CliTest {
   }
 
   @Test
+  public void shouldDescribeTableFunction() {
+    final String expectedOutput =
+        "Name        : EXPLODE\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "Type        : table\n"
+            + "Jar         : internal\n"
+            + "Variations  : ";
+
+    localCli.handleLine("describe function explode;");
+    final String outputString = terminal.getOutputString();
+    assertThat(outputString, containsString(expectedOutput));
+
+    // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
+    String expectedVariation =
+        "\tVariation   : EXPLODE(list ARRAY<BYTES>)\n"
+            + "\tReturns     : BYTES\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+    assertThat(outputString, containsString(expectedVariation));
+
+    expectedVariation = "\tVariation   : EXPLODE(input ARRAY<DECIMAL(1, 0)>)\n"
+            + "\tReturns     : DECIMAL(1, 0)\n"
+        + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+    assertThat(outputString, containsString(expectedVariation));
+  }
+
+  @Test
   public void shouldExplainQueryId() {
     // Given:
     localCli.handleLine("CREATE STREAM " + streamName + " "

@@ -198,8 +198,23 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
+  public synchronized TableFunctionFactory getTableFunctionFactory(final String functionName) {
+    final TableFunctionFactory tableFunctionFactory = udtfs.get(functionName.toUpperCase());
+    if (tableFunctionFactory == null) {
+      throw new KsqlException(
+          "Can not find any table functions with the name '" + functionName + "'");
+    }
+    return tableFunctionFactory;
+  }
+
+  @Override
   public synchronized List<AggregateFunctionFactory> listAggregateFunctions() {
     return new ArrayList<>(udafs.values());
+  }
+
+  @Override
+  public synchronized List<TableFunctionFactory> listTableFunctions() {
+    return new ArrayList<>(udtfs.values());
   }
 
   private void validateFunctionName(final String functionName) {

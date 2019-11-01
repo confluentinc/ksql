@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.parser;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.tree.Statement;
@@ -68,10 +68,10 @@ public class DefaultKsqlParser implements KsqlParser {
   @Override
   public PreparedStatement<?> prepare(
       final ParsedStatement stmt,
-      final MetaStore metaStore
+      final TypeRegistry typeRegistry
   ) {
     try {
-      final AstBuilder astBuilder = new AstBuilder(metaStore);
+      final AstBuilder astBuilder = new AstBuilder(typeRegistry);
       final Statement root = astBuilder.build(stmt.getStatement());
 
       return PreparedStatement.of(stmt.getStatementText(), root);

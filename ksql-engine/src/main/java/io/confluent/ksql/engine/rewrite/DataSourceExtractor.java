@@ -13,33 +13,27 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
-
-import static java.util.Objects.requireNonNull;
+package io.confluent.ksql.engine.rewrite;
 
 import com.google.common.collect.Sets;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.parser.SqlBaseBaseVisitor;
-import io.confluent.ksql.parser.SqlBaseParser;
-import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
+import io.confluent.ksql.parser.DefaultTraversalVisitor;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AstNode;
+import io.confluent.ksql.parser.tree.Join;
+import io.confluent.ksql.parser.tree.Relation;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
-import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.tree.ParseTree;
 
-public class DataSourceExtractor {
+class DataSourceExtractor {
 
   private final MetaStore metaStore;
 
@@ -56,13 +50,12 @@ public class DataSourceExtractor {
 
   private boolean isJoin = false;
 
-  public DataSourceExtractor(final MetaStore metaStore) {
+  DataSourceExtractor(final MetaStore metaStore) {
     this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
   }
 
-  public void extractDataSources(final ParseTree node) {
-    new Visitor().visit(node);
-
+  public void extractDataSources(final AstNode node) {
+    new Visitor().process(node, null);
     commonFieldNames.addAll(Sets.intersection(leftFieldNames, rightFieldNames));
   }
 
@@ -106,64 +99,47 @@ public class DataSourceExtractor {
     return isJoin;
   }
 
-  private final class Visitor extends SqlBaseBaseVisitor<AstNode> {
+  public SourceName getAliasFor(final ColumnName columnName) {
+    if (isJoin) {
+      if (commonFieldNames.contains(columnName)) {
+        throw new KsqlException("Column '" + columnName.name() + "' is ambiguous.");
+      }
 
-    @Override
-    public AstNode visitQuery(final SqlBaseParser.QueryContext ctx) {
-      visit(ctx.from);
-      return visitChildren(ctx);
-    }
+      if (leftFieldNames.contains(columnName)) {
+        return leftAlias;
+      }
 
-    @Override
-    public AstNode visitTableName(final SqlBaseParser.TableNameContext context) {
-      return new Table(
-          getLocation(context),
-          ParserUtil.getSourceName(context.sourceName())
+      if (rightFieldNames.contains(columnName)) {
+        return rightAlias;
+      }
+
+      throw new KsqlException(
+          "Column '" + columnName.name() + "' cannot be resolved."
       );
     }
+    return fromAlias;
+  }
 
+  private final class Visitor extends DefaultTraversalVisitor<Void, Void> {
     @Override
-    public AstNode visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
-      final Table table = (Table) visit(context.relationPrimary());
-
-      final SourceName alias;
-      switch (context.children.size()) {
-        case 1:
-          alias = table.getName();
-          break;
-
-        case 2:
-          alias = ParserUtil.getSourceName((SourceNameContext) context.children.get(1));
-          break;
-
-        case 3:
-          alias = ParserUtil.getSourceName((SourceNameContext) context.children.get(2));
-          break;
-
-        default:
-          throw new IllegalArgumentException(
-              "AliasedRelationContext must have between 1 and 3 children, but has:"
-                  + context.children.size()
-          );
-      }
-
-      if (!isJoin) {
-        fromAlias = alias;
-        fromName = table.getName();
-        if (metaStore.getSource(fromName) == null) {
-          throw new KsqlException(table.getName().name() + " does not exist.");
-        }
-
-        return null;
-      }
-
-      return new AliasedRelation(getLocation(context), table, alias);
+    public Void visitRelation(final Relation relation, final Void ctx) {
+      throw new IllegalStateException("Unexpected source relation");
     }
 
     @Override
-    public AstNode visitJoinRelation(final SqlBaseParser.JoinRelationContext context) {
+    public Void visitAliasedRelation(final AliasedRelation relation, final Void ctx) {
+      fromAlias = relation.getAlias();
+      fromName = ((Table) relation.getRelation()).getName();
+      if (metaStore.getSource(fromName) == null) {
+        throw new KsqlException(fromName.name() + " does not exist.");
+      }
+      return null;
+    }
+
+    @Override
+    public Void visitJoin(final Join join, final Void ctx) {
       isJoin = true;
-      final AliasedRelation left = (AliasedRelation) visit(context.left);
+      final AliasedRelation left = (AliasedRelation) join.getLeft();
       leftAlias = left.getAlias();
       leftName = ((Table) left.getRelation()).getName();
       final DataSource
@@ -174,8 +150,7 @@ public class DataSourceExtractor {
             + "exist.");
       }
       addFieldNames(leftDataSource.getSchema(), leftFieldNames);
-
-      final AliasedRelation right = (AliasedRelation) visit(context.right);
+      final AliasedRelation right = (AliasedRelation) join.getRight();
       rightAlias = right.getAlias();
       rightName = ((Table) right.getRelation()).getName();
       final DataSource
@@ -186,19 +161,8 @@ public class DataSourceExtractor {
             + "exist.");
       }
       addFieldNames(rightDataSource.getSchema(), rightFieldNames);
-
       return null;
     }
-  }
-
-  private static Optional<NodeLocation> getLocation(final ParserRuleContext parserRuleContext) {
-    requireNonNull(parserRuleContext, "parserRuleContext is null");
-    return getLocation(parserRuleContext.getStart());
-  }
-
-  private static Optional<NodeLocation> getLocation(final Token token) {
-    requireNonNull(token, "token is null");
-    return Optional.of(new NodeLocation(token.getLine(), token.getCharPositionInLine()));
   }
 
   private static void addFieldNames(final LogicalSchema schema, final Set<ColumnName> collection) {

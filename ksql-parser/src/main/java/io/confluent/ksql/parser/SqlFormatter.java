@@ -175,11 +175,11 @@ public final class SqlFormatter {
     @Override
     protected Void visitSingleColumn(final SingleColumn node, final Integer indent) {
       builder.append(ExpressionFormatterUtil.formatExpression(node.getExpression()));
-      builder.append(' ')
-                .append('"')
-                // for backwards compatibility, we always quote with `""` here
-                .append(node.getAlias().toString(FormatOptions.noEscape()))
-                .append('"');
+      if (node.getAlias().isPresent()) {
+        builder.append(' ')
+            // for backwards compatibility, we always quote with `""` here
+            .append(node.getAlias().get().toString(FormatOptions.of(IdentifierUtil::needsQuotes)));
+      }
       return null;
     }
 

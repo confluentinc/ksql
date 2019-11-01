@@ -16,6 +16,7 @@
 package io.confluent.ksql.name;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 
 /**
  * The name of a column within a source.
@@ -45,6 +46,17 @@ public final class ColumnName extends Name<ColumnName> {
    */
   public static ColumnName synthesisedSchemaColumn(final int idx) {
     return ColumnName.of(SYNTHESISED_COLUMN_PREFIX + idx);
+  }
+
+  /**
+   * Used to generate a column alias for a join where the a column with this name exists
+   * in both of the sources.
+   */
+  public static ColumnName generatedJoinColumnAlias(final ColumnRef ref) {
+    return ref.source()
+        .map(q -> q.name() + "_" + ref.name().name())
+        .map(ColumnName::of)
+        .orElseGet(ref::name);
   }
 
   public static ColumnName of(final String name) {

@@ -19,10 +19,14 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.engine.rewrite.StatementRewriter.Context;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import io.confluent.ksql.name.ColumnName;
@@ -61,6 +65,8 @@ import java.util.function.BiFunction;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -71,6 +77,8 @@ public class StatementRewriterTest {
   private BiFunction<Expression, Object, Expression> expressionRewriter;
   @Mock
   private BiFunction<AstNode, Object, AstNode> mockRewriter;
+  @Mock
+  private BiFunction<AstNode, Context<Object>, Optional<AstNode>> mockPlugin;
   @Mock
   private Optional<NodeLocation> location;
   @Mock
@@ -107,6 +115,8 @@ public class StatementRewriterTest {
   private CreateSourceAsProperties csasProperties;
   @Mock
   private ResultMaterialization resultMaterialization;
+  @Captor
+  private ArgumentCaptor<Context<Object>> contextCaptor;
 
   private StatementRewriter<Object> rewriter;
 
@@ -115,7 +125,8 @@ public class StatementRewriterTest {
 
   @Before
   public void setup() {
-    rewriter = new StatementRewriter<>(expressionRewriter, mockRewriter);
+    when(mockPlugin.apply(any(), any())).thenReturn(Optional.empty());
+    rewriter = new StatementRewriter<>(expressionRewriter, mockPlugin, mockRewriter);
   }
 
   @Test
@@ -138,6 +149,17 @@ public class StatementRewriterTest {
         rewritten,
         equalTo(new Statements(location, ImmutableList.of(rewritten1, rewritten2)))
     );
+  }
+
+  @Test
+  public void shouldUsePluginToRewriteStatements() {
+    // Given:
+    final Statements statements = mock(Statements.class);
+    final Statements pluginResult = mock(Statements.class);
+    when(statements.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(statements, pluginResult);
   }
 
   private Query givenQuery(
@@ -184,6 +206,17 @@ public class StatementRewriterTest {
         false,
         optionalInt))
     );
+  }
+
+  @Test
+  public void shouldRewriteQueryUsingPlugin() {
+    // Given:
+    final Query query = mock(Query.class);
+    final Query pluginResult = mock(Query.class);
+    when(query.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(query, pluginResult);
   }
 
   @Test
@@ -293,14 +326,32 @@ public class StatementRewriterTest {
   @Test
   public void shouldRewriteSingleColumn() {
     // Given:
-    final SingleColumn singleColumn = new SingleColumn(location, expression, ColumnName.of("foo"));
+    final SingleColumn singleColumn = new SingleColumn(
+        location,
+        expression,
+        Optional.of(ColumnName.of("foo"))
+    );
     when(expressionRewriter.apply(expression, context)).thenReturn(rewrittenExpression);
 
     // When:
     final AstNode rewritten = rewriter.rewrite(singleColumn, context);
 
     // Then:
-    assertThat(rewritten, equalTo(new SingleColumn(location, rewrittenExpression, ColumnName.of("foo"))));
+    assertThat(rewritten, equalTo(new SingleColumn(
+        location, rewrittenExpression,
+        Optional.of(ColumnName.of("foo")))
+    ));
+  }
+
+  @Test
+  public void shouldRewriteSingleColumnUsingPlugin() {
+    // Given:
+    final SingleColumn singleColumn = mock(SingleColumn.class);
+    final SingleColumn pluginResult = mock(SingleColumn.class);
+    when(singleColumn.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(singleColumn, pluginResult);
   }
 
   @Test
@@ -316,6 +367,17 @@ public class StatementRewriterTest {
     assertThat(
         rewritten,
         equalTo(new AliasedRelation(location, rewrittenRelation, SourceName.of("alias"))));
+  }
+
+  @Test
+  public void shouldRewriteAliasedRelationUsingPlugin() {
+    // Given:
+    final AliasedRelation relation = mock(AliasedRelation.class);
+    final AliasedRelation pluginResult = mock(AliasedRelation.class);
+    when(relation.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(relation, pluginResult);
   }
 
   private Join givenJoin(final Optional<WithinExpression> within) {
@@ -372,6 +434,17 @@ public class StatementRewriterTest {
   }
 
   @Test
+  public void shouldRewriteJoinUsingPlugin() {
+    // Given:
+    final Join join = mock(Join.class);
+    final Join pluginResult = mock(Join.class);
+    when(join.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(join, pluginResult);
+  }
+
+  @Test
   public void shouldRewriteWindowExpression() {
     // Given:
     final KsqlWindowExpression ksqlWindowExpression = mock(KsqlWindowExpression.class);
@@ -386,6 +459,17 @@ public class StatementRewriterTest {
         rewritten,
         equalTo(new WindowExpression(location, "name", ksqlWindowExpression))
     );
+  }
+
+  @Test
+  public void shouldRewriteWindowExpressionUsingPlugin() {
+    // Given:
+    final WindowExpression windowExpression = mock(WindowExpression.class);
+    final WindowExpression pluginResult = mock(WindowExpression.class);
+    when(windowExpression.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(windowExpression, pluginResult);
   }
 
   private static TableElement givenTableElement(final String name) {
@@ -427,6 +511,17 @@ public class StatementRewriterTest {
             )
         )
     );
+  }
+
+  @Test
+  public void shouldRewriteCreateStreamUsingPlugin() {
+    // Given:
+    final CreateStream cs = mock(CreateStream.class);
+    final CreateStream pluginResult = mock(CreateStream.class);
+    when(cs.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(cs, pluginResult);
   }
 
   @Test
@@ -489,6 +584,17 @@ public class StatementRewriterTest {
   }
 
   @Test
+  public void shouldRewriteCreateStreamAsSelectUsingPlugin() {
+    // Given:
+    final CreateStreamAsSelect csas = mock(CreateStreamAsSelect.class);
+    final CreateStreamAsSelect pluginResult = mock(CreateStreamAsSelect.class);
+    when(csas.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(csas, pluginResult);
+  }
+
+  @Test
   public void shouldRewriteCreateTable() {
     // Given:
     final TableElement tableElement1 = givenTableElement("foo");
@@ -524,6 +630,17 @@ public class StatementRewriterTest {
   }
 
   @Test
+  public void shouldRewriteCreateTableUsingPlugin() {
+    // Given:
+    final CreateTable ct = mock(CreateTable.class);
+    final CreateTable pluginResult = mock(CreateTable.class);
+    when(ct.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(ct, pluginResult);
+  }
+
+  @Test
   public void shouldRewriteCTAS() {
     // Given:
     final CreateTableAsSelect ctas = new CreateTableAsSelect(
@@ -551,6 +668,17 @@ public class StatementRewriterTest {
             )
         )
     );
+  }
+
+  @Test
+  public void shouldRewriteCreateTableAsSelectUsingPlugin() {
+    // Given:
+    final CreateTableAsSelect ctas = mock(CreateTableAsSelect.class);
+    final CreateTableAsSelect pluginResult = mock(CreateTableAsSelect.class);
+    when(ctas.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(ctas, pluginResult);
   }
 
   @Test
@@ -591,6 +719,17 @@ public class StatementRewriterTest {
             )
         )
     );
+  }
+
+  @Test
+  public void shouldRewriteInsertIntoUsingPlugin() {
+    // Given:
+    final InsertInto ii = mock(InsertInto.class);
+    final InsertInto pluginResult = mock(InsertInto.class);
+    when(ii.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(ii, pluginResult);
   }
 
   @Test
@@ -674,5 +813,30 @@ public class StatementRewriterTest {
 
     // Then:
     assertThat(rewritten, is(sameInstance(explain)));
+  }
+
+  @Test
+  public void shouldRewriteExplainUsingPlugin() {
+    // Given:
+    final Explain explain = mock(Explain.class);
+    final Explain pluginResult = mock(Explain.class);
+    when(explain.accept(any(), any())).thenCallRealMethod();
+
+    // When/Then:
+    shouldUsePluginToRewrite(explain, pluginResult);
+  }
+
+  private void shouldUsePluginToRewrite(final AstNode original, final AstNode pluginResult) {
+    // Given:
+    when(mockPlugin.apply(any(), any())).thenReturn(Optional.of(pluginResult));
+
+    // When:
+    final AstNode rewritten = rewriter.rewrite(original, context);
+
+    // Then:
+    assertThat(rewritten, is(pluginResult));
+    verify(mockPlugin).apply(same(original), contextCaptor.capture());
+    final Context<Object> wrapped = contextCaptor.getValue();
+    assertThat(wrapped.getContext(), is(this.context));
   }
 }

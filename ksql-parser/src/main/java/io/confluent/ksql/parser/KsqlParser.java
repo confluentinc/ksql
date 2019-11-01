@@ -15,7 +15,7 @@
 
 package io.confluent.ksql.parser;
 
-import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.Statement;
 import java.util.List;
@@ -37,14 +37,11 @@ public interface KsqlParser {
   /**
    * Prepare the supplied {@code statement}.
    *
-   * <p>The abstract syntax tree is created using the preexisting entities within the
-   * {@code metastore}.
-   *
    * @param statement the statement to build
-   * @param metaStore the meta store of existing entities.
+   * @param typeRegistry the type registry
    * @return the prepared statement.
    */
-  PreparedStatement<?> prepare(ParsedStatement statement, MetaStore metaStore);
+  PreparedStatement<?> prepare(ParsedStatement statement, TypeRegistry typeRegistry);
 
   final class ParsedStatement {
     private final String statementText;

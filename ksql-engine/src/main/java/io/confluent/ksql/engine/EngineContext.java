@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
+import io.confluent.ksql.engine.rewrite.AstSanitizer;
 import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -36,7 +37,6 @@ import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
@@ -139,8 +139,12 @@ final class EngineContext {
 
   PreparedStatement<?> prepare(final ParsedStatement stmt) {
     try {
-      return parser.prepare(stmt, metaStore);
-    } catch (final KsqlException e) {
+      final PreparedStatement<?> preparedStatement = parser.prepare(stmt, metaStore);
+      return PreparedStatement.of(
+          preparedStatement.getStatementText(),
+          AstSanitizer.sanitize(preparedStatement.getStatement(), metaStore)
+      );
+    } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
       throw new KsqlStatementException(

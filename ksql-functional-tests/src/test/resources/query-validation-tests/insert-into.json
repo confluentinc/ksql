@@ -50,8 +50,8 @@
       "name": "table",
       "statements": [
         "CREATE STREAM SOURCE (d1 VARCHAR) WITH (kafka_topic='SOURCE', value_format='DELIMITED');",
-        "CREATE TABLE OUTPUT (d1 VARCHAR, COUNT INT) WITH (kafka_topic='OUTPUT', value_format='DELIMITED', key='d1');",
-        "INSERT INTO OUTPUT SELECT d1, COUNT() FROM SOURCE GROUP BY d1;"
+        "CREATE TABLE OUTPUT (d1 VARCHAR, COUNT BIGINT) WITH (kafka_topic='OUTPUT', value_format='DELIMITED', key='d1');",
+        "INSERT INTO OUTPUT SELECT d1, COUNT() AS COUNT FROM SOURCE GROUP BY d1;"
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
@@ -65,8 +65,8 @@
         "INSERT INTO UNKNOWN SELECT d1, COUNT() FROM SOURCE GROUP BY d1;"
       ],
       "expectedException": {
-        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
-        "message": "Failed to prepare statement: Line: 2, Col: 13: UNKNOWN does not exist."
+        "type": "io.confluent.ksql.util.KsqlException",
+        "message": "Line: 2, Col: 13: UNKNOWN does not exist."
       }
     },
     {

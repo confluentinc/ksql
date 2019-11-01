@@ -227,7 +227,7 @@ public class KsqlEngineTest {
 
     final ParsedStatement parsed = ksqlEngine.parse("insert into bar select * from test2;").get(0);
 
-    expectedException.expect(ParseFailedException.class);
+    expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(containsString(
         "INSERT INTO can only be used to insert into a stream. BAR is a table.")));
     expectedException.expect(statementText(is("insert into bar select * from test2;")));
@@ -360,7 +360,7 @@ public class KsqlEngineTest {
     assertThat(queries.get(1).getStatementString(), containsString("CREATE STREAM BAR"));
   }
 
-  @Test(expected = ParseFailedException.class)
+  @Test(expected = KsqlStatementException.class)
   public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() {
     KsqlEngineTestUtil
         .execute(
@@ -856,8 +856,7 @@ public class KsqlEngineTest {
 
     // Then:
     expectedException.expect(KsqlStatementException.class);
-    expectedException.expect(rawMessage(is(
-        "Failed to prepare statement: UNKNOWN does not exist.")));
+    expectedException.expectMessage("UNKNOWN does not exist.");
     expectedException.expect(statementText(is(
         "CREATE STREAM FOO AS SELECT * FROM UNKNOWN;")));
 
@@ -1216,8 +1215,7 @@ public class KsqlEngineTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Failed to prepare statement: I_DO_NOT_EXIST does not exist");
+    expectedException.expectMessage("I_DO_NOT_EXIST does not exist");
 
     // When:
     ksqlEngine.prepare(parsed);

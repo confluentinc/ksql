@@ -41,7 +41,7 @@ public class QueryTest {
       new AllColumns(Optional.empty())));
   private static final Select OTHER_SELECT = new Select(ImmutableList.of(new SingleColumn(
       new ColumnReferenceExp(ColumnRef.withoutSource(ColumnName.of("Bob"))),
-      ColumnName.of("B"))));
+      Optional.of(ColumnName.of("B")))));
   private static final Relation SOME_FROM = new Table(SourceName.of("from"));
   private static final Optional<WindowExpression> SOME_WINDOW = Optional.of(
       mock(WindowExpression.class)

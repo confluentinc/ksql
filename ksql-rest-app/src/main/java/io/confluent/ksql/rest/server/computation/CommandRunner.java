@@ -149,7 +149,7 @@ public class CommandRunner implements Closeable {
   void fetchAndRunCommands() {
     final List<QueuedCommand> commands = commandStore.getNewCommands(NEW_CMDS_TIMEOUT);
     if (commands.isEmpty()) {
-      completeSatisfiedSequenceNumberFutures();
+      completeOffsetProccessedFutures();
       return;
     }
     final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
@@ -166,7 +166,7 @@ public class CommandRunner implements Closeable {
 
       executeStatement(command);
     }
-    completeSatisfiedSequenceNumberFutures();
+    completeOffsetProccessedFutures();
   }
 
   private void executeStatement(final QueuedCommand queuedCommand) {
@@ -234,7 +234,7 @@ public class CommandRunner implements Closeable {
     }
   }
 
-  private void completeSatisfiedSequenceNumberFutures() {
+  private void completeOffsetProccessedFutures() {
     offsetProcessedFutureStore.completeFuturesUpToAndIncludingSequenceNumber(
         commandStore.getConsumerPosition() - 1);
   }

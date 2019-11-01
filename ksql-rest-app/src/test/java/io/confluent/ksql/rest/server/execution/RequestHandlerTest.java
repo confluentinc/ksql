@@ -65,7 +65,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class RequestHandlerTest {
 
   private static final String SOME_STREAM_SQL = "CREATE STREAM x WITH (value_format='json', kafka_topic='x');";
-
+  
   @Mock KsqlEngine ksqlEngine;
   @Mock KsqlConfig ksqlConfig;
   @Mock ServiceContext serviceContext;
@@ -86,7 +86,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -101,7 +101,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), transactionalProducer);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL, transactionalProducer);
 
     // Then
     assertThat(entities, contains(entity));
@@ -124,7 +124,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), transactionalProducer);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL, transactionalProducer);
 
     // Then
     assertThat(entities, contains(entity));
@@ -133,7 +133,9 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of(),
             ksqlConfig))),
+            eq(statements.get(0)),
             eq(ImmutableMap.of()),
+            eq(SOME_STREAM_SQL),
             eq(ksqlEngine),
             eq(serviceContext),
             eq(transactionalProducer)
@@ -152,7 +154,8 @@ public class RequestHandlerTest {
         serviceContext,
         statements,
         ImmutableMap.of("x", "y"),
-            transactionalProducer
+        "",
+        transactionalProducer
     );
 
     // Then
@@ -162,7 +165,9 @@ public class RequestHandlerTest {
             preparedStatement(instanceOf(CreateStream.class)),
             ImmutableMap.of("x", "y"),
             ksqlConfig))),
+            statements.get(0),
             any(),
+            eq(SOME_STREAM_SQL),
             eq(ksqlEngine),
             eq(serviceContext),
             eq(transactionalProducer)
@@ -190,7 +195,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(serviceContext, statements, ImmutableMap.of(), transactionalProducer);
+    handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL, transactionalProducer);
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -214,7 +219,7 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(serviceContext, statements, props, transactionalProducer);
+    handler.execute(serviceContext, statements, props, SOME_STREAM_SQL, transactionalProducer);
 
     // Then:
     verify(customExecutor, times(1))
@@ -245,7 +250,7 @@ public class RequestHandlerTest {
         .parse("RUN SCRIPT '/some/script.sql';" );
 
     // When:
-    final KsqlEntityList result = handler.execute(serviceContext, statements, props, transactionalProducer);
+    final KsqlEntityList result = handler.execute(serviceContext, statements, props, SOME_STREAM_SQL, transactionalProducer);
 
     // Then:
     assertThat(result, contains(entity2));

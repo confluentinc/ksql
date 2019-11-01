@@ -16,17 +16,21 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
+import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TransactionalProducer;
+import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,12 +48,14 @@ public class DistributingExecutor {
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
+  private final RequestValidator requestValidator;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final KsqlAuthorizationValidator authorizationValidator
+      final KsqlAuthorizationValidator authorizationValidator,
+      final RequestValidator requestValidator
   ) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
     this.distributedCmdResponseTimeout =
@@ -57,11 +63,15 @@ public class DistributingExecutor {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator =
         Objects.requireNonNull(authorizationValidator, "authorizationValidator");
+    this.requestValidator =
+        Objects.requireNonNull(requestValidator, "requestValidator");
   }
 
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<Statement> statement,
+      final KsqlParser.ParsedStatement parsedStatement,
       final Map<String, Object> mutableScopedProperties,
+      final String sql,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext,
       final TransactionalProducer transactionalProducer
@@ -73,9 +83,18 @@ public class DistributingExecutor {
     checkAuthorization(injected, serviceContext, executionContext);
 
     try {
+      transactionalProducer.begin();
+      requestValidator.validate(
+          SandboxedServiceContext.create(serviceContext),
+          Collections.singletonList(parsedStatement),
+          mutableScopedProperties,
+          sql
+      );
+      
       final QueuedCommandStatus queuedCommandStatus =
           commandQueue.enqueueCommand(injected, transactionalProducer);
 
+      transactionalProducer.commit();
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
@@ -86,6 +105,8 @@ public class DistributingExecutor {
           queuedCommandStatus.getCommandSequenceNumber()
       ));
     } catch (final Exception e) {
+      transactionalProducer.abort();
+      transactionalProducer.close();
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);

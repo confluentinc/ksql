@@ -44,6 +44,11 @@ public class TransactionalProducerFactory {
         ProducerConfig.TRANSACTIONAL_ID_CONFIG,
         Objects.requireNonNull(transactionId, "transactionId")
     );
+
+    kafkaProducerProperties.put(
+        ProducerConfig.ACKS_CONFIG,
+        "all"
+    );
   }
 
   public TransactionalProducer createProducerTransactionManager() {

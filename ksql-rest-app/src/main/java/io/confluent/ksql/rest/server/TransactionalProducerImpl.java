@@ -77,6 +77,8 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     );
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
+    
+    initialize();
   }
 
   @VisibleForTesting
@@ -96,12 +98,15 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
   }
 
+  private void initialize() {
+    commandConsumer.assign(Collections.singleton(commandTopicPartition));
+    commandProducer.initTransactions();
+  }
 
   /** begins transaction */
   public void begin() {
-    commandConsumer.assign(Collections.singleton(commandTopicPartition));
-    commandProducer.initTransactions();
     commandProducer.beginTransaction();
+    waitForConsumer();
   }
 
   public void waitForConsumer() {

@@ -75,6 +75,7 @@ public class RequestHandler {
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides,
+      final String sql,
       final TransactionalProducer transactionalProducer
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
@@ -86,7 +87,7 @@ public class RequestHandler {
             serviceContext,
             prepared,
             propertyOverrides,
-                transactionalProducer
+            transactionalProducer
         );
         if (!result.isEmpty()) {
           // This is to maintain backwards compatibility until we deprecate
@@ -100,7 +101,9 @@ public class RequestHandler {
         executeStatement(
             serviceContext,
             configured,
+            parsed,
             scopedPropertyOverrides,
+            sql,
             entities,
             transactionalProducer
         ).ifPresent(entities::add);
@@ -113,20 +116,20 @@ public class RequestHandler {
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
+      final ParsedStatement parsed,
       final Map<String, Object> mutableScopedProperties,
+      final String sql,
       final KsqlEntityList entities,
       final TransactionalProducer transactionalProducer
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
-
-    // currently this needs to be commented out since this check will fail since the commandRunner consumer
-    // can't poll the non-comitted records.
-    // commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
+    
+    commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, 
             (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, props, ctx, svcCtx, transactionalProducer));
+                distributor.execute(stmt, parsed, props, sql, ctx, svcCtx, transactionalProducer));
 
     return executor.execute(
         configured,
@@ -154,6 +157,7 @@ public class RequestHandler {
         serviceContext,
         ksqlEngine.parse(sql),
         propertyOverrides,
+        sql,
         transactionalProducer
     );
   }

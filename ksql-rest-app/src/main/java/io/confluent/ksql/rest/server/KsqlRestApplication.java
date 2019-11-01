@@ -475,12 +475,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
-    final Map<String, Object> consumerConfigs = restConfig.getCommandConsumerProperties();
-    consumerConfigs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+    final Map<String, Object> commandConsumerConfigs = restConfig.getCommandConsumerProperties();
+    commandConsumerConfigs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
 
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,
-        consumerConfigs);
+        commandConsumerConfigs);
 
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
@@ -527,7 +527,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
             commandTopicName,
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
             commandRunner,
-            consumerConfigs,
+            commandConsumerConfigs,
             restConfig.getCommandProducerProperties()
     );
 
@@ -573,7 +573,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         preconditions,
         configurables,
         rocksDBConfigSetterHandler,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
   }
 
@@ -666,7 +666,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     } catch (final Exception e) {
       log.warn("Failed to create processing log stream", e);
       transactionalProducer.abort();
-      return;
     }
     transactionalProducer.close();
   }

@@ -44,11 +44,6 @@ public interface CommandQueue extends Closeable {
       ConfiguredStatement<?> statement,
       TransactionalProducer transactionalProducer
   );
-
-  /**
-   * Documentation on this
-   */
-  //  TransactionalProducer createTransactionalProducer();
   
   /**
    * Polls the Queue for any commands that have been enqueued since the last

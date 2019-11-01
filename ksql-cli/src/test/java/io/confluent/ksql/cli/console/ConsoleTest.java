@@ -1226,7 +1226,8 @@ public class ConsoleTest {
                     + "really, really, really, really, really, really, really, really, really, "
                     + "really, really, really, really, really, really, really, really, long\n"
                     + "and contains\n\ttabs and stuff"
-            )), FunctionType.scalar)));
+            )), FunctionType.SCALAR
+        )));
 
     console.printKsqlEntityList(entityList);
 

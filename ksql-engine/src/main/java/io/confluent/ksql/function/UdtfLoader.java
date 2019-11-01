@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Loads user defined table functions (UDTFs)
  */
-class UdtfLoader {
+public class UdtfLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UdtfLoader.class);
 
@@ -45,7 +45,7 @@ class UdtfLoader {
   private final SqlTypeParser typeParser;
   private final boolean throwExceptionOnLoadFailure;
 
-  UdtfLoader(
+  public UdtfLoader(
       final MutableFunctionRegistry functionRegistry,
       final Optional<Metrics> metrics,
       final SqlTypeParser typeParser,
@@ -57,7 +57,7 @@ class UdtfLoader {
     this.throwExceptionOnLoadFailure = throwExceptionOnLoadFailure;
   }
 
-  void loadUdtfFromClass(
+  public void loadUdtfFromClass(
       final Class<?> theClass,
       final String path
   ) {
@@ -79,7 +79,7 @@ class UdtfLoader {
         false
     );
 
-    final UdtfTableFunctionFactory udtfFactory = new UdtfTableFunctionFactory(metadata);
+    final TableFunctionFactory udtfFactory = new TableFunctionFactory(metadata);
 
     Arrays.stream(theClass.getMethods())
         .filter(method -> method.getAnnotation(Udtf.class) != null)

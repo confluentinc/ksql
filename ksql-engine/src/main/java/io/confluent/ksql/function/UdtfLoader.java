@@ -27,6 +27,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
@@ -42,15 +43,18 @@ class UdtfLoader {
   private final MutableFunctionRegistry functionRegistry;
   private final Optional<Metrics> metrics;
   private final SqlTypeParser typeParser;
+  private final boolean throwExceptionOnLoadFailure;
 
   UdtfLoader(
       final MutableFunctionRegistry functionRegistry,
       final Optional<Metrics> metrics,
-      final SqlTypeParser typeParser
+      final SqlTypeParser typeParser,
+      final boolean throwExceptionOnLoadFailure
   ) {
     this.functionRegistry = functionRegistry;
     this.metrics = metrics;
     this.typeParser = typeParser;
+    this.throwExceptionOnLoadFailure = throwExceptionOnLoadFailure;
   }
 
   void loadUdtfFromClass(
@@ -91,7 +95,8 @@ class UdtfLoader {
             final Type ret = method.getGenericReturnType();
             if (!(ret instanceof ParameterizedType)) {
               throw new KsqlException(String
-                  .format("UDTF functions must return a generic List. Class %s Method %s",
+                  .format(
+                      "UDTF functions must return a parameterized List. Class %s Method %s",
                       theClass.getName(), method.getName()
                   ));
             }
@@ -103,15 +108,20 @@ class UdtfLoader {
             return Optional
                 .of(createTableFunction(method, FunctionName.of(functionName), returnType,
                     parameters,
-                    udtfDescriptionAnnotation.description()
+                    udtfDescriptionAnnotation.description(),
+                    annotation
                 ));
           } catch (final KsqlException e) {
-            LOGGER.warn(
-                "Failed to add UDF to the MetaStore. name={} method={}",
-                udtfDescriptionAnnotation.name(),
-                method,
-                e
-            );
+            if (throwExceptionOnLoadFailure) {
+              throw e;
+            } else {
+              LOGGER.warn(
+                  "Failed to add UDTF to the MetaStore. name={} method={}",
+                  udtfDescriptionAnnotation.name(),
+                  method,
+                  e
+              );
+            }
           }
           return Optional.<KsqlTableFunction>empty();
         })
@@ -127,18 +137,22 @@ class UdtfLoader {
       final FunctionName functionName,
       final Schema outputType,
       final List<Schema> arguments,
-      final String description
+      final String description,
+      final Udtf udtfAnnotation
   ) {
     final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
     final Object instance = FunctionLoaderUtils
         .instantiateFunctionInstance(method.getDeclaringClass(), description);
-    @SuppressWarnings("unchecked") final KsqlTableFunction tableFunction = new BaseTableFunction(
-        functionName, outputType, arguments, description) {
-      @Override
-      public List<?> apply(final Object... args) {
-        return (List) invoker.eval(instance, args);
-      }
-    };
-    return tableFunction;
+    final Function<List<Schema>, Schema> schemaProviderFunction = FunctionLoaderUtils
+        .handleUdfReturnSchema(
+            method.getDeclaringClass(),
+            outputType,
+            udtfAnnotation.schemaProvider(),
+            functionName.name()
+        );
+    return new KsqlTableFunction(
+        schemaProviderFunction,
+        functionName, outputType, arguments, description, invoker, instance
+    );
   }
 }

@@ -280,7 +280,8 @@ public class UdfLoaderTest {
         functionRegistry,
         Optional.empty(),
         SqlTypeParser.create(TypeRegistry.EMPTY),
-        udfClassLoader
+        udfClassLoader,
+        true
     );
 
     // Expect:
@@ -306,7 +307,8 @@ public class UdfLoaderTest {
         functionRegistry,
         Optional.empty(),
         SqlTypeParser.create(TypeRegistry.EMPTY),
-        udfClassLoader
+        udfClassLoader,
+        true
     );
 
     // Expect:
@@ -333,7 +335,8 @@ public class UdfLoaderTest {
         functionRegistry,
         Optional.empty(),
         SqlTypeParser.create(TypeRegistry.EMPTY),
-        udfClassLoader
+        udfClassLoader,
+        true
     );
 
     // Expect:
@@ -464,7 +467,8 @@ public class UdfLoaderTest {
         functionRegistry,
         Optional.empty(),
         SqlTypeParser.create(TypeRegistry.EMPTY),
-        PARENT_CLASS_LOADER
+        PARENT_CLASS_LOADER,
+        true
     );
     udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
 
@@ -484,7 +488,8 @@ public class UdfLoaderTest {
         functionRegistry,
         Optional.empty(),
         SqlTypeParser.create(TypeRegistry.EMPTY),
-        PARENT_CLASS_LOADER
+        PARENT_CLASS_LOADER,
+        true
     );
     final List<Schema> args = ImmutableList.of(
         Schema.STRING_SCHEMA,

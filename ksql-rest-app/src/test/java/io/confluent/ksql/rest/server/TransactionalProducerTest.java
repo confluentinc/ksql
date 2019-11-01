@@ -30,13 +30,17 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -44,6 +48,9 @@ import static org.mockito.Mockito.when;
 public class TransactionalProducerTest {
 
   private static final String COMMAND_TOPIC_NAME = "foo";
+  private static final long COMMAND_TOPIC_OFFSET = 3L;
+  private static final Duration TIMEOUT = Duration.ofMillis(1234);
+  
   @Mock
   private Consumer<CommandId, Command> commandConsumer;
   @Mock
@@ -68,26 +75,32 @@ public class TransactionalProducerTest {
 
   @Before
   @SuppressWarnings("unchecked")
-  public void setup() {
+  public void setup() throws TimeoutException, InterruptedException {
     transactionalProducer = new TransactionalProducerImpl(
         COMMAND_TOPIC_NAME,
         commandRunner,
+        TIMEOUT,
         commandConsumer,
         commandProducer
     );
     when(commandProducer.send(any(ProducerRecord.class))).thenReturn(future);
+    when(commandConsumer.endOffsets(any()))
+        .thenReturn(Collections.singletonMap(TOPIC_PARTITION, COMMAND_TOPIC_OFFSET));
   }
 
   @Test
-  public void shouldAssignCorrectPartitionToConsumerAndBeginTransaction() {
-    // When:
-    transactionalProducer.begin();
-
-    // Then:
+  public void shouldAssignCorrectPartitionToConsumerAndInitTransaction() {
     verify(commandConsumer)
         .assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     verify(commandProducer).initTransactions();
+  }
+
+  @Test
+  public void shouldBeginTransactionAndWaitForCommandConsumer() throws TimeoutException, InterruptedException {
+    transactionalProducer.begin();
+    
     verify(commandProducer).beginTransaction();
+    verify(commandRunner).ensureProcessedPastOffset(COMMAND_TOPIC_OFFSET - 1,  TIMEOUT);
   }
 
   @Test
@@ -96,7 +109,6 @@ public class TransactionalProducerTest {
     transactionalProducer.close();
 
     //Then:
-    verify(commandProducer).abortTransaction();
     verify(commandProducer).close();
     verify(commandConsumer).close();
   }
@@ -115,7 +127,7 @@ public class TransactionalProducerTest {
   public void shouldThrowExceptionIfSendIsNotSuccessful() throws Exception {
     // Given:
     when(future.get())
-            .thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
+        .thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
     expectedException.expect(RuntimeException.class);
     expectedException.expectMessage("Send was unsuccessful!");
 

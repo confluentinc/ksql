@@ -51,40 +51,38 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
+  private final Duration commandQueueCatchupTimeout;
   private final CommandRunner commandRunner;
 
   public TransactionalProducerImpl(
       final String commandTopicName,
       final CommandRunner commandRunner,
+      final Duration commandQueueCatchupTimeout,
       final Map<String, Object> kafkaConsumerProperties,
       final Map<String, Object> kafkaProducerProperties
   ) {
-    this.commandTopicPartition = new TopicPartition(
-        Objects.requireNonNull(commandTopicName, "commandTopicName"),
-        0
+    this(
+        commandTopicName,
+        commandRunner,
+        commandQueueCatchupTimeout,
+        new KafkaConsumer<>(
+          Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties"),
+          InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
+          InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
+        ),
+        new KafkaProducer<>(
+          Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties"),
+          InternalTopicJsonSerdeUtil.getJsonSerializer(true),
+          InternalTopicJsonSerdeUtil.getJsonSerializer(false)
+        )
     );
-    
-    this.commandConsumer = new KafkaConsumer<>(
-        Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties"),
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
-    );
-    
-    this.commandProducer = new KafkaProducer<>(
-        Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties"),
-        InternalTopicJsonSerdeUtil.getJsonSerializer(true),
-        InternalTopicJsonSerdeUtil.getJsonSerializer(false)
-    );
-    this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
-    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
-    
-    initialize();
   }
 
   @VisibleForTesting
   TransactionalProducerImpl(
       final String commandTopicName,
       final CommandRunner commandRunner,
+      final Duration commandQueueCatchupTimeout,
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer
   ) {
@@ -92,10 +90,13 @@ public class TransactionalProducerImpl implements TransactionalProducer {
         Objects.requireNonNull(commandTopicName, "commandTopicName"),
         0
     );
+    this.commandQueueCatchupTimeout = 
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
     this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
+    initialize();
   }
 
   private void initialize() {
@@ -114,7 +115,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
       final long endOffset = getEndOffset();
       
       // timeout hardcoded for now
-      commandRunner.ensureProcessedPastOffset(endOffset - 1, Duration.ofMillis(5000));
+      commandRunner.ensureProcessedPastOffset(endOffset - 1, commandQueueCatchupTimeout);
     } catch (final InterruptedException e) {
       final String errorMsg = 
           "Interrupted while waiting for commandRunner to process command topic";

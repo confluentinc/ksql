@@ -52,11 +52,13 @@ public class KsqlInternalTopicUtilsTest {
   private static final String TOPIC_NAME = "topic";
   private static final short NREPLICAS = 2;
   private static final short INSYNC_REPLICAS = 1;
+  private static final boolean ENABLE_UNCLEAN_ELECTION = false;
 
   private final Map<String, ?> commandTopicConfig = ImmutableMap.of(
       TopicConfig.RETENTION_MS_CONFIG, Long.MAX_VALUE,
       TopicConfig.CLEANUP_POLICY_CONFIG, TopicConfig.CLEANUP_POLICY_DELETE,
-      TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, INSYNC_REPLICAS);
+      TopicConfig.MIN_IN_SYNC_REPLICAS_CONFIG, INSYNC_REPLICAS,
+      TopicConfig.UNCLEAN_LEADER_ELECTION_ENABLE_CONFIG, ENABLE_UNCLEAN_ELECTION);
 
   @Mock
   private KafkaTopicClient topicClient;

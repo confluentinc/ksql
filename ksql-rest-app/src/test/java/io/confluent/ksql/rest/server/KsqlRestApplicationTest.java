@@ -185,7 +185,7 @@ public class KsqlRestApplicationTest {
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
         rocksDBConfigSetterHandler,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
   }
 

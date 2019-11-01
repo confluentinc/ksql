@@ -526,6 +526,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         new TransactionalProducerFactory(
             commandTopicName,
             ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
+            Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
             commandRunner,
             commandConsumerConfigs,
             restConfig.getCommandProducerProperties()

@@ -16,6 +16,8 @@
 package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.server.computation.CommandRunner;
+
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -23,16 +25,20 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 public class TransactionalProducerFactory {
   private final String commandTopicName;
   private final CommandRunner commandRunner;
+  private final Duration commandQueueCatchupTimeout;
   private final Map<String, Object> kafkaConsumerProperties;
   private final Map<String, Object> kafkaProducerProperties;
 
   public TransactionalProducerFactory(
       final String commandTopicName,
       final String transactionId,
+      final Duration commandQueueCatchupTimeout,
       final CommandRunner commandRunner,
       final Map<String, Object> kafkaConsumerProperties,
       final Map<String, Object> kafkaProducerProperties
   ) {
+    this.commandQueueCatchupTimeout = 
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
     this.kafkaConsumerProperties =
         Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties");
     this.kafkaProducerProperties =
@@ -55,6 +61,7 @@ public class TransactionalProducerFactory {
     return new TransactionalProducerImpl(
         commandTopicName,
         commandRunner,
+        commandQueueCatchupTimeout,
         kafkaConsumerProperties,
         kafkaProducerProperties
     );

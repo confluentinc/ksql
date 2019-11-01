@@ -366,7 +366,7 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         authorizationValidator,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
 
     // Then:
@@ -395,7 +395,7 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         authorizationValidator,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
 
     // Then:
@@ -2076,7 +2076,7 @@ public class KsqlResourceTest {
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
         authorizationValidator,
-            transactionalProducerFactory
+        transactionalProducerFactory
     );
 
     ksqlResource.configure(ksqlConfig);

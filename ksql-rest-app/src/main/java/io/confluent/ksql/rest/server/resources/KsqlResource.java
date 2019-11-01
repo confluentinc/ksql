@@ -143,7 +143,7 @@ public class KsqlResource implements KsqlConfigurable {
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
     this.transactionalProducerFactory = Objects.requireNonNull(
-            transactionalProducerFactory, "producerTransactionManagerFactory");
+        transactionalProducerFactory, "producerTransactionManagerFactory");
   }
 
   @Override
@@ -189,17 +189,20 @@ public class KsqlResource implements KsqlConfigurable {
     throwIfNotConfigured();
 
     ensureValidPatterns(request.getDeleteTopicList());
+    final TransactionalProducer transactionalProducer =
+        transactionalProducerFactory.createProducerTransactionManager();
     try {
-      return Response.ok(
-          handler.execute(
-              serviceContext,
-              TERMINATE_CLUSTER,
-              request.getStreamsProperties(),
-              request.toString(),
-              transactionalProducerFactory.createProducerTransactionManager()
-          )
-      ).build();
+      final KsqlEntityList entities = handler.execute(
+          serviceContext,
+          TERMINATE_CLUSTER,
+          request.getStreamsProperties(),
+          request.toString(),
+          transactionalProducer
+      );
+      transactionalProducer.close();
+      return Response.ok(entities).build();
     } catch (final Exception e) {
+      transactionalProducer.close();
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
     }
@@ -243,7 +246,7 @@ public class KsqlResource implements KsqlConfigurable {
   ) {
     final TransactionalProducer transactionalProducer =
         transactionalProducerFactory.createProducerTransactionManager();
-    
+
     try {
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
 

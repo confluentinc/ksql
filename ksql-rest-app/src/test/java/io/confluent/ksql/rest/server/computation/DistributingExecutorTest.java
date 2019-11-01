@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -43,7 +44,9 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
+import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
+import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.statement.Injector;
 import io.confluent.ksql.statement.InjectorChain;
@@ -51,6 +54,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -65,6 +69,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class DistributingExecutorTest {
 
+  private static final String SQL_STRING = "some ksql statement;";
   private static final Duration DURATION_10_MS = Duration.ofMillis(10);
   private static final CommandId CS_COMMAND = new CommandId(Type.STREAM, "stream", Action.CREATE);
   private static final CommandStatus SUCCESS_STATUS = new CommandStatus(Status.SUCCESS, "");
@@ -105,8 +110,11 @@ public class DistributingExecutorTest {
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
     when(executionContext.getMetaStore()).thenReturn(metaStore);
+    serviceContext = SandboxedServiceContext.create(TestServiceContext.create());
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
-
+    when(requestValidator.validate(
+        serviceContext, Collections.singletonList(parsedStatement), ImmutableMap.of(), SQL_STRING)).thenReturn(1);
+  
     distributor = new DistributingExecutor(
         queue,
         DURATION_10_MS,
@@ -177,7 +185,7 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(),"", executionContext, serviceContext, transactionalProducer);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(),SQL_STRING, executionContext, serviceContext, transactionalProducer);
   }
 
   @Test
@@ -218,7 +226,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldThrowServerExceptionIfServerServiceContextIsDeniedAuthorization() {
     // Given:
-    final ServiceContext userServiceContext = mock(ServiceContext.class);
+    final ServiceContext userServiceContext = SandboxedServiceContext.create(TestServiceContext.create());
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("", new ListProperties(Optional.empty()));
     final ConfiguredStatement<Statement> configured =

@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -154,19 +155,20 @@ public class RequestHandlerTest {
         serviceContext,
         statements,
         ImmutableMap.of("x", "y"),
-        "",
+        SOME_STREAM_SQL,
         transactionalProducer
     );
 
     // Then
     assertThat(entities, contains(entity));
     verify(distributor, times(1))
-        .execute(argThat(is(configured(
-            preparedStatement(instanceOf(CreateStream.class)),
-            ImmutableMap.of("x", "y"),
-            ksqlConfig))),
-            statements.get(0),
-            any(),
+        .execute(
+            argThat(is(configured(
+                preparedStatement(instanceOf(CreateStream.class)),
+                    ImmutableMap.of("x", "y"),
+                    ksqlConfig))),
+            eq(statements.get(0)),
+            eq(ImmutableMap.of("x", "y")),
             eq(SOME_STREAM_SQL),
             eq(ksqlEngine),
             eq(serviceContext),

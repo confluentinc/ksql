@@ -103,7 +103,7 @@ public class RecoveryTest {
   @Before
   public void setup() {
     when(transactionalProducerFactory.createProducerTransactionManager()).thenReturn(
-            transactionalProducer
+        transactionalProducer
     );
   }
 
@@ -222,7 +222,7 @@ public class RecoveryTest {
           Duration.ofMillis(0),
           ()->{},
           (sc, metastore, statement) -> { },
-              transactionalProducerFactory
+          transactionalProducerFactory
       );
 
       this.statementExecutor.configure(ksqlConfig);

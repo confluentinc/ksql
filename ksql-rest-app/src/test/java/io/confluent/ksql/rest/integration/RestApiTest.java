@@ -29,6 +29,7 @@ import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
 import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
+import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
@@ -129,8 +130,16 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  prefixedResource(TRANSACTIONAL_ID, "default_"),
+                  ops(ALL)
+              ).withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, "__consumer_offsets"),
                   ops(DESCRIBE)
+              ).withAcl(
+                  NORMAL_USER,
+                  prefixedResource(TOPIC, "__transaction_state"),
+                  ops(ALL)
               )
       )
       .build();
@@ -342,8 +351,9 @@ public class RestApiTest {
   @Test
   public void shouldDeleteTopic() {
     // Given:
+    final String query = REST_APP.getPersistentQueries().iterator().next();
     makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
-        + "TERMINATE QUERY CSAS_X_2; ");
+        +  "TERMINATE QUERY " +  query + ";");
 
     assertThat("Expected topic X to be created", topicExists("X"));
 

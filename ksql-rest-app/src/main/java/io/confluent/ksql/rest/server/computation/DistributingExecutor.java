@@ -23,6 +23,7 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
+import io.confluent.ksql.rest.util.TerminateCluster;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
@@ -84,13 +85,17 @@ public class DistributingExecutor {
 
     try {
       transactionalProducer.begin();
-      requestValidator.validate(
-          SandboxedServiceContext.create(serviceContext),
-          Collections.singletonList(parsedStatement),
-          mutableScopedProperties,
-          sql
-      );
       
+      // Don't perform validation on Terminate Cluster statements
+      if (statement.getStatement() instanceof TerminateCluster) {
+        requestValidator.validate(
+            SandboxedServiceContext.create(serviceContext),
+            Collections.singletonList(parsedStatement),
+            mutableScopedProperties,
+            sql
+        );
+      }
+
       final QueuedCommandStatus queuedCommandStatus =
           commandQueue.enqueueCommand(injected, transactionalProducer);
 

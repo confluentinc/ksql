@@ -15,9 +15,14 @@
 
 package io.confluent.ksql.function.udtf.array;
 
+import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
@@ -31,32 +36,21 @@ import java.util.List;
 public class Explode {
 
   @Udtf
-  public List<Long> explodeLong(final List<Long> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<Integer> explodeInt(final List<Integer> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<Double> explodeDouble(final List<Double> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<Boolean> explodeBoolean(final List<Boolean> input) {
-    return explode(input);
-  }
-
-  @Udtf
-  public List<String> explodeString(final List<String> input) {
-    return explode(input);
-  }
-
-  private <T> List<T> explode(final List<T> list) {
+  public <T> List<T> explode(final List<T> list) {
     return list == null ? Collections.emptyList() : list;
   }
 
+  @Udtf(schemaProvider = "provideSchema")
+  public List<BigDecimal> explodeBigDecimal(final List<BigDecimal> input) {
+    return explode(input);
+  }
+
+  @UdfSchemaProvider
+  public SqlType provideSchema(final List<SqlType> params) {
+    final SqlType argType = params.get(0);
+    if (!(argType instanceof SqlArray)) {
+      throw new KsqlException("explode should be provided with an ARRAY");
+    }
+    return ((SqlArray) argType).getItemType();
+  }
 }

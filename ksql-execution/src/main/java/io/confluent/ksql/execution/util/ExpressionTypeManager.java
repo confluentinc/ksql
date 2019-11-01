@@ -394,15 +394,15 @@ public class ExpressionTypeManager {
       }
 
       if (functionRegistry.isTableFunction(node.getName().name())) {
-        final List<Schema> schema = node.getArguments().isEmpty()
+        final List<Schema> argumentTypes = node.getArguments().isEmpty()
             ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
             : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSchema)
                 .collect(Collectors.toList());
 
         final KsqlTableFunction tableFunction = functionRegistry
-            .getTableFunction(node.getName().name(), schema);
+            .getTableFunction(node.getName().name(), argumentTypes);
 
-        expressionTypeContext.setSchema(tableFunction.getReturnType());
+        expressionTypeContext.setSchema(tableFunction.getReturnType(argumentTypes));
         return null;
       }
 

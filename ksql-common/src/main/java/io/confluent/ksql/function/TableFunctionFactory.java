@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Schema;
 
-
 public abstract class TableFunctionFactory {
 
   private final UdfMetadata metadata;

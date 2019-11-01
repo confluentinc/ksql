@@ -72,9 +72,9 @@ public class UserFunctionLoader {
     Objects.requireNonNull(metrics, "metrics can't be null");
     this.loadCustomerUdfs = loadCustomerUdfs;
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
-    this.udfLoader = new UdfLoader(functionRegistry, metrics, typeParser, parentClassLoader);
+    this.udfLoader = new UdfLoader(functionRegistry, metrics, typeParser, parentClassLoader, false);
     this.udafLoader = new UdafLoader(functionRegistry, metrics, typeParser);
-    this.udtfLoader = new UdtfLoader(functionRegistry, metrics, typeParser);
+    this.udtfLoader = new UdtfLoader(functionRegistry, metrics, typeParser, false);
   }
 
   public void load() {
@@ -122,7 +122,7 @@ public class UserFunctionLoader {
             })
         .matchClassesWithAnnotation(
             UdfDescription.class,
-            theClass -> udfLoader.loadUdfFromClass(theClass, pathLoadedFrom, loader)
+            theClass -> udfLoader.loadUdfFromClass(theClass, pathLoadedFrom)
         )
         .matchClassesWithAnnotation(
             UdafDescription.class,

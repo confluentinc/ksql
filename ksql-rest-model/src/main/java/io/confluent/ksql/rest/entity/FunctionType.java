@@ -16,7 +16,7 @@
 package io.confluent.ksql.rest.entity;
 
 public enum FunctionType {
-  scalar,
-  aggregate,
-  table
+  SCALAR,
+  AGGREGATE,
+  TABLE
 }

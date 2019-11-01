@@ -198,7 +198,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public TableFunctionFactory getTableFunctionFactory(final String functionName) {
+  public synchronized TableFunctionFactory getTableFunctionFactory(final String functionName) {
     final TableFunctionFactory tableFunctionFactory = udtfs.get(functionName.toUpperCase());
     if (tableFunctionFactory == null) {
       throw new KsqlException(
@@ -213,7 +213,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public List<TableFunctionFactory> listTableFunctions() {
+  public synchronized List<TableFunctionFactory> listTableFunctions() {
     return new ArrayList<>(udtfs.values());
   }
 

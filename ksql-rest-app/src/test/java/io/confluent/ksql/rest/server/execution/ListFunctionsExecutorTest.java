@@ -50,17 +50,18 @@ public class ListFunctionsExecutorTest {
     // Then:
     Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
     assertThat(functions, hasItems(
-        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.scalar),
-        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.scalar),
-        new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
-        new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
-        new SimpleFunctionInfo("MAX", FunctionType.aggregate),
-        new SimpleFunctionInfo("TEST_UDTF1", FunctionType.table),
-        new SimpleFunctionInfo("TEST_UDTF2", FunctionType.table)
+        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.SCALAR),
+        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.SCALAR),
+        new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
+        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
+        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE),
+        new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE),
+        new SimpleFunctionInfo("TEST_UDTF2", FunctionType.TABLE)
     ));
 
     assertThat("shouldn't contain internal functions", functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.scalar))));
+        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
+    );
   }
 
 

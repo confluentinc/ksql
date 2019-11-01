@@ -49,7 +49,7 @@ public class DescribeFunctionExecutorTest {
       @Override
       protected boolean matchesSafely(FunctionDescriptionList item) {
         return functionList.getName().equals("CONCAT")
-            && functionList.getType().equals(FunctionType.scalar);
+            && functionList.getType().equals(FunctionType.SCALAR);
       }
 
       @Override
@@ -75,7 +75,7 @@ public class DescribeFunctionExecutorTest {
       @Override
       protected boolean matchesSafely(FunctionDescriptionList item) {
         return functionList.getName().equals("MAX")
-            && functionList.getType().equals(FunctionType.aggregate);
+            && functionList.getType().equals(FunctionType.AGGREGATE);
       }
 
       @Override
@@ -101,7 +101,7 @@ public class DescribeFunctionExecutorTest {
       @Override
       protected boolean matchesSafely(FunctionDescriptionList item) {
         return functionList.getName().equals("TEST_UDTF1")
-            && functionList.getType().equals(FunctionType.table);
+            && functionList.getType().equals(FunctionType.TABLE);
       }
 
       @Override

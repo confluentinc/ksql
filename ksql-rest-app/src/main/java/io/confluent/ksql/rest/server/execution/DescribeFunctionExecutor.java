@@ -87,7 +87,7 @@ public final class DescribeFunctionExecutor {
         aggregateFactory.getVersion(),
         aggregateFactory.getPath(),
         listBuilder.build(),
-        FunctionType.aggregate
+        FunctionType.AGGREGATE
     );
   }
 
@@ -115,7 +115,7 @@ public final class DescribeFunctionExecutor {
         tableFunctionFactory.getVersion(),
         tableFunctionFactory.getPath(),
         listBuilder.build(),
-        FunctionType.table
+        FunctionType.TABLE
     );
   }
 
@@ -141,7 +141,7 @@ public final class DescribeFunctionExecutor {
         udfFactory.getVersion(),
         udfFactory.getPath(),
         listBuilder.build(),
-        FunctionType.scalar
+        FunctionType.SCALAR
     );
   }
 

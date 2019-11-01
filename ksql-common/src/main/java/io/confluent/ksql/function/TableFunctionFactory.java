@@ -61,18 +61,18 @@ public class TableFunctionFactory {
     udtfIndex.values().forEach(consumer);
   }
 
-  public KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
+  public synchronized KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
     return udtfIndex.getFunction(argTypeList);
   }
 
-  protected List<List<Schema>> supportedArgs() {
+  protected synchronized List<List<Schema>> supportedArgs() {
     return udtfIndex.values()
         .stream()
         .map(KsqlTableFunction::getArguments)
         .collect(Collectors.toList());
   }
 
-  void addFunction(final KsqlTableFunction tableFunction) {
+  synchronized void addFunction(final KsqlTableFunction tableFunction) {
     udtfIndex.addFunction(tableFunction);
   }
 

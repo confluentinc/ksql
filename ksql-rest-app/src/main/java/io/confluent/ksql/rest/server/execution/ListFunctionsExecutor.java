@@ -45,23 +45,25 @@ public final class ListFunctionsExecutor {
         .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.scalar))
+            FunctionType.SCALAR
+        ))
         .collect(Collectors.toList());
 
-    all.addAll(functionRegistry.listTableFunctions().stream()
+    functionRegistry.listTableFunctions().stream()
         .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.table
+            FunctionType.TABLE
         ))
-        .collect(Collectors.toList()));
+        .forEach(all::add);
 
-    all.addAll(functionRegistry.listAggregateFunctions().stream()
+    functionRegistry.listAggregateFunctions().stream()
         .filter(factory -> !factory.isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.aggregate))
-        .collect(Collectors.toList()));
+            FunctionType.AGGREGATE
+        ))
+        .forEach(all::add);
 
     return Optional.of(new FunctionNameList(statement.getStatementText(), all));
   }

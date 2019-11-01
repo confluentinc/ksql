@@ -103,7 +103,7 @@ public class ExpressionTypeManagerTest {
     expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry);
 
     final UdfFactory internalFactory = mock(UdfFactory.class);
-    when(internalFactory.isInternal()).thenReturn(true);
+    when(internalFactory.getMetadata().isInternal()).thenReturn(true);
 
     when(functionRegistry.getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name()))
         .thenReturn(internalFactory);

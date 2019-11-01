@@ -58,33 +58,17 @@ public abstract class AggregateFunctionFactory {
 
   protected abstract List<List<Schema>> supportedArgs();
 
+  public UdfMetadata getMetadata() {
+    return metadata;
+  }
+
   public String getName() {
     return metadata.getName();
-  }
-
-  public String getDescription() {
-    return metadata.getDescription();
-  }
-
-  public String getPath() {
-    return metadata.getPath();
-  }
-
-  public String getAuthor() {
-    return metadata.getAuthor();
-  }
-
-  public String getVersion() {
-    return metadata.getVersion();
   }
 
   public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?, ?>> consumer) {
     supportedArgs().forEach(args ->
         consumer.accept(createAggregateFunction(args, getDefaultArguments())));
-  }
-
-  public boolean isInternal() {
-    return metadata.isInternal();
   }
 
   public AggregateFunctionInitArguments getDefaultArguments() {

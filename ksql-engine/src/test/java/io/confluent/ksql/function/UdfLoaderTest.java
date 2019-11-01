@@ -403,13 +403,13 @@ public class UdfLoaderTest {
   @Test
   public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
     final UdfFactory tostring = FUNC_REG.getUdfFactory("tostring");
-    assertThat(tostring.getPath(), equalTo("src/test/resources/udf-example.jar"));
+    assertThat(tostring.getMetadata().getPath(), equalTo("src/test/resources/udf-example.jar"));
   }
 
   @Test
   public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
     final UdfFactory substring = FUNC_REG.getUdfFactory("substring");
-    assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
+    assertThat(substring.getMetadata().getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
   }
 
   @Test

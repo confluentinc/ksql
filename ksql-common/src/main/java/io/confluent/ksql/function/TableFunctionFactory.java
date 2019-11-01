@@ -33,28 +33,12 @@ public class TableFunctionFactory {
     this.udtfIndex = new UdfIndex<>(metadata.getName());
   }
 
+  public UdfMetadata getMetadata() {
+    return metadata;
+  }
+
   public String getName() {
     return metadata.getName();
-  }
-
-  public String getDescription() {
-    return metadata.getDescription();
-  }
-
-  public String getPath() {
-    return metadata.getPath();
-  }
-
-  public String getAuthor() {
-    return metadata.getAuthor();
-  }
-
-  public String getVersion() {
-    return metadata.getVersion();
-  }
-
-  public boolean isInternal() {
-    return metadata.isInternal();
   }
 
   public synchronized void eachFunction(final Consumer<KsqlTableFunction> consumer) {

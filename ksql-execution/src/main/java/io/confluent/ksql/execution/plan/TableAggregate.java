@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
@@ -30,10 +32,12 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final List<FunctionCall> aggregations;
 
   public TableAggregate(
-      final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
       final ExecutionStep<KGroupedTableHolder> source,
-      final Formats formats,
-      final int nonFuncColumnCount,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "nonFuncColumnCount", required = true) final int nonFuncColumnCount,
+      @JsonProperty(value = "aggregations", required = true)
       final List<FunctionCall> aggregations) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -48,6 +52,7 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

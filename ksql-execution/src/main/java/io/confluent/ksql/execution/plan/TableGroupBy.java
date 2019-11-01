@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
@@ -28,9 +30,10 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   private final List<Expression> groupByExpressions;
 
   public TableGroupBy(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KTableHolder<K>> source,
-      final Formats formats,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "groupByExpressions", required = true)
       final List<Expression> groupByExpressions
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -45,6 +48,7 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

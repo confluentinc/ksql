@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
@@ -26,8 +27,9 @@ public class StreamToTable<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepProperties properties;
 
   public StreamToTable(
-      final ExecutionStep<KStreamHolder<K>> source,
-      final Formats formats,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "properties", required = true)
       final ExecutionStepProperties properties) {
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");

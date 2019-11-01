@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
@@ -24,7 +25,9 @@ public class RegisterTypeCommand implements DdlCommand {
   private final SqlType type;
   private final String name;
 
-  public RegisterTypeCommand(final SqlType type, final String name) {
+  public RegisterTypeCommand(
+      @JsonProperty(value = "type", required = true) final SqlType type,
+      @JsonProperty(value = "name", required = true) final String name) {
     this.type = Objects.requireNonNull(type, "type");
     this.name = Objects.requireNonNull(name, "name");
   }

@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
@@ -29,11 +31,11 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> right;
 
   public StreamTableJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final Formats formats,
-      final ExecutionStep<KStreamHolder<K>> left,
-      final ExecutionStep<KTableHolder<K>> right) {
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "left", required = true) final ExecutionStep<KStreamHolder<K>> left,
+      @JsonProperty(value = "right", required = true) final ExecutionStep<KTableHolder<K>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
@@ -47,6 +49,7 @@ public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return ImmutableList.of(left, right);
   }

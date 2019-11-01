@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -26,14 +27,16 @@ import org.apache.kafka.streams.kstream.Windowed;
 public final class WindowedStreamSource
     extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
   public WindowedStreamSource(
-      final ExecutionStepProperties properties,
-      final String topicName,
-      final Formats formats,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "topicName", required = true) final String topicName,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "timestampPolicy", required = true)
       final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
+      @JsonProperty(value = "timestampIndex", required = true) final int timestampIndex,
+      @JsonProperty(value = "offsetReset", required = true)
       final Optional<AutoOffsetReset> offsetReset,
-      final LogicalSchema sourceSchema,
-      final SourceName alias) {
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "alias", required = true) final SourceName alias) {
     super(
         properties,
         topicName,

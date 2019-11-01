@@ -134,7 +134,7 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KStreamHolder<Struct> visitStreamSelectKey(
-      final StreamSelectKey<?> streamSelectKey) {
+      final StreamSelectKey streamSelectKey) {
     final KStreamHolder<?> source = streamSelectKey.getSource().build(this);
     return StreamSelectKeyBuilder.build(source, streamSelectKey, queryBuilder);
   }

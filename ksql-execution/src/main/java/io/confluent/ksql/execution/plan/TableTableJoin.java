@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.List;
@@ -27,10 +29,10 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStep<KTableHolder<K>> right;
 
   public TableTableJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final ExecutionStep<KTableHolder<K>> left,
-      final ExecutionStep<KTableHolder<K>> right) {
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "left", required = true) final ExecutionStep<KTableHolder<K>> left,
+      @JsonProperty(value = "right", required = true) final ExecutionStep<KTableHolder<K>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
     this.left = Objects.requireNonNull(left, "left");
@@ -43,6 +45,7 @@ public class TableTableJoin<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return ImmutableList.of(left, right);
   }

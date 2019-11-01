@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -25,14 +26,16 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 @Immutable
 public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
   public StreamSource(
-      final ExecutionStepProperties properties,
-      final String topicName,
-      final Formats formats,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "topicName", required = true) final String topicName,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "timestampPolicy", required = true)
       final TimestampExtractionPolicy timestampPolicy,
-      final int timestampIndex,
+      @JsonProperty(value = "timestampIndex", required = true) final int timestampIndex,
+      @JsonProperty(value = "offsetReset", required = true)
       final Optional<AutoOffsetReset> offsetReset,
-      final LogicalSchema sourceSchema,
-      final SourceName alias) {
+      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
+      @JsonProperty(value = "alias", required = true) final SourceName alias) {
     super(
         properties,
         topicName,

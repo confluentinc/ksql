@@ -45,7 +45,7 @@ public final class SourceDescriptionFactory {
         dataSource.getDataSourceType().getKsqlType(),
         dataSource.getKeyField().ref().map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
-            .map(TimestampExtractionPolicy::timestampField)
+            .map(TimestampExtractionPolicy::getTimestampField)
             .map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         (extended
             ? MetricCollectors.getAndFormatStatsFor(

@@ -174,7 +174,7 @@ public class DataSourceNodeTest {
     when(dataSource.getTimestampExtractionPolicy()).thenReturn(timestampExtractionPolicy);
     when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
     when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
-    when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
+    when(timestampExtractionPolicy.getTimestampField()).thenReturn(TIMESTAMP_FIELD);
     when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any(), any()))
         .thenReturn(stream);
     when(stream.toTable(any(), any(), any())).thenReturn(table);
@@ -273,7 +273,7 @@ public class DataSourceNodeTest {
   public void shouldBuildSourceStreamWithCorrectTimestampIndex() {
     // Given:
     reset(timestampExtractionPolicy);
-    when(timestampExtractionPolicy.timestampField()).thenReturn(ColumnRef.withoutSource(FIELD2));
+    when(timestampExtractionPolicy.getTimestampField()).thenReturn(ColumnRef.withoutSource(FIELD2));
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:
@@ -289,7 +289,7 @@ public class DataSourceNodeTest {
   public void shouldBuildSourceStreamWithCorrectTimestampIndexForQualifiedFieldName() {
     // Given:
     reset(timestampExtractionPolicy);
-    when(timestampExtractionPolicy.timestampField())
+    when(timestampExtractionPolicy.getTimestampField())
         .thenReturn(ColumnRef.withoutSource(ColumnName.of("field2")));
     final DataSourceNode node = buildNodeWithMockSource();
 

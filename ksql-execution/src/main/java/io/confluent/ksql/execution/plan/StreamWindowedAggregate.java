@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
 import java.util.Collections;
@@ -33,11 +35,13 @@ public class StreamWindowedAggregate
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
-      final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
       final ExecutionStep<KGroupedStreamHolder> source,
-      final Formats formats,
-      final int nonFuncColumnCount,
-      final List<FunctionCall> aggregations,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "nonFuncColumnCount", required = true) final int nonFuncColumnCount,
+      @JsonProperty(value = "aggregations", required = true) final List<FunctionCall> aggregations,
+      @JsonProperty(value = "windowExpression", required = true)
       final KsqlWindowExpression windowExpression) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -53,6 +57,7 @@ public class StreamWindowedAggregate
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

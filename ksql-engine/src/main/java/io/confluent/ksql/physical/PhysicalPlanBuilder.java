@@ -26,6 +26,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class PhysicalPlanBuilder {
@@ -74,8 +75,7 @@ public class PhysicalPlanBuilder {
         queryId,
         resultStream.getSourceStep(),
         resultStream.getExecutionPlan(queryId, ""),
-        resultStream.getKeyField()
+        Optional.of(resultStream.getKeyField())
     );
   }
 }
-

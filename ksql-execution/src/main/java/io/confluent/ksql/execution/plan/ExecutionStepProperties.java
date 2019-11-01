@@ -14,9 +14,20 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeInfo.As;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
+@JsonTypeInfo(
+    use = JsonTypeInfo.Id.NAME,
+    include = As.PROPERTY
+)
+@JsonSubTypes({
+    @Type(value = DefaultExecutionStepProperties.class, name = "default"),
+})
 public interface ExecutionStepProperties {
   LogicalSchema getSchema();
 

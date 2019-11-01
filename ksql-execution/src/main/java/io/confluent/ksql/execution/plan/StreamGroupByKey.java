@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.List;
@@ -27,9 +29,10 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   private final Formats formats;
 
   public StreamGroupByKey(
-      final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
       final ExecutionStep<KStreamHolder<Struct>> source,
-      final Formats formats) {
+      @JsonProperty(value = "formats", required = true) final Formats formats) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");
@@ -41,6 +44,7 @@ public class StreamGroupByKey implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

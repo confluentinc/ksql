@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
@@ -26,22 +27,22 @@ import java.util.Set;
 
 @Immutable
 public class CreateTableCommand extends CreateSourceCommand {
-
   public CreateTableCommand(
-      final String sqlExpression,
-      final SourceName sourceName,
-      final LogicalSchema schema,
-      final Optional<ColumnName> keyField,
-      final TimestampExtractionPolicy timestampExtractionPolicy,
-      final Set<SerdeOption> serdeOptions,
-      final KsqlTopic ksqlTopic
+      @JsonProperty(value = "sqlExpression", required = true) final String sqlExpression,
+      @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
+      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
+      @JsonProperty(value = "keyField", required = true) final Optional<ColumnName> keyField,
+      @JsonProperty(value = "timestampExtractionPolicy", required = true)
+      final TimestampExtractionPolicy extractionPolicy,
+      @JsonProperty(value = "serdeOptions", required = true) final Set<SerdeOption> serdeOptions,
+      @JsonProperty(value = "topic", required = true) final KsqlTopic ksqlTopic
   ) {
     super(
         sqlExpression,
         sourceName,
         schema,
         keyField,
-        timestampExtractionPolicy,
+        extractionPolicy,
         serdeOptions,
         ksqlTopic
     );

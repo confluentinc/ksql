@@ -15,6 +15,9 @@
 
 package io.confluent.ksql.serde;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import java.time.Duration;
@@ -26,7 +29,6 @@ import java.util.Optional;
  */
 @Immutable
 public final class KeyFormat {
-
   private final FormatInfo format;
   private final Optional<WindowInfo> window;
 
@@ -41,14 +43,16 @@ public final class KeyFormat {
     return new KeyFormat(format, Optional.of(windowInfo));
   }
 
+  @JsonCreator
   private KeyFormat(
-      final FormatInfo format,
-      final Optional<WindowInfo> window
+      @JsonProperty(value = "formatInfo", required = true) final FormatInfo format,
+      @JsonProperty(value = "windowInfo", required = true) final Optional<WindowInfo> window
   ) {
     this.format = Objects.requireNonNull(format, "format");
     this.window = Objects.requireNonNull(window, "window");
   }
 
+  @JsonIgnore
   public Format getFormat() {
     return format.getFormat();
   }
@@ -57,6 +61,7 @@ public final class KeyFormat {
     return format;
   }
 
+  @JsonIgnore
   public boolean isWindowed() {
     return window.isPresent();
   }
@@ -65,10 +70,12 @@ public final class KeyFormat {
     return window;
   }
 
+  @JsonIgnore
   public Optional<WindowType> getWindowType() {
     return window.map(WindowInfo::getType);
   }
 
+  @JsonIgnore
   public Optional<Duration> getWindowSize() {
     return window.flatMap(WindowInfo::getSize);
   }

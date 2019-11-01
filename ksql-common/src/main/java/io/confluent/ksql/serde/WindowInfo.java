@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.WindowType;
 import java.time.Duration;
@@ -26,7 +28,6 @@ import java.util.Optional;
  */
 @Immutable
 public final class WindowInfo {
-
   private final WindowType type;
   private final Optional<Duration> size;
 
@@ -34,7 +35,10 @@ public final class WindowInfo {
     return new WindowInfo(type, size);
   }
 
-  private WindowInfo(final WindowType type, final Optional<Duration> size) {
+  @JsonCreator
+  private WindowInfo(
+      @JsonProperty(value = "type", required = true) final WindowType type,
+      @JsonProperty(value = "size", required = true) final Optional<Duration> size) {
     this.type = Objects.requireNonNull(type, "type");
     this.size = Objects.requireNonNull(size, "size");
 

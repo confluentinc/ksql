@@ -151,7 +151,7 @@ final class EngineExecutor {
             overriddenProperties
         );
 
-        return KsqlPlan.ddlPlan(statement.getStatementText(), ddlCommand);
+        return KsqlPlan.ddlPlanCurrent(statement.getStatementText(), ddlCommand);
       }
 
       final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
@@ -167,7 +167,7 @@ final class EngineExecutor {
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement.getStatementText(),
           outputNode,
-          plans.physicalPlan.getKeyField());
+          plans.physicalPlan.getKeyField().get());
 
       validateQuery(outputNode.getNodeOutputType(), statement);
 
@@ -177,7 +177,7 @@ final class EngineExecutor {
           plans.physicalPlan
       );
 
-      return KsqlPlan.queryPlan(
+      return KsqlPlan.queryPlanCurrent(
           statement.getStatementText(),
           ddlCommand,
           queryPlan

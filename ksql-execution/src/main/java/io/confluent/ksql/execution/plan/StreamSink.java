@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.List;
@@ -27,10 +28,10 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   private final String topicName;
 
   public StreamSink(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KStreamHolder<K>> source,
-      final Formats formats,
-      final String topicName) {
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "topicName", required = true) final String topicName) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");

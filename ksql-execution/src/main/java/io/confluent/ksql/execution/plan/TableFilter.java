@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
@@ -27,9 +29,9 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   private final Expression filterExpression;
 
   public TableFilter(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KTableHolder<K>> source,
-      final Expression filterExpression
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "filterExpression", required = true) final Expression filterExpression
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -42,6 +44,7 @@ public class TableFilter<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

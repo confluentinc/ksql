@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.List;
@@ -27,10 +29,10 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   private final String topicName;
 
   public TableSink(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KTableHolder<K>> source,
-      final Formats formats,
-      final String topicName
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "topicName", required = true) final String topicName
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -48,6 +50,7 @@ public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

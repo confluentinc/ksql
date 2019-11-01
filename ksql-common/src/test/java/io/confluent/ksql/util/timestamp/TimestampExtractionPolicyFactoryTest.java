@@ -151,7 +151,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(LongColumnTimestampExtractionPolicy.class));
-    assertThat(result.timestampField(),
+    assertThat(result.getTimestampField(),
         equalTo(ColumnRef.withoutSource(ColumnName.of(timestamp.toUpperCase()))));
   }
 
@@ -188,7 +188,7 @@ public class TimestampExtractionPolicyFactoryTest {
 
     // Then:
     assertThat(result, instanceOf(StringTimestampExtractionPolicy.class));
-    assertThat(result.timestampField(),
+    assertThat(result.getTimestampField(),
         equalTo(ColumnRef.withoutSource(ColumnName.of(field.toUpperCase()))));
   }
 

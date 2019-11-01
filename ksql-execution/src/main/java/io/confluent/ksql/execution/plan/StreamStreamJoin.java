@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.time.Duration;
@@ -33,14 +35,14 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final Duration after;
 
   public StreamStreamJoin(
-      final ExecutionStepProperties properties,
-      final JoinType joinType,
-      final Formats leftFormats,
-      final Formats rightFormats,
-      final ExecutionStep<KStreamHolder<K>> left,
-      final ExecutionStep<KStreamHolder<K>> right,
-      final Duration before,
-      final Duration after) {
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
+      @JsonProperty(value = "leftFormats", required = true) final Formats leftFormats,
+      @JsonProperty(value = "rightFormats", required = true) final Formats rightFormats,
+      @JsonProperty(value = "left", required = true) final ExecutionStep<KStreamHolder<K>> left,
+      @JsonProperty(value = "right", required = true) final ExecutionStep<KStreamHolder<K>> right,
+      @JsonProperty(value = "before", required = true) final Duration before,
+      @JsonProperty(value = "after", required = true) final Duration after) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.leftFormats = Objects.requireNonNull(leftFormats, "formats");
     this.rightFormats = Objects.requireNonNull(rightFormats, "rightFormats");
@@ -57,6 +59,7 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return ImmutableList.of(left, right);
   }

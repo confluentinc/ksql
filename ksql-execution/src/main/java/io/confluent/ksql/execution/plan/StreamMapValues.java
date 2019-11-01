@@ -16,6 +16,8 @@ package io.confluent.ksql.execution.plan;
 
 import static java.util.Objects.requireNonNull;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
@@ -31,11 +33,11 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   private final String selectNodeName;
 
   public StreamMapValues(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "selectExpressions", required = true)
       final List<SelectExpression> selectExpressions,
-      final String selectNodeName
-  ) {
+      @JsonProperty(value = "selectNodeName", required = true) final String selectNodeName) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
@@ -48,6 +50,7 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }

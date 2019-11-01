@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.serde;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Map;
@@ -39,6 +41,7 @@ public final class Delimiter {
     this.delimiter = delimiter;
   }
 
+  @JsonCreator
   public static Delimiter of(final char ch) {
     return new Delimiter(ch);
   }
@@ -93,6 +96,7 @@ public final class Delimiter {
     return String.valueOf(delimiter);
   }
 
+  @JsonValue
   public char getDelimiter() {
     return delimiter;
   }

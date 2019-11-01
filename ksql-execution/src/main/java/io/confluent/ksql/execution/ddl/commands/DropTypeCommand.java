@@ -15,12 +15,12 @@
 
 package io.confluent.ksql.execution.ddl.commands;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Objects;
 
 @Immutable
 public class DropTypeCommand implements DdlCommand {
-
   private final String typeName;
 
   @Override
@@ -28,7 +28,7 @@ public class DropTypeCommand implements DdlCommand {
     return executor.executeDropType(this);
   }
 
-  public DropTypeCommand(final String typeName) {
+  public DropTypeCommand(@JsonProperty(value = "typeName", required = true) final String typeName) {
     this.typeName = Objects.requireNonNull(typeName, "typeName");
   }
 

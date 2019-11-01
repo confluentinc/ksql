@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.PhysicalPlan;
 import java.util.Objects;
@@ -26,9 +27,9 @@ public final class QueryPlan  {
   private final PhysicalPlan<?> physicalPlan;
 
   public QueryPlan(
-      final Set<SourceName> sources,
-      final SourceName sink,
-      final PhysicalPlan<?> physicalPlan
+      @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
+      @JsonProperty(value = "sink", required = true) final SourceName sink,
+      @JsonProperty(value = "physicalPlan", required = true) final PhysicalPlan<?> physicalPlan
   ) {
     this.sources = Objects.requireNonNull(sources, "sources");
     this.sink = Objects.requireNonNull(sink, "sink");

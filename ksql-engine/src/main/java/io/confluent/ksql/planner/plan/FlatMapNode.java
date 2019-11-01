@@ -25,18 +25,14 @@ import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.execution.function.UdtfUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -129,18 +125,12 @@ public class FlatMapNode extends PlanNode {
       schemaBuilder.valueColumn(col);
     }
 
-    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
-
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
         inputSchema, functionRegistry);
 
     // And add new columns representing the exploded values at the end
     for (int i = 0; i < analysis.getTableFunctions().size(); i++) {
       final FunctionCall functionCall = analysis.getTableFunctions().get(i);
-      final KsqlTableFunction tableFunction =
-          UdtfUtil.resolveTableFunction(functionRegistry,
-              functionCall, inputSchema
-          );
       final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
       final SqlType fieldType = expressionTypeManager.getExpressionSqlType(functionCall);
       schemaBuilder.valueColumn(colName, fieldType);

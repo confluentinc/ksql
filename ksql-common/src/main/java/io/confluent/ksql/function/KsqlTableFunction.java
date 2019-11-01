@@ -15,21 +15,40 @@
 
 package io.confluent.ksql.function;
 
-import io.confluent.ksql.schema.ksql.types.SqlType;
+import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.FunctionName;
 import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 
 /**
  * A wrapper around the actual table function which provides methods to get return type and
  * description, and allows the function to be invoked.
  */
-public interface KsqlTableFunction extends FunctionSignature {
+@Immutable
+public class KsqlTableFunction extends KsqlFunctionBase {
 
-  Schema getReturnType();
+  private final FunctionInvoker invoker;
+  private final Object udtf;
 
-  SqlType returnType();
+  public KsqlTableFunction(
+      final Function<List<Schema>, Schema> returnSchemaProvider,
+      final FunctionName functionName,
+      final Schema outputType,
+      final List<Schema> arguments,
+      final String description,
+      final FunctionInvoker functionInvoker,
+      final Object udtf
+  ) {
+    super(returnSchemaProvider, outputType, arguments, functionName, description,
+        "", false
+    );
+    this.invoker = Objects.requireNonNull(functionInvoker, "functionInvoker");
+    this.udtf = Objects.requireNonNull(udtf, "udtf");
+  }
 
-  List<?> apply(Object... args);
-
-  String getDescription();
+  public List<?> apply(final Object... args) {
+    return (List<?>) invoker.eval(udtf, args);
+  }
 }

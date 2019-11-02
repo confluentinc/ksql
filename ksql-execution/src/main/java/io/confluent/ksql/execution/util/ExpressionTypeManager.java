@@ -54,6 +54,7 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -407,7 +408,8 @@ public class ExpressionTypeManager {
       }
 
       final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
-      if (udfFactory.isInternal()) {
+      final UdfMetadata metadata = udfFactory.getMetadata();
+      if (metadata.isInternal()) {
         // Internal UDFs, e.g. FetchFieldFromStruct, should not be used directly by users:
         throw new KsqlException(
             "Can't find any functions with the name '" + node.getName().name() + "'");

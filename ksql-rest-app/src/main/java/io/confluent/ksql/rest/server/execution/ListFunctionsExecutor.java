@@ -42,18 +42,28 @@ public final class ListFunctionsExecutor {
     final FunctionRegistry functionRegistry = executionContext.getMetaStore();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
-        .filter(factory -> !factory.isInternal())
+        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.scalar))
+            FunctionType.SCALAR
+        ))
         .collect(Collectors.toList());
 
-    all.addAll(functionRegistry.listAggregateFunctions().stream()
-        .filter(factory -> !factory.isInternal())
+    functionRegistry.listTableFunctions().stream()
+        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.aggregate))
-        .collect(Collectors.toList()));
+            FunctionType.TABLE
+        ))
+        .forEach(all::add);
+
+    functionRegistry.listAggregateFunctions().stream()
+        .filter(factory -> !factory.getMetadata().isInternal())
+        .map(factory -> new SimpleFunctionInfo(
+            factory.getName().toUpperCase(),
+            FunctionType.AGGREGATE
+        ))
+        .forEach(all::add);
 
     return Optional.of(new FunctionNameList(statement.getStatementText(), all));
   }

@@ -789,7 +789,7 @@ public class CliTest {
             + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
             + " representation of the \n"
             + "              timestamp in the given format.\n"
-            + "Type        : scalar\n"
+            + "Type        : SCALAR\n"
             + "Jar         : internal\n"
             + "Variations  :";
 
@@ -832,7 +832,7 @@ public class CliTest {
         + "Overview    : Returns a substring of the passed in value.\n"
     ));
     assertThat(output, containsString(
-        "Type        : scalar\n"
+        "Type        : SCALAR\n"
         + "Jar         : internal\n"
         + "Variations  :"
     ));
@@ -853,8 +853,8 @@ public class CliTest {
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
             "Name        : TOPK\n" +
-            "Author      : Confluent\n" +
-            "Type        : aggregate\n" +
+                "Author      : Confluent\n" +
+                "Type        : AGGREGATE\n" +
             "Jar         : internal\n" +
             "Variations  : \n";
 
@@ -876,7 +876,7 @@ public class CliTest {
         "Name        : EXPLODE\n"
             + "Author      : Confluent\n"
             + "Overview    : Explodes an array. This function outputs one value for each element of the array.\n"
-            + "Type        : table\n"
+            + "Type        : TABLE\n"
             + "Jar         : internal\n"
             + "Variations  : ";
 

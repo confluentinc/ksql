@@ -1244,7 +1244,7 @@ public class ConsoleTest {
           + "              and containing new lines\n"
           + "              \tAND TABS\n"
           + "              too!\n"
-          + "Type        : scalar\n"
+          + "Type        : SCALAR\n"
           + "Jar         : some.jar\n"
           + "Variations  : \n"
           + "\n"

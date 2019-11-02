@@ -619,7 +619,7 @@ public class CliTest {
 
   @Test
   public void testTransientStaticHeader() {
-    // Given:
+    // GGiven:
     run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
             + "FROM " + orderDataProvider.kstreamName()
             + " GROUP BY ITEMID;",

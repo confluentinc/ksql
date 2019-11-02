@@ -89,7 +89,7 @@ public class Entries {
   }
 
   private <T> List<Struct> entries(
-      final Map<String, T> map, final Schema structSchema, @UdfParameter final boolean sorted
+      final Map<String, T> map, final Schema structSchema, final boolean sorted
   ) {
     final List<Struct> structs = new ArrayList<>(map.size());
     Collection<Entry<String, T>> entries = map.entrySet();

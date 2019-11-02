@@ -18,7 +18,9 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
@@ -56,6 +58,11 @@ public final class DescribeFunctionExecutor {
           describeAggregateFunction(executionContext, functionName, statement.getStatementText()));
     }
 
+    if (executionContext.getMetaStore().isTableFunction(functionName)) {
+      return Optional.of(
+          describeTableFunction(executionContext, functionName, statement.getStatementText()));
+    }
+
     return Optional.of(
         describeNonAggregateFunction(executionContext, functionName, statement.getStatementText()));
   }
@@ -73,15 +80,31 @@ public final class DescribeFunctionExecutor {
     aggregateFactory.eachFunction(func -> listBuilder.add(
         getFunctionInfo(func.getArguments(), func.getReturnType(), func.getDescription(), false)));
 
-    return new FunctionDescriptionList(
+    return createFunctionDescriptionList(
+        statementText, aggregateFactory.getMetadata(), listBuilder.build(), FunctionType.AGGREGATE);
+  }
+
+  private static FunctionDescriptionList describeTableFunction(
+      final KsqlExecutionContext executionContext,
+      final String functionName,
+      final String statementText
+  ) {
+    final TableFunctionFactory tableFunctionFactory = executionContext.getMetaStore()
+        .getTableFunctionFactory(functionName);
+
+    final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
+
+    tableFunctionFactory.eachFunction(func -> listBuilder.add(
+        getFunctionInfo(
+            func.getArguments(),
+            func.getReturnType(func.getArguments()), func.getDescription(), func.isVariadic()
+        )));
+
+    return createFunctionDescriptionList(
         statementText,
-        aggregateFactory.getName().toUpperCase(),
-        aggregateFactory.getDescription(),
-        aggregateFactory.getAuthor(),
-        aggregateFactory.getVersion(),
-        aggregateFactory.getPath(),
+        tableFunctionFactory.getMetadata(),
         listBuilder.build(),
-        FunctionType.aggregate
+        FunctionType.TABLE
     );
   }
 
@@ -99,15 +122,11 @@ public final class DescribeFunctionExecutor {
             func.getArguments(),
             func.getReturnType(func.getArguments()), func.getDescription(), func.isVariadic())));
 
-    return new FunctionDescriptionList(
+    return createFunctionDescriptionList(
         statementText,
-        udfFactory.getName().toUpperCase(),
-        udfFactory.getDescription(),
-        udfFactory.getAuthor(),
-        udfFactory.getVersion(),
-        udfFactory.getPath(),
+        udfFactory.getMetadata(),
         listBuilder.build(),
-        FunctionType.scalar
+        FunctionType.SCALAR
     );
   }
 
@@ -127,6 +146,23 @@ public final class DescribeFunctionExecutor {
     final String returnType = FORMATTER.format(returnTypeSchema);
 
     return new FunctionInfo(args, returnType, description);
+  }
+
+  private static FunctionDescriptionList createFunctionDescriptionList(
+      final String statementText,
+      final UdfMetadata metadata, final List<FunctionInfo> functionInfos,
+      final FunctionType functionType
+  ) {
+    return new FunctionDescriptionList(
+        statementText,
+        metadata.getName().toUpperCase(),
+        metadata.getDescription(),
+        metadata.getAuthor(),
+        metadata.getVersion(),
+        metadata.getPath(),
+        functionInfos,
+        functionType
+    );
   }
 
 }

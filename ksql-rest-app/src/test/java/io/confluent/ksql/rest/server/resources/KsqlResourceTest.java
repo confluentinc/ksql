@@ -415,14 +415,16 @@ public class KsqlResourceTest {
 
     // Then:
     assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.scalar),
-        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.scalar),
-        new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
-        new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
-        new SimpleFunctionInfo("MAX", FunctionType.aggregate)));
+        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.SCALAR),
+        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.SCALAR),
+        new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
+        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
+        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE)
+    ));
 
     assertThat("shouldn't contain internal functions", functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.scalar))));
+        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
+    );
   }
 
   @Test

@@ -63,7 +63,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class StreamMapValuesBuilderTest {
-  private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()

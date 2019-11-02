@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -38,6 +39,7 @@ public final class TableElement extends AstNode {
   private final Namespace namespace;
   private final ColumnName name;
   private final Type type;
+  private final Optional<SourceName> source;
 
   /**
    * @param namespace indicates if the element is part of the key or value.
@@ -64,10 +66,28 @@ public final class TableElement extends AstNode {
       final ColumnName name,
       final Type type
   ) {
+    this(location, namespace, name, type, Optional.empty());
+  }
+
+  /**
+   * @param location the location in the SQL text.
+   * @param namespace  indicates if the element is part of the key or value.
+   * @param name the name of the element.
+   * @param type the sql type of the element.
+   * @param source the data source the element belongs to
+   */
+  public TableElement(
+      final Optional<NodeLocation> location,
+      final Namespace namespace,
+      final ColumnName name,
+      final Type type,
+      final Optional<SourceName> source
+  ) {
     super(location);
     this.namespace = requireNonNull(namespace, "namespace");
     this.name = requireNonNull(name, "name");
     this.type = requireNonNull(type, "type");
+    this.source = requireNonNull(source, "source");
   }
 
   public ColumnName getName() {
@@ -80,6 +100,10 @@ public final class TableElement extends AstNode {
 
   public Namespace getNamespace() {
     return namespace;
+  }
+
+  public Optional<SourceName> getSource() {
+    return source;
   }
 
   @Override

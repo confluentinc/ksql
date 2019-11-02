@@ -227,7 +227,7 @@ public class AstBuilder {
     public Node visitCreateTable(final SqlBaseParser.CreateTableContext context) {
       final List<TableElement> elements = context.tableElements() == null
           ? ImmutableList.of()
-          : visit(context.tableElements().tableElement(), TableElement.class);
+          : visit(context.tableElements().statementTableElement(), TableElement.class);
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
@@ -244,7 +244,7 @@ public class AstBuilder {
     public Node visitCreateStream(final SqlBaseParser.CreateStreamContext context) {
       final List<TableElement> elements = context.tableElements() == null
           ? ImmutableList.of()
-          : visit(context.tableElements().tableElement(), TableElement.class);
+          : visit(context.tableElements().statementTableElement(), TableElement.class);
 
       final Map<String, Literal> properties = processTableProperties(context.tableProperties());
 
@@ -979,12 +979,14 @@ public class AstBuilder {
     }
 
     @Override
-    public Node visitTableElement(final SqlBaseParser.TableElementContext context) {
+    public Node visitStatementTableElement(
+        final SqlBaseParser.StatementTableElementContext context) {
       return new TableElement(
           getLocation(context),
           context.KEY() == null ? Namespace.VALUE : Namespace.KEY,
-          ColumnName.of(ParserUtil.getIdentifierText(context.identifier())),
-          typeParser.getType(context.type())
+          ColumnName.of(ParserUtil.getIdentifierText(
+              context.tableElement().identifier())),
+          typeParser.getType(context.tableElement().type())
       );
     }
 

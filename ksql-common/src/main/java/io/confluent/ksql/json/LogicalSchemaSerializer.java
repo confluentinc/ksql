@@ -18,15 +18,22 @@ package io.confluent.ksql.json;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Custom Jackson JSON serializer for {@link LogicalSchema}.
  *
  * <p>The schema is serialized as a simple SQL string
  */
-final class LogicalSchemaSerializer extends JsonSerializer<LogicalSchema> {
+public final class LogicalSchemaSerializer extends JsonSerializer<LogicalSchema> {
+  private final FormatOptions formatOptions;
+
+  public LogicalSchemaSerializer(final FormatOptions formatOptions) {
+    this.formatOptions = Objects.requireNonNull(formatOptions, "formatOptions");
+  }
 
   @Override
   public void serialize(
@@ -34,7 +41,7 @@ final class LogicalSchemaSerializer extends JsonSerializer<LogicalSchema> {
       final JsonGenerator gen,
       final SerializerProvider serializerProvider
   ) throws IOException {
-    final String text = schema.toString();
+    final String text = schema.toString(formatOptions);
     gen.writeString(trimArrayBrackets(text));
   }
 

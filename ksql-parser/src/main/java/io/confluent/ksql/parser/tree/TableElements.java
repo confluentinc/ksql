@@ -19,6 +19,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
@@ -28,6 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -90,17 +92,30 @@ public final class TableElements implements Iterable<TableElement> {
         : LogicalSchema.builder().noImplicitColumns();
 
     for (final TableElement tableElement : this) {
-      final ColumnName fieldName = tableElement.getName();
-      final SqlType fieldType = tableElement.getType().getSqlType();
+      addField(tableElement, builder);
+    }
 
-      if (tableElement.getNamespace() == Namespace.KEY) {
+    return builder.build();
+  }
+
+  private void addField(final TableElement tableElement, final Builder builder) {
+    final Optional<SourceName> source = tableElement.getSource();
+    final ColumnName fieldName = tableElement.getName();
+    final SqlType fieldType = tableElement.getType().getSqlType();
+
+    if (tableElement.getNamespace() == Namespace.KEY) {
+      if (source.isPresent()) {
+        builder.keyColumn(source.get(), fieldName, fieldType);
+      } else {
         builder.keyColumn(fieldName, fieldType);
+      }
+    } else {
+      if (source.isPresent()) {
+        builder.valueColumn(source.get(), fieldName, fieldType);
       } else {
         builder.valueColumn(fieldName, fieldType);
       }
     }
-
-    return builder.build();
   }
 
   private TableElements(final ImmutableList<TableElement> elements) {
@@ -111,12 +126,14 @@ public final class TableElements implements Iterable<TableElement> {
 
   private void throwOnDuplicateNames() {
     final String duplicates = elements.stream()
-        .collect(Collectors.groupingBy(TableElement::getName, Collectors.counting()))
+        .collect(Collectors.groupingBy(
+            e -> ImmutableList.of(e.getSource(), e.getName(), e.getNamespace()),
+            Collectors.counting()))
         .entrySet()
         .stream()
         .filter(e -> e.getValue() > 1)
         .map(Entry::getKey)
-        .map(ColumnName::toString)
+        .map(l -> String.format("%s.%s %s", l.get(0), l.get(1), l.get(2)))
         .collect(Collectors.joining(", "));
 
     if (!duplicates.isEmpty()) {

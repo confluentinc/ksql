@@ -16,13 +16,18 @@
 package io.confluent.ksql.json;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.io.IOException;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,7 +37,7 @@ public class LogicalSchemaSerializerTest {
 
   @BeforeClass
   public static void classSetUp() {
-    MAPPER.registerModule(new TestModule());
+    MAPPER.registerModule(new TestModule(FormatOptions.none()));
   }
 
   @Test
@@ -80,10 +85,44 @@ public class LogicalSchemaSerializerTest {
     assertThat(json, is("\"`v0` INTEGER, `key0` STRING KEY\""));
   }
 
+  @Test
+  public void shouldSerializeSchemaWithSource() throws IOException {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(SourceName.of("SOURCE"), ColumnName.of("K0"), SqlTypes.BIGINT)
+        .valueColumn(SourceName.of("SOURCE"), ColumnName.of("V0"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final String json = MAPPER.writeValueAsString(schema);
+
+    // Then:
+    assertThat(json, is("\"`SOURCE`.`K0` BIGINT KEY, `SOURCE`.`V0` STRING\""));
+  }
+
+  @Test
+  public void shouldSerializeSchemaUsingFormatOptions() throws IOException {
+    // Given:
+    final ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new TestModule(FormatOptions.of(w -> w.equals("foo"))));
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .valueColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final String json = mapper.writeValueAsString(schema);
+
+    // Then:
+    assertThat(json, is("\"`foo` BIGINT, bar BIGINT\""));
+  }
+
   private static final class TestModule extends SimpleModule {
 
-    TestModule() {
-      addSerializer(LogicalSchema.class, new LogicalSchemaSerializer());
+    TestModule(final FormatOptions formatOptions) {
+      addSerializer(LogicalSchema.class, new LogicalSchemaSerializer(formatOptions));
     }
   }
 }

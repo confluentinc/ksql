@@ -13,14 +13,17 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.client.json;
+package io.confluent.ksql.parser.json;
 
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 public class KsqlTypesDeserializationModule extends SimpleModule {
-
   public KsqlTypesDeserializationModule() {
-    addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer());
+    this(false);
+  }
+
+  public KsqlTypesDeserializationModule(final boolean includeImplicit) {
+    addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer(includeImplicit));
   }
 }

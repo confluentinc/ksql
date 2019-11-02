@@ -56,6 +56,7 @@ import io.confluent.ksql.parser.tree.SingleColumn;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Statements;
 import io.confluent.ksql.parser.tree.TableElement;
+import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -475,6 +476,8 @@ public class StatementRewriterTest {
   private static TableElement givenTableElement(final String name) {
     final TableElement element = mock(TableElement.class);
     when(element.getName()).thenReturn(ColumnName.of(name));
+    when(element.getSource()).thenReturn(Optional.empty());
+    when(element.getNamespace()).thenReturn(Namespace.VALUE);
     return element;
   }
 

@@ -345,7 +345,7 @@ public final class LogicalSchema {
     return (ConnectSchema) builder.build();
   }
 
-  public static class Builder {
+  public static final class Builder {
 
     private final ImmutableList.Builder<NamespacedColumn> explicitColumns = ImmutableList.builder();
 
@@ -355,6 +355,9 @@ public final class LogicalSchema {
     private boolean addImplicitRowKey = true;
     private boolean addImplicitRowTime = true;
 
+    private Builder() {
+    }
+
     public Builder noImplicitColumns() {
       addImplicitRowKey = false;
       addImplicitRowTime = false;
@@ -363,6 +366,11 @@ public final class LogicalSchema {
 
     public Builder keyColumn(final ColumnName columnName, final SqlType type) {
       keyColumn(Column.of(columnName, type));
+      return this;
+    }
+
+    public Builder keyColumn(final SourceName source, final ColumnName name, final SqlType type) {
+      keyColumn(Column.of(source, name, type));
       return this;
     }
 

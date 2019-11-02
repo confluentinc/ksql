@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.rest.client.json;
+package io.confluent.ksql.parser.json;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -21,8 +21,11 @@ import static org.hamcrest.Matchers.is;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import java.io.IOException;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -32,7 +35,7 @@ public class LogicalSchemaDeserializerTest {
 
   @BeforeClass
   public static void classSetUp() {
-    MAPPER.registerModule(new TestModule());
+    MAPPER.registerModule(new TestModule(false));
   }
 
   @Test
@@ -83,10 +86,43 @@ public class LogicalSchemaDeserializerTest {
         .build()));
   }
 
+  @Test
+  public void shouldDeserializeSchemaWithSource() throws IOException {
+    // Given:
+    final String json = "\"SOURCE.K0 BIGINT KEY, SOURCE.V0 STRING\"";
+
+    // When:
+    final LogicalSchema schema = MAPPER.readValue(json, LogicalSchema.class);
+
+
+    Assert.assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(SourceName.of("SOURCE"), ColumnName.of("K0"), SqlTypes.BIGINT)
+        .valueColumn(SourceName.of("SOURCE"), ColumnName.of("V0"), SqlTypes.STRING)
+        .build()));
+  }
+
+  @Test
+  public void shouldAddImplicitColumns() throws IOException {
+    // Given:
+    final ObjectMapper mapper = new ObjectMapper();
+    mapper.registerModule(new TestModule(true));
+    final String json = "\"K0 BIGINT KEY, V0 STRING\"";
+
+    // When:
+    final LogicalSchema schema = mapper.readValue(json, LogicalSchema.class);
+
+
+    Assert.assertThat(schema, is(LogicalSchema.builder()
+        .keyColumn(ColumnName.of("K0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("V0"), SqlTypes.STRING)
+        .build()));
+  }
+
   private static class TestModule extends SimpleModule {
 
-    private TestModule() {
-      addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer());
+    private TestModule(final boolean withImplicit) {
+      addDeserializer(LogicalSchema.class, new LogicalSchemaDeserializer(withImplicit));
     }
   }
 }

@@ -19,7 +19,9 @@ import static io.confluent.ksql.util.SchemaUtil.ROWKEY_NAME;
 import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
@@ -30,6 +32,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
@@ -884,6 +887,20 @@ public class LogicalSchemaTest {
     assertThat(schema.metadata(), is(empty()));
     assertThat(schema.key(), is(empty()));
     assertThat(schema.value(), contains(Column.of(F0, SqlTypes.BIGINT)));
+  }
+
+  @Test
+  public void shouldBuildSchemaWithSource() {
+    // When:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(BOB, K0, SqlTypes.INTEGER)
+        .valueColumn(BOB, V0, SqlTypes.STRING)
+        .build();
+
+    // Then:
+    assertThat(schema.key(), is(contains(Column.of(BOB, K0, SqlTypes.INTEGER))));
+    assertThat(schema.value(), is(contains(Column.of(BOB, V0, SqlTypes.STRING))));
   }
 
   private static org.apache.kafka.connect.data.Field connectField(

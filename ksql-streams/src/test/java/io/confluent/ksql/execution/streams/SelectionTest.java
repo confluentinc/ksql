@@ -109,7 +109,7 @@ public class SelectionTest {
     final LogicalSchema resultSchema = selection.getSchema();
 
     // Then:
-    final LogicalSchema expected = new LogicalSchema.Builder()
+    final LogicalSchema expected = LogicalSchema.builder()
         .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("FOO"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)

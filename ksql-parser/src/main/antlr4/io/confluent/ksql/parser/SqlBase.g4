@@ -86,12 +86,24 @@ resultMaterialization
     : CHANGES
     ;
 
+schemaTableElements
+    : '(' schemaTableElement (',' schemaTableElement)* ')'
+    ;
+
 tableElements
-    : '(' tableElement (',' tableElement)* ')'
+    : '(' statementTableElement (',' statementTableElement)* ')'
+    ;
+
+schemaTableElement
+    : (identifier '.')? tableElement (KEY)?
+    ;
+
+statementTableElement
+    : tableElement (KEY)?
     ;
 
 tableElement
-    : identifier type (KEY)?
+    : identifier type
     ;
 
 tableProperties

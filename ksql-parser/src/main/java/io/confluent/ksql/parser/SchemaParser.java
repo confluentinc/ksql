@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.parser.SqlBaseParser.SchemaTableElementContext;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
@@ -27,6 +29,7 @@ import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
@@ -83,16 +86,31 @@ public final class SchemaParser {
 
     final SqlTypeParser typeParser = SqlTypeParser.create(typeRegistry);
 
-    final List<TableElement> elements = parser.tableElements().tableElement()
+    final List<TableElement> elements = parser.schemaTableElements().schemaTableElement()
         .stream()
         .map(ctx -> new TableElement(
             getLocation(ctx),
-            ctx.KEY() == null ? Namespace.VALUE : Namespace.KEY,
-            ColumnName.of(ParserUtil.getIdentifierText(ctx.identifier())),
-            typeParser.getType(ctx.type())
+            getNamespace(ctx),
+            ColumnName.of(ParserUtil.getIdentifierText(ctx.tableElement().identifier())),
+            typeParser.getType(ctx.tableElement().type()),
+            getSource(ctx)
         ))
         .collect(Collectors.toList());
 
     return TableElements.of(elements);
+  }
+
+  private static Optional<SourceName> getSource(final SchemaTableElementContext ctx) {
+    if (ctx.identifier() == null) {
+      return Optional.empty();
+    }
+    return Optional.of(SourceName.of(ParserUtil.getIdentifierText(ctx.identifier())));
+  }
+
+  private static Namespace getNamespace(final SchemaTableElementContext ctx) {
+    if (ctx.KEY() != null) {
+      return Namespace.KEY;
+    }
+    return Namespace.VALUE;
   }
 }

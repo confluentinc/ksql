@@ -27,12 +27,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.Rule;
 import org.junit.Test;
@@ -42,6 +44,7 @@ public class TableElementsTest {
 
   private static final Type INT_TYPE = new Type(SqlTypes.INTEGER);
   private static final Type STRING_TYPE = new Type(SqlTypes.STRING);
+  private static final Type BIGINT_TYPE = new Type(SqlTypes.BIGINT);
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -99,26 +102,6 @@ public class TableElementsTest {
         tableElement(VALUE, "v0", INT_TYPE),
         tableElement(VALUE, "v0", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE),
-        tableElement(VALUE, "v1", INT_TYPE)
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate column names:");
-    expectedException.expectMessage("v0");
-    expectedException.expectMessage("v1");
-
-    // When:
-    TableElements.of(elements);
-  }
-
-  @Test
-  public void shouldThrowOnDuplicateKeyValueColumns() {
-    // Given:
-    final List<TableElement> elements = ImmutableList.of(
-        tableElement(KEY, "v0", INT_TYPE),
-        tableElement(VALUE, "v0", INT_TYPE),
-        tableElement(KEY, "v1", INT_TYPE),
         tableElement(VALUE, "v1", INT_TYPE)
     );
 
@@ -264,15 +247,45 @@ public class TableElementsTest {
     ));
   }
 
+  @Test
+  public void shouldBuildLogicalSchemaWithSourceIncluded() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE, Optional.of("source")),
+        tableElement(KEY, "k0", STRING_TYPE, Optional.of("source"))
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema(false);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
+        .valueColumn(SourceName.of("source"), ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(SourceName.of("source"), ColumnName.of("k0"), SqlTypes.STRING)
+        .build()
+    ));
+  }
+
   private static TableElement tableElement(
       final Namespace namespace,
       final String name,
       final Type type
   ) {
+    return tableElement(namespace, name, type, Optional.empty());
+  }
+
+  private static TableElement tableElement(
+      final Namespace namespace,
+      final String name,
+      final Type type,
+      final Optional<String> source
+  ) {
     final TableElement te = mock(TableElement.class, name);
     when(te.getName()).thenReturn(ColumnName.of(name));
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
+    when(te.getSource()).thenReturn(source.map(SourceName::of));
     return te;
   }
 }

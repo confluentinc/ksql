@@ -24,12 +24,14 @@ import com.google.common.collect.Iterables;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.TableElement;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.parser.tree.TableElements;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
+import java.util.Optional;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -127,13 +129,62 @@ public class SchemaParserTest {
   }
 
   @Test
+  public void shouldParseSchemaWithSourceInValue() {
+    // Given:
+    final String schema = "SOURCE.FOO INTEGER";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(
+        elements,
+        contains(
+            new TableElement(
+                Optional.empty(),
+                Namespace.VALUE,
+                ColumnName.of("FOO"),
+                new Type(SqlTypes.INTEGER),
+                Optional.of(SourceName.of("FOO"))
+            )
+        )
+    );
+  }
+
+  @Test
+  public void shouldParseSchemaWithSourceInKey() {
+    // Given:
+    final String schema = "SOURCE.FOO INTEGER KEY";
+
+    // When:
+    final TableElements elements = parser.parse(schema);
+
+    // Then:
+    assertThat(
+        elements,
+        contains(
+            new TableElement(
+                Optional.empty(),
+                Namespace.KEY,
+                ColumnName.of("FOO"),
+                new Type(SqlTypes.INTEGER),
+                Optional.of(SourceName.of("FOO"))
+            )
+        )
+    );
+  }
+
+  @Test
   public void shouldThrowOnInvalidSchema() {
     // Given:
     final String schema = "foo-bar INTEGER";
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Error parsing schema \"foo-bar INTEGER\" at 1:4: extraneous input '-' ");
+    expectedException.expectMessage(
+        "Error parsing schema \"foo-bar INTEGER\" at 1:4: "
+            + "no viable alternative at input 'foo-'"
+    );
 
     // When:
     parser.parse(schema);

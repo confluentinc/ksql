@@ -53,6 +53,15 @@ public interface FunctionRegistry {
   UdfFactory getUdfFactory(String functionName);
 
   /**
+   * Get the factory for a table function.
+   *
+   * @param functionName the name of the function.
+   * @return the factory.
+   * @throws KsqlException on unknown table function.
+   */
+  TableFunctionFactory getTableFunctionFactory(String functionName);
+
+  /**
    * Get the factory for a UDAF.
    *
    * @param functionName the name of the function
@@ -99,6 +108,11 @@ public interface FunctionRegistry {
    * @return all UDF factories.
    */
   List<UdfFactory> listFunctions();
+
+  /**
+   * @return all table function factories.
+   */
+  List<TableFunctionFactory> listTableFunctions();
 
   /**
    * @return all UDAF factories.

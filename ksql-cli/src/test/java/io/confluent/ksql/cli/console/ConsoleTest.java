@@ -1226,7 +1226,8 @@ public class ConsoleTest {
                     + "really, really, really, really, really, really, really, really, really, "
                     + "really, really, really, really, really, really, really, really, long\n"
                     + "and contains\n\ttabs and stuff"
-            )), FunctionType.scalar)));
+            )), FunctionType.SCALAR
+        )));
 
     console.printKsqlEntityList(entityList);
 
@@ -1243,7 +1244,7 @@ public class ConsoleTest {
           + "              and containing new lines\n"
           + "              \tAND TABS\n"
           + "              too!\n"
-          + "Type        : scalar\n"
+          + "Type        : SCALAR\n"
           + "Jar         : some.jar\n"
           + "Variations  : \n"
           + "\n"

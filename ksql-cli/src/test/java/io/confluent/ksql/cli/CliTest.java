@@ -789,7 +789,7 @@ public class CliTest {
             + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
             + " representation of the \n"
             + "              timestamp in the given format.\n"
-            + "Type        : scalar\n"
+            + "Type        : SCALAR\n"
             + "Jar         : internal\n"
             + "Variations  :";
 
@@ -832,7 +832,7 @@ public class CliTest {
         + "Overview    : Returns a substring of the passed in value.\n"
     ));
     assertThat(output, containsString(
-        "Type        : scalar\n"
+        "Type        : SCALAR\n"
         + "Jar         : internal\n"
         + "Variations  :"
     ));
@@ -853,8 +853,8 @@ public class CliTest {
   public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
             "Name        : TOPK\n" +
-            "Author      : Confluent\n" +
-            "Type        : aggregate\n" +
+                "Author      : Confluent\n" +
+                "Type        : AGGREGATE\n" +
             "Jar         : internal\n" +
             "Variations  : \n";
 
@@ -868,6 +868,33 @@ public class CliTest {
     final String output = terminal.getOutputString();
     assertThat(output, containsString(expectedSummary));
     assertThat(output, containsString(expectedVariant));
+  }
+
+  @Test
+  public void shouldDescribeTableFunction() {
+    final String expectedOutput =
+        "Name        : EXPLODE\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "Type        : TABLE\n"
+            + "Jar         : internal\n"
+            + "Variations  : ";
+
+    localCli.handleLine("describe function explode;");
+    final String outputString = terminal.getOutputString();
+    assertThat(outputString, containsString(expectedOutput));
+
+    // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
+    String expectedVariation =
+        "\tVariation   : EXPLODE(list ARRAY<BYTES>)\n"
+            + "\tReturns     : BYTES\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+    assertThat(outputString, containsString(expectedVariation));
+
+    expectedVariation = "\tVariation   : EXPLODE(input ARRAY<DECIMAL(1, 0)>)\n"
+            + "\tReturns     : DECIMAL(1, 0)\n"
+        + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+    assertThat(outputString, containsString(expectedVariation));
   }
 
   @Test

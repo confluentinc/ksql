@@ -34,13 +34,13 @@ public final class UdfLoaderUtil {
     return functionRegistry;
   }
 
-  public static UdfFactory createTestUdfFactory(final KsqlFunction udf) {
+  public static UdfFactory createTestUdfFactory(final KsqlScalarFunction udf) {
     final UdfMetadata metadata = new UdfMetadata(
         udf.getFunctionName().name(),
         udf.getDescription(),
         "Test Author",
         "",
-        KsqlFunction.INTERNAL_PATH,
+        KsqlScalarFunction.INTERNAL_PATH,
         false);
 
     return new UdfFactory(udf.getKudfClass(), metadata);

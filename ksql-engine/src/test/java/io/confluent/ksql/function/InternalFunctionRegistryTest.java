@@ -73,7 +73,8 @@ public class InternalFunctionRegistryTest {
   }
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-  private final KsqlFunction func = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
+  private final KsqlScalarFunction func = KsqlScalarFunction.createLegacyBuiltIn(
+      Schema.OPTIONAL_STRING_SCHEMA,
       Collections.emptyList(),
       FunctionName.of("func"),
       Func1.class);
@@ -120,7 +121,8 @@ public class InternalFunctionRegistryTest {
     // Given:
     givenUdfFactoryRegistered();
 
-    final KsqlFunction func2 = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
+    final KsqlScalarFunction func2 = KsqlScalarFunction.createLegacyBuiltIn(
+        Schema.OPTIONAL_STRING_SCHEMA,
         Collections.emptyList(),
         func.getFunctionName(),
         Func2.class);
@@ -256,7 +258,8 @@ public class InternalFunctionRegistryTest {
     // Given:
     givenUdfFactoryRegistered();
     functionRegistry.addFunction(func);
-    final KsqlFunction func2 = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_INT64_SCHEMA,
+    final KsqlScalarFunction func2 = KsqlScalarFunction.createLegacyBuiltIn(
+        Schema.OPTIONAL_INT64_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), FunctionName.of("func"), Func1.class);
 
     // When:
@@ -270,7 +273,7 @@ public class InternalFunctionRegistryTest {
     // Given:
     givenUdfFactoryRegistered();
 
-    final KsqlFunction func2 = KsqlFunction.createLegacyBuiltIn(
+    final KsqlScalarFunction func2 = KsqlScalarFunction.createLegacyBuiltIn(
         Schema.OPTIONAL_STRING_SCHEMA,
         Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
         func.getFunctionName(),

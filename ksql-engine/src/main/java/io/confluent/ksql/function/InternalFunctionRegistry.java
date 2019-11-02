@@ -68,7 +68,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   }
 
   @Override
-  public synchronized void addFunction(final KsqlFunction ksqlFunction) {
+  public synchronized void addFunction(final KsqlScalarFunction ksqlFunction) {
     final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().name().toUpperCase());
     if (udfFactory == null) {
       throw new KsqlException("Unknown function factory: " + ksqlFunction.getFunctionName());
@@ -238,7 +238,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private static UdfFactory builtInUdfFactory(
-        final KsqlFunction ksqlFunction,
+        final KsqlScalarFunction ksqlFunction,
         final boolean internal
     ) {
       final UdfMetadata metadata = new UdfMetadata(
@@ -246,7 +246,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ksqlFunction.getDescription(),
           KsqlConstants.CONFLUENT_AUTHOR,
           "",
-          KsqlFunction.INTERNAL_PATH,
+          KsqlScalarFunction.INTERNAL_PATH,
           internal
       );
 
@@ -263,31 +263,31 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
     private void addStringFunctions() {
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
           FunctionName.of("LCASE"), LCaseKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
           FunctionName.of("UCASE"), UCaseKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
           FunctionName.of(ConcatKudf.NAME), ConcatKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
           FunctionName.of("TRIM"), TrimKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(
               Schema.OPTIONAL_STRING_SCHEMA,
@@ -296,7 +296,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           FunctionName.of("IFNULL"), IfNullKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_INT32_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
           FunctionName.of("LEN"),
@@ -306,14 +306,14 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
     private void addMathFunctions() {
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
           FunctionName.of("CEIL"),
           CeilKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_FLOAT64_SCHEMA,
           Collections.emptyList(),
           FunctionName.of("RANDOM"),
@@ -323,21 +323,21 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
     private void addJsonFunctions() {
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_STRING_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
           JsonExtractStringKudf.FUNCTION_NAME,
           JsonExtractStringKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_BOOLEAN_SCHEMA,
           ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
           FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_BOOLEAN_SCHEMA,
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
@@ -347,7 +347,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ArrayContainsKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_BOOLEAN_SCHEMA,
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
@@ -357,7 +357,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ArrayContainsKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_BOOLEAN_SCHEMA,
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
@@ -367,7 +367,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
           ArrayContainsKudf.class
       ));
 
-      addBuiltInFunction(KsqlFunction.createLegacyBuiltIn(
+      addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
           Schema.OPTIONAL_BOOLEAN_SCHEMA,
           ImmutableList.of(
               SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
@@ -381,7 +381,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     private void addStructFieldFetcher() {
 
       addBuiltInFunction(
-          KsqlFunction.createLegacyBuiltIn(
+          KsqlScalarFunction.createLegacyBuiltIn(
               SchemaBuilder.struct().optional().build(),
               ImmutableList.of(
                   SchemaBuilder.struct().optional().build(),
@@ -406,11 +406,11 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
       functionRegistry.addAggregateFunctionFactory(new TopkDistinctAggFunctionFactory());
     }
 
-    private void addBuiltInFunction(final KsqlFunction ksqlFunction) {
+    private void addBuiltInFunction(final KsqlScalarFunction ksqlFunction) {
       addBuiltInFunction(ksqlFunction, false);
     }
 
-    private void addBuiltInFunction(final KsqlFunction ksqlFunction, final boolean internal) {
+    private void addBuiltInFunction(final KsqlScalarFunction ksqlFunction, final boolean internal) {
       functionRegistry
           .ensureFunctionFactory(builtInUdfFactory(ksqlFunction, internal))
           .addFunction(ksqlFunction);

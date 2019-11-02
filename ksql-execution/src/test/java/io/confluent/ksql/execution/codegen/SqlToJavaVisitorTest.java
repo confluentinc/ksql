@@ -54,7 +54,7 @@ import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
@@ -187,9 +187,9 @@ public class SqlToJavaVisitorTest {
   public void shouldPostfixFunctionInstancesWithUniqueId() {
     // Given:
     final UdfFactory ssFactory = mock(UdfFactory.class);
-    final KsqlFunction ssFunction = mock(KsqlFunction.class);
+    final KsqlScalarFunction ssFunction = mock(KsqlScalarFunction.class);
     final UdfFactory catFactory = mock(UdfFactory.class);
-    final KsqlFunction catFunction = mock(KsqlFunction.class);
+    final KsqlScalarFunction catFunction = mock(KsqlScalarFunction.class);
     givenUdf("SUBSTRING", Schema.OPTIONAL_STRING_SCHEMA, ssFactory, ssFunction);
     givenUdf("CONCAT", Schema.OPTIONAL_STRING_SCHEMA, catFactory, catFunction);
     final FunctionName ssName = FunctionName.of("SUBSTRING");
@@ -770,7 +770,8 @@ public class SqlToJavaVisitorTest {
       final String name,
       final Schema returnType,
       final UdfFactory factory,
-      final KsqlFunction function) {
+      final KsqlScalarFunction function
+  ) {
     when(functionRegistry.isAggregate(name)).thenReturn(false);
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);

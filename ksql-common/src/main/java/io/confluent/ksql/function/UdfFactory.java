@@ -27,7 +27,7 @@ public class UdfFactory {
 
   private final UdfMetadata metadata;
   private final Class<? extends Kudf> udfClass;
-  private final UdfIndex<KsqlFunction> udfIndex;
+  private final UdfIndex<KsqlScalarFunction> udfIndex;
 
   UdfFactory(final Class<? extends Kudf> udfClass,
              final UdfMetadata metadata) {
@@ -36,12 +36,12 @@ public class UdfFactory {
     this.udfIndex = new UdfIndex<>(metadata.getName());
   }
 
-  synchronized void addFunction(final KsqlFunction ksqlFunction) {
+  synchronized void addFunction(final KsqlScalarFunction ksqlFunction) {
     checkCompatible(ksqlFunction);
     udfIndex.addFunction(ksqlFunction);
   }
 
-  private void checkCompatible(final KsqlFunction ksqlFunction) {
+  private void checkCompatible(final KsqlScalarFunction ksqlFunction) {
     if (udfClass != ksqlFunction.getKudfClass()) {
       throw new KsqlException("Can't add function " + ksqlFunction
           + " as a function with the same name exists in a different " + udfClass);
@@ -61,7 +61,7 @@ public class UdfFactory {
     return metadata.getName();
   }
 
-  public synchronized void eachFunction(final Consumer<KsqlFunction> consumer) {
+  public synchronized void eachFunction(final Consumer<KsqlScalarFunction> consumer) {
     udfIndex.values().forEach(consumer);
   }
 
@@ -79,7 +79,7 @@ public class UdfFactory {
         + '}';
   }
 
-  public synchronized KsqlFunction getFunction(final List<Schema> paramTypes) {
+  public synchronized KsqlScalarFunction getFunction(final List<Schema> paramTypes) {
     return udfIndex.getFunction(paramTypes);
   }
 }

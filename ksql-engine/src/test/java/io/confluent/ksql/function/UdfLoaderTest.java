@@ -164,7 +164,7 @@ public class UdfLoaderTest {
     final Schema schema = DecimalUtil.builder(2, 1).optional().build();
 
     // When:
-    final KsqlFunction fun = FUNC_REG.getUdfFactory("floor")
+    final KsqlScalarFunction fun = FUNC_REG.getUdfFactory("floor")
         .getFunction(ImmutableList.of(schema));
 
     // Then:
@@ -186,7 +186,7 @@ public class UdfLoaderTest {
 
     // When:
     final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
-    final KsqlFunction function
+    final KsqlScalarFunction function
         = toList.getFunction(args);
 
     assertThat(function.getReturnType(args),
@@ -204,7 +204,7 @@ public class UdfLoaderTest {
 
     // When:
     final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
-    final KsqlFunction function
+    final KsqlScalarFunction function
         = toMap.getFunction(args);
 
     // Then:
@@ -225,7 +225,7 @@ public class UdfLoaderTest {
 
     // When:
     final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
-    final KsqlFunction function
+    final KsqlScalarFunction function
         = toStruct.getFunction(args);
 
     // Then:
@@ -244,7 +244,7 @@ public class UdfLoaderTest {
     // When:
     final Schema decimal = DecimalUtil.builder(2, 1).build();
     final List<Schema> args = Collections.singletonList(decimal);
-    final KsqlFunction function = returnDecimal.getFunction(args);
+    final KsqlScalarFunction function = returnDecimal.getFunction(args);
 
     // Then:
     assertThat(function.getReturnType(args), equalTo(decimal));
@@ -256,7 +256,7 @@ public class UdfLoaderTest {
     final UdfFactory returnIncompatible = FUNC_REG.getUdfFactory("returnincompatible");
     final Schema decimal = DecimalUtil.builder(2, 1).build();
     final List<Schema> args = Collections.singletonList(decimal);
-    final KsqlFunction function = returnIncompatible.getFunction(args);
+    final KsqlScalarFunction function = returnIncompatible.getFunction(args);
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -406,13 +406,13 @@ public class UdfLoaderTest {
   @Test
   public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
     final UdfFactory substring = FUNC_REG.getUdfFactory("substring");
-    assertThat(substring.getMetadata().getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
+    assertThat(substring.getMetadata().getPath(), equalTo(KsqlScalarFunction.INTERNAL_PATH));
   }
 
   @Test
   public void shouldSupportUdfParameterAnnotation() {
     final UdfFactory substring = FUNC_REG.getUdfFactory("somefunction");
-    final KsqlFunction function = substring.getFunction(
+    final KsqlScalarFunction function = substring.getFunction(
         ImmutableList.of(
             Schema.OPTIONAL_STRING_SCHEMA,
             Schema.OPTIONAL_STRING_SCHEMA,
@@ -497,7 +497,7 @@ public class UdfLoaderTest {
 
     // Then:
     assertThat(udfFactory, not(nullValue()));
-    final KsqlFunction function = udfFactory.getFunction(args);
+    final KsqlScalarFunction function = udfFactory.getFunction(args);
     assertThat(function.getFunctionName().name(), equalToIgnoringCase("somefunction"));
 
   }
@@ -506,7 +506,7 @@ public class UdfLoaderTest {
   public void shouldCollectMetricsWhenMetricCollectionEnabled() {
     // Given:
     final UdfFactory substring = FUNC_REG_WITH_METRICS.getUdfFactory("substring");
-    final KsqlFunction function = substring
+    final KsqlScalarFunction function = substring
         .getFunction(Arrays.asList(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA));
 
     // When:
@@ -561,7 +561,7 @@ public class UdfLoaderTest {
         KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.expected-param", "expected-value"
     ));
 
-    final KsqlFunction udf = FUNC_REG.getUdfFactory("ConfigurableUdf")
+    final KsqlScalarFunction udf = FUNC_REG.getUdfFactory("ConfigurableUdf")
         .getFunction(ImmutableList.of(Schema.INT32_SCHEMA));
 
     // When:
@@ -590,7 +590,7 @@ public class UdfLoaderTest {
         Schema.STRING_SCHEMA);
 
     // Then:
-    final KsqlFunction someFunction = FUNC_REG
+    final KsqlScalarFunction someFunction = FUNC_REG
         .getUdfFactory("SomeFunction")
         .getFunction(args);
 
@@ -600,7 +600,7 @@ public class UdfLoaderTest {
   @Test
   public void shouldEnsureFunctionReturnTypeIsDeepOptional() {
     final List<Schema> args = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
-    final KsqlFunction complexFunction = FUNC_REG
+    final KsqlScalarFunction complexFunction = FUNC_REG
         .getUdfFactory("ComplexFunction")
         .getFunction(args);
 

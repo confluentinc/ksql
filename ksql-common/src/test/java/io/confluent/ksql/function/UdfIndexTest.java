@@ -1,6 +1,6 @@
 package io.confluent.ksql.function;
 
-import static io.confluent.ksql.function.KsqlFunction.INTERNAL_PATH;
+import static io.confluent.ksql.function.KsqlScalarFunction.INTERNAL_PATH;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -42,11 +42,11 @@ public class UdfIndexTest {
   private static final FunctionName EXPECTED = FunctionName.of("expected");
   private static final FunctionName OTHER = FunctionName.of("other");
 
-  private UdfIndex<KsqlFunction> udfIndex;
+  private UdfIndex<KsqlScalarFunction> udfIndex;
 
   @Before
   public void setUp() {
-    udfIndex = new UdfIndex<KsqlFunction>("name");
+    udfIndex = new UdfIndex<KsqlScalarFunction>("name");
   }
 
   @Rule
@@ -55,11 +55,11 @@ public class UdfIndexTest {
   @Test
   public void shouldFindNoArgs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(EXPECTED, false)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of());
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of());
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -68,11 +68,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindOneArg() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -81,11 +82,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindTwoDifferentArgs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, INT)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, INT)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, INT));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, INT));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -94,11 +96,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindTwoSameArgs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -107,12 +110,13 @@ public class UdfIndexTest {
   @Test
   public void shouldFindOneArgConflict() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING),
         function(OTHER, false, INT)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -121,12 +125,13 @@ public class UdfIndexTest {
   @Test
   public void shouldFindTwoArgSameFirstConflict() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, STRING),
         function(OTHER, false, STRING, INT)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -135,12 +140,12 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseCorrectStruct() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRUCT2),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRUCT2),
         function(EXPECTED, false, STRUCT1)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT1));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -149,12 +154,12 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseCorrectMap() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, MAP2),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, MAP2),
         function(EXPECTED, false, MAP1)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(MAP1));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(MAP1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -163,11 +168,12 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseCorrectDecimal() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, DECIMAL1)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, DECIMAL1)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(DECIMAL1));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(DECIMAL1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -176,11 +182,12 @@ public class UdfIndexTest {
   @Test
   public void shouldAllowAnyDecimal() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, DECIMAL1)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, DECIMAL1)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(DECIMAL2));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(DECIMAL2));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -189,13 +196,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseCorrectPermutedStruct() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, false, STRUCT3_PERMUTE),
         function(EXPECTED, false, STRUCT3)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT3));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT3));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -204,11 +211,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargsEmpty() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of());
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of());
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -217,11 +225,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargsOne() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -230,11 +239,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargsTwo() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -243,12 +253,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargWithStruct() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, true, SchemaBuilder.array(STRUCT1).build())};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT1, STRUCT1));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRUCT1, STRUCT1));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -257,11 +267,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargWithList() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING_VARARGS));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING_VARARGS));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -270,13 +281,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseSpecificOverVarArgs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, STRING),
         function(OTHER, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -285,14 +296,14 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseSpecificOverMultipleVarArgs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, STRING),
         function(OTHER, true, STRING_VARARGS),
         function("two", true, STRING, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -301,12 +312,12 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseVarArgsIfSpecificDoesntMatch() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING),
         function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(STRING, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -315,11 +326,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindNonVarargWithNullValues() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -328,11 +340,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindNonVarargWithPartialNullValues() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(null, STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(null, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -341,12 +354,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseFirstAddedWithNullValues() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING),
         function(OTHER, false, INT)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -355,11 +369,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargWithNullValues() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null}));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -368,11 +383,12 @@ public class UdfIndexTest {
   @Test
   public void shouldFindVarargWithSomeNullValues() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, true, STRING_VARARGS)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(null, STRING, null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(null, STRING, null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -381,12 +397,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseNonVarargWithNullValues() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING),
         function(OTHER, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -395,12 +412,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseNonVarargWithNullValuesOfDifferingSchemas() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, INT),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, INT),
         function(OTHER, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null, null}));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null, null}));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -409,12 +427,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseNonVarargWithNullValuesOfSameSchemas() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, STRING),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, STRING),
         function(OTHER, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null, null}));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(new Schema[]{null, null}));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -423,12 +442,13 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseNonVarargWithNullValuesOfPartialNulls() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, STRING, INT),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, STRING, INT),
         function(OTHER, true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, null));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(STRING, null));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -437,7 +457,7 @@ public class UdfIndexTest {
   @Test
   public void shouldChooseCorrectlyInComplicatedTopology() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, STRING, INT, STRING, INT), function(OTHER, true, STRING_VARARGS),
         function("two", true, STRING, STRING_VARARGS),
         function("three", true, STRING, INT, STRING_VARARGS),
@@ -446,7 +466,7 @@ public class UdfIndexTest {
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Arrays.asList(STRING, INT, null, INT));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Arrays.asList(STRING, INT, null, INT));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -455,13 +475,13 @@ public class UdfIndexTest {
   @Test
   public void shouldFindGenericMethodWithIntParam() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, GENERIC_LIST)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(INT_LIST));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(INT_LIST));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -470,13 +490,13 @@ public class UdfIndexTest {
   @Test
   public void shouldFindGenericMethodWithStringParam() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, GENERIC_LIST)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(Collections.singletonList(STRING_LIST));
+    final KsqlScalarFunction fun = udfIndex.getFunction(Collections.singletonList(STRING_LIST));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -486,13 +506,13 @@ public class UdfIndexTest {
   public void shouldMatchGenericMethodWithMultipleIdenticalGenerics() {
     // Given:
     final Schema generic = GenericsUtil.generic("A").build();
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, generic, generic)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT, INT));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(INT, INT));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -503,13 +523,13 @@ public class UdfIndexTest {
     // Given:
     final Schema genericA = GenericsUtil.generic("A").build();
     final Schema genericB = GenericsUtil.generic("B").build();
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, genericA, genericB)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT, STRING));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(INT, STRING));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -519,13 +539,13 @@ public class UdfIndexTest {
   public void shouldMatchNestedGenericMethodWithMultipleGenerics() {
     // Given:
     final Schema generic = GenericsUtil.array("A").build();
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, generic, generic)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // When:
-    final KsqlFunction fun = udfIndex.getFunction(ImmutableList.of(INT_LIST, INT_LIST));
+    final KsqlScalarFunction fun = udfIndex.getFunction(ImmutableList.of(INT_LIST, INT_LIST));
 
     // Then:
     assertThat(fun.getFunctionName(), equalTo(EXPECTED));
@@ -534,7 +554,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchIfParamLengthDiffers() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // Expect:
@@ -549,7 +569,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchIfNoneFound() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // Expect:
@@ -565,7 +585,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchIfNullAndPrimitive() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, false, Schema.INT32_SCHEMA)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -582,7 +602,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchIfNullAndPrimitiveVararg() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, true, SchemaBuilder.array(Schema.INT32_SCHEMA))};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -599,7 +619,8 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchIfNoneFoundWithNull() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING, INT)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(OTHER, false, STRING, INT)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // Expect:
@@ -615,7 +636,8 @@ public class UdfIndexTest {
   @Test
   public void shouldNotChooseSpecificWhenTrickyVarArgLoop() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING, INT),
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(OTHER, false, STRING, INT),
         function("two", true, STRING_VARARGS)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -632,7 +654,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchWhenNullTypeInArgsIfParamLengthDiffers() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(OTHER, false, STRING)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{function(OTHER, false, STRING)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // Expect:
@@ -648,7 +670,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchVarargDifferentStructs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, true, SchemaBuilder.array(STRUCT1).build())};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -664,7 +686,7 @@ public class UdfIndexTest {
   @Test
   public void shouldNotMatchPermutedStructs() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(OTHER, false, STRUCT3)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
@@ -681,7 +703,7 @@ public class UdfIndexTest {
   public void shouldNotMatchGenericMethodWithAlreadyReservedTypes() {
     // Given:
     final Schema generic = GenericsUtil.generic("A").build();
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, generic, generic)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
@@ -699,7 +721,7 @@ public class UdfIndexTest {
   public void shouldNotMatchNestedGenericMethodWithAlreadyReservedTypes() {
     // Given:
     final Schema generic = GenericsUtil.array("A").build();
-    final KsqlFunction[] functions = new KsqlFunction[]{
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
         function(EXPECTED, false, generic, generic)
     };
     Arrays.stream(functions).forEach(udfIndex::addFunction);
@@ -716,7 +738,8 @@ public class UdfIndexTest {
   @Test
   public void shouldNotFindArbitraryBytesTypes() {
     // Given:
-    final KsqlFunction[] functions = new KsqlFunction[]{function(EXPECTED, false, DECIMAL1)};
+    final KsqlScalarFunction[] functions = new KsqlScalarFunction[]{
+        function(EXPECTED, false, DECIMAL1)};
     Arrays.stream(functions).forEach(udfIndex::addFunction);
 
     // Expect:
@@ -728,7 +751,7 @@ public class UdfIndexTest {
     udfIndex.getFunction(ImmutableList.of(SchemaBuilder.bytes().build()));
   }
 
-  private static KsqlFunction function(
+  private static KsqlScalarFunction function(
       final String name,
       final boolean isVarArgs,
       final Schema... args
@@ -736,7 +759,7 @@ public class UdfIndexTest {
     return function(FunctionName.of(name), isVarArgs, args);
   }
 
-  private static KsqlFunction function(
+  private static KsqlScalarFunction function(
       final FunctionName name,
       final boolean isVarArgs,
       final Schema... args
@@ -750,7 +773,7 @@ public class UdfIndexTest {
       }
     };
 
-    return KsqlFunction.create(
+    return KsqlScalarFunction.create(
         ignored -> Schema.OPTIONAL_STRING_SCHEMA,
         Schema.OPTIONAL_STRING_SCHEMA,
         Arrays.asList(args),

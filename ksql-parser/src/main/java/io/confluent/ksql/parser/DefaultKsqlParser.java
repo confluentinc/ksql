@@ -72,7 +72,7 @@ public class DefaultKsqlParser implements KsqlParser {
   ) {
     try {
       final AstBuilder astBuilder = new AstBuilder(typeRegistry);
-      final Statement root = astBuilder.build(stmt.getStatement());
+      final Statement root = astBuilder.buildStatement(stmt.getStatement());
 
       return PreparedStatement.of(stmt.getStatementText(), root);
     } catch (final ParseFailedException e) {

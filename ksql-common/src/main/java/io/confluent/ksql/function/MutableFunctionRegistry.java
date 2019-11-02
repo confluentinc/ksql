@@ -42,7 +42,7 @@ public interface MutableFunctionRegistry extends FunctionRegistry {
    * @param ksqlFunction the function to register.
    * @throws KsqlException if a function, (of any type), with the same name exists.
    */
-  void addFunction(KsqlFunction ksqlFunction);
+  void addFunction(KsqlScalarFunction ksqlFunction);
 
   /**
    * Register an aggregate function factory.

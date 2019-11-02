@@ -65,7 +65,7 @@ public class UdfLoader {
   void loadUdfFromClass(final Class<?>... udfClasses) {
     for (final Class<?> theClass : udfClasses) {
       loadUdfFromClass(
-          theClass, KsqlFunction.INTERNAL_PATH);
+          theClass, KsqlScalarFunction.INTERNAL_PATH);
     }
   }
 
@@ -102,7 +102,7 @@ public class UdfLoader {
     for (Method method : theClass.getMethods()) {
       final Udf udfAnnotation = method.getAnnotation(Udf.class);
       if (udfAnnotation != null) {
-        final KsqlFunction function;
+        final KsqlScalarFunction function;
         try {
           function = createFunction(theClass, udfDescriptionAnnotation, udfAnnotation, method, path,
               sensorName, udfClass
@@ -125,7 +125,7 @@ public class UdfLoader {
     }
   }
 
-  private KsqlFunction createFunction(
+  private KsqlScalarFunction createFunction(
       final Class theClass,
       final UdfDescription udfDescriptionAnnotation,
       final Udf udfAnnotation,
@@ -156,7 +156,7 @@ public class UdfLoader {
             udfDescriptionAnnotation.name()
         );
 
-    return KsqlFunction.create(
+    return KsqlScalarFunction.create(
         schemaProviderFunction,
         javaReturnSchema,
         parameters,

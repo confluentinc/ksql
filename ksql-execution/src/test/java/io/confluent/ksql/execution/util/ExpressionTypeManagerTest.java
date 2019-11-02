@@ -27,6 +27,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,6 +58,7 @@ import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
@@ -103,9 +105,11 @@ public class ExpressionTypeManagerTest {
     expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry);
 
     final UdfFactory internalFactory = mock(UdfFactory.class);
-    when(internalFactory.getMetadata().isInternal()).thenReturn(true);
+    final UdfMetadata metadata = mock(UdfMetadata.class);
+    when(internalFactory.getMetadata()).thenReturn(metadata);
+    when(metadata.isInternal()).thenReturn(true);
 
-    when(functionRegistry.getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name()))
+    when(functionRegistry.getUdfFactory(anyString()))
         .thenReturn(internalFactory);
   }
 
@@ -559,5 +563,7 @@ public class ExpressionTypeManagerTest {
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
     when(function.getReturnType(anyList())).thenReturn(returnType);
+    UdfMetadata metadata = mock(UdfMetadata.class);
+    when(factory.getMetadata()).thenReturn(metadata);
   }
 }

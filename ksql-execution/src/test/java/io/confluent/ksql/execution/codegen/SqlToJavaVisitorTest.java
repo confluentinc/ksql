@@ -56,6 +56,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
@@ -774,5 +775,7 @@ public class SqlToJavaVisitorTest {
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
     when(function.getReturnType(anyList())).thenReturn(returnType);
+    UdfMetadata metadata = mock(UdfMetadata.class);
+    when(factory.getMetadata()).thenReturn(metadata);
   }
 }

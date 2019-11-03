@@ -29,7 +29,7 @@ public final class IdentifierUtil {
    * @param identifier  the identifier
    * @return whether or not {@code identifier} is a valid identifier without quotes
    */
-  public static boolean needsQuotes(final String identifier) {
+  public static boolean isValid(final String identifier) {
     final SqlBaseLexer sqlBaseLexer = new SqlBaseLexer(
         new CaseInsensitiveStream(CharStreams.fromString(identifier)));
     final CommonTokenStream tokenStream = new CommonTokenStream(sqlBaseLexer);
@@ -43,8 +43,20 @@ public final class IdentifierUtil {
     sqlBaseParser.identifier();
 
     // needs quotes if the `identifier` was not able to read the entire line
-    return sqlBaseParser.getNumberOfSyntaxErrors() != 0
-        || sqlBaseParser.getCurrentToken().getCharPositionInLine() != identifier.length();
+    return sqlBaseParser.getNumberOfSyntaxErrors() == 0
+        && sqlBaseParser.getCurrentToken().getCharPositionInLine() == identifier.length();
+  }
+
+  /**
+   * @param identifier the identifier
+   * @return whether or not {@code identifier} needs quotes to be parsed as the same identifier
+   */
+  public static boolean needsQuotes(final String identifier) {
+    return !(isValid(identifier) && upperCase(identifier));
+  }
+
+  private static boolean upperCase(final String identifier) {
+    return identifier.toUpperCase().equals(identifier);
   }
 
 }

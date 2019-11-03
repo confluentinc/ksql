@@ -53,7 +53,7 @@ import org.apache.kafka.connect.data.Schema;
 public class DefaultSchemaInjector implements Injector {
 
   private static final SqlSchemaFormatter FORMATTER = new SqlSchemaFormatter(
-      IdentifierUtil::needsQuotes, Option.AS_COLUMN_LIST);
+      w -> !IdentifierUtil.isValid(w), Option.AS_COLUMN_LIST);
 
   private final TopicSchemaSupplier schemaSupplier;
 

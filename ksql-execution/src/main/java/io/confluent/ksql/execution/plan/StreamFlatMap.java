@@ -15,7 +15,7 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -25,16 +25,16 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
-  private final List<TableFunctionApplier> tableFunctionAppliers;
+  private final List<FunctionCall> tableFunctions;
 
   public StreamFlatMap(
       final ExecutionStepProperties properties,
       final ExecutionStep<KStreamHolder<K>> source,
-      final List<TableFunctionApplier> tableFunctionAppliers
+      final List<FunctionCall> tableFunctionAppliers
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
-    this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
+    this.tableFunctions = Objects.requireNonNull(tableFunctionAppliers);
   }
 
   @Override
@@ -52,8 +52,8 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
     return builder.visitFlatMap(this);
   }
 
-  public List<TableFunctionApplier> getTableFunctionAppliers() {
-    return tableFunctionAppliers;
+  public List<FunctionCall> getTableFunctions() {
+    return tableFunctions;
   }
 
   public ExecutionStep<KStreamHolder<K>> getSource() {

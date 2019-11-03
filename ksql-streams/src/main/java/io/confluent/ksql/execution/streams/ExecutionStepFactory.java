@@ -19,7 +19,6 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
@@ -147,13 +146,13 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
       final LogicalSchema resultSchema,
-      final List<TableFunctionApplier> tableFunctionAppliers
+      final List<FunctionCall> tableFunctions
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamFlatMap<>(
         new DefaultExecutionStepProperties(resultSchema, queryContext),
         source,
-        tableFunctionAppliers
+        tableFunctions
     );
   }
 

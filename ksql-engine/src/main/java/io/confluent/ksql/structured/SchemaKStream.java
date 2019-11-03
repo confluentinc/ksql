@@ -23,16 +23,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.engine.rewrite.StatementRewriteForRowtime;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
-import io.confluent.ksql.execution.codegen.CodeGenRunner;
-import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.function.UdtfUtil;
-import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
@@ -55,7 +51,6 @@ import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KeyField.LegacyField;
@@ -72,7 +67,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.IdentifierUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -691,33 +685,13 @@ public class SchemaKStream<K> {
       final List<FunctionCall> tableFunctions,
       final QueryContext.Stacker contextStacker
   ) {
-    final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>(tableFunctions.size());
-    final CodeGenRunner codeGenRunner =
-        new CodeGenRunner(getSchema(), ksqlConfig, functionRegistry);
-    for (FunctionCall functionCall: tableFunctions) {
-      final List<ExpressionMetadata> expressionMetadataList = new ArrayList<>(
-          functionCall.getArguments().size());
-      for (Expression expression : functionCall.getArguments()) {
-        final ExpressionMetadata expressionMetadata =
-            codeGenRunner.buildCodeGenFromParseTree(expression, "Table function");
-        expressionMetadataList.add(expressionMetadata);
-      }
-      final KsqlTableFunction tableFunction = UdtfUtil.resolveTableFunction(
-          functionRegistry,
-          functionCall,
-          getSchema()
-      );
-      final TableFunctionApplier tableFunctionApplier =
-          new TableFunctionApplier(tableFunction, expressionMetadataList);
-      tableFunctionAppliers.add(tableFunctionApplier);
-    }
     final StreamFlatMap<K> step = ExecutionStepFactory.streamFlatMap(
         contextStacker,
         sourceStep,
         outputSchema,
-        tableFunctionAppliers
+        tableFunctions
     );
-    return new SchemaKStream<K>(
+    return new SchemaKStream<>(
         step,
         keyFormat,
         keyField,

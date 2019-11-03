@@ -111,7 +111,7 @@ public class TableRowsEntityFactoryTest {
   }
 
   @Test
-  public void shouldSupportNullColumn() {
+  public void shouldSupportNullColumns() {
     // Given:
     final List<Object> newColumns = new ArrayList<>();
     newColumns.add(null);

@@ -217,6 +217,26 @@
           }
         ]
       }
+    },
+    {
+      "name": "table function with where clause",
+      "statements": [
+        "CREATE STREAM TEST (F0 INT, F1 ARRAY<INT>) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT F0, EXPLODE(F1) VAL FROM TEST WHERE F0 <> 1;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 0, "value": {"F0": 0, "F1": [1, 2, 3]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 1, "F1": [4, 5, 6]}},
+        {"topic": "test_topic", "key": 0, "value": {"F0": 2, "F1": [7, 8, 9]}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 0, "VAL": 1}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 0, "VAL": 2}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 0, "VAL": 3}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 2, "VAL": 7}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 2, "VAL": 8}},
+        {"topic": "OUTPUT", "key": "0", "value": {"F0": 2, "VAL": 9}}
+      ]
     }
   ]
 }

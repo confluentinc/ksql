@@ -77,12 +77,12 @@ public class LogicalPlanner {
   public OutputNode buildPlan() {
     PlanNode currentNode = buildSourceNode();
 
-    if (!analysis.getTableFunctions().isEmpty()) {
-      currentNode = buildFlatMapNode(currentNode);
-    }
-
     if (analysis.getWhereExpression().isPresent()) {
       currentNode = buildFilterNode(currentNode, analysis.getWhereExpression().get());
+    }
+
+    if (!analysis.getTableFunctions().isEmpty()) {
+      currentNode = buildFlatMapNode(currentNode);
     }
 
     if (analysis.getGroupByExpressions().isEmpty()) {

@@ -22,7 +22,7 @@ import java.util.function.Predicate;
 
 public final class FormatOptions {
 
-  private final Predicate<String> reservedWordPredicate;
+  private final Predicate<String> addQuotesPredicate;
 
   public static FormatOptions none() {
     return new FormatOptions(word -> true);
@@ -41,7 +41,7 @@ public final class FormatOptions {
   /**
    * Construct instance.
    *
-   * <p>The {@code reservedWordPredicate} allows code that lives in the common module
+   * <p>The {@code addQuotesPredicate} allows code that lives in the common module
    * to be wired up to the set of reserved words defined in the parser module. Wire this up to
    * {@code ParserUtil::isReservedIdentifier}.
    *
@@ -53,29 +53,29 @@ public final class FormatOptions {
    * quotes. NB: this also makes the field name case-sensitive. So care must be taken to ensure
    * field names have the correct case.
    *
-   * @param reservedWordPredicate predicate to test if a word is a reserved in SQL syntax.
+   * @param addQuotesPredicate predicate to test if a word should be quoted.
    * @return instance of {@code FormatOptions}.
    */
-  public static FormatOptions of(final Predicate<String> reservedWordPredicate) {
-    return new FormatOptions(reservedWordPredicate);
+  public static FormatOptions of(final Predicate<String> addQuotesPredicate) {
+    return new FormatOptions(addQuotesPredicate);
   }
 
   private FormatOptions(final Predicate<String> fieldNameEscaper) {
-    this.reservedWordPredicate = requireNonNull(fieldNameEscaper, "reservedWordPredicate");
+    this.addQuotesPredicate = requireNonNull(fieldNameEscaper, "addQuotesPredicate");
   }
 
-  public boolean isReservedWord(final String word) {
-    return reservedWordPredicate.test(word);
+  private boolean shouldQuote(final String word) {
+    return addQuotesPredicate.test(word);
   }
 
   /**
-   * Escapes {@code word} if it is a reserved word, determined by {@link #isReservedWord(String)}.
+   * Escapes {@code word} if it is a reserved word, determined by {@link #shouldQuote(String)}.
    *
    * @param word the word to escape
    * @return {@code word}, if it is not a reserved word, otherwise {@code word} wrapped in
    *         back quotes
    */
   public String escape(final String word) {
-    return isReservedWord(word) ? KsqlConstants.ESCAPE + word + KsqlConstants.ESCAPE : word;
+    return shouldQuote(word) ? KsqlConstants.ESCAPE + word + KsqlConstants.ESCAPE : word;
   }
 }

@@ -33,7 +33,11 @@ import org.apache.kafka.connect.data.Struct;
  * name "K" containing the key (this is always a String) and a field with name "V" holding the
  * value;
  */
-@UdfDescription(name = "ENTRIES", description = "Construct an array from the entries in a map")
+@UdfDescription(name = "ENTRIES",
+    description =
+        "Construct an array from the entries in a map."
+            + "The array can be optionally sorted on the keys."
+)
 public class Entries {
 
   private static final Schema INT_STRUCT_SCHEMA = buildStructSchema(Schema.OPTIONAL_INT32_SCHEMA);
@@ -55,35 +59,40 @@ public class Entries {
 
   @Udf(schema = "ARRAY<STRUCT<K STRING, V INT>>")
   public List<Struct> entriesInt(
-      @UdfParameter final Map<String, Integer> map, @UdfParameter final boolean sorted
+      @UdfParameter(description = "The map to create entries from") final Map<String, Integer> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
   ) {
     return entries(map, INT_STRUCT_SCHEMA, sorted);
   }
 
   @Udf(schema = "ARRAY<STRUCT<K STRING, V BIGINT>>")
   public List<Struct> entriesBigInt(
-      @UdfParameter final Map<String, Long> map, @UdfParameter final boolean sorted
+      @UdfParameter(description = "The map to create entries from") final Map<String, Long> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
   ) {
     return entries(map, BIGINT_STRUCT_SCHEMA, sorted);
   }
 
   @Udf(schema = "ARRAY<STRUCT<K STRING, V DOUBLE>>")
   public List<Struct> entriesDouble(
-      @UdfParameter final Map<String, Double> map, @UdfParameter final boolean sorted
+      @UdfParameter(description = "The map to create entries from") final Map<String, Double> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
   ) {
     return entries(map, DOUBLE_STRUCT_SCHEMA, sorted);
   }
 
   @Udf(schema = "ARRAY<STRUCT<K STRING, V BOOLEAN>>")
   public List<Struct> entriesBoolean(
-      @UdfParameter final Map<String, Boolean> map, @UdfParameter final boolean sorted
+      @UdfParameter(description = "The map to create entries from") final Map<String, Boolean> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
   ) {
     return entries(map, BOOLEAN_STRUCT_SCHEMA, sorted);
   }
 
   @Udf(schema = "ARRAY<STRUCT<K STRING, V STRING>>")
   public List<Struct> entriesString(
-      @UdfParameter final Map<String, String> map, @UdfParameter final boolean sorted
+      @UdfParameter(description = "The map to create entries from") final Map<String, String> map,
+      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
   ) {
     return entries(map, STRING_STRUCT_SCHEMA, sorted);
   }

@@ -34,20 +34,39 @@
       ]
     },
     {
-      "name": "range",
+      "name": "GENERATE_SERIES",
       "statements": [
-        "CREATE STREAM TEST (F0 INT, F1 INT, F2 BIGINT, F3 BIGINT) WITH (kafka_topic='test_topic', value_format='JSON');",
-        "CREATE STREAM OUTPUT AS SELECT RANGE(F0, F1), RANGE(F2, F3) FROM TEST;"
+        "CREATE STREAM TEST (F0 INT, F1 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT GENERATE_SERIES(F0, F1) FROM TEST;"
       ],
       "inputs": [
-        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 4, "F2": 0, "F3": 4}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 4, "F2": 4, "F3": 4}},
-        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 0, "F2": 4, "F3": 0}}
+        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 4}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": -2, "F1": 2}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 4}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 4, "F1": 0}}
       ],
       "outputs": [
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3], "KSQL_COL_1": [0, 1, 2, 3]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [], "KSQL_COL_1": []}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [], "KSQL_COL_1": []}}
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [-2, -1, 0, 1]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": []}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": []}}
+      ]
+    },
+    {
+      "name": "GENERATE_SERIES with step",
+      "statements": [
+        "CREATE STREAM TEST (F0 INT, F1 INT, F2 INT) WITH (kafka_topic='test_topic', value_format='JSON');",
+        "CREATE STREAM OUTPUT AS SELECT GENERATE_SERIES(F0, F1, F2) FROM TEST;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 4, "F2": 1}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": -2, "F1": 2, "F2": 2}},
+        {"topic": "test_topic", "key": 1, "value": {"F0": 0, "F1": 10, "F2": 3}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [-2, 0]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 3, 6, 9]}}
       ]
     }
   ]

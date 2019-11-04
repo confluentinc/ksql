@@ -195,7 +195,6 @@ public class KsqlResource implements KsqlConfigurable {
       @Context final ServiceContext serviceContext,
       final KsqlRequest request
   ) {
-    LOG.info("Received: " + request);
 
     throwIfNotConfigured();
 

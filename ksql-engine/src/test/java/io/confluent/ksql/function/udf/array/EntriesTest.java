@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function.udf.array;
 
+import static junit.framework.TestCase.assertNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
@@ -95,6 +96,31 @@ public class EntriesTest {
   public void shouldComputeStringEntriesSorted() {
     Map<String, String> map = createMap(String::valueOf);
     shouldComputeEntriesSorted(map, () -> entriesUdf.entriesString(map, true));
+  }
+
+  @Test
+  public void shouldReturnNullListForNullMapInt() {
+    assertNull(entriesUdf.entriesInt(null, false));
+  }
+
+  @Test
+  public void shouldReturnNullListForNullMapBigInt() {
+    assertNull(entriesUdf.entriesBigInt(null, false));
+  }
+
+  @Test
+  public void shouldReturnNullListForNullMapDouble() {
+    assertNull(entriesUdf.entriesDouble(null, false));
+  }
+
+  @Test
+  public void shouldReturnNullListForNullMapBoolean() {
+    assertNull(entriesUdf.entriesBoolean(null, false));
+  }
+
+  @Test
+  public void shouldReturnNullListForNullMapString() {
+    assertNull(entriesUdf.entriesString(null, false));
   }
 
   private <T> void shouldComputeEntries(

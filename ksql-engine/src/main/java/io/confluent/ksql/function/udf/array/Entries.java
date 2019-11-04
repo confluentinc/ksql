@@ -105,6 +105,9 @@ public class Entries {
   private <T> List<Struct> entries(
       final Map<String, T> map, final Schema structSchema, final boolean sorted
   ) {
+    if (map == null) {
+      return null;
+    }
     final List<Struct> structs = new ArrayList<>(map.size());
     Collection<Entry<String, T>> entries = map.entrySet();
     if (sorted) {

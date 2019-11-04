@@ -32,23 +32,23 @@ public class GenerateSeries {
   @Udf
   public List<Integer> generateSeriesInt(
       @UdfParameter(description = "The beginning of the series") final int startInclusive,
-      @UdfParameter(description = "Marks the end of the series (exclusive)") final int endExclusive
+      @UdfParameter(description = "Marks the end of the series (inclusive)") final int endinclusive
   ) {
-    return generateSeriesInt(startInclusive, endExclusive, 1);
+    return generateSeriesInt(startInclusive, endinclusive, 1);
   }
 
   @Udf
   public List<Integer> generateSeriesInt(
       @UdfParameter(description = "The beginning of the series") final int startInclusive,
-      @UdfParameter(description = "Marks the end of the series (exclusive)") final int endExclusive,
+      @UdfParameter(description = "Marks the end of the series (inclusive)") final int endinclusive,
       @UdfParameter(description = "Difference between each value in the series") final int step
   ) {
     checkStep(step);
-    if (endExclusive <= startInclusive) {
+    if (endinclusive <= startInclusive) {
       return Collections.emptyList();
     }
-    final List<Integer> result = new ArrayList<>((endExclusive - startInclusive) / step);
-    for (int i = startInclusive; i < endExclusive; i += step) {
+    final List<Integer> result = new ArrayList<>((endinclusive - startInclusive + 1) / step);
+    for (int i = startInclusive; i <= endinclusive; i += step) {
       result.add(i);
     }
     return result;
@@ -57,24 +57,24 @@ public class GenerateSeries {
   @Udf
   public List<Long> generateSeriesLong(
       @UdfParameter(description = "The beginning of the series") final long startInclusive,
-      @UdfParameter(description = "Marks the end of the series (exclusive)") final long endExclusive
+      @UdfParameter(description = "Marks the end of the series (inclusive)") final long endinclusive
   ) {
-    return generateSeriesLong(startInclusive, endExclusive, 1);
+    return generateSeriesLong(startInclusive, endinclusive, 1);
   }
 
   @Udf
   public List<Long> generateSeriesLong(
       @UdfParameter(description = "The beginning of the series") final long startInclusive,
       @UdfParameter
-          (description = "Marks the end of the series (exclusive)") final long endExclusive,
+          (description = "Marks the end of the series (inclusive)") final long endinclusive,
       @UdfParameter(description = "Difference between each value in the series") final int step
   ) {
     checkStep(step);
-    if (endExclusive <= startInclusive) {
+    if (endinclusive < startInclusive) {
       return Collections.emptyList();
     }
-    final List<Long> result = new ArrayList<>((int) (endExclusive - startInclusive) / step);
-    for (long i = startInclusive; i < endExclusive; i += step) {
+    final List<Long> result = new ArrayList<>((int) (endinclusive - startInclusive + 1) / step);
+    for (long i = startInclusive; i <= endinclusive; i += step) {
       result.add(i);
     }
     return result;

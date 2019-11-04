@@ -34,7 +34,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeIntRange() {
-    List<Integer> range = rangeUdf.generateSeriesInt(0, 10);
+    List<Integer> range = rangeUdf.generateSeriesInt(0, 9);
     assertThat(range, hasSize(10));
     int index = 0;
     for (Integer i : range) {
@@ -44,7 +44,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeEmptyIntRange() {
-    List<Integer> range = rangeUdf.generateSeriesInt(5, 5);
+    List<Integer> range = rangeUdf.generateSeriesInt(5, 4);
     assertThat(range, hasSize(0));
   }
 
@@ -56,7 +56,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeLongRange() {
-    List<Long> range = rangeUdf.generateSeriesLong(0, 10);
+    List<Long> range = rangeUdf.generateSeriesLong(0, 9);
     assertThat(range, hasSize(10));
     long index = 0;
     for (Long i : range) {
@@ -66,7 +66,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeEmptyLongRange() {
-    List<Long> range = rangeUdf.generateSeriesLong(5, 5);
+    List<Long> range = rangeUdf.generateSeriesLong(5, 4);
     assertThat(range, hasSize(0));
   }
 
@@ -78,7 +78,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeIntRangeWithEvenStepInt() {
-    List<Integer> range = rangeUdf.generateSeriesInt(0, 10, 2);
+    List<Integer> range = rangeUdf.generateSeriesInt(0, 9, 2);
     assertThat(range, hasSize(5));
     int index = 0;
     for (int i : range) {
@@ -89,7 +89,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeIntRangeWithOddStepInt() {
-    List<Integer> range = rangeUdf.generateSeriesInt(0, 10, 3);
+    List<Integer> range = rangeUdf.generateSeriesInt(0, 9, 3);
     assertThat(range, hasSize(4));
     int index = 0;
     for (int i : range) {
@@ -100,7 +100,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeIntRangeWithEvenStepLong() {
-    List<Long> range = rangeUdf.generateSeriesLong(0, 10, 2);
+    List<Long> range = rangeUdf.generateSeriesLong(0, 9, 2);
     assertThat(range, hasSize(5));
     long index = 0;
     for (long i : range) {
@@ -111,7 +111,7 @@ public class GenerateSeriesTest {
 
   @Test
   public void shouldComputeIntRangeWithOddStepLong() {
-    List<Long> range = rangeUdf.generateSeriesLong(0, 10, 3);
+    List<Long> range = rangeUdf.generateSeriesLong(0, 9, 3);
     assertThat(range, hasSize(4));
     long index = 0;
     for (long i : range) {

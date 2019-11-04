@@ -29,6 +29,7 @@ public class IdentifierUtilTest {
         "SELECT",   // reserved word
         "@ID",      // invalid character
         "FOO.BAR",  // with a dot
+        "foo"       // lower case
     };
 
     // Then:
@@ -49,6 +50,41 @@ public class IdentifierUtilTest {
     // Then:
     for (final String identifier : identifiers) {
       assertThat("Expected no quotes for " + identifier, !IdentifierUtil.needsQuotes(identifier));
+    }
+  }
+
+  @Test
+  public void shouldBeValid() {
+    // Given:
+    final String[] identifiers = new String[]{
+        "FOO",   // nothing special
+        "foo",   // lower-case
+    };
+
+    // Then:
+    for (final String identifier : identifiers) {
+      assertThat(
+          "Expected " + identifier + " to be valid.",
+          IdentifierUtil.isValid(identifier)
+      );
+    }
+  }
+
+  @Test
+  public void shouldNotBeValid() {
+    // Given:
+    final String[] identifiers = new String[]{
+        "@FOO",    // invalid character
+        "FOO.BAR", // Dot
+        "SELECT"   // reserved word
+    };
+
+    // Then:
+    for (final String identifier : identifiers) {
+      assertThat(
+          "Expected " + identifier + " to be invalid",
+          !IdentifierUtil.isValid(identifier)
+      );
     }
   }
 

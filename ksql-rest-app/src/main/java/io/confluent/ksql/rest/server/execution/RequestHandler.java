@@ -90,7 +90,8 @@ public class RequestHandler {
       } else {
         final ConfiguredStatement<?> configured = ConfiguredStatement.of(
             prepared, scopedPropertyOverrides, ksqlConfig);
-        executeStatement(serviceContext, configured, entities).ifPresent(entities::add);
+        executeStatement(serviceContext, configured, scopedPropertyOverrides, entities)
+            .ifPresent(entities::add);
       }
     }
     return entities;
@@ -100,6 +101,7 @@ public class RequestHandler {
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
@@ -110,6 +112,7 @@ public class RequestHandler {
 
     return executor.execute(
         configured,
+        mutableScopedProperties,
         ksqlEngine,
         serviceContext
     );
@@ -129,5 +132,4 @@ public class RequestHandler {
 
     return execute(serviceContext, ksqlEngine.parse(sql), propertyOverrides);
   }
-
 }

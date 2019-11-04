@@ -68,5 +68,9 @@ public final class CliCommandRegisterUtil {
 
     console.registerCliSpecificCommand(
         Spool.create(console::setSpool, console::unsetSpool));
+
+    console.registerCliSpecificCommand(
+        SetCliProperty.create(console::setCliProperty)
+    );
   }
 }

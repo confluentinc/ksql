@@ -18,23 +18,25 @@ package io.confluent.ksql.parser.tree;
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Immutable
 public class InsertValues extends Statement {
 
-  private final QualifiedName target;
-  private final ImmutableList<String> columns;
+  private final SourceName target;
+  private final ImmutableList<ColumnName> columns;
   private final ImmutableList<Expression> values;
 
   public InsertValues(
-      final QualifiedName target,
-      final List<String> columns,
+      final SourceName target,
+      final List<ColumnName> columns,
       final List<Expression> values
   ) {
     this(Optional.empty(), target, columns, values);
@@ -42,8 +44,8 @@ public class InsertValues extends Statement {
 
   public InsertValues(
       final Optional<NodeLocation> location,
-      final QualifiedName target,
-      final List<String> columns,
+      final SourceName target,
+      final List<ColumnName> columns,
       final List<Expression> values
   ) {
     super(location);
@@ -57,15 +59,17 @@ public class InsertValues extends Statement {
 
     if (!columns.isEmpty() && columns.size() != values.size()) {
       throw new KsqlException(
-          "Expected number columns and values to match: " + columns + ", " + values);
+          "Expected number columns and values to match: "
+              + columns.stream().map(ColumnName::name).collect(Collectors.toList()) + ", "
+              + values);
     }
   }
 
-  public QualifiedName getTarget() {
+  public SourceName getTarget() {
     return target;
   }
 
-  public List<String> getColumns() {
+  public List<ColumnName> getColumns() {
     return columns;
   }
 

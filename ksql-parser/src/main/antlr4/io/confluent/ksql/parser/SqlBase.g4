@@ -40,32 +40,32 @@ statement
     | (LIST | SHOW) FUNCTIONS                                               #listFunctions
     | (LIST | SHOW) (SOURCE | SINK)? CONNECTORS                             #listConnectors
     | (LIST | SHOW) TYPES                                                   #listTypes
-    | DESCRIBE EXTENDED? qualifiedName                                      #showColumns
-    | DESCRIBE FUNCTION qualifiedName                                       #describeFunction
+    | DESCRIBE EXTENDED? sourceName                                         #showColumns
+    | DESCRIBE FUNCTION identifier                                          #describeFunction
     | DESCRIBE CONNECTOR identifier                                         #describeConnector
-    | PRINT (qualifiedName | STRING) printClause                            #printTopic
+    | PRINT (identifier| STRING) printClause                                #printTopic
     | (LIST | SHOW) QUERIES EXTENDED?                                       #listQueries
-    | TERMINATE QUERY? qualifiedName                                        #terminateQuery
+    | TERMINATE QUERY? identifier                                           #terminateQuery
     | SET STRING EQ STRING                                                  #setProperty
     | UNSET STRING                                                          #unsetProperty
-    | CREATE STREAM (IF NOT EXISTS)? qualifiedName
+    | CREATE STREAM (IF NOT EXISTS)? sourceName
                 (tableElements)?
                 (WITH tableProperties)?                                     #createStream
-    | CREATE STREAM (IF NOT EXISTS)? qualifiedName
+    | CREATE STREAM (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query
                                        (PARTITION BY identifier)?           #createStreamAs
-    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+    | CREATE TABLE (IF NOT EXISTS)? sourceName
                     (tableElements)?
                     (WITH tableProperties)?                                 #createTable
-    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+    | CREATE TABLE (IF NOT EXISTS)? sourceName
             (WITH tableProperties)? AS query                                #createTableAs
     | CREATE (SINK | SOURCE) CONNECTOR identifier WITH tableProperties      #createConnector
-    | INSERT INTO qualifiedName query (PARTITION BY identifier)?            #insertInto
-    | INSERT INTO qualifiedName (columns)? VALUES values                    #insertValues
-    | DROP STREAM (IF EXISTS)? qualifiedName (DELETE TOPIC)?                #dropStream
-    | DROP TABLE (IF EXISTS)? qualifiedName  (DELETE TOPIC)?                #dropTable
+    | INSERT INTO sourceName query (PARTITION BY identifier)?               #insertInto
+    | INSERT INTO sourceName (columns)? VALUES values                       #insertValues
+    | DROP STREAM (IF EXISTS)? sourceName (DELETE TOPIC)?                   #dropStream
+    | DROP TABLE (IF EXISTS)? sourceName (DELETE TOPIC)?                    #dropTable
     | DROP CONNECTOR identifier                                             #dropConnector
-    | EXPLAIN  (statement | qualifiedName)                                  #explain
+    | EXPLAIN  (statement | identifier)                                     #explain
     | RUN SCRIPT STRING                                                     #runScript
     | CREATE TYPE identifier AS type                                        #registerType
     | DROP TYPE identifier                                                  #dropType
@@ -158,7 +158,7 @@ groupingExpressions
     ;
 
 values
-    : '(' (literal (',' literal)*)? ')'
+    : '(' (valueExpression (',' valueExpression)*)? ')'
     ;
 
 /*
@@ -167,7 +167,7 @@ values
 
 selectItem
     : expression (AS? identifier)?  #selectSingle
-    | qualifiedName '.' ASTERISK    #selectAll
+    | identifier '.' ASTERISK       #selectAll
     | ASTERISK                      #selectAll
     ;
 
@@ -200,7 +200,7 @@ joinCriteria
     ;
 
 aliasedRelation
-    : relationPrimary (AS? identifier)?
+    : relationPrimary (AS? sourceName)?
     ;
 
 columns
@@ -208,7 +208,7 @@ columns
     ;
 
 relationPrimary
-    : qualifiedName                                                   #tableName
+    : sourceName                                                  #tableName
     ;
 
 expression
@@ -250,8 +250,8 @@ valueExpression
 primaryExpression
     : literal                                                                        #literalExpression
     | identifier STRING                                                              #typeConstructor
-    | qualifiedName '(' ASTERISK ')'                              		               #functionCall
-    | qualifiedName '(' (expression (',' expression)*)? ')' 						             #functionCall
+    | identifier '(' ASTERISK ')'                              		                   #functionCall
+    | identifier'(' (expression (',' expression)*)? ')' 						                 #functionCall
     | CASE valueExpression whenClause+ (ELSE elseExpression=expression)? END         #simpleCase
     | CASE whenClause+ (ELSE elseExpression=expression)? END                         #searchedCase
     | CAST '(' expression AS type ')'                                                #cast
@@ -296,16 +296,16 @@ whenClause
     : WHEN condition=expression THEN result=expression
     ;
 
-qualifiedName
-    : identifier ('.' identifier)?
-    ;
-
 identifier
     : IDENTIFIER             #unquotedIdentifier
     | QUOTED_IDENTIFIER      #quotedIdentifierAlternative
     | nonReserved            #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER  #backQuotedIdentifier
     | DIGIT_IDENTIFIER       #digitIdentifier
+    ;
+
+sourceName
+    : identifier
     ;
 
 number

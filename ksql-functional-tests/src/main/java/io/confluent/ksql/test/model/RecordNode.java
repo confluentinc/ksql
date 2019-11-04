@@ -17,40 +17,45 @@ package io.confluent.ksql.test.model;
 
 import static java.util.Objects.requireNonNull;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.tools.exceptions.InvalidFieldException;
 import io.confluent.ksql.test.tools.exceptions.MissingFieldException;
+import io.confluent.ksql.test.utils.JsonParsingUtil;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 
+@JsonDeserialize(using = RecordNode.Deserializer.class)
 public final class RecordNode {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   private final String topicName;
-  private final String key;
+  private final Optional<String> key;
   private final JsonNode value;
   private final Optional<Long> timestamp;
   private final Optional<WindowData> window;
 
-  RecordNode(
-      @JsonProperty("topic") final String topicName,
-      @JsonProperty("key") final String key,
-      @JsonProperty("value") final JsonNode value,
-      @JsonProperty("timestamp") final Long timestamp,
-      @JsonProperty("window") final WindowData window
+  private RecordNode(
+      final String topicName,
+      final Optional<String> key,
+      final JsonNode value,
+      final Optional<Long> timestamp,
+      final Optional<WindowData> window
   ) {
     this.topicName = topicName == null ? "" : topicName;
-    this.key = key == null ? "" : key;
+    this.key = requireNonNull(key, "key");
     this.value = requireNonNull(value, "value");
-    this.timestamp = Optional.ofNullable(timestamp);
-    this.window = Optional.ofNullable(window);
+    this.timestamp = requireNonNull(timestamp, "timestamp");
+    this.window = requireNonNull(window, "window");
 
     if (this.topicName.isEmpty()) {
       throw new MissingFieldException("topic");
@@ -64,12 +69,13 @@ public final class RecordNode {
   public Record build(final Map<String, Topic> topics) {
     final Topic topic = topics.get(topicName);
 
-    final Object topicValue = buildValue(topic);
+    final Object recordValue = buildValue(topic);
 
     return new Record(
         topic,
-        key,
-        topicValue,
+        key.orElse(null),
+        recordValue,
+        value,
         timestamp,
         window.orElse(null)
     );
@@ -92,6 +98,33 @@ public final class RecordNode {
       return objectMapper.readValue(objectMapper.writeValueAsString(value), Object.class);
     } catch (final IOException e) {
       throw new InvalidFieldException("value", "failed to parse", e);
+    }
+  }
+
+  public static class Deserializer extends JsonDeserializer<RecordNode> {
+
+    @Override
+    public RecordNode deserialize(
+        final JsonParser jp,
+        final DeserializationContext ctxt
+    ) throws IOException {
+      final JsonNode node = jp.getCodec().readTree(jp);
+
+      final String topic = JsonParsingUtil.getRequired("topic", node, jp, String.class);
+
+      final Optional<String> key = node.has("key")
+          ? JsonParsingUtil.getOptional("key", node, jp, String.class)
+          : Optional.of("");
+
+      final JsonNode value = JsonParsingUtil.getRequired("value", node, jp, JsonNode.class);
+
+      final Optional<Long> timestamp = JsonParsingUtil
+          .getOptional("timestamp", node, jp, Long.class);
+
+      final Optional<WindowData> window = JsonParsingUtil
+          .getOptional("window", node, jp, WindowData.class);
+
+      return new RecordNode(topic, key, value, timestamp, window);
     }
   }
 }

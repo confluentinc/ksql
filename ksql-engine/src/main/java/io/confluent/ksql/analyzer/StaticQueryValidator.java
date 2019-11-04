@@ -15,63 +15,118 @@
 
 package io.confluent.ksql.analyzer;
 
-import io.confluent.ksql.parser.tree.Query;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
-import io.confluent.ksql.parser.tree.Sink;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
-import java.util.Optional;
+import io.confluent.ksql.util.SchemaUtil;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
 
 public class StaticQueryValidator implements QueryValidator {
 
+  private static final String NEW_QUERY_SYNTAX_HELP = " "
+      + "Did you mean to execute a push query? Add an 'EMIT CHANGES' clause to do so."
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "Query syntax in KSQL has changed. There are now two broad categories of queries:"
+      + System.lineSeparator()
+      + "- Pull queries: query the current state of the system, return a result, and terminate "
+      + "the query."
+      + System.lineSeparator()
+      + "- Push queries: query the state of the system in motion and continue to output "
+      + "results until they meet a LIMIT clause condition or the user terminates the query."
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "'EMIT CHANGES' is used to to indicate a query is a push query. "
+      + "To convert a pull query into a push query, which was the default behavior in older "
+      + "versions of KSQL, add `EMIT CHANGES` to the end of the statement before any LIMIT clause."
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "For example, the following are pull queries:"
+      + System.lineSeparator()
+      + "\t'SELECT * FROM X WHERE ROWKEY=Y;' (non-windowed table)"
+      + System.lineSeparator()
+      + "\t'SELECT * FROM X WHERE ROWKEY=Y AND WINDOWSTART>=Z;' (windowed table)"
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "The following is a push query:"
+      + System.lineSeparator()
+      + "\t'SELECT * FROM X EMIT CHANGES;'"
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + "Note: Persistent queries, e.g. `CREATE TABLE AS ...`, have an implicit "
+      + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements.";
+
+  private static final List<Rule> RULES = ImmutableList.of(
+      Rule.of(
+          analysis -> analysis.getResultMaterialization() == ResultMaterialization.FINAL,
+          "Static queries don't support `EMIT CHANGES`."
+      ),
+      Rule.of(
+          analysis -> !analysis.getInto().isPresent(),
+          "Static queries don't support output to sinks."
+      ),
+      Rule.of(
+          analysis -> !analysis.isJoin(),
+          "Static queries don't support JOIN clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getWindowExpression().isPresent(),
+          "Static queries don't support WINDOW clauses."
+      ),
+      Rule.of(
+          analysis -> analysis.getGroupByExpressions().isEmpty(),
+          "Static queries don't support GROUP BY clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getPartitionBy().isPresent(),
+          "Static queries don't support PARTITION BY clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getHavingExpression().isPresent(),
+          "Static queries don't support HAVING clauses."
+      ),
+      Rule.of(
+          analysis -> !analysis.getLimitClause().isPresent(),
+          "Static queries don't support LIMIT clauses."
+      ),
+      Rule.of(
+          analysis -> analysis.getSelectColumnRefs().stream()
+                  .map(ColumnRef::name)
+                  .noneMatch(n -> n.equals(SchemaUtil.ROWTIME_NAME)),
+          "Static queries don't support ROWTIME in select columns."
+      )
+  );
+
   @Override
-  public void preValidate(
-      final Query query,
-      final Optional<Sink> sink
-  ) {
-    if (!query.isStatic()) {
-      throw new IllegalArgumentException("not static");
-    }
-
-    if (query.getResultMaterialization() != ResultMaterialization.FINAL) {
-      throw new KsqlException("Static queries do not yet support `EMIT CHANGES`. "
-          + "Consider removing 'EMIT CHANGES' to any bare query."
-          + QueryAnalyzer.NEW_QUERY_SYNTAX_HELP
-      );
-    }
-
-    if (sink.isPresent()) {
-      throw new IllegalArgumentException("static queries should not have a sink");
+  public void validate(final Analysis analysis) {
+    try {
+      RULES.forEach(rule -> rule.check(analysis));
+    } catch (final KsqlException e) {
+      throw new KsqlException(e.getMessage() + NEW_QUERY_SYNTAX_HELP, e);
     }
   }
 
-  @Override
-  public void postValidate(final Analysis analysis) {
-    if (analysis.getInto().isPresent()) {
-      throw new KsqlException("Static queries do not support outputting to sinks.");
+  private static final class Rule {
+
+    private final Predicate<Analysis> condition;
+    private final String failureMsg;
+
+    private static Rule of(final Predicate<Analysis> condition, final String failureMsg) {
+      return new Rule(condition, failureMsg);
     }
 
-    if (analysis.isJoin()) {
-      throw new KsqlException("Static queries do not support joins.");
+    private Rule(final Predicate<Analysis> condition, final String failureMsg) {
+      this.condition = Objects.requireNonNull(condition, "condition");
+      this.failureMsg = Objects.requireNonNull(failureMsg, "failureMsg");
     }
 
-    if (analysis.getWindowExpression() != null) {
-      throw new KsqlException("Static queries do not support WINDOW clauses.");
-    }
-
-    if (!analysis.getGroupByExpressions().isEmpty()) {
-      throw new KsqlException("Static queries do not support GROUP BY clauses.");
-    }
-
-    if (analysis.getPartitionBy().isPresent()) {
-      throw new KsqlException("Static queries do not support PARTITION BY clauses.");
-    }
-
-    if (analysis.getHavingExpression() != null) {
-      throw new KsqlException("Static queries do not support HAVING clauses.");
-    }
-
-    if (analysis.getLimitClause().isPresent()) {
-      throw new KsqlException("Static queries do not support LIMIT clauses.");
+    public void check(final Analysis analysis) {
+      if (!condition.test(analysis)) {
+        throw new KsqlException(failureMsg);
+      }
     }
   }
 }

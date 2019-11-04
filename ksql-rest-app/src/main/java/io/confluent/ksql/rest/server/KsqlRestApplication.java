@@ -30,12 +30,15 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.metrics.MetricCollectors;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
@@ -43,6 +46,7 @@ import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.StatementExecutor;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.server.filters.KsqlAuthorizationFilter;
+import io.confluent.ksql.rest.server.resources.HealthCheckResource;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlExceptionMapper;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
@@ -52,10 +56,12 @@ import io.confluent.ksql.rest.server.resources.ServerMetadataResource;
 import io.confluent.ksql.rest.server.resources.StatusResource;
 import io.confluent.ksql.rest.server.resources.streaming.StreamedQueryResource;
 import io.confluent.ksql.rest.server.resources.streaming.WSQueryEndpoint;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.server.state.ServerStateDynamicBinding;
 import io.confluent.ksql.rest.util.ClusterTerminator;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.rest.util.KsqlUncaughtExceptionHandler;
 import io.confluent.ksql.rest.util.ProcessingLogServerUtils;
 import io.confluent.ksql.rest.util.RocksDBConfigSetterHandler;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
@@ -64,7 +70,6 @@ import io.confluent.ksql.security.KsqlDefaultSecurityExtension;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
@@ -105,6 +110,7 @@ import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.streams.StreamsConfig;
+import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.websocket.jsr356.server.ServerContainer;
 import org.glassfish.hk2.utilities.Binder;
@@ -118,7 +124,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
 
-  public static final String COMMANDS_STREAM_NAME = "KSQL_COMMANDS";
+  public static final SourceName COMMANDS_STREAM_NAME = SourceName.of("KSQL_COMMANDS");
 
   private final KsqlConfig ksqlConfigNoPort;
   private final KsqlEngine ksqlEngine;
@@ -138,7 +144,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final List<KsqlConfigurable> configurables;
   private final Consumer<KsqlConfig> rocksDBConfigSetterHandler;
 
-  public static String getCommandsStreamName() {
+  public static SourceName getCommandsStreamName() {
     return COMMANDS_STREAM_NAME;
   }
 
@@ -196,6 +202,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     config.register(statusResource);
     config.register(ksqlResource);
     config.register(streamedQueryResource);
+    config.register(HealthCheckResource.create(ksqlResource, serviceContext, this.config));
     config.register(new KsqlExceptionMapper());
     config.register(new ServerStateDynamicBinding(serverState));
   }
@@ -412,8 +419,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
       final Function<Supplier<Boolean>, VersionCheckerAgent> versionCheckerFactory
   ) {
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
-    final ServiceContext serviceContext
-        = new LazyServiceContext(() -> ServiceContextFactory.create(ksqlConfig));
+    final ServiceContext serviceContext = new LazyServiceContext(() ->
+        RestServiceContextFactory.create(ksqlConfig, Optional.empty()));
 
     return buildApplication(
         "",
@@ -436,6 +443,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final KsqlConfig ksqlConfig = new KsqlConfig(restConfig.getKsqlConfigProperties());
 
+    MetricCollectors.addConfigurableReporter(ksqlConfig);
+
     final ProcessingLogConfig processingLogConfig
         = new ProcessingLogConfig(restConfig.getOriginals());
     final ProcessingLogContext processingLogContext
@@ -443,14 +452,23 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
 
+    if (restConfig.getBoolean(KsqlRestConfig.KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER)) {
+      Thread.setDefaultUncaughtExceptionHandler(
+          new KsqlUncaughtExceptionHandler(LogManager::shutdown));
+    }
+
+    final HybridQueryIdGenerator hybridQueryIdGenerator =
+        new HybridQueryIdGenerator();
+
     final KsqlEngine ksqlEngine = new KsqlEngine(
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ServiceInfo.create(ksqlConfig, metricsPrefix)
+        ServiceInfo.create(ksqlConfig, metricsPrefix),
+        hybridQueryIdGenerator
     );
 
-    UdfLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
+    UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
     final String commandTopic = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
@@ -460,7 +478,8 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());
 
-    final StatementExecutor statementExecutor = new StatementExecutor(ksqlEngine);
+    final StatementExecutor statementExecutor =
+        new StatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 
@@ -558,7 +577,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
 
     final ParsedStatement parsed = ksqlEngine.parse(createCmd).get(0);
     final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(prepared, ImmutableMap.of(), ksqlConfigNoPort)
+    );
   }
 
   private static KsqlSecurityExtension loadSecurityExtension(final KsqlConfig ksqlConfig) {
@@ -615,7 +637,10 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
         statement, Collections.emptyMap(), ksqlConfig);
 
     try {
-      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(configured.get());
+      ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(
+          ksqlEngine.getServiceContext(),
+          configured.get()
+      );
     } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
       return;

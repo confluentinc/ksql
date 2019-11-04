@@ -362,7 +362,7 @@ Use the MULTIPLY function in a query. If you follow the steps in
 
 ::
 
-    SELECT MULTIPLY(rowtime, viewtime) FROM pageviews_original;
+    SELECT MULTIPLY(rowtime, viewtime) FROM pageviews_original EMIT CHANGES;
 
 Your output should resemble:
 

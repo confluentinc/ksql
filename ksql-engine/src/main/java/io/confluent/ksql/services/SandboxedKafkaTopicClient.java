@@ -102,7 +102,7 @@ final class SandboxedKafkaTopicClient {
     // This is useful to validate permissions to create the topic
     delegate.validateCreateTopic(topic, numPartitions, replicationFactor, configs);
 
-    createdTopics.put(topic, new SandboxedTopicDescription(
+    createdTopics.put(topic, new TopicDescription(
         topic,
         false,
         partitions,

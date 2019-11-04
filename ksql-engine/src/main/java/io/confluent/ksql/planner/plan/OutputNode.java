@@ -18,11 +18,13 @@ package io.confluent.ksql.planner.plan;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
+import java.util.Collections;
 import java.util.List;
 import java.util.OptionalInt;
 import javax.annotation.concurrent.Immutable;
@@ -74,6 +76,11 @@ public abstract class OutputNode
   @Override
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
+  }
+
+  @Override
+  public List<SelectExpression> getSelectExpressions() {
+    return Collections.emptyList();
   }
 
   @Override

@@ -26,10 +26,12 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.execution.expression.tree.Type;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.TableElement.Namespace;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.Rule;
@@ -57,19 +59,17 @@ public class TableElementsTest {
   }
 
   @Test
-  public void shouldThrowOnOutOfOrderKeyColumns() {
+  public void shouldSupportKeyColumnsAfterValues() {
     // Given:
-    final List<TableElement> elements = ImmutableList.of(
-        tableElement(VALUE, "v0", INT_TYPE),
-        tableElement(KEY, "key", STRING_TYPE)
-    );
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("KEY column declared after VALUE column: key");
+    final TableElement key = tableElement(KEY, "key", STRING_TYPE);
+    final TableElement value = tableElement(VALUE, "v0", INT_TYPE);
+    final List<TableElement> elements = ImmutableList.of(value, key);
 
     // When:
-    TableElements.of(elements);
+    final TableElements result = TableElements.of(elements);
+
+    // Then:
+    assertThat(result, contains(value, key));
   }
 
   @Test
@@ -84,7 +84,7 @@ public class TableElementsTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate KEY column names:");
+    expectedException.expectMessage("Duplicate column names:");
     expectedException.expectMessage("k0");
     expectedException.expectMessage("k1");
 
@@ -104,7 +104,27 @@ public class TableElementsTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Duplicate non-KEY column names:");
+    expectedException.expectMessage("Duplicate column names:");
+    expectedException.expectMessage("v0");
+    expectedException.expectMessage("v1");
+
+    // When:
+    TableElements.of(elements);
+  }
+
+  @Test
+  public void shouldThrowOnDuplicateKeyValueColumns() {
+    // Given:
+    final List<TableElement> elements = ImmutableList.of(
+        tableElement(KEY, "v0", INT_TYPE),
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(KEY, "v1", INT_TYPE),
+        tableElement(VALUE, "v1", INT_TYPE)
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Duplicate column names:");
     expectedException.expectMessage("v0");
     expectedException.expectMessage("v1");
 
@@ -181,23 +201,65 @@ public class TableElementsTest {
     expectedException.expectMessage("No columns supplied.");
 
     // When:
-    tableElements.toLogicalSchema();
+    tableElements.toLogicalSchema(true);
   }
 
   @Test
-  public void shouldBuildLogicalSchema() {
+  public void shouldBuildLogicalSchemaWithImplicits() {
     // Given:
-    final TableElement element0 = tableElement(KEY, "k0", STRING_TYPE);
-    final TableElement element1 = tableElement(VALUE, "v0", INT_TYPE);
-    final TableElements tableElements = TableElements.of(element0, element1);
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE)
+    );
 
     // When:
-    final LogicalSchema schema = tableElements.toLogicalSchema();
+    final LogicalSchema schema = tableElements.toLogicalSchema(true);
 
     // Then:
     assertThat(schema, is(LogicalSchema.builder()
-        .keyColumn("k0", SqlTypes.STRING)
-        .valueColumn("v0", SqlTypes.INTEGER)
+        .keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildLogicalSchemaWithOutImplicits() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE)
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema(false);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build()
+    ));
+  }
+
+  @Test
+  public void shouldBuildLogicalSchemaWithKeyAndValueColumnsInterleaved() {
+    // Given:
+    final TableElements tableElements = TableElements.of(
+        tableElement(VALUE, "v0", INT_TYPE),
+        tableElement(KEY, "k0", INT_TYPE),
+        tableElement(VALUE, "v1", STRING_TYPE),
+        tableElement(KEY, "k1", INT_TYPE)
+    );
+
+    // When:
+    final LogicalSchema schema = tableElements.toLogicalSchema(false);
+
+    // Then:
+    assertThat(schema, is(LogicalSchema.builder()
+        .noImplicitColumns()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("k0"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
+        .keyColumn(ColumnName.of("k1"), SqlTypes.INTEGER)
         .build()
     ));
   }
@@ -208,7 +270,7 @@ public class TableElementsTest {
       final Type type
   ) {
     final TableElement te = mock(TableElement.class, name);
-    when(te.getName()).thenReturn(name);
+    when(te.getName()).thenReturn(ColumnName.of(name));
     when(te.getType()).thenReturn(type);
     when(te.getNamespace()).thenReturn(namespace);
     return te;

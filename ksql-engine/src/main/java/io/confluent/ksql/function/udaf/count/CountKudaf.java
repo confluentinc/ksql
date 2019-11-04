@@ -15,12 +15,9 @@
 
 package io.confluent.ksql.function.udaf.count;
 
-import io.confluent.ksql.function.AggregateFunctionArguments;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.TableAggregationFunction;
 import java.util.Collections;
-import java.util.List;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -35,7 +32,7 @@ public class CountKudaf
           argIndexInValue, () -> 0L,
           Schema.OPTIONAL_INT64_SCHEMA, Schema.OPTIONAL_INT64_SCHEMA,
           Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
-          "Counts records by key."
+         "Counts records by key."
     );
   }
 
@@ -66,14 +63,4 @@ public class CountKudaf
     return aggregateValue - 1;
   }
 
-  @Override
-  public KsqlAggregateFunction<Object, Long, Long> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new CountKudaf(functionName, aggregateFunctionArguments.udafIndex());
-  }
-
-  @Override
-  public boolean hasSameArgTypes(final List<Schema> argTypeList) {
-    return false;
-  }
 }

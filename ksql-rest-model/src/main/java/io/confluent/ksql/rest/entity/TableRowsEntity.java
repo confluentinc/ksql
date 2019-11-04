@@ -21,6 +21,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -31,15 +32,18 @@ import java.util.Objects;
 public class TableRowsEntity extends KsqlEntity {
 
   private final LogicalSchema schema;
+  private final QueryId queryId;
   private final ImmutableList<List<?>> rows;
 
   public TableRowsEntity(
       @JsonProperty("statementText") final String statementText,
+      @JsonProperty("queryId") final QueryId queryId,
       @JsonProperty("schema") final LogicalSchema schema,
       @JsonProperty("rows") final List<List<?>> rows
   ) {
     super(statementText);
     this.schema = requireNonNull(schema, "schema");
+    this.queryId = requireNonNull(queryId, "queryId");
     this.rows = deepCopy(requireNonNull(rows, "rows"));
 
     rows.forEach(this::validate);
@@ -47,6 +51,10 @@ public class TableRowsEntity extends KsqlEntity {
 
   public LogicalSchema getSchema() {
     return schema;
+  }
+
+  public QueryId getQueryId() {
+    return queryId;
   }
 
   public List<List<?>> getRows() {
@@ -76,7 +84,7 @@ public class TableRowsEntity extends KsqlEntity {
     final int actualSize = row.size();
 
     if (expectedSize != actualSize) {
-      throw new IllegalArgumentException("field count mismatch."
+      throw new IllegalArgumentException("column count mismatch."
           + " expected: " + expectedSize
           + ", got: " + actualSize
       );

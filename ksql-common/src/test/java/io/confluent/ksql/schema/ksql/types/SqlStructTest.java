@@ -18,6 +18,7 @@ package io.confluent.ksql.schema.ksql.types;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.schema.ksql.DataException;
@@ -217,5 +218,49 @@ public class SqlStructTest {
 
     // When:
     schema.validateValue(value);
+  }
+
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
+  @Test
+  public void shouldGetKnownField() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<Field> result = schema.field("f0");
+
+    // Then:
+    assertThat(result, is(not(Optional.empty())));
+    assertThat(result.get().name(), is("f0"));
+  }
+
+  @Test
+  public void shouldReturnEmptyForUnknownField() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<Field> result = schema.field("unknown");
+
+    // Then:
+    assertThat(result, is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldReturnEmptyForFieldIfWrongCase() {
+    // Given:
+    final SqlStruct schema = SqlTypes.struct()
+        .field("f0", SqlTypes.BIGINT)
+        .build();
+
+    // When:
+    final Optional<Field> result = schema.field("F0");
+
+    // Then:
+    assertThat(result, is(Optional.empty()));
   }
 }

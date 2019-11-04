@@ -81,13 +81,6 @@ final class SandboxedExecutionContext implements KsqlExecutionContext {
 
   @Override
   public ExecuteResult execute(
-      final ConfiguredStatement<?> statement
-  ) {
-    return execute(engineContext.getServiceContext(), statement);
-  }
-
-  @Override
-  public ExecuteResult execute(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement
   ) {

@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.entity;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metrics.MetricCollectors;
 import io.confluent.ksql.rest.util.EntityUtil;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.List;
 import java.util.Optional;
@@ -37,14 +38,15 @@ public final class SourceDescriptionFactory {
       final Optional<TopicDescription> topicDescription
   ) {
     return new SourceDescription(
-        dataSource.getName(),
+        dataSource.getName().toString(FormatOptions.noEscape()),
         readQueries,
         writeQueries,
         EntityUtil.buildSourceSchemaEntity(dataSource.getSchema(), false),
         dataSource.getDataSourceType().getKsqlType(),
-        dataSource.getKeyField().name().orElse(""),
+        dataSource.getKeyField().ref().map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         Optional.ofNullable(dataSource.getTimestampExtractionPolicy())
-            .map(TimestampExtractionPolicy::timestampField).orElse(""),
+            .map(TimestampExtractionPolicy::timestampField)
+            .map(c -> c.toString(FormatOptions.noEscape())).orElse(""),
         (extended
             ? MetricCollectors.getAndFormatStatsFor(
             dataSource.getKafkaTopicName(), false) : ""),

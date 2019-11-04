@@ -43,6 +43,8 @@ import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClientImpl;
 import io.confluent.ksql.services.ServiceContext;
@@ -73,7 +75,6 @@ import org.apache.kafka.common.acl.AclOperation;
 import org.apache.kafka.common.acl.AclPermissionType;
 import org.apache.kafka.common.resource.ResourcePattern;
 import org.apache.kafka.common.security.auth.SecurityProtocol;
-import org.apache.kafka.test.TestUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -265,12 +266,13 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    serviceContext = ServiceContextFactory.create(ksqlConfig);
+    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig),
+        new SequentialQueryIdGenerator());
 
     execInitCreateStreamQueries();
   }
@@ -286,13 +288,16 @@ public class SecureIntegrationTest {
                           outputTopic, INPUT_STREAM);
   }
 
-  private void assertCanRunKsqlQuery(final String queryString,
-                                     final Object... args) throws Exception {
+  private void assertCanRunKsqlQuery(
+      final String queryString,
+      final Object... args
+  ) {
     executePersistentQuery(queryString, args);
 
-    TestUtils.waitForCondition(
-        () -> topicClient.isTopicExists(this.outputTopic),
-        "Wait for async topic creation"
+    assertThatEventually(
+        "Wait for async topic creation",
+        () -> topicClient.isTopicExists(outputTopic),
+        is(true)
     );
 
     final TopicConsumer consumer = new TopicConsumer(SECURE_CLUSTER);
@@ -341,7 +346,13 @@ public class SecureIntegrationTest {
                                            + "kafka_topic='%s' , "
                                            + "key='ordertime');", INPUT_STREAM, INPUT_TOPIC);
 
-    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        ordersStreamStr,
+        ksqlConfig,
+        Collections.emptyMap()
+    );
   }
 
   private void executePersistentQuery(final String queryString,
@@ -349,7 +360,7 @@ public class SecureIntegrationTest {
     final String query = String.format(queryString, params);
 
     final QueryMetadata queryMetadata = KsqlEngineTestUtil
-        .execute(ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
+        .execute(serviceContext, ksqlEngine, query, ksqlConfig, Collections.emptyMap()).get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata) queryMetadata).getQueryId();

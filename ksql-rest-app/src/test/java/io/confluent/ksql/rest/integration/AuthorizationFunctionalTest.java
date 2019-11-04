@@ -26,12 +26,12 @@ import static org.mockito.Mockito.doThrow;
 
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.entity.KafkaTopicInfo;
 import io.confluent.ksql.rest.entity.KafkaTopicsList;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.security.KsqlAuthorizationProvider;
-import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
 import java.util.List;
@@ -55,7 +55,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AuthorizationFunctionalTest {
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
-  private static final Credentials USER1 = VALID_USER1;
+  private static final BasicCredentials USER1 = BasicCredentials.of(
+      VALID_USER1.username,
+      VALID_USER1.password
+  );
 
   private static final String TOPIC_1 = "topic_1";
 
@@ -99,7 +102,7 @@ public class AuthorizationFunctionalTest {
     // Then:
     expectedException.expect(AssertionError.class);
     expectedException.expectMessage(
-        String.format("Access denied to User:%s", USER1.username)
+        String.format("Access denied to User:%s", USER1.username())
     );
 
     // When:
@@ -120,31 +123,32 @@ public class AuthorizationFunctionalTest {
     assertThat(topics.get(0).getName(), is(TOPIC_1));
   }
 
-  private void allowAccess(final Credentials user, final String method, final String path) {
+  private void allowAccess(final BasicCredentials user, final String method, final String path) {
     doNothing().when(authorizationProvider)
         .checkEndpointAccess(argThat(new PrincipalMatcher(user)), eq(method), eq(path));
   }
 
-  private void denyAccess(final Credentials user, final String method, final String path) {
-    doThrow(new AuthorizationException(String.format("Access denied to User:%s", user.username)))
+  private void denyAccess(final BasicCredentials user, final String method, final String path) {
+    doThrow(new AuthorizationException(String.format("Access denied to User:%s", user.username())))
         .when(authorizationProvider)
         .checkEndpointAccess(argThat(new PrincipalMatcher(user)), eq(method), eq(path));
   }
 
-  private List<KsqlEntity> makeKsqlRequest(final Credentials credentials, final String sql) {
+  private List<KsqlEntity> makeKsqlRequest(final BasicCredentials credentials, final String sql) {
     return RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql, Optional.of(credentials));
   }
 
   private static class PrincipalMatcher implements ArgumentMatcher<Principal> {
-    private final Credentials user;
 
-    PrincipalMatcher(final Credentials user) {
+    private final BasicCredentials user;
+
+    PrincipalMatcher(final BasicCredentials user) {
       this.user = user;
     }
 
     @Override
     public boolean matches(final Principal principal) {
-      return this.user.username.equals(principal.getName());
+      return this.user.username().equals(principal.getName());
     }
   }
 }

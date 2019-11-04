@@ -18,9 +18,9 @@ package io.confluent.ksql.planner.plan;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -39,7 +39,7 @@ public class KsqlBareOutputNode extends OutputNode {
       final TimestampExtractionPolicy extractionPolicy
   ) {
     super(id, source, schema, limit, extractionPolicy);
-    this.keyField = KeyField.of(source.getKeyField().name(), Optional.empty())
+    this.keyField = KeyField.of(source.getKeyField().ref(), Optional.empty())
         .validateKeyExistsIn(schema);
   }
 

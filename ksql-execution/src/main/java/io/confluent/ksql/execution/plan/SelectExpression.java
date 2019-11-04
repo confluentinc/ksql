@@ -16,6 +16,7 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.ColumnName;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
@@ -25,20 +26,20 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public final class SelectExpression {
 
-  private final String name;
+  private final ColumnName alias;
   private final Expression expression;
 
-  private SelectExpression(final String name, final Expression expression) {
-    this.name = Objects.requireNonNull(name, "name");
+  private SelectExpression(final ColumnName alias, final Expression expression) {
+    this.alias = Objects.requireNonNull(alias, "alias");
     this.expression = Objects.requireNonNull(expression, "expression");
   }
 
-  public static SelectExpression of(final String name, final Expression expression) {
+  public static SelectExpression of(final ColumnName name, final Expression expression) {
     return new SelectExpression(name, expression);
   }
 
-  public String getName() {
-    return name;
+  public ColumnName getAlias() {
+    return alias;
   }
 
   public Expression getExpression() {
@@ -54,19 +55,19 @@ public final class SelectExpression {
       return false;
     }
     final SelectExpression that = (SelectExpression) o;
-    return Objects.equals(name, that.name)
+    return Objects.equals(alias, that.alias)
         && Objects.equals(expression, that.expression);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(name, expression);
+    return Objects.hash(alias, expression);
   }
 
   @Override
   public String toString() {
     return "SelectExpression{"
-        + "name='" + name + '\''
+        + "name='" + alias + '\''
         + ", expression=" + expression
         + '}';
   }

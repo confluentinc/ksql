@@ -22,8 +22,10 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.base.Charsets;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.ServerInfo;
@@ -34,6 +36,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -68,15 +71,17 @@ public class BasicAuthFunctionalTest {
 
   private static final String PROPS_JAAS_REALM = "KsqlServer-Props";
   private static final String KSQL_CLUSTER_ID = "ksql-11";
-  private static final String USER_WITH_ACCESS = "harry";
-  private static final String USER_WITH_ACCESS_PWD = "changeme";
-  private static final String USER_NO_ACCESS = "tom";
-  private static final String USER_NO_ACCESS_PWD = "changeme";
+  private static final BasicCredentials USER_WITH_ACCESS =
+      BasicCredentials.of("harry", "changeme");
+  private static final BasicCredentials USER_NO_ACCESS =
+      BasicCredentials.of("tom", "changeme");
+  private static final BasicCredentials UNKNOWN_USER =
+      BasicCredentials.of("Unknown-user", "some password");
 
   private static final String BASIC_PASSWORDS_FILE_CONTENT =
       "# Each line generated using org.eclipse.jetty.util.security.Password\n"
-          + USER_WITH_ACCESS + ": " + USER_WITH_ACCESS_PWD + "," + KSQL_CLUSTER_ID + "\n"
-          + USER_NO_ACCESS + ": " + USER_NO_ACCESS_PWD + ",ksql-other\n";
+          + USER_WITH_ACCESS.username() + ": " + USER_WITH_ACCESS.password() + "," + KSQL_CLUSTER_ID + "\n"
+          + USER_NO_ACCESS.username() + ": " + USER_NO_ACCESS.password() + ",ksql-other\n";
 
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster
       .newBuilder()
@@ -85,7 +90,7 @@ public class BasicAuthFunctionalTest {
 
   private static final TestKsqlRestApp REST_APP = TestKsqlRestApp
       .builder(CLUSTER::bootstrapServers)
-      .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, "BASIC")
+      .withProperty(RestConfig.AUTHENTICATION_METHOD_CONFIG, RestConfig.AUTHENTICATION_METHOD_BASIC)
       .withProperty(RestConfig.AUTHENTICATION_REALM_CONFIG, PROPS_JAAS_REALM)
       .withProperty(RestConfig.AUTHENTICATION_ROLES_CONFIG, KSQL_CLUSTER_ID)
       .withProperty(JaasUtils.JAVA_LOGIN_CONFIG_PARAM, CLUSTER.getJaasConfigPath())
@@ -99,56 +104,64 @@ public class BasicAuthFunctionalTest {
 
   @Test
   public void shouldNotBeAbleToUseWsWithNoCreds() throws Exception {
-    assertThat(makeWsRequest("", ""), is(Code.UNAUTHORIZED));
+    assertThat(makeWsRequest(Optional.empty()), is(Code.UNAUTHORIZED));
   }
 
   @Test
   public void shouldNotBeAbleToUseCliWithInvalidPassword() {
-    assertThat(canMakeCliRequest(USER_WITH_ACCESS, "wrong pwd"), is(ERROR_CODE_UNAUTHORIZED));
+    // Given:
+    final BasicCredentials wrongPassword = BasicCredentials.of(USER_NO_ACCESS.username(), "wrong");
+
+    // Then:
+    assertThat(canMakeCliRequest(wrongPassword), is(ERROR_CODE_UNAUTHORIZED));
   }
 
   @Test
   public void shouldNotBeAbleToUseWsWithInvalidPassword() throws Exception {
-    assertThat(makeWsRequest(USER_WITH_ACCESS, "wrong pwd"), is(Code.UNAUTHORIZED));
+    // Given:
+    final BasicCredentials wrongPassword = BasicCredentials.of(USER_NO_ACCESS.username(), "wrong");
+
+    // Then:
+    assertThat(makeWsRequest(Optional.of(wrongPassword)), is(Code.UNAUTHORIZED));
   }
 
   @Test
   public void shouldNotBeAbleToUseCliWithUnknownUser() {
-    assertThat(canMakeCliRequest("Unknown-user", "some password"), is(ERROR_CODE_UNAUTHORIZED));
+    assertThat(canMakeCliRequest(UNKNOWN_USER), is(ERROR_CODE_UNAUTHORIZED));
   }
 
   @Test
   public void shouldNotBeAbleToUseWsWithUnknownUser() throws Exception {
-    assertThat(makeWsRequest("Unknown-user", "some password"), is(Code.UNAUTHORIZED));
+    assertThat(makeWsRequest(Optional.of(UNKNOWN_USER)), is(Code.UNAUTHORIZED));
   }
 
   @Test
   public void shouldNotBeAbleToUseCliWithValidCredsIfUserHasNoAccessToThisCluster() {
-    assertThat(canMakeCliRequest(USER_NO_ACCESS, USER_NO_ACCESS_PWD), is(ERROR_CODE_FORBIDDEN));
+    assertThat(canMakeCliRequest(USER_NO_ACCESS), is(ERROR_CODE_FORBIDDEN));
   }
 
   @Test
   public void shouldNotBeAbleToUseWsWithValidCredsIfUserHasNoAccessToThisCluster() throws Exception {
-    assertThat(makeWsRequest(USER_NO_ACCESS, USER_NO_ACCESS_PWD), is(Code.FORBIDDEN));
+    assertThat(makeWsRequest(Optional.of(USER_NO_ACCESS)), is(Code.FORBIDDEN));
   }
 
   @Test
   public void shouldBeAbleToUseCliWithValidCreds() {
-    assertThat(canMakeCliRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD), is(Code.OK.getCode()));
+    assertThat(canMakeCliRequest(USER_WITH_ACCESS), is(Code.OK.getCode()));
   }
 
   @Test
   public void shouldBeAbleToUseWsWithValidCreds() throws Exception {
-    assertThat(makeWsRequest(USER_WITH_ACCESS, USER_WITH_ACCESS_PWD), is(Code.OK));
+    assertThat(makeWsRequest(Optional.of(USER_WITH_ACCESS)), is(Code.OK));
   }
 
-  private int canMakeCliRequest(final String username, final String password) {
-    try (KsqlRestClient restClient = new KsqlRestClient(REST_APP.getHttpListener().toString())) {
-
-      if (!username.isEmpty()) {
-        restClient.setupAuthenticationCredentials(username, password);
-      }
-
+  private static int canMakeCliRequest(final BasicCredentials credentials) {
+    try (KsqlRestClient restClient = KsqlRestClient.create(
+        REST_APP.getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.of(credentials)
+    )) {
       final RestResponse<ServerInfo> response = restClient.getServerInfo();
       if (response.isSuccessful()) {
         return Code.OK.getCode();
@@ -158,16 +171,16 @@ public class BasicAuthFunctionalTest {
     }
   }
 
-  private Code makeWsRequest(final String username, final String password) throws Exception {
+  private static Code makeWsRequest(final Optional<BasicCredentials> creds) throws Exception {
     final WebSocketClient wsClient = new WebSocketClient();
     wsClient.start();
 
     try {
       final ClientUpgradeRequest request = new ClientUpgradeRequest();
-      if (!username.isEmpty()) {
-        final String authHeader = "Basic " + buildBasicAuthHeader(username, password);
+      creds.ifPresent(c -> {
+        final String authHeader = "Basic " + buildBasicAuthHeader(c.username(), c.password());
         request.setHeader(HttpHeaders.AUTHORIZATION, authHeader);
-      }
+      });
 
       final WebSocketListener listener = new WebSocketListener();
       final URI wsUri = REST_APP.getWsListener().resolve("/ws/query");

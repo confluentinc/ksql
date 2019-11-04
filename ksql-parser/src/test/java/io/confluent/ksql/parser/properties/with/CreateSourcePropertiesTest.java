@@ -23,13 +23,15 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.properties.with.CreateConfigs;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.util.KsqlException;
 import java.time.Duration;
@@ -95,7 +97,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getKeyField(), is(Optional.of("key")));
+    assertThat(properties.getKeyField(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("KEY")))));
   }
 
   @Test
@@ -108,7 +110,7 @@ public class CreateSourcePropertiesTest {
             .build());
 
     // Then:
-    assertThat(properties.getTimestampColumnName(), is(Optional.of("ts")));
+    assertThat(properties.getTimestampColumnName(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("TS")))));
   }
 
   @Test

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.test.serde.json;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -33,6 +34,9 @@ import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serializer;
 
 public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
+
+  private static final ObjectMapper MAPPER = new ObjectMapper()
+      .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
 
   @Override
   public Serializer<Object> getSerializer(final SchemaRegistryClient schemaRegistryClient) {
@@ -60,7 +64,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
       }
       try {
         final Object toSerialize = Converter.toJsonNode(spec);
-        return new ObjectMapper().writeValueAsBytes(toSerialize);
+        return MAPPER.writeValueAsBytes(toSerialize);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }
@@ -82,7 +86,7 @@ public class ValueSpecJsonSerdeSupplier implements SerdeSupplier<Object> {
         return null;
       }
       try {
-        return new ObjectMapper().readValue(data, Object.class);
+        return MAPPER.readValue(data, Object.class);
       } catch (final Exception e) {
         throw new RuntimeException(e);
       }

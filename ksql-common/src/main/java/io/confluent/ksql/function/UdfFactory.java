@@ -36,7 +36,7 @@ public class UdfFactory {
     this.udfIndex = new UdfIndex<>(metadata.getName());
   }
 
-  void addFunction(final KsqlFunction ksqlFunction) {
+  synchronized void addFunction(final KsqlFunction ksqlFunction) {
     checkCompatible(ksqlFunction);
     udfIndex.addFunction(ksqlFunction);
   }
@@ -53,32 +53,16 @@ public class UdfFactory {
     }
   }
 
+  public UdfMetadata getMetadata() {
+    return metadata;
+  }
+
   public String getName() {
     return metadata.getName();
   }
 
-  public String getAuthor() {
-    return metadata.getAuthor();
-  }
-
-  public String getVersion() {
-    return metadata.getVersion();
-  }
-
-  public String getDescription() {
-    return metadata.getDescription();
-  }
-
-  public void eachFunction(final Consumer<KsqlFunction> consumer) {
+  public synchronized void eachFunction(final Consumer<KsqlFunction> consumer) {
     udfIndex.values().forEach(consumer);
-  }
-
-  public boolean isInternal() {
-    return metadata.isInternal();
-  }
-
-  public String getPath() {
-    return metadata.getPath();
   }
 
   public boolean matches(final UdfFactory that) {
@@ -95,7 +79,7 @@ public class UdfFactory {
         + '}';
   }
 
-  public KsqlFunction getFunction(final List<Schema> paramTypes) {
+  public synchronized KsqlFunction getFunction(final List<Schema> paramTypes) {
     return udfIndex.getFunction(paramTypes);
   }
 }

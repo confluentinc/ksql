@@ -29,6 +29,16 @@ public final class FormatOptions {
   }
 
   /**
+   * @return options that escape nothing
+   * @apiNote this is <i>dangerous</i> and could cause reserved identifiers
+   *          to be mangled. Use this API sparingly (e.g. in logging error
+   *          messages)
+   */
+  public static FormatOptions noEscape() {
+    return new FormatOptions(word -> false);
+  }
+
+  /**
    * Construct instance.
    *
    * <p>The {@code reservedWordPredicate} allows code that lives in the common module

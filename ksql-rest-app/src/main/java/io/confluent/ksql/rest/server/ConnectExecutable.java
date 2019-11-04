@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.annotations.VisibleForTesting;
 import java.io.IOException;
 import java.net.BindException;
 import java.util.Collections;
@@ -43,7 +44,8 @@ public final class ConnectExecutable implements Executable {
     return new ConnectExecutable(workerProps);
   }
 
-  private ConnectExecutable(final Map<String, String> workerProps) {
+  @VisibleForTesting
+  ConnectExecutable(final Map<String, String> workerProps) {
     this.workerProps = Objects.requireNonNull(workerProps, "workerProps");
     connectDistributed = new ConnectDistributed();
   }

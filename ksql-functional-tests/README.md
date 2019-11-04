@@ -88,6 +88,10 @@ The following is a template test file:
     {
       "name": "test using insert statements",
       "description": "an example positive test that uses insert into values statements instead of inputs",
+      "versions" : {
+        "min": "5.0",
+        "max": "5.4.1"
+      },
       "statements": [
         "CREATE STREAM test (ID name) WITH (kafka_topic='input_topic', value_format='JSON');",
         "INSERT INTO test (name, number) VALUES ('foo', 45)",
@@ -126,6 +130,7 @@ Each test case can have the following attributes:
 |------------------|:------------|
 | name             | (Required) The name of the test case as will be displayed in IDEs and Logs. This would be the function name in a JUnit test |
 | description      | (Optional) A description of what the test case is testing. Not used or displayed anywhere |
+| versions         | (Optional) A object describing the min and/or max version of KSQL the test is valid for. (See below for more info) |
 | format           | (Optional) An array of multiple different formats to run the test case as, e.g. AVRO, JSON, DELIMITED. (See below for more info) |
 | statements       | (Required) The list of statements to execute as this test case |
 | properties       | (Optional) A map of property name to value. Can contain any valid Ksql config. The config is passed to the engine when executing the statements in the test case |
@@ -134,6 +139,37 @@ Each test case can have the following attributes:
 | outputs          | (Required if `expectedException` not supplied) The set of output messages expected in the output topic(s), (See below for more info) |
 | expectedException| (Required in `inputs` and `outputs` not supplied) The exception that should be thrown when executing the supplied statements, (See below for more info) |
 | post             | (Optional) Defines post conditions that must exist after the statements have run, (See below for more info) |
+
+### Versions
+A test can can optionally supply the bounds on Ksql version that the test is valid for.
+
+For example:
+```json
+[{
+  "name": "test only valid before version 5.4",
+  "versions": {
+     "max": "5.3"  
+  }  
+},
+{
+  "name": "test only valid for versions at or after 5.4",
+  "versions": {
+     "max": "5.4"  
+  }  
+},
+{
+  "name": "test only valid between versions 5.2 and 5.4",
+  "versions": {
+     "min": "5.2",
+     "max": "5.4"  
+  }  
+}]
+```
+
+| Attribute | Description |
+|-----------|:------------|
+| min       | (Optional) lower bound on version, (inclusive) |
+| max       | (Optional) upper bound on version, (inclusive) |
 
 ### Formats
 A test case can optionally supply an array of formats to run the test case as.

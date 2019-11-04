@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -83,6 +84,7 @@ public class StandaloneExecutorFunctionalTest {
   private String s1;
   private String s2;
   private String t1;
+  private KsqlConfig ksqlConfig;
 
   @BeforeClass
   public static void classSetUp() {
@@ -102,8 +104,7 @@ public class StandaloneExecutorFunctionalTest {
         .putAll(KsqlConfigTestUtil.baseTestConfig())
         .put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, TEST_HARNESS.kafkaBootstrapServers())
         .build();
-
-    final KsqlConfig ksqlConfig = new KsqlConfig(properties);
+    ksqlConfig = new KsqlConfig(properties);
 
     when(configStore.getKsqlConfig()).thenReturn(ksqlConfig);
 
@@ -158,7 +159,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
     );
@@ -199,7 +200,7 @@ public class StandaloneExecutorFunctionalTest {
 
     final PhysicalSchema dataSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ORDERTIME", SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
             .build(),
         SerdeOption.none()
     );
@@ -255,7 +256,7 @@ public class StandaloneExecutorFunctionalTest {
   @Test
   public void shouldFailOnAvroWithoutSchemasIfSchemaNotEvolvable() {
     // Given:
-    givenIncompatibleSchemaExists(s1);
+    givenIncompatibleSchemaExists(s1, ksqlConfig);
 
     givenScript(""
         + "SET 'auto.offset.reset' = 'earliest';"
@@ -296,12 +297,14 @@ public class StandaloneExecutorFunctionalTest {
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, JSON, DATA_SCHEMA);
   }
 
-  private static void givenIncompatibleSchemaExists(final String topicName) {
+  private static void givenIncompatibleSchemaExists(
+      final String topicName,
+      final KsqlConfig ksqlConfig) {
     final LogicalSchema logical = LogicalSchema.builder()
-        .valueColumn("ORDERID", SqlTypes.struct()
+        .valueColumn(ColumnName.of("ORDERID"), SqlTypes.struct()
             .field("fred", SqlTypes.INTEGER)
             .build())
-        .valueColumn("Other", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("Other"), SqlTypes.BIGINT)
         .build();
 
     final PhysicalSchema incompatiblePhysical = PhysicalSchema.from(
@@ -309,7 +312,7 @@ public class StandaloneExecutorFunctionalTest {
         SerdeOption.none()
     );
 
-    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical);
+    TEST_HARNESS.ensureSchema(topicName, incompatiblePhysical, ksqlConfig);
   }
 
   private void givenScript(final String contents) {

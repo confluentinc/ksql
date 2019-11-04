@@ -16,14 +16,15 @@
 package io.confluent.ksql.execution.ddl.commands;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.SourceName;
 import java.util.Objects;
 
 @Immutable
 public class DropSourceCommand implements DdlCommand {
 
-  private final String sourceName;
+  private final SourceName sourceName;
 
-  public DropSourceCommand(final String sourceName) {
+  public DropSourceCommand(final SourceName sourceName) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
   }
 
@@ -32,7 +33,7 @@ public class DropSourceCommand implements DdlCommand {
     return executor.executeDropSource(this);
   }
 
-  public String getSourceName() {
+  public SourceName getSourceName() {
     return sourceName;
   }
 }

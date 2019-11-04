@@ -15,10 +15,6 @@
 
 package io.confluent.ksql.test;
 
-import static io.confluent.ksql.test.TopologyFileGenerator.baseConfig;
-import static io.confluent.ksql.test.TopologyFileGenerator.buildQuery;
-import static io.confluent.ksql.test.TopologyFileGenerator.getKsqlEngine;
-import static io.confluent.ksql.test.TopologyFileGenerator.getServiceContext;
 import static io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader.CONFIG_END_MARKER;
 import static io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader.SCHEMAS_END_MARKER;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -27,22 +23,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.google.common.collect.ImmutableSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.tools.TestCase;
-import io.confluent.ksql.test.tools.TopologyAndConfigs;
-import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.PersistentQueryMetadata;
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.kafka.test.IntegrationTest;
 import org.junit.experimental.categories.Category;
 
@@ -69,19 +60,19 @@ public final class TopologyFileRewriter {
       //.add("5_1")
       .build();
 
-  private static final String BASE_DIRECTORY = "expected_topology";
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   private TopologyFileRewriter() {
   }
 
   public static void main(final String[] args) throws Exception {
     final Path baseDir = TopologyFileGenerator.findBaseDir();
+    final List<TestCase> testCases = TopologyFileGenerator.getTestCases();
 
     Files.list(baseDir)
         .filter(Files::isDirectory)
         .filter(TopologyFileRewriter::includedVersion)
-        .forEach(TopologyFileRewriter::generateTopologiesInDirectory);
-
+        .forEach(dir -> rewriteTopologyDirectory(dir, testCases));
   }
 
   private static boolean includedVersion(final Path path) {
@@ -95,7 +86,8 @@ public final class TopologyFileRewriter {
   @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
   private static String getVersion(final Path versionDir) {
     try {
-      final Path versionFile = versionDir.resolve(ExpectedTopologiesTestLoader.TOPOLOGY_VERSION_FILE);
+      final Path versionFile = versionDir
+          .resolve(ExpectedTopologiesTestLoader.TOPOLOGY_VERSION_FILE);
       if (Files.exists(versionFile)) {
         return new String(Files.readAllBytes(versionFile), UTF_8);
       }
@@ -106,57 +98,37 @@ public final class TopologyFileRewriter {
     }
   }
 
-  private static void rewriteToplogyDirectory(final Path versionDir) {
+  private static void rewriteTopologyDirectory(
+      final Path versionDir,
+      final List<TestCase> testCases
+  ) {
     try {
-
       System.out.println("Starting to rewrite topology files in " + versionDir);
 
-      Files.list(versionDir)
-          .filter(Files::isRegularFile)
-          .filter(path -> !path.endsWith(ExpectedTopologiesTestLoader.TOPOLOGY_VERSION_FILE))
-          .forEach(TopologyFileRewriter::rewriteTopologyFile);
+      for (TestCase testCase : testCases) {
+        rewriteTopologyFile(versionDir, testCase);
+      }
 
-      System.out.println("Done rewriting topology files in" + versionDir);
+      deleteOrphanedFiles(versionDir, testCases);
+
+      System.out.println("Done rewrite topology files in " + versionDir);
     } catch (final Exception e) {
       throw new RuntimeException("Failed processing version dir: " + versionDir, e);
     }
   }
 
-  private static void generateTopologiesInDirectory(final Path versionDir) {
-
-    try {
-      System.out.println(String.format("Starting to write topology files to %s",
-                                       versionDir));
-
-      if (!versionDir.toFile().exists()) {
-        throw new RuntimeException(String
-                                       .format("Cannot overwrite topology files. Directory %s does"
-                                                   + " not exist.", versionDir));
-      }
-
-      String expected_dir = String.format("%s%s%s",
-                                          BASE_DIRECTORY,
-                                          File.separator,
-                                          getVersion(versionDir));
-
-      for (TestCase testCase : TopologyFileGenerator.getTestCases()) {
-        rewriteTopologyFile(versionDir, expected_dir, testCase);
-      }
-
-      System.out.println(String.format("Done overwriting topology files to %s", versionDir));
-    } catch (final Exception e) {
-      throw new RuntimeException("Failed processing version dir: " + versionDir, e);
+  private static void rewriteTopologyFile(
+      final Path topologyDir,
+      final TestCase testCase
+  ) {
+    final Path path = TopologyFileGenerator.buildExpectedTopologyPath(topologyDir, testCase);
+    if (!Files.exists(path)) {
+      System.err.println("WARING: Missing topology file: " + path);
+      return;
     }
 
-  }
-
-
-  private static void rewriteTopologyFile(final Path path) {
     try {
-
-      final String content = new String(Files.readAllBytes(path), UTF_8);
-
-      final String rewritten = REWRITER.rewrite(path, content);
+      final String rewritten = REWRITER.rewrite(testCase, path);
 
       Files.write(path, rewritten.getBytes(UTF_8));
 
@@ -166,51 +138,28 @@ public final class TopologyFileRewriter {
     }
   }
 
-  private static void rewriteTopologyFile(
-      final Path topologyDir,
-      final String expectedDir,
-      TestCase testCase) throws IOException {
+  private static void deleteOrphanedFiles(
+      final Path versionDir,
+      final List<TestCase> testCases
+  ) throws IOException {
+    final Set<Path> paths = testCases.stream()
+        .map(testCase -> TopologyFileGenerator.buildExpectedTopologyPath(versionDir, testCase))
+        .collect(Collectors.toSet());
 
-      final String updatedQueryName = testCase.getName().replaceAll(" - (AVRO|JSON)$", "")
-          .replaceAll("\\s|/", "_");
-      final Path topologyFile = topologyDir.resolve(updatedQueryName);
+    Files.list(versionDir)
+        .filter(Files::isRegularFile)
+        .filter(path -> !path.endsWith(ExpectedTopologiesTestLoader.TOPOLOGY_VERSION_FILE))
+        .filter(path -> !paths.contains(path))
+        .forEach(TopologyFileRewriter::deleteOrphanedFile);
+  }
 
-      if(!new File(topologyFile.toString()).exists()) {
-        return;
-      }
-
-      final String filepath_for_expected = String.format("%s/%s",expectedDir,updatedQueryName);
-      final ObjectReader objectReader = new ObjectMapper().readerFor(Map.class);
-      final TopologyAndConfigs topo = ExpectedTopologiesTestLoader.readTopologyFile(
-          filepath_for_expected,
-          objectReader );
-
-      final KsqlConfig currentConfigs = new KsqlConfig(baseConfig());
-
-      //Use old configs to generate topologies of older versions
-      final KsqlConfig ksqlConfig = !topo.getConfigs().isPresent() ? currentConfigs :
-          currentConfigs.overrideBreakingConfigsWithOriginalValues(topo.getConfigs().get());
-
-      try (final ServiceContext serviceContext = getServiceContext();
-          final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
-
-        final PersistentQueryMetadata queryMetadata =
-            buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
-
-        //Read old contents of file
-        final String content = new String(Files.readAllBytes(topologyFile), UTF_8);
-        //Get newly generated topology from building the query
-        final String topologyString = queryMetadata.getTopology().describe().toString();
-        final String newContent = REWRITER.rewrite(content, topologyString);
-        //New content of file
-        final byte[] topologyBytes = newContent.getBytes(StandardCharsets.UTF_8);
-
-        Files.write(topologyFile,
-                    topologyBytes,
-                    StandardOpenOption.WRITE,
-                    StandardOpenOption.TRUNCATE_EXISTING);
-      }
-
+  private static void deleteOrphanedFile(final Path orphan) {
+    try {
+      System.out.println("WARNING: Deleting orphaned topology file: " + orphan);
+      Files.delete(orphan);
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to delete orphaned expected topology file", e);
+    }
   }
 
   private static String grabContent(
@@ -241,35 +190,31 @@ public final class TopologyFileRewriter {
   }
 
   private interface Rewriter {
-    String rewrite(final Path path, final String contents);
-    String rewrite(final String content, final String topologyString);
+
+    String rewrite(final TestCase testCase, final Path path) throws Exception;
   }
 
   private interface StructuredRewriter extends Rewriter {
 
-    default String rewriteConfig(final Path path, final String configs) {
-      return configs;
-    }
+    default String rewrite(final TestCase testCase, final Path path) throws Exception {
+      final String contents = new String(Files.readAllBytes(path), UTF_8);
 
-    default String rewriteSchemas(final Path path, final String schemas) {
-      return schemas;
-    }
-
-    default String rewriteTopologies(final Path path, final String topologies) {
-      return topologies;
-    }
-
-    default String rewrite(final Path path, final String contents) {
-      final String newConfig = rewriteConfig(path,
-              grabContent(contents, Optional.empty(), Optional.of(CONFIG_END_MARKER)))
-              + CONFIG_END_MARKER
-              + System.lineSeparator();
+      final String newConfig = rewriteConfig(
+          testCase,
+          path,
+          grabContent(contents, Optional.empty(), Optional.of(CONFIG_END_MARKER))
+      )
+          + CONFIG_END_MARKER
+          + System.lineSeparator();
 
       final boolean hasSchemas = contents.contains(SCHEMAS_END_MARKER);
 
       final String newSchemas = hasSchemas
-          ? rewriteSchemas(path,
-          grabContent(contents, Optional.of(CONFIG_END_MARKER), Optional.of(SCHEMAS_END_MARKER)))
+          ? rewriteSchemas(
+          testCase,
+          path,
+          grabContent(contents, Optional.of(CONFIG_END_MARKER), Optional.of(SCHEMAS_END_MARKER))
+      )
           + SCHEMAS_END_MARKER
           + System.lineSeparator()
           : "";
@@ -278,21 +223,45 @@ public final class TopologyFileRewriter {
           ? Optional.of(SCHEMAS_END_MARKER)
           : Optional.of(CONFIG_END_MARKER);
 
-      final String newTopologies = rewriteTopologies(path,
-          grabContent(contents, topologyStart, Optional.empty()));
+      final String newTopologies = rewriteTopologies(
+          testCase,
+          path,
+          grabContent(contents, topologyStart, Optional.empty())
+      );
 
       return newConfig + newSchemas + newTopologies;
     }
 
-    default String rewrite(final String content, final String topologyString) {
-      return content;
+    // Overwrite below methods as needed:
+    default String rewriteConfig(
+        final TestCase testCase,
+        final Path path,
+        final String configs
+    ) {
+      return configs;
+    }
+
+    default String rewriteSchemas(
+        final TestCase testCase,
+        final Path path,
+        final String schemas
+    ) {
+      return schemas;
+    }
+
+    default String rewriteTopologies(
+        final TestCase testCase,
+        final Path path,
+        final String topologies
+    ) {
+      return topologies;
     }
   }
 
-  private static final class TheRewriter implements StructuredRewriter {
+  private static final class RegexRewriter implements StructuredRewriter {
 
     @Override
-    public String rewriteSchemas(final Path path, final String schemas) {
+    public String rewriteSchemas(final TestCase testCase, final Path path, final String schemas) {
 
       int start;
       String result = schemas;
@@ -321,7 +290,7 @@ public final class TopologyFileRewriter {
     }
 
     private static int findCloseTagFor(final String contents, final int startIdx) {
-      assert(contents.charAt(startIdx) == '<');
+      assert (contents.charAt(startIdx) == '<');
 
       int depth = 1;
       int idx = startIdx + 1;
@@ -352,27 +321,52 @@ public final class TopologyFileRewriter {
 
   private static final class RewriteTopologyOnly implements StructuredRewriter {
 
+    private Map<String, ?> configs;
+
     @Override
-    public String rewrite(final String content, final String topologyString) {
+    public String rewriteConfig(
+        final TestCase testCase,
+        final Path path,
+        final String configs
+    ) {
+      this.configs = parseConfigs(configs);
+      return configs;
+    }
 
-      //Get old headers from old content
-      final String oldConfig = grabContent(content,
-                                           Optional.empty(),
-                                           Optional.of(CONFIG_END_MARKER))
-          + CONFIG_END_MARKER
-          + System.lineSeparator();
+    @Override
+    public String rewriteTopologies(
+        final TestCase testCase,
+        final Path path,
+        final String existing
+    ) {
+      final String newContent = TopologyFileGenerator
+          .buildExpectedTopologyContent(testCase, Optional.of(configs));
 
-      final boolean hasSchemas = content.contains(SCHEMAS_END_MARKER);
+      final boolean hasSchemas = newContent.contains(SCHEMAS_END_MARKER);
 
-      final String oldSchemas = hasSchemas
-          ? grabContent(content,
-                        Optional.of(CONFIG_END_MARKER),
-                        Optional.of(SCHEMAS_END_MARKER))
-          + SCHEMAS_END_MARKER
-          + System.lineSeparator()
-          : "";
+      final Optional<String> topologyStart = hasSchemas
+          ? Optional.of(SCHEMAS_END_MARKER)
+          : Optional.of(CONFIG_END_MARKER);
 
-      return oldConfig + oldSchemas + topologyString;
+      return grabContent(newContent, topologyStart, Optional.empty());
+    }
+
+    private static Map<String, ?> parseConfigs(final String configs) {
+      try {
+        final ObjectReader objectReader = OBJECT_MAPPER.readerFor(Map.class);
+        final Map<String, ?> parsed = objectReader.readValue(configs);
+
+        final Set<String> toRemove = parsed.entrySet().stream()
+            .filter(e -> e.getValue() == null)
+            .map(Entry::getKey)
+            .collect(Collectors.toSet());
+
+        parsed.remove("ksql.streams.state.dir");
+        parsed.keySet().removeAll(toRemove);
+        return parsed;
+      } catch (final Exception e) {
+        throw new RuntimeException("Failed to parse configs: " + configs, e);
+      }
     }
   }
 }

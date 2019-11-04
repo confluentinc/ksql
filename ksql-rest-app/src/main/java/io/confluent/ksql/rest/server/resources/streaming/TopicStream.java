@@ -50,7 +50,7 @@ public final class TopicStream {
 
     private static final Logger log = LoggerFactory.getLogger(RecordFormatter.class);
 
-    private final KafkaAvroDeserializer<?> avroDeserializer;
+    private final KafkaAvroDeserializer avroDeserializer;
     private final String topicName;
     private final DateFormat dateFormat =
         SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
@@ -60,7 +60,7 @@ public final class TopicStream {
     public RecordFormatter(final SchemaRegistryClient schemaRegistryClient,
                            final String topicName) {
       this.topicName = Objects.requireNonNull(topicName, "topicName");
-      this.avroDeserializer = new KafkaAvroDeserializer<>(schemaRegistryClient);
+      this.avroDeserializer = new KafkaAvroDeserializer(schemaRegistryClient);
     }
 
     public List<String> format(final ConsumerRecords<String, Bytes> records) {
@@ -68,6 +68,8 @@ public final class TopicStream {
           .stream(records.records(topicName).spliterator(), false)
           .filter(Objects::nonNull)
           .filter(r -> r.value() != null)
+          .filter(r -> r.value().get() != null)
+          .filter(r -> r.value().get().length != 0)
           .map((record) -> {
             if (formatter == null) {
               formatter = getFormatter(record);
@@ -112,7 +114,7 @@ public final class TopicStream {
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
           final ConsumerRecord<String, Bytes> record,
-          final KafkaAvroDeserializer<?> avroDeserializer,
+          final KafkaAvroDeserializer avroDeserializer,
           final DateFormat dateFormat) {
         try {
           avroDeserializer.deserialize(topicName, record.value().get());
@@ -123,7 +125,7 @@ public final class TopicStream {
       }
 
       private Formatter createFormatter(final String topicName,
-                                        final KafkaAvroDeserializer<?> avroDeserializer,
+                                        final KafkaAvroDeserializer avroDeserializer,
                                         final DateFormat dateFormat) {
         return new Formatter() {
           @Override
@@ -149,7 +151,7 @@ public final class TopicStream {
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
           final ConsumerRecord<String, Bytes> record,
-          final KafkaAvroDeserializer<?> avroDeserializer,
+          final KafkaAvroDeserializer avroDeserializer,
           final DateFormat dateFormat) {
         try {
           final JsonNode jsonNode = JsonMapper.INSTANCE.mapper.readTree(record.value().toString());
@@ -177,8 +179,8 @@ public final class TopicStream {
             final ObjectNode objectNode = objectMapper.createObjectNode();
             final String key = (record.key() != null) ? record.key() : "null";
 
-            objectNode.put(SchemaUtil.ROWTIME_NAME, record.timestamp());
-            objectNode.put(SchemaUtil.ROWKEY_NAME, key);
+            objectNode.put(SchemaUtil.ROWTIME_NAME.name(), record.timestamp());
+            objectNode.put(SchemaUtil.ROWKEY_NAME.name(), key);
             objectNode.setAll((ObjectNode) jsonNode);
 
             final StringWriter stringWriter = new StringWriter();
@@ -198,7 +200,7 @@ public final class TopicStream {
       public Optional<Formatter> maybeGetFormatter(
           final String topicName,
           final ConsumerRecord<String, Bytes> record,
-          final KafkaAvroDeserializer<?> avroDeserializer,
+          final KafkaAvroDeserializer avroDeserializer,
           final DateFormat dateFormat) {
         // STRING always returns a formatter because its last in the enum list
         return Optional.of(createFormatter(dateFormat));
@@ -226,7 +228,7 @@ public final class TopicStream {
     Optional<Formatter> maybeGetFormatter(
         final String topicName,
         final ConsumerRecord<String, Bytes> record,
-        final KafkaAvroDeserializer<?> avroDeserializer,
+        final KafkaAvroDeserializer avroDeserializer,
         final DateFormat dateFormat) {
       return Optional.empty();
     }

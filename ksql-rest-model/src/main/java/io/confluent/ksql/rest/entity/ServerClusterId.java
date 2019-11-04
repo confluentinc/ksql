@@ -20,6 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
+
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
@@ -29,20 +31,28 @@ public final class ServerClusterId {
   private static final String KAFKA_CLUSTER = "kafka-cluster";
   private static final String KSQL_CLUSTER = "ksql-cluster";
 
+  // ID is unused for now, but it might be used later to include a URL that joins both, kafka and
+  // ksql, clusters names into one single string. This one URL string will be easier to pass
+  // through authorization commands to authorize access to this KSQL cluster.
   private static final String id = "";
-  private final Map<String, String> scope;
+  private final Map<String, Object> scope;
 
   @JsonCreator
   ServerClusterId(
-      @JsonProperty("scope") final Map<String, String> scope
+      @JsonProperty("scope") final Map<String, Object> scope
   ) {
     this.scope = ImmutableMap.copyOf(Objects.requireNonNull(scope, "scope"));
   }
 
   public static ServerClusterId of(final String kafkaClusterId, final String ksqlClusterId) {
     return new ServerClusterId(ImmutableMap.of(
-        KAFKA_CLUSTER, kafkaClusterId,
-        KSQL_CLUSTER, ksqlClusterId
+        // 'path' is unused for now, but it might be used by Cloud environments that specify
+        // which account organization this cluster belongs to.
+        "path", Collections.emptyList(),
+        "clusters", ImmutableMap.of(
+            KAFKA_CLUSTER, kafkaClusterId,
+            KSQL_CLUSTER, ksqlClusterId
+        )
     ));
   }
 
@@ -50,7 +60,7 @@ public final class ServerClusterId {
     return id;
   }
 
-  public Map<String, String> getScope() {
+  public Map<String, Object> getScope() {
     return scope;
   }
 

@@ -137,7 +137,7 @@ public final class TestCaseBuilderUtil {
         .map(recordNode -> new Topic(
             recordNode.topicName(),
             Optional.empty(),
-            getKeySedeSupplier(recordNode.getWindow()),
+            getKeySerdeSupplier(recordNode.getWindow()),
             defaultValueSerdeSupplier,
             4,
             1,
@@ -166,7 +166,7 @@ public final class TestCaseBuilderUtil {
       final KeyFormat keyFormat = ksqlTopic.getKeyFormat();
 
       final Supplier<LogicalSchema> logicalSchemaSupplier =
-          statement.getElements()::toLogicalSchema;
+          () -> statement.getElements().toLogicalSchema(true);
 
       final SerdeSupplier<?> keySerdeSupplier =
           SerdeUtil.getKeySerdeSupplier(keyFormat, logicalSchemaSupplier);
@@ -177,7 +177,7 @@ public final class TestCaseBuilderUtil {
         // add avro schema
         final SchemaBuilder schemaBuilder = SchemaBuilder.struct();
         statement.getElements().forEach(e -> schemaBuilder.field(
-            e.getName(),
+            e.getName().name(),
             SchemaConverters.sqlToConnectConverter().toConnectSchema(e.getType().getSqlType()))
         );
         avroSchema = Optional.of(new AvroData(1)
@@ -222,15 +222,18 @@ public final class TestCaseBuilderUtil {
     }
   }
 
-  private static SerdeSupplier<?> getKeySedeSupplier(final Optional<WindowData> windowDataInfo) {
+  private static SerdeSupplier<?> getKeySerdeSupplier(final Optional<WindowData> windowDataInfo) {
     if (windowDataInfo.isPresent()) {
       final WindowData windowData = windowDataInfo.get();
       final WindowType windowType = WindowType.of((windowData.type == Type.SESSION)
           ? WindowType.SESSION.name()
           : WindowType.TUMBLING.name());
       final KeyFormat windowKeyFormat = KeyFormat.windowed(
-          Format.KAFKA,
-          Optional.empty(),
+          FormatInfo.of(
+            Format.KAFKA,
+            Optional.empty(),
+            Optional.empty()
+          ),
           WindowInfo.of(
               windowType,
               windowType == WindowType.SESSION

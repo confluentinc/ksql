@@ -19,7 +19,7 @@ import io.confluent.ksql.test.model.KsqlVersion;
 
 public interface VersionedTest extends Test {
 
-  VersionedTest withVersion(KsqlVersion version);
+  VersionBounds getVersionBounds();
 
-  void setExpectedTopology(TopologyAndConfigs expectedTopology);
-}  
+  VersionedTest withExpectedTopology(KsqlVersion version, TopologyAndConfigs expectedTopology);
+}

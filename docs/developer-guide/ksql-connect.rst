@@ -47,14 +47,14 @@ topics created by these connectors into KSQL:
   Kafka messages that it produces, KSQL supplies the ability to pass in ``"key"='<column_name>'`` in
   the ``WITH`` clause to extract a column from the value and make it the key.
 
-======
 Syntax
-======
+~~~~~~~
 
 .. _create-connector:
 
+~~~~~~~~~~~~~~~~
 CREATE CONNECTOR
-----------------
+~~~~~~~~~~~~~~~~
 
 **Synopsis**
 
@@ -80,8 +80,9 @@ Example:
         "table.whitelist"='users',
         "key"='username');
 
+~~~~~~~~~~~~~~
 DROP CONNECTOR
---------------
+~~~~~~~~~~~~~~
 
 **Synopsis**
 
@@ -94,8 +95,9 @@ DROP CONNECTOR
 Drop a Connector and delete it from the |kconnect| cluster. The topics associated with that cluster
 will not be deleted by this command.
 
+~~~~~~~~~~~~~~~~~~
 DESCRIBE CONNECTOR
-------------------
+~~~~~~~~~~~~~~~~~~
 
 **Synopsis**
 
@@ -137,8 +139,9 @@ Your output should resemble:
      jdbc-users
     ----------------
 
+~~~~~~~~~~~~~~~
 SHOW CONNECTORS
----------------
+~~~~~~~~~~~~~~~
 
 **Synopsis**
 
@@ -150,5 +153,4 @@ SHOW CONNECTORS
 
 List all connectors in the |kconnect| cluster.
 
-.. note:: This does not differentiate connectors created by KSQL with connectors that were created
-independently using the |kconnect| API.
+.. note:: This does not differentiate connectors created by KSQL with connectors that were created independently using the |kconnect| API.

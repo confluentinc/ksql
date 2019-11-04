@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -59,7 +60,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectMapField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field", SqlTypes.map(SqlTypes.INTEGER))
+        .valueColumn(ColumnName.of("field"), SqlTypes.map(SqlTypes.INTEGER))
         .build();
 
     // When:
@@ -78,7 +79,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectArrayField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field", SqlTypes.array(SqlTypes.BIGINT))
+        .valueColumn(ColumnName.of("field"), SqlTypes.array(SqlTypes.BIGINT))
         .build();
 
     // When:
@@ -97,7 +98,7 @@ public class EntityUtilTest {
   public void shouldBuildCorrectStructField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field", SqlTypes.struct()
+        .valueColumn(ColumnName.of("field"), SqlTypes.struct()
             .field("innerField", SqlTypes.STRING)
             .build())
         .build();
@@ -119,8 +120,8 @@ public class EntityUtilTest {
   public void shouldBuildMiltipleFieldsCorrectly() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.INTEGER)
-        .valueColumn("field2", SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
         .build();
 
     // When:
@@ -138,9 +139,9 @@ public class EntityUtilTest {
   public void shouldSupportRowTimeAndKeyInValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("ROWTIME", SqlTypes.INTEGER)
-        .valueColumn("field1", SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .build();
 
     // When:
@@ -156,7 +157,7 @@ public class EntityUtilTest {
   public void shouldSupportGettingFullSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .build();
 
     // When:
@@ -177,7 +178,7 @@ public class EntityUtilTest {
   ) {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field", primitiveSchema)
+        .valueColumn(ColumnName.of("field"), primitiveSchema)
         .build();
 
     // When:

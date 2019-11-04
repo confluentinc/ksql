@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -52,6 +53,11 @@ public class KsqlConfig extends AbstractConfig {
 
   static final String KSQ_FUNCTIONS_GLOBAL_PROPERTY_PREFIX =
       KSQL_FUNCTIONS_PROPERTY_PREFIX + "_global_.";
+
+  public static final String METRIC_REPORTER_CLASSES_CONFIG = "ksql.metric.reporters";
+
+  public static final String METRIC_REPORTER_CLASSES_DOC =
+      CommonClientConfigs.METRIC_REPORTER_CLASSES_DOC;
 
   public static final String SINK_NUMBER_OF_PARTITIONS_PROPERTY = "ksql.sink.partitions";
 
@@ -146,6 +152,8 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
   public static final String KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY =
       "ksql.query.stream.groupby.rowkey.repartition";
+  public static final String KSQL_INJECT_LEGACY_MAP_VALUES_NODE =
+      "ksql.query.inject.legacy.map.values.node";
 
   public static final String KSQL_WRAP_SINGLE_VALUES =
       "ksql.persistence.wrap.single.values";
@@ -284,6 +292,15 @@ public class KsqlConfig extends AbstractConfig {
               Optional.empty(),
               "Ensures legacy queries that perform a 'GROUP BY ROWKEY' continue to "
                   + "perform an unnecessary repartition step"
+          ),
+          new CompatibilityBreakingConfigDef(
+              KSQL_INJECT_LEGACY_MAP_VALUES_NODE,
+              ConfigDef.Type.BOOLEAN,
+              true,
+              false,
+              ConfigDef.Importance.LOW,
+              Optional.empty(),
+              "Ensures legacy queries maintian the same topology"
           )
   );
 
@@ -551,6 +568,11 @@ public class KsqlConfig extends AbstractConfig {
             ),
             ConfigDef.Importance.LOW,
             KSQL_ACCESS_VALIDATOR_DOC
+        ).define(METRIC_REPORTER_CLASSES_CONFIG,
+            Type.LIST,
+            "",
+            Importance.LOW,
+            METRIC_REPORTER_CLASSES_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef
@@ -764,7 +786,7 @@ public class KsqlConfig extends AbstractConfig {
     return Collections.unmodifiableMap(allPropsCleaned);
   }
 
-  public KsqlConfig cloneWithPropertyOverwrite(final Map<String, Object> props) {
+  public KsqlConfig cloneWithPropertyOverwrite(final Map<String, ?> props) {
     final Map<String, Object> cloneProps = new HashMap<>(originals());
     cloneProps.putAll(props);
     final Map<String, ConfigValue> streamConfigProps =
@@ -773,7 +795,7 @@ public class KsqlConfig extends AbstractConfig {
     return new KsqlConfig(ConfigGeneration.CURRENT, cloneProps, streamConfigProps);
   }
 
-  public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, String> props) {
+  public KsqlConfig overrideBreakingConfigsWithOriginalValues(final Map<String, ?> props) {
     final KsqlConfig originalConfig = new KsqlConfig(ConfigGeneration.LEGACY, props);
     final Map<String, Object> mergedProperties = new HashMap<>(originals());
     COMPATIBLY_BREAKING_CONFIG_DEFS.stream()

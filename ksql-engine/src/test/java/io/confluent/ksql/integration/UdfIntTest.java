@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.test.util.KsqlIdentifierTestUtil;
@@ -251,7 +252,7 @@ public class UdfIntTest {
 
     final DataSource<?> source = ksqlContext
         .getMetaStore()
-        .getSource(resultStreamName);
+        .getSource(SourceName.of(resultStreamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),

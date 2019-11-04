@@ -78,7 +78,7 @@ public final class SelectValueMapperFactory {
         .buildCodeGenFromParseTree(selectExpression.getExpression(), EXP_TYPE);
 
     return SelectInfo.of(
-        selectExpression.getName(),
+        selectExpression.getAlias(),
         evaluator
     );
   }

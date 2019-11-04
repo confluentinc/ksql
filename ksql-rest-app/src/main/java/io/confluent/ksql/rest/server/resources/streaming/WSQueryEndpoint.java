@@ -16,10 +16,8 @@
 package io.confluent.ksql.rest.server.resources.streaming;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.PrintTopic;
@@ -31,12 +29,14 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap2;
@@ -51,8 +51,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import javax.websocket.CloseReason;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.websocket.EndpointConfig;
@@ -62,16 +60,14 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@SuppressWarnings("UnstableApiUsage")
 @ServerEndpoint(value = "/query")
 public class WSQueryEndpoint {
 
   private static final Logger log = LoggerFactory.getLogger(WSQueryEndpoint.class);
-
-  private static String QUERY_ENDPOINT_METHOD_NAME = "onOpen";
 
   private static final ClassHandlerMap2<Statement, WSQueryEndpoint, RequestContext> HANDLER_MAP =
       HandlerMaps
@@ -94,21 +90,11 @@ public class WSQueryEndpoint {
   private final KsqlAuthorizationValidator authorizationValidator;
   private final KsqlSecurityExtension securityExtension;
   private final UserServiceContextFactory serviceContextFactory;
-  private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
+  private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final ServerState serverState;
 
   private WebSocketSubscriber<?> subscriber;
   private ServiceContext serviceContext;
-
-  @VisibleForTesting
-  @FunctionalInterface
-  interface UserServiceContextFactory {
-    ServiceContext create(
-        KsqlConfig ksqlConfig,
-        KafkaClientSupplier kafkaClientSupplier,
-        Supplier<SchemaRegistryClient> srClientFactory
-    );
-  }
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public WSQueryEndpoint(
@@ -137,8 +123,8 @@ public class WSQueryEndpoint {
         commandQueueCatchupTimeout,
         authorizationValidator,
         securityExtension,
-        ServiceContextFactory::create,
-        ServiceContextFactory::create,
+        RestServiceContextFactory::create,
+        RestServiceContextFactory::create,
         serverState);
   }
 
@@ -158,7 +144,7 @@ public class WSQueryEndpoint {
       final KsqlAuthorizationValidator authorizationValidator,
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
-      final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
+      final DefaultServiceContextFactory defaultServiceContextFactory,
       final ServerState serverState
   ) {
     this.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
@@ -289,13 +275,14 @@ public class WSQueryEndpoint {
     // accessed with the user permission context (defaults to KSQL service context)
 
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      return defaultServiceContextFactory.apply(ksqlConfig);
+      return defaultServiceContextFactory.create(ksqlConfig, Optional.empty());
     }
 
     return securityExtension.getUserContextProvider()
         .map(provider ->
             serviceContextFactory.create(
                 ksqlConfig,
+                Optional.empty(),
                 provider.getKafkaClientSupplier(principal),
                 provider.getSchemaRegistryClientFactory(principal)))
         .get();
@@ -372,7 +359,7 @@ public class WSQueryEndpoint {
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
-    final String topicName = printTopic.getTopic().toString();
+    final String topicName = printTopic.getTopic();
 
     if (!info.serviceContext.getTopicClient().isTopicExists(topicName)) {
       throw new IllegalArgumentException(

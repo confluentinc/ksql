@@ -16,20 +16,19 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class StreamMapValues<S> implements ExecutionStep<S> {
+public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<S> source;
+  private final ExecutionStep<KStreamHolder<K>> source;
   private final List<SelectExpression> selectExpressions;
 
   public StreamMapValues(
       final ExecutionStepProperties properties,
-      final ExecutionStep<S> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final List<SelectExpression> selectExpressions) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -46,17 +45,17 @@ public class StreamMapValues<S> implements ExecutionStep<S> {
     return Collections.singletonList(source);
   }
 
-  @Override
-  public S build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
-  }
-
   public List<SelectExpression> getSelectExpressions() {
     return selectExpressions;
   }
 
-  public ExecutionStep<S> getSource() {
+  public ExecutionStep<KStreamHolder<K>> getSource() {
     return source;
+  }
+
+  @Override
+  public KStreamHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamMapValues(this);
   }
 
   @Override

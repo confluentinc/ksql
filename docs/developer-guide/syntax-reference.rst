@@ -360,6 +360,11 @@ The WITH clause supports the following properties:
 |                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
 |                         | new topic.                                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
+|                         | defaults to ','.                                                                           |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not   |
+|                         | an actual space or tab character.                                                          |
++-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
@@ -393,7 +398,7 @@ The WITH clause supports the following properties:
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
-|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | single-field schemas where the value can be ``null``. For more information, see            |
 |                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example        |
@@ -470,6 +475,11 @@ The WITH clause supports the following properties:
 |                         | set, then the default Kafka cluster configuration for replicas will be used for creating a |
 |                         | new topic.                                                                                 |
 +-------------------------+--------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,           |
+|                         | defaults to ','.                                                                           |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not   |
+|                         | an actual space or tab character.                                                          |
++-------------------------+--------------------------------------------------------------------------------------------+
 | KEY                     | Optimization hint: If the Kafka message key is also present as a field/column in the Kafka |
 |                         | message value, you may set this property to associate the corresponding field/column with  |
 |                         | the implicit ``ROWKEY`` column (message key).                                              |
@@ -503,7 +513,7 @@ The WITH clause supports the following properties:
 |                         | and defaulting to ``true```, is used.                                                      |
 |                         |                                                                                            |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with |
-|                         | single-field schemas where the value can be ``null`. For more information, see             |
+|                         | single-field schemas where the value can be ``null``. For more information, see            |
 |                         | :ref:`ksql_single_field_wrapping`.                                                         |
 |                         |                                                                                            |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example        |
@@ -548,7 +558,8 @@ CREATE STREAM AS SELECT
       FROM from_stream
       [ LEFT | FULL | INNER ] JOIN [join_table | join_stream] [ WITHIN [(before TIMEUNIT, after TIMEUNIT) | N TIMEUNIT] ] ON join_criteria 
       [ WHERE condition ]
-      [PARTITION BY column_name];
+      [PARTITION BY column_name]
+      EMIT CHANGES;
 
 **Description**
 
@@ -586,6 +597,11 @@ The WITH clause for the result supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
 |                         | If this property is not set, then the format of the input stream/table is used.                      |
 |                         | For more information, see :ref:`ksql_formats`.                                                       |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,                     |
+|                         | defaults to ','.                                                                                     |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not             |
+|                         | an actual space or tab character.                                                                    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
@@ -633,7 +649,7 @@ The WITH clause for the result supports the following properties:
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
-|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | single-field schemas where the value can be ``null``. For more information, see                      |
 |                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
@@ -663,7 +679,8 @@ CREATE TABLE AS SELECT
       [ WINDOW window_expression ]
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
-      [ HAVING having_expression ];
+      [ HAVING having_expression ]
+      EMIT CHANGES;
 
 **Description**
 
@@ -693,6 +710,11 @@ The WITH clause supports the following properties:
 |                         | ``JSON``, ``DELIMITED`` (comma-separated value), ``AVRO`` and ``KAFKA``.                             |
 |                         | If this property is not set, then the format of the input stream/table is used.                      |
 |                         | For more information, see :ref:`ksql_formats`.                                                       |
++-------------------------+------------------------------------------------------------------------------------------------------+
+| VALUE_DELIMITER         | Used when VALUE_FORMAT='DELIMITED'. Supports single character to be a delimiter,                     |
+|                         | defaults to ','.                                                                                     |
+|                         | For space and tab delimited values you must use the special values 'SPACE' or 'TAB', not             |
+|                         | an actual space or tab character.                                                                    |
 +-------------------------+------------------------------------------------------------------------------------------------------+
 | PARTITIONS              | The number of partitions in the backing topic. If this property is not set, then the number          |
 |                         | of partitions of the input stream/table will be used. In join queries, the property values are taken |
@@ -739,7 +761,7 @@ The WITH clause supports the following properties:
 |                         | defaulting to ``true```, is used.                                                                    |
 |                         |                                                                                                      |
 |                         | Note: ``null`` values have special meaning in KSQL. Care should be taken when dealing with           |
-|                         | single-field schemas where the value can be ``null`. For more information, see                       |
+|                         | single-field schemas where the value can be ``null``. For more information, see                      |
 |                         | :ref:`ksql_single_field_wrapping`.                                                                   |
 |                         |                                                                                                      |
 |                         | Note: Supplying this property for formats that do not support wrapping, for example                  |
@@ -763,7 +785,8 @@ INSERT INTO
       SELECT select_expr [., ...]
       FROM from_stream
       [ WHERE condition ]
-      [ PARTITION BY column_name ];
+      [ PARTITION BY column_name ]
+      EMIT CHANGES;
 
 **Description**
 
@@ -916,7 +939,7 @@ Your output should resemble:
 
     Queries that write into this TABLE
     -----------------------------------
-    id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+    id:CTAS_IP_SUM - CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip EMIT CHANGES;
 
     For query topology and execution plan run: EXPLAIN <QueryId>; for more information
 
@@ -967,7 +990,7 @@ Your output should resemble:
 ::
 
     Type                 : QUERY
-    SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip;
+    SQL                  : CREATE TABLE IP_SUM as SELECT ip,  sum(bytes)/1024 as kbytes FROM CLICKSTREAM window SESSION (300 second) GROUP BY ip EMIT CHANGES;
 
 
     Local runtime statistics
@@ -1088,11 +1111,55 @@ Your output should resemble:
 
     Format:JSON
     {"ROWTIME":1516010696273,"ROWKEY":"\"stream/CLICKSTREAM/create\"","statement":"CREATE STREAM clickstream (_time bigint,time varchar, ip varchar, request varchar, status int, userid int, bytes bigint, agent varchar) with (kafka_topic = 'clickstream', value_format = 'json');","streamsProperties":{}}
-    {"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid;","streamsProperties":{}}
+    {"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid EMIT CHANGES;","streamsProperties":{}}
     ^CTopic printing ceased
 
-SELECT
-------
+PULL QUERY
+----------
+
+**Synopsis**
+
+.. code:: sql
+
+    SELECT select_expr [, ...]
+      FROM aggregate_table
+      WHERE ROWKEY=key
+      [AND window_bounds];
+
+**Description**
+
+Pulls the current value from the materialized table and terminate.
+The result of this statement will not be persisted in a Kafka topic and will only be printed out in
+the console.
+
+The WHERE clause must contain a single value of ``ROWKEY`` to retieve and may optionally include
+bounds on WINDOWSTART if the materialized table is windowed.
+
+Example:
+
+.. code:: sql
+
+    SELECT * FROM pageviews_by_region
+      WHERE ROWKEY = 'Region_1'
+        AND 1570051876000 <= WINDOWSTART AND WINDOWSTART <= 1570138276000;
+
+When writing logical expressions using ``WINDOWSTART``, ISO-8601 formatted datestrings can also be
+used to represent date times.
+For example, the above query is equivalent to the following:
+
+.. code:: sql
+
+    SELECT * FROM pageviews_by_region
+      WHERE ROWKEY = 'Region_1'
+        AND '2019-10-02T21:31:16' <= WINDOWSTART AND WINDOWSTART <= '2019-10-03T21:31:16';
+
+Timezones can be specified within the datestring. For example, `2017-11-17T04:53:45-0330` is in the Newfoundland time
+zone. If no timezone is specified within the datestring, then timestamps are interperted in the UTC timezone.
+
+If not bounds are placed on ``WINDOWSTART`` then rows will be returned for all windows in the windowed table.
+
+PUSH QUERY
+----------
 
 **Synopsis**
 
@@ -1105,12 +1172,13 @@ SELECT
       [ WHERE condition ]
       [ GROUP BY grouping_expression ]
       [ HAVING having_expression ]
+      EMIT CHANGES
       [ LIMIT count ];
 
 **Description**
 
-Selects rows from a KSQL stream or table. The result of this statement
-will not be persisted in a Kafka topic and will only be printed out in
+Push a continuous stream of updates to the KSQL stream or table.
+The result of this statement will not be persisted in a Kafka topic and will only be printed out in
 the console. To stop the continuous query in the CLI press ``Ctrl-C``.
 Note that the WINDOW  clause can only be used if the ``from_item`` is a stream.
 
@@ -1131,7 +1199,7 @@ Example:
       WHERE ROWTIME >= 1510923225000
         AND ROWTIME <= 1510923228000;
 
-When writing logical expressions using ``ROWTIME``, ISO-8601 formatted datestrings can also be used to represent dates.
+When writing logical expressions using ``ROWTIME``, ISO-8601 formatted datestrings can also be used to represent date times.
 For example, the above query is equivalent to the following:
 
 .. code:: sql
@@ -1152,7 +1220,7 @@ Example:
 
 .. code:: sql
 
-    SELECT * FROM pageviews LIMIT 5;
+    SELECT * FROM pageviews EMIT CHANGES LIMIT 5;
 
 If no limit is supplied the query will run until terminated, streaming back all results to the console.
 
@@ -1181,7 +1249,8 @@ the following WINDOW types:
        SELECT item_id, SUM(quantity)
          FROM orders
          WINDOW TUMBLING (SIZE 20 SECONDS)
-         GROUP BY item_id;
+         GROUP BY item_id
+         EMIT CHANGES;
 
 -  **HOPPING**: Hopping windows group input records into fixed-sized,
    (possibly) overlapping windows based on the records’ timestamps. You
@@ -1195,7 +1264,8 @@ the following WINDOW types:
        SELECT item_id, SUM(quantity)
          FROM orders
          WINDOW HOPPING (SIZE 20 SECONDS, ADVANCE BY 5 SECONDS)
-         GROUP BY item_id;
+         GROUP BY item_id
+         EMIT CHANGES;
 
 -  **SESSION**: Session windows group input records into so-called
    sessions. You must specify the *session inactivity gap* parameter for
@@ -1212,7 +1282,8 @@ the following WINDOW types:
        SELECT item_id, SUM(quantity)
          FROM orders
          WINDOW SESSION (20 SECONDS)
-         GROUP BY item_id;
+         GROUP BY item_id
+         EMIT CHANGES;
 
 Every output column of an expression in the SELECT list has an output name. To specify the output name of a column, use
 ``AS OUTPUT_NAME`` after the expression definition. If it is omitted, KSQL will assign a system generated name
@@ -1224,7 +1295,8 @@ a column of a from_item, then the output name is the name of that column.
    .. code:: sql
 
         SELECT 1, KSQL_COL_0
-          FROM orders;
+          FROM orders
+          EMIT CHANGES;
 
 is not allowed as the output name for the literal ``1`` is ``KSQL_COL_0``.
 
@@ -1246,7 +1318,8 @@ example of converting a BIGINT into a VARCHAR type:
     SELECT page_id, CONCAT(CAST(COUNT(*) AS VARCHAR), '_HELLO')
       FROM pageviews_enriched
       WINDOW TUMBLING (SIZE 20 SECONDS)
-      GROUP BY page_id;
+      GROUP BY page_id
+      EMIT CHANGES;
 
 CASE
 ~~~~
@@ -1280,7 +1353,8 @@ statement. Here's an example of a CASE expression:
        WHEN orderunits < 4.0 THEN 'medium'
        ELSE 'large'
      END AS case_result
-    FROM orders;
+    FROM orders
+    EMIT CHANGES;
 
 LIKE
 ~~~~
@@ -1300,7 +1374,8 @@ Example:
 
     SELECT user_id
       FROM users
-      WHERE user_id LIKE 'santa%';
+      WHERE user_id LIKE 'santa%'
+      EMIT CHANGES;
 
 BETWEEN
 ~~~~~~~
@@ -1322,6 +1397,7 @@ Example:
   SELECT event
     FROM events
     WHERE event_id BETWEEN 10 AND 20
+    EMIT CHANGES;
 
 SHOW FUNCTIONS
 --------------
@@ -1471,13 +1547,13 @@ The explanation for each operator includes a supporting example based on the fol
 
 .. code:: sql
 
-  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS;
+  SELECT LEN(FIRST_NAME) + LEN(LAST_NAME) AS NAME_LENGTH FROM USERS EMIT CHANGES;
 
 - Concatenation (``+,||``) The concatenation operator can be used to concatenate STRING values.
 
 .. code:: sql
 
-  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS;
+  SELECT FIRST_NAME + LAST_NAME AS FULL_NAME FROM USERS EMIT CHANGES;
 
 - You can use the ``+`` operator for multi-part concatenation, for example:
 
@@ -1490,21 +1566,22 @@ The explanation for each operator includes a supporting example based on the fol
             CAST(INVALID_LOGIN_COUNT AS VARCHAR) +
             ' attempts in the last minute (threshold is >=4)'
     FROM INVALID_USERS_LOGINS_PER_HOST
-    WHERE INVALID_LOGIN_COUNT>=4;
+    WHERE INVALID_LOGIN_COUNT>=4
+    EMIT CHANGES;
 
 - Source Dereference (``.``) The source dereference operator can be used to specify columns
   by dereferencing the source stream or table.
 
 .. code:: sql
 
-  SELECT USERS.FIRST_NAME FROM USERS;
+  SELECT USERS.FIRST_NAME FROM USERS EMIT CHANGES;
 
 - Subscript (``[subscript_expr]``) The subscript operator is used to reference the value at
   an array index or a map key.
 
 .. code:: sql
 
-  SELECT NICKNAMES[0] FROM USERS;
+  SELECT NICKNAMES[0] FROM USERS EMIT CHANGES;
 
 - STRUCT dereference (``->``) Access nested data by declaring a STRUCT and using
   the dereference operator to access its fields:
@@ -1515,13 +1592,13 @@ The explanation for each operator includes a supporting example based on the fol
      orderId BIGINT,
      address STRUCT<street VARCHAR, zip INTEGER>) WITH (...);
 
-   SELECT address->street, address->zip FROM orders;
+   SELECT address->street, address->zip FROM orders EMIT CHANGES;
 
 - Combine `->` with `.` when using aliases:
 
 .. code:: sql
 
-   SELECT orders.address->street, o.address->zip FROM orders o;
+   SELECT orders.address->street, o.address->zip FROM orders o EMIT CHANGES;
 
 .. _functions:
 
@@ -1660,7 +1737,14 @@ Scalar functions
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
 |                        |                                                                           | with a new string.                                |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| ROUND                  |  ``ROUND(col1)``                                                          | Round a value to the nearest BIGINT value.        |
+| ROUND                  |  ``ROUND(col1)`` or ``ROUND(col1, scale)``                                | Round a value to the number of decimal places     |
+|                        |                                                                           | as specified by scale to the right of the decimal |
+|                        |                                                                           | point. If scale is negative then value is rounded |
+|                        |                                                                           | to the right of the decimal point.                |
+|                        |                                                                           | Numbers equidistant to the nearest value are      |
+|                        |                                                                           | rounded up (in the positive direction).           |
+|                        |                                                                           | If the number of decimal places is not provided   |
+|                        |                                                                           | it defaults to zero.                              |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | SIGN                   |  ``SIGN(col1)``                                                           | The sign of a numeric value as an INTEGER:        |
 |                        |                                                                           | * -1 if the argument is negative                  |
@@ -1700,7 +1784,7 @@ Scalar functions
 |                        |                                                                           | example: ``'yyyy-MM-dd''T''HH:mm:ssX'``.          |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | "America/Los_Angeles", "PST", "Europe/London". For|
 |                        |                                                                           | more information on timestamp formats, see        |
 |                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1735,7 +1819,7 @@ Scalar functions
 |                        |                                                                           | ``'yyyy-MM-dd''T''HH:mm:ssX'``.                   |
 |                        |                                                                           | TIMEZONE is an optional parameter and it is a     |
 |                        |                                                                           | java.util.TimeZone ID format, for example: "UTC", |
-|                        |                                                                           | "America/Los_Angeles", "PDT", "Europe/London". For|
+|                        |                                                                           | "America/Los_Angeles", "PST", "Europe/London". For|
 |                        |                                                                           | more information on timestamp formats, see        |
 |                        |                                                                           | `DateTimeFormatter <https://cnfl.io/java-dtf>`__. |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
@@ -1881,7 +1965,7 @@ Aggregate functions
 |                        |                           |            | the order they were originally processed.                           |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | AVERAGE                | ``AVG(col1)``             | Stream,    | Return the average value for a given column.                        |
-|                        |                           | Table      | Note: rows where ``col1`` is null are ignored.                  |
+|                        |                           | Table      | Note: rows where ``col1`` is null are ignored.                      |
 +------------------------+---------------------------+------------+---------------------------------------------------------------------+
 | MAX                    | ``MAX(col1)``             | Stream     | Return the maximum value for a given column and window.             |
 |                        |                           |            | Note: rows where ``col1`` is null will be ignored.                  |
@@ -1983,7 +2067,8 @@ Example:
       WITH(KAFKA_TOPIC='users-with-proper-key') AS
       SELECT CAST(userid as VARCHAR) as userid_string, username, email
       FROM users_with_wrong_key_format
-      PARTITION BY userid_string;
+      PARTITION BY userid_string
+      EMIT CHANGES;
 
     -- Now you can create the table on the properly keyed stream.
     CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR)
@@ -2014,7 +2099,8 @@ Example:
       WITH(KAFKA_TOPIC='users-with-proper-key') AS
       SELECT CAST(ROWKEY as VARCHAR) as userid_string, username, email
       FROM users_with_missing_key
-      PARTITION BY userid_string;
+      PARTITION BY userid_string
+      EMIT CHANGES;
 
     -- Now you can create the table on the properly keyed stream.
     CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR)

@@ -17,6 +17,7 @@ package io.confluent.ksql.function.udaf.topk;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
@@ -25,8 +26,8 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
+
   private static final String NAME = "TOPK";
-  private final int topKSize;
 
   private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
       .<List<Schema>>builder()
@@ -38,61 +39,67 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
 
   public TopKAggregateFunctionFactory() {
     super(NAME);
-    this.topKSize = 0;
   }
 
-  TopKAggregateFunctionFactory(final int topKSize) {
-    super(NAME);
-    this.topKSize = topKSize;
-  }
+  private static final AggregateFunctionInitArguments DEFAULT_INIT_ARGS =
+      new AggregateFunctionInitArguments(0, 1);
 
   @Override
-  public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argumentType) {
+  public KsqlAggregateFunction createAggregateFunction(
+      final List<Schema> argumentType,
+      final AggregateFunctionInitArguments initArgs
+  ) {
     if (argumentType.isEmpty()) {
       throw new KsqlException("TOPK function should have two arguments.");
     }
+    final int tkValFromArg = (Integer)(initArgs.arg(0));
     final Schema argSchema = argumentType.get(0);
     switch (argSchema.type()) {
       case INT32:
         return new TopkKudaf<>(
             NAME,
-            -1,
-            topKSize,
+            initArgs.udafIndex(),
+            tkValFromArg,
             SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
             Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
             Integer.class);
       case INT64:
         return new TopkKudaf<>(
             NAME,
-            -1,
-            topKSize,
+            initArgs.udafIndex(),
+            tkValFromArg,
             SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
             Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
             Long.class);
       case FLOAT64:
         return new TopkKudaf<>(
             NAME,
-            -1,
-            topKSize,
+            initArgs.udafIndex(),
+            tkValFromArg,
             SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
             Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
             Double.class);
       case STRING:
         return new TopkKudaf<>(
             NAME,
-            -1,
-            topKSize,
+            initArgs.udafIndex(),
+            tkValFromArg,
             SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
             Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
             String.class);
       default:
         throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)
-                                + " argument type exists!");
+            + " argument type exists!");
     }
   }
 
   @Override
   public List<List<Schema>> supportedArgs() {
     return SUPPORTED_TYPES;
+  }
+
+  @Override
+  public AggregateFunctionInitArguments getDefaultArguments() {
+    return DEFAULT_INIT_ARGS;
   }
 }

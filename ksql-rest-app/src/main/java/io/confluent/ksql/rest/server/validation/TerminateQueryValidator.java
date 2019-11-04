@@ -21,6 +21,7 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.util.Map;
 
 public final class TerminateQueryValidator {
 
@@ -28,6 +29,7 @@ public final class TerminateQueryValidator {
 
   public static void validate(
       final ConfiguredStatement<?> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext context,
       final ServiceContext serviceContext
   ) {

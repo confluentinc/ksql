@@ -21,6 +21,14 @@ import java.util.List;
 public interface CliSpecificCommand {
 
   /**
+   * @param command the full command
+   * @return whether or not {@code command} is an instance of {@code this}
+   */
+  default boolean matches(final String command) {
+    return command.toLowerCase().startsWith(getName().toLowerCase());
+  }
+
+  /**
    * Get the name of the command.
    *
    * <p>This is used to determine if a line entered in the CLI is trying to execute this command.

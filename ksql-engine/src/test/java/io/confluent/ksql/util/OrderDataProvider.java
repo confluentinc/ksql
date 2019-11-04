@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -35,13 +36,13 @@ public class OrderDataProvider extends TestDataProvider {
   private static final String key = "ORDERTIME";
 
   private static final LogicalSchema schema = LogicalSchema.builder()
-      .valueColumn("ORDERTIME", SqlTypes.BIGINT)
-      .valueColumn("ORDERID", SqlTypes.STRING)
-      .valueColumn("ITEMID", SqlTypes.STRING)
-      .valueColumn("ORDERUNITS", SqlTypes.DOUBLE)
-      .valueColumn("TIMESTAMP", SqlTypes.STRING)
-      .valueColumn("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
-      .valueColumn("KEYVALUEMAP", SqlTypes.map(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("ORDERID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("TIMESTAMP"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
+      .valueColumn(ColumnName.of("KEYVALUEMAP"), SqlTypes.map(SqlTypes.DOUBLE))
       .build();
 
   private static final Map<String, GenericRow> data = buildData();

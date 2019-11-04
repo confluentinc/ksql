@@ -167,7 +167,7 @@ public class KsqlJsonSerializerTest {
             + "\"ORDERUNITS\":10.0,"
             + "\"ARRAYCOL\":[100.0],"
             + "\"MAPCOL\":{\"key1\":100.0},"
-            + "\"DECIMALCOL\":\"AbbZ\""
+            + "\"DECIMALCOL\":1.12345"
             + "}"));
   }
 

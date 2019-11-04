@@ -67,6 +67,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.kafka.streams.StreamsConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 @Path("/ksql")
@@ -74,6 +76,8 @@ import org.apache.kafka.streams.StreamsConfig;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class KsqlResource implements KsqlConfigurable {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
+
+  private static final Logger LOG = LoggerFactory.getLogger(KsqlResource.class);
 
   private static final List<ParsedStatement> TERMINATE_CLUSTER =
       new DefaultKsqlParser().parse(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT);
@@ -171,6 +175,8 @@ public class KsqlResource implements KsqlConfigurable {
       @Context final ServiceContext serviceContext,
       final ClusterTerminateRequest request
   ) {
+    LOG.info("Received: " + request);
+
     throwIfNotConfigured();
 
     ensureValidPatterns(request.getDeleteTopicList());
@@ -189,6 +195,8 @@ public class KsqlResource implements KsqlConfigurable {
       @Context final ServiceContext serviceContext,
       final KsqlRequest request
   ) {
+    LOG.info("Received: " + request);
+
     throwIfNotConfigured();
 
     activenessRegistrar.updateLastRequestTime();

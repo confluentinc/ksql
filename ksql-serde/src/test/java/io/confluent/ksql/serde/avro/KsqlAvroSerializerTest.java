@@ -169,7 +169,7 @@ public class KsqlAvroSerializerTest {
         AbstractKafkaAvroSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, ""
     );
 
-    deserializer = new KafkaAvroDeserializer<>(schemaRegistryClient, configs);
+    deserializer = new KafkaAvroDeserializer(schemaRegistryClient, configs);
 
     orderStruct = new Struct(ORDER_SCHEMA)
         .put(ORDERTIME, 1511897796092L)

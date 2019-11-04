@@ -53,6 +53,7 @@ public class TerminateQueryValidatorTest {
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -72,6 +73,7 @@ public class TerminateQueryValidatorTest {
             ImmutableMap.of(),
             engine.getKsqlConfig()
         ),
+        ImmutableMap.of(),
         mockEngine,
         engine.getServiceContext()
     );

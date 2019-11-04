@@ -178,7 +178,7 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitQualifiedNameReference(final QualifiedNameReference node, final C context) {
+  public Void visitColumnReference(final ColumnReferenceExp node, final C context) {
     return null;
   }
 

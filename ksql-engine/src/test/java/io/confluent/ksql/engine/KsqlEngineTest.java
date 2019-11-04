@@ -43,6 +43,7 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.exception.ParseFailedException;
@@ -102,6 +103,7 @@ public class KsqlEngineTest {
 
   private KsqlEngine ksqlEngine;
   private ServiceContext serviceContext;
+  private ServiceContext sandboxServiceContext;
   @Spy
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
   private KsqlExecutionContext sandbox;
@@ -121,6 +123,7 @@ public class KsqlEngineTest {
     );
 
     sandbox = ksqlEngine.createSandbox(serviceContext);
+    sandboxServiceContext = sandbox.getServiceContext();
   }
 
   @After
@@ -133,21 +136,28 @@ public class KsqlEngineTest {
   public void shouldCreatePersistentQueries() {
     // When:
     final List<QueryMetadata> queries
-        = KsqlEngineTestUtil.execute(ksqlEngine, "create table bar as select * from test2;" +
-        "create table foo as select * from test2;", KSQL_CONFIG, Collections.emptyMap());
+        = KsqlEngineTestUtil.execute(
+            serviceContext,
+        ksqlEngine,
+        "create table bar as select * from test2;"
+            + "create table foo as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     // Then:
     assertThat(queries, hasSize(2));
     assertThat(queries.get(0), is(instanceOf(PersistentQueryMetadata.class)));
     assertThat(queries.get(1), is(instanceOf(PersistentQueryMetadata.class)));
-    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is("BAR"));
-    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is("FOO"));
+    assertThat(((PersistentQueryMetadata) queries.get(0)).getSinkName(), is(SourceName.of("BAR")));
+    assertThat(((PersistentQueryMetadata) queries.get(1)).getSinkName(), is(SourceName.of("FOO")));
   }
 
   @Test
   public void shouldNotHaveRowTimeAndRowKeyColumnsInPersistentQueryValueSchema() {
     // When:
     final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil.execute(
+        serviceContext,
         ksqlEngine,
         "create table bar as select * from test2;",
         KSQL_CONFIG,
@@ -166,8 +176,13 @@ public class KsqlEngineTest {
   public void shouldThrowOnTerminateAsNotExecutable() {
     // Given:
     final PersistentQueryMetadata query = (PersistentQueryMetadata) KsqlEngineTestUtil
-        .execute(ksqlEngine,
-            "create table bar as select * from test2;", KSQL_CONFIG, Collections.emptyMap()).get(0);
+        .execute(
+            serviceContext,
+            ksqlEngine,
+            "create table bar as select * from test2;",
+            KSQL_CONFIG,
+            Collections.emptyMap())
+        .get(0);
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is("Statement not executable")));
@@ -175,7 +190,12 @@ public class KsqlEngineTest {
 
     // When:
     KsqlEngineTestUtil.execute(
-        ksqlEngine, "TERMINATE " + query.getQueryId() + ";", KSQL_CONFIG, Collections.emptyMap());
+        serviceContext,
+        ksqlEngine,
+        "TERMINATE " + query.getQueryId() + ";",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
   }
 
   @Test
@@ -190,7 +210,7 @@ public class KsqlEngineTest {
 
     // When:
     final ExecuteResult result = sandbox
-        .execute(ConfiguredStatement.of(
+        .execute(sandboxServiceContext, ConfiguredStatement.of(
             sandbox.prepare(statements.get(1)),
             Collections.emptyMap(),
             KSQL_CONFIG));
@@ -202,7 +222,7 @@ public class KsqlEngineTest {
   @Test
   public void shouldThrowWhenExecutingInsertIntoTable() {
     KsqlEngineTestUtil.execute(
-        ksqlEngine, "create table bar as select * from test2;", KSQL_CONFIG,
+        serviceContext, ksqlEngine, "create table bar as select * from test2;", KSQL_CONFIG,
         Collections.emptyMap());
 
     final ParsedStatement parsed = ksqlEngine.parse("insert into bar select * from test2;").get(0);
@@ -217,15 +237,108 @@ public class KsqlEngineTest {
   }
 
   @Test
+  public void shouldThrowOnInsertIntoStreamWithTableResult() {
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select itemid, orderid from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "Incompatible data sink and query result. "
+            + "Data sink (BAR) type is KSTREAM but select query result is KTABLE.")));
+    expectedException.expect(statementText(
+        is("insert into bar select itemid, count(*) from orders group by itemid;")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "insert into bar select itemid, count(*) from orders group by itemid;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+  }
+
+  @Test
+  public void shouldThrowOnInsertIntoWithKeyMismatch() {
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "Incompatible key fields for sink and results. "
+            + "Sink key field is ORDERTIME (type: BIGINT) "
+            + "while result key field is ITEMID (type: STRING)")));
+    expectedException.expect(statementText(
+        is("insert into bar select * from orders partition by itemid;")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "insert into bar select * from orders partition by itemid;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+  }
+
+  @Test
+  public void shouldThrowWhenInsertIntoSchemaDoesNotMatch() {
+    // Given:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+
+    // Then:
+    expectedException.expect(KsqlStatementException.class);
+    expectedException.expect(rawMessage(containsString(
+        "Incompatible schema between results and sink.")));
+    expectedException.expect(statementText(is("insert into bar select itemid from orders;")));
+
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "insert into bar select itemid from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
+  }
+
+  @Test
   public void shouldExecuteInsertIntoStream() {
     // Given:
     KsqlEngineTestUtil.execute(
-        ksqlEngine, "create stream bar as select * from orders;", KSQL_CONFIG,
-        Collections.emptyMap());
+        serviceContext,
+        ksqlEngine,
+        "create stream bar as select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     // When:
     final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
-        ksqlEngine, "insert into bar select * from orders;", KSQL_CONFIG, Collections.emptyMap());
+        serviceContext,
+        ksqlEngine,
+        "insert into bar select * from orders;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     // Then:
     assertThat(queries, hasSize(1));
@@ -234,7 +347,9 @@ public class KsqlEngineTest {
   @Test
   public void shouldMaintainOrderOfReturnedQueries() {
     // When:
-    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(ksqlEngine,
+    final List<QueryMetadata> queries = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "create stream foo as select * from orders;"
             + "create stream bar as select * from orders;",
         KSQL_CONFIG, Collections.emptyMap());
@@ -248,32 +363,54 @@ public class KsqlEngineTest {
   @Test(expected = ParseFailedException.class)
   public void shouldFailToCreateQueryIfSelectingFromNonExistentEntity() {
     KsqlEngineTestUtil
-        .execute(ksqlEngine, "select * from bar;", KSQL_CONFIG, Collections.emptyMap());
+        .execute(
+            serviceContext,
+            ksqlEngine,
+            "select * from bar;",
+            KSQL_CONFIG,
+            Collections.emptyMap()
+        );
   }
 
   @Test(expected = ParseFailedException.class)
   public void shouldFailWhenSyntaxIsInvalid() {
-    KsqlEngineTestUtil.execute(ksqlEngine, "blah;", KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "blah;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
   }
 
   @Test
   public void shouldUpdateReferentialIntegrityTableCorrectly() {
-    KsqlEngineTestUtil.execute(ksqlEngine, "create table bar as select * from test2;" +
-        "create table foo as select * from test2;", KSQL_CONFIG, Collections
-        .emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table bar as select * from test2;"
+            + "create table foo as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
-    assertThat(metaStore.getQueriesWithSource("TEST2"),
+    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")),
         equalTo(Utils.mkSet("CTAS_BAR_0", "CTAS_FOO_1")));
-    assertThat(metaStore.getQueriesWithSink("BAR"), equalTo(Utils.mkSet("CTAS_BAR_0")));
-    assertThat(metaStore.getQueriesWithSink("FOO"), equalTo(Utils.mkSet("CTAS_FOO_1")));
+    assertThat(metaStore.getQueriesWithSink(SourceName.of("BAR")), equalTo(Utils.mkSet("CTAS_BAR_0")));
+    assertThat(metaStore.getQueriesWithSink(SourceName.of("FOO")), equalTo(Utils.mkSet("CTAS_FOO_1")));
   }
 
   @Test
   public void shouldFailIfReferentialIntegrityIsViolated() {
     // Given:
-    KsqlEngineTestUtil.execute(ksqlEngine, "create table bar as select * from test2;" +
-            "create table foo as select * from test2;",
-        KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create table bar as select * from test2;"
+            + "create table foo as select * from test2;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     expectedException.expect(KsqlStatementException.class);
     expectedException.expect(rawMessage(is(
@@ -284,7 +421,13 @@ public class KsqlEngineTest {
     expectedException.expect(statementText(is("drop table foo;")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine, "drop table foo;", KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "drop table foo;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
   }
 
   @Test
@@ -301,24 +444,37 @@ public class KsqlEngineTest {
     expectedException.expectMessage("Kafka topic does not exist: S1_NOTEXIST");
 
     // When:
-    sandbox.execute(ConfiguredStatement.of(prepared,  Collections.emptyMap(), KSQL_CONFIG));
+    sandbox.execute(
+        sandboxServiceContext,
+        ConfiguredStatement.of(prepared,  Collections.emptyMap(), KSQL_CONFIG)
+    );
   }
 
   @Test
   public void shouldDropTableIfAllReferencedQueriesTerminated() {
     // Given:
-    final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata secondQuery = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "create table bar as select * from test2;"
             + "create table foo as select * from test2;",
-        KSQL_CONFIG, Collections.emptyMap()).get(1);
+        KSQL_CONFIG,
+        Collections.emptyMap())
+        .get(1);
 
     secondQuery.close();
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine, "drop table foo;", KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "drop table foo;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     // Then:
-    assertThat(metaStore.getSource("foo"), nullValue());
+    assertThat(metaStore.getSource(SourceName.of("foo")), nullValue());
   }
 
   @Test
@@ -351,7 +507,10 @@ public class KsqlEngineTest {
             + " WITH (KAFKA_TOPIC = 'i_do_not_exist', VALUE_FORMAT = 'JSON');")));
 
     // When:
-    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
+    sandbox.execute(
+        sandboxServiceContext,
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    );
   }
 
   @Test
@@ -366,7 +525,10 @@ public class KsqlEngineTest {
     expectedException.expect(rawMessage(is("Kafka topic does not exist: i_do_not_exist")));
 
     // When:
-    ksqlEngine.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    );
   }
 
   @Test
@@ -394,10 +556,13 @@ public class KsqlEngineTest {
         "create stream bar with (value_format='avro', kafka_topic='bar');")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "create stream bar with (value_format='avro', kafka_topic='bar');",
         KSQL_CONFIG,
-        Collections.emptyMap());
+        Collections.emptyMap()
+    );
   }
 
   @Test
@@ -410,25 +575,28 @@ public class KsqlEngineTest {
         "Cannot register avro schema for T as the schema is incompatible with the current schema version registered for the topic.\n" +
             "KSQL schema: {" +
             "\"type\":\"record\"," +
-            "\"name\":\"T\"," +
-            "\"namespace\":\"ksql\"," +
+            "\"name\":\"KsqlDataSourceSchema\"," +
+            "\"namespace\":\"io.confluent.ksql.avro_schemas\"," +
             "\"fields\":[" +
             "{\"name\":\"COL0\",\"type\":[\"null\",\"long\"],\"default\":null}," +
             "{\"name\":\"COL1\",\"type\":[\"null\",\"string\"],\"default\":null}," +
             "{\"name\":\"COL2\",\"type\":[\"null\",\"string\"],\"default\":null}," +
             "{\"name\":\"COL3\",\"type\":[\"null\",\"double\"],\"default\":null}," +
             "{\"name\":\"COL4\",\"type\":[\"null\",\"boolean\"],\"default\":null}" +
-            "]" +
+            "],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"" +
             "}\n" +
             "Registered schema: \"int\"")));
     expectedException.expect(statementText(is(
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
         KSQL_CONFIG,
-        Collections.emptyMap());
+        Collections.emptyMap()
+    );
   }
 
   @Test
@@ -442,22 +610,28 @@ public class KsqlEngineTest {
     givenTopicWithSchema("T", evolvableSchema);
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "CREATE TABLE T WITH(VALUE_FORMAT='AVRO') AS SELECT * FROM TEST2;",
         KSQL_CONFIG,
-        Collections.emptyMap());
+        Collections.emptyMap()
+    );
 
     // Then:
-    assertThat(metaStore.getSource("T"), is(notNullValue()));
+    assertThat(metaStore.getSource(SourceName.of("T")), is(notNullValue()));
   }
 
   @Test
   public void shouldNotDeleteSchemaNorTopicForTable() throws Exception {
     // Given:
     givenTopicsExist("BAR");
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "create table bar with (value_format = 'avro') as select * from test2;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
 
     query.close();
 
@@ -469,7 +643,13 @@ public class KsqlEngineTest {
     schemaRegistryClient.register("BAR-value", schema);
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine, "DROP TABLE bar;", KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "DROP TABLE bar;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     // Then:
     assertThat(serviceContext.getTopicClient().isTopicExists("BAR"), equalTo(true));
@@ -479,9 +659,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldCleanUpInternalTopicsOnClose() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "select * from test1 EMIT CHANGES;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
 
     query.start();
 
@@ -495,9 +678,12 @@ public class KsqlEngineTest {
   @Test
   public void shouldNotCleanUpInternalTopicsOnCloseIfQueryNeverStarted() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
 
     // When:
     query.close();
@@ -512,9 +698,13 @@ public class KsqlEngineTest {
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
     final int startingPersistentQueries = ksqlEngine.getPersistentQueries().size();
 
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "create stream s1 with (value_format = 'avro') as select * from test1;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    ).get(0);
 
     // When:
     query.close();
@@ -530,15 +720,39 @@ public class KsqlEngineTest {
     // Given:
     final int startingLiveQueries = ksqlEngine.numberOfLiveQueries();
 
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "select * from test1 EMIT CHANGES;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
 
     // When:
     query.close();
 
     // Then:
     assertThat(ksqlEngine.numberOfLiveQueries(), is(startingLiveQueries));
+  }
+
+  @Test
+  public void shouldSetKsqlSinkForSinks() {
+    // When:
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "create stream s as select * from orders;"
+            + "create table t as select itemid, count(*) from orders group by itemid;",
+        KSQL_CONFIG, Collections.emptyMap()
+    );
+
+    // Then:
+    assertThat(metaStore.getSource(SourceName.of("S")).getKsqlTopic().isKsqlSink(), is(true));
+    assertThat(metaStore.getSource(SourceName.of("T")).getKsqlTopic().isKsqlSink(), is(true));
+  }
+
+  @Test
+  public void shouldThrowIfLeftTableNotJoiningOnTableKey() {
+
   }
 
   @SuppressWarnings("unchecked")
@@ -572,6 +786,7 @@ public class KsqlEngineTest {
         {
           final PreparedStatement<?> prepared = ksqlEngine.prepare(stmt);
           final ExecuteResult result = ksqlEngine.execute(
+              serviceContext,
               ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
           result.getQuery().ifPresent(queries::add);
           return prepared;
@@ -627,7 +842,10 @@ public class KsqlEngineTest {
         "CREATE TABLE FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM TEST2;")));
 
     // When:
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+    );
   }
 
   @Test
@@ -679,7 +897,10 @@ public class KsqlEngineTest {
         "CREATE STREAM FOO WITH (KAFKA_TOPIC='BAR') AS SELECT * FROM ORDERS;")));
 
     // When:
-    ksqlEngine.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+    ksqlEngine.execute(
+        serviceContext,
+        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+    );
   }
 
   @Test
@@ -693,9 +914,12 @@ public class KsqlEngineTest {
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;",
-        KSQL_CONFIG, Collections.emptyMap());
+        KSQL_CONFIG, Collections.emptyMap()
+    );
   }
 
   @Test
@@ -709,9 +933,12 @@ public class KsqlEngineTest {
         "CREATE TABLE FOO AS SELECT * FROM ORDERS;")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine,
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "CREATE TABLE FOO AS SELECT * FROM ORDERS;",
-        KSQL_CONFIG, Collections.emptyMap());
+        KSQL_CONFIG, Collections.emptyMap()
+    );
   }
 
   @Test
@@ -728,7 +955,10 @@ public class KsqlEngineTest {
         "CREATE STREAM FOO AS SELECT COUNT(ORDERID) FROM ORDERS GROUP BY ORDERID;")));
 
     // When:
-    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
+    sandbox.execute(
+        serviceContext,
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    );
   }
 
   @Test
@@ -744,7 +974,10 @@ public class KsqlEngineTest {
             + "Please use CREATE STREAM AS SELECT statement instead.")));
 
     // When:
-    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
+    sandbox.execute(
+        serviceContext,
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    );
   }
 
   @Test
@@ -801,7 +1034,13 @@ public class KsqlEngineTest {
     expectedException.expect(statementText(is("SHOW STREAMS;")));
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine, "SHOW STREAMS;", KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "SHOW STREAMS;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
   }
 
   @Test
@@ -821,13 +1060,14 @@ public class KsqlEngineTest {
     // When:
     statements
         .forEach(stmt -> sandbox.execute(
+            sandboxServiceContext,
             ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     // Then:
-    assertThat(metaStore.getSource("TEST3"), is(notNullValue()));
-    assertThat(metaStore.getQueriesWithSource("TEST2"), is(empty()));
-    assertThat(metaStore.getSource("BAR"), is(nullValue()));
-    assertThat(metaStore.getSource("FOO"), is(nullValue()));
+    assertThat(metaStore.getSource(SourceName.of("TEST3")), is(notNullValue()));
+    assertThat(metaStore.getQueriesWithSource(SourceName.of("TEST2")), is(empty()));
+    assertThat(metaStore.getSource(SourceName.of("BAR")), is(nullValue()));
+    assertThat(metaStore.getSource(SourceName.of("FOO")), is(nullValue()));
     assertThat("live", ksqlEngine.numberOfLiveQueries(), is(numberOfLiveQueries));
     assertThat("peristent", ksqlEngine.getPersistentQueries().size(), is(numPersistentQueries));
   }
@@ -845,7 +1085,10 @@ public class KsqlEngineTest {
 
     // When:
     statements.forEach(
-        stmt -> sandbox.execute(ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
+        stmt -> sandbox.execute(
+            sandboxServiceContext,
+            ConfiguredStatement.of(sandbox.prepare(stmt), new HashMap<>(), KSQL_CONFIG))
+    );
 
     // Then:
     assertThat("no topics should be created during a tryExecute call",
@@ -859,11 +1102,14 @@ public class KsqlEngineTest {
     final PreparedStatement<?> statement = prepare(parse(sql).get(0));
 
     // When:
-    sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
+    sandbox.execute(
+        sandboxServiceContext,
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    );
 
     // Then:
     final List<QueryMetadata> queries = KsqlEngineTestUtil
-        .execute(ksqlEngine, sql, KSQL_CONFIG, Collections.emptyMap());
+        .execute(serviceContext, ksqlEngine, sql, KSQL_CONFIG, Collections.emptyMap());
     assertThat("query id of actual execute should not be affected by previous tryExecute",
         ((PersistentQueryMetadata) queries.get(0)).getQueryId(), is(new QueryId("CTAS_FOO_0")));
   }
@@ -880,7 +1126,10 @@ public class KsqlEngineTest {
     final PreparedStatement<?> prepared = prepare(statements.get(1));
 
     // When:
-    sandbox.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+    sandbox.execute(
+        sandboxServiceContext,
+        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+    );
 
     // Then:
     verify(schemaRegistryClient, never()).register(any(), any());
@@ -915,7 +1164,10 @@ public class KsqlEngineTest {
         "create table bar as select * from test2;").get(0));
 
     // When:
-    final ExecuteResult result = sandbox.execute(ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG));
+    final ExecuteResult result = sandbox.execute(
+        sandboxServiceContext,
+        ConfiguredStatement.of(prepared, new HashMap<>(), KSQL_CONFIG)
+    );
 
     // Then:
     assertThat(result.getQuery(), is(not(Optional.empty())));
@@ -933,7 +1185,10 @@ public class KsqlEngineTest {
         prepare(parse("CREATE STREAM FOO (a int) WITH (kafka_topic='foo', value_format='json');").get(0));
 
     // When:
-    final ExecuteResult result = sandbox.execute(ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG));
+    final ExecuteResult result = sandbox.execute(
+        sandboxServiceContext,
+        ConfiguredStatement.of(statement, new HashMap<>(), KSQL_CONFIG)
+    );
 
     // Then:
     assertThat(result.getCommandResult(), is(Optional.of("Stream created")));
@@ -986,13 +1241,22 @@ public class KsqlEngineTest {
   @Test
   public void shouldIgnoreLegacyDeleteTopicPartOfDropCommand() {
     // Given:
-    final QueryMetadata query = KsqlEngineTestUtil.execute(ksqlEngine,
+    final QueryMetadata query = KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
         "CREATE STREAM FOO AS SELECT * FROM TEST1;",
-        KSQL_CONFIG, Collections.emptyMap()).get(0);
+        KSQL_CONFIG, Collections.emptyMap()
+    ).get(0);
     query.close();
 
     // When:
-    KsqlEngineTestUtil.execute(ksqlEngine, "DROP STREAM FOO DELETE TOPIC;", KSQL_CONFIG, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext,
+        ksqlEngine,
+        "DROP STREAM FOO DELETE TOPIC;",
+        KSQL_CONFIG,
+        Collections.emptyMap()
+    );
 
     // Then:
     verifyNoMoreInteractions(topicClient);
@@ -1033,6 +1297,7 @@ public class KsqlEngineTest {
       final ParsedStatement statement
   ) {
     ksqlEngine.execute(
+        serviceContext,
         ConfiguredStatement.of(ksqlEngine.prepare(statement), new HashMap<>(), KSQL_CONFIG));
     sandbox = ksqlEngine.createSandbox(serviceContext);
   }
@@ -1040,6 +1305,7 @@ public class KsqlEngineTest {
   private void givenSqlAlreadyExecuted(final String sql) {
     parse(sql).forEach(stmt ->
         ksqlEngine.execute(
+            serviceContext,
             ConfiguredStatement.of(ksqlEngine.prepare(stmt), new HashMap<>(), KSQL_CONFIG)));
 
     sandbox = ksqlEngine.createSandbox(serviceContext);

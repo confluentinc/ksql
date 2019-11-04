@@ -29,11 +29,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -61,6 +58,9 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
   private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
   private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
 
+  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+  private static final KsqlVersion CURRENT_VERSION = KsqlVersion.current();
+
   private final String topologyChecksDir;
   private final TestLoader<T> innerLoader;
 
@@ -86,34 +86,28 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
         .flatMap(q -> buildVersionedTestCases(q, expectedTopologies));
   }
 
-  public static void writeExpectedTopologyFile(
-      final String queryName,
+  public static Path buildExpectedTopologyPath(final String queryName, final Path topologyDir) {
+    final String updatedQueryName = formatQueryName(queryName);
+    return topologyDir.resolve(updatedQueryName);
+  }
+
+  public static String buildExpectedTopologyContent(
       final PersistentQueryMetadata query,
-      final Map<String, String> configs,
-      final ObjectWriter objectWriter,
-      final Path topologyDir
+      final Map<String, String> configs
   ) {
     try {
-      final String updatedQueryName = formatQueryName(queryName);
-      final Path topologyFile = topologyDir.resolve(updatedQueryName);
+      final ObjectWriter objectWriter = OBJECT_MAPPER.writerWithDefaultPrettyPrinter();
+
       final String configString = objectWriter.writeValueAsString(configs);
       final String topologyString = query.getTopology().describe().toString();
       final String schemasString = query.getSchemasDescription();
 
-      final byte[] topologyBytes =
-          (configString + "\n"
-              + CONFIG_END_MARKER + "\n"
-              + schemasString + "\n"
-              + SCHEMAS_END_MARKER + "\n"
-              + topologyString
-          ).getBytes(StandardCharsets.UTF_8);
-
-      Files.write(topologyFile,
-          topologyBytes,
-          StandardOpenOption.CREATE,
-          StandardOpenOption.WRITE,
-          StandardOpenOption.TRUNCATE_EXISTING);
-    } catch (final IOException e) {
+      return configString + "\n"
+          + CONFIG_END_MARKER + "\n"
+          + schemasString + "\n"
+          + SCHEMAS_END_MARKER + "\n"
+          + topologyString;
+    } catch (final Exception e) {
       throw new RuntimeException(e);
     }
   }
@@ -180,15 +174,24 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
       final List<TopologiesAndVersion> expectedTopologies
   ) {
     Stream.Builder<T> builder = Stream.builder();
-    builder = builder.add(test);
+    if (test.getVersionBounds().contains(CURRENT_VERSION)) {
+      builder.add(test);
+    }
 
     for (final TopologiesAndVersion topologies : expectedTopologies) {
+      if (!test.getVersionBounds().contains(topologies.getVersion())) {
+        continue;
+      }
+
       final TopologyAndConfigs topologyAndConfigs =
           topologies.getTopology(formatQueryName(test.getName()));
       // could be null if the testCase has expected errors, no topology or configs saved
       if (topologyAndConfigs != null) {
-        final T versionedTest = (T) test.withVersion(topologies.getVersion());
-        versionedTest.setExpectedTopology(topologyAndConfigs);
+        final T versionedTest = (T) test.withExpectedTopology(
+            topologies.getVersion(),
+            topologyAndConfigs
+        );
+
         builder = builder.add(versionedTest);
       }
     }
@@ -215,14 +218,14 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
     }
   }
 
-  public static TopologyAndConfigs readTopologyFile(
+  private static TopologyAndConfigs readTopologyFile(
       final String file,
       final ObjectReader objectReader
   ) {
     final InputStream s = ExpectedTopologiesTestLoader.class.getClassLoader()
         .getResourceAsStream(file);
     if (s == null) {
-      throw new AssertionError("File not found: " + file);
+      throw new AssertionError("Resource not found: " + file);
     }
 
     try (BufferedReader reader = new BufferedReader(new InputStreamReader(s, UTF_8))

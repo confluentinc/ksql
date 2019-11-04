@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.json.KsqlTypesSerializationModule;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.client.json.KsqlTypesDeserializationModule;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -36,11 +38,13 @@ public class TableRowsEntityTest {
   private static final String SOME_SQL = "some SQL";
 
   private static final LogicalSchema LOGICAL_SCHEMA = LogicalSchema.builder()
-      .keyColumn("ROWKEY", SqlTypes.STRING)
-      .valueColumn("v0", SqlTypes.DOUBLE)
-      .valueColumn("v1", SqlTypes.STRING)
+      .noImplicitColumns()
+      .keyColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("v0"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("v1"), SqlTypes.STRING)
       .build();
 
+  private static final QueryId QUERY_ID = new QueryId("bob");
 
   private static final List<?> A_VALUE =
       ImmutableList.of("key value", 10.1D, "some text");
@@ -56,6 +60,7 @@ public class TableRowsEntityTest {
   public void shouldThrowOnRowWindowTypeMismatch() {
     new TableRowsEntity(
         SOME_SQL,
+        QUERY_ID,
         LOGICAL_SCHEMA,
         ImmutableList.of(ImmutableList.of("too", "few"))
     );
@@ -66,6 +71,7 @@ public class TableRowsEntityTest {
     // Given:
     final TableRowsEntity entity = new TableRowsEntity(
         SOME_SQL,
+        QUERY_ID,
         LOGICAL_SCHEMA,
         ImmutableList.of(A_VALUE)
     );
@@ -77,6 +83,7 @@ public class TableRowsEntityTest {
     assertThat(json, is("{"
         + "\"@type\":\"rows\","
         + "\"statementText\":\"some SQL\","
+        + "\"queryId\":\"bob\","
         + "\"schema\":\"`ROWKEY` STRING KEY, `v0` DOUBLE, `v1` STRING\","
         + "\"rows\":["
         + "[\"key value\",10.1,\"some text\"]"
@@ -95,6 +102,7 @@ public class TableRowsEntityTest {
     // Given:
     final TableRowsEntity entity = new TableRowsEntity(
         SOME_SQL,
+        QUERY_ID,
         LOGICAL_SCHEMA,
         ImmutableList.of(Arrays.asList(null, 10.1D, null))
     );

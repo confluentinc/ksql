@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyString;
@@ -23,7 +24,9 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -40,10 +43,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import org.apache.kafka.streams.KafkaStreams;
+import org.apache.kafka.streams.KafkaStreams.State;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -54,14 +58,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class QueryDescriptionFactoryTest {
 
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.INTEGER)
-      .valueColumn("field2", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
       .build();
 
   private static final Map<String, Object> STREAMS_PROPS = Collections.singletonMap("k1", "v1");
   private static final Map<String, Object> PROP_OVERRIDES = Collections.singletonMap("k2", "v2");
   private static final QueryId QUERY_ID = new QueryId("query_id");
-  private static final ImmutableSet<String> SOURCE_NAMES = ImmutableSet.of("s1, s2");
+  private static final ImmutableSet<SourceName> SOURCE_NAMES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
   private static final String SQL_TEXT = "test statement";
   private static final String TOPOLOGY_TEXT = "Topology Text";
 
@@ -84,6 +88,7 @@ public class QueryDescriptionFactoryTest {
   @Before
   public void setUp() {
     when(topology.describe()).thenReturn(topologyDescription);
+    when(queryStreams.state()).thenReturn(State.RUNNING);
 
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
@@ -93,7 +98,6 @@ public class QueryDescriptionFactoryTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -107,7 +111,7 @@ public class QueryDescriptionFactoryTest {
         queryStreams,
         PhysicalSchema.from(SOME_SCHEMA, SerdeOption.none()),
         SOURCE_NAMES,
-        "sink Name",
+        SourceName.of("sink Name"),
         "execution plan",
         QUERY_ID,
         DataSourceType.KSTREAM,
@@ -125,54 +129,54 @@ public class QueryDescriptionFactoryTest {
 
   @Test
   public void shouldHaveEmptyQueryIdFromTransientQuery() {
-    Assert.assertThat(transientQueryDescription.getId().getId(), is(isEmptyString()));
+    assertThat(transientQueryDescription.getId().getId(), is(isEmptyString()));
   }
 
   @Test
   public void shouldHaveQueryIdForPersistentQuery() {
-    Assert.assertThat(persistentQueryDescription.getId().getId(), is(QUERY_ID.getId()));
+    assertThat(persistentQueryDescription.getId().getId(), is(QUERY_ID.getId()));
   }
 
   @Test
   public void shouldExposeExecutionPlan() {
-    Assert.assertThat(transientQueryDescription.getExecutionPlan(), is("execution plan"));
-    Assert.assertThat(persistentQueryDescription.getExecutionPlan(), is("execution plan"));
+    assertThat(transientQueryDescription.getExecutionPlan(), is("execution plan"));
+    assertThat(persistentQueryDescription.getExecutionPlan(), is("execution plan"));
   }
 
   @Test
   public void shouldExposeSources() {
-    Assert.assertThat(transientQueryDescription.getSources(), is(SOURCE_NAMES));
-    Assert.assertThat(persistentQueryDescription.getSources(), is(SOURCE_NAMES));
+    assertThat(transientQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::name).collect(Collectors.toSet())));
+    assertThat(persistentQueryDescription.getSources(), is(SOURCE_NAMES.stream().map(SourceName::name).collect( Collectors.toSet())));
   }
 
   @Test
   public void shouldExposeStatementText() {
-    Assert.assertThat(transientQueryDescription.getStatementText(), is(SQL_TEXT));
-    Assert.assertThat(persistentQueryDescription.getStatementText(), is(SQL_TEXT));
+    assertThat(transientQueryDescription.getStatementText(), is(SQL_TEXT));
+    assertThat(persistentQueryDescription.getStatementText(), is(SQL_TEXT));
   }
 
   @Test
   public void shouldExposeTopology() {
-    Assert.assertThat(transientQueryDescription.getTopology(), is(TOPOLOGY_TEXT));
-    Assert.assertThat(persistentQueryDescription.getTopology(), is(TOPOLOGY_TEXT));
+    assertThat(transientQueryDescription.getTopology(), is(TOPOLOGY_TEXT));
+    assertThat(persistentQueryDescription.getTopology(), is(TOPOLOGY_TEXT));
   }
 
   @Test
   public void shouldExposeOverridenProperties() {
-    Assert.assertThat(transientQueryDescription.getOverriddenProperties(), is(PROP_OVERRIDES));
-    Assert.assertThat(persistentQueryDescription.getOverriddenProperties(), is(PROP_OVERRIDES));
+    assertThat(transientQueryDescription.getOverriddenProperties(), is(PROP_OVERRIDES));
+    assertThat(persistentQueryDescription.getOverriddenProperties(), is(PROP_OVERRIDES));
   }
 
   @Test
   public void shouldExposeValueFieldsForTransientQueries() {
-    Assert.assertThat(transientQueryDescription.getFields(), contains(
+    assertThat(transientQueryDescription.getFields(), contains(
         new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
         new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
   }
 
   @Test
   public void shouldExposeAllFieldsForPersistentQueries() {
-    Assert.assertThat(persistentQueryDescription.getFields(), contains(
+    assertThat(persistentQueryDescription.getFields(), contains(
         new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null)),
         new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null)),
         new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
@@ -180,12 +184,22 @@ public class QueryDescriptionFactoryTest {
   }
 
   @Test
+  public void shouldReportPersistentQueriesStatus() {
+    assertThat(persistentQueryDescription.getState(), is(Optional.of("RUNNING")));
+  }
+
+  @Test
+  public void shouldNotReportTransientQueriesStatus() {
+    assertThat(transientQueryDescription.getState(), is(Optional.empty()));
+  }
+
+  @Test
   public void shouldHandleRowTimeInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.INTEGER)
-        .valueColumn("ROWTIME", SqlTypes.BIGINT)
-        .valueColumn("field2", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
         .build();
 
     transientQuery = new TransientQueryMetadata(
@@ -196,7 +210,6 @@ public class QueryDescriptionFactoryTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -207,7 +220,7 @@ public class QueryDescriptionFactoryTest {
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
 
     // Then:
-    Assert.assertThat(transientQueryDescription.getFields(), contains(
+    assertThat(transientQueryDescription.getFields(), contains(
         new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
         new FieldInfo("ROWTIME", new SchemaInfo(SqlBaseType.BIGINT, null, null)),
         new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));
@@ -217,9 +230,9 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowKeyInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("field1", SqlTypes.INTEGER)
-        .valueColumn("ROWKEY", SqlTypes.STRING)
-        .valueColumn("field2", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
         .build();
 
     transientQuery = new TransientQueryMetadata(
@@ -230,7 +243,6 @@ public class QueryDescriptionFactoryTest {
         limitHandler,
         "execution plan",
         new LinkedBlockingQueue<>(),
-        DataSourceType.KSTREAM,
         "app id",
         topology,
         STREAMS_PROPS,
@@ -241,7 +253,7 @@ public class QueryDescriptionFactoryTest {
     transientQueryDescription = QueryDescriptionFactory.forQueryMetadata(transientQuery);
 
     // Then:
-    Assert.assertThat(transientQueryDescription.getFields(), contains(
+    assertThat(transientQueryDescription.getFields(), contains(
         new FieldInfo("field1", new SchemaInfo(SqlBaseType.INTEGER, null, null)),
         new FieldInfo("ROWKEY", new SchemaInfo(SqlBaseType.STRING, null, null)),
         new FieldInfo("field2", new SchemaInfo(SqlBaseType.STRING, null, null))));

@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.FunctionNameList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import java.util.Collection;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -37,23 +38,30 @@ public class ListFunctionsExecutorTest {
 
   @Test
   public void shouldListFunctions() {
+
     // When:
     final FunctionNameList functionList = (FunctionNameList) CustomExecutors.LIST_FUNCTIONS.execute(
         engine.configure("LIST FUNCTIONS;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
 
     // Then:
-    assertThat(functionList.getFunctions(), hasItems(
-        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.scalar),
-        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.scalar),
-        new SimpleFunctionInfo("CONCAT", FunctionType.scalar),
-        new SimpleFunctionInfo("TOPK", FunctionType.aggregate),
-        new SimpleFunctionInfo("MAX", FunctionType.aggregate)));
+    Collection<SimpleFunctionInfo> functions = functionList.getFunctions();
+    assertThat(functions, hasItems(
+        new SimpleFunctionInfo("EXTRACTJSONFIELD", FunctionType.SCALAR),
+        new SimpleFunctionInfo("ARRAYCONTAINS", FunctionType.SCALAR),
+        new SimpleFunctionInfo("CONCAT", FunctionType.SCALAR),
+        new SimpleFunctionInfo("TOPK", FunctionType.AGGREGATE),
+        new SimpleFunctionInfo("MAX", FunctionType.AGGREGATE),
+        new SimpleFunctionInfo("TEST_UDTF1", FunctionType.TABLE),
+        new SimpleFunctionInfo("TEST_UDTF2", FunctionType.TABLE)
+    ));
 
     assertThat("shouldn't contain internal functions", functionList.getFunctions(),
-        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.scalar))));
+        not(hasItem(new SimpleFunctionInfo("FETCH_FIELD_FROM_STRUCT", FunctionType.SCALAR)))
+    );
   }
 
 

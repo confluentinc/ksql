@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.serde.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.NumericNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.confluent.ksql.schema.connect.SchemaWalker;
 import io.confluent.ksql.schema.connect.SchemaWalker.Visitor;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
@@ -48,23 +52,21 @@ final class JsonSerdeUtils {
     return schema;
   }
 
-  static boolean toBoolean(final Object object) {
-    if (object instanceof Boolean) {
-      return (Boolean) object;
+  static boolean toBoolean(final JsonNode object) {
+    if (object instanceof BooleanNode) {
+      return object.booleanValue();
     }
+
     throw invalidConversionException(object, SqlBaseType.BOOLEAN);
   }
 
-  static int toInteger(final Object object) {
-    if (object instanceof Integer) {
-      return (Integer) object;
+  static int toInteger(final JsonNode object) {
+    if (object instanceof NumericNode) {
+      return object.intValue();
     }
-    if (object instanceof Number) {
-      return ((Number) object).intValue();
-    }
-    if (object instanceof String) {
+    if (object instanceof TextNode) {
       try {
-        return Integer.parseInt((String) object);
+        return Integer.parseInt(object.textValue());
       } catch (final NumberFormatException e) {
         throw failedStringCoercionException(SqlBaseType.INTEGER);
       }
@@ -72,16 +74,13 @@ final class JsonSerdeUtils {
     throw invalidConversionException(object, SqlBaseType.INTEGER);
   }
 
-  static long toLong(final Object object) {
-    if (object instanceof Long) {
-      return (Long) object;
+  static long toLong(final JsonNode object) {
+    if (object instanceof NumericNode) {
+      return object.asLong();
     }
-    if (object instanceof Number) {
-      return ((Number) object).longValue();
-    }
-    if (object instanceof String) {
+    if (object instanceof TextNode) {
       try {
-        return Long.parseLong((String) object);
+        return Long.parseLong(object.textValue());
       } catch (final NumberFormatException e) {
         throw failedStringCoercionException(SqlBaseType.BIGINT);
       }
@@ -89,20 +88,18 @@ final class JsonSerdeUtils {
     throw invalidConversionException(object, SqlBaseType.BIGINT);
   }
 
-  static double toDouble(final Object object) {
-    if (object instanceof Double) {
-      return (Double) object;
+  static double toDouble(final JsonNode object) {
+    if (object instanceof NumericNode) {
+      return object.doubleValue();
     }
-    if (object instanceof Number) {
-      return ((Number) object).doubleValue();
-    }
-    if (object instanceof String) {
+    if (object instanceof TextNode) {
       try {
-        return Double.parseDouble((String) object);
+        return Double.parseDouble(object.textValue());
       } catch (final NumberFormatException e) {
         throw failedStringCoercionException(SqlBaseType.DOUBLE);
       }
     }
+
     throw invalidConversionException(object, SqlBaseType.DOUBLE);
   }
 

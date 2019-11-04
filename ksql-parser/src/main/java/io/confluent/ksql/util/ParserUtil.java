@@ -22,27 +22,50 @@ import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import io.confluent.ksql.parser.ParsingException;
 import io.confluent.ksql.parser.SqlBaseParser;
 import io.confluent.ksql.parser.SqlBaseParser.IntegerLiteralContext;
 import io.confluent.ksql.parser.SqlBaseParser.NumberContext;
+import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
+import io.confluent.ksql.parser.exception.ParseFailedException;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public final class ParserUtil {
 
+  /**
+   * Source names must adhere to the kafka topic naming convention. We restrict
+   * it here instead of as a parser rule to allow for a more descriptive error
+   * message and to avoid duplicated rules.
+   *
+   * @see org.apache.kafka.streams.state.StoreBuilder#name
+   */
+  private static final Pattern VALID_SOURCE_NAMES = Pattern.compile("[a-zA-Z0-9_-]*");
+
   private ParserUtil() {
+  }
+
+  public static SourceName getSourceName(final SourceNameContext sourceName) {
+    final String text = getIdentifierText(sourceName.identifier());
+    if (!VALID_SOURCE_NAMES.matcher(text).matches()) {
+      throw new ParseFailedException(
+          "Illegal argument at " + getLocation(sourceName).map(NodeLocation::toString).orElse("?")
+              + ". Source names may only contain alphanumeric values, '_' or '-'. Got: '"
+              + text + "'");
+    }
+    return SourceName.of(text);
   }
 
   public static String getIdentifierText(final SqlBaseParser.IdentifierContext context) {
     return getIdentifierText(false, context);
   }
 
-  private static String getIdentifierText(
+  public static String getIdentifierText(
       final boolean caseSensitive,
       final SqlBaseParser.IdentifierContext context) {
     if (context instanceof SqlBaseParser.QuotedIdentifierAlternativeContext) {
@@ -54,41 +77,9 @@ public final class ParserUtil {
     }
   }
 
-  public static String getIdentifierTextCaseSensitive(
-      final SqlBaseParser.IdentifierContext context) {
-    return getIdentifierText(true, context);
-  }
-
   public static String unquote(final String value, final String quote) {
     return value.substring(1, value.length() - 1)
         .replace(quote + quote, quote);
-  }
-
-  public static QualifiedName getQualifiedName(final SqlBaseParser.QualifiedNameContext context) {
-    return getQualifiedName(false, context);
-  }
-
-  private static QualifiedName getQualifiedName(
-      final boolean caseSensitive,
-      final SqlBaseParser.QualifiedNameContext context) {
-
-    final Optional<String> qualifier;
-    final String name;
-
-    if (context.identifier(1) == null) {
-      qualifier = Optional.empty();
-      name = ParserUtil.getIdentifierText(caseSensitive, context.identifier(0));
-    } else {
-      qualifier = Optional.of(ParserUtil.getIdentifierText(context.identifier(0)));
-      name = ParserUtil.getIdentifierText(caseSensitive, context.identifier(1));
-    }
-
-    return QualifiedName.of(qualifier, name);
-  }
-
-  public static QualifiedName getQualifiedNameCaseSensitive(
-      final SqlBaseParser.QualifiedNameContext context) {
-    return getQualifiedName(true, context);
   }
 
   public static int processIntegerNumber(final NumberContext number, final String context) {

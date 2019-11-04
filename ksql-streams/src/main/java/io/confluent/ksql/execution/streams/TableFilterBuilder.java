@@ -15,28 +15,27 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import org.apache.kafka.streams.kstream.KTable;
 
 public final class TableFilterBuilder {
   private TableFilterBuilder() {
   }
 
-  public static <K> KTable<K, GenericRow> build(
-      final KTable<K, GenericRow> ktable,
-      final TableFilter<KTable<K, GenericRow>> step,
+  public static <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableFilter<K> step,
       final KsqlQueryBuilder queryBuilder) {
-    return build(ktable, step, queryBuilder, SqlPredicate::new);
+    return build(table, step, queryBuilder, SqlPredicate::new);
   }
 
-  static <K> KTable<K, GenericRow> build(
-      final KTable<K, GenericRow> ktable,
-      final TableFilter<KTable<K, GenericRow>> step,
+  static <K> KTableHolder<K> build(
+      final KTableHolder<K> table,
+      final TableFilter<K> step,
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory) {
     final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
@@ -49,9 +48,16 @@ public final class TableFilterBuilder {
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext().getLoggerFactory().getLogger(
             QueryLoggerUtil.queryLoggerName(
+                queryBuilder.getQueryId(),
                 contextStacker.push("FILTER").getQueryContext())
         )
     );
-    return ktable.filter(predicate.getPredicate());
+    return table
+        .withTable(table.getTable().filter(predicate.getPredicate()))
+        .withMaterialization(
+            table.getMaterializationBuilder().map(
+                b -> b.filter(step.getFilterExpression())
+            )
+        );
   }
 }

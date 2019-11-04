@@ -24,7 +24,9 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
@@ -42,14 +44,17 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ExplainExecutorTest {
 
-  @Rule public final TemporaryEngine engine = new TemporaryEngine();
-  @Rule public ExpectedException expectedException = ExpectedException.none();
+  @Rule
+  public final TemporaryEngine engine = new TemporaryEngine();
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldExplainQueryId() {
     // Given:
     final ConfiguredStatement<?> explain = engine.configure("EXPLAIN id;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id");
+    when(metadata.getState()).thenReturn("Running");
 
     KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQuery(metadata.getQueryId())).thenReturn(Optional.of(metadata));
@@ -57,6 +62,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -64,7 +70,6 @@ public class ExplainExecutorTest {
     // Then:
     assertThat(query.getQueryDescription(), equalTo(QueryDescriptionFactory.forQueryMetadata(metadata)));
   }
-
 
   @Test
   public void shouldExplainPersistentStatement() {
@@ -76,6 +81,7 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -96,6 +102,27 @@ public class ExplainExecutorTest {
     // When:
     final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
         explain,
+        ImmutableMap.of(),
+        engine.getEngine(),
+        engine.getServiceContext()
+    ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(query.getQueryDescription().getStatementText(), equalTo(statementText));
+    assertThat(query.getQueryDescription().getSources(), containsInAnyOrder("Y"));
+  }
+
+  @Test
+  public void shouldExplainStatementWithStructFieldDereference() {
+    // Given:
+    engine.givenSource(DataSourceType.KSTREAM, "Y");
+    final String statementText = "SELECT address->street FROM Y EMIT CHANGES;";
+    final ConfiguredStatement<?> explain = engine.configure("EXPLAIN " + statementText);
+
+    // When:
+    final QueryDescriptionEntity query = (QueryDescriptionEntity) CustomExecutors.EXPLAIN.execute(
+        explain,
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -114,6 +141,7 @@ public class ExplainExecutorTest {
     // When:
     CustomExecutors.EXPLAIN.execute(
         engine.configure("Explain SHOW TOPICS;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -123,7 +151,7 @@ public class ExplainExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkName()).thenReturn(id);
+    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;

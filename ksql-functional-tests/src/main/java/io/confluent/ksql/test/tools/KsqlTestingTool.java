@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public final class KsqlTestingTool {
@@ -42,7 +43,7 @@ public final class KsqlTestingTool {
 
   private static final ObjectMapper OBJECT_MAPPER = JsonMapper.INSTANCE.mapper;
 
-  public static void main(final String[] args) throws Exception {
+  public static void main(final String[] args) {
 
     try {
       final TestOptions testOptions = TestOptions.parse(args);
@@ -110,6 +111,7 @@ public final class KsqlTestingTool {
 
     final TestCaseNode testCaseNode = new TestCaseNode(
         "KSQL_Test",
+        Optional.empty(),
         null,
         (inputFile == null) ? null : inputRecordNodes.getInputRecords(),
         outRecordNodes.getOutputRecords(),

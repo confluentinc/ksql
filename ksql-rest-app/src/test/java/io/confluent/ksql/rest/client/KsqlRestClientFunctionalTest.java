@@ -30,8 +30,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.Errors;
-import io.confluent.ksql.rest.client.KsqlRestClient.QueryStream;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
@@ -45,7 +45,6 @@ import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource.TestStreamWriter;
 import java.net.URI;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -79,7 +78,7 @@ public class KsqlRestClientFunctionalTest {
     mockApplication = new MockApplication();
     mockApplication.start();
 
-    ksqlRestClient = new KsqlRestClient(mockApplication.getServerAddress());
+    ksqlRestClient = buildClient(mockApplication.getServerAddress());
   }
 
   @After
@@ -103,7 +102,7 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void testStreamRowFromServer() throws InterruptedException {
     // Given:
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         ksqlRestClient.makeQueryRequest("Select *", null);
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
@@ -128,7 +127,7 @@ public class KsqlRestClientFunctionalTest {
     // Given:
     givenResponsesDelayedBy(Duration.ofSeconds(3));
 
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         ksqlRestClient.makeQueryRequest("Select *", null);
 
     final ReceiverThread receiver = new ReceiverThread(queryResponse);
@@ -151,7 +150,7 @@ public class KsqlRestClientFunctionalTest {
   @Test
   public void shouldReturnFalseFromHasNextIfClosedAsynchronously() throws Exception {
     // Given:
-    final RestResponse<KsqlRestClient.QueryStream> queryResponse =
+    final RestResponse<QueryStream> queryResponse =
         ksqlRestClient.makeQueryRequest("Select *", null);
 
     final QueryStream stream = queryResponse.getResponse();
@@ -196,14 +195,14 @@ public class KsqlRestClientFunctionalTest {
 
   @Test(expected = KsqlRestClientException.class)
   public void shouldThrowOnInvalidServerAddress() {
-    new KsqlRestClient("not-valid-address");
+    buildClient("not-valid-address");
   }
 
   @Test
   public void shouldParseSingleServerAddress() throws Exception {
     final String singleServerAddress = "http://singleServer:8088";
     final URI singleServerURI = new URI (singleServerAddress);
-    try (KsqlRestClient client = new KsqlRestClient(singleServerAddress)) {
+    try (KsqlRestClient client = buildClient(singleServerAddress)) {
       assertThat(client.getServerAddress(), is(singleServerURI));
     }
   }
@@ -213,7 +212,7 @@ public class KsqlRestClientFunctionalTest {
     final String firstServerAddress = "http://firstServer:8088";
     final String multipleServerAddresses = firstServerAddress + ",http://secondServer:8088";
     final URI firstServerURI = new URI (firstServerAddress);
-    try (KsqlRestClient client = new KsqlRestClient(multipleServerAddresses)) {
+    try (KsqlRestClient client = buildClient(multipleServerAddresses)) {
       assertThat(client.getServerAddress(), is(firstServerURI));
     }
   }
@@ -222,7 +221,7 @@ public class KsqlRestClientFunctionalTest {
   public void shouldThrowIfAnyServerAddressIsInvalid() {
     expectedException.expect(KsqlRestClientException.class);
     expectedException.expectMessage("The supplied serverAddress is invalid: secondBuggyServer.8088");
-    new KsqlRestClient("http://firstServer:8088,secondBuggyServer.8088");
+    buildClient("http://firstServer:8088,secondBuggyServer.8088");
   }
 
   @Test
@@ -253,7 +252,7 @@ public class KsqlRestClientFunctionalTest {
     assertThat(response.getStatusCode().getCode(), is(HttpStatus.SC_NOT_FOUND));
     assertThat(response.getErrorMessage().getErrorCode(), is(40400));
     assertThat(response.getErrorMessage().getMessage(),
-        containsString("Path not found. Path='ksql'. "
+        containsString("Path not found. Path='/ksql'. "
             + "Check your ksql http url to make sure you are connecting to a ksql server."));
   }
 
@@ -421,6 +420,8 @@ public class KsqlRestClientFunctionalTest {
     entity.ifPresent(e -> when(response.readEntity((Class<T>) e.getClass())).thenReturn(e));
 
     final Invocation.Builder builder = mock(Invocation.Builder.class);
+    when(builder.headers(any())).thenReturn(builder);
+    when(builder.property(any(), any())).thenReturn(builder);
     when(builder.get()).thenReturn(response);
     when(builder.post(any())).thenReturn(response);
 
@@ -431,7 +432,9 @@ public class KsqlRestClientFunctionalTest {
     final Client client = mock(Client.class);
     when(client.target(any(URI.class))).thenReturn(target);
 
-    ksqlRestClient = new KsqlRestClient(client, "http://0.0.0.0", Collections.emptyMap());
+    final LocalProperties localProps = new LocalProperties(ImmutableMap.of());
+    final KsqlClient ksqlClient = new KsqlClient(client, Optional.empty(), localProps);
+    ksqlRestClient = new KsqlRestClient(ksqlClient, "http://0.0.0.0", localProps);
   }
 
   private void givenResponsesDelayedBy(final Duration delay) {
@@ -459,14 +462,23 @@ public class KsqlRestClientFunctionalTest {
     return thread;
   }
 
+  private static KsqlRestClient buildClient(final String serverAddress) {
+    return KsqlRestClient.create(
+        serverAddress,
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    );
+  }
+
   private static final class ReceiverThread {
 
-    private final KsqlRestClient.QueryStream queryStream;
+    private final QueryStream queryStream;
     private final List<StreamedRow> rows = new CopyOnWriteArrayList<>();
     private final AtomicReference<Exception> exception = new AtomicReference<>();
     private final Thread thread;
 
-    private ReceiverThread(final RestResponse<KsqlRestClient.QueryStream> queryResponse) {
+    private ReceiverThread(final RestResponse<QueryStream> queryResponse) {
       assertThat("not successful", queryResponse.isSuccessful(), is(true));
       this.queryStream = queryResponse.getResponse();
       this.thread = new Thread(() -> {

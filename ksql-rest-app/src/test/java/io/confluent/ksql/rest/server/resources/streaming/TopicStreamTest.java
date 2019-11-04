@@ -53,11 +53,15 @@ import org.junit.Test;
 
 public class TopicStreamTest {
 
+  private static final String TOPIC_NAME = "some-topic";
+
   private SchemaRegistryClient schemaRegistryClient;
+  private RecordFormatter formatter;
 
   @Before
   public void setUp() {
     schemaRegistryClient = mock(SchemaRegistryClient.class);
+    formatter = new RecordFormatter(schemaRegistryClient, TOPIC_NAME);
   }
 
   @Test
@@ -83,7 +87,7 @@ public class TopicStreamTest {
     final byte[] avroData = serializeAvroRecord(avroRecord);
 
     // When:
-    final Result result = getFormatter(avroData);
+    final Result result = getFormattedResult(avroData);
 
     // Then:
     assertThat(result.format, is(Format.AVRO));
@@ -97,7 +101,7 @@ public class TopicStreamTest {
     final String notAvro = "test-data";
 
     // When:
-    final Result result = getFormatter(notAvro);
+    final Result result = getFormattedResult(notAvro);
 
     // Then:
     assertThat(result.format, is(not(Format.AVRO)));
@@ -110,16 +114,16 @@ public class TopicStreamTest {
 
     final String json =
         "{    \"name\": \"myrecord\"," +
-        "    \"type\": \"record\"" +
+        "    \"aDecimal\": 1.1234512345123451234" +
         "}";
 
     // When:
-    final Result result = getFormatter(json);
+    final Result result = getFormattedResult(json);
 
     // Then:
     assertThat(result.format, is(Format.JSON));
     assertThat(result.formatted,
-               is("{\"ROWTIME\":-1,\"ROWKEY\":\"key\",\"name\":\"myrecord\",\"type\":\"record\"}\n"));
+               is("{\"ROWTIME\":-1,\"ROWKEY\":\"key\",\"name\":\"myrecord\",\"aDecimal\":1.1234512345123451234}\n"));
   }
 
   @Test
@@ -133,7 +137,7 @@ public class TopicStreamTest {
         "}";
 
     // When:
-    final Result result = getFormatter(notJson);
+    final Result result = getFormattedResult(notJson);
 
     // Then:
     assertThat(result.format, is(not(Format.JSON)));
@@ -147,7 +151,7 @@ public class TopicStreamTest {
     final String stringValue = "v1";
 
     // When:
-    final Result result = getFormatter(stringValue);
+    final Result result = getFormattedResult(stringValue);
 
     // Then:
     assertThat(result.format, is(Format.STRING));
@@ -155,17 +159,38 @@ public class TopicStreamTest {
 
   @Test
   public void shouldFilterNullValues() {
+    // Given:
     replay(schemaRegistryClient);
 
-    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
-        "some-topic", 1, 1, "key", null);
-    final RecordFormatter formatter =
-        new RecordFormatter(schemaRegistryClient, "some-topic");
-    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
-        ImmutableMap.of(new TopicPartition("some-topic", 1),
-            ImmutableList.of(record)));
+    // When:
+    final List<String> formatted = getFormattedRecord(null);
 
-    assertThat(formatter.format(records), empty());
+    // Then:
+    assertThat(formatted, empty());
+  }
+
+  @Test
+  public void shouldFilterNullBytesValues() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    // When:
+    final List<String> formatted = getFormattedRecord(new Bytes(null));
+
+    // Then:
+    assertThat(formatted, empty());
+  }
+
+  @Test
+  public void shouldFilterEmptyValues() {
+    // Given:
+    replay(schemaRegistryClient);
+
+    // When:
+    final List<String> formatted = getFormattedRecord(new Bytes(Bytes.EMPTY));
+
+    // Then:
+    assertThat(formatted, empty());
   }
 
   @Test
@@ -174,34 +199,35 @@ public class TopicStreamTest {
         SimpleDateFormat.getDateTimeInstance(3, 1, Locale.getDefault());
 
     final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
-        "some-topic", 1, 1, "key", null);
+        TOPIC_NAME, 1, 1, "key", null);
 
     final String formatted =
         Format.STRING.maybeGetFormatter(
-            "some-topic", record, null, dateFormat).get().print(record);
+            TOPIC_NAME, record, null, dateFormat).get().print(record);
 
     assertThat(formatted, endsWith(", key , NULL\n"));
   }
 
-  private Result getFormatter(final String data) {
-    return getFormatter(data.getBytes(StandardCharsets.UTF_8));
+  private Result getFormattedResult(final String data) {
+    return getFormattedResult(data.getBytes(StandardCharsets.UTF_8));
   }
 
-  private Result getFormatter(final byte[] data) {
-    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
-        "some-topic", 1, 1, "key", new Bytes(data));
-
-    final RecordFormatter formatter =
-        new RecordFormatter(schemaRegistryClient, "some-topic");
-
-    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
-        ImmutableMap.of(new TopicPartition("some-topic", 1),
-                        ImmutableList.of(record)));
-
-    final List<String> formatted = formatter.format(records);
+  private Result getFormattedResult(final byte[] data) {
+    final List<String> formatted = getFormattedRecord(new Bytes(data));
     assertThat("Only expect one line", formatted, hasSize(1));
 
     return new Result(formatter.getFormat(), formatted.get(0));
+  }
+
+  private List<String> getFormattedRecord(final Bytes data) {
+    final ConsumerRecord<String, Bytes> record = new ConsumerRecord<>(
+        TOPIC_NAME, 1, 1, "key", data);
+
+    final ConsumerRecords<String, Bytes> records = new ConsumerRecords<>(
+        ImmutableMap.of(new TopicPartition(TOPIC_NAME, 1),
+            ImmutableList.of(record)));
+
+    return formatter.format(records);
   }
 
   @SuppressWarnings("SameParameterValue")

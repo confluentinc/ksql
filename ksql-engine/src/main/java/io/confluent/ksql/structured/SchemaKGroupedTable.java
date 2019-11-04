@@ -16,88 +16,53 @@
 package io.confluent.ksql.structured;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
+import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
-import io.confluent.ksql.execution.streams.MaterializedFactory;
-import io.confluent.ksql.execution.streams.StreamsUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.function.TableAggregationFunction;
-import io.confluent.ksql.function.udaf.KudafAggregator;
-import io.confluent.ksql.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
-import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.Initializer;
 import org.apache.kafka.streams.kstream.KGroupedTable;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.kstream.Materialized;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
-  private final KGroupedTable kgroupedTable;
   private final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep;
 
   SchemaKGroupedTable(
-      final KGroupedTable kgroupedTable,
       final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
       final KeyFormat keyFormat,
-      final KeySerde<Struct> keySerde,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry
   ) {
-    this(
-        kgroupedTable,
-        sourceTableStep,
-        keyFormat,
-        keySerde,
-        keyField,
-        sourceSchemaKStreams,
-        ksqlConfig,
-        functionRegistry,
-        MaterializedFactory.create(ksqlConfig));
-  }
-
-  SchemaKGroupedTable(
-      final KGroupedTable kgroupedTable,
-      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
-      final KeyFormat keyFormat,
-      final KeySerde<Struct> keySerde,
-      final KeyField keyField,
-      final List<SchemaKStream> sourceSchemaKStreams,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final MaterializedFactory materializedFactory
-  ) {
     super(
         null,
-        null,
         keyFormat,
-        keySerde,
         keyField,
         sourceSchemaKStreams,
         ksqlConfig,
-        functionRegistry,
-        materializedFactory
+        functionRegistry
     );
 
-    this.kgroupedTable = Objects.requireNonNull(kgroupedTable, "kgroupedTable");
     this.sourceTableStep = Objects.requireNonNull(sourceTableStep, "sourceTableStep");
   }
 
@@ -108,26 +73,27 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> aggregate(
+      final LogicalSchema aggregateSchema,
       final LogicalSchema outputSchema,
-      final Initializer initializer,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final Map<Integer, KsqlAggregateFunction> aggValToFunctionMap,
-      final WindowExpression windowExpression,
+      final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
-      final Serde<GenericRow> topicValueSerDe,
-      final QueryContext.Stacker contextStacker
+      final QueryContext.Stacker contextStacker,
+      final KsqlQueryBuilder queryBuilder
   ) {
-    if (windowExpression != null) {
+    if (windowExpression.isPresent()) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
-    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggValToFunctionMap);
+    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggregations);
 
-    final List<String> unsupportedFunctionNames = aggValToFunctionMap.values()
-        .stream()
-        .filter(function -> !(function instanceof TableAggregationFunction))
+    final List<String> unsupportedFunctionNames = aggregations.stream()
+        .map(call -> UdafUtil.resolveAggregateFunction(
+            queryBuilder.getFunctionRegistry(), call, sourceTableStep.getSchema())
+        ).filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::getFunctionName)
+        .map(FunctionName::name)
         .collect(Collectors.toList());
     if (!unsupportedFunctionNames.isEmpty()) {
       throw new KsqlException(
@@ -136,49 +102,19 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
             String.join(", ", unsupportedFunctionNames)));
     }
 
-    final KudafAggregator aggregator = new KudafAggregator(
-        nonFuncColumnCount, aggValToFunctionMap);
-
-    final Map<Integer, TableAggregationFunction> aggValToUndoFunctionMap =
-        aggValToFunctionMap.keySet()
-            .stream()
-            .collect(
-                Collectors.toMap(
-                    k -> k,
-                    k -> ((TableAggregationFunction) aggValToFunctionMap.get(k))));
-
-    final KudafUndoAggregator subtractor = new KudafUndoAggregator(
-        nonFuncColumnCount, aggValToUndoFunctionMap);
-
-    final Materialized<Struct, GenericRow, ?> materialized = materializedFactory.create(
-        keySerde,
-        topicValueSerDe,
-        StreamsUtil.buildOpName(contextStacker.getQueryContext())
-    );
-
-    final KTable<Struct, GenericRow> aggKtable = kgroupedTable.aggregate(
-        initializer,
-        aggregator,
-        subtractor,
-        materialized);
-
-    final ExecutionStep step = ExecutionStepFactory.tableAggregate(
+    final TableAggregate step = ExecutionStepFactory.tableAggregate(
         contextStacker,
         sourceTableStep,
         outputSchema,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         nonFuncColumnCount,
-        aggregations
+        aggregations,
+        aggregateSchema
     );
 
-    final KTable<Struct, GenericRow> outputTable = aggKtable.mapValues(
-        aggregator.getResultMapper());
-
     return new SchemaKTable<>(
-        outputTable,
         step,
         keyFormat,
-        keySerde,
         keyField,
         sourceSchemaKStreams,
         SchemaKStream.Type.AGGREGATE,

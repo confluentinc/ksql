@@ -18,6 +18,7 @@ package io.confluent.ksql.security;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.CreateAsSelect;
 import io.confluent.ksql.parser.tree.CreateSource;
 import io.confluent.ksql.parser.tree.InsertInto;
@@ -103,7 +104,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
 
     validateQuery(serviceContext, metaStore, insertInto.getQuery());
 
-    final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget().name());
+    final String kafkaTopic = getSourceTopicName(metaStore, insertInto.getTarget());
     checkAccess(serviceContext, kafkaTopic, AclOperation.WRITE);
   }
 
@@ -111,7 +112,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
           final ServiceContext serviceContext,
           final PrintTopic printTopic
   ) {
-    checkAccess(serviceContext, printTopic.getTopic().toString(), AclOperation.READ);
+    checkAccess(serviceContext, printTopic.getTopic(), AclOperation.READ);
   }
 
   private void validateCreateSource(
@@ -122,7 +123,7 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
     checkAccess(serviceContext, sourceTopic, AclOperation.READ);
   }
 
-  private String getSourceTopicName(final MetaStore metaStore, final String streamOrTable) {
+  private String getSourceTopicName(final MetaStore metaStore, final SourceName streamOrTable) {
     final DataSource<?> dataSource = metaStore.getSource(streamOrTable);
     if (dataSource == null) {
       throw new KsqlException("Cannot validate for topic access from an unknown stream/table: "
@@ -157,6 +158,6 @@ public class KsqlAuthorizationValidatorImpl implements KsqlAuthorizationValidato
       final CreateAsSelect createAsSelect
   ) {
     return createAsSelect.getProperties().getKafkaTopic()
-        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName().name()));
+        .orElseGet(() -> getSourceTopicName(metaStore, createAsSelect.getName()));
   }
 }

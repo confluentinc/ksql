@@ -20,6 +20,7 @@ import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
+import java.util.Map;
 
 /**
  * An interface that allows for arbitrary validation code of a prepared statement
@@ -31,7 +32,7 @@ public interface StatementValidator<T extends Statement> {
   /**
    * A statement validator that does nothing.
    */
-  StatementValidator<Statement> NO_VALIDATION = (stmt, ectx, sctx) -> { };
+  StatementValidator<Statement> NO_VALIDATION = (stmt, props, ectx, sctx) -> { };
 
   /**
    * Validates the statement against the given parameters, and throws an exception
@@ -42,6 +43,7 @@ public interface StatementValidator<T extends Statement> {
    */
   void validate(
       ConfiguredStatement<T> statement,
+      Map<String, Object> mutableScopedProperties,
       KsqlExecutionContext executionContext,
       ServiceContext serviceContext) throws KsqlException;
 }

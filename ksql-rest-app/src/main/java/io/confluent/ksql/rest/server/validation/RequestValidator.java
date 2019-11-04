@@ -34,6 +34,7 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
@@ -97,6 +98,7 @@ public class RequestValidator {
   ) {
     requireSandbox(serviceContext);
 
+    final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlExecutionContext ctx = requireSandbox(snapshotSupplier.apply(serviceContext));
     final Injector injector = injectorFactory.apply(ctx, serviceContext);
 
@@ -104,11 +106,11 @@ public class RequestValidator {
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ctx.prepare(parsed);
       final ConfiguredStatement<?> configured = ConfiguredStatement.of(
-          prepared, propertyOverrides, ksqlConfig);
+          prepared, scopedPropertyOverrides, ksqlConfig);
 
       numPersistentQueries += (prepared.getStatement() instanceof RunScript)
-          ? validateRunScript(serviceContext, configured, ctx)
-          : validate(serviceContext, configured, ctx, injector);
+          ? validateRunScript(serviceContext, configured, scopedPropertyOverrides, ctx)
+          : validate(serviceContext, configured, scopedPropertyOverrides, ctx, injector);
     }
 
     if (QueryCapacityUtil.exceedsPersistentQueryCapacity(ctx, ksqlConfig, numPersistentQueries)) {
@@ -127,6 +129,7 @@ public class RequestValidator {
   private <T extends Statement> int validate(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final Injector injector
   ) throws KsqlStatementException  {
@@ -136,7 +139,8 @@ public class RequestValidator {
         customValidators.get(statementClass);
 
     if (customValidator != null) {
-      customValidator.validate(configured, executionContext, serviceContext);
+      customValidator
+          .validate(configured, mutableScopedProperties, executionContext, serviceContext);
     } else if (KsqlEngine.isExecutableStatement(configured.getStatement())) {
       final ConfiguredStatement<?> statementInjected = injector.inject(configured);
       executionContext.execute(serviceContext, statementInjected);
@@ -153,7 +157,9 @@ public class RequestValidator {
   private int validateRunScript(
       final ServiceContext serviceContext,
       final ConfiguredStatement<?> statement,
-      final KsqlExecutionContext executionContext) {
+      final Map<String, Object> mutableScopedProperties,
+      final KsqlExecutionContext executionContext
+  ) {
     final String sql = (String) statement.getOverrides()
         .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
 
@@ -166,7 +172,6 @@ public class RequestValidator {
         + "Note: RUN SCRIPT is deprecated and will be removed in the next major version. "
         + "statement: " + statement.getStatementText());
 
-    return validate(serviceContext, executionContext.parse(sql), statement.getOverrides(), sql);
+    return validate(serviceContext, executionContext.parse(sql), mutableScopedProperties, sql);
   }
-
 }

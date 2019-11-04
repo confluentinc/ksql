@@ -22,15 +22,19 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
+import io.confluent.ksql.test.tools.ExpectedRecordComparator;
 import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -72,7 +76,12 @@ public class RestTestExecutor implements Closeable {
       final EmbeddedSingleNodeKafkaCluster kafkaCluster,
       final ServiceContext serviceContext
   ) {
-    this.restClient = new KsqlRestClient(url.toString());
+    this.restClient = KsqlRestClient.create(
+        url.toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    );
     this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
   }
@@ -179,8 +188,8 @@ public class RestTestExecutor implements Closeable {
 
     if (!testCase.expectedError().isPresent()) {
       for (int idx = firstStatic; testCase.getExpectedResponses().size() > idx; ++idx) {
-        final String staticStatement = allStatements.get(firstStatic);
-        final Response staticResponse = testCase.getExpectedResponses().get(firstStatic);
+        final String staticStatement = allStatements.get(idx);
+        final Response staticResponse = testCase.getExpectedResponses().get(idx);
 
         waitForWarmStateStores(staticStatement, staticResponse);
       }
@@ -212,9 +221,13 @@ public class RestTestExecutor implements Closeable {
     if (resp.isErroneous()) {
       final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
       if (!expectedError.isPresent()) {
+        final String statement = resp.getErrorMessage() instanceof KsqlStatementErrorMessage
+            ? ((KsqlStatementErrorMessage)resp.getErrorMessage()).getStatementText()
+            : "";
+
         throw new AssertionError(
             "Server failed to execute statement" + System.lineSeparator()
-                + "statement: " + System.lineSeparator()
+                + "statement: " + statement + System.lineSeparator()
                 + "reason: " + resp.getErrorMessage()
         );
       }
@@ -314,7 +327,7 @@ public class RestTestExecutor implements Closeable {
     final Object actualValue = actual.value();
 
     final Object expectedKey = expected.key();
-    final Object expectedValue = expected.value();
+    final JsonNode expectedValue = expected.getJsonValue();
     final long expectedTimestamp = expected.timestamp().orElse(actualTimestamp);
 
     final AssertionError error = new AssertionError(
@@ -327,7 +340,7 @@ public class RestTestExecutor implements Closeable {
       throw error;
     }
 
-    if (!Objects.equals(actualValue, expectedValue)) {
+    if (!ExpectedRecordComparator.matches(actualValue, expectedValue)) {
       throw error;
     }
 
@@ -348,18 +361,18 @@ public class RestTestExecutor implements Closeable {
   }
 
   private void waitForWarmStateStores(
-      final String firstStaticStatement,
-      final Response firstStaticResponse
+      final String staticStatement,
+      final Response staticResponse
   ) {
     // Special handling for static queries is required, as they depend on materialized state stores
     // being warmed up.  Initial requests may return null values.
 
-    final ImmutableList<Response> expectedResponse = ImmutableList.of(firstStaticResponse);
-    final ImmutableList<String> statements = ImmutableList.of(firstStaticStatement);
+    final ImmutableList<Response> expectedResponse = ImmutableList.of(staticResponse);
+    final ImmutableList<String> statements = ImmutableList.of(staticStatement);
 
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARMUP.toMillis();
     while (System.currentTimeMillis() < threshold) {
-      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(firstStaticStatement);
+      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(staticStatement);
       if (resp.isErroneous()) {
         Thread.yield();
         LOG.info("Server responded with an error code to a static query. "

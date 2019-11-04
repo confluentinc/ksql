@@ -18,7 +18,6 @@ package io.confluent.ksql.test.tools;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.test.model.PostConditionsNode;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.tools.conditions.PostConditions;
@@ -67,6 +66,8 @@ public final class TestCaseBuilder {
     );
 
     try {
+      final VersionBounds versionBounds = test.versionBounds().build();
+
       final List<String> statements = TestCaseBuilderUtil.buildStatements(
           test.statements(),
           explicitFormat
@@ -100,7 +101,7 @@ public final class TestCaseBuilder {
       return new TestCase(
           testPath,
           testName,
-          Optional.empty(),
+          versionBounds,
           test.properties(),
           topics.values(),
           inputRecords,

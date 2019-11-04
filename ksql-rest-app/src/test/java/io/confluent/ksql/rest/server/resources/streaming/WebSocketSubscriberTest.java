@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -118,8 +119,8 @@ public class WebSocketSubscriberTest {
     EasyMock.replay(subscription, session, basic);
 
     subscriber.onSchema(LogicalSchema.builder()
-        .valueColumn("currency", SqlTypes.STRING)
-        .valueColumn("amount", SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("currency"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("amount"), SqlTypes.DOUBLE)
         .build());
 
     subscriber.close();

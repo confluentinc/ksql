@@ -18,6 +18,7 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -38,43 +39,40 @@ public abstract class AggregateFunctionFactory {
       .build();
 
   public AggregateFunctionFactory(final String functionName) {
-    this(new UdfMetadata(functionName, "", "confluent", "", KsqlFunction.INTERNAL_PATH, false));
+    this(new UdfMetadata(
+        functionName,
+        "",
+        KsqlConstants.CONFLUENT_AUTHOR,
+        "",
+        KsqlFunction.INTERNAL_PATH,
+        false
+    ));
   }
 
   public AggregateFunctionFactory(final UdfMetadata metadata) {
     this.metadata = Objects.requireNonNull(metadata, "metadata can't be null");
   }
 
-  public abstract KsqlAggregateFunction<?, ?, ?> getProperAggregateFunction(
-      List<Schema> argTypeList);
+  public abstract KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
+      List<Schema> argTypeList, AggregateFunctionInitArguments initArgs);
 
   protected abstract List<List<Schema>> supportedArgs();
+
+  public UdfMetadata getMetadata() {
+    return metadata;
+  }
 
   public String getName() {
     return metadata.getName();
   }
 
-  public String getDescription() {
-    return metadata.getDescription();
-  }
-
-  public String getPath() {
-    return metadata.getPath();
-  }
-
-  public String getAuthor() {
-    return metadata.getAuthor();
-  }
-
-  public String getVersion() {
-    return metadata.getVersion();
-  }
-
   public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?, ?>> consumer) {
-    supportedArgs().forEach(args -> consumer.accept(getProperAggregateFunction(args)));
+    supportedArgs().forEach(args ->
+        consumer.accept(createAggregateFunction(args, getDefaultArguments())));
   }
 
-  public boolean isInternal() {
-    return metadata.isInternal();
+  public AggregateFunctionInitArguments getDefaultArguments() {
+    return AggregateFunctionInitArguments.EMPTY_ARGS;
   }
+
 }

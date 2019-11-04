@@ -28,11 +28,15 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
@@ -91,13 +95,14 @@ public class JsonFormatTest {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
     ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
-    serviceContext = ServiceContextFactory.create(ksqlConfig);
+    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
 
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
         new InternalFunctionRegistry(),
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig),
+        new SequentialQueryIdGenerator());
 
     topicClient = serviceContext.getTopicClient();
     metaStore = ksqlEngine.getMetaStore();
@@ -120,7 +125,7 @@ public class JsonFormatTest {
             .produceInputData(inputTopic, orderDataProvider.data(), orderDataProvider.schema());
 
     final LogicalSchema messageSchema = LogicalSchema.builder()
-        .valueColumn("MESSAGE", SqlTypes.STRING)
+        .valueColumn(ColumnName.of("MESSAGE"), SqlTypes.STRING)
         .build();
 
     final GenericRow messageRow = new GenericRow(Collections.singletonList(
@@ -153,9 +158,12 @@ public class JsonFormatTest {
     final String messageStreamStr = String.format("CREATE STREAM %s (message varchar) WITH (value_format = 'json', "
         + "kafka_topic='%s');", messageLogStream, messageLogTopic);
 
-    KsqlEngineTestUtil.execute(ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
-    KsqlEngineTestUtil.execute(ksqlEngine, usersTableStr, ksqlConfig, Collections.emptyMap());
-    KsqlEngineTestUtil.execute(ksqlEngine, messageStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext, ksqlEngine, ordersStreamStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext, ksqlEngine, usersTableStr, ksqlConfig, Collections.emptyMap());
+    KsqlEngineTestUtil.execute(
+        serviceContext, ksqlEngine, messageStreamStr, ksqlConfig, Collections.emptyMap());
   }
 
   @After
@@ -233,7 +241,8 @@ public class JsonFormatTest {
 
   private void executePersistentQuery(final String queryString) {
     final QueryMetadata queryMetadata = KsqlEngineTestUtil
-        .execute(ksqlEngine, queryString, ksqlConfig, Collections.emptyMap()).get(0);
+        .execute(serviceContext, ksqlEngine, queryString, ksqlConfig, Collections.emptyMap())
+        .get(0);
 
     queryMetadata.start();
     queryId = ((PersistentQueryMetadata)queryMetadata).getQueryId();
@@ -243,7 +252,7 @@ public class JsonFormatTest {
       final String resultTopic,
       final int expectedNumMessages
   ) {
-    final DataSource<?> source = metaStore.getSource(streamName);
+    final DataSource<?> source = metaStore.getSource(SourceName.of(streamName));
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         source.getSchema(),

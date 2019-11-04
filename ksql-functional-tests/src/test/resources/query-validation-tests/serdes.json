@@ -207,7 +207,7 @@
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]},
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]},
           "format": "{FORMAT}"
         }
       ],
@@ -245,7 +245,7 @@
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]},
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","string"],"default":null}]}}]}]},
           "format": "AVRO"
         }
       ],
@@ -280,7 +280,7 @@
         },
         {
           "name": "OUTPUT",
-          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "int"]}]}]},
+          "schema": {"type": "record", "name": "ignored", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","int"],"default":null}]}}]}]},
           "format": "{FORMAT}"
         }
       ],
@@ -500,7 +500,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"type": "map", "values": ["null", "double"]},
+          "schema": {"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}},
           "format": "{FORMAT}"
         }
       ],
@@ -527,7 +527,7 @@
       "topics": [
         {
           "name": "OUTPUT",
-          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type": "map", "values": ["null", "double"]}]}]},
+          "schema": {"name": "ignored", "type": "record", "fields": [{"name": "FOO", "type": ["null",{"type":"array","items":{"type":"record","name":"test","fields":[{"name":"key","type":["null","string"],"default":null},{"name":"value","type":["null","double"],"default":null}]}}]}]},
           "format": "{FORMAT}"
         }
       ],

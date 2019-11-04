@@ -27,6 +27,7 @@ import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.KsqlEntity;
@@ -37,11 +38,11 @@ import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.SerdeOption;
+import io.confluent.ksql.serde.avro.AvroSchemas;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlConstants;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import kafka.zookeeper.ZooKeeperClientException;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.hamcrest.Description;
@@ -60,7 +61,6 @@ public class KsqlResourceFunctionalTest {
 
   private static final String PAGE_VIEW_TOPIC = "pageviews";
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
-  private static final AtomicInteger NEXT_QUERY_ID = new AtomicInteger(0);
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.build();
 
@@ -78,13 +78,11 @@ public class KsqlResourceFunctionalTest {
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
-    NEXT_QUERY_ID.set(0);
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
   @After
   public void cleanUp() {
-    NEXT_QUERY_ID.addAndGet(REST_APP.getPersistentQueries().size());
     REST_APP.closePersistentQueries();
     REST_APP.dropSourcesExcept(PAGE_VIEW_STREAM);
   }
@@ -131,9 +129,11 @@ public class KsqlResourceFunctionalTest {
     // When:
     final List<KsqlEntity> results = makeKsqlRequest(
         "CREATE STREAM SS AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
-            + "TERMINATE CSAS_SS_" + NEXT_QUERY_ID.get() + ";"
-            + "DROP STREAM SS;"
     );
+
+    final String query = REST_APP.getPersistentQueries().iterator().next();
+    results.addAll(makeKsqlRequest("TERMINATE " + query + ";"
+        + "DROP STREAM SS;"));
 
     // Then:
     assertThat(results, contains(
@@ -150,8 +150,8 @@ public class KsqlResourceFunctionalTest {
     // Given:
     final PhysicalSchema schema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("AUTHOR", SqlTypes.STRING)
-            .valueColumn("TITLE", SqlTypes.STRING)
+            .valueColumn(ColumnName.of("AUTHOR"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("TITLE"), SqlTypes.STRING)
             .build(),
         SerdeOption.none()
     );
@@ -159,9 +159,10 @@ public class KsqlResourceFunctionalTest {
     TEST_HARNESS.getSchemaRegistryClient()
         .register(
             "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX,
-            SchemaUtil.buildAvroSchema(
+            AvroSchemas.getAvroSchema(
                 schema.valueSchema(),
-                "books" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX
+                "books_value",
+                new KsqlConfig(REST_APP.getBaseConfig())
             )
         );
 

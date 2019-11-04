@@ -18,6 +18,8 @@ package io.confluent.ksql.datagen;
 import io.confluent.avro.random.generator.Generator;
 import io.confluent.connect.avro.AvroData;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
@@ -45,7 +47,9 @@ import org.apache.kafka.connect.data.Struct;
 public class RowGenerator {
 
   static final ConnectSchema KEY_SCHEMA = (ConnectSchema) SchemaBuilder.struct()
-      .field(SchemaUtil.ROWKEY_NAME, org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
+      .field(
+          SchemaUtil.ROWKEY_NAME.name(),
+          org.apache.kafka.connect.data.Schema.OPTIONAL_STRING_SCHEMA)
       .build();
 
   private final Set<String> allTokens = new HashSet<>();
@@ -63,7 +67,7 @@ public class RowGenerator {
     this.key = Objects.requireNonNull(key, "key");
     this.ksqlSchema = buildLogicalSchema(generator, avroData);
 
-    if (!ksqlSchema.findValueColumn(key).isPresent()) {
+    if (!ksqlSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of(key))).isPresent()) {
       throw new IllegalArgumentException("key field does not exist in schema: " + key);
     }
   }
@@ -144,7 +148,7 @@ public class RowGenerator {
         randomAvroMessage.get(key)).value().toString();
 
     final Struct key = new Struct(KEY_SCHEMA);
-    key.put(SchemaUtil.ROWKEY_NAME, keyString);
+    key.put(SchemaUtil.ROWKEY_NAME.name(), keyString);
 
     return Pair.of(key, new GenericRow(genericRowValues));
   }
@@ -277,10 +281,12 @@ public class RowGenerator {
     final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
 
     KEY_SCHEMA.fields()
-        .forEach(f -> schemaBuilder.keyColumn(f.name(), converter.toSqlType(f.schema())));
+        .forEach(f -> schemaBuilder.keyColumn(
+            ColumnName.of(f.name()), converter.toSqlType(f.schema())));
 
     connectSchema.fields()
-        .forEach(f -> schemaBuilder.valueColumn(f.name(), converter.toSqlType(f.schema())));
+        .forEach(f -> schemaBuilder.valueColumn(
+            ColumnName.of(f.name()), converter.toSqlType(f.schema())));
 
     return schemaBuilder.build();
   }

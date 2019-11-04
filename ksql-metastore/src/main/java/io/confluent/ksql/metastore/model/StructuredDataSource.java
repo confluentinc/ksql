@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 import com.google.common.collect.ImmutableSet;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.util.SchemaUtil;
@@ -29,7 +31,7 @@ import java.util.Set;
 @Immutable
 abstract class StructuredDataSource<K> implements DataSource<K> {
 
-  private final String dataSourceName;
+  private final SourceName dataSourceName;
   private final DataSourceType dataSourceType;
   private final LogicalSchema schema;
   private final KeyField keyField;
@@ -40,7 +42,7 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
 
   StructuredDataSource(
       final String sqlExpression,
-      final String dataSourceName,
+      final SourceName dataSourceName,
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final KeyField keyField,
@@ -58,15 +60,15 @@ abstract class StructuredDataSource<K> implements DataSource<K> {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.serdeOptions = ImmutableSet.copyOf(requireNonNull(serdeOptions, "serdeOptions"));
 
-    if (schema.findValueColumn(SchemaUtil.ROWKEY_NAME).isPresent()
-        || schema.findValueColumn(SchemaUtil.ROWTIME_NAME).isPresent()) {
+    if (schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)).isPresent()
+        || schema.findValueColumn(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)).isPresent()) {
       throw new IllegalArgumentException("Schema contains implicit columns in value schema");
     }
   }
 
   @Override
-  public String getName() {
-    return this.dataSourceName;
+  public SourceName getName() {
+    return dataSourceName;
   }
 
   @Override

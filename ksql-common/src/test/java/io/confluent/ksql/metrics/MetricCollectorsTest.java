@@ -16,13 +16,19 @@
 package io.confluent.ksql.metrics;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -33,6 +39,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.metrics.MetricsReporter;
 import org.apache.kafka.common.record.TimestampType;
 import org.junit.After;
 import org.junit.Before;
@@ -41,6 +48,8 @@ import org.junit.Test;
 public class MetricCollectorsTest {
 
   private static final String TEST_TOPIC = "shared-topic";
+
+  private KsqlConfig ksqlConfig = mock(KsqlConfig.class);
 
   @Before
   public void setUp() {
@@ -58,6 +67,18 @@ public class MetricCollectorsTest {
     final Map<String, TopicSensors.Stat> aggregateMetrics = MetricCollectors.getAggregateMetrics(stats);
     assertThat(aggregateMetrics.size(), equalTo(1));
     assertThat(aggregateMetrics.values().iterator().next().getValue(), equalTo(3.0));
+  }
+
+  @Test
+  public void shouldAddConfigurableReporters() {
+    final MetricsReporter mockReporter = mock(MetricsReporter.class);
+    assertThat(MetricCollectors.getMetrics().reporters().size(), equalTo(1));
+    when(ksqlConfig.getConfiguredInstances(any(), any()))
+        .thenReturn(Collections.singletonList(mockReporter));
+
+    MetricCollectors.addConfigurableReporter(ksqlConfig);
+    final List<MetricsReporter> reporters = MetricCollectors.getMetrics().reporters();
+    assertThat(reporters, hasItem(mockReporter));
   }
 
   @Test

@@ -15,20 +15,19 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 @Immutable
-public class TableMapValues<T> implements ExecutionStep<T> {
+public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<T> source;
+  private final ExecutionStep<KTableHolder<K>> source;
   private final List<SelectExpression> selectExpressions;
 
   public TableMapValues(
       final ExecutionStepProperties properties,
-      final ExecutionStep<T> source,
+      final ExecutionStep<KTableHolder<K>> source,
       final List<SelectExpression> selectExpressions
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -50,13 +49,13 @@ public class TableMapValues<T> implements ExecutionStep<T> {
     return selectExpressions;
   }
 
-  public ExecutionStep<T> getSource() {
+  public ExecutionStep<KTableHolder<K>> getSource() {
     return source;
   }
 
   @Override
-  public T build(final KsqlQueryBuilder builder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<K> build(final PlanBuilder builder) {
+    return builder.visitTableMapValues(this);
   }
 
   @Override

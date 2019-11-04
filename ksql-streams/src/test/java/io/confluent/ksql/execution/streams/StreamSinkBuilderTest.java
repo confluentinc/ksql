@@ -33,7 +33,11 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSink;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -62,8 +66,8 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class StreamSinkBuilderTest {
   private static final String TOPIC = "TOPIC";
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("BLUE", SqlTypes.BIGINT)
-      .valueColumn("GREEN", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("BLUE"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("GREEN"), SqlTypes.STRING)
       .build()
       .withMetaAndKeyColsInValue();
   private static final PhysicalSchema PHYSICAL_SCHEMA =
@@ -76,9 +80,9 @@ public class StreamSinkBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Mock
-  private KStream<Struct, GenericRow> stream;
+  private KStream<Struct, GenericRow> kStream;
   @Mock
-  private ExecutionStep<KStream<Struct, GenericRow>> source;
+  private ExecutionStep<KStreamHolder<Struct>> source;
   @Mock
   private KeySerde<Struct> keySerde;
   @Mock
@@ -88,6 +92,8 @@ public class StreamSinkBuilderTest {
   @Mock
   private QueryContext queryContext;
 
+  private PlanBuilder planBuilder;
+  private KStreamHolder<Struct> stream;
   private StreamSink<Struct> sink;
 
   @Before
@@ -95,15 +101,23 @@ public class StreamSinkBuilderTest {
   public void setup() {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
-    when(stream.mapValues(any(ValueMapper.class))).thenReturn(stream);
+    when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
     when(source.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
     );
+    stream = new KStreamHolder<>(kStream, keySerdeFactory);
+    when(source.build(any())).thenReturn(stream);
     sink = new StreamSink<>(
         new DefaultExecutionStepProperties(SCHEMA, queryContext),
         source,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         TOPIC
+    );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
     );
   }
 
@@ -111,28 +125,28 @@ public class StreamSinkBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldWriteOutStream() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    final InOrder inOrder = Mockito.inOrder(stream);
-    inOrder.verify(stream).mapValues(any(ValueMapper.class));
-    inOrder.verify(stream).to(anyString(), any());
-    verifyNoMoreInteractions(stream);
+    final InOrder inOrder = Mockito.inOrder(kStream);
+    inOrder.verify(kStream).mapValues(any(ValueMapper.class));
+    inOrder.verify(kStream).to(anyString(), any());
+    verifyNoMoreInteractions(kStream);
   }
 
   @Test
   public void shouldWriteOutStreamToCorrectTopic() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).to(eq(TOPIC), any());
+    verify(kStream).to(eq(TOPIC), any());
   }
 
   @Test
   public void shouldBuildKeySerdeCorrectly() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
     verify(keySerdeFactory).buildKeySerde(KEY_FORMAT, PHYSICAL_SCHEMA, queryContext);
@@ -141,7 +155,7 @@ public class StreamSinkBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectly() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -154,19 +168,19 @@ public class StreamSinkBuilderTest {
   @Test
   public void shouldWriteOutStreamWithCorrectSerdes() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
+    verify(kStream).to(anyString(), eq(Produced.with(keySerde, valSerde)));
   }
 
   @Test
   public void shouldRemoveKeyAndTimeFieldsFromValue() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).mapValues(mapperCaptor.capture());
+    verify(kStream).mapValues(mapperCaptor.capture());
     final ValueMapper<GenericRow, GenericRow> mapper = mapperCaptor.getValue();
     assertThat(
         mapper.apply(new GenericRow(123, "456", 789, "101112")),
@@ -177,10 +191,10 @@ public class StreamSinkBuilderTest {
   @Test
   public void shouldIgnoreNullRowsWhenRemovingKeyAndTimeFieldsFromValue() {
     // When:
-    StreamSinkBuilder.build(stream, sink, keySerdeFactory, queryBuilder);
+    sink.build(planBuilder);
 
     // Then:
-    verify(stream).mapValues(mapperCaptor.capture());
+    verify(kStream).mapValues(mapperCaptor.capture());
     final ValueMapper<GenericRow, GenericRow> mapper = mapperCaptor.getValue();
     assertThat(mapper.apply(null), is(nullValue()));
   }

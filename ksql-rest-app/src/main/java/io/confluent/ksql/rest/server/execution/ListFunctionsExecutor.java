@@ -25,6 +25,7 @@ import io.confluent.ksql.rest.entity.SimpleFunctionInfo;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,24 +35,35 @@ public final class ListFunctionsExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListFunctions> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
     final FunctionRegistry functionRegistry = executionContext.getMetaStore();
 
     final List<SimpleFunctionInfo> all = functionRegistry.listFunctions().stream()
-        .filter(factory -> !factory.isInternal())
+        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.scalar))
+            FunctionType.SCALAR
+        ))
         .collect(Collectors.toList());
 
-    all.addAll(functionRegistry.listAggregateFunctions().stream()
-        .filter(factory -> !factory.isInternal())
+    functionRegistry.listTableFunctions().stream()
+        .filter(factory -> !factory.getMetadata().isInternal())
         .map(factory -> new SimpleFunctionInfo(
             factory.getName().toUpperCase(),
-            FunctionType.aggregate))
-        .collect(Collectors.toList()));
+            FunctionType.TABLE
+        ))
+        .forEach(all::add);
+
+    functionRegistry.listAggregateFunctions().stream()
+        .filter(factory -> !factory.getMetadata().isInternal())
+        .map(factory -> new SimpleFunctionInfo(
+            factory.getName().toUpperCase(),
+            FunctionType.AGGREGATE
+        ))
+        .forEach(all::add);
 
     return Optional.of(new FunctionNameList(statement.getStatementText(), all));
   }

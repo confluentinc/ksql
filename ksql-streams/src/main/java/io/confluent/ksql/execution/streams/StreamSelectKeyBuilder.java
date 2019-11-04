@@ -16,6 +16,8 @@
 package io.confluent.ksql.execution.streams;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamSelectKey;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.schema.ksql.Column;
@@ -28,16 +30,18 @@ public final class StreamSelectKeyBuilder {
   private StreamSelectKeyBuilder() {
   }
 
-  public static KStream<Struct, GenericRow> build(
-      final KStream<?, GenericRow> kstream,
-      final StreamSelectKey<?> selectKey) {
+  public static KStreamHolder<Struct> build(
+      final KStreamHolder<?> stream,
+      final StreamSelectKey<?> selectKey,
+      final KsqlQueryBuilder queryBuilder) {
     final LogicalSchema sourceSchema = selectKey.getSources().get(0).getProperties().getSchema();
     final Column keyColumn = sourceSchema.findValueColumn(selectKey.getFieldName())
         .orElseThrow(IllegalArgumentException::new);
-    final int keyIndexInValue = sourceSchema.valueColumnIndex(keyColumn.fullName())
+    final int keyIndexInValue = sourceSchema.valueColumnIndex(keyColumn.ref())
         .orElseThrow(IllegalStateException::new);
     final boolean updateRowKey = selectKey.isUpdateRowKey();
-    return kstream
+    final KStream<?, GenericRow> kstream = stream.getStream();
+    final KStream<Struct, GenericRow> rekeyed = kstream
         .filter((key, value) ->
             value != null && extractColumn(sourceSchema, keyIndexInValue, value) != null
         ).selectKey((key, value) ->
@@ -51,6 +55,10 @@ public final class StreamSelectKeyBuilder {
           }
           return row;
         });
+    return new KStreamHolder<>(
+        rekeyed,
+        (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
+    );
   }
 
   private static Object extractColumn(

@@ -23,12 +23,14 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.structured.SchemaKTable;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Objects;
 import java.util.Optional;
@@ -39,10 +41,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
 
   private final KsqlTopic ksqlTopic;
   private final KeyField keyField;
-  private final Optional<String> partitionByField;
+  private final Optional<ColumnRef> partitionByField;
   private final boolean doCreateInto;
   private final Set<SerdeOption> serdeOptions;
+  private final SourceName intoSourceName;
 
+  // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
   public KsqlStructuredDataOutputNode(
       final PlanNodeId id,
       final PlanNode source,
@@ -50,11 +54,12 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final TimestampExtractionPolicy timestampExtractionPolicy,
       final KeyField keyField,
       final KsqlTopic ksqlTopic,
-      final Optional<String> partitionByField,
+      final Optional<ColumnRef> partitionByField,
       final OptionalInt limit,
       final boolean doCreateInto,
-      final Set<SerdeOption> serdeOptions
-  ) {
+      final Set<SerdeOption> serdeOptions,
+      final SourceName intoSourceName) {
+    // CHECKSTYLE_RULES.ON: ParameterNumberCheck
     super(
         id,
         source,
@@ -73,6 +78,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     this.ksqlTopic = requireNonNull(ksqlTopic, "ksqlTopic");
     this.partitionByField = Objects.requireNonNull(partitionByField, "partitionByField");
     this.doCreateInto = doCreateInto;
+    this.intoSourceName = requireNonNull(intoSourceName, "intoSourceName");
 
     validatePartitionByField();
   }
@@ -89,9 +95,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     return serdeOptions;
   }
 
+  public SourceName getIntoSourceName() {
+    return intoSourceName;
+  }
+
   @Override
   public QueryId getQueryId(final QueryIdGenerator queryIdGenerator) {
-    final String base = queryIdGenerator.getNextId();
+    final String base = queryIdGenerator.getNext();
     if (!doCreateInto) {
       return new QueryId("InsertQuery_" + base);
     }
@@ -123,8 +133,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
         getSchema(),
         getKsqlTopic().getValueFormat(),
         serdeOptions,
-        contextStacker,
-        builder
+        contextStacker
     );
   }
 
@@ -139,7 +148,7 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     }
 
     final KeyField resultKeyField = KeyField.of(
-        schemaKStream.getKeyField().name(),
+        schemaKStream.getKeyField().ref(),
         getKeyField().legacy()
     );
 
@@ -157,13 +166,13 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       return;
     }
 
-    final String fieldName = partitionByField.get();
+    final ColumnRef fieldName = partitionByField.get();
 
-    if (getSchema().isMetaColumn(fieldName) || getSchema().isKeyColumn(fieldName)) {
+    if (getSchema().isMetaColumn(fieldName.name()) || getSchema().isKeyColumn(fieldName.name())) {
       return;
     }
 
-    if (!keyField.name().equals(Optional.of(fieldName))) {
+    if (!keyField.ref().equals(Optional.of(fieldName))) {
       throw new IllegalArgumentException("keyField must match partition by field");
     }
   }

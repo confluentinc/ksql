@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.KafkaTopicClient.TopicCleanupPolicy;
@@ -214,7 +215,7 @@ public class WindowingIntTest {
 
   private void givenTable(final String sql) {
     ksqlContext.sql(String.format(sql, resultStream0));
-    final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream0);
+    final DataSource<?> source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream0));
     resultSchema = PhysicalSchema.from(
         source.getSchema(),
         source.getSerdeOptions()
@@ -240,7 +241,7 @@ public class WindowingIntTest {
   ) {
     ksqlContext.sql("CREATE TABLE " + resultStream1 + " AS SELECT * FROM " + resultStream0 + ";");
 
-    final DataSource<?> source = ksqlContext.getMetaStore().getSource(resultStream1);
+    final DataSource<?> source = ksqlContext.getMetaStore().getSource(SourceName.of(resultStream1));
 
     resultSchema = PhysicalSchema.from(
         source.getSchema(),

@@ -16,8 +16,8 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import io.confluent.ksql.physical.LimitHandler;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.LimitHandler;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Map;
 import java.util.Objects;
@@ -43,11 +43,10 @@ public class TransientQueryMetadata extends QueryMetadata {
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
-      final Set<String> sourceNames,
+      final Set<SourceName> sourceNames,
       final Consumer<LimitHandler> limitHandlerSetter,
       final String executionPlan,
       final BlockingQueue<KeyValue<String, GenericRow>> rowQueue,
-      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
@@ -60,7 +59,6 @@ public class TransientQueryMetadata extends QueryMetadata {
         logicalSchema,
         sourceNames,
         executionPlan,
-        dataSourceType,
         queryApplicationId,
         topology,
         streamsProperties,

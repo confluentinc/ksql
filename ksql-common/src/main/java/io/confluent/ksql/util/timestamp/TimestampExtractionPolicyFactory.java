@@ -17,6 +17,8 @@ package io.confluent.ksql.util.timestamp;
 
 import io.confluent.ksql.properties.with.CommonCreateConfigs;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.util.KsqlConfig;
@@ -34,19 +36,19 @@ public final class TimestampExtractionPolicyFactory {
   public static TimestampExtractionPolicy create(
       final KsqlConfig ksqlConfig,
       final LogicalSchema schema,
-      final Optional<String> timestampColumnName,
+      final Optional<ColumnRef> timestampColumnName,
       final Optional<String> timestampFormat
   ) {
     if (!timestampColumnName.isPresent()) {
       return new MetadataTimestampExtractionPolicy(getDefaultTimestampExtractor(ksqlConfig));
     }
 
-    final String fieldName = timestampColumnName.get().toUpperCase();
+    final ColumnRef col = timestampColumnName.get();
 
-    final Column timestampColumn = schema.findValueColumn(fieldName)
+    final Column timestampColumn = schema.findValueColumn(col)
         .orElseThrow(() -> new KsqlException(
             "The TIMESTAMP column set in the WITH clause does not exist in the schema: '"
-                + fieldName + "'"));
+                + col.toString(FormatOptions.noEscape()) + "'"));
 
     final SqlBaseType tsColumnType = timestampColumn.type().baseType();
     if (tsColumnType == SqlBaseType.STRING) {
@@ -56,7 +58,7 @@ public final class TimestampExtractionPolicyFactory {
               + " also specifying the "
               + CommonCreateConfigs.TIMESTAMP_FORMAT_PROPERTY.toLowerCase()));
 
-      return new StringTimestampExtractionPolicy(fieldName, format);
+      return new StringTimestampExtractionPolicy(col, format);
     }
 
     if (timestampFormat.isPresent()) {
@@ -66,7 +68,7 @@ public final class TimestampExtractionPolicyFactory {
     }
 
     if (tsColumnType == SqlBaseType.BIGINT) {
-      return new LongColumnTimestampExtractionPolicy(fieldName);
+      return new LongColumnTimestampExtractionPolicy(col);
     }
 
     throw new KsqlException(

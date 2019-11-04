@@ -64,6 +64,19 @@ public class KsqlRestConfig extends RestConfig {
       + "will not start serving requests until all preconditions are satisfied. Until that time, "
       + "requests will return a 503 error";
 
+  static final String KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER =
+      KSQL_CONFIG_PREFIX + "server.exception.uncaught.handler.enable";
+
+  private static final String KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC =
+      "Whether or not to set KsqlUncaughtExceptionHandler as the UncaughtExceptionHandler "
+          + "for all threads in the application (this can be overridden). Default is false.";
+
+  public static final String KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG =
+      KSQL_CONFIG_PREFIX + "healthcheck.interval.ms";
+  private static final String KSQL_HEALTHCHECK_INTERVAL_MS_DOC =
+      "Minimum time between consecutive health check evaluations. Health check queries before "
+          + "the interval has elapsed will receive cached responses.";
+
   private static final ConfigDef CONFIG_DEF;
 
   static {
@@ -95,8 +108,20 @@ public class KsqlRestConfig extends RestConfig {
         KSQL_SERVER_PRECONDITIONS,
         Type.LIST,
         "",
-       Importance.LOW,
-       KSQL_SERVER_PRECONDITIONS_DOC
+        Importance.LOW,
+        KSQL_SERVER_PRECONDITIONS_DOC
+    ).define(
+        KSQL_SERVER_ENABLE_UNCAUGHT_EXCEPTION_HANDLER,
+        ConfigDef.Type.BOOLEAN,
+        false,
+        Importance.LOW,
+        KSQL_SERVER_UNCAUGHT_EXCEPTION_HANDLER_DOC
+    ).define(
+        KSQL_HEALTHCHECK_INTERVAL_MS_CONFIG,
+        Type.LONG,
+        5000L,
+        Importance.LOW,
+        KSQL_HEALTHCHECK_INTERVAL_MS_DOC
     );
   }
 

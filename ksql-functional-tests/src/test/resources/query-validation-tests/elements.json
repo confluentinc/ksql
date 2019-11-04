@@ -123,7 +123,17 @@
     },
     {
       "name": "validate int elements OK",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "10"}],
+      "outputs": [{"topic": "OUTPUT", "value": "10"}]
+    },
+    {
+      "name": "validate int elements OK",
+      "format": ["KAFKA"],
       "statements": [
         "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -143,7 +153,17 @@
     },
     {
       "name": "validate bigint elements OK",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "10000000000"}],
+      "outputs": [{"topic": "OUTPUT", "value": "10000000000"}]
+    },
+    {
+      "name": "validate bigint elements OK",
+      "format": ["KAFKA"],
       "statements": [
         "CREATE STREAM INPUT (V0 BIGINT) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -163,7 +183,17 @@
     },
     {
       "name": "validate double elements OK",
-      "format": ["DELIMITED", "KAFKA"],
+      "format": ["DELIMITED"],
+      "statements": [
+        "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
+        "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
+      ],
+      "inputs": [{"topic": "input", "value": "10.1"}],
+      "outputs": [{"topic": "OUTPUT", "value": "10.1"}]
+    },
+    {
+      "name": "validate double elements OK",
+      "format": ["KAFKA"],
       "statements": [
         "CREATE STREAM INPUT (V0 DOUBLE) WITH (kafka_topic='input', value_format='{FORMAT}');",
         "CREATE STREAM OUTPUT AS SELECT * FROM INPUT;"
@@ -329,7 +359,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlStatementException",
-        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic.\nKSQL schema: {\"type\":\"record\",\"name\":\"OUTPUT\",\"namespace\":\"ksql\",\"fields\":[{\"name\":\"C1\",\"type\":[\"null\",\"int\"],\"default\":null}]}\nRegistered schema: {\"type\":\"record\",\"name\":\"blah\",\"fields\":[{\"name\":\"C1\",\"type\":\"double\"}]}"
+        "message": "Cannot register avro schema for OUTPUT as the schema is incompatible with the current schema version registered for the topic.\nKSQL schema: {\"type\":\"record\",\"name\":\"KsqlDataSourceSchema\",\"namespace\":\"io.confluent.ksql.avro_schemas\",\"fields\":[{\"name\":\"C1\",\"type\":[\"null\",\"int\"],\"default\":null}],\"connect.name\":\"io.confluent.ksql.avro_schemas.KsqlDataSourceSchema\"}\nRegistered schema: {\"type\":\"record\",\"name\":\"blah\",\"fields\":[{\"name\":\"C1\",\"type\":\"double\"}]}"
       },
       "topics": [
         {
@@ -496,7 +526,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'INPUT.UNKNOWN' cannot be resolved."
+        "message": "Column 'INPUT.UNKNOWN' cannot be resolved."
       }
     },
     {
@@ -508,7 +538,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'UNKNOWN' cannot be resolved"
+        "message": "Column 'UNKNOWN' cannot be resolved"
       }
     },
     {
@@ -532,7 +562,7 @@
       ],
       "expectedException": {
         "type": "io.confluent.ksql.util.KsqlException",
-        "message": "Field 'F0' is ambiguous."
+        "message": "Column 'F0' is ambiguous."
       }
     }
   ]

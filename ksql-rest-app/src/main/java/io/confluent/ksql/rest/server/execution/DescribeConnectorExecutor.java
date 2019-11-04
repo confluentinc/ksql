@@ -31,6 +31,7 @@ import io.confluent.ksql.services.ConnectClient.ConnectResponse;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -60,6 +61,7 @@ public final class DescribeConnectorExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent")
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<DescribeConnector> configuredStatement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext ksqlExecutionContext,
       final ServiceContext serviceContext
   ) {

@@ -55,9 +55,6 @@ public class Abs {
 
   @UdfSchemaProvider
   public SqlType provideSchema(final List<SqlType> params) {
-    if (params.size() != 1) {
-      throw new KsqlException("Abs udf accepts one parameter");
-    }
     final SqlType s = params.get(0);
     if (s.baseType() != SqlBaseType.DECIMAL) {
       throw new KsqlException("The schema provider method for Abs expects a BigDecimal parameter"

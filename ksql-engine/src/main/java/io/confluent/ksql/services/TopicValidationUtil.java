@@ -25,7 +25,7 @@ final class TopicValidationUtil {
 
   }
 
-  static void validateTopicProperties(
+  public static void validateTopicProperties(
       final int requiredNumPartition,
       final int requiredNumReplicas,
       final TopicDescription existingTopic
@@ -42,7 +42,7 @@ final class TopicValidationUtil {
         actualNumReplicas);
   }
 
-  static void validateTopicProperties(
+  public static void validateTopicProperties(
       final String topicName,
       final int requiredNumPartition,
       final int requiredNumReplicas,

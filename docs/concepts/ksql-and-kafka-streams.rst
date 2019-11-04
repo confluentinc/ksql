@@ -28,7 +28,8 @@ For example, to implement simple fraud-detection logic on a Kafka topic named
 
     CREATE STREAM fraudulent_payments AS
      SELECT fraudProbability(data) FROM payments
-     WHERE fraudProbability(data) > 0.8;
+     WHERE fraudProbability(data) > 0.8
+     EMIT CHANGES;
 
 The equivalent Java code on Kafka Streams might resemble: 
 

@@ -21,6 +21,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.either;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -35,6 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.TestTerminal;
@@ -44,6 +46,7 @@ import io.confluent.ksql.cli.console.OutputFormat;
 import io.confluent.ksql.cli.console.cmd.RemoteServerSpecificCommand;
 import io.confluent.ksql.cli.console.cmd.RequestPipeliningCommand;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.KsqlRestClientException;
@@ -77,6 +80,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -116,6 +120,8 @@ public class CliTest {
   private static final EmbeddedSingleNodeKafkaCluster CLUSTER = EmbeddedSingleNodeKafkaCluster.build();
   private static final String SERVER_OVERRIDE = "SERVER";
   private static final String SESSION_OVERRIDE = "SESSION";
+
+  private static final Pattern QUERY_ID_PATTERN = Pattern.compile("with query ID: (\\S+)");
 
   private static final Pattern WRITE_QUERIES = Pattern
       .compile(".*The following queries write into this source: \\[(.+)].*", Pattern.DOTALL);
@@ -166,7 +172,12 @@ public class CliTest {
 
   @BeforeClass
   public static void classSetUp() throws Exception {
-    restClient = new KsqlRestClient(REST_APP.getHttpListener().toString());
+    restClient = KsqlRestClient.create(
+        REST_APP.getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        Optional.empty()
+    );
 
     orderDataProvider = new OrderDataProvider();
     CLUSTER.createTopic(orderDataProvider.topicName());
@@ -536,9 +547,9 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ITEMID", SqlTypes.STRING)
-            .valueColumn("ORDERUNITS", SqlTypes.DOUBLE)
-            .valueColumn("PRICEARRAY", SqlTypes.array(SqlTypes.DOUBLE))
+            .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("PRICEARRAY"), SqlTypes.array(SqlTypes.DOUBLE))
             .build(),
         SerdeOption.none()
     );
@@ -670,11 +681,11 @@ public class CliTest {
 
     final PhysicalSchema resultSchema = PhysicalSchema.from(
         LogicalSchema.builder()
-            .valueColumn("ITEMID", SqlTypes.STRING)
-            .valueColumn("COL1", SqlTypes.DOUBLE)
-            .valueColumn("COL2", SqlTypes.DOUBLE)
-            .valueColumn("COL3", SqlTypes.DOUBLE)
-            .valueColumn("COL4", SqlTypes.BOOLEAN)
+            .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("COL1"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("COL2"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+            .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
             .build(),
         SerdeOption.none()
     );
@@ -771,14 +782,14 @@ public class CliTest {
   }
 
   @Test
-  public void shouldDescribeScalarFunction() throws Exception {
+  public void shouldDescribeScalarFunction() {
     final String expectedOutput =
         "Name        : TIMESTAMPTOSTRING\n"
             + "Author      : Confluent\n"
             + "Overview    : Converts a BIGINT millisecond timestamp value into the string"
             + " representation of the \n"
             + "              timestamp in the given format.\n"
-            + "Type        : scalar\n"
+            + "Type        : SCALAR\n"
             + "Jar         : internal\n"
             + "Variations  :";
 
@@ -807,7 +818,7 @@ public class CliTest {
   }
 
   @Test
-  public void shouldDescribeOverloadedScalarFunction() throws Exception {
+  public void shouldDescribeOverloadedScalarFunction() {
     // Given:
     localCli.handleLine("describe function substring;");
 
@@ -821,7 +832,7 @@ public class CliTest {
         + "Overview    : Returns a substring of the passed in value.\n"
     ));
     assertThat(output, containsString(
-        "Type        : scalar\n"
+        "Type        : SCALAR\n"
         + "Jar         : internal\n"
         + "Variations  :"
     ));
@@ -839,11 +850,11 @@ public class CliTest {
   }
 
   @Test
-  public void shouldDescribeAggregateFunction() throws Exception {
+  public void shouldDescribeAggregateFunction() {
     final String expectedSummary =
             "Name        : TOPK\n" +
-            "Author      : confluent\n" +
-            "Type        : aggregate\n" +
+                "Author      : Confluent\n" +
+                "Type        : AGGREGATE\n" +
             "Jar         : internal\n" +
             "Variations  : \n";
 
@@ -860,7 +871,57 @@ public class CliTest {
   }
 
   @Test
-  public void shouldPrintErrorIfCantFindFunction() throws Exception {
+  public void shouldDescribeTableFunction() {
+    final String expectedOutput =
+        "Name        : EXPLODE\n"
+            + "Author      : Confluent\n"
+            + "Overview    : Explodes an array. This function outputs one value for each element of the array.\n"
+            + "Type        : TABLE\n"
+            + "Jar         : internal\n"
+            + "Variations  : ";
+
+    localCli.handleLine("describe function explode;");
+    final String outputString = terminal.getOutputString();
+    assertThat(outputString, containsString(expectedOutput));
+
+    // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
+    String expectedVariation =
+        "\tVariation   : EXPLODE(list ARRAY<BYTES>)\n"
+            + "\tReturns     : BYTES\n"
+            + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+    assertThat(outputString, containsString(expectedVariation));
+
+    expectedVariation = "\tVariation   : EXPLODE(input ARRAY<DECIMAL(1, 0)>)\n"
+            + "\tReturns     : DECIMAL(1, 0)\n"
+        + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
+    assertThat(outputString, containsString(expectedVariation));
+  }
+
+  @Test
+  public void shouldExplainQueryId() {
+    // Given:
+    localCli.handleLine("CREATE STREAM " + streamName + " "
+        + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";");
+
+    final String queryId = extractQueryId(terminal.getOutputString());
+
+    final String explain = "EXPLAIN " + queryId + ";";
+
+    // When:
+    localCli.handleLine(explain);
+
+    // Then:
+    assertThat(terminal.getOutputString(), containsString(queryId));
+    assertThat(terminal.getOutputString(), containsString("Status"));
+    assertThat(terminal.getOutputString(),
+        either(containsString(": REBALANCING"))
+            .or(containsString("RUNNING")));
+
+    dropStream(streamName);
+  }
+
+  @Test
+  public void shouldPrintErrorIfCantFindFunction() {
     localCli.handleLine("describe function foobar;");
 
     assertThat(terminal.getOutputString(),
@@ -868,19 +929,11 @@ public class CliTest {
   }
 
   @Test
-  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() throws Exception {
-    // Given:
-    final String csas =
-        "CREATE STREAM " + streamName + " "
-            + "AS SELECT * FROM " + orderDataProvider.kstreamName() + ";";
-
+  public void shouldHandleSetPropertyAsPartOfMultiStatementLine() {
     // When:
-    localCli
-        .handleLine("set 'auto.offset.reset'='earliest'; " + csas);
+    localCli.handleLine("set 'auto.offset.reset'='earliest';");
 
     // Then:
-    dropStream(streamName);
-
     assertThat(terminal.getOutputString(),
         containsString("Successfully changed local property 'auto.offset.reset' to 'earliest'"));
   }
@@ -1074,7 +1127,9 @@ public class CliTest {
   }
 
   private void givenCommandSequenceNumber(
-      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+      final KsqlRestClient mockRestClient,
+      final long seqNum
+  ) {
     final CommandStatusEntity stubEntity = stubCommandStatusEntityWithSeqNum(seqNum);
     when(mockRestClient.makeKsqlRequest(anyString(), anyLong())).thenReturn(
         RestResponse.successful(
@@ -1085,7 +1140,9 @@ public class CliTest {
   }
 
   private void assertLastCommandSequenceNumber(
-      final KsqlRestClient mockRestClient, final long seqNum) throws Exception {
+      final KsqlRestClient mockRestClient,
+      final long seqNum
+  ) {
     // Given:
     reset(mockRestClient);
     final String statementText = "list streams;";
@@ -1159,6 +1216,12 @@ public class CliTest {
       final Matcher<Iterable<? extends String>>... rows
   ) {
     return Matchers.contains(rows);
+  }
+
+  private static String extractQueryId(final String outputString) {
+    final java.util.regex.Matcher matcher = QUERY_ID_PATTERN.matcher(outputString);
+    assertThat("Could not find query id in: " + outputString, matcher.find());
+    return matcher.group(1);
   }
 
   private static class TestRowCaptor implements RowCaptor {

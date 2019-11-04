@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.util;
 
 import static io.confluent.ksql.execution.testutil.TestExpressions.ADDRESS;
-import static io.confluent.ksql.execution.testutil.TestExpressions.COL0;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL1;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL2;
 import static io.confluent.ksql.execution.testutil.TestExpressions.COL3;
@@ -28,6 +27,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,8 +35,10 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
+import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.InListExpression;
@@ -44,7 +46,6 @@ import io.confluent.ksql.execution.expression.tree.InPredicate;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -53,10 +54,16 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
+import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.Operator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlType;
@@ -74,6 +81,10 @@ import org.mockito.junit.MockitoRule;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class ExpressionTypeManagerTest {
+
+  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final ColumnName COL0 = ColumnName.of("COL0");
+
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
@@ -92,26 +103,20 @@ public class ExpressionTypeManagerTest {
   @Before
   public void init() {
     expressionTypeManager = new ExpressionTypeManager(SCHEMA, functionRegistry);
-  }
 
-  private void givenUdfWithNameAndReturnType(final String name, final Schema returnType) {
-    givenUdfWithNameAndReturnType(name ,returnType, udfFactory, function);
-  }
+    final UdfFactory internalFactory = mock(UdfFactory.class);
+    final UdfMetadata metadata = mock(UdfMetadata.class);
+    when(internalFactory.getMetadata()).thenReturn(metadata);
+    when(metadata.isInternal()).thenReturn(true);
 
-  private void givenUdfWithNameAndReturnType(
-      final String name,
-      final Schema returnType,
-      final UdfFactory factory,
-      final KsqlFunction function) {
-    when(functionRegistry.isAggregate(name)).thenReturn(false);
-    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
-    when(factory.getFunction(anyList())).thenReturn(function);
-    when(function.getReturnType(anyList())).thenReturn(returnType);
+    when(functionRegistry.getUdfFactory(anyString()))
+        .thenReturn(internalFactory);
   }
 
   @Test
   public void shouldResolveTypeForAddBigIntDouble() {
-    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, COL0, COL3);
+    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, TestExpressions.COL0,
+        COL3);
 
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -129,7 +134,8 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void shouldResolveTypeForAddBigintIntegerLiteral() {
-    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, COL0, literal(10));
+    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, TestExpressions.COL0,
+        literal(10));
 
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -139,7 +145,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldResolveTypeForMultiplyBigintIntegerLiteral() {
     final Expression expression =
-        new ArithmeticBinaryExpression(Operator.MULTIPLY, COL0, literal(10));
+        new ArithmeticBinaryExpression(Operator.MULTIPLY, TestExpressions.COL0, literal(10));
 
     final SqlType type = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -148,7 +154,8 @@ public class ExpressionTypeManagerTest {
 
   @Test
   public void testComparisonExpr() {
-    final Expression expression = new ComparisonExpression(Type.GREATER_THAN, COL0, COL3);
+    final Expression expression = new ComparisonExpression(Type.GREATER_THAN, TestExpressions.COL0,
+        COL3);
 
     final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
 
@@ -158,7 +165,8 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldFailIfComparisonOperandsAreIncompatible() {
     // Given:
-    final ComparisonExpression expr = new ComparisonExpression(Type.GREATER_THAN, COL0, COL1);
+    final ComparisonExpression expr = new ComparisonExpression(Type.GREATER_THAN,
+        TestExpressions.COL0, COL1);
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Operator GREATER_THAN cannot be used to compare BIGINT and STRING");
 
@@ -228,7 +236,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     givenUdfWithNameAndReturnType("FLOOR", Schema.OPTIONAL_FLOAT64_SCHEMA);
     final Expression expression =
-        new FunctionCall(QualifiedName.of("FLOOR"), ImmutableList.of(COL3));
+        new FunctionCall(FunctionName.of("FLOOR"), ImmutableList.of(COL3));
 
     // When:
     final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
@@ -244,7 +252,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA);
     final Expression expression =
-        new FunctionCall(QualifiedName.of("LCASE"), ImmutableList.of(COL2));
+        new FunctionCall(FunctionName.of("LCASE"), ImmutableList.of(COL2));
 
     // When:
     final SqlType exprType = expressionTypeManager.getExpressionSqlType(expression);
@@ -263,36 +271,61 @@ public class ExpressionTypeManagerTest {
     final KsqlFunction function = mock(KsqlFunction.class);
     givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA, outerFactory, function);
     final Expression inner = new FunctionCall(
-        QualifiedName.of("EXTRACTJSONFIELD"),
+        FunctionName.of("EXTRACTJSONFIELD"),
         ImmutableList.of(COL1, new StringLiteral("$.name)"))
     );
     final Expression expression =
-        new FunctionCall(QualifiedName.of("LCASE"), ImmutableList.of(inner));
+        new FunctionCall(FunctionName.of("LCASE"), ImmutableList.of(inner));
 
     // When/Then:
     assertThat(expressionTypeManager.getExpressionSqlType(expression), equalTo(SqlTypes.STRING));
   }
 
   @Test
-  public void shouldHandleStruct() {
+  public void shouldHandleStructFieldDereference() {
+    // Given:
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL6"))),
+        "STREET"
+    );
+
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    assertThat(result, is(SqlTypes.STRING));
+  }
+
+  @Test
+  public void shouldThrowOnFetchFieldFromStructFunctionCall() {
+    // Given:
     final Expression expression = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
+        FetchFieldFromStruct.FUNCTION_NAME,
         ImmutableList.of(ADDRESS, new StringLiteral("NUMBER"))
     );
-    assertThat(
-        expressionTypeManager.getExpressionSqlType(expression),
-        equalTo(SqlTypes.BIGINT)
-    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'");
+
+    // When:
+    expressionTypeManager.getExpressionSqlType(expression);
   }
 
   @Test
   public void shouldFailIfThereIsInvalidFieldNameInStructCall() {
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Could not find field ZIP in TEST1.COL6.");
-    final Expression expression = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
-        ImmutableList.of(ADDRESS, new StringLiteral("ZIP"))
+    // Given:
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL6"))),
+        "ZIP"
     );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Could not find field 'ZIP' in 'TEST1.COL6'.");
+
+    // When:
     expressionTypeManager.getExpressionSqlType(expression);
   }
 
@@ -300,18 +333,24 @@ public class ExpressionTypeManagerTest {
   public void shouldEvaluateTypeForStructDereferenceInArray() {
     // Given:
     final SqlStruct inner = SqlTypes.struct().field("IN0", SqlTypes.INTEGER).build();
+
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("TEST1.COL0", SqlTypes.array(inner))
+        .valueColumn(TEST1, COL0, SqlTypes.array(inner))
         .build();
+
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
-    final Expression arrayRef = new SubscriptExpression(COL0, new IntegerLiteral(1));
-    final Expression expression = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
-        ImmutableList.of(arrayRef, new StringLiteral("IN0"))
+
+    final Expression expression = new DereferenceExpression(
+        Optional.empty(),
+        new SubscriptExpression(TestExpressions.COL0, new IntegerLiteral(1)),
+        "IN0"
     );
 
-    // When/Then:
-    assertThat(expressionTypeManager.getExpressionSqlType(expression), is(SqlTypes.INTEGER));
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.INTEGER));
   }
 
   @Test
@@ -321,18 +360,26 @@ public class ExpressionTypeManagerTest {
         .struct()
         .field("IN0", SqlTypes.array(SqlTypes.INTEGER))
         .build();
+
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("TEST1.COL0", inner)
+        .valueColumn(TEST1, COL0, inner)
         .build();
+
     expressionTypeManager = new ExpressionTypeManager(schema, functionRegistry);
-    final Expression structRef = new FunctionCall(
-        QualifiedName.of(FetchFieldFromStruct.FUNCTION_NAME),
-        ImmutableList.of(COL0, new StringLiteral("IN0"))
+
+    final Expression structRef = new DereferenceExpression(
+        Optional.empty(),
+        new ColumnReferenceExp(ColumnRef.of(TEST1, COL0)),
+        "IN0"
     );
+
     final Expression expression = new SubscriptExpression(structRef, new IntegerLiteral(1));
 
-    // When/Then:
-    assertThat(expressionTypeManager.getExpressionSqlType(expression), is(SqlTypes.INTEGER));
+    // When:
+    final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
+
+    // Then:
+    assertThat(result, is(SqlTypes.INTEGER));
   }
 
   @Test
@@ -366,7 +413,7 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(10)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(10)),
                 ADDRESS)
         ),
         Optional.empty()
@@ -376,7 +423,7 @@ public class ExpressionTypeManagerTest {
     final SqlType result = expressionTypeManager.getExpressionSqlType(expression);
 
     // Then:
-    final SqlType sqlType = SCHEMA.findColumn(ADDRESS.toString()).get().type();
+    final SqlType sqlType = SCHEMA.findColumn(ADDRESS.getReference()).get().type();
     assertThat(result, is(sqlType));
   }
 
@@ -386,13 +433,18 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ArithmeticBinaryExpression(Operator.ADD, COL0, new IntegerLiteral(10)),
+                new ArithmeticBinaryExpression(Operator.ADD, TestExpressions.COL0,
+                    new IntegerLiteral(10)),
                 new StringLiteral("foo"))
         ),
         Optional.empty()
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("When operand schema should be boolean. Schema for ((TEST1.COL0 + 10)) is Schema{INT64}");
+    expectedException.expectMessage(
+        "WHEN operand type should be boolean."
+            + System.lineSeparator()
+            + "Type for '(TEST1.COL0 + 10)' is BIGINT"
+    );
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -404,16 +456,22 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(100)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(100)),
                 new StringLiteral("one-hundred")),
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(10)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(10)),
                 new IntegerLiteral(10))
         ),
         Optional.empty()
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid Case expression. Schemas for 'THEN' clauses should be the same. Result schema: Schema{STRING}. Schema for THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' is Schema{INT32}");
+    expectedException.expectMessage(
+        "Invalid Case expression. Type for all 'THEN' clauses should be the same."
+            + System.lineSeparator()
+            + "THEN expression 'WHEN (TEST1.COL0 = 10) THEN 10' has type: INTEGER."
+            + System.lineSeparator()
+            + "Previous THEN expression(s) type: STRING."
+    );
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -426,13 +484,19 @@ public class ExpressionTypeManagerTest {
     final Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(Type.EQUAL, COL0, new IntegerLiteral(10)),
+                new ComparisonExpression(Type.EQUAL, TestExpressions.COL0, new IntegerLiteral(10)),
                 new StringLiteral("good"))
         ),
         Optional.of(new BooleanLiteral("true"))
     );
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Invalid Case expression. Schema for the default clause should be the same as schema for THEN clauses. Result scheme: Schema{STRING}. Schema for default expression is Schema{BOOLEAN}");
+    expectedException.expectMessage(
+        "Invalid Case expression. Type for the default clause should be the same as for 'THEN' clauses."
+            + System.lineSeparator()
+            + "THEN type: STRING."
+            + System.lineSeparator()
+            + "DEFAULT type: BOOLEAN."
+    );
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
@@ -460,7 +524,7 @@ public class ExpressionTypeManagerTest {
   public void shouldThrowOnIn() {
     // Given:
     final Expression expression = new InPredicate(
-        COL0,
+        TestExpressions.COL0,
         new InListExpression(ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))
     );
 
@@ -474,7 +538,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldThrowOnSimpleCase() {
     final Expression expression = new SimpleCaseExpression(
-        COL0,
+        TestExpressions.COL0,
         ImmutableList.of(new WhenClause(new IntegerLiteral(10), new StringLiteral("ten"))),
         Optional.empty()
     );
@@ -484,5 +548,22 @@ public class ExpressionTypeManagerTest {
 
     // When:
     expressionTypeManager.getExpressionSqlType(expression);
+  }
+
+  private void givenUdfWithNameAndReturnType(final String name, final Schema returnType) {
+    givenUdfWithNameAndReturnType(name ,returnType, udfFactory, function);
+  }
+
+  private void givenUdfWithNameAndReturnType(
+      final String name,
+      final Schema returnType,
+      final UdfFactory factory,
+      final KsqlFunction function) {
+    when(functionRegistry.isAggregate(name)).thenReturn(false);
+    when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
+    when(factory.getFunction(anyList())).thenReturn(function);
+    when(function.getReturnType(anyList())).thenReturn(returnType);
+    UdfMetadata metadata = mock(UdfMetadata.class);
+    when(factory.getMetadata()).thenReturn(metadata);
   }
 }

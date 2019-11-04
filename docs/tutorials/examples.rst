@@ -127,7 +127,8 @@ The following statement will generate a new stream,
              pageid,
              TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
       FROM pageviews
-      PARTITION BY userid;
+      PARTITION BY userid
+      EMIT CHANGES;
 
 Use a ``[ WHERE condition ]`` clause to select a subset of data. If you
 want to route streams with different criteria to different streams
@@ -146,7 +147,8 @@ write multiple KSQL statements as follows:
              TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
       FROM pageviews
       WHERE userid='User_1' OR userid='User_2'
-      PARTITION BY userid;
+      PARTITION BY userid
+      EMIT CHANGES;
 
 .. code:: sql
 
@@ -160,7 +162,8 @@ write multiple KSQL statements as follows:
              TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
       FROM pageviews
       WHERE userid<>'User_1' AND userid<>'User_2'
-      PARTITION BY userid;
+      PARTITION BY userid
+      EMIT CHANGES;
 
 Joining
 ~~~~~~~
@@ -171,7 +174,8 @@ When joining objects the number of partitions in each must be the same. You can 
 
     CREATE TABLE users_5part
         WITH (PARTITIONS=5) AS
-        SELECT * FROM USERS;
+        SELECT * FROM USERS
+        EMIT CHANGES;
 
 Now you can use the following query to create a new stream by joining the
 ``pageviews_transformed`` stream with the ``users_5part`` table. 
@@ -188,7 +192,8 @@ Now you can use the following query to create a new stream by joining the
              u.interests,
              u.contactinfo
       FROM pageviews_transformed pv
-      LEFT JOIN users_5part u ON pv.userid = u.userid;
+      LEFT JOIN users_5part u ON pv.userid = u.userid
+      EMIT CHANGES;
 
 Note that by default all the Kafka topics will be read from the current
 offset (aka the latest available data); however, in a stream-table join,
@@ -208,7 +213,8 @@ Here is the query that would perform this count:
       SELECT regionid,
              count(*)
       FROM pageviews_enriched
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 The above query counts the pageviews from the time you start the query
 until you terminate the query. Note that we used CREATE TABLE AS SELECT
@@ -227,7 +233,8 @@ so that we compute the pageview count per region every 1 minute:
              count(*)
       FROM pageviews_enriched
       WINDOW TUMBLING (SIZE 1 MINUTE)
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 If you want to count the pageviews for only “Region_6” by female users
 for every 30 seconds, you can change the above query as the following:
@@ -240,7 +247,8 @@ for every 30 seconds, you can change the above query as the following:
       FROM pageviews_enriched
       WINDOW TUMBLING (SIZE 30 SECONDS)
       WHERE UCASE(gender)='FEMALE' AND LCASE(regionid)='region_6'
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 UCASE and LCASE functions in KSQL are used to convert the values of
 gender and regionid columns to upper and lower case, so that you can
@@ -259,7 +267,8 @@ window of 30 seconds that advances by 10 seconds:
       FROM pageviews_enriched
       WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
       WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 The next statement counts the number of pageviews per region for session
 windows with a session inactivity gap of 60 seconds. In other words, you
@@ -273,7 +282,8 @@ counting/aggregation step per region.
              count(*)
       FROM pageviews_enriched
       WINDOW SESSION (60 SECONDS)
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 Sometimes, you may want to include the bounds of the current window in the result so that it is
 more easily accessible to consumers of the data. The following statement extracts the start and
@@ -288,7 +298,8 @@ end time of the current session window into fields within output rows.
              count(*)
       FROM pageviews_enriched
       WINDOW SESSION (60 SECONDS)
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 Working with arrays and maps
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -316,7 +327,8 @@ zipcode for each user:
              timestring,
              gender,
              regionid
-      FROM pageviews_enriched;
+      FROM pageviews_enriched
+      EMIT CHANGES;
 
 .. _running-ksql-command-line:
 
@@ -340,10 +352,10 @@ The following examples show common usage:
     .. code:: bash
 
         ksql <<EOF
-        > SHOW TOPICS;
-        > SHOW STREAMS;
-        > exit
-        > EOF
+        SHOW TOPICS;
+        SHOW STREAMS;
+        exit
+        EOF
 
 -   This example uses a Bash `here string <http://tldp.org/LDP/abs/html/x17837.html>`__ (``<<<``) to run KSQL CLI commands on
     an explicitly defined KSQL server endpoint.
@@ -360,14 +372,14 @@ The following examples show common usage:
     .. code:: bash
 
         cat /path/to/local/application.sql
-        CREATE STREAM pageviews_copy AS SELECT * FROM pageviews;
+        CREATE STREAM pageviews_copy AS SELECT * FROM pageviews EMIT CHANGES;
 
     .. code:: bash
 
         ksql http://localhost:8088 <<EOF
-        > RUN SCRIPT '/path/to/local/application.sql';
-        > exit
-        > EOF
+        RUN SCRIPT '/path/to/local/application.sql';
+        exit
+        EOF
 
     .. note:: The ``RUN SCRIPT`` command only supports a subset of KSQL CLI commands, including running DDL statements
               (CREATE STREAM, CREATE TABLE), persistent queries (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and

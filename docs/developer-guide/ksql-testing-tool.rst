@@ -58,7 +58,7 @@ Here is a sample statements file for the testing tool:
 .. code:: sql
 
     CREATE STREAM orders (ORDERUNITS double) WITH (kafka_topic='test_topic', value_format='JSON');
-    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders EMIT CHANGES;
 
 Input File
 ----------
@@ -161,8 +161,8 @@ Input Consumption
 Before processing the next input message, the testing tool processes input messages for each query one-by-one and writes
 the generated message(s) for each input message into the result topic.
 This means that for the queries running in the testing tool, we have the same behavior as
- when ``cache.max.bytes.buffering = 0``. This is especially important in aggregate queries where we may not see some of the intermediate results in
- real executions because of buffering, while during execution of the testing tool every possible intermediate result is created.
+when ``cache.max.bytes.buffering = 0``. This is especially important in aggregate queries where we may not see some of the intermediate results in
+real executions because of buffering, while during execution of the testing tool every possible intermediate result is created.
 
 
 Kafka Cluster
@@ -186,7 +186,7 @@ are submitted later can affect the output of a query. For example, consider the 
     INSERT INTO orders VALUES(10.0);
     INSERT INTO orders VALUES(15.0);
     INSERT INTO orders VALUES(20.0);
-    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders;
+    CREATE STREAM S1 AS SELECT ORDERUNITS, CASE WHEN orderunits < 2.0 THEN 'small' WHEN orderunits < 4.0 THEN 'medium' ELSE 'large' END AS case_resault FROM orders EMIT CHANGES;
     INSERT INTO orders VALUES(25.0);
     INSERT INTO orders VALUES(30.0);
 

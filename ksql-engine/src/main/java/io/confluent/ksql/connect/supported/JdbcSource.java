@@ -48,7 +48,7 @@ public final class JdbcSource implements SupportedConnector {
         topic -> topic.startsWith(prefix),
         topic -> clean(name + "_" + topic.substring(prefix.length())),
         DataSourceType.KTABLE,
-        extractKeyNameFromSMT(properties).orElse(null)
+        extractKeyNameFromSmt(properties).orElse(null)
     ));
   }
 
@@ -85,7 +85,7 @@ public final class JdbcSource implements SupportedConnector {
    * <p>This is pretty hacky, and we need to figure out a better long-term way to determine the key
    * column from a connector.</p>
    */
-  private static Optional<String> extractKeyNameFromSMT(final Map<String, String> properties) {
+  private static Optional<String> extractKeyNameFromSmt(final Map<String, String> properties) {
     final String transformsString = properties.get("transforms");
     if (transformsString == null) {
       return Optional.empty();

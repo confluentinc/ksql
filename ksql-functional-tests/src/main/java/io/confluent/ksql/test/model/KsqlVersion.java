@@ -17,16 +17,49 @@ package io.confluent.ksql.test.model;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.model.SemanticVersion;
+import io.confluent.ksql.util.Version;
+import java.util.Comparator;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Immutable
-public final class KsqlVersion {
+public final class KsqlVersion implements Comparable<KsqlVersion> {
 
-  private final String name;
+  private static final Pattern VERSION_PATTERN = Pattern
+      .compile("(\\d+)\\.(\\d+)(.\\d+)?(-SNAPSHOT)?");
+
+  private static final Comparator<KsqlVersion> COMPARATOR =
+      Comparator.comparing(KsqlVersion::getVersion);
+
+  private final transient String name;
   private final SemanticVersion version;
+
+  public static KsqlVersion current() {
+    return parse(Version.getVersion());
+  }
 
   public static KsqlVersion of(final String name, final SemanticVersion version) {
     return new KsqlVersion(name, version);
+  }
+
+  public static KsqlVersion parse(final String version) {
+    final Matcher matcher = VERSION_PATTERN.matcher(version);
+    if (!matcher.matches()) {
+      throw new IllegalArgumentException(
+          "Failed to parse version: '" + version + "'. "
+              + "Version must be in format <major>.<minor>[.<patch>][-SNAPSHOT]"
+      );
+    }
+
+    final int major = Integer.parseInt(matcher.group(1));
+    final int minor = Integer.parseInt(matcher.group(2));
+    final int patch = matcher.group(3) == null
+        ? 0
+        : Integer.parseInt(matcher.group(3).substring(1));
+
+    final SemanticVersion v = SemanticVersion.of(major, minor, patch);
+    return KsqlVersion.of(version, v);
   }
 
   public String getName() {
@@ -37,13 +70,35 @@ public final class KsqlVersion {
     return version;
   }
 
-  private KsqlVersion(final String name, final SemanticVersion version) {
-    this.name = Objects.requireNonNull(name, "name");
-    this.version = Objects.requireNonNull(version, "version");
+  @Override
+  public int compareTo(final KsqlVersion other) {
+    return COMPARATOR.compare(this, other);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    final KsqlVersion that = (KsqlVersion) o;
+    return Objects.equals(version, that.version);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(version);
   }
 
   @Override
   public String toString() {
     return name + " (" + version + ")";
+  }
+
+  private KsqlVersion(final String name, final SemanticVersion version) {
+    this.name = Objects.requireNonNull(name, "name");
+    this.version = Objects.requireNonNull(version, "version");
   }
 }

@@ -72,7 +72,7 @@ public class FakeKafkaTopicClient implements KafkaTopicClient {
               .mapToObj(
                   p -> new TopicPartitionInfo(p, node, replicas, Collections.emptyList()))
               .collect(Collectors.toList());
-      return new SandboxedTopicDescription(
+      return new TopicDescription(
           topicName,
           false,
           partitionInfoList,

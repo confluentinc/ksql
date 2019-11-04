@@ -17,6 +17,7 @@ package io.confluent.ksql.planner;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
+import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasSource;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,12 +27,15 @@ import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.PlanNode;
 import io.confluent.ksql.planner.plan.ProjectNode;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.testutils.AnalysisTestUtil;
 import io.confluent.ksql.util.KsqlConfig;
@@ -42,6 +46,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class LogicalPlannerTest {
 
   private MetaStore metaStore;
@@ -66,7 +71,7 @@ public class LogicalPlannerTest {
     assertThat(dataSource
             .getDataSourceType(),
         equalTo(DataSourceType.KTABLE));
-    assertThat(dataSource.getName(), equalTo("TEST2"));
+    assertThat(dataSource.getName(), equalTo(SourceName.of("TEST2")));
   }
 
   @Test
@@ -110,8 +115,9 @@ public class LogicalPlannerTest {
     assertThat(logicalPlan.getSources().get(0), instanceOf(ProjectNode.class));
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
-    assertThat(projectNode.getKeyField().name(), is(Optional.of("T1_COL1")));
-    assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("T1.COL1")));
+    assertThat(projectNode.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("T1_COL1")))));
+    assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("COL1")));
+    assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasSource("T1")));
     assertThat(projectNode.getSchema().value().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
@@ -136,7 +142,7 @@ public class LogicalPlannerTest {
     final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
     assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
     assertThat(aggregateNode.getFunctionCalls().get(0).getName().name(), equalTo("SUM"));
-    assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
+    assertThat(aggregateNode.getWindowExpression().get().getKsqlWindowExpression().toString(), equalTo(" TUMBLING ( SIZE 2 SECONDS ) "));
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
@@ -158,7 +164,7 @@ public class LogicalPlannerTest {
     final AggregateNode aggregateNode = (AggregateNode) logicalPlan.getSources().get(0);
     assertThat(aggregateNode.getFunctionCalls().size(), equalTo(2));
     assertThat(aggregateNode.getFunctionCalls().get(0).getName().name(), equalTo("SUM"));
-    assertThat(aggregateNode.getWindowExpression().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
+    assertThat(aggregateNode.getWindowExpression().get().getKsqlWindowExpression().toString(), equalTo(" HOPPING ( SIZE 2 SECONDS , ADVANCE BY 1 SECONDS ) "));
     assertThat(aggregateNode.getGroupByExpressions().size(), equalTo(1));
     assertThat(aggregateNode.getGroupByExpressions().get(0).toString(), equalTo("TEST1.COL0"));
     assertThat(aggregateNode.getRequiredColumns().size(), equalTo(2));
@@ -242,11 +248,11 @@ public class LogicalPlannerTest {
     final PlanNode logicalPlan = buildLogicalPlan(simpleQuery);
 
     // Then:
-    assertThat(logicalPlan.getKeyField().name(), is(Optional.of("NEW_KEY")));
+    assertThat(logicalPlan.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("NEW_KEY")))));
     assertThat(logicalPlan.getKeyField().legacy(), is(Optional.empty()));
 
     final PlanNode source = logicalPlan.getSources().get(0);
-    assertThat(source.getKeyField().name(), is(Optional.of("NEW_KEY")));
+    assertThat(source.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("NEW_KEY")))));
     assertThat(source.getKeyField().legacy(), is(OptionalMatchers.of(hasName("COL0"))));
   }
 

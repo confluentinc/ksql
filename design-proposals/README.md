@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **9**
+Next KLIP number: **11**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -45,7 +45,9 @@ Next KLIP number: **9**
 | [KLIP-1: Improve UDF Interfaces](klip-1-improve-udf-interfaces.md)                 | Approved       | N/A     |
 | [KLIP-2: Insert Into Semantics](klip-2-produce-data.md)                            | Merged         | 5.3     |
 | [KLIP-3: Serialization of single Fields](klip-3-serialization-of-single-fields.md) | Approved       | N/A     |
-| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | N/A     |
+| [KLIP-4: Custom Type Registry](klip-4-custom-types.md)                             | Approved       | 5.4     |
 | [KLIP-6: Execution Plans](klip-6-execution-plans.md)                               | Approved       | N/A     |
-| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Approved       | N/A     |
-| [KLIP-8: Interactive Queries](klip-8-interactive-queries.md)                       | Proposal       | N/A     |
+| [KLIP-7: Kafka Connect Integration](klip-7-connect-integration.md)                 | Approved       | 5.4     |
+| [KLIP-8: Interactive Queries](klip-8-interactive-queries.md)                       | Approved       | 5.4     |
+| [KLIP-9: Table Functions](klip-9-table-functions.md)                               | Approved       | 5.4     |
+| [KLIP-10: Suppress](klip-10-suppress.md)                                           | Proposal       | N/A     |

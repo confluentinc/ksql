@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.4.0-SNAPSHOT</version>
+        <version>5.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-execution</artifactId>
@@ -31,6 +31,11 @@
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-rest-model</artifactId>
         </dependency>
 
         <dependency>

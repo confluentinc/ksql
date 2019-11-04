@@ -22,25 +22,21 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.tree.Query;
-import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.Sink;
-import io.confluent.ksql.physical.KafkaStreamsBuilderImpl;
+import io.confluent.ksql.physical.PhysicalPlan;
 import io.confluent.ksql.physical.PhysicalPlanBuilder;
 import io.confluent.ksql.planner.LogicalPlanNode;
 import io.confluent.ksql.planner.LogicalPlanner;
 import io.confluent.ksql.planner.plan.OutputNode;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.SerdeOptions;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
-import io.confluent.ksql.util.QueryIdGenerator;
-import io.confluent.ksql.util.QueryMetadata;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,91 +49,22 @@ class QueryEngine {
 
   private final ServiceContext serviceContext;
   private final ProcessingLogContext processingLogContext;
-  private final Consumer<QueryMetadata> queryCloseCallback;
   private final QueryIdGenerator queryIdGenerator;
 
   QueryEngine(
       final ServiceContext serviceContext,
       final ProcessingLogContext processingLogContext,
-      final QueryIdGenerator queryIdGenerator,
-      final Consumer<QueryMetadata> queryCloseCallback
+      final QueryIdGenerator queryIdGenerator
   ) {
     this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
     this.processingLogContext = Objects.requireNonNull(
         processingLogContext,
-        "processingLogContext");
-    this.queryCloseCallback = Objects.requireNonNull(queryCloseCallback, "queryCloseCallback");
+        "processingLogContext"
+    );
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
-  @SuppressWarnings("MethodMayBeStatic") // To allow action to be mocked.
-  LogicalPlanNode buildLogicalPlan(
-      final MetaStore metaStore,
-      final ConfiguredStatement<?> statement
-  ) {
-    LOG.info("Build logical plan for {}.", statement.getStatementText());
-
-    if (statement.getStatement() instanceof Query) {
-      final OutputNode outputNode = buildQueryLogicalPlan(
-          (Query)statement.getStatement(),
-          Optional.empty(),
-          metaStore,
-          statement.getConfig()
-      );
-
-      return new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));
-    }
-
-    if (statement.getStatement() instanceof QueryContainer) {
-      final OutputNode outputNode = buildQueryLogicalPlan(
-          (QueryContainer) statement.getStatement(),
-          metaStore,
-          statement.getConfig()
-      );
-
-      return new LogicalPlanNode(statement.getStatementText(), Optional.of(outputNode));
-    }
-
-    return new LogicalPlanNode(statement.getStatementText(), Optional.empty());
-  }
-
-  QueryMetadata buildPhysicalPlan(
-      final LogicalPlanNode logicalPlanNode,
-      final KsqlConfig ksqlConfig,
-      final Map<String, Object> overriddenProperties,
-      final MutableMetaStore metaStore
-  ) {
-
-    final StreamsBuilder builder = new StreamsBuilder();
-
-    // Build a physical plan, in this case a Kafka Streams DSL
-    final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
-        builder,
-        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
-        serviceContext,
-        processingLogContext,
-        metaStore,
-        overriddenProperties,
-        metaStore,
-        queryIdGenerator,
-        new KafkaStreamsBuilderImpl(serviceContext.getKafkaClientSupplier()),
-        queryCloseCallback
-    );
-
-    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
-  }
-
-  private static OutputNode buildQueryLogicalPlan(
-      final QueryContainer container,
-      final MetaStore metaStore,
-      final KsqlConfig config
-  ) {
-    final Query query = container.getQuery();
-    final Sink sink = container.getSink();
-    return buildQueryLogicalPlan(query, Optional.of(sink), metaStore, config);
-  }
-
-  private static OutputNode buildQueryLogicalPlan(
+  static OutputNode buildQueryLogicalPlan(
       final Query query,
       final Optional<Sink> sink,
       final MetaStore metaStore,
@@ -154,5 +81,27 @@ class QueryEngine {
     final AggregateAnalysisResult aggAnalysis = queryAnalyzer.analyzeAggregate(query, analysis);
 
     return new LogicalPlanner(config, analysis, aggAnalysis, metaStore).buildPlan();
+  }
+
+  PhysicalPlan<?> buildPhysicalPlan(
+      final LogicalPlanNode logicalPlanNode,
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties,
+      final MutableMetaStore metaStore
+  ) {
+
+    final StreamsBuilder builder = new StreamsBuilder();
+
+    // Build a physical plan, in this case a Kafka Streams DSL
+    final PhysicalPlanBuilder physicalPlanBuilder = new PhysicalPlanBuilder(
+        builder,
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
+        serviceContext,
+        processingLogContext,
+        metaStore,
+        queryIdGenerator
+    );
+
+    return physicalPlanBuilder.buildPhysicalPlan(logicalPlanNode);
   }
 }

@@ -15,12 +15,10 @@
 
 package io.confluent.ksql.schema.ksql;
 
-import static io.confluent.ksql.util.Identifiers.ensureTrimmed;
-
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.Identifiers;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -30,8 +28,7 @@ import java.util.Optional;
 @Immutable
 public final class Column {
 
-  private final Optional<String> source;
-  private final String name;
+  private final ColumnRef ref;
   private final SqlType type;
 
   /**
@@ -39,8 +36,17 @@ public final class Column {
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Column of(final String name, final SqlType type) {
-    return new Column(Optional.empty(), name, type);
+  public static Column of(final ColumnName name, final SqlType type) {
+    return new Column(ColumnRef.withoutSource(name), type);
+  }
+
+  /**
+   * @param ref  the column reference
+   * @param type the type of the column
+   * @return the immutable column
+   */
+  public static Column of(final ColumnRef ref, final SqlType type) {
+    return new Column(ref, type);
   }
 
   /**
@@ -49,8 +55,8 @@ public final class Column {
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Column of(final String source, final String name, final SqlType type) {
-    return new Column(Optional.of(source), name, type);
+  public static Column of(final SourceName source, final ColumnName name, final SqlType type) {
+    return new Column(ColumnRef.of(source, name), type);
   }
 
   /**
@@ -59,35 +65,31 @@ public final class Column {
    * @param type the type of the field.
    * @return the immutable field.
    */
-  public static Column of(final Optional<String> source, final String name, final SqlType type) {
-    return new Column(source, name, type);
+  public static Column of(
+      final Optional<SourceName> source,
+      final ColumnName name,
+      final SqlType type
+  ) {
+    return new Column(ColumnRef.of(source, name), type);
   }
 
-  private Column(final Optional<String> source, final String name, final SqlType type) {
-    this.source = Objects.requireNonNull(source, "source").map(src -> ensureTrimmed(src, "source"));
-    this.name = ensureTrimmed(Objects.requireNonNull(name, "name"), "name");
+  private Column(final ColumnRef ref, final SqlType type) {
+    this.ref = Objects.requireNonNull(ref, "name");
     this.type = Objects.requireNonNull(type, "type");
-  }
-
-  /**
-   * @return the fully qualified field name.
-   */
-  public String fullName() {
-    return source.map(alias -> SchemaUtil.buildAliasedFieldName(alias, name)).orElse(name);
   }
 
   /**
    * @return the source of the Column
    */
-  public Optional<String> source() {
-    return source;
+  public Optional<SourceName> source() {
+    return ref.source();
   }
 
   /**
    * @return the name of the field, without any source / alias.
    */
-  public String name() {
-    return name;
+  public ColumnName name() {
+    return ref.name();
   }
 
   /**
@@ -98,13 +100,35 @@ public final class Column {
   }
 
   /**
+   * @return the column reference
+   */
+  public ColumnRef ref() {
+    return ref;
+  }
+
+  /**
    * Create a new Field that matches the current, but with the supplied {@code source}.
    *
    * @param source the source to set of the new field.
    * @return the new field.
    */
-  public Column withSource(final String source) {
-    return new Column(Optional.of(source), name, type);
+  public Column withSource(final SourceName source) {
+    return new Column(ref.withSource(source), type);
+  }
+
+  /**
+   * A column {@code matches} a column reference if the names match
+   * and either the reference does not specify a source, or the specified
+   * source matches.
+   *
+   * @param ref the reference to check
+   * @return whether or not {@code ref} matches this instance
+   */
+  public boolean matches(final ColumnRef ref) {
+    return ref.name().equals(this.ref.name())
+        && (!source().isPresent()
+        || !ref.source().isPresent()
+        || ref.source().equals(this.ref.source()));
   }
 
   @Override
@@ -116,14 +140,13 @@ public final class Column {
       return false;
     }
     final Column that = (Column) o;
-    return Objects.equals(source, that.source)
-        && Objects.equals(name, that.name)
+    return Objects.equals(ref, that.ref)
         && Objects.equals(type, that.type);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(source, name, type);
+    return Objects.hash(ref, type);
   }
 
   @Override
@@ -132,10 +155,8 @@ public final class Column {
   }
 
   public String toString(final FormatOptions formatOptions) {
-    final String fmtName = Identifiers.escape(name, formatOptions);
     final String fmtType = type.toString(formatOptions);
-    final String fmtSource = source.map(s -> Identifiers.escape(s, formatOptions) + ".").orElse("");
 
-    return fmtSource + fmtName + " " + fmtType;
+    return ref.toString(formatOptions) + " " + fmtType;
   }
 }

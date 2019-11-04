@@ -16,28 +16,24 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class StreamTableJoin<K> implements ExecutionStep<KStream<K, GenericRow>> {
+public class StreamTableJoin<K> implements ExecutionStep<KStreamHolder<K>> {
 
   private final ExecutionStepProperties properties;
   private final JoinType joinType;
   private final Formats formats;
-  private final ExecutionStep<KStream<K, GenericRow>> left;
-  private final ExecutionStep<KTable<K, GenericRow>> right;
+  private final ExecutionStep<KStreamHolder<K>> left;
+  private final ExecutionStep<KTableHolder<K>> right;
 
   public StreamTableJoin(
       final ExecutionStepProperties properties,
       final JoinType joinType,
       final Formats formats,
-      final ExecutionStep<KStream<K, GenericRow>> left,
-      final ExecutionStep<KTable<K, GenericRow>> right) {
+      final ExecutionStep<KStreamHolder<K>> left,
+      final ExecutionStep<KTableHolder<K>> right) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.joinType = Objects.requireNonNull(joinType, "joinType");
@@ -55,25 +51,25 @@ public class StreamTableJoin<K> implements ExecutionStep<KStream<K, GenericRow>>
     return ImmutableList.of(left, right);
   }
 
-  @Override
-  public KStream<K, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
-  }
-
   public Formats getFormats() {
     return formats;
   }
 
-  public ExecutionStep<KStream<K, GenericRow>> getLeft() {
+  public ExecutionStep<KStreamHolder<K>> getLeft() {
     return left;
   }
 
-  public ExecutionStep<KTable<K, GenericRow>> getRight() {
+  public ExecutionStep<KTableHolder<K>> getRight() {
     return right;
   }
 
   public JoinType getJoinType() {
     return joinType;
+  }
+
+  @Override
+  public KStreamHolder<K> build(final PlanBuilder builder) {
+    return builder.visitStreamTableJoin(this);
   }
 
   @Override

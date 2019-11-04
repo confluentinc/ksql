@@ -15,25 +15,25 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import org.apache.kafka.streams.kstream.KStream;
 
 public final class StreamMapValuesBuilder {
   private StreamMapValuesBuilder() {
   }
 
-  public static <K> KStream<K, GenericRow> build(
-      final KStream<K, GenericRow> sourceKStream,
-      final StreamMapValues<KStream<K, GenericRow>> step,
+  public static <K> KStreamHolder<K> build(
+      final KStreamHolder<K> stream,
+      final StreamMapValues<K> step,
       final KsqlQueryBuilder queryBuilder) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
     final Selection selection =
         Selection.of(
+            queryBuilder.getQueryId(),
             queryContext,
             sourceSchema,
             step.getSelectExpressions(),
@@ -41,6 +41,8 @@ public final class StreamMapValuesBuilder {
             queryBuilder.getFunctionRegistry(),
             queryBuilder.getProcessingLogContext()
         );
-    return sourceKStream.mapValues(selection.getMapper());
+    return stream.withStream(
+        stream.getStream().mapValues(selection.getMapper())
+    );
   }
 }

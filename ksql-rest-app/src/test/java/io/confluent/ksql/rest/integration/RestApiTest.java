@@ -179,7 +179,7 @@ public class RestApiTest {
       // When:
       RestIntegrationTestUtil.makeKsqlRequest(
           REST_APP,
-          "TERMINATE QUERY CSAS_X_0; DROP STREAM X DELETE TOPIC;");
+          "TERMINATE QUERY CSAS_X_1; DROP STREAM X DELETE TOPIC;");
 
       // Then:
       assertThat("Expected topic X to be deleted", !serviceContext.getTopicClient().isTopicExists("X"));

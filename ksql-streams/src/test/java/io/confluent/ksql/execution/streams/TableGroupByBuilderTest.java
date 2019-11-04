@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -14,18 +15,23 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KTableHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.execution.streams.TableGroupByBuilder.TableKeyValueMapper;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -54,10 +60,10 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class TableGroupByBuilderTest {
-  private static final String ALIAS = "SOURCE";
+  private static final SourceName ALIAS = SourceName.of("SOURCE");
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("PAC", SqlTypes.BIGINT)
-      .valueColumn("MAN", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("PAC"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("MAN"), SqlTypes.STRING)
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
@@ -68,9 +74,9 @@ public class TableGroupByBuilderTest {
       columnReference("MAN")
   );
   private static final QueryContext SOURCE_CONTEXT =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("source").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("source").getQueryContext();
   private static final QueryContext STEP_CONTEXT =
-      new QueryContext.Stacker(new QueryId("qid")).push("foo").push("groupby").getQueryContext();
+      new QueryContext.Stacker().push("foo").push("groupby").getQueryContext();
   private static final ExecutionStepProperties SOURCE_PROPERTIES =
       new DefaultExecutionStepProperties(SCHEMA, SOURCE_CONTEXT);
   private static final ExecutionStepProperties PROPERTIES = new DefaultExecutionStepProperties(
@@ -92,7 +98,7 @@ public class TableGroupByBuilderTest {
   @Mock
   private GroupedFactory groupedFactory;
   @Mock
-  private ExecutionStep<KTable<Struct, GenericRow>> sourceStep;
+  private ExecutionStep<KTableHolder<Struct>> sourceStep;
   @Mock
   private KeySerde<Struct> keySerde;
   @Mock
@@ -110,6 +116,7 @@ public class TableGroupByBuilderTest {
   @Captor
   private ArgumentCaptor<Predicate<Struct, GenericRow>> predicateCaptor;
 
+  private PlanBuilder planBuilder;
   private TableGroupBy<Struct> groupBy;
 
   @Rule
@@ -118,6 +125,7 @@ public class TableGroupByBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
@@ -128,19 +136,31 @@ public class TableGroupByBuilderTest {
         .thenReturn(groupedTable);
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
+    when(sourceStep.build(any())).thenReturn(
+        KTableHolder.unmaterialized(sourceTable, mock(KeySerdeFactory.class)));
     groupBy = new TableGroupBy<>(
         PROPERTIES,
         sourceStep,
         FORMATS,
         GROUPBY_EXPRESSIONS
     );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        new StreamsFactories(
+            groupedFactory,
+            mock(JoinedFactory.class),
+            mock(MaterializedFactory.class),
+            mock(StreamJoinedFactory.class)
+        )
+    );
   }
 
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedTable result =
-        TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    final KGroupedTable<Struct, GenericRow> result = groupBy.build(planBuilder);
 
     // Then:
     assertThat(result, is(groupedTable));
@@ -162,7 +182,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldFilterNullRowsBeforeGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(sourceTable).filter(predicateCaptor.capture());
@@ -174,7 +194,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildGroupedCorrectlyForGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(groupedFactory).create("foo-groupby", keySerde, valueSerde);
@@ -183,7 +203,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildKeySerde(
@@ -196,7 +216,7 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldBuildValueSerdeCorrectlyForGroupBy() {
     // When:
-    TableGroupByBuilder.build(sourceTable, groupBy, queryBuilder, groupedFactory);
+    groupBy.build(planBuilder);
 
     // Then:
     verify(queryBuilder).buildValueSerde(
@@ -207,6 +227,6 @@ public class TableGroupByBuilderTest {
   }
 
   private static Expression columnReference(final String column) {
-    return new QualifiedNameReference(QualifiedName.of(ALIAS, column));
+    return new ColumnReferenceExp(ColumnRef.of(ALIAS, ColumnName.of(column)));
   }
 }

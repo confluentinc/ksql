@@ -34,12 +34,17 @@ import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -59,22 +64,22 @@ import org.mockito.junit.MockitoRule;
 
 public class StreamMapValuesBuilderTest {
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
-      .valueColumn("foo", SqlTypes.STRING)
-      .valueColumn("bar", SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
       .build()
       .withMetaAndKeyColsInValue()
-      .withAlias("alias");
+      .withAlias(SourceName.of("alias"));
 
   private static final Expression EXPRESSION1 = new StringLiteral("baz");
   private static final Expression EXPRESSION2 = new IntegerLiteral(123);
 
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
-    SelectExpression.of("expr1", EXPRESSION1),
-    SelectExpression.of("expr2", EXPRESSION2)
+    SelectExpression.of(ColumnName.of("expr1"), EXPRESSION1),
+    SelectExpression.of(ColumnName.of("expr2"), EXPRESSION2)
   );
 
   @Mock
-  private ExecutionStep<KStream<Struct, GenericRow>> sourceStep;
+  private ExecutionStep<KStreamHolder<Struct>> sourceStep;
   @Mock
   private ExecutionStepProperties sourceProperties;
   @Mock
@@ -91,6 +96,8 @@ public class StreamMapValuesBuilderTest {
   private ProcessingLogContext processingLogContext;
   @Mock
   private ProcessingLoggerFactory processingLoggerFactory;
+  @Mock
+  private KeySerdeFactory<Struct> keySerdeFactory;
   @Captor
   private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> captor;
 
@@ -98,9 +105,10 @@ public class StreamMapValuesBuilderTest {
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   private final QueryContext context =
-      new QueryContext.Stacker(new QueryId("qid")).getQueryContext();
+      new QueryContext.Stacker().getQueryContext();
 
-  private StreamMapValues<KStream<Struct, GenericRow>> step;
+  private PlanBuilder planBuilder;
+  private StreamMapValues<Struct> step;
 
   @Before
   @SuppressWarnings("unchecked")
@@ -110,47 +118,50 @@ public class StreamMapValuesBuilderTest {
     when(properties.getQueryContext()).thenReturn(context);
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(any())).thenReturn(mock(ProcessingLogger.class));
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(sourceKStream.mapValues(any(ValueMapper.class))).thenReturn(resultKStream);
+    final KStreamHolder<Struct> sourceStream
+        = new KStreamHolder<>(sourceKStream, keySerdeFactory);
+    when(sourceStep.build(any())).thenReturn(sourceStream);
     step = new StreamMapValues<>(
         properties,
         sourceStep,
         SELECT_EXPRESSIONS
+    );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        mock(SqlPredicateFactory.class),
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
     );
   }
 
   @Test
   public void shouldCallMapValuesWithMapperWithCorrectExpressions() {
     // When:
-    StreamMapValuesBuilder.build(
-        sourceKStream,
-        step,
-        queryBuilder
-    );
+    step.build(planBuilder);
 
     // Then:
     verify(sourceKStream).mapValues(captor.capture());
     assertThat(captor.getValue(), instanceOf(SelectValueMapper.class));
     final SelectValueMapper mapper = (SelectValueMapper) captor.getValue();
     assertThat(mapper.getSelects(), hasSize(2));
-    assertThat(mapper.getSelects().get(0).fieldName, equalTo("expr1"));
+    assertThat(mapper.getSelects().get(0).fieldName, equalTo(ColumnName.of("expr1")));
     assertThat(mapper.getSelects().get(0).evaluator.getExpression(), equalTo(EXPRESSION1));
-    assertThat(mapper.getSelects().get(1).fieldName, equalTo("expr2"));
+    assertThat(mapper.getSelects().get(1).fieldName, equalTo(ColumnName.of("expr2")));
     assertThat(mapper.getSelects().get(1).evaluator.getExpression(), equalTo(EXPRESSION2));
   }
 
   @Test
   public void shouldReturnResultKStream() {
     // When:
-    final KStream<Struct, GenericRow> kstream = StreamMapValuesBuilder.build(
-        sourceKStream,
-        step,
-        queryBuilder
-    );
+    final KStreamHolder<Struct> result = step.build(planBuilder);
 
     // Then:
-    assertThat(kstream, is(resultKStream));
+    assertThat(result.getStream(), is(resultKStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
   }
 }

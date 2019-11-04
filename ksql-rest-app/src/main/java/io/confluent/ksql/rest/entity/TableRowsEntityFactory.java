@@ -16,13 +16,14 @@
 package io.confluent.ksql.rest.entity;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
-import io.confluent.ksql.materialization.TableRow;
+import io.confluent.ksql.execution.streams.materialization.TableRow;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -35,11 +36,11 @@ import org.apache.kafka.connect.data.Struct;
 public final class TableRowsEntityFactory {
 
   private static final List<Column> TIME_WINDOW_COLUMNS = ImmutableList
-      .of(Column.of("WINDOWSTART", SqlTypes.BIGINT));
+      .of(Column.of(ColumnName.of("WINDOWSTART"), SqlTypes.BIGINT));
 
   private static final List<Column> SESSION_WINDOW_COLUMNS = ImmutableList.<Column>builder()
       .addAll(TIME_WINDOW_COLUMNS)
-      .add(Column.of("WINDOWEND", SqlTypes.BIGINT))
+      .add(Column.of(ColumnName.of("WINDOWEND"), SqlTypes.BIGINT))
       .build();
 
   private TableRowsEntityFactory() {
@@ -78,18 +79,18 @@ public final class TableRowsEntityFactory {
   }
 
   private static List<?> createRow(final TableRow row) {
-    final Builder<Object> builder = ImmutableList.builder();
+    final List<Object> rowList = new ArrayList<>();
 
-    keyFields(row.key()).forEach(builder::add);
+    keyFields(row.key()).forEach(rowList::add);
 
     row.window().ifPresent(window -> {
-      builder.add(window.start().toEpochMilli());
-      window.end().map(Instant::toEpochMilli).ifPresent(builder::add);
+      rowList.add(window.start().toEpochMilli());
+      window.end().map(Instant::toEpochMilli).ifPresent(rowList::add);
     });
 
-    builder.addAll(row.value().getColumns());
+    rowList.addAll(row.value().getColumns());
 
-    return builder.build();
+    return rowList;
   }
 
   private static Stream<?> keyFields(final Struct key) {

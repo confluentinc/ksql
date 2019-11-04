@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.SetProperty;
 import io.confluent.ksql.parser.tree.UnsetProperty;
@@ -55,7 +56,9 @@ public class PropertyOverriderTest {
             "SET 'consumer.invalid'='value';",
             new SetProperty(Optional.empty(), "consumer.invalid", "value")),
             new HashMap<>(),
-            engine.getKsqlConfig()),
+            engine.getKsqlConfig()
+        ),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -72,8 +75,10 @@ public class PropertyOverriderTest {
         PreparedStatement.of(
             "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'earliest';",
             new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")),
-            properties,
-            engine.getKsqlConfig()),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()
+        ),
+        properties,
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -95,8 +100,10 @@ public class PropertyOverriderTest {
         PreparedStatement.of(
              "SET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "' = 'invalid';",
             new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "invalid")),
-            new HashMap<>(),
-            engine.getKsqlConfig()),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()
+        ),
+        new HashMap<>(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -115,7 +122,9 @@ public class PropertyOverriderTest {
             "UNSET 'consumer.invalid';",
             new UnsetProperty(Optional.empty(), "consumer.invalid")),
             new HashMap<>(),
-            engine.getKsqlConfig()),
+            engine.getKsqlConfig()
+        ),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -133,8 +142,10 @@ public class PropertyOverriderTest {
         PreparedStatement.of(
             "UNSET '" + ConsumerConfig.AUTO_OFFSET_RESET_CONFIG + "';",
             new UnsetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG)),
-            properties,
-            engine.getKsqlConfig()),
+            ImmutableMap.of(),
+            engine.getKsqlConfig()
+        ),
+        properties,
         engine.getEngine(),
         engine.getServiceContext()
     );

@@ -16,7 +16,7 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
         {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
-        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": null}}
       ]
     },
     {
@@ -28,14 +28,12 @@
       "inputs": [
         {"topic": "input", "key": 1, "value": {"id": 1}},
         {"topic": "input", "key": "1", "value": {"id": 2}},
-        {"topic": "input", "key": "", "value": {"id": 3}},
-        {"topic": "input", "key": null, "value": {"id": 4}}
+        {"topic": "input", "key": "", "value": {"id": 3}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
-        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
-        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}}
       ]
     },
     {
@@ -54,7 +52,7 @@
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
         {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
-        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": null}}
       ]
     },
     {
@@ -66,14 +64,12 @@
       "inputs": [
         {"topic": "input", "key": 1, "value": {"id": 1}},
         {"topic": "input", "key": "1", "value": {"id": 2}},
-        {"topic": "input", "key": "", "value": {"id": 3}},
-        {"topic": "input", "key": null, "value": {"id": 4}}
+        {"topic": "input", "key": "", "value": {"id": 3}}
       ],
       "outputs": [
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 1, "KEY": "1"}},
         {"topic": "OUTPUT", "key": "1", "value": {"ID": 2, "KEY": "1"}},
-        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}},
-        {"topic": "OUTPUT", "key": null, "value": {"ID": 4, "KEY": ""}}
+        {"topic": "OUTPUT", "key": "", "value": {"ID": 3, "KEY": ""}}
       ]
     },
     {

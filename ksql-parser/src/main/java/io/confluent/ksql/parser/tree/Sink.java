@@ -18,8 +18,12 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
+import io.confluent.ksql.schema.ksql.ColumnRef;
+import io.confluent.ksql.util.KsqlException;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -29,10 +33,10 @@ import java.util.Optional;
 @Immutable
 public final class Sink {
 
-  private final String name;
+  private final SourceName name;
   private final boolean createSink;
   private final CreateSourceAsProperties properties;
-  private final Optional<String> partitionBy;
+  private final Optional<ColumnRef> partitionBy;
 
   /**
    * Info about the sink of a query.
@@ -44,23 +48,34 @@ public final class Sink {
    * @return the pojo.
    */
   public static Sink of(
-      final String name,
+      final SourceName name,
       final boolean createSink,
       final CreateSourceAsProperties properties,
       final Optional<Expression> partitionBy
   ) {
-    final Optional<String> partitionByExp = partitionBy
-        .map(Object::toString)
-        .map(String::toUpperCase);
+    if (partitionBy.isPresent()) {
+      final Expression partitionByExp = partitionBy.get();
+      if (partitionByExp instanceof ColumnReferenceExp) {
+        return new Sink(
+            name,
+            createSink,
+            properties,
+            Optional.of(((ColumnReferenceExp) partitionByExp).getReference())
+        );
+      }
 
-    return new Sink(name, createSink, properties, partitionByExp);
+      throw new KsqlException(
+          "Expected partition by to be a valid column but got " + partitionByExp);
+    }
+
+    return new Sink(name, createSink, properties, Optional.empty());
   }
 
   private Sink(
-      final String name,
+      final SourceName name,
       final boolean createSink,
       final CreateSourceAsProperties properties,
-      final Optional<String> partitionBy
+      final Optional<ColumnRef> partitionBy
   ) {
     this.name = requireNonNull(name, "name");
     this.properties = requireNonNull(properties, "properties");
@@ -68,7 +83,7 @@ public final class Sink {
     this.partitionBy = Objects.requireNonNull(partitionBy, "partitionBy");
   }
 
-  public String getName() {
+  public SourceName getName() {
     return name;
   }
 
@@ -80,7 +95,7 @@ public final class Sink {
     return properties;
   }
 
-  public Optional<String> getPartitionBy() {
+  public Optional<ColumnRef> getPartitionBy() {
     return partitionBy;
   }
 }

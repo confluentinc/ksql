@@ -15,31 +15,37 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.KGroupedStream;
 
 @Immutable
-public class StreamAggregate<T, G> implements ExecutionStep<T> {
+public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<G> source;
+  private final ExecutionStep<KGroupedStream<Struct, GenericRow>> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
   private final List<FunctionCall> aggregations;
+  private final LogicalSchema aggregationSchema;
 
   public StreamAggregate(
       final ExecutionStepProperties properties,
-      final ExecutionStep<G> source,
+      final ExecutionStep<KGroupedStream<Struct, GenericRow>> source,
       final Formats formats,
       final int nonFuncColumnCount,
-      final List<FunctionCall> aggregations) {
+      final List<FunctionCall> aggregations,
+      final LogicalSchema aggregationSchema) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.nonFuncColumnCount = nonFuncColumnCount;
-    this.aggregations = Objects.requireNonNull(aggregations);
+    this.aggregations = Objects.requireNonNull(aggregations, "aggregations");
+    this.aggregationSchema = Objects.requireNonNull(aggregationSchema, "aggregationSchema");
   }
 
   @Override
@@ -52,9 +58,29 @@ public class StreamAggregate<T, G> implements ExecutionStep<T> {
     return Collections.singletonList(source);
   }
 
+  public int getNonFuncColumnCount() {
+    return nonFuncColumnCount;
+  }
+
+  public List<FunctionCall> getAggregations() {
+    return aggregations;
+  }
+
+  public Formats getFormats() {
+    return formats;
+  }
+
+  public LogicalSchema getAggregationSchema() {
+    return aggregationSchema;
+  }
+
+  public ExecutionStep<KGroupedStream<Struct, GenericRow>> getSource() {
+    return source;
+  }
+
   @Override
-  public T build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<Struct> build(final PlanBuilder builder) {
+    return builder.visitStreamAggregate(this);
   }
 
   @Override
@@ -65,17 +91,25 @@ public class StreamAggregate<T, G> implements ExecutionStep<T> {
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamAggregate<?, ?> that = (StreamAggregate<?, ?>) o;
+    final StreamAggregate that = (StreamAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
         && Objects.equals(aggregations, that.aggregations)
-        && nonFuncColumnCount == that.nonFuncColumnCount;
+        && nonFuncColumnCount == that.nonFuncColumnCount
+        && aggregationSchema.equals(that.aggregationSchema);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, formats, aggregations, nonFuncColumnCount);
+    return Objects.hash(
+        properties,
+        source,
+        formats,
+        aggregations,
+        nonFuncColumnCount,
+        aggregationSchema
+    );
   }
 }

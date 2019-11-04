@@ -21,6 +21,8 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kafka.connect.data.ConnectSchema;
@@ -37,122 +39,122 @@ public class JsonSerdeUtilsTest {
 
   @Test
   public void shouldConvertToBooleanCorrectly() {
-    final Boolean b = JsonSerdeUtils.toBoolean(true);
+    final Boolean b = JsonSerdeUtils.toBoolean(BooleanNode.TRUE);
     assertThat(b, equalTo(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonBooleanToBoolean() {
-    JsonSerdeUtils.toBoolean(1);
+    JsonSerdeUtils.toBoolean(JsonNodeFactory.instance.numberNode(1));
   }
 
   @Test
   public void shouldConvertToIntCorrectly() {
-    final Integer i = JsonSerdeUtils.toInteger(1);
+    final Integer i = JsonSerdeUtils.toInteger(JsonNodeFactory.instance.numberNode(1));
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertLongToIntCorrectly() {
-    final Integer i = JsonSerdeUtils.toInteger(1L);
+    final Integer i = JsonSerdeUtils.toInteger(JsonNodeFactory.instance.numberNode(1L));
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertDoubleToIntCorrectly() {
-    final Integer i = JsonSerdeUtils.toInteger(1.0);
+    final Integer i = JsonSerdeUtils.toInteger(JsonNodeFactory.instance.numberNode(1.0d));
     assertThat(i, equalTo(1));
   }
 
   @Test
   public void shouldConvertStringToIntCorrectly() {
-    final Integer i = JsonSerdeUtils.toInteger("1");
+    final Integer i = JsonSerdeUtils.toInteger(JsonNodeFactory.instance.textNode("1"));
     assertThat(i, equalTo(1));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToInt() {
-    JsonSerdeUtils.toInteger("1!:)");
+    JsonSerdeUtils.toInteger(JsonNodeFactory.instance.textNode("1!"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingNonIntegerToIntegr() {
-    JsonSerdeUtils.toInteger(true);
+    JsonSerdeUtils.toInteger(JsonNodeFactory.instance.booleanNode(true));
   }
 
   @Test
   public void shouldConvertToLongCorrectly() {
-    final Long l = JsonSerdeUtils.toLong(1L);
+    final Long l = JsonSerdeUtils.toLong(JsonNodeFactory.instance.numberNode(1L));
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertIntToLongCorrectly() {
-    final Long l = JsonSerdeUtils.toLong(1);
+    final Long l = JsonSerdeUtils.toLong(JsonNodeFactory.instance.numberNode(1));
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertDoubleToLongCorrectly() {
-    final Long l = JsonSerdeUtils.toLong(1.0);
+    final Long l = JsonSerdeUtils.toLong(JsonNodeFactory.instance.numberNode(1.0d));
     assertThat(l, equalTo(1L));
   }
 
   @Test
   public void shouldConvertStringToLongCorrectly() {
-    final Long l = JsonSerdeUtils.toLong("1");
+    final Long l = JsonSerdeUtils.toLong(JsonNodeFactory.instance.textNode("1"));
     assertThat(l, equalTo(1L));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToLong() {
-    JsonSerdeUtils.toLong("1!:)");
+    JsonSerdeUtils.toLong(JsonNodeFactory.instance.textNode("1!"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleLong() {
-    JsonSerdeUtils.toInteger(true);
+    JsonSerdeUtils.toInteger(JsonNodeFactory.instance.booleanNode(true));
   }
 
   @Test
   public void shouldConvertToDoubleCorrectly() {
-    final Double d = JsonSerdeUtils.toDouble(1.0);
+    final Double d = JsonSerdeUtils.toDouble(JsonNodeFactory.instance.numberNode(1.0d));
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertIntToDoubleCorrectly() {
-    final Double d = JsonSerdeUtils.toDouble(1);
+    final Double d = JsonSerdeUtils.toDouble(JsonNodeFactory.instance.numberNode(1));
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertLongToDoubleCorrectly() {
-    final Double d = JsonSerdeUtils.toDouble(1L);
+    final Double d = JsonSerdeUtils.toDouble(JsonNodeFactory.instance.numberNode(1L));
     assertThat(d, equalTo(1.0));
   }
 
   @Test
   public void shouldConvertStringToDoubleCorrectly() {
-    final Double d = JsonSerdeUtils.toDouble("1.0");
+    final Double d = JsonSerdeUtils.toDouble(JsonNodeFactory.instance.textNode("1.0"));
     assertThat(d, equalTo(1.0));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldNotConvertIncorrectStringToDouble() {
-    JsonSerdeUtils.toDouble("1!:)");
+    JsonSerdeUtils.toDouble(JsonNodeFactory.instance.textNode("1!::"));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void shouldFailWhenConvertingIncompatibleDouble() {
-    JsonSerdeUtils.toDouble(true);
+    JsonSerdeUtils.toDouble(JsonNodeFactory.instance.booleanNode(true));
   }
 
   @Test
   public void shouldNotIncludeValueInExceptionWhenFailingToBoolean() {
     try {
       // When:
-      JsonSerdeUtils.toBoolean("personal info: do not log me");
+      JsonSerdeUtils.toBoolean(JsonNodeFactory.instance.textNode("personal info: do not log me"));
 
       fail("Invalid test: should throw");
 
@@ -165,7 +167,7 @@ public class JsonSerdeUtilsTest {
   public void shouldNotIncludeValueInExceptionWhenFailingToInteger() {
     try {
       // When:
-      JsonSerdeUtils.toInteger("personal info: do not log me");
+      JsonSerdeUtils.toInteger(JsonNodeFactory.instance.textNode("personal info: do not log me"));
 
       fail("Invalid test: should throw");
 
@@ -178,7 +180,7 @@ public class JsonSerdeUtilsTest {
   public void shouldNotIncludeValueInExceptionWhenFailingToLong() {
     try {
       // When:
-      JsonSerdeUtils.toLong("personal info: do not log me");
+      JsonSerdeUtils.toLong(JsonNodeFactory.instance.textNode("personal info: do not log me"));
 
       fail("Invalid test: should throw");
 
@@ -191,7 +193,7 @@ public class JsonSerdeUtilsTest {
   public void shouldNotIncludeValueInExceptionWhenFailingToDouble() {
     try {
       // When:
-      JsonSerdeUtils.toDouble("personal info: do not log me");
+      JsonSerdeUtils.toDouble(JsonNodeFactory.instance.textNode("personal info: do not log me"));
 
       fail("Invalid test: should throw");
 

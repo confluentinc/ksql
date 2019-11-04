@@ -18,9 +18,6 @@ package io.confluent.ksql.test;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
-import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.MockSchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.engine.KsqlEngine;
@@ -33,18 +30,22 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
 import io.confluent.ksql.test.loader.ExpectedTopologiesTestLoader;
 import io.confluent.ksql.test.serde.SerdeSupplier;
-import io.confluent.ksql.test.tools.FakeKafkaService;
 import io.confluent.ksql.test.tools.TestCase;
+import io.confluent.ksql.test.tools.TestExecutor;
 import io.confluent.ksql.test.tools.TestExecutorUtil;
 import io.confluent.ksql.test.tools.Topic;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.utils.SerdeUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,11 +53,6 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.streams.StreamsConfig;
-import org.apache.kafka.test.IntegrationTest;
-import org.apache.kafka.test.TestUtils;
-import org.junit.experimental.categories.Category;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -69,7 +65,9 @@ import org.w3c.dom.NodeList;
  *
  * The steps to generate topology files:
  *
- * 1. Run this class BEFORE you update the pom with a new version.
+ * 1. Run this class by running the test
+ * {@code io.confluent.ksql.test.ManualTopologyFileGeneratorTest} BEFORE you update the pom
+ * with a new version.
  *
  * 2. This class will generate expected topology files
  * for the version specified in the pom file.  The program writes the files to
@@ -77,17 +75,12 @@ import org.w3c.dom.NodeList;
  * VERSION_NUM is the version defined in ksql-engine/pom.xml &lt;parent&gt;&lt;version&gt; element.
  *
  */
-@Category(IntegrationTest.class)
 public final class TopologyFileGenerator {
 
-    private static final FakeKafkaService fakeKafkaService = FakeKafkaService.create();
+    private static final StubKafkaService stubKafkaService = StubKafkaService.create();
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
     private TopologyFileGenerator() {
-    }
-
-    public static void main(final String[] args) throws Exception {
-        generateTopologies(findBaseDir());
     }
 
     static Path findBaseDir() {
@@ -102,6 +95,10 @@ public final class TopologyFileGenerator {
         throw new RuntimeException("Failed to determine location of expected topologies directory. "
             + "App should be run with current directory set to either the root of the repo or the "
             + "root of the ksql-functional-tests module");
+    }
+
+    static void generateTopologies() throws Exception {
+        generateTopologies(findBaseDir());
     }
 
     static void generateTopologies(final Path base) throws Exception {
@@ -145,66 +142,83 @@ public final class TopologyFileGenerator {
         final Path topologyDir,
         final List<TestCase> testCases
     ) {
-        final ObjectWriter objectWriter = new ObjectMapper().writerWithDefaultPrettyPrinter();
-
-        testCases.forEach(testCase -> {
-            final KsqlConfig ksqlConfig = new KsqlConfig(baseConfig())
-                .cloneWithPropertyOverwrite(testCase.properties());
-
-            try (final ServiceContext serviceContext = getServiceContext();
-                final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)) {
-
-                final PersistentQueryMetadata queryMetadata =
-                    buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
-                final Map<String, String> configsToPersist
-                    = new HashMap<>(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
-
-                // Ignore the KStreams state directory as its different every time:
-                configsToPersist.remove("ksql.streams.state.dir");
-
-                ExpectedTopologiesTestLoader.writeExpectedTopologyFile(
-                    testCase.getName(),
-                    queryMetadata,
-                    configsToPersist,
-                    objectWriter,
-                    topologyDir);
-            }
-        });
+        testCases.forEach(testCase -> writeExpectedToplogyFile(topologyDir, testCase));
     }
 
-    static Map<String, Object> baseConfig() {
-        return ImmutableMap.<String, Object>builder()
-            .put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:0")
-            .put(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, 0)
-            .put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
-            .put(StreamsConfig.CACHE_MAX_BYTES_BUFFERING_CONFIG, 0)
-            .put(StreamsConfig.STATE_DIR_CONFIG, TestUtils.tempDirectory().getPath())
-            .put(StreamsConfig.APPLICATION_ID_CONFIG, "some.ksql.service.id")
-            .put(KsqlConfig.KSQL_SERVICE_ID_CONFIG, "some.ksql.service.id")
-            .put(KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_ON)
-            .put(StreamsConfig.TOPOLOGY_OPTIMIZATION, "all")
-            .build();
+    private static void writeExpectedToplogyFile(final Path topologyDir, final TestCase testCase) {
+        try {
+            final Path topologyFile = buildExpectedTopologyPath(topologyDir, testCase);
+
+            final String topologyContent = buildExpectedTopologyContent(testCase, Optional.empty());
+
+            Files.write(topologyFile,
+                topologyContent.getBytes(StandardCharsets.UTF_8),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.TRUNCATE_EXISTING
+            );
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    static ServiceContext getServiceContext() {
+    static Path buildExpectedTopologyPath(final Path topologyDir, final TestCase testCase) {
+        return ExpectedTopologiesTestLoader.buildExpectedTopologyPath(
+            testCase.getName(),
+            topologyDir
+        );
+    }
+
+    static String buildExpectedTopologyContent(
+        final TestCase testCase,
+        final Optional<Map<String, ?>> persistedConfigs
+    ) {
+        final KsqlConfig baseConfigs = new KsqlConfig(TestExecutor.baseConfig())
+            .cloneWithPropertyOverwrite(testCase.properties());
+
+        final KsqlConfig ksqlConfig = persistedConfigs
+            .map(baseConfigs::overrideBreakingConfigsWithOriginalValues)
+            .orElse(baseConfigs);
+
+        try (final ServiceContext serviceContext = getServiceContext();
+            final KsqlEngine ksqlEngine = getKsqlEngine(serviceContext)
+        ) {
+            final PersistentQueryMetadata queryMetadata =
+                buildQuery(testCase, serviceContext, ksqlEngine, ksqlConfig);
+
+            final Map<String, String> configsToPersist
+                = new HashMap<>(ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
+
+            // Ignore the KStreams state directory as its different every time:
+            configsToPersist.remove("ksql.streams.state.dir");
+
+            return ExpectedTopologiesTestLoader.buildExpectedTopologyContent(
+                queryMetadata,
+                configsToPersist
+            );
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static ServiceContext getServiceContext() {
         final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
         return TestServiceContext.create(() -> schemaRegistryClient);
     }
 
-    static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
+    private static KsqlEngine getKsqlEngine(final ServiceContext serviceContext) {
         final MutableMetaStore metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
         return KsqlEngineTestUtil.createKsqlEngine(serviceContext, metaStore);
     }
 
-    static PersistentQueryMetadata buildQuery(
+    private static PersistentQueryMetadata buildQuery(
         final TestCase testCase,
         final ServiceContext serviceContext,
         final KsqlEngine ksqlEngine,
         final KsqlConfig ksqlConfig
     ) {
         final List<PersistentQueryMetadata> queries = TestExecutorUtil
-            .buildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, fakeKafkaService);
+            .buildQueries(testCase, serviceContext, ksqlEngine, ksqlConfig, stubKafkaService);
 
         final MetaStore metaStore = ksqlEngine.getMetaStore();
         for (QueryMetadata queryMetadata: queries) {
@@ -234,7 +248,7 @@ public final class TopologyFileGenerator {
                 Optional.empty()
             );
 
-            fakeKafkaService.createTopic(sinkTopic);
+            stubKafkaService.createTopic(sinkTopic);
         }
 
         assertThat("test did not generate any queries.", queries.isEmpty(), is(false));

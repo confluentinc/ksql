@@ -24,6 +24,8 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.internal.QueryStateListener;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
@@ -44,9 +46,9 @@ public class QueryMetadataTest {
 
   private static final String QUERY_APPLICATION_ID = "Query1";
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
-      .valueColumn("f0", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.STRING)
       .build();
-  private static final Set<String> SOME_SOURCES = ImmutableSet.of("s1", "s2");
+  private static final Set<SourceName> SOME_SOURCES = ImmutableSet.of(SourceName.of("s1"), SourceName.of("s2"));
 
   @Mock
   private Topology topoplogy;
@@ -66,7 +68,6 @@ public class QueryMetadataTest {
         SOME_SCHEMA,
         SOME_SOURCES,
         "bar",
-        DataSourceType.KSTREAM,
         QUERY_APPLICATION_ID,
         topoplogy,
         Collections.emptyMap(),

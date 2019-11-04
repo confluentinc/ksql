@@ -48,13 +48,15 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
   );
 
   private final ConnectSchema schema;
+  private final CSVFormat csvFormat;
 
-  KsqlDelimitedDeserializer(
-      final PersistenceSchema schema
+  public KsqlDelimitedDeserializer(
+      final PersistenceSchema schema,
+      final CSVFormat csvFormat
   ) {
     this.schema = Objects.requireNonNull(schema, "schema").serializedSchema();
-
     throwOnUnsupported(this.schema);
+    this.csvFormat = Objects.requireNonNull(csvFormat, "csvFormat");
   }
 
   @Override
@@ -69,7 +71,7 @@ public class KsqlDelimitedDeserializer implements Deserializer<Object> {
 
     try {
       final String recordCsvString = new String(bytes, StandardCharsets.UTF_8);
-      final List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, CSVFormat.DEFAULT)
+      final List<CSVRecord> csvRecords = CSVParser.parse(recordCsvString, csvFormat)
           .getRecords();
 
       if (csvRecords.isEmpty()) {

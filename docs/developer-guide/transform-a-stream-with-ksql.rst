@@ -50,7 +50,8 @@ The following statement generates a new stream, named
              pageid,
              TIMESTAMPTOSTRING(viewtime, 'yyyy-MM-dd HH:mm:ss.SSS') AS timestring
       FROM pageviews
-      PARTITION BY userid;
+      PARTITION BY userid
+      EMIT CHANGES;
 
 Content-based Routing
 ********************* 
@@ -74,7 +75,8 @@ different users selected into the output.
              pageid
       FROM pageviews
       WHERE userid='User_1' OR userid='User_2'
-      PARTITION BY userid;
+      PARTITION BY userid
+      EMIT CHANGES;
 
 .. code:: sql
 
@@ -84,7 +86,8 @@ different users selected into the output.
              pageid
       FROM pageviews
       WHERE userid<>'User_1' AND userid<>'User_2'
-      PARTITION BY userid;
+      PARTITION BY userid
+      EMIT CHANGES;
 
 Next Steps
 **********

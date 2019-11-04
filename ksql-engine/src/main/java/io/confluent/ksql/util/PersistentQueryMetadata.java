@@ -19,12 +19,12 @@ import static java.util.Objects.requireNonNull;
 
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.materialization.Materialization;
-import io.confluent.ksql.materialization.MaterializationProvider;
+import io.confluent.ksql.execution.streams.materialization.Materialization;
+import io.confluent.ksql.execution.streams.materialization.MaterializationProvider;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
-import io.confluent.ksql.serde.Format;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,9 +40,10 @@ public class PersistentQueryMetadata extends QueryMetadata {
 
   private final QueryId id;
   private final KsqlTopic resultTopic;
-  private final String sinkName;
+  private final SourceName sinkName;
   private final QuerySchemas schemas;
   private final PhysicalSchema resultSchema;
+  private final DataSourceType dataSourceType;
   private final Optional<MaterializationProvider> materializationProvider;
 
   // CHECKSTYLE_RULES.OFF: ParameterNumberCheck
@@ -50,8 +51,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
       final String statementString,
       final KafkaStreams kafkaStreams,
       final PhysicalSchema schema,
-      final Set<String> sourceNames,
-      final String sinkName,
+      final Set<SourceName> sourceNames,
+      final SourceName sinkName,
       final String executionPlan,
       final QueryId id,
       final DataSourceType dataSourceType,
@@ -71,7 +72,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
         schema.logicalSchema(),
         sourceNames,
         executionPlan,
-        dataSourceType,
         queryApplicationId,
         topology,
         streamsProperties,
@@ -85,6 +85,7 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.resultSchema = requireNonNull(schema, "schema");
     this.materializationProvider =
         requireNonNull(materializationProvider, "materializationProvider");
+    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
   }
 
   private PersistentQueryMetadata(
@@ -98,10 +99,15 @@ public class PersistentQueryMetadata extends QueryMetadata {
     this.schemas = other.schemas;
     this.resultSchema = other.resultSchema;
     this.materializationProvider = other.materializationProvider;
+    this.dataSourceType = other.dataSourceType;
   }
 
   public PersistentQueryMetadata copyWith(final Consumer<QueryMetadata> closeCallback) {
     return new PersistentQueryMetadata(this, closeCallback);
+  }
+
+  public DataSourceType getDataSourceType() {
+    return dataSourceType;
   }
 
   public QueryId getQueryId() {
@@ -112,12 +118,8 @@ public class PersistentQueryMetadata extends QueryMetadata {
     return resultTopic;
   }
 
-  public String getSinkName() {
+  public SourceName getSinkName() {
     return sinkName;
-  }
-
-  public Format getResultTopicFormat() {
-    return resultTopic.getValueFormat().getFormat();
   }
 
   public String getSchemasDescription() {
@@ -129,8 +131,9 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public Optional<Materialization> getMaterialization(
+      final QueryId queryId,
       final QueryContext.Stacker contextStacker
   ) {
-    return materializationProvider.map(builder -> builder.build(contextStacker));
+    return materializationProvider.map(builder -> builder.build(queryId, contextStacker));
   }
 }

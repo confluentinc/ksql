@@ -16,6 +16,8 @@
 package io.confluent.ksql.util.timestamp;
 
 import com.google.common.testing.EqualsTester;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import org.junit.Test;
 
 public class StringTimestampExtractionPolicyTest {
@@ -23,10 +25,10 @@ public class StringTimestampExtractionPolicyTest {
   public void shouldTestEqualityCorrectly() {
     new EqualsTester()
         .addEqualityGroup(
-            new StringTimestampExtractionPolicy("field1", "yyMMddHHmmssZ"),
-            new StringTimestampExtractionPolicy("field1", "yyMMddHHmmssZ"))
-        .addEqualityGroup(new StringTimestampExtractionPolicy("field2", "yyMMddHHmmssZ"))
-        .addEqualityGroup(new StringTimestampExtractionPolicy("field1", "ddMMyyHHmmssZ"))
+            new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1")), "yyMMddHHmmssZ"),
+            new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1")), "yyMMddHHmmssZ"))
+        .addEqualityGroup(new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field2")), "yyMMddHHmmssZ"))
+        .addEqualityGroup(new StringTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("field1")), "ddMMyyHHmmssZ"))
         .testEquals();
   }
 }

@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.test.model.WindowData;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
@@ -45,7 +46,14 @@ public class RecordTest {
   @Test
   public void shouldGetCorrectStringKeySerializer() {
     // Given:
-    final Record record = new Record(topic, "foo", "bar", 1000L, null);
+    final Record record = new Record(
+        topic,
+        "foo",
+        "bar",
+        null,
+        Optional.of(1000L),
+        null
+    );
 
     // When:
     final Serializer<?> serializer = record.keySerializer();
@@ -60,7 +68,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         new WindowData(100L, 1000L, "TIME"));
 
     // When:
@@ -76,7 +85,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         new WindowData(100L, 1000L, "SESSION"));
 
     // When:
@@ -92,7 +102,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         null);
 
     // When:
@@ -109,7 +120,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         new WindowData(100L, 1000L, "TIME"));
 
     // When:
@@ -126,7 +138,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         new WindowData(100L, 1000L, "SESSION"));
 
     // When:
@@ -143,7 +156,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         null);
 
     // When:
@@ -160,7 +174,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         new WindowData(100L, 1000L, "TIME"));
 
     // When:
@@ -180,7 +195,8 @@ public class RecordTest {
     final Record record = new Record(topic,
         "foo",
         "bar",
-        1000L,
+        null,
+        Optional.of(1000L),
         new WindowData(100L, 1000L, "SESSION"));
 
     // When:

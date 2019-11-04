@@ -29,12 +29,13 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.DoubleLiteral;
 import io.confluent.ksql.execution.expression.tree.Expression;
+import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
@@ -42,11 +43,18 @@ import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.InsertValues;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -93,23 +101,33 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
+  private static final ColumnName COL0 = ColumnName.of("COL0");
   private static final LogicalSchema SINGLE_FIELD_SCHEMA = LogicalSchema.builder()
-      .valueColumn("COL0", SqlTypes.STRING)
+      .valueColumn(COL0, SqlTypes.STRING)
       .build();
 
+  private static final LogicalSchema SINGLE_ARRAY_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("COL0"), SqlArray.of(SqlTypes.INTEGER))
+      .build();
+
+  private static final LogicalSchema SINGLE_MAP_SCHEMA = LogicalSchema.builder()
+      .valueColumn(ColumnName.of("COL0"), SqlMap.of(SqlTypes.INTEGER))
+      .build();
+
+
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("COL0", SqlTypes.STRING)
-      .valueColumn("COL1", SqlTypes.BIGINT)
+      .valueColumn(COL0, SqlTypes.STRING)
+      .valueColumn(ColumnName.of("COL1"), SqlTypes.BIGINT)
       .build();
 
   private static final LogicalSchema BIG_SCHEMA = LogicalSchema.builder()
-      .valueColumn("COL0", SqlTypes.STRING) // named COL0 for auto-ROWKEY
-      .valueColumn("INT", SqlTypes.INTEGER)
-      .valueColumn("BIGINT", SqlTypes.BIGINT)
-      .valueColumn("DOUBLE", SqlTypes.DOUBLE)
-      .valueColumn("BOOLEAN", SqlTypes.BOOLEAN)
-      .valueColumn("VARCHAR", SqlTypes.STRING)
-      .valueColumn("DECIMAL", SqlTypes.decimal(2, 1))
+      .valueColumn(COL0, SqlTypes.STRING) // named COL0 for auto-ROWKEY
+      .valueColumn(ColumnName.of("INT"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("BIGINT"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("DOUBLE"), SqlTypes.DOUBLE)
+      .valueColumn(ColumnName.of("BOOLEAN"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("VARCHAR"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("DECIMAL"), SqlTypes.decimal(2, 1))
       .build();
 
   private static final byte[] KEY = new byte[]{1};
@@ -162,7 +180,7 @@ public class InsertValuesExecutorTest {
     when(serviceContext.getKafkaClientSupplier()).thenReturn(kafkaClientSupplier);
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
-    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of("COL0"));
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     when(valueSerdeFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(valueSerde);
@@ -187,7 +205,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -198,7 +216,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldInsertWrappedSingleField() {
     // Given:
-    givenDataSourceWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
+    givenSourceStreamWithSchema(SINGLE_FIELD_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueFieldNames(SINGLE_FIELD_SCHEMA),
@@ -206,7 +224,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
@@ -217,8 +235,11 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldInsertUnwrappedSingleField() {
     // Given:
-    givenDataSourceWithSchema(SINGLE_FIELD_SCHEMA,
-        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES), Optional.of("COL0"));
+    givenSourceStreamWithSchema(
+        SINGLE_FIELD_SCHEMA,
+        SerdeOption.of(SerdeOption.UNWRAP_SINGLE_VALUES),
+        Optional.of(COL0))
+    ;
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         valueFieldNames(SINGLE_FIELD_SCHEMA),
@@ -226,7 +247,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("new"));
@@ -237,7 +258,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInRowtime() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0", "COL1"),
         ImmutableList.of(
             new StringLiteral("str"),
@@ -247,7 +268,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -258,7 +279,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleRowTimeWithoutRowKey() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWTIME", "COL0", "COL1"),
         ImmutableList.of(
             new LongLiteral(1234L),
@@ -268,7 +289,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -279,7 +300,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInRowKeyFromSpecifiedKey() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
         ImmutableList.of(
             new StringLiteral("str"),
@@ -288,7 +309,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -309,7 +330,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -320,7 +341,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInMissingColumnsWithNulls() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0"),
         ImmutableList.of(
             new StringLiteral("str"),
@@ -328,7 +349,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -339,7 +360,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldFillInKeyFromRowKey() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL1"),
         ImmutableList.of(
             new StringLiteral("str"),
@@ -348,7 +369,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -359,7 +380,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleOutOfOrderSchema() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL1", "COL0"),
         ImmutableList.of(
             new LongLiteral(2L),
@@ -368,7 +389,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -379,7 +400,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleAllSortsOfLiterals() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL1", "COL0"),
         ImmutableList.of(
             new LongLiteral(2L),
@@ -387,7 +408,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -396,9 +417,10 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldHandleNullKey() {
+  public void shouldHandleNullKeyForSourceWithKeyField() {
     // Given:
-    givenDataSourceWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
+    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of(COL0));
+
     final ConfiguredStatement<InsertValues> statement = givenInsertValues(
         allFieldNames(BIG_SCHEMA),
         ImmutableList.of(
@@ -414,7 +436,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -427,11 +449,79 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
+  public void shouldHandleNegativeValueExpression() {
+    // Given:
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(ColumnName.of("COL0")));
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of(
+            new StringLiteral("str"),
+            ArithmeticUnaryExpression.negative(Optional.empty(), new LongLiteral(1))
+        )
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", -1L)));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleUdfs() {
+    // Given:
+    givenSourceStreamWithSchema(SINGLE_ARRAY_SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0"),
+        ImmutableList.of(
+            new FunctionCall(
+                FunctionName.of("AS_ARRAY"),
+                ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2))))
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(ImmutableList.of(1, 2))));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleNestedUdfs() {
+    // Given:
+    givenSourceStreamWithSchema(SINGLE_MAP_SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0"),
+        ImmutableList.of(
+            new FunctionCall(
+                FunctionName.of("AS_MAP"),
+                ImmutableList.of(
+                    new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new StringLiteral("foo"))),
+                    new FunctionCall(FunctionName.of("AS_ARRAY"), ImmutableList.of(new IntegerLiteral(1)))
+                ))
+        )
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of(ImmutableMap.of("foo", 1))));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
   public void shouldAllowUpcast() {
     // Given:
-    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.of("COL0"));
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
         ImmutableList.of(
             new StringLiteral("str"),
@@ -440,7 +530,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("str"));
@@ -470,7 +560,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectMessage("Failed to insert values into ");
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -491,7 +581,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Could not serialize key")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -513,7 +603,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Could not serialize row")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -537,13 +627,13 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
   public void shouldThrowIfRowKeyAndKeyDoNotMatch() {
     // Given:
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0"),
         ImmutableList.of(
             new StringLiteral("foo"),
@@ -555,7 +645,7 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected ROWKEY and COL0 to match")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -572,15 +662,15 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected a value for each column")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
   public void shouldFailOnDowncast() {
     // Given:
-    givenDataSourceWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of("COL0"));
+    givenSourceStreamWithSchema(BIG_SCHEMA, SerdeOption.none(), Optional.of(COL0));
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("INT"),
         ImmutableList.of(
             new DoubleLiteral(1.1)
@@ -592,15 +682,15 @@ public class InsertValuesExecutorTest {
     expectedException.expectCause(hasMessage(containsString("Expected type INTEGER for field")));
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
-  public void shouldHandleSourcesWithNoKeyField() {
+  public void shouldHandleStreamsWithNoKeyField() {
     // Given:
-    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0", "COL1"),
         ImmutableList.of(
             new StringLiteral("key"),
@@ -609,7 +699,7 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
@@ -618,11 +708,33 @@ public class InsertValuesExecutorTest {
   }
 
   @Test
-  public void shouldHandleSourcesWithNoKeyFieldAndNoRowKeyProvided() {
+  public void shouldHandleTablesWithNoKeyField() {
     // Given:
-    givenDataSourceWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
 
-    final ConfiguredStatement<InsertValues> statement = givenInsertValues(
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("ROWKEY", "COL0", "COL1"),
+        ImmutableList.of(
+            new StringLiteral("key"),
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+
+    // Then:
+    verify(keySerializer).serialize(TOPIC_NAME, keyStruct("key"));
+    verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
+    verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldHandleStreamsWithNoKeyFieldAndNoRowKeyProvided() {
+    // Given:
+    givenSourceStreamWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
         ImmutableList.of(
             new StringLiteral("str"),
@@ -630,12 +742,53 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerializer).serialize(TOPIC_NAME, keyStruct(null));
     verify(valueSerializer).serialize(TOPIC_NAME, new GenericRow(ImmutableList.of("str", 2L)));
     verify(producer).send(new ProducerRecord<>(TOPIC_NAME, null, 1L, KEY, VALUE));
+  }
+
+  @Test
+  public void shouldThrowOnTablesWithNoKeyFieldAndNoRowKeyProvided() {
+    // Given:
+    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of(
+            new StringLiteral("str"),
+            new LongLiteral(2L))
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
+ }
+
+  @Test
+  public void shouldThrowOnTablesWithKeyFieldAndNullKeyFieldValueProvided() {
+    // Given:
+    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
+
+    final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
+        ImmutableList.of("COL1"),
+        ImmutableList.of(
+            new LongLiteral(2L))
+    );
+
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Failed to insert values into 'TOPIC'. Value for ROWKEY is required for tables");
+
+    // When:
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
   }
 
   @Test
@@ -650,11 +803,11 @@ public class InsertValuesExecutorTest {
     );
 
     // When:
-    executor.execute(statement, engine, serviceContext);
+    executor.execute(statement, ImmutableMap.of(), engine, serviceContext);
 
     // Then:
     verify(keySerdeFactory).create(
-        FormatInfo.of(Format.KAFKA, Optional.empty()),
+        FormatInfo.of(Format.KAFKA, Optional.empty(), Optional.empty()),
         PersistenceSchema.from(SCHEMA.keyConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -663,7 +816,7 @@ public class InsertValuesExecutorTest {
     );
 
     verify(valueSerdeFactory).create(
-        FormatInfo.of(Format.JSON, Optional.empty()),
+        FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
         PersistenceSchema.from(SCHEMA.valueConnectSchema(), false),
         new KsqlConfig(ImmutableMap.of()),
         srClientFactory,
@@ -672,23 +825,47 @@ public class InsertValuesExecutorTest {
     );
   }
 
-  private static ConfiguredStatement<InsertValues> givenInsertValues(
+  private static ConfiguredStatement<InsertValues> givenInsertValuesStrings(
       final List<String> columns,
+      final List<Expression> values
+  ) {
+    return givenInsertValues(columns.stream().map(ColumnName::of).collect(Collectors.toList()), values);
+  }
+
+  private static ConfiguredStatement<InsertValues> givenInsertValues(
+      final List<ColumnName> columns,
       final List<Expression> values
   ) {
     return ConfiguredStatement.of(
         PreparedStatement.of(
             "",
-            new InsertValues(QualifiedName.of("TOPIC"), columns, values)),
+            new InsertValues(SourceName.of("TOPIC"), columns, values)),
         ImmutableMap.of(),
         new KsqlConfig(ImmutableMap.of())
     );
   }
 
+  private void givenSourceStreamWithSchema(
+      final LogicalSchema schema,
+      final Set<SerdeOption> serdeOptions,
+      final Optional<ColumnName> keyField
+  ) {
+    givenDataSourceWithSchema(schema, serdeOptions, keyField, false);
+  }
+
+  private void givenSourceTableWithSchema(
+      final LogicalSchema schema,
+      final Set<SerdeOption> serdeOptions,
+      final Optional<ColumnName> keyField
+  ) {
+    givenDataSourceWithSchema(schema, serdeOptions, keyField, true);
+  }
+
   private void givenDataSourceWithSchema(
       final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
-      final Optional<String> keyField
+      final Optional<ColumnName> keyField,
+      final boolean table
   ) {
     final KsqlTopic topic = new KsqlTopic(
         TOPIC_NAME,
@@ -698,17 +875,33 @@ public class InsertValuesExecutorTest {
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(kf, schema.findValueColumn(kf).get()))
+        .map(kf -> KeyField.of(
+            ColumnRef.withoutSource(kf),
+            schema.findValueColumn(ColumnRef.withoutSource(kf)).get()))
         .orElse(KeyField.none());
-    final DataSource<?> dataSource = new KsqlStream<>(
-        "",
-        "TOPIC",
-        schema,
-        serdeOptions,
-        valueKeyField,
-        new MetadataTimestampExtractionPolicy(),
-        topic
-    );
+
+    final DataSource<?> dataSource;
+    if (table) {
+      dataSource = new KsqlTable<>(
+          "",
+          SourceName.of("TOPIC"),
+          schema,
+          serdeOptions,
+          valueKeyField,
+          new MetadataTimestampExtractionPolicy(),
+          topic
+      );
+    } else {
+      dataSource = new KsqlStream<>(
+          "",
+          SourceName.of("TOPIC"),
+          schema,
+          serdeOptions,
+          valueKeyField,
+          new MetadataTimestampExtractionPolicy(),
+          topic
+      );
+    }
 
     final MetaStoreImpl metaStore = new MetaStoreImpl(TestFunctionRegistry.INSTANCE.get());
     metaStore.putSource(dataSource);
@@ -722,11 +915,11 @@ public class InsertValuesExecutorTest {
     return key;
   }
 
-  private static List<String> valueFieldNames(final LogicalSchema schema) {
+  private static List<ColumnName> valueFieldNames(final LogicalSchema schema) {
     return schema.value().stream().map(Column::name).collect(Collectors.toList());
   }
 
-  private static List<String> allFieldNames(final LogicalSchema schema) {
+  private static List<ColumnName> allFieldNames(final LogicalSchema schema) {
     return schema.columns().stream().map(Column::name).collect(Collectors.toList());
   }
 }

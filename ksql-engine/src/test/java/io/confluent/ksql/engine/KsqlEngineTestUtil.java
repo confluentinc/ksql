@@ -23,6 +23,8 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.schema.ksql.inference.DefaultSchemaInjector;
 import io.confluent.ksql.schema.ksql.inference.SchemaRegistryTopicSchemaSupplier;
 import io.confluent.ksql.services.ServiceContext;
@@ -34,6 +36,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public final class KsqlEngineTestUtil {
@@ -50,37 +53,42 @@ public final class KsqlEngineTestUtil {
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty())
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        new SequentialQueryIdGenerator()
     );
   }
 
   public static KsqlEngine createKsqlEngine(
       final ServiceContext serviceContext,
       final MutableMetaStore metaStore,
-      final KsqlEngineMetrics engineMetrics
+      final Function<KsqlEngine, KsqlEngineMetrics> engineMetricsFactory,
+      final QueryIdGenerator queryIdGenerator
   ) {
     return new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),
         "test_instance_",
         metaStore,
-        ignored -> engineMetrics
+        engineMetricsFactory,
+        queryIdGenerator
     );
   }
 
   public static List<QueryMetadata> execute(
+      final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    return execute(engine, sql, ksqlConfig, overriddenProperties, Optional.empty());
+    return execute(serviceContext, engine, sql, ksqlConfig, overriddenProperties, Optional.empty());
   }
 
   /**
    * @param srClient if supplied, then schemas can be inferred from the schema registry.
    */
   public static List<QueryMetadata> execute(
+      final ServiceContext serviceContext,
       final KsqlEngine engine,
       final String sql,
       final KsqlConfig ksqlConfig,
@@ -94,7 +102,8 @@ public final class KsqlEngineTestUtil {
         .map(DefaultSchemaInjector::new);
 
     return statements.stream()
-        .map(stmt -> execute(engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
+        .map(stmt ->
+            execute(serviceContext, engine, stmt, ksqlConfig, overriddenProperties, schemaInjector))
         .map(ExecuteResult::getQuery)
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -103,6 +112,7 @@ public final class KsqlEngineTestUtil {
 
   @SuppressWarnings({"rawtypes","unchecked"})
   private static ExecuteResult execute(
+      final ServiceContext serviceContext,
       final KsqlExecutionContext executionContext,
       final ParsedStatement stmt,
       final KsqlConfig ksqlConfig,
@@ -119,7 +129,7 @@ public final class KsqlEngineTestUtil {
     final ConfiguredStatement<?> reformatted =
         new SqlFormatInjector(executionContext).inject(withSchema);
     try {
-      return executionContext.execute(reformatted);
+      return executionContext.execute(serviceContext, reformatted);
     } catch (final KsqlStatementException e) {
       // use the original statement text in the exception so that tests
       // can easily check that the failed statement is the input statement

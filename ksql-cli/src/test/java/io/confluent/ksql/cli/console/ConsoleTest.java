@@ -36,6 +36,8 @@ import io.confluent.ksql.TestTerminal;
 import io.confluent.ksql.cli.console.Console.NoOpRowCaptor;
 import io.confluent.ksql.cli.console.cmd.CliSpecificCommand;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
 import io.confluent.ksql.rest.entity.CommandId;
@@ -44,7 +46,6 @@ import io.confluent.ksql.rest.entity.CommandStatusEntity;
 import io.confluent.ksql.rest.entity.ConnectorDescription;
 import io.confluent.ksql.rest.entity.ConnectorList;
 import io.confluent.ksql.rest.entity.DropConnectorEntity;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.ErrorEntity;
 import io.confluent.ksql.rest.entity.ExecutionPlan;
 import io.confluent.ksql.rest.entity.FieldInfo;
@@ -135,6 +136,8 @@ public class ConsoleTest {
     this.console = new Console(outputFormat, terminal, new NoOpRowCaptor());
 
     when(cliCommand.getName()).thenReturn(CLI_CMD_NAME);
+    when(cliCommand.matches(any()))
+        .thenAnswer(i -> ((String) i.getArgument(0)).toLowerCase().startsWith(CLI_CMD_NAME.toLowerCase()));
     console.registerCliSpecificCommand(cliCommand);
   }
 
@@ -269,7 +272,7 @@ public class ConsoleTest {
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
         new RunningQuery(
-            "select * from t1", Collections.singleton("Test"), new EntityQueryId("0")));
+            "select * from t1", Collections.singleton("Test"), new QueryId("0")));
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new Queries("e", queries)
@@ -318,10 +321,10 @@ public class ConsoleTest {
     );
 
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new EntityQueryId("readId"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new EntityQueryId("writeId"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -959,10 +962,10 @@ public class ConsoleTest {
   public void shouldPrintTopicDescribeExtended() throws IOException {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
-        new RunningQuery("read query", ImmutableSet.of("sink1"), new EntityQueryId("readId"))
+        new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
     );
     final List<RunningQuery> writeQueries = ImmutableList.of(
-        new RunningQuery("write query", ImmutableSet.of("sink2"), new EntityQueryId("writeId"))
+        new RunningQuery("write query", ImmutableSet.of("sink2"), new QueryId("writeId"))
     );
 
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
@@ -1223,7 +1226,8 @@ public class ConsoleTest {
                     + "really, really, really, really, really, really, really, really, really, "
                     + "really, really, really, really, really, really, really, really, long\n"
                     + "and contains\n\ttabs and stuff"
-            )), FunctionType.scalar)));
+            )), FunctionType.SCALAR
+        )));
 
     console.printKsqlEntityList(entityList);
 
@@ -1240,7 +1244,7 @@ public class ConsoleTest {
           + "              and containing new lines\n"
           + "              \tAND TABS\n"
           + "              too!\n"
-          + "Type        : scalar\n"
+          + "Type        : SCALAR\n"
           + "Jar         : some.jar\n"
           + "Variations  : \n"
           + "\n"
@@ -1388,11 +1392,31 @@ public class ConsoleTest {
     assertThat(result, is("not a CLI command;"));
   }
 
+  @Test
+  public void shouldThrowOnInvalidCliProperty() {
+    // When:
+    console.setCliProperty("FOO", "BAR");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Undefined property: FOO. Valid properties are"));
+  }
+
+  @Test
+  public void shouldThrowOnInvalidCliPropertyValue() {
+    // When:
+    console.setCliProperty(CliConfig.WRAP_CONFIG, "BURRITO");
+
+    // Then:
+    assertThat(terminal.getOutputString(),
+        containsString("Invalid value BURRITO for configuration WRAP: String must be one of: ON, OFF, null"));
+  }
+
   private static List<FieldInfo> buildTestSchema(final SqlType... fieldTypes) {
     final Builder schemaBuilder = LogicalSchema.builder();
 
     for (int idx = 0; idx < fieldTypes.length; idx++) {
-      schemaBuilder.valueColumn("f_" + idx, fieldTypes[idx]);
+      schemaBuilder.valueColumn(ColumnName.of("f_" + idx), fieldTypes[idx]);
     }
 
     final LogicalSchema schema = schemaBuilder.build();

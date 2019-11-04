@@ -3,6 +3,7 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +14,9 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
+import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -63,12 +67,16 @@ public class StreamFilterBuilderTest {
   private KStream<Struct, GenericRow> filteredKStream;
   @Mock
   private Expression filterExpression;
+  @Mock
+  private KeySerdeFactory<Struct> keySerdeFactory;
+  private KStreamHolder<Struct> sourceWithSerdeFactory;
 
-  private final QueryContext queryContext = new QueryContext.Stacker(new QueryId("foo"))
+  private final QueryContext queryContext = new QueryContext.Stacker()
       .push("bar")
       .getQueryContext();
 
-  private StreamFilter<KStream<Struct, GenericRow>> step;
+  private PlanBuilder planBuilder;
+  private StreamFilter<Struct> step;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -76,6 +84,7 @@ public class StreamFilterBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
+    when(queryBuilder.getQueryId()).thenReturn(new QueryId("foo"));
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
@@ -86,9 +95,18 @@ public class StreamFilterBuilderTest {
     when(sourceKStream.filter(any())).thenReturn(filteredKStream);
     when(predicateFactory.create(any(), any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getPredicate()).thenReturn(predicate);
+    sourceWithSerdeFactory =
+        new KStreamHolder<>(sourceKStream, keySerdeFactory);
+    when(sourceStep.build(any())).thenReturn(sourceWithSerdeFactory);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
         queryContext
+    );
+    planBuilder = new KSPlanBuilder(
+        queryBuilder,
+        predicateFactory,
+        mock(AggregateParams.Factory.class),
+        mock(StreamsFactories.class)
     );
     step = new StreamFilter<>(properties, sourceStep, filterExpression);
   }
@@ -97,22 +115,18 @@ public class StreamFilterBuilderTest {
   @SuppressWarnings("unchecked")
   public void shouldFilterSourceStream() {
     // When:
-    final KStream result = StreamFilterBuilder.build(
-        sourceKStream,
-        step,
-        queryBuilder,
-        predicateFactory
-    );
+    final KStreamHolder<Struct> result = step.build(planBuilder);
 
     // Then:
-    assertThat(result, is(filteredKStream));
+    assertThat(result.getStream(), is(filteredKStream));
+    assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
     verify(sourceKStream).filter(predicate);
   }
 
   @Test
   public void shouldBuildSqlPredicateCorrectly() {
     // When:
-    StreamFilterBuilder.build(sourceKStream, step, queryBuilder, predicateFactory);
+    step.build(planBuilder);
 
     // Then:
     verify(predicateFactory).create(
@@ -127,7 +141,7 @@ public class StreamFilterBuilderTest {
   @Test
   public void shouldUseCorrectNameForProcessingLogger() {
     // When:
-    StreamFilterBuilder.build(sourceKStream, step, queryBuilder, predicateFactory);
+    step.build(planBuilder);
 
     // Then:
     verify(processingLoggerFactory).getLogger("foo.bar.FILTER");

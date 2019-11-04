@@ -47,7 +47,7 @@ Here's an example request that retrieves streaming data from ``TEST_STREAM``:
    curl -X "POST" "http://localhost:8088/query" \
         -H "Content-Type: application/vnd.ksql.v1+json; charset=utf-8" \
         -d $'{
-     "ksql": "SELECT * FROM TEST_STREAM;",
+     "ksql": "SELECT * FROM TEST_STREAM EMIT CHANGES;",
      "streamsProperties": {}
    }'
 
@@ -82,13 +82,35 @@ use the ``curl`` command to query the ``/info`` endpoint:
 
 Your output should resemble:
 
-.. codewithvars:: bash
+.. codewithvars:: json
 
    {
      "KsqlServerInfo": {
        "version": "|release|",
        "kafkaClusterId": "j3tOi6E_RtO_TMH3gBmK7A",
        "ksqlServiceId": "default_"
+     }
+   }
+
+You can also check the health of your KSQL server via the ``/healthcheck`` resource:
+
+.. code:: bash
+
+   curl -sX GET "http://localhost:8088/healthcheck" | jq '.'
+
+Your output should resemble:
+
+.. codewithvars:: json
+
+   {
+     "isHealthy": true,
+     "details": {
+       "metastore": {
+         "isHealthy": true
+       },
+       "kafka": {
+         "isHealthy": true
+       }
      }
    }
 
@@ -121,8 +143,7 @@ statements use the ``/query`` endpoint.
    The following fields are common to all responses.
 
    :>json string statementText: The KSQL statement whose result is being returned.
-   :>json array  warnings: A list of warnings about conditions that may be unexpected by the user, b
-ut don't result in failure to execute the statement.
+   :>json array  warnings: A list of warnings about conditions that may be unexpected by the user, but don't result in failure to execute the statement.
    :>json string warnings[i].message: A message detailing the condition being warned on.
 
    **CREATE, DROP, TERMINATE**
@@ -218,7 +239,7 @@ ut don't result in failure to execute the statement.
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
+        "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice' EMIT CHANGES;",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }
@@ -233,7 +254,7 @@ ut don't result in failure to execute the statement.
 
       [
         {
-          "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
+          "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;",
           "commandId":"stream/PAGEVIEWS_HOME/create",
           "commandStatus": {
             "status":"SUCCESS",
@@ -242,7 +263,7 @@ ut don't result in failure to execute the statement.
           "commandSequenceNumber":10
         },
         {
-          "statementText":"CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice';",
+          "statementText":"CREATE STREAM pageviews_alice AS SELECT * FROM pageviews_original WHERE userid='alice' EMIT CHANGES;",
           "commandId":"stream/PAGEVIEWS_ALICE/create",
           "commandStatus": {
             "status":"SUCCESS",
@@ -267,7 +288,7 @@ similar to the example request above:
    Content-Type: application/vnd.ksql.v1+json
 
    {
-     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;"
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home'; CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid EMIT CHANGES;"
    }
 
 The second method is to submit the statements as separate requests and incorporate the interdependency by using ``commandSequenceNumber``.
@@ -280,7 +301,7 @@ Send the first request:
    Content-Type: application/vnd.ksql.v1+json
 
    {
-     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';"
+     "ksql": "CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;"
    }
 
 Make note of the ``commandSequenceNumber`` returned in the response:
@@ -292,7 +313,7 @@ Make note of the ``commandSequenceNumber`` returned in the response:
 
    [
      {
-       "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home';",
+       "statementText":"CREATE STREAM pageviews_home AS SELECT * FROM pageviews_original WHERE pageid='home' EMIT CHANGES;",
        "commandId":"stream/PAGEVIEWS_HOME/create",
        "commandStatus": {
          "status":"SUCCESS",
@@ -312,7 +333,7 @@ execute until after command number 10 has finished executing:
    Content-Type: application/vnd.ksql.v1+json
 
    {
-     "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid;",
+     "ksql": "CREATE TABLE pageviews_home_count AS SELECT userid, COUNT(*) FROM pageviews_home GROUP BY userid EMIT CHANGES;",
      "commandSequenceNumber":10
    }
 
@@ -347,7 +368,7 @@ The ``/query`` resource lets you stream the output records of a ``SELECT`` state
       Content-Type: application/vnd.ksql.v1+json
 
       {
-        "ksql": "SELECT * FROM pageviews;",
+        "ksql": "SELECT * FROM pageviews EMIT CHANGES;",
         "streamsProperties": {
           "ksql.streams.auto.offset.reset": "earliest"
         }

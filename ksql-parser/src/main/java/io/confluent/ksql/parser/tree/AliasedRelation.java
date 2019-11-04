@@ -19,6 +19,7 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -27,11 +28,11 @@ import java.util.Optional;
 public class AliasedRelation extends Relation {
 
   private final Relation relation;
-  private final String alias;
+  private final SourceName alias;
 
   public AliasedRelation(
       final Relation relation,
-      final String alias
+      final SourceName alias
   ) {
     this(Optional.empty(), relation, alias);
   }
@@ -39,19 +40,18 @@ public class AliasedRelation extends Relation {
   public AliasedRelation(
       final Optional<NodeLocation> location,
       final Relation relation,
-      final String alias
+      final SourceName alias
   ) {
     super(location);
     this.relation = requireNonNull(relation, "relation");
-    this.alias = requireNonNull(alias, "alias")
-        .toUpperCase();
+    this.alias = requireNonNull(alias, "alias");
   }
 
   public Relation getRelation() {
     return relation;
   }
 
-  public String getAlias() {
+  public SourceName getAlias() {
     return alias;
   }
 

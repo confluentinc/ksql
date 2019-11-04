@@ -34,6 +34,16 @@ public interface FunctionRegistry {
   boolean isAggregate(String functionName);
 
   /**
+   * Test if the supplied {@code functionName} is a table function.
+   *
+   * <p>Note: unknown functions result in {@code false} return value.
+   *
+   * @param functionName the name of the function to test
+   * @return {@code true} if it is a table function, {@code false} otherwise.
+   */
+  boolean isTableFunction(String functionName);
+
+  /**
    * Get the factory for a UDF.
    *
    * @param functionName the name of the function.
@@ -43,7 +53,17 @@ public interface FunctionRegistry {
   UdfFactory getUdfFactory(String functionName);
 
   /**
+   * Get the factory for a table function.
+   *
+   * @param functionName the name of the function.
+   * @return the factory.
+   * @throws KsqlException on unknown table function.
+   */
+  TableFunctionFactory getTableFunctionFactory(String functionName);
+
+  /**
    * Get the factory for a UDAF.
+   *
    * @param functionName the name of the function
    * @return the factory.
    * @throws KsqlException on unknown UDAF.
@@ -53,21 +73,46 @@ public interface FunctionRegistry {
   /**
    * Get an instance of an aggregate function.
    *
-   * <p>The current assumption is that all aggregate functions take a single argument.
-   * For functions that have no arguments pass {@link #DEFAULT_FUNCTION_ARG_SCHEMA} for the
-   * {@code argumentType} parameter.
+   * <p>The current assumption is that all aggregate functions take a single argument for
+   * computing the aggregate at runtime. For functions that have no runtime arguments pass {@link
+   * #DEFAULT_FUNCTION_ARG_SCHEMA} for the {@code argumentType} parameter.
+   *
+   * <p>Some aggregate functions also take initialisation arguments, e.g.
+   * <code> SELECT TOPK(AGE, 5) FROM PEOPLE</code>.
+   *
+   * <p>In the above 5 is an initialisation argument which needs to be provided when creating the
+   * <code>KsqlAggregateFunction</code> instance.
    *
    * @param functionName the name of the function.
-   * @param argumentType the schema of the argument or {@link #DEFAULT_FUNCTION_ARG_SCHEMA}.
+   * @param argumentType the schema of the argument.
    * @return the function instance.
    * @throws KsqlException on unknown UDAF, or on unsupported {@code argumentType}.
    */
-  KsqlAggregateFunction<?, ?, ?> getAggregate(String functionName, Schema argumentType);
+  KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
+      String functionName,
+      Schema argumentType,
+      AggregateFunctionInitArguments initArgs
+  );
+
+  /**
+   * Get a table function.
+   *
+   * @param functionName the name of the function.
+   * @param argumentTypes the schemas of the arguments.
+   * @return the function instance.
+   * @throws KsqlException on unknown table function, or on unsupported {@code argumentType}.
+   */
+  KsqlTableFunction getTableFunction(String functionName, List<Schema> argumentTypes);
 
   /**
    * @return all UDF factories.
    */
   List<UdfFactory> listFunctions();
+
+  /**
+   * @return all table function factories.
+   */
+  List<TableFunctionFactory> listTableFunctions();
 
   /**
    * @return all UDAF factories.

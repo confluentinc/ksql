@@ -25,10 +25,10 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.model.QttTestFile;
 import io.confluent.ksql.test.model.TestCaseNode;
 import io.confluent.ksql.test.serde.string.StringSerdeSupplier;
+import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.util.KsqlConfig;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.junit.After;
@@ -44,7 +44,7 @@ public class TestExecutorUtilTest {
   private KsqlEngine ksqlEngine;
   private KsqlConfig ksqlConfig;
   private TestCase testCase;
-  private FakeKafkaService fakeKafkaService;
+  private StubKafkaService stubKafkaService;
 
   @Before
   public void setUp() throws IOException {
@@ -57,8 +57,8 @@ public class TestExecutorUtilTest {
 
     serviceContext = TestExecutor.getServiceContext();
     ksqlEngine = TestExecutor.getKsqlEngine(serviceContext);
-    ksqlConfig = new KsqlConfig(TestExecutor.getConfigs(Collections.emptyMap()));
-    fakeKafkaService = FakeKafkaService.create();
+    ksqlConfig = new KsqlConfig(TestExecutor.baseConfig());
+    stubKafkaService = StubKafkaService.create();
   }
 
   @After
@@ -81,7 +81,7 @@ public class TestExecutorUtilTest {
         Optional.empty()
     );
 
-    fakeKafkaService.createTopic(sourceTopic);
+    stubKafkaService.createTopic(sourceTopic);
 
     // When:
     final List<TopologyTestDriverContainer> topologyTestDriverContainerList = TestExecutorUtil.buildStreamsTopologyTestDrivers(
@@ -89,7 +89,7 @@ public class TestExecutorUtilTest {
         serviceContext,
         ksqlEngine,
         ksqlConfig,
-        fakeKafkaService
+        stubKafkaService
     );
 
     // Then:

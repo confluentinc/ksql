@@ -31,9 +31,9 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.DropStream;
 import io.confluent.ksql.parser.tree.ListProperties;
@@ -60,14 +60,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TopicDeleteInjectorTest {
 
-  private static final String SOURCE_NAME = "SOMETHING";
+  private static final SourceName SOURCE_NAME = SourceName.of("SOMETHING");
   private static final String TOPIC_NAME = "something";
   private static final ConfiguredStatement<DropStream> DROP_WITH_DELETE_TOPIC = givenStatement(
       "DROP STREAM SOMETHING DELETE TOPIC",
-      new DropStream(QualifiedName.of(SOURCE_NAME), false, true));
+      new DropStream(SOURCE_NAME, false, true));
   private static final ConfiguredStatement<DropStream> DROP_WITHOUT_DELETE_TOPIC = givenStatement(
       "DROP STREAM SOMETHING",
-      new DropStream(QualifiedName.of(SOURCE_NAME), false, false));
+      new DropStream(SOURCE_NAME, false, false));
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -163,7 +163,7 @@ public class TopicDeleteInjectorTest {
   public void shouldThrowExceptionIfSourceDoesNotExist() {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
-        "DROP SOMETHING", new DropStream(QualifiedName.of("SOMETHING_ELSE"), true, true));
+        "DROP SOMETHING", new DropStream(SourceName.of("SOMETHING_ELSE"), true, true));
 
     // Expect:
     expectedException.expect(RuntimeException.class);
@@ -178,14 +178,14 @@ public class TopicDeleteInjectorTest {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
         "DROP SOMETHING DELETE TOPIC;",
-        new DropStream(QualifiedName.of(SOURCE_NAME),
+        new DropStream(SOURCE_NAME,
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource("OTHER", "other");
-    final Map<String, DataSource<?>> sources = new HashMap<>();
+    final DataSource<?> other1 = givenSource(SourceName.of("OTHER"), "other");
+    final Map<SourceName, DataSource<?>> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
-    sources.put("OTHER", other1);
+    sources.put(SourceName.of("OTHER"), other1);
     when(metaStore.getAllDataSources()).thenReturn(sources);
 
     // When:
@@ -197,16 +197,16 @@ public class TopicDeleteInjectorTest {
     // Given:
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
         "DROP SOMETHING DELETE TOPIC;",
-        new DropStream(QualifiedName.of(SOURCE_NAME),
+        new DropStream(SOURCE_NAME,
             true,
             true)
     );
-    final DataSource<?> other1 = givenSource("OTHER1", TOPIC_NAME);
-    final DataSource<?> other2 = givenSource("OTHER2", TOPIC_NAME);
-    final Map<String, DataSource<?>> sources = new HashMap<>();
+    final DataSource<?> other1 = givenSource(SourceName.of("OTHER1"), TOPIC_NAME);
+    final DataSource<?> other2 = givenSource(SourceName.of("OTHER2"), TOPIC_NAME);
+    final Map<SourceName, DataSource<?>> sources = new HashMap<>();
     sources.put(SOURCE_NAME, source);
-    sources.put("OTHER1", other1);
-    sources.put("OTHER2", other2);
+    sources.put(SourceName.of("OTHER1"), other1);
+    sources.put(SourceName.of("OTHER2"), other2);
     when(metaStore.getAllDataSources()).thenReturn(sources);
 
     // Expect:
@@ -222,15 +222,13 @@ public class TopicDeleteInjectorTest {
   @Test
   public void shouldThrowIfTopicDoesNotExist() {
     // Given:
-    final String STREAM_1 = "stream1";
+    final SourceName STREAM_1 = SourceName.of("stream1");
     final DataSource<?> other1 = givenSource(STREAM_1, "topicName");
     when(metaStore.getSource(STREAM_1)).thenAnswer(inv -> other1);
     when(other1.getKafkaTopicName()).thenReturn("topicName");
     final ConfiguredStatement<DropStream> dropStatement = givenStatement(
         "DROP stream1 DELETE TOPIC;",
-        new DropStream(QualifiedName.of("stream1"),
-            true,
-            true)
+        new DropStream(SourceName.of("stream1"), true, true)
     );
     doThrow(RuntimeException.class).when(topicClient).deleteTopics(ImmutableList.of("topicName"));
 
@@ -247,7 +245,7 @@ public class TopicDeleteInjectorTest {
   public void shouldNotThrowIfSchemaIsMissing() throws IOException, RestClientException {
     // Given:
     when(topic.getValueFormat())
-        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("foo"))));
+        .thenReturn(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("foo"), Optional.empty())));
 
     doThrow(new RestClientException("Subject not found.", 404, 40401))
             .when(registryClient).deleteSubject("something" + KsqlConstants.SCHEMA_REGISTRY_VALUE_SUFFIX);
@@ -256,7 +254,7 @@ public class TopicDeleteInjectorTest {
     deleteInjector.inject(DROP_WITH_DELETE_TOPIC);
   }
 
-  private static DataSource<?> givenSource(final String name, final String topicName) {
+  private static DataSource<?> givenSource(final SourceName name, final String topicName) {
     final DataSource source = mock(DataSource.class);
     when(source.getName()).thenReturn(name);
     when(source.getKafkaTopicName()).thenReturn(topicName);

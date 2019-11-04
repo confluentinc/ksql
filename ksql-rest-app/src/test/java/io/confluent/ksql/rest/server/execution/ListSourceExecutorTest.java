@@ -30,13 +30,12 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ShowColumns;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlWarning;
 import io.confluent.ksql.rest.entity.RunningQuery;
@@ -47,6 +46,7 @@ import io.confluent.ksql.rest.entity.SourceInfo;
 import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.TemporaryEngine;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.TestServiceContext;
@@ -81,6 +81,7 @@ public class ListSourceExecutorTest {
     final StreamsList descriptionList = (StreamsList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -88,12 +89,12 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getStreams(), containsInAnyOrder(
         new SourceInfo.Stream(
-            stream1.getName(),
+            stream1.getName().toString(FormatOptions.noEscape()),
             stream1.getKafkaTopicName(),
             stream1.getKsqlTopic().getValueFormat().getFormat().name()
         ),
         new SourceInfo.Stream(
-            stream2.getName(),
+            stream2.getName().toString(FormatOptions.noEscape()),
             stream2.getKafkaTopicName(),
             stream2.getKsqlTopic().getValueFormat().getFormat().name()
         )
@@ -111,6 +112,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_STREAMS.execute(
             engine.configure("SHOW STREAMS EXTENDED;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -145,6 +147,7 @@ public class ListSourceExecutorTest {
     final TablesList descriptionList = (TablesList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -152,13 +155,13 @@ public class ListSourceExecutorTest {
     // Then:
     assertThat(descriptionList.getTables(), containsInAnyOrder(
         new SourceInfo.Table(
-            table1.getName(),
+            table1.getName().toString(FormatOptions.noEscape()),
             table1.getKsqlTopic().getKafkaTopicName(),
             table1.getKsqlTopic().getValueFormat().getFormat().name(),
             table1.getKsqlTopic().getKeyFormat().isWindowed()
         ),
         new SourceInfo.Table(
-            table2.getName(),
+            table2.getName().toString(FormatOptions.noEscape()),
             table2.getKsqlTopic().getKafkaTopicName(),
             table2.getKsqlTopic().getValueFormat().getFormat().name(),
             table2.getKsqlTopic().getKeyFormat().isWindowed()
@@ -177,6 +180,7 @@ public class ListSourceExecutorTest {
     final SourceDescriptionList descriptionList = (SourceDescriptionList)
         CustomExecutors.LIST_TABLES.execute(
             engine.configure("LIST TABLES EXTENDED;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -208,11 +212,12 @@ public class ListSourceExecutorTest {
     // Given:
     engine.givenSource(DataSourceType.KSTREAM, "SOURCE");
     final ExecuteResult result = engine.getEngine().execute(
+        engine.getServiceContext(),
         engine.configure("CREATE STREAM SINK AS SELECT * FROM source;")
     );
     final PersistentQueryMetadata metadata = (PersistentQueryMetadata) result.getQuery()
         .orElseThrow(IllegalArgumentException::new);
-    final DataSource<?> stream = engine.getEngine().getMetaStore().getSource("SINK");
+    final DataSource<?> stream = engine.getEngine().getMetaStore().getSource(SourceName.of("SINK"));
 
     // When:
     final SourceDescriptionEntity sourceDescription = (SourceDescriptionEntity)
@@ -220,10 +225,11 @@ public class ListSourceExecutorTest {
             ConfiguredStatement.of(
               PreparedStatement.of(
                   "DESCRIBE SINK;",
-                  new ShowColumns(QualifiedName.of("SINK"), false)),
+                  new ShowColumns(SourceName.of("SINK"), false)),
                 ImmutableMap.of(),
                 engine.getKsqlConfig()
             ),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -237,8 +243,8 @@ public class ListSourceExecutorTest {
             ImmutableList.of(),
             ImmutableList.of(new RunningQuery(
                 metadata.getStatementString(),
-                ImmutableSet.of(metadata.getSinkName()),
-                new EntityQueryId(metadata.getQueryId()))),
+                ImmutableSet.of(metadata.getSinkName().toString(FormatOptions.noEscape())),
+                metadata.getQueryId())),
             Optional.empty())));
   }
 
@@ -251,6 +257,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE S;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     );
@@ -272,6 +279,7 @@ public class ListSourceExecutorTest {
     // When:
     CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -328,6 +336,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_STREAMS.execute(
         engine.configure("SHOW STREAMS EXTENDED;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -347,6 +356,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.LIST_TABLES.execute(
         engine.configure("SHOW TABLES EXTENDED;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);
@@ -365,6 +375,7 @@ public class ListSourceExecutorTest {
     // When:
     final KsqlEntity entity = CustomExecutors.SHOW_COLUMNS.execute(
         engine.configure("DESCRIBE EXTENDED STREAM1;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         serviceContext
     ).orElseThrow(IllegalStateException::new);

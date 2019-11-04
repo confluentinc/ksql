@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static io.confluent.ksql.parser.ParserMatchers.configured;
 import static io.confluent.ksql.parser.ParserMatchers.preparedStatement;
 import static java.util.Collections.emptyMap;
+import static org.easymock.EasyMock.anyLong;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
@@ -37,12 +38,13 @@ import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.integration.Retry;
+import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -53,6 +55,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -99,6 +102,8 @@ public class StatementExecutorTest extends EasyMockSupport {
   private KsqlConfig ksqlConfig;
 
   private final StatementParser mockParser = niceMock(StatementParser.class);
+  private final HybridQueryIdGenerator mockQueryIdGenerator =
+      niceMock(HybridQueryIdGenerator.class);
   private final KsqlEngine mockEngine = strictMock(KsqlEngine.class);
   private final MetaStore mockMetaStore = niceMock(MetaStore.class);
   private final PersistentQueryMetadata mockQueryMetadata
@@ -124,15 +129,28 @@ public class StatementExecutorTest extends EasyMockSupport {
     fakeKafkaTopicClient.createTopic("foo", 1, (short) 1, emptyMap());
     fakeKafkaTopicClient.createTopic("pageview_topic_json", 1, (short) 1, emptyMap());
     serviceContext = TestServiceContext.create(fakeKafkaTopicClient);
+    final HybridQueryIdGenerator hybridQueryIdGenerator = new HybridQueryIdGenerator();
     ksqlEngine = KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
-        new MetaStoreImpl(new InternalFunctionRegistry())
+        new MetaStoreImpl(new InternalFunctionRegistry()),
+        (engine) -> new KsqlEngineMetrics("", engine, Collections.emptyMap(), Optional.empty()),
+        hybridQueryIdGenerator
     );
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(ksqlEngine, statementParser);
-    statementExecutorWithMocks = new StatementExecutor(mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(
+        serviceContext,
+        ksqlEngine,
+        statementParser,
+        hybridQueryIdGenerator
+    );
+    statementExecutorWithMocks = new StatementExecutor(
+        serviceContext,
+        mockEngine,
+        mockParser,
+        mockQueryIdGenerator
+    );
 
     statementExecutor.configure(ksqlConfig);
     statementExecutorWithMocks.configure(ksqlConfig);
@@ -163,7 +181,12 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(
+        serviceContext,
+        mockEngine,
+        mockParser,
+        mockQueryIdGenerator
+    );
 
     // When:
     statementExecutor.handleStatement(queuedCommand);
@@ -172,7 +195,12 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleRestoreIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(mockEngine, mockParser);
+    statementExecutor = new StatementExecutor(
+        serviceContext,
+        mockEngine,
+        mockParser,
+        mockQueryIdGenerator
+    );
 
     // When:
     statementExecutor.handleRestore(queuedCommand);
@@ -197,7 +225,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     // When:
     try {
-      handleStatement(statementExecutorWithMocks, command, commandId, Optional.empty());
+      handleStatement(statementExecutorWithMocks, command, commandId, Optional.empty(),0);
       Assert.fail("handleStatement should throw");
     } catch (final RuntimeException caughtException) {
       // Then:
@@ -221,7 +249,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final PreparedStatement<?> ddlStatement = realParser.parseSingleStatement(ddlText);
     final ConfiguredStatement<?> configuredStatement =
         ConfiguredStatement.of(ddlStatement, emptyMap(), originalConfig);
-    ksqlEngine.execute(configuredStatement);
+    ksqlEngine.execute(serviceContext, configuredStatement);
 
     final PreparedStatement<Statement> csasStatement =
         realParser.parseSingleStatement(statementText);
@@ -241,19 +269,19 @@ public class StatementExecutorTest extends EasyMockSupport {
         "_CSASGen",
         CommandId.Action.CREATE);
 
-    final ConfiguredStatement<?> configuredCsas =
-        ConfiguredStatement.of(csasStatement, emptyMap(), expectedConfig);
+    final ConfiguredStatement<?> configuredCsas = ConfiguredStatement.of(
+        csasStatement, emptyMap(), expectedConfig);
 
     expect(mockParser.parseSingleStatement(statementText)).andReturn(csasStatement);
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
-    expect(mockEngine.execute(eq(configuredCsas)))
+    expect(mockEngine.execute(eq(serviceContext), eq(configuredCsas)))
         .andReturn(ExecuteResult.of(mockQueryMetadata));
     mockQueryMetadata.start();
     expectLastCall();
 
     replay(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
 
-    handleStatement(statementExecutorWithMocks, csasCommand, csasCommandId, Optional.empty());
+    handleStatement(statementExecutorWithMocks, csasCommand, csasCommandId, Optional.empty(), 1);
 
     verify(mockParser, mockEngine, mockMetaStore, mockQueryMetadata);
   }
@@ -305,7 +333,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expectLastCall();
     replay(status);
 
-    handleStatement(command, commandId, Optional.of(status));
+    handleStatement(command, commandId, Optional.of(status), 0L);
 
     verify(status);
   }
@@ -336,7 +364,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expectLastCall();
     replay(status);
 
-    handleStatement(command, commandId, Optional.of(status));
+    handleStatement(command, commandId, Optional.of(status), 0L);
 
     verify(status);
   }
@@ -355,11 +383,12 @@ public class StatementExecutorTest extends EasyMockSupport {
         "_CTASGen",
         CommandId.Action.CREATE);
 
-    priorCommands.forEach(
-        pair -> statementExecutor.handleRestore(
-            new QueuedCommand(pair.left, pair.right)
-        )
-    );
+    for (int i = 0; i < priorCommands.size(); i++) {
+      final Pair<CommandId, Command> pair = priorCommands.get(i);
+      statementExecutor.handleRestore(
+          new QueuedCommand(pair.left, pair.right, Optional.empty(), (long) i)
+      );
+    }
 
     final Map<CommandId, CommandStatus> statusStore = statementExecutor.getStatuses();
     Assert.assertNotNull(statusStore);
@@ -390,7 +419,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId dropTableCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
     handleStatement(
-        statementExecutor, dropTableCommand2, dropTableCommandId2, Optional.empty());
+        statementExecutor, dropTableCommand2, dropTableCommandId2, Optional.empty(), 4);
 
     // DROP should succed since no query is using the table
     final Optional<CommandStatus> dropTableCommandStatus2 =
@@ -409,7 +438,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId dropStreamCommandId3 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
     handleStatement(
-        statementExecutor, dropStreamCommand3, dropStreamCommandId3, Optional.empty());
+        statementExecutor, dropStreamCommand3, dropStreamCommandId3, Optional.empty(), 5);
 
     final Optional<CommandStatus> dropStreamCommandStatus3 =
         statementExecutor.getStatus(dropStreamCommandId3);
@@ -425,7 +454,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private CreateStreamAsSelect mockCSAS(final String name) {
     final CreateStreamAsSelect mockStatement = mock(CreateStreamAsSelect.class);
-    expect(mockStatement.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockStatement.getName()).andStubReturn(SourceName.of(name));
     expect(mockStatement.getQuery()).andStubReturn(mockCSASQuery());
     expect(mockStatement.getProperties()).andStubReturn(CreateSourceAsProperties.none());
     expect(mockStatement.getPartitionByColumn()).andStubReturn(Optional.empty());
@@ -434,7 +463,7 @@ public class StatementExecutorTest extends EasyMockSupport {
 
   private DropStream mockDropStream(final String name) {
     final DropStream mockDropStream = mock(DropStream.class);
-    expect(mockDropStream.getName()).andStubReturn(QualifiedName.of(name));
+    expect(mockDropStream.getName()).andStubReturn(SourceName.of(name));
     expect(mockParser.parseSingleStatement("DROP"))
         .andReturn(PreparedStatement.of("DROP", mockDropStream));
     return mockDropStream;
@@ -450,9 +479,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     final PreparedStatement<Statement> csas = PreparedStatement.of("CSAS", mockCSAS);
     expect(mockParser.parseSingleStatement(statement))
         .andReturn(csas);
-    expect(mockMetaStore.getSource(name)).andStubReturn(null);
+    expect(mockMetaStore.getSource(SourceName.of(name))).andStubReturn(null);
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
-    expect(mockEngine.execute(eqConfigured(csas)))
+    expect(mockEngine.execute(eq(serviceContext), eqConfigured(csas)))
         .andReturn(ExecuteResult.of(mockQuery));
     return mockQuery;
   }
@@ -475,7 +504,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     expect(mockEngine.parse(eq(queryStatement))).andReturn(parsedStatements);
     expect(mockEngine.prepare(parsedStatements.get(0)))
         .andReturn((PreparedStatement)preparedStatement);
-    expect(mockEngine.execute(eqConfigured(preparedStatement)))
+    expect(mockEngine.execute(eq(serviceContext), eqConfigured(preparedStatement)))
         .andReturn(ExecuteResult.of(mockQuery));
     expect(mockEngine.getPersistentQueries()).andReturn(ImmutableList.of());
     return mockQuery;
@@ -487,13 +516,17 @@ public class StatementExecutorTest extends EasyMockSupport {
     final QueryId queryId = new QueryId("csas-query-id");
     final String name = "foo";
     final PersistentQueryMetadata mockQuery = mockReplayCSAS("CSAS", name, queryId);
+    mockQueryIdGenerator.activateNewGenerator(anyLong());
+    expectLastCall();
     replayAll();
 
     // When:
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, name, Action.CREATE),
-            new Command("CSAS", true, emptyMap(), emptyMap())
+            new Command("CSAS", true, emptyMap(), emptyMap()),
+            Optional.empty(),
+                0L
         )
     );
 
@@ -505,9 +538,9 @@ public class StatementExecutorTest extends EasyMockSupport {
   public void shouldCascade4Dot1DropStreamCommand() {
     // Given:
     final DropStream mockDropStream = mockDropStream("foo");
-    expect(mockMetaStore.getSource("foo"))
+    expect(mockMetaStore.getSource(SourceName.of("foo")))
         .andStubReturn(mock(DataSource.class));
-    expect(mockMetaStore.getQueriesWithSink("foo"))
+    expect(mockMetaStore.getQueriesWithSink(SourceName.of("foo")))
         .andStubReturn(ImmutableSet.of("query-id"));
     expect(mockEngine.getMetaStore()).andStubReturn(mockMetaStore);
     expect(mockEngine.getPersistentQuery(new QueryId("query-id"))).andReturn(Optional.of(mockQueryMetadata));
@@ -515,7 +548,10 @@ public class StatementExecutorTest extends EasyMockSupport {
     expectLastCall();
 
     expect(mockEngine
-        .execute(eqConfigured(PreparedStatement.of("DROP", mockDropStream))))
+        .execute(
+            eq(serviceContext),
+            eqConfigured(PreparedStatement.of("DROP", mockDropStream)))
+    )
         .andReturn(ExecuteResult.of("SUCCESS"));
     replayAll();
 
@@ -523,7 +559,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command("DROP", true, emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS)
+            new Command("DROP", true, emptyMap(), PRE_VERSION_5_NULL_ORIGINAL_PROPS),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -548,7 +586,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final DropStream mockDropStream = mockDropStream("foo");
     final PreparedStatement<DropStream> statement = PreparedStatement.of(drop, mockDropStream);
 
-    expect(mockEngine.execute(eqConfigured(statement)))
+    expect(mockEngine.execute(eq(serviceContext), eqConfigured(statement)))
         .andReturn(ExecuteResult.of("SUCCESS"));
     replayAll();
 
@@ -556,7 +594,9 @@ public class StatementExecutorTest extends EasyMockSupport {
     statementExecutorWithMocks.handleRestore(
         new QueuedCommand(
             new CommandId(Type.STREAM, "foo", Action.DROP),
-            new Command(drop, true, emptyMap(), emptyMap())
+            new Command(drop, true, emptyMap(), emptyMap()),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -577,7 +617,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.STREAM, "_CSASGen2", CommandId.Action.CREATE);
 
     // When:
-    handleStatement(csasCommand, csasCommandId, Optional.empty());
+    handleStatement(csasCommand, csasCommandId, Optional.empty(), 2);
 
     // Then:
     final CommandStatus commandStatus = getCommandStatus(csasCommandId);
@@ -602,7 +642,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         new CommandId(CommandId.Type.STREAM, "_InsertQuery1", CommandId.Action.CREATE);
 
     // When:
-    handleStatement(insertIntoCommand, insertIntoCommandId, Optional.empty());
+    handleStatement(insertIntoCommand, insertIntoCommandId, Optional.empty(), 2);
 
     // Then: statement should fail since exceeds limit of 1 active persistent query
     final CommandStatus commandStatus = getCommandStatus(insertIntoCommandId);
@@ -631,7 +671,9 @@ public class StatementExecutorTest extends EasyMockSupport {
                 runScriptStatement,
                 true,
                 Collections.singletonMap("ksql.run.script.statements", queryStatement),
-                emptyMap())
+                emptyMap()),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -653,7 +695,9 @@ public class StatementExecutorTest extends EasyMockSupport {
             new CommandId(CommandId.Type.STREAM, "RunScript", CommandId.Action.EXECUTE),
             new Command(
                 runScriptStatement, true,
-                    Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap())
+                    Collections.singletonMap("ksql.run.script.statements", queryStatement), emptyMap()),
+            Optional.empty(),
+            0L
         )
     );
 
@@ -673,7 +717,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId csCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASStreamGen",
         CommandId.Action.CREATE);
-    handleStatement(csCommand, csCommandId, Optional.empty());
+    handleStatement(csCommand, csCommandId, Optional.empty(), 0);
 
     final Command csasCommand = new Command(
         "CREATE STREAM user1pv AS "
@@ -684,7 +728,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId csasCommandId =  new CommandId(CommandId.Type.STREAM,
         "_CSASGen",
         CommandId.Action.CREATE);
-    handleStatement(csasCommand, csasCommandId, Optional.empty());
+    handleStatement(csasCommand, csasCommandId, Optional.empty(), 1);
 
     final Command ctasCommand = new Command(
         "CREATE TABLE table1  AS "
@@ -699,7 +743,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId ctasCommandId =  new CommandId(CommandId.Type.TABLE,
         "_CTASGen",
         CommandId.Action.CREATE);
-    handleStatement(ctasCommand, ctasCommandId, Optional.empty());
+    handleStatement(ctasCommand, ctasCommandId, Optional.empty(), 2);
 
     assertThat(getCommandStatus(csCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
     assertThat(getCommandStatus(csasCommandId).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
@@ -716,7 +760,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         "_PAGEVIEW",
         CommandId.Action.DROP);
     handleStatement(
-        statementExecutor, dropStreamCommand1, dropStreamCommandId1, Optional.empty());
+        statementExecutor, dropStreamCommand1, dropStreamCommandId1, Optional.empty(), 0);
 
     // DROP statement should fail since the stream is being used.
     final Optional<CommandStatus> dropStreamCommandStatus1 =
@@ -734,7 +778,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus1
             .get()
             .getMessage(),
-        containsString("The following queries read from this source: [CTAS_TABLE1_1, CSAS_USER1PV_0]."));
+        containsString("The following queries read from this source: [CTAS_TABLE1_2, CSAS_USER1PV_1]."));
     assertThat(
         dropStreamCommandStatus1
             .get()
@@ -755,7 +799,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId dropStreamCommandId2 =
         new CommandId(CommandId.Type.STREAM, "_user1pv", CommandId.Action.DROP);
     handleStatement(
-        statementExecutor, dropStreamCommand2, dropStreamCommandId2, Optional.empty());
+        statementExecutor, dropStreamCommand2, dropStreamCommandId2, Optional.empty(), 0);
 
     // DROP statement should fail since the stream is being used.
     final Optional<CommandStatus> dropStreamCommandStatus2 =
@@ -778,7 +822,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         dropStreamCommandStatus2.get()
             .getMessage(),
         containsString(
-            "The following queries write into this source: [CSAS_USER1PV_0]."));
+            "The following queries write into this source: [CSAS_USER1PV_1]."));
     assertThat(
         dropStreamCommandStatus2.get()
             .getMessage(),
@@ -792,7 +836,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     final CommandId dropTableCommandId1 =
         new CommandId(CommandId.Type.TABLE, "_TABLE1", CommandId.Action.DROP);
     handleStatement(
-        statementExecutor, dropTableCommand1, dropTableCommandId1, Optional.empty());
+        statementExecutor, dropTableCommand1, dropTableCommandId1, Optional.empty(), 0);
 
     final Optional<CommandStatus> dropTableCommandStatus1 =
         statementExecutor.getStatus(dropTableCommandId1);
@@ -814,7 +858,7 @@ public class StatementExecutorTest extends EasyMockSupport {
     assertThat(
         dropTableCommandStatus1.get().getMessage(),
         containsString(
-            "The following queries write into this source: [CTAS_TABLE1_1]."));
+            "The following queries write into this source: [CTAS_TABLE1_2]."));
 
     assertThat(
         dropTableCommandStatus1.get().getMessage(),
@@ -824,38 +868,40 @@ public class StatementExecutorTest extends EasyMockSupport {
   private void handleStatement(
       final Command command,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatus) {
-    handleStatement(statementExecutor, command, commandId, commandStatus);
+      final Optional<CommandStatusFuture> commandStatus,
+      final long offset) {
+    handleStatement(statementExecutor, command, commandId, commandStatus, offset);
   }
 
   private static void handleStatement(
       final StatementExecutor statementExecutor,
       final Command command,
       final CommandId commandId,
-      final Optional<CommandStatusFuture> commandStatus) {
-    statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus));
+      final Optional<CommandStatusFuture> commandStatus,
+      final long offset) {
+    statementExecutor.handleStatement(new QueuedCommand(commandId, command, commandStatus, offset));
   }
 
   private void terminateQueries() {
     final Command terminateCommand1 = new Command(
-        "TERMINATE CSAS_USER1PV_0;", true,
+        "TERMINATE CSAS_USER1PV_1;", true,
             emptyMap(), ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId terminateCommandId1 =
         new CommandId(CommandId.Type.STREAM, "_TerminateGen", CommandId.Action.CREATE);
     handleStatement(
-        statementExecutor, terminateCommand1, terminateCommandId1, Optional.empty());
+        statementExecutor, terminateCommand1, terminateCommandId1, Optional.empty(), 0);
     assertThat(
         getCommandStatus(terminateCommandId1).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
 
     final Command terminateCommand2 = new Command(
-        "TERMINATE CTAS_TABLE1_1;",
+        "TERMINATE CTAS_TABLE1_2;",
         true,
       emptyMap(),
         ksqlConfig.getAllConfigPropsWithSecretsObfuscated());
     final CommandId terminateCommandId2 =
         new CommandId(CommandId.Type.TABLE, "_TerminateGen", CommandId.Action.CREATE);
     handleStatement(
-        statementExecutor, terminateCommand2, terminateCommandId2, Optional.empty());
+        statementExecutor, terminateCommand2, terminateCommandId2, Optional.empty(), 0);
     assertThat(
         getCommandStatus(terminateCommandId2).getStatus(), equalTo(CommandStatus.Status.SUCCESS));
   }

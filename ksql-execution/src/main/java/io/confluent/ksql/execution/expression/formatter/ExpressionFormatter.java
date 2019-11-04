@@ -22,6 +22,7 @@ import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -39,8 +40,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -49,6 +48,7 @@ import io.confluent.ksql.execution.expression.tree.TimeLiteral;
 import io.confluent.ksql.execution.expression.tree.TimestampLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
 import io.confluent.ksql.execution.expression.tree.WhenClause;
+import io.confluent.ksql.name.Name;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
@@ -140,9 +140,9 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitQualifiedNameReference(final QualifiedNameReference node,
+    public String visitColumnReference(final ColumnReferenceExp node,
         final Context context) {
-      return formatQualifiedName(node.getName(), context);
+      return node.getReference().toString(context.formatOptions);
     }
 
     @Override
@@ -155,7 +155,7 @@ public final class ExpressionFormatter {
           + context.formatOptions.escape(node.getFieldName());
     }
 
-    private static String formatQualifiedName(final QualifiedName name, final Context context) {
+    private static String formatName(final Name<?> name, final Context context) {
       return name.toString(context.formatOptions);
     }
 
@@ -168,7 +168,7 @@ public final class ExpressionFormatter {
         arguments = "*";
       }
 
-      builder.append(formatQualifiedName(node.getName(), context))
+      builder.append(formatName(node.getName(), context))
           .append('(').append(arguments).append(')');
 
       return builder.toString();

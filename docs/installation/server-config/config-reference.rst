@@ -226,7 +226,7 @@ ksql.sink.partitions (Deprecated)
 ---------------------------------
 
 The default number of partitions for the topics created by KSQL. The default is four.
-This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>`, :ref:`CREATE TABLE AS SELECT <create-table-as-select>`, :ref:`CREATE STREAM <create-stream>`, and :ref:`CREATE TABLE <create-table>`.
 
 The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
@@ -239,7 +239,7 @@ ksql.sink.replicas (Deprecated)
 -------------------------------
 
 The default number of replicas for the topics created by KSQL. The default is one.
-This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>` and :ref:`CREATE TABLE AS SELECT <create-table-as-select>`.
+This property has been deprecated since 5.3 release. For more info see the WITH clause properties in :ref:`CREATE STREAM AS SELECT <create-stream-as-select>`, :ref:`CREATE TABLE AS SELECT <create-table-as-select>`, :ref:`CREATE STREAM <create-stream>`, and :ref:`CREATE TABLE <create-table>`.
 
 ------------------------------------
 ksql.functions.substring.legacy.args
@@ -255,7 +255,7 @@ The corresponding environment variable in the
 `KSQL Server image <https://hub.docker.com/r/confluentinc/cp-ksql-server/>`__ is
 ``KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS``.
 
-.. _ksql_persistence_wrap_single_values:
+.. _ksql-persistence-wrap-single-values:
 
 -----------------------------------
 ksql.persistence.wrap.single.values
@@ -274,7 +274,7 @@ For example, consider the statement:
 
 .. code:: sql
 
-    CREATE STREAM y AS SELECT f0 FROM x;
+    CREATE STREAM y AS SELECT f0 FROM x EMIT CHANGES;
 
 The statement selects a single field as the value of stream ``y``. If ``f0`` has the
 integer value ``10``,
@@ -299,8 +299,9 @@ value is written as a named field within an Avro record or as an anonymous value
 
 This setting can be toggled using the `SET` command
 
- .. code:: sql
-     SET 'ksql.persistence.wrap.single.values'='false';
+.. code:: sql
+
+    SET 'ksql.persistence.wrap.single.values'='false';
 
 For more information, refer to the :ref:`CREATE TABLE <create-table>`,
 :ref:`CREATE STREAM <create-stream>`, :ref:`CREATE TABLE <create-table-as-select>`
@@ -332,7 +333,7 @@ The default is no limit.
 When setting up KSQL servers, it may be desirable to configure this limit to prevent users from overloading the server
 with too many queries, since throughput suffers as more queries are run simultaneously,
 and also because there is some small CPU overhead associated with starting each new query.
-See :ref:`KSQL Sizing Recommendations <important-sizing-factors>` for more details.
+See :ref:`KSQL Sizing Recommendations <ksql_sizing_best>` for more details.
 
 .. _ksql-queries-file:
 
@@ -553,17 +554,23 @@ When deploying KSQL to production, the following settings are recommended in you
     # Server's internal topics. Note: the value 3 requires at least 3 brokers in your Kafka cluster.
     ksql.internal.topic.replicas=3
 
-    # For better fault tolerance and durability, set the replication factor for
-    # the internal topics that Kafka Streams creates for some queries.
-    # Note: the value 3 requires at least 3 brokers in your Kafka cluster.
+    # Configure underlying Kafka Streams internal topics in order to achieve better fault tolerance and
+    # durability, even in the face of Kafka broker failures. Highly recommended for mission critical applications.
+    # Note that value 3 requires at least 3 brokers in your kafka cluster.
     ksql.streams.replication.factor=3
+    ksql.streams.producer.acks=all
+    ksql.streams.topic.min.insync.replicas=2
 
     # Set the storage directory for stateful operations like aggregations and
     # joins to be at a durable location. By default, they are stored in /tmp.
+    # Note that the path below needs to be replaced with the actual value
     ksql.streams.state.dir=/some/non-temporary-storage-path/
 
     # Bump the number of replicas for state storage for stateful operations
     # like aggregations and joins. By having two replicas (one main and one
     # standby) recovery from node failures is quicker since the state doesn't
-    # have to be rebuilt from scratch.
+    # have to be rebuilt from scratch. This configuration is also essential for
+    # pull queries to be highly available during node failures.
     ksql.streams.num.standby.replicas=1
+
+For your convenience, a sample file is provided at ``<path-to-ksql-repo>/config/ksql-production-server.properties``

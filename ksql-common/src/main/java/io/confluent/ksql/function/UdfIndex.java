@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
  *       that was added first.</li>
  * </ul>
  */
-public class UdfIndex<T extends IndexedFunction> {
+public class UdfIndex<T extends FunctionSignature> {
   // this class is implemented as a custom Trie data structure that resolves
   // the rules described above. the Trie is built so that each node in the
   // trie references a single possible parameter in the signature. take for
@@ -240,7 +240,7 @@ public class UdfIndex<T extends IndexedFunction> {
 
     @Override
     public String toString() {
-      return value != null ? value.getFunctionName() : "EMPTY";
+      return value != null ? value.getFunctionName().name() : "EMPTY";
     }
 
     int compare(final Node other) {

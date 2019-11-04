@@ -17,6 +17,7 @@ package io.confluent.ksql.rest.server.execution;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 
+import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.rest.entity.FunctionDescriptionList;
 import io.confluent.ksql.rest.entity.FunctionType;
 import io.confluent.ksql.rest.server.TemporaryEngine;
@@ -38,6 +39,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION CONCAT;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -47,7 +49,7 @@ public class DescribeFunctionExecutorTest {
       @Override
       protected boolean matchesSafely(FunctionDescriptionList item) {
         return functionList.getName().equals("CONCAT")
-            && functionList.getType().equals(FunctionType.scalar);
+            && functionList.getType().equals(FunctionType.SCALAR);
       }
 
       @Override
@@ -63,6 +65,7 @@ public class DescribeFunctionExecutorTest {
     final FunctionDescriptionList functionList = (FunctionDescriptionList)
         CustomExecutors.DESCRIBE_FUNCTION.execute(
             engine.configure("DESCRIBE FUNCTION MAX;"),
+            ImmutableMap.of(),
             engine.getEngine(),
             engine.getServiceContext()
         ).orElseThrow(IllegalStateException::new);
@@ -72,7 +75,33 @@ public class DescribeFunctionExecutorTest {
       @Override
       protected boolean matchesSafely(FunctionDescriptionList item) {
         return functionList.getName().equals("MAX")
-            && functionList.getType().equals(FunctionType.aggregate);
+            && functionList.getType().equals(FunctionType.AGGREGATE);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText(functionList.getName());
+      }
+    });
+  }
+
+  @Test
+  public void shouldDescribeUDTF() {
+    // When:
+    final FunctionDescriptionList functionList = (FunctionDescriptionList)
+        CustomExecutors.DESCRIBE_FUNCTION.execute(
+            engine.configure("DESCRIBE FUNCTION TEST_UDTF1;"),
+            ImmutableMap.of(),
+            engine.getEngine(),
+            engine.getServiceContext()
+        ).orElseThrow(IllegalStateException::new);
+
+    // Then:
+    assertThat(functionList, new TypeSafeMatcher<FunctionDescriptionList>() {
+      @Override
+      protected boolean matchesSafely(FunctionDescriptionList item) {
+        return functionList.getName().equals("TEST_UDTF1")
+            && functionList.getType().equals(FunctionType.TABLE);
       }
 
       @Override

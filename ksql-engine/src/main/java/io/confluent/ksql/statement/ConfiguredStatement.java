@@ -15,6 +15,10 @@
 
 package io.confluent.ksql.statement;
 
+import static java.util.Objects.requireNonNull;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.util.KsqlConfig;
@@ -25,6 +29,7 @@ import java.util.Objects;
  * A prepared statement paired with the configurations needed to fully
  * execute it.
  */
+@Immutable
 public final class ConfiguredStatement<T extends Statement> {
 
   private final PreparedStatement<T> statement;
@@ -33,7 +38,7 @@ public final class ConfiguredStatement<T extends Statement> {
 
   public static <S extends Statement> ConfiguredStatement<S> of(
       final PreparedStatement<S> statement,
-      final Map<String, Object> overrides,
+      final Map<String, ?> overrides,
       final KsqlConfig config
   ) {
     return new ConfiguredStatement<>(statement, overrides, config);
@@ -41,12 +46,17 @@ public final class ConfiguredStatement<T extends Statement> {
 
   private ConfiguredStatement(
       final PreparedStatement<T> statement,
-      final Map<String, Object> overrides,
+      final Map<String, ?> overrides,
       final KsqlConfig config
   ) {
-    this.statement = Objects.requireNonNull(statement, "statement");
-    this.overrides = Objects.requireNonNull(overrides, "overrides");
-    this.config = Objects.requireNonNull(config, "config");
+    this.statement = requireNonNull(statement, "statement");
+    this.overrides = ImmutableMap.copyOf(requireNonNull(overrides, "overrides"));
+    this.config = requireNonNull(config, "config");
+  }
+
+  @SuppressWarnings("unchecked")
+  public <S extends Statement> ConfiguredStatement<S> cast() {
+    return (ConfiguredStatement<S>) this;
   }
 
   public T getStatement() {

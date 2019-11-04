@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server;
 
+import static java.util.Objects.requireNonNull;
 import static org.easymock.EasyMock.niceMock;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -22,9 +23,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.Queries;
@@ -35,6 +37,7 @@ import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.context.KsqlRestServiceContextBinder;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
 import io.confluent.ksql.security.KsqlSecurityExtension;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
@@ -51,7 +54,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -93,19 +96,22 @@ public class TestKsqlRestApp extends ExternalResource {
   private final Supplier<ServiceContext> serviceContext;
   private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final List<URL> listeners = new ArrayList<>();
+  private final Optional<BasicCredentials> credentials;
   private KsqlRestApplication restServer;
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
       final Map<String, Object> additionalProps,
       final Supplier<ServiceContext> serviceContext,
-      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory
+      final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory,
+      final Optional<BasicCredentials> credentials
   ) {
     this.baseConfig = buildBaseConfig(additionalProps);
-    this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.serviceContextBinderFactory = Objects
-        .requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
+    this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.serviceContextBinderFactory =
+        requireNonNull(serviceContextBinderFactory, "serviceContextBinderFactory");
+    this.credentials = requireNonNull(credentials, "credentials");
   }
 
   @SuppressWarnings("WeakerAccess") // Part of public API
@@ -156,9 +162,22 @@ public class TestKsqlRestApp extends ExternalResource {
     }
   }
 
-  @SuppressWarnings("unused") // Part of public API
   public KsqlRestClient buildKsqlClient() {
-    return new KsqlRestClient(getHttpListener().toString());
+    return KsqlRestClient.create(
+        getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        credentials
+    );
+  }
+
+  public KsqlRestClient buildKsqlClient(final Optional<BasicCredentials> credentials) {
+    return KsqlRestClient.create(
+        getHttpListener().toString(),
+        ImmutableMap.of(),
+        ImmutableMap.of(),
+        credentials
+    );
   }
 
   public static String getCommandTopicName() {
@@ -275,7 +294,7 @@ public class TestKsqlRestApp extends ExternalResource {
     final Queries queries = (Queries) response.getResponse().get(0);
     return queries.getQueries().stream()
         .map(RunningQuery::getId)
-        .map(EntityQueryId::getId)
+        .map(QueryId::getId)
         .collect(Collectors.toSet());
   }
 
@@ -378,10 +397,12 @@ public class TestKsqlRestApp extends ExternalResource {
 
   private static ServiceContext defaultServiceContext(
       final Supplier<String> bootstrapServers,
-      final Map<String, ?> baseConfig) {
+      final Map<String, ?> baseConfig
+  ) {
+    final KsqlConfig config =
+        new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties());
 
-    return ServiceContextFactory.create(
-        new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties()));
+    return ServiceContextFactory.create(config, DisabledKsqlClient.instance());
   }
 
   public static final class Builder {
@@ -394,8 +415,10 @@ public class TestKsqlRestApp extends ExternalResource {
     private BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinder
         = KsqlRestServiceContextBinder::new;
 
+    private Optional<BasicCredentials> credentials = Optional.empty();
+
     private Builder(final Supplier<String> bootstrapServers) {
-      this.bootstrapServers = Objects.requireNonNull(bootstrapServers, "bootstrapServers");
+      this.bootstrapServers = requireNonNull(bootstrapServers, "bootstrapServers");
       this.serviceContext =
           () -> defaultServiceContext(bootstrapServers, buildBaseConfig(additionalProps));
     }
@@ -438,12 +461,29 @@ public class TestKsqlRestApp extends ExternalResource {
       return this;
     }
 
+    /**
+     * Set the credentials to use to build the client and used for any internal operations, e.g.
+     * {@link #dropSourcesExcept(String...)}, {@link #closePersistentQueries} etc.
+     *
+     * @param username the username
+     * @param password the password
+     * @return self
+     */
+    public Builder withBasicCredentials(
+        final String username,
+        final String password
+    ) {
+      this.credentials = Optional.of(BasicCredentials.of(username, password));
+      return this;
+    }
+
     public TestKsqlRestApp build() {
       return new TestKsqlRestApp(
           bootstrapServers,
           additionalProps,
           serviceContext,
-          serviceContextBinder
+          serviceContextBinder,
+          credentials
       );
     }
   }

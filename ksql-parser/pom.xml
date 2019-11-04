@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.4.0-SNAPSHOT</version>
+        <version>5.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>ksql-parser</artifactId>
@@ -35,17 +35,13 @@
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-execution</artifactId>
+            <artifactId>ksql-metastore</artifactId>
         </dependency>
 
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-metastore</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.confluent.ksql</groupId>
-            <artifactId>ksql-metastore</artifactId>
-            <version>5.4.0-SNAPSHOT</version>
+            <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

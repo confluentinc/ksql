@@ -62,7 +62,7 @@ public interface ExpressionVisitor<R, C> {
 
   R visitNullLiteral(NullLiteral exp, @Nullable C context);
 
-  R visitQualifiedNameReference(QualifiedNameReference exp, @Nullable C context);
+  R visitColumnReference(ColumnReferenceExp exp, @Nullable C context);
 
   R visitSearchedCaseExpression(SearchedCaseExpression exp, @Nullable C context);
 

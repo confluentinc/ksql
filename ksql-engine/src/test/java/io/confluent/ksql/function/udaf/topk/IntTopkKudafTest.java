@@ -20,6 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,11 +38,16 @@ public class IntTopkKudafTest {
   private final List<Integer> valuesArray = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25);
   private KsqlAggregateFunction<Integer, List<Integer>, List<Integer>> topkKudaf;
 
+  private AggregateFunctionInitArguments createArgs(int k) {
+    return new AggregateFunctionInitArguments(0, k);
+  }
+
   @SuppressWarnings("unchecked")
   @Before
   public void setup() {
-    topkKudaf = new TopKAggregateFunctionFactory(3)
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
+    topkKudaf = new TopKAggregateFunctionFactory()
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            createArgs(3));
   }
 
   @Test
@@ -102,8 +108,9 @@ public class IntTopkKudafTest {
   public void shouldWorkWithLargeValuesOfKay() {
     // Given:
     final int topKSize = 300;
-    topkKudaf = new TopKAggregateFunctionFactory(topKSize)
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
+    topkKudaf = new TopKAggregateFunctionFactory()
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            createArgs(topKSize));
     final List<Integer> initialAggregate = IntStream.range(0, topKSize)
             .boxed().sorted(Comparator.reverseOrder()).collect(Collectors.toList());
 
@@ -121,8 +128,9 @@ public class IntTopkKudafTest {
   @Test
   public void shouldBeThreadSafe() {
     // Given:
-    topkKudaf = new TopKAggregateFunctionFactory(12)
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
+    topkKudaf = new TopKAggregateFunctionFactory()
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            createArgs(12));
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
@@ -149,8 +157,9 @@ public class IntTopkKudafTest {
   public void testAggregatePerformance() {
     final int iterations = 1_000_000_000;
     final int topX = 10;
-    topkKudaf = new TopKAggregateFunctionFactory(topX)
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
+    topkKudaf = new TopKAggregateFunctionFactory()
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            createArgs(topX));
     final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
 
@@ -167,8 +176,9 @@ public class IntTopkKudafTest {
   public void testMergePerformance() {
     final int iterations = 1_000_000_000;
     final int topX = 10;
-    topkKudaf = new TopKAggregateFunctionFactory(topX)
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA));
+    topkKudaf = new TopKAggregateFunctionFactory()
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            createArgs(topX));
 
     final List<Integer> aggregate1 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v + 1 : v)

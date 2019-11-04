@@ -37,11 +37,12 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.KsqlExecutionContext.ExecuteResult;
 import io.confluent.ksql.engine.KsqlEngine;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.expression.tree.Type;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
@@ -114,9 +115,9 @@ public class StandaloneExecutorTest {
   private static final KsqlConfig ksqlConfig = new KsqlConfig(emptyMap());
 
   private static final TableElements SOME_ELEMENTS = TableElements.of(
-      new TableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING)));
+      new TableElement(Namespace.VALUE, ColumnName.of("bob"), new Type(SqlTypes.STRING)));
 
-  private static final QualifiedName SOME_NAME = QualifiedName.of("Bob");
+  private static final SourceName SOME_NAME = SourceName.of("Bob");
   private static final String SOME_TOPIC = "some-topic";
 
   private static final CreateSourceProperties JSON_PROPS = CreateSourceProperties.from(
@@ -136,11 +137,11 @@ public class StandaloneExecutorTest {
       SOME_NAME, SOME_ELEMENTS, true, JSON_PROPS);
 
   private static final CreateStreamAsSelect CREATE_STREAM_AS_SELECT = new CreateStreamAsSelect(
-      QualifiedName.of("stream"),
+      SourceName.of("stream"),
       new Query(
           Optional.empty(),
           new Select(ImmutableList.of(new AllColumns(Optional.empty()))),
-          new Table(QualifiedName.of("sink")),
+          new Table(SourceName.of("sink")),
           Optional.empty(),
           Optional.empty(),
           Optional.empty(),
@@ -178,7 +179,7 @@ public class StandaloneExecutorTest {
 
   private final static PreparedStatement<CreateStream> STMT_0_WITH_SCHEMA = PreparedStatement
       .of("sql 0", new CreateStream(
-          QualifiedName.of("CS 0"),
+          SourceName.of("CS 0"),
           SOME_ELEMENTS,
           true,
           JSON_PROPS
@@ -189,7 +190,7 @@ public class StandaloneExecutorTest {
 
   private final static PreparedStatement<CreateStream> STMT_1_WITH_SCHEMA = PreparedStatement
       .of("sql 1", new CreateStream(
-          QualifiedName.of("CS 1"),
+          SourceName.of("CS 1"),
           SOME_ELEMENTS,
           true,
           JSON_PROPS
@@ -215,7 +216,7 @@ public class StandaloneExecutorTest {
   @Mock
   private KsqlExecutionContext sandBox;
   @Mock
-  private UdfLoader udfLoader;
+  private UserFunctionLoader udfLoader;
   @Mock
   private PersistentQueryMetadata persistentQuery;
   @Mock
@@ -226,6 +227,8 @@ public class StandaloneExecutorTest {
   private VersionCheckerAgent versionChecker;
   @Mock
   private ServiceContext serviceContext;
+  @Mock
+  private ServiceContext sandBoxServiceContext;
   @Mock
   private KafkaTopicClient kafkaTopicClient;
   @Mock
@@ -255,15 +258,16 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(ksqlEngine.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(ksqlEngine.execute(any())).thenReturn(ExecuteResult.of(persistentQuery));
+    when(ksqlEngine.execute(any(), any())).thenReturn(ExecuteResult.of(persistentQuery));
 
     when(ksqlEngine.createSandbox(any())).thenReturn(sandBox);
 
     when(sandBox.prepare(PARSED_STMT_0)).thenReturn((PreparedStatement) PREPARED_STMT_0);
     when(sandBox.prepare(PARSED_STMT_1)).thenReturn((PreparedStatement) PREPARED_STMT_1);
 
-    when(sandBox.execute(any())).thenReturn(ExecuteResult.of("success"));
-    when(sandBox.execute(CSAS_CFG_WITH_TOPIC))
+    when(sandBox.getServiceContext()).thenReturn(sandBoxServiceContext);
+    when(sandBox.execute(any(), any())).thenReturn(ExecuteResult.of("success"));
+    when(sandBox.execute(sandBoxServiceContext, CSAS_CFG_WITH_TOPIC))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     when(injectorFactory.apply(any(), any())).thenReturn(InjectorChain.of(sandBoxSchemaInjector, sandBoxTopicInjector));
@@ -444,7 +448,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -459,7 +463,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
   }
 
   @Test
@@ -478,10 +482,33 @@ public class StandaloneExecutorTest {
 
     // Then:
     verify(ksqlEngine).execute(
+        serviceContext,
         ConfiguredStatement.of(
             cs,
             ImmutableMap.of(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
             ksqlConfig));
+  }
+
+  @Test
+  public void shouldSetPropertyOnlyOnCommandsFollowingTheSetStatement() {
+    // Given:
+    final PreparedStatement<SetProperty> setProp = PreparedStatement.of("SET PROP",
+        new SetProperty(Optional.empty(), ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"));
+
+    final PreparedStatement<CreateStream> cs = PreparedStatement.of("CS",
+        new CreateStream(SOME_NAME, SOME_ELEMENTS, false, JSON_PROPS));
+
+    givenQueryFileParsesTo(cs, setProp);
+
+    // When:
+    standaloneExecutor.start();
+
+    // Then:
+    verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(
+        cs,
+        ImmutableMap.of(),
+        ksqlConfig
+    ));
   }
 
   @Test
@@ -504,7 +531,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -515,14 +542,14 @@ public class StandaloneExecutorTest {
     final ConfiguredStatement<?> configured = ConfiguredStatement.of(csas, emptyMap(), ksqlConfig);
     givenQueryFileParsesTo(csas);
 
-    when(sandBox.execute(configured))
+    when(sandBox.execute(sandBoxServiceContext, configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -534,14 +561,14 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(ctas);
 
-    when(sandBox.execute(configured))
+    when(sandBox.execute(sandBoxServiceContext, configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -553,14 +580,14 @@ public class StandaloneExecutorTest {
 
     givenQueryFileParsesTo(insertInto);
 
-    when(sandBox.execute(configured))
+    when(sandBox.execute(sandBoxServiceContext, configured))
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
     standaloneExecutor.start();
 
     // Then:
-    verify(ksqlEngine).execute(configured);
+    verify(ksqlEngine).execute(serviceContext, configured);
   }
 
   @Test
@@ -568,7 +595,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(sandBox.execute(any()))
+    when(sandBox.execute(any(), any()))
         .thenReturn(ExecuteResult.of("well, this is unexpected."));
 
     expectedException.expect(KsqlException.class);
@@ -583,7 +610,7 @@ public class StandaloneExecutorTest {
     // Given:
     givenFileContainsAPersistentQuery();
 
-    when(sandBox.execute(any()))
+    when(sandBox.execute(any(), any()))
         .thenReturn(ExecuteResult.of(nonPersistentQueryMd));
 
     expectedException.expect(KsqlException.class);
@@ -605,7 +632,7 @@ public class StandaloneExecutorTest {
   @Test(expected = RuntimeException.class)
   public void shouldThrowIfExecuteThrows() {
     // Given:
-    when(ksqlEngine.execute(any())).thenThrow(new RuntimeException("Boom!"));
+    when(ksqlEngine.execute(any(), any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
     standaloneExecutor.start();
@@ -645,7 +672,7 @@ public class StandaloneExecutorTest {
   public void shouldNotStartValidationPhaseQueries() {
     // Given:
     givenFileContainsAPersistentQuery();
-    when(sandBox.execute(any())).thenReturn(ExecuteResult.of(sandBoxQuery));
+    when(sandBox.execute(any(), any())).thenReturn(ExecuteResult.of(sandBoxQuery));
 
     // When:
     standaloneExecutor.start();
@@ -666,9 +693,9 @@ public class StandaloneExecutorTest {
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_0);
-    inOrder.verify(ksqlEngine).execute(CFG_STMT_0);
+    inOrder.verify(ksqlEngine).execute(serviceContext, CFG_STMT_0);
     inOrder.verify(ksqlEngine).prepare(PARSED_STMT_1);
-    inOrder.verify(ksqlEngine).execute(CFG_STMT_1);
+    inOrder.verify(ksqlEngine).execute(serviceContext, CFG_STMT_1);
   }
 
   @Test
@@ -706,8 +733,8 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(CFG_0_WITH_SCHEMA);
-    verify(ksqlEngine).execute(CFG_1_WITH_SCHEMA);
+    verify(sandBox).execute(sandBoxServiceContext, CFG_0_WITH_SCHEMA);
+    verify(ksqlEngine).execute(serviceContext, CFG_1_WITH_SCHEMA);
   }
 
   @Test
@@ -722,7 +749,7 @@ public class StandaloneExecutorTest {
     standaloneExecutor.start();
 
     // Then:
-    verify(sandBox).execute(CSAS_CFG_WITH_TOPIC);
+    verify(sandBox).execute(sandBoxServiceContext, CSAS_CFG_WITH_TOPIC);
   }
 
   private void givenExecutorWillFailOnNoQueries() {

@@ -15,23 +15,20 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.KTable;
 
 @Immutable
-public class TableSink<K> implements ExecutionStep<KTable<K, GenericRow>> {
+public class TableSink<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KTable<K, GenericRow>> source;
+  private final ExecutionStep<KTableHolder<K>> source;
   private final Formats formats;
   private final String topicName;
 
   public TableSink(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KTable<K, GenericRow>> source,
+      final ExecutionStep<KTableHolder<K>> source,
       final Formats formats,
       final String topicName
   ) {
@@ -59,9 +56,13 @@ public class TableSink<K> implements ExecutionStep<KTable<K, GenericRow>> {
     return formats;
   }
 
+  public ExecutionStep<KTableHolder<K>> getSource() {
+    return source;
+  }
+
   @Override
-  public KTable<K, GenericRow> build(final KsqlQueryBuilder builder) {
-    throw new UnsupportedOperationException();
+  public KTableHolder<K> build(final PlanBuilder builder) {
+    return builder.visitTableSink(this);
   }
 
   @Override

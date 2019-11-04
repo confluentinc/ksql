@@ -1821,6 +1821,17 @@
           "key": 0
         }
       ]
+    },
+    {
+      "name": "direct use of FETCH_FIELD_FROM_STRUCT",
+      "statements": [
+        "CREATE STREAM input (s STRUCT<f0 BIGINT>) WITH (kafka_topic='input_topic', value_format='JSON');",
+        "CREATE STREAM output AS SELECT FETCH_FIELD_FROM_STRUCT(s, 'f0') FROM input;"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.util.KsqlStatementException",
+        "message": "Can't find any functions with the name 'FETCH_FIELD_FROM_STRUCT'"
+      }
     }
   ]
 }

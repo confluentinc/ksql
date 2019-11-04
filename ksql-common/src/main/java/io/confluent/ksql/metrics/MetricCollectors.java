@@ -16,6 +16,7 @@
 package io.confluent.ksql.metrics;
 
 import io.confluent.common.utils.Time;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -88,6 +89,15 @@ public final class MetricCollectors {
     final String finalId = builtId.toString();
     collectorMap.put(finalId, collector);
     return finalId;
+  }
+
+  public static void addConfigurableReporter(final KsqlConfig ksqlConfig) {
+    final List<MetricsReporter> reporters = ksqlConfig.getConfiguredInstances(
+        KsqlConfig.METRIC_REPORTER_CLASSES_CONFIG,
+        MetricsReporter.class);
+    for (final MetricsReporter reporter: reporters) {
+      metrics.addReporter(reporter);
+    }
   }
 
   static void remove(final String id) {

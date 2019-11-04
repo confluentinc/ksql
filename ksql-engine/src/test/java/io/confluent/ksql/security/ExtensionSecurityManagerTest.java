@@ -64,8 +64,7 @@ public class ExtensionSecurityManagerTest {
   public void shouldNotAllowExecWhenPluggableUDF() throws NoSuchMethodException {
     new PluggableUdf(
         (thiz,args) -> exec(),
-        new Object(),
-        ExtensionSecurityManagerTest.class.getMethod("exec"))
+        new Object())
         .evaluate();
   }
 
@@ -83,7 +82,7 @@ public class ExtensionSecurityManagerTest {
     new PluggableUdf((thiz,args) -> {
       System.exit(1);
       return null;
-    }, new Object(), System.class.getMethod("exit", int.class)).evaluate();
+    }, new Object()).evaluate();
   }
   
 }

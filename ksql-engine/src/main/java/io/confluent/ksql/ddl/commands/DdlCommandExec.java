@@ -27,9 +27,13 @@ import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -47,10 +51,22 @@ public class DdlCommandExec {
    * execute on metaStore
    */
   public DdlCommandResult execute(final DdlCommand ddlCommand) {
-    return new Executor().execute(ddlCommand);
+    return execute(ddlCommand, Optional.empty());
   }
 
-  private class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
+  public DdlCommandResult execute(
+      final DdlCommand ddlCommand,
+      final Optional<KeyField> keyFieldOverride) {
+    return new Executor(keyFieldOverride).execute(ddlCommand);
+  }
+
+  private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
+    final Optional<KeyField> keyFieldOverride;
+
+    private Executor(final Optional<KeyField> keyFieldOverride) {
+      this.keyFieldOverride = Objects.requireNonNull(keyFieldOverride, "keyFieldOverride");
+    }
+
     @Override
     public DdlCommandResult executeCreateStream(final CreateStreamCommand createStream) {
       final KsqlStream<?> ksqlStream = new KsqlStream<>(
@@ -83,7 +99,7 @@ public class DdlCommandExec {
 
     @Override
     public DdlCommandResult executeDropSource(final DropSourceCommand dropSource) {
-      final String sourceName = dropSource.getSourceName();
+      final SourceName sourceName = dropSource.getSourceName();
       final DataSource<?> dataSource = metaStore.getSource(sourceName);
       if (dataSource == null) {
         return new DdlCommandResult(true, "Source " + sourceName + " does not exist.");
@@ -113,14 +129,22 @@ public class DdlCommandExec {
           : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
     }
 
-    private KeyField getKeyField(final Optional<String> keyFieldName, final LogicalSchema schema) {
+    private KeyField getKeyField(
+        final Optional<ColumnName> keyFieldName,
+        final LogicalSchema schema
+    ) {
+      if (keyFieldOverride.isPresent()) {
+        return keyFieldOverride.get();
+      }
       if (keyFieldName.isPresent()) {
-        final Column keyColumn = schema.findValueColumn(keyFieldName.get())
+        final Column keyColumn = schema.findValueColumn(
+            // for DDL commands, the key name is never specified with a source
+            ColumnRef.withoutSource(keyFieldName.get()))
             .orElseThrow(() -> new IllegalStateException(
                 "The KEY column set in the WITH clause does not exist in the schema: '"
                     + keyFieldName + "'"
             ));
-        return KeyField.of(keyFieldName.get(), keyColumn);
+        return KeyField.of(ColumnRef.withoutSource(keyFieldName.get()), keyColumn);
       } else {
         return KeyField.none();
       }

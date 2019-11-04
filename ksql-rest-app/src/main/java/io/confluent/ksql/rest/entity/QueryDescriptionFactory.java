@@ -16,11 +16,15 @@
 package io.confluent.ksql.rest.entity;
 
 import com.google.common.collect.ImmutableSet;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.util.EntityUtil;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class QueryDescriptionFactory {
 
@@ -31,31 +35,40 @@ public final class QueryDescriptionFactory {
     if (queryMetadata instanceof PersistentQueryMetadata) {
       final PersistentQueryMetadata persistentQuery = (PersistentQueryMetadata) queryMetadata;
       return create(
-          persistentQuery.getQueryId().getId(),
+          persistentQuery.getQueryId(),
           persistentQuery,
           ImmutableSet.of(persistentQuery.getSinkName()),
-          false
+          false,
+          Optional.of(persistentQuery.getState())
       );
     }
-    return create("", queryMetadata, Collections.emptySet(), true);
-  }
 
-  private static QueryDescription create(
-      final String id,
-      final QueryMetadata queryMetadata,
-      final Set<String> sinks,
-      final boolean valueSchemaOnly
-  ) {
-    return new QueryDescription(
-        new EntityQueryId(id),
-        queryMetadata.getStatementString(),
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly),
-        queryMetadata.getSourceNames(),
-        sinks,
-        queryMetadata.getTopologyDescription(),
-        queryMetadata.getExecutionPlan(),
-        queryMetadata.getOverriddenProperties()
+    return create(
+        new QueryId(""),
+        queryMetadata,
+        Collections.emptySet(),
+        true,
+        Optional.empty()
     );
   }
 
+  private static QueryDescription create(
+      final QueryId id,
+      final QueryMetadata queryMetadata,
+      final Set<SourceName> sinks,
+      final boolean valueSchemaOnly,
+      final Optional<String> state
+  ) {
+    return new QueryDescription(
+        id,
+        queryMetadata.getStatementString(),
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly),
+        queryMetadata.getSourceNames().stream().map(SourceName::name).collect(Collectors.toSet()),
+        sinks.stream().map(SourceName::name).collect(Collectors.toSet()),
+        queryMetadata.getTopologyDescription(),
+        queryMetadata.getExecutionPlan(),
+        queryMetadata.getOverriddenProperties(),
+        state
+    );
+  }
 }

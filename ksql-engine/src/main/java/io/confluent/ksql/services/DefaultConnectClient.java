@@ -29,14 +29,18 @@ import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
+import javax.ws.rs.core.HttpHeaders;
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
+import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorInfo;
 import org.apache.kafka.connect.runtime.rest.entities.ConnectorStateInfo;
@@ -59,9 +63,14 @@ public class DefaultConnectClient implements ConnectClient {
   private static final int MAX_ATTEMPTS = 3;
 
   private final URI connectUri;
+  private final Optional<String> authHeader;
 
-  public DefaultConnectClient(final String connectUri) {
+  public DefaultConnectClient(
+      final String connectUri,
+      final Optional<String> authHeader
+  ) {
     Objects.requireNonNull(connectUri, "connectUri");
+    this.authHeader = Objects.requireNonNull(authHeader, "authHeader");
 
     try {
       this.connectUri = new URI(connectUri);
@@ -84,6 +93,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .Post(connectUri.resolve(CONNECTORS))
+          .setHeaders(headers())
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .bodyString(
@@ -114,6 +124,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<List<String>> connectResponse = withRetries(() -> Request
           .Get(connectUri.resolve(CONNECTORS))
+          .setHeaders(headers())
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
@@ -138,6 +149,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConnectorStateInfo> connectResponse = withRetries(() -> Request
           .Get(connectUri.resolve(CONNECTORS + "/" + connector + STATUS))
+          .setHeaders(headers())
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
@@ -162,6 +174,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<ConnectorInfo> connectResponse = withRetries(() -> Request
           .Get(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .setHeaders(headers())
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
@@ -185,6 +198,7 @@ public class DefaultConnectClient implements ConnectClient {
 
       final ConnectResponse<String> connectResponse = withRetries(() -> Request
           .Delete(connectUri.resolve(String.format("%s/%s", CONNECTORS, connector)))
+          .setHeaders(headers())
           .socketTimeout(DEFAULT_TIMEOUT_MS)
           .connectTimeout(DEFAULT_TIMEOUT_MS)
           .execute()
@@ -200,6 +214,12 @@ public class DefaultConnectClient implements ConnectClient {
     }
   }
 
+  private Header[] headers() {
+    return authHeader.isPresent()
+        ? new Header[]{new BasicHeader(HttpHeaders.AUTHORIZATION, authHeader.get())}
+        : new Header[]{};
+  }
+
   @SuppressWarnings("unchecked")
   private static <T> ConnectResponse<T> withRetries(final Callable<ConnectResponse<T>> action) {
     try {
@@ -207,7 +227,9 @@ public class DefaultConnectClient implements ConnectClient {
           .withStopStrategy(StopStrategies.stopAfterAttempt(MAX_ATTEMPTS))
           .withWaitStrategy(WaitStrategies.exponentialWait())
           .retryIfResult(
-              result -> result == null || result.httpCode() >= HttpStatus.SC_INTERNAL_SERVER_ERROR)
+              result -> result == null
+                  || result.httpCode() >= HttpStatus.SC_INTERNAL_SERVER_ERROR
+                  || result.httpCode() == HttpStatus.SC_CONFLICT)
           .retryIfException()
           .build()
           .call(action);

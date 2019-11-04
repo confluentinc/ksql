@@ -35,6 +35,7 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KsqlStream;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -100,10 +101,10 @@ public class RequestValidatorTest {
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
 
     final KsqlStream<?> source = mock(KsqlStream.class);
-    when(source.getName()).thenReturn("SOURCE");
+    when(source.getName()).thenReturn(SourceName.of("SOURCE"));
 
     final KsqlStream<?> sink = mock(KsqlStream.class);
-    when(sink.getName()).thenReturn("SINK");
+    when(sink.getName()).thenReturn(SourceName.of("SINK"));
 
     metaStore.putSource(source);
     metaStore.putSource(sink);
@@ -127,6 +128,7 @@ public class RequestValidatorTest {
     // Then:
     verify(statementValidator, times(1)).validate(
         argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
+        eq(ImmutableMap.of()),
         eq(executionContext),
         any()
     );
@@ -155,7 +157,7 @@ public class RequestValidatorTest {
         ImmutableMap.of(CreateStream.class, statementValidator)
     );
     doThrow(new KsqlException("Fail"))
-        .when(statementValidator).validate(any(), any(), any());
+        .when(statementValidator).validate(any(), any(), any(), any());
 
     final List<ParsedStatement> statements =
         givenParsed(SOME_STREAM_SQL);
@@ -241,6 +243,7 @@ public class RequestValidatorTest {
     // Then:
     verify(statementValidator, times(1)).validate(
         argThat(is(configured(preparedStatement(instanceOf(CreateStream.class))))),
+        any(),
         eq(executionContext),
         any()
     );

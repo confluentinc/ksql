@@ -18,6 +18,7 @@ package io.confluent.ksql.execution.function;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.GenericArrayType;
@@ -62,16 +63,16 @@ public final class UdfUtil {
    * @param argTypes Expected argument types
    */
   public static void ensureCorrectArgs(
-      final String functionName,
+      final FunctionName functionName,
       final Object[] args,
-      final Class<?>... argTypes) {
-
+      final Class<?>... argTypes
+  ) {
     if (args == null) {
-      throw new KsqlFunctionException(String.format("Null argument list for %s.", functionName));
+      throw new KsqlFunctionException("Null argument list for " + functionName.name() + ".");
     }
 
     if (args.length != argTypes.length) {
-      throw new KsqlFunctionException(String.format("Incorrect arguments for %s.", functionName));
+      throw new KsqlFunctionException("Incorrect arguments for " + functionName.name() + ".");
     }
 
     for (int i = 0; i < argTypes.length; i++) {
@@ -82,8 +83,8 @@ public final class UdfUtil {
       if (!argTypes[i].isAssignableFrom(args[i].getClass())) {
         throw new KsqlFunctionException(
             String.format("Incorrect arguments type for %s. "
-                + "Expected %s for arg number %d but found %s.",
-                functionName,
+                    + "Expected %s for arg number %d but found %s.",
+                functionName.name(),
                 argTypes[i].getCanonicalName(),
                 i,
                 args[i].getClass().getCanonicalName()));
@@ -100,7 +101,7 @@ public final class UdfUtil {
     if (type instanceof TypeVariable) {
       schema = GenericsUtil.generic(((TypeVariable) type).getName());
     } else {
-      schema = typeToSchema.getOrDefault(type, () -> handleParametrizedType(type)).get();
+      schema = typeToSchema.getOrDefault(type, () -> handleParameterizedType(type)).get();
       if (schema.name() == null) {
         schema.name(name);
       }
@@ -110,7 +111,7 @@ public final class UdfUtil {
     return schema.build();
   }
 
-  private static SchemaBuilder handleParametrizedType(final Type type) {
+  private static SchemaBuilder handleParameterizedType(final Type type) {
     if (type instanceof ParameterizedType) {
       final ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
@@ -138,6 +139,7 @@ public final class UdfUtil {
               ((GenericArrayType) type).getGenericComponentType().getTypeName()
           ).build());
     }
+
     throw new KsqlException("Type inference is not supported for: " + type);
   }
 }

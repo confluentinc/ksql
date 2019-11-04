@@ -19,7 +19,6 @@ import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,14 +27,14 @@ import java.util.OptionalInt;
 @Immutable
 public class PrintTopic extends Statement {
 
-  private final QualifiedName topic;
+  private final String topic;
   private final boolean fromBeginning;
   private final int intervalValue;
   private final OptionalInt limit;
 
   public PrintTopic(
       final Optional<NodeLocation> location,
-      final QualifiedName topic,
+      final String topic,
       final boolean fromBeginning,
       final OptionalInt intervalValue,
       final OptionalInt limit
@@ -47,7 +46,7 @@ public class PrintTopic extends Statement {
     this.limit = requireNonNull(limit, "limit");
   }
 
-  public QualifiedName getTopic() {
+  public String getTopic() {
     return topic;
   }
 

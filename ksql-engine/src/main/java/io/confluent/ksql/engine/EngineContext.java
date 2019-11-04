@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.engine;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.ddl.commands.CommandFactories;
 import io.confluent.ksql.ddl.commands.DdlCommandExec;
@@ -22,24 +24,25 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ExecutableDdlStatement;
+import io.confluent.ksql.query.QueryExecutor;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.services.SandboxedServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.QueryMetadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -47,7 +50,9 @@ import java.util.function.BiConsumer;
 /**
  * Holds the mutable state and services of the engine.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 final class EngineContext {
+  // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private final MutableMetaStore metaStore;
   private final ServiceContext serviceContext;
@@ -55,28 +60,9 @@ final class EngineContext {
   private final DdlCommandExec ddlCommandExec;
   private final QueryIdGenerator queryIdGenerator;
   private final ProcessingLogContext processingLogContext;
-  private final KsqlParser parser = new DefaultKsqlParser();
+  private final KsqlParser parser;
   private final BiConsumer<ServiceContext, QueryMetadata> outerOnQueryCloseCallback;
   private final Map<QueryId, PersistentQueryMetadata> persistentQueries;
-
-  private EngineContext(
-      final ServiceContext serviceContext,
-      final ProcessingLogContext processingLogContext,
-      final MutableMetaStore metaStore,
-      final QueryIdGenerator queryIdGenerator,
-      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback
-  ) {
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
-    this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-    this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
-    this.ddlCommandFactory = new CommandFactories(serviceContext, metaStore);
-    this.outerOnQueryCloseCallback = Objects
-        .requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
-    this.ddlCommandExec = new DdlCommandExec(metaStore);
-    this.persistentQueries = new ConcurrentHashMap<>();
-    this.processingLogContext = Objects
-        .requireNonNull(processingLogContext, "processingLogContext");
-  }
 
   static EngineContext create(
       final ServiceContext serviceContext,
@@ -90,7 +76,28 @@ final class EngineContext {
         processingLogContext,
         metaStore,
         queryIdGenerator,
-        onQueryCloseCallback);
+        onQueryCloseCallback,
+        new DefaultKsqlParser()
+    );
+  }
+
+  private EngineContext(
+      final ServiceContext serviceContext,
+      final ProcessingLogContext processingLogContext,
+      final MutableMetaStore metaStore,
+      final QueryIdGenerator queryIdGenerator,
+      final BiConsumer<ServiceContext, QueryMetadata> onQueryCloseCallback,
+      final KsqlParser parser
+  ) {
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
+    this.metaStore = requireNonNull(metaStore, "metaStore");
+    this.queryIdGenerator = requireNonNull(queryIdGenerator, "queryIdGenerator");
+    this.ddlCommandFactory = new CommandFactories(serviceContext, metaStore);
+    this.outerOnQueryCloseCallback = requireNonNull(onQueryCloseCallback, "onQueryCloseCallback");
+    this.ddlCommandExec = new DdlCommandExec(metaStore);
+    this.persistentQueries = new ConcurrentHashMap<>();
+    this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
+    this.parser = requireNonNull(parser, "parser");
   }
 
   EngineContext createSandbox(final ServiceContext serviceContext) {
@@ -98,7 +105,7 @@ final class EngineContext {
         SandboxedServiceContext.create(serviceContext),
         processingLogContext,
         metaStore.copy(),
-        queryIdGenerator.copy(),
+        queryIdGenerator.createSandbox(),
         (sc, query) -> { /* No-op */ }
     );
 
@@ -145,29 +152,45 @@ final class EngineContext {
     return new QueryEngine(
         serviceContext,
         processingLogContext,
-        queryIdGenerator,
-        this::unregisterQuery);
+        queryIdGenerator);
   }
 
-  String executeDdlStatement(
+  QueryExecutor createQueryExecutor(
+      final KsqlConfig ksqlConfig,
+      final Map<String, Object> overriddenProperties,
+      final ServiceContext serviceContext) {
+    return new QueryExecutor(
+        ksqlConfig.cloneWithPropertyOverwrite(overriddenProperties),
+        overriddenProperties,
+        processingLogContext,
+        serviceContext,
+        metaStore,
+        this::unregisterQuery
+    );
+  }
+
+  DdlCommand createDdlCommand(
       final String sqlExpression,
       final ExecutableDdlStatement statement,
       final KsqlConfig ksqlConfig,
       final Map<String, Object> overriddenProperties
   ) {
-    final DdlCommand command = ddlCommandFactory.create(
+    return ddlCommandFactory.create(
         sqlExpression,
         statement,
         ksqlConfig,
         overriddenProperties
     );
+  }
 
-    final DdlCommandResult result = ddlCommandExec.execute(command);
-
+  String executeDdl(
+      final String sqlExpression,
+      final DdlCommand command,
+      final Optional<KeyField> keyField) {
+    final DdlCommandResult result = ddlCommandExec.execute(command, keyField);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }
-
     return result.getMessage();
   }
 

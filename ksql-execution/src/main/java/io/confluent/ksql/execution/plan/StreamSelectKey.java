@@ -15,25 +15,23 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
-public class StreamSelectKey<K> implements ExecutionStep<KStream<Struct, GenericRow>> {
+public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<Struct>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KStream<K, GenericRow>> source;
-  private final String fieldName;
+  private final ColumnRef fieldName;
+  private final ExecutionStep<KStreamHolder<K>> source;
   private final boolean updateRowKey;
 
   public StreamSelectKey(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KStream<K, GenericRow>> source,
-      final String fieldName,
+      final ExecutionStep<KStreamHolder<K>> source,
+      final ColumnRef fieldName,
       final boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -55,13 +53,17 @@ public class StreamSelectKey<K> implements ExecutionStep<KStream<Struct, Generic
     return updateRowKey;
   }
 
-  public String getFieldName() {
+  public ColumnRef getFieldName() {
     return fieldName;
   }
 
+  public ExecutionStep<KStreamHolder<K>> getSource() {
+    return source;
+  }
+
   @Override
-  public KStream<Struct, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KStreamHolder<Struct> build(final PlanBuilder builder) {
+    return builder.visitStreamSelectKey(this);
   }
 
   @Override

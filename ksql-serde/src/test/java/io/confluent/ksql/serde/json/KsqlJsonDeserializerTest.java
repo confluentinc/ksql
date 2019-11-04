@@ -28,6 +28,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.util.DecimalUtil;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,17 +56,19 @@ public class KsqlJsonDeserializerTest {
   private static final String SOME_TOPIC = "bob";
 
   private static final String ORDERTIME = "ORDERTIME";
-  private static final String ORDERID = "ORDERID";
+  private static final String ORDERID = "@ORDERID";
   private static final String ITEMID = "ITEMID";
   private static final String ORDERUNITS = "ORDERUNITS";
   private static final String ARRAYCOL = "ARRAYCOL";
   private static final String MAPCOL = "MAPCOL";
+  private static final String CASE_SENSITIVE_FIELD = "caseField";
 
   private static final Schema ORDER_SCHEMA = SchemaBuilder.struct()
       .field(ORDERTIME, Schema.OPTIONAL_INT64_SCHEMA)
       .field(ORDERID, Schema.OPTIONAL_INT64_SCHEMA)
       .field(ITEMID, Schema.OPTIONAL_STRING_SCHEMA)
       .field(ORDERUNITS, Schema.OPTIONAL_FLOAT64_SCHEMA)
+      .field(CASE_SENSITIVE_FIELD, Schema.OPTIONAL_INT64_SCHEMA)
       .field(ARRAYCOL, SchemaBuilder
           .array(Schema.OPTIONAL_FLOAT64_SCHEMA)
           .optional()
@@ -82,6 +86,7 @@ public class KsqlJsonDeserializerTest {
       .put("orderunits", 10.0)
       .put("arraycol", ImmutableList.of(10.0, 20.0))
       .put("mapcol", Collections.singletonMap("key1", 10.0))
+      .put("caseField", 1L)
       .build();
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -101,7 +106,8 @@ public class KsqlJsonDeserializerTest {
         .put(ITEMID, "Item_1")
         .put(ORDERUNITS, 10.0)
         .put(ARRAYCOL, ImmutableList.of(10.0, 20.0))
-        .put(MAPCOL, ImmutableMap.of("key1", 10.0));
+        .put(MAPCOL, ImmutableMap.of("key1", 10.0))
+        .put(CASE_SENSITIVE_FIELD, 1L);
 
     givenDeserializerForSchema(ORDER_SCHEMA);
   }
@@ -117,6 +123,22 @@ public class KsqlJsonDeserializerTest {
     // Then:
     assertThat(result, is(expectedOrder));
   }
+
+  @Test
+  public void shouldIgnoreDeserializeJsonObjectCaseMismatch() {
+    // Given:
+    Map<String, Object> anOrder = ImmutableMap.<String, Object>builder()
+        .put("CASEFIELD", 1L)
+        .build();
+    final byte[] bytes = serializeJson(anOrder);
+
+    // When:
+    final Struct result = (Struct) deserializer.deserialize(SOME_TOPIC, bytes);
+
+    // Then:
+    assertThat(result, is(new Struct(ORDER_SCHEMA)));
+  }
+
 
   @Test
   public void shouldCoerceFieldValues() {
@@ -141,7 +163,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(containsString(
-        "Can't convert type. sourceType: Boolean, requiredType: STRUCT<ORDERTIME BIGINT")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: STRUCT<ORDERTIME BIGINT")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -158,7 +180,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: BIGINT")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: BIGINT")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -225,6 +247,7 @@ public class KsqlJsonDeserializerTest {
         .put(ORDERUNITS, null)
         .put(ARRAYCOL, Arrays.asList(0.0, null))
         .put(MAPCOL, null)
+        .put(CASE_SENSITIVE_FIELD, null)
     ));
   }
 
@@ -281,7 +304,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Long, requiredType: BOOLEAN")));
+        "Can't convert type. sourceType: IntNode, requiredType: BOOLEAN")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -320,7 +343,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: INTEGER")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: INTEGER")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -349,6 +372,7 @@ public class KsqlJsonDeserializerTest {
     });
   }
 
+
   @Test
   public void shouldThrowIfCanNotCoerceToBigInt() {
     // Given:
@@ -359,7 +383,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: BIGINT")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: BIGINT")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -399,7 +423,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: DOUBLE")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: DOUBLE")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -413,7 +437,7 @@ public class KsqlJsonDeserializerTest {
     final Map<String, String> validCoercions = ImmutableMap.<String, String>builder()
         .put("true", "true")
         .put("42", "42")
-        .put("42.000", "42.0")
+        .put("42.000", "42")
         .put("42.001", "42.001")
         .put("\"just a string\"", "just a string")
         .put("{\"json\": \"object\"}", "{\"json\":\"object\"}")
@@ -430,6 +454,44 @@ public class KsqlJsonDeserializerTest {
       // Then:
       assertThat(result, is(expectedValue));
     });
+  }
+
+  @Test
+  public void shouldDeserializedJsonNumberAsBigDecimal() {
+    // Given:
+    givenDeserializerForSchema(DecimalUtil.builder(20,19).build());
+
+    final List<String> validCoercions = ImmutableList.of(
+        "1.1234512345123451234",
+        "\"1.1234512345123451234\""
+    );
+
+    validCoercions.forEach(value -> {
+
+      final byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
+
+      // When:
+      final Object result = deserializer.deserialize(SOME_TOPIC, bytes);
+
+      // Then:
+      assertThat(result, is(new BigDecimal("1.1234512345123451234")));
+    });
+  }
+
+  @Test
+  public void shouldThrowIfCanNotCoerceToBigDecimal() {
+    // Given:
+    givenDeserializerForSchema(DecimalUtil.builder(20, 19).build());
+
+    final byte[] bytes = "true".getBytes(StandardCharsets.UTF_8);
+
+    // Then:
+    expectedException.expect(SerializationException.class);
+    expectedException.expectCause(hasMessage(is(
+        "Can't convert type. sourceType: BooleanNode, requiredType: DECIMAL(20, 19)")));
+
+    // When:
+    deserializer.deserialize(SOME_TOPIC, bytes);
   }
 
   @Test
@@ -462,7 +524,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: ARRAY<VARCHAR>")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: ARRAY<VARCHAR>")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -519,7 +581,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: MAP<VARCHAR, INT>")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: MAP<VARCHAR, INT>")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);
@@ -538,7 +600,7 @@ public class KsqlJsonDeserializerTest {
     // Then:
     expectedException.expect(SerializationException.class);
     expectedException.expectCause(hasMessage(is(
-        "Can't convert type. sourceType: Boolean, requiredType: INTEGER")));
+        "Can't convert type. sourceType: BooleanNode, requiredType: INTEGER")));
 
     // When:
     deserializer.deserialize(SOME_TOPIC, bytes);

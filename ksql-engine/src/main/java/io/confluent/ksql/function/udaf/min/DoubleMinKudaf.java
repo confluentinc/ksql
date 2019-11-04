@@ -15,8 +15,6 @@
 
 package io.confluent.ksql.function.udaf.min;
 
-import io.confluent.ksql.function.AggregateFunctionArguments;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
 import org.apache.kafka.connect.data.Schema;
 
@@ -28,11 +26,5 @@ public class DoubleMinKudaf extends BaseNumberKudaf<Double> {
           Schema.OPTIONAL_FLOAT64_SCHEMA,
           Double::min,
           "Computes the minimum double value by key.");
-  }
-
-  @Override
-  public KsqlAggregateFunction<Double, Double, Double> getInstance(
-      final AggregateFunctionArguments aggregateFunctionArguments) {
-    return new DoubleMinKudaf(functionName, aggregateFunctionArguments.udafIndex());
   }
 }

@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.Collections;
 import org.apache.kafka.connect.data.Schema;
@@ -88,7 +89,8 @@ public class CountKudafTest {
 
   private CountKudaf getDoubleCountKudaf() {
     final KsqlAggregateFunction aggregateFunction = new CountAggFunctionFactory()
-        .getProperAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA));
+        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+            AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(CountKudaf.class));
     return  (CountKudaf) aggregateFunction;
   }

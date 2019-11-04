@@ -21,6 +21,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import io.confluent.ksql.function.GenericsUtil;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
@@ -34,40 +35,42 @@ import org.junit.Test;
 
 public class UdfUtilTest {
 
+  private static final FunctionName FUNCTION_NAME = FunctionName.of("Test");
+
   @Test
   public void shouldPassIfArgsAreCorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    UdfUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Long.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfTypeIsIncorrect() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    UdfUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Boolean.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfArgCountIsTooFew() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    UdfUtil.ensureCorrectArgs("Test", args, String.class, Boolean.class, String.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Boolean.class, String.class);
   }
 
   @Test (expected = KsqlException.class)
   public void shouldFailIfArgCountIsTooMany() {
     final Object[] args = new Object[] {"TtestArg1", 10L};
-    UdfUtil.ensureCorrectArgs("Test", args, String.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class);
   }
 
   @Test
   public void shouldPassWithNullArgs() {
     final Object[] args = new Object[] {"TtestArg1", null};
-    UdfUtil.ensureCorrectArgs("Test", args, String.class, Long.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, String.class, Long.class);
   }
 
   @Test
   public void shouldHandleSubTypes() {
     final Object[] args = new Object[] {1.345, 55};
-    UdfUtil.ensureCorrectArgs("Test", args, Number.class, Number.class);
+    UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, Number.class, Number.class);
   }
 
   @Test
@@ -199,17 +202,17 @@ public class UdfUtilTest {
   }
 
   // following methods not invoked but used to test conversion from type -> schema
-  @SuppressWarnings({"unused", "WeakerAccess"})
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
   public <T> T genericType() {
     return null;
   }
 
-  @SuppressWarnings({"unused", "WeakerAccess"})
+  @SuppressWarnings({"unused", "MethodMayBeStatic"})
   public <T> List<T> genericArrayType() {
     return null;
   }
 
-  @SuppressWarnings({"unused", "WeakerAccess"})
+  @SuppressWarnings({"unused", "WeakerAccess", "MethodMayBeStatic"})
   public <T> Map<String, T> genericMapType() {
     return null;
   }

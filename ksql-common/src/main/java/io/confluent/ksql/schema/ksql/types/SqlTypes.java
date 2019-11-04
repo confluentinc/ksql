@@ -43,4 +43,14 @@ public final class SqlTypes {
   public static SqlStruct.Builder struct() {
     return SqlStruct.builder();
   }
+
+  /**
+   * Schema of an INT up-cast to a DECIMAL
+   */
+  public static final SqlDecimal INT_UPCAST_TO_DECIMAL = SqlDecimal.of(10, 0);
+
+  /**
+   * Schema of an BIGINT up-cast to a DECIMAL
+   */
+  public static final SqlDecimal BIGINT_UPCAST_TO_DECIMAL = SqlDecimal.of(19, 0);
 }

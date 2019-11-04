@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.tree;
 import static java.util.Objects.requireNonNull;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Objects;
 import java.util.Optional;
@@ -26,22 +26,22 @@ import java.util.Optional;
 @Immutable
 public class AllColumns extends SelectItem {
 
-  private final Optional<QualifiedName> prefix;
+  private final Optional<SourceName> source;
 
-  public AllColumns(final Optional<QualifiedName> prefix) {
-    this(Optional.empty(), prefix);
+  public AllColumns(final Optional<SourceName> source) {
+    this(Optional.empty(), source);
   }
 
   public AllColumns(
       final Optional<NodeLocation> location,
-      final Optional<QualifiedName> prefix
+      final Optional<SourceName> source
   ) {
     super(location);
-    this.prefix = requireNonNull(prefix, "prefix");
+    this.source = requireNonNull(source, "source");
   }
 
-  public Optional<QualifiedName> getPrefix() {
-    return prefix;
+  public Optional<SourceName> getSource() {
+    return source;
   }
 
   @Override
@@ -59,16 +59,16 @@ public class AllColumns extends SelectItem {
     }
 
     final AllColumns that = (AllColumns) o;
-    return Objects.equals(prefix, that.prefix);
+    return Objects.equals(source, that.source);
   }
 
   @Override
   public int hashCode() {
-    return prefix.hashCode();
+    return source.hashCode();
   }
 
   @Override
   public String toString() {
-    return prefix.map(qualifiedName -> qualifiedName + ".*").orElse("*");
+    return source.map(qualifiedName -> qualifiedName + ".*").orElse("*");
   }
 }

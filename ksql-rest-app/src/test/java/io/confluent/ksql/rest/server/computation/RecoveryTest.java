@@ -18,6 +18,7 @@ package io.confluent.ksql.rest.server.computation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
@@ -33,7 +34,9 @@ import io.confluent.ksql.internal.KsqlEngineMetrics;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.HybridQueryIdGenerator;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
@@ -79,6 +82,8 @@ public class RecoveryTest {
 
   private final List<QueuedCommand> commands = new LinkedList<>();
   private final FakeKafkaTopicClient topicClient = new FakeKafkaTopicClient();
+  private final HybridQueryIdGenerator hybridQueryIdGenerator =
+      new HybridQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
@@ -95,7 +100,8 @@ public class RecoveryTest {
     return KsqlEngineTestUtil.createKsqlEngine(
         serviceContext,
         new MetaStoreImpl(new InternalFunctionRegistry()),
-        engineMetrics);
+        ignored -> engineMetrics,
+        hybridQueryIdGenerator);
   }
 
   private static class FakeCommandQueue implements CommandQueue {
@@ -121,7 +127,8 @@ public class RecoveryTest {
                   true,
                   Collections.emptyMap(),
                   statement.getConfig().getAllConfigPropsWithSecretsObfuscated()),
-              Optional.empty()));
+              Optional.empty(),
+              commandSequenceNumber));
       return new QueuedCommandStatus(commandSequenceNumber, new CommandStatusFuture(commandId));
     }
 
@@ -179,7 +186,11 @@ public class RecoveryTest {
           }
       );
 
-      this.statementExecutor = new StatementExecutor(ksqlEngine);
+      this.statementExecutor = new StatementExecutor(
+          serviceContext,
+          ksqlEngine,
+          hybridQueryIdGenerator
+      );
 
       this.commandRunner = new CommandRunner(
           statementExecutor,
@@ -270,7 +281,7 @@ public class RecoveryTest {
       extends TypeSafeDiagnosingMatcher<DataSource<?>> {
     final DataSource<?> source;
     final Matcher<DataSource.DataSourceType> typeMatcher;
-    final Matcher<String> nameMatcher;
+    final Matcher<SourceName> nameMatcher;
     final Matcher<LogicalSchema> schemaMatcher;
     final Matcher<String> sqlMatcher;
     final Matcher<TimestampExtractionPolicy> extractionPolicyMatcher;
@@ -352,12 +363,14 @@ public class RecoveryTest {
   }
 
   private static class MetaStoreMatcher extends TypeSafeDiagnosingMatcher<MetaStore> {
-    final Map<String, Matcher<DataSource<?>>> sourceMatchers;
+    final Map<SourceName, Matcher<DataSource<?>>> sourceMatchers;
 
     MetaStoreMatcher(final MetaStore metaStore) {
       this.sourceMatchers = metaStore.getAllDataSources().entrySet().stream()
           .collect(
-              Collectors.toMap(Entry::getKey, e -> sameSource(e.getValue())));
+              Collectors.toMap(
+                  Entry::getKey,
+                  e -> sameSource(e.getValue())));
     }
 
     @Override
@@ -380,8 +393,8 @@ public class RecoveryTest {
         return false;
       }
 
-      for (final Entry<String, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
-        final String name = e.getKey();
+      for (final Entry<SourceName, Matcher<DataSource<?>>> e : sourceMatchers.entrySet()) {
+        final SourceName name = e.getKey();
         if (!test(
             e.getValue(),
             other.getSource(name),
@@ -401,8 +414,8 @@ public class RecoveryTest {
 
   private static class PersistentQueryMetadataMatcher
       extends TypeSafeDiagnosingMatcher<PersistentQueryMetadata> {
-    private final Matcher<Set<String>> sourcesNamesMatcher;
-    private final Matcher<String> sinkNamesMatcher;
+    private final Matcher<Set<SourceName>> sourcesNamesMatcher;
+    private final Matcher<SourceName> sinkNamesMatcher;
     private final Matcher<LogicalSchema> resultSchemaMatcher;
     private final Matcher<String> sqlMatcher;
     private final Matcher<String> stateMatcher;
@@ -526,7 +539,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (C1 STRING, C2 INT) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT C1 FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;",
         "CREATE STREAM B AS SELECT C2 FROM A;"
     );
@@ -538,7 +551,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "TERMINATE CSAS_B_1;"
     );
     shouldRecover(commands);
   }
@@ -548,7 +561,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B;"
     );
     shouldRecover(commands);
@@ -560,7 +573,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "DROP STREAM B DELETE TOPIC;"
     );
 
@@ -579,7 +592,10 @@ public class RecoveryTest {
     shouldRecover(ImmutableList.of(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B DELETE TOPIC;", true, ImmutableMap.of(), ImmutableMap.of()))
+            new Command("DROP STREAM B DELETE TOPIC;", true, ImmutableMap.of(), ImmutableMap.of()),
+            Optional.empty(),
+            0L
+        )
     ));
 
     assertThat(topicClient.listTopicNames(), hasItem("B"));
@@ -593,11 +609,11 @@ public class RecoveryTest {
     );
     server2.executeCommands();
     server1.submitCommands(
-        "TERMINATE CSAS_B_0;",
+        "TERMINATE CSAS_B_1;",
         "INSERT INTO B SELECT * FROM A;",
-        "TERMINATE InsertQuery_1;"
+        "TERMINATE InsertQuery_3;"
     );
-    server2.submitCommands("TERMINATE CSAS_B_0;");
+    server2.submitCommands("TERMINATE CSAS_B_1;");
     shouldRecover(commands);
   }
 
@@ -606,7 +622,7 @@ public class RecoveryTest {
     server1.submitCommands(
         "CREATE STREAM A (COLUMN STRING) WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
         "CREATE STREAM B AS SELECT * FROM A;",
-        "TERMINATE CSAS_B_0;"
+        "TERMINATE CSAS_B_1;"
     );
     server2.executeCommands();
     server1.submitCommands("INSERT INTO B SELECT * FROM A;");
@@ -625,7 +641,7 @@ public class RecoveryTest {
     server2.executeCommands();
     server1.submitCommands("INSERT INTO B SELECT * FROM A;");
     server2.submitCommands("DROP STREAM B;");
-    server1.submitCommands("TERMINATE InsertQuery_0;");
+    server1.submitCommands("TERMINATE InsertQuery_2;");
     shouldRecover(commands);
   }
 
@@ -641,7 +657,9 @@ public class RecoveryTest {
                     true,
                     Collections.emptyMap(),
                     null
-                )
+                ),
+                Optional.empty(),
+                0L
             ),
             new QueuedCommand(
                 new CommandId(Type.STREAM, "A", Action.CREATE),
@@ -650,7 +668,9 @@ public class RecoveryTest {
                     true,
                     Collections.emptyMap(),
                     null
-                )
+                ),
+                Optional.empty(),
+                1L
             )
         )
     );
@@ -658,17 +678,92 @@ public class RecoveryTest {
     server.recover();
     assertThat(
         server.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
-        contains("A", "B"));
+        containsInAnyOrder(SourceName.of("A"), SourceName.of("B")));
     commands.add(
         new QueuedCommand(
             new CommandId(Type.STREAM, "B", Action.DROP),
-            new Command("DROP STREAM B;", true, Collections.emptyMap(), null)
+            new Command("DROP STREAM B;", true, Collections.emptyMap(), null),
+            Optional.empty(),
+            2L
         )
     );
     final KsqlServer recovered = new KsqlServer(commands);
     recovered.recover();
     assertThat(
         recovered.ksqlEngine.getMetaStore().getAllDataSources().keySet(),
-        contains("A"));
+        contains(SourceName.of("A")));
+  }
+
+  @Test
+  public void shouldUseOldQueryIdGenerationAndNewGeneration() {
+    commands.addAll(
+        ImmutableList.of(
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM A (COLUMN STRING) "
+                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                    false,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                0L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM B AS SELECT * FROM A;",
+                    false,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                1L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM C AS SELECT * FROM A;",
+                    true,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                2L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM test(COLUMN STRING) "
+                        + "WITH (KAFKA_TOPIC='A', VALUE_FORMAT='JSON');",
+                    true,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                3L
+            ),
+            new QueuedCommand(
+                new CommandId(Type.STREAM, "A", Action.CREATE),
+                new Command(
+                    "CREATE STREAM D AS SELECT * FROM test;",
+                    true,
+                    Collections.emptyMap(),
+                    null
+                ),
+                Optional.empty(),
+                4L
+            )
+        )
+    );
+    final KsqlServer server = new KsqlServer(commands);
+    server.recover();
+    final Set<QueryId> queryIdNames = queriesById(server.ksqlEngine.getPersistentQueries()).keySet();
+
+    assertThat(queryIdNames, contains(
+        new QueryId("CSAS_C_2"),
+        new QueryId("CSAS_D_4"),
+        new QueryId("CSAS_B_0")));
   }
 }

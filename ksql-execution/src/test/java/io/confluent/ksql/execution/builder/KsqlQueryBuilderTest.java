@@ -31,6 +31,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.model.WindowType;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -63,7 +64,7 @@ public class KsqlQueryBuilderTest {
 
   private static final PhysicalSchema SOME_SCHEMA = PhysicalSchema.from(
       LogicalSchema.builder()
-          .valueColumn("f0", SqlTypes.BOOLEAN)
+          .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
           .build(),
       SerdeOption.none()
   );
@@ -71,7 +72,7 @@ public class KsqlQueryBuilderTest {
   private static final QueryId QUERY_ID = new QueryId("fred");
 
   private static final FormatInfo FORMAT_INFO = FormatInfo
-      .of(Format.AVRO, Optional.of("io.confluent.ksql"));
+      .of(Format.AVRO, Optional.of("io.confluent.ksql"), Optional.empty());
 
   private static final WindowInfo WINDOW_INFO = WindowInfo
       .of(WindowType.TUMBLING, Optional.of(Duration.ofMillis(1000)));
@@ -106,7 +107,7 @@ public class KsqlQueryBuilderTest {
   public void setUp() {
     when(serviceContext.getSchemaRegistryClientFactory()).thenReturn(srClientFactory);
 
-    queryContext = new QueryContext.Stacker(QUERY_ID).push("context").getQueryContext();
+    queryContext = new QueryContext.Stacker().push("context").getQueryContext();
 
     when(keySerdeFactory.create(any(), any(), any(), any(), any(), any()))
         .thenReturn(keySerde);
@@ -147,7 +148,7 @@ public class KsqlQueryBuilderTest {
     final Stacker result = ksqlQueryBuilder.buildNodeContext("some-id");
 
     // Then:
-    assertThat(result, is(new Stacker(QUERY_ID).push("some-id")));
+    assertThat(result, is(new Stacker().push("some-id")));
   }
 
   @Test
@@ -178,7 +179,7 @@ public class KsqlQueryBuilderTest {
         SOME_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
         processingLogContext
     );
   }
@@ -200,7 +201,7 @@ public class KsqlQueryBuilderTest {
         SOME_SCHEMA.keySchema(),
         ksqlConfig,
         srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
         processingLogContext
     );
   }
@@ -220,7 +221,7 @@ public class KsqlQueryBuilderTest {
         SOME_SCHEMA.valueSchema(),
         ksqlConfig,
         srClientFactory,
-        QueryLoggerUtil.queryLoggerName(queryContext),
+        QueryLoggerUtil.queryLoggerName(QUERY_ID, queryContext),
         processingLogContext
     );
   }

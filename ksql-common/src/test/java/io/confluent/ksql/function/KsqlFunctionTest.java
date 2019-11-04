@@ -20,6 +20,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -149,7 +150,7 @@ public class KsqlFunctionTest {
         schemaProviderFunction,
         decimalSchema,
         ImmutableList.of(Schema.INT32_SCHEMA),
-        "funcName",
+        FunctionName.of("funcName"),
         MyUdf.class,
         udfFactory,
         "the description",
@@ -176,7 +177,7 @@ public class KsqlFunctionTest {
         ignored -> returnSchema,
         returnSchema,
         args,
-        "funcName",
+        FunctionName.of("funcName"),
         MyUdf.class,
         udfFactory,
         "the description",

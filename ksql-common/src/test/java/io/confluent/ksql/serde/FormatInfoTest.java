@@ -16,6 +16,7 @@
 package io.confluent.ksql.serde;
 
 import static io.confluent.ksql.serde.Format.AVRO;
+import static io.confluent.ksql.serde.Format.DELIMITED;
 import static io.confluent.ksql.serde.Format.KAFKA;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -44,23 +45,28 @@ public class FormatInfoTest {
   public void shouldImplementEquals() {
     new EqualsTester()
         .addEqualityGroup(
-            FormatInfo.of(Format.AVRO, Optional.of("something")),
-            FormatInfo.of(Format.AVRO, Optional.of("something"))
+            FormatInfo.of(Format.DELIMITED, Optional.empty(), Optional.of(Delimiter.of('x'))),
+            FormatInfo.of(Format.DELIMITED, Optional.empty(), Optional.of(Delimiter.of('x')))
         )
         .addEqualityGroup(
-            FormatInfo.of(Format.AVRO, Optional.empty()),
+            FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.empty()),
+            FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.empty())
+        )
+        .addEqualityGroup(
+            FormatInfo.of(Format.AVRO, Optional.empty(), Optional.empty()),
             FormatInfo.of(Format.AVRO)
         )
         .addEqualityGroup(
-            FormatInfo.of(Format.JSON, Optional.empty())
+            FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
+            FormatInfo.of(Format.JSON)
         )
         .testEquals();
   }
 
   @Test
-  public void shouldImplementToString() {
+  public void shouldImplementToStringAvro() {
     // Given:
-    final FormatInfo info = FormatInfo.of(AVRO, Optional.of("something"));
+    final FormatInfo info = FormatInfo.of(AVRO, Optional.of("something"), Optional.empty());
 
     // When:
     final String result = info.toString();
@@ -71,36 +77,69 @@ public class FormatInfoTest {
   }
 
   @Test
+  public void shouldImplementToStringDelimited() {
+    // Given:
+    final FormatInfo info = FormatInfo.of(DELIMITED, Optional.empty(), Optional.of(Delimiter.parse("~")));
+
+    // When:
+    final String result = info.toString();
+
+    // Then:
+    assertThat(result, containsString("DELIMITED"));
+    assertThat(result, containsString("~"));
+  }
+
+  @Test
   public void shouldThrowOnNonAvroWithAvroSchemName() {
     // Then:
     expectedException.expect(KsqlException.class);
     expectedException.expectMessage("Full schema name only supported with AVRO format");
 
     // When:
-    FormatInfo.of(Format.JSON, Optional.of("thing"));
+    FormatInfo.of(Format.JSON, Optional.of("thing"), Optional.empty());
   }
 
   @Test
   public void shouldThrowOnEmptyAvroSchemaName() {
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name can not be empty");
+    expectedException.expectMessage("Schema name cannot be empty");
 
     // When:
-    FormatInfo.of(Format.AVRO, Optional.of(""));
+    FormatInfo.of(Format.AVRO, Optional.of(""), Optional.empty());
   }
 
   @Test
   public void shouldGetFormat() {
-    assertThat(FormatInfo.of(KAFKA, Optional.empty()).getFormat(), is(KAFKA));
+    assertThat(FormatInfo.of(KAFKA, Optional.empty(), Optional.empty()).getFormat(), is(KAFKA));
   }
 
   @Test
   public void shouldGetAvroSchemaName() {
-    assertThat(FormatInfo.of(AVRO, Optional.of("Something")).getAvroFullSchemaName(),
+    assertThat(FormatInfo.of(AVRO, Optional.of("Something"), Optional.empty()).getAvroFullSchemaName(),
         is(Optional.of("Something")));
 
-    assertThat(FormatInfo.of(AVRO, Optional.empty()).getAvroFullSchemaName(),
+    assertThat(FormatInfo.of(AVRO, Optional.empty(), Optional.empty()).getAvroFullSchemaName(),
         is(Optional.empty()));
+  }
+
+  @Test
+  public void shouldThrowWhenAttemptingToUseValueDelimeterWithAvroFormat() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Delimeter only supported with DELIMITED format");
+
+    // When:
+    FormatInfo.of(Format.AVRO, Optional.of("something"), Optional.of(Delimiter.of('x')));
+  }
+
+  @Test
+  public void shouldThrowWhenAttemptingToUseValueDelimeterWithJsonFormat() {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("Delimeter only supported with DELIMITED format");
+
+    // When:
+    FormatInfo.of(Format.JSON, Optional.empty(), Optional.of(Delimiter.of('x')));
   }
 }

@@ -15,14 +15,27 @@
         "CREATE STREAM TS AS select id, stringtotimestamp(event_timestamp, 'yyyy-MM-dd''T''HH:mm:ssX') as ets from test;"
       ],
       "inputs": [
-        {"topic": "test_topic", "value": {"ID": 1, "event_timestamp": "2018-05-11T21:58:33Z"}, "timestamp": 1526075913000},
-        {"topic": "test_topic", "value": {"ID": 1, "event_timestamp": "2019-05-11T21:58:33Z"}, "timestamp": 1557611913000},
-        {"topic": "test_topic", "value": {"ID": 1, "event_timestamp": "2020-05-11T21:58:33Z"}, "timestamp": 1589234313000}
+        {"topic": "test_topic", "value": {"ID": 1, "event_timestamp": "2018-05-11T21:58:33Z"}, "timestamp": 10},
+        {"topic": "test_topic", "value": {"ID": 1, "event_timestamp": "2019-05-11T21:58:33Z"}, "timestamp": 10},
+        {"topic": "test_topic", "value": {"ID": 1, "event_timestamp": "2020-05-11T21:58:33Z"}, "timestamp": 10}
       ],
       "outputs": [
         {"topic": "TS", "value": {"ID": 1, "ETS": 1526075913000}, "timestamp": 1526075913000},
         {"topic": "TS", "value": {"ID": 1, "ETS": 1557611913000}, "timestamp": 1557611913000},
         {"topic": "TS", "value": {"ID": 1, "ETS": 1589234313000}, "timestamp": 1589234313000}
+      ]
+    },
+    {
+      "name": "with single digit ms and numeric tz",
+      "statements": [
+        "CREATE STREAM TEST (event_timestamp VARCHAR) WITH (kafka_topic='test_topic', value_format='JSON', timestamp='event_timestamp', timestamp_format='yyyy-MM-dd''T''HH:mm:ss.SX');",
+        "CREATE STREAM TS AS select stringtotimestamp(event_timestamp, 'yyyy-MM-dd''T''HH:mm:ss.SX') as ets from test;"
+      ],
+      "inputs": [
+        {"topic": "test_topic", "value": {"event_timestamp": "2019-08-27T13:31:09.2+0000"}, "timestamp": 10}
+      ],
+      "outputs": [
+        {"topic": "TS", "value": {"ETS": 1566912669200}, "timestamp": 1566912669200}
       ]
     }
   ]

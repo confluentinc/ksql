@@ -19,6 +19,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,16 +35,19 @@ public class StringTopkKudafTest {
   private TopKAggregateFunctionFactory topKFactory;
   private List<Schema> argumentType;
 
+  private final AggregateFunctionInitArguments args =
+      new AggregateFunctionInitArguments(0, 3);
+
   @Before
   public void setup() {
-    topKFactory = new TopKAggregateFunctionFactory(3);
+    topKFactory = new TopKAggregateFunctionFactory();
     argumentType = Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA);
   }
 
   @Test
   public void shouldAggregateTopK() {
     final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.getProperAggregateFunction(argumentType);
+        topKFactory.createAggregateFunction(argumentType, args);
     List<String> currentVal = new ArrayList<>();
     for (final String value : valueArray) {
       currentVal = topkKudaf.aggregate(value , currentVal);
@@ -55,7 +59,7 @@ public class StringTopkKudafTest {
   @Test
   public void shouldAggregateTopKWithLessThanKValues() {
     final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.getProperAggregateFunction(argumentType);
+        topKFactory.createAggregateFunction(argumentType, args);
     List<String> currentVal = new ArrayList<>();
     currentVal = topkKudaf.aggregate("why", currentVal);
 
@@ -65,7 +69,7 @@ public class StringTopkKudafTest {
   @Test
   public void shouldMergeTopK() {
     final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.getProperAggregateFunction(argumentType);
+        topKFactory.createAggregateFunction(argumentType, args);
     final List<String> array1 = ImmutableList.of("paper", "Hello", "123");
     final List<String> array2 = ImmutableList.of("Zzz", "Hi", "456");
 
@@ -76,7 +80,7 @@ public class StringTopkKudafTest {
   @Test
   public void shouldMergeTopKWithNulls() {
     final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.getProperAggregateFunction(argumentType);
+        topKFactory.createAggregateFunction(argumentType, args);
     final List<String> array1 = ImmutableList.of("50", "45");
     final List<String> array2 = ImmutableList.of("60");
 
@@ -87,7 +91,7 @@ public class StringTopkKudafTest {
   @Test
   public void shouldMergeTopKWithMoreNulls() {
     final KsqlAggregateFunction<String, List<String>, List<String>> topkKudaf =
-        topKFactory.getProperAggregateFunction(argumentType);
+        topKFactory.createAggregateFunction(argumentType, args);
     final List<String> array1 = ImmutableList.of("50");
     final List<String> array2 = ImmutableList.of("60");
 

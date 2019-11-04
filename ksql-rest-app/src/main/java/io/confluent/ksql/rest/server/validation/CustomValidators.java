@@ -116,8 +116,9 @@ public enum CustomValidators {
 
   public void validate(
       final ConfiguredStatement<?> statement,
+      final Map<String, Object> mutableScopedProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext) throws KsqlException {
-    validator.validate(statement, executionContext, serviceContext);
+    validator.validate(statement, mutableScopedProperties, executionContext, serviceContext);
   }
 }

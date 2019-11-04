@@ -21,12 +21,14 @@ import io.confluent.ksql.ServiceInfo;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.function.MutableFunctionRegistry;
-import io.confluent.ksql.function.UdfLoader;
+import io.confluent.ksql.function.UserFunctionLoader;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
+import io.confluent.ksql.query.id.SequentialQueryIdGenerator;
 import io.confluent.ksql.rest.server.computation.ConfigStore;
 import io.confluent.ksql.rest.server.computation.KafkaConfigStore;
 import io.confluent.ksql.rest.util.KsqlInternalTopicUtils;
+import io.confluent.ksql.services.DisabledKsqlClient;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.statement.Injector;
@@ -55,7 +57,7 @@ public final class StandaloneExecutorFactory {
         properties,
         queriesFile,
         installDir,
-        ServiceContextFactory::create,
+        config -> ServiceContextFactory.create(config, DisabledKsqlClient.instance()),
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new
@@ -70,7 +72,7 @@ public final class StandaloneExecutorFactory {
         KsqlConfig ksqlConfig,
         KsqlEngine ksqlEngine,
         String queriesFile,
-        UdfLoader udfLoader,
+        UserFunctionLoader udfLoader,
         boolean failOnNoQueries,
         VersionCheckerAgent versionChecker,
         BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory
@@ -112,10 +114,11 @@ public final class StandaloneExecutorFactory {
         serviceContext,
         processingLogContext,
         functionRegistry,
-        ServiceInfo.create(ksqlConfig));
+        ServiceInfo.create(ksqlConfig),
+        new SequentialQueryIdGenerator());
 
-    final UdfLoader udfLoader =
-        UdfLoader.newInstance(ksqlConfig, functionRegistry, installDir);
+    final UserFunctionLoader udfLoader =
+        UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, installDir);
 
     final VersionCheckerAgent versionChecker = versionCheckerFactory
         .apply(ksqlEngine::hasActiveQueries);

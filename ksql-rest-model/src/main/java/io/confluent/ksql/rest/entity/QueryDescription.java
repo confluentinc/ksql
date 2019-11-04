@@ -18,16 +18,18 @@ package io.confluent.ksql.rest.entity;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.confluent.ksql.query.QueryId;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class QueryDescription {
 
-  private final EntityQueryId id;
+  private final QueryId id;
   private final String statementText;
   private final List<FieldInfo> fields;
   private final Set<String> sources;
@@ -35,17 +37,20 @@ public class QueryDescription {
   private final String topology;
   private final String executionPlan;
   private final Map<String, Object> overriddenProperties;
+  private final Optional<String> state;
 
+  @SuppressWarnings("WeakerAccess") // Invoked via reflection
   @JsonCreator
   public QueryDescription(
-      @JsonProperty("id") final EntityQueryId id,
+      @JsonProperty("id") final QueryId id,
       @JsonProperty("statementText") final String statementText,
       @JsonProperty("fields") final List<FieldInfo> fields,
       @JsonProperty("sources") final Set<String> sources,
       @JsonProperty("sinks") final Set<String> sinks,
       @JsonProperty("topology") final String topology,
       @JsonProperty("executionPlan") final String executionPlan,
-      @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties
+      @JsonProperty("overriddenProperties") final Map<String, Object> overriddenProperties,
+      @JsonProperty("state") final Optional<String> state
   ) {
     this.id = id;
     this.statementText = statementText;
@@ -55,9 +60,10 @@ public class QueryDescription {
     this.topology = topology;
     this.executionPlan = executionPlan;
     this.overriddenProperties = Collections.unmodifiableMap(overriddenProperties);
+    this.state = Objects.requireNonNull(state, "state");
   }
 
-  public EntityQueryId getId() {
+  public QueryId getId() {
     return id;
   }
 
@@ -89,8 +95,14 @@ public class QueryDescription {
     return overriddenProperties;
   }
 
+  public Optional<String> getState() {
+    return state;
+  }
+
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
   public boolean equals(final Object o) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
     if (this == o) {
       return true;
     }
@@ -105,12 +117,22 @@ public class QueryDescription {
         && Objects.equals(executionPlan, that.executionPlan)
         && Objects.equals(sources, that.sources)
         && Objects.equals(sinks, that.sinks)
-        && Objects.equals(overriddenProperties, that.overriddenProperties);
+        && Objects.equals(overriddenProperties, that.overriddenProperties)
+        && Objects.equals(state, that.state);
   }
 
   @Override
   public int hashCode() {
     return Objects.hash(
-        id, statementText, fields, topology, executionPlan, sources, sinks, overriddenProperties);
+        id,
+        statementText,
+        fields,
+        topology,
+        executionPlan,
+        sources,
+        sinks,
+        overriddenProperties,
+        state
+    );
   }
 }

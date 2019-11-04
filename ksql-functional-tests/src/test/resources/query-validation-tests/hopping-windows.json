@@ -153,6 +153,16 @@
         {"topic": "S2", "key": 100, "value": "100,100,100 : Window{start=20000 end=-}", "timestamp": 30000, "window": {"start": 20000, "end": 50000, "type": "time"}},
         {"topic": "S2", "key": 100, "value": "100,100,100 : Window{start=30000 end=-}", "timestamp": 30000, "window": {"start": 30000, "end": 60000, "type": "time"}}
       ]
+    },
+    {
+      "name": "import table with invalid window size",
+      "statements": [
+        "CREATE TABLE TEST (ID bigint, VALUE bigint) WITH (kafka_topic='test_topic', value_format='DELIMITED', key='ID', WINDOW_TYPE='Hopping', WINDOW_SIZE='30 bobs');"
+      ],
+      "expectedException": {
+        "type": "io.confluent.ksql.parser.exception.ParseFailedException",
+        "message": "Configuration WINDOW_SIZE is invalid: Invalid duration: '30 bobs'. Unknown time unit: 'BOBS'"
+      }
     }
   ]
 }

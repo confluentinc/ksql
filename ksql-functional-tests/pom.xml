@@ -21,7 +21,7 @@
   <parent>
     <groupId>io.confluent.ksql</groupId>
     <artifactId>ksql-parent</artifactId>
-    <version>5.4.0-SNAPSHOT</version>
+    <version>5.5.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -37,27 +37,7 @@
     <dependency>
       <groupId>io.confluent.ksql</groupId>
       <artifactId>ksql-engine</artifactId>
-    </dependency>
-
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-engine</artifactId>
       <version>${project.version}</version>
-      <type>test-jar</type>
-    </dependency>
-
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-common</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-    </dependency>
-
-    <dependency>
-      <groupId>io.confluent.ksql</groupId>
-      <artifactId>ksql-metastore</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
     </dependency>
 
     <dependency>
@@ -88,6 +68,38 @@
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-streams-test-utils</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-engine</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-rest-model</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-common</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.confluent.ksql</groupId>
+      <artifactId>ksql-metastore</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
     </dependency>
 
     <dependency>

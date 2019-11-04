@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -33,7 +32,11 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.query.id.QueryIdGenerator;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -41,7 +44,6 @@ import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.structured.SchemaKStream;
-import io.confluent.ksql.util.QueryIdGenerator;
 import io.confluent.ksql.util.timestamp.LongColumnTimestampExtractionPolicy;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -61,21 +63,23 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlStructuredDataOutputNodeTest {
 
-  private static final String QUERY_ID_STRING = "output-test";
-  private static final QueryId QUERY_ID = new QueryId(QUERY_ID_STRING);
+  private static final String QUERY_ID_VALUE = "output-test";
+  private static final QueryId QUERY_ID = new QueryId(QUERY_ID_VALUE);
 
   private static final String SINK_KAFKA_TOPIC_NAME = "output_kafka";
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("field1", SqlTypes.STRING)
-      .valueColumn("field2", SqlTypes.STRING)
-      .valueColumn("field3", SqlTypes.STRING)
-      .valueColumn("timestamp", SqlTypes.BIGINT)
-      .valueColumn("key", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
+      .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
 
   private static final KeyField KEY_FIELD =
-      KeyField.of("key", SCHEMA.findValueColumn("key").get());
+      KeyField.of(
+          ColumnRef.withoutSource(ColumnName.of("key")),
+          SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get());
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -105,7 +109,7 @@ public class KsqlStructuredDataOutputNodeTest {
 
   private KsqlStructuredDataOutputNode outputNode;
   private LogicalSchema schema;
-  private Optional<String> partitionBy;
+  private Optional<ColumnRef> partitionBy;
   private boolean createInto;
 
   @SuppressWarnings("unchecked")
@@ -115,7 +119,7 @@ public class KsqlStructuredDataOutputNodeTest {
     partitionBy = Optional.empty();
     createInto = true;
 
-    when(queryIdGenerator.getNextId()).thenReturn(QUERY_ID_STRING);
+    when(queryIdGenerator.getNext()).thenReturn(QUERY_ID_VALUE);
 
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
@@ -124,15 +128,15 @@ public class KsqlStructuredDataOutputNodeTest {
 
     when(sourceStream.withKeyField(any()))
         .thenReturn(resultStream);
-    when(resultStream.into(any(), any(), any(), any(), any(), any()))
+    when(resultStream.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
     when(resultStream.selectKey(any(), anyBoolean(), any()))
         .thenReturn((SchemaKStream) resultWithKeySelected);
-    when(resultWithKeySelected.into(any(), any(), any(), any(), any(), any()))
+    when(resultWithKeySelected.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
 
     when(ksqlStreamBuilder.buildNodeContext(any())).thenAnswer(inv ->
-        new QueryContext.Stacker(QUERY_ID)
+        new QueryContext.Stacker()
             .push(inv.getArgument(0).toString()));
     when(ksqlTopic.getKafkaTopicName()).thenReturn(SINK_KAFKA_TOPIC_NAME);
     when(ksqlTopic.getValueFormat()).thenReturn(JSON_FORMAT);
@@ -147,14 +151,14 @@ public class KsqlStructuredDataOutputNodeTest {
         new PlanNodeId("0"),
         sourceNode,
         SCHEMA,
-        new LongColumnTimestampExtractionPolicy("timestamp"),
+        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
         KeyField.none(),
         ksqlTopic,
-        Optional.of("something"),
+        Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
         OptionalInt.empty(),
         false,
-        SerdeOption.none()
-    );
+        SerdeOption.none(),
+        SourceName.of("0"));
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -164,14 +168,14 @@ public class KsqlStructuredDataOutputNodeTest {
         new PlanNodeId("0"),
         sourceNode,
         SCHEMA,
-        new LongColumnTimestampExtractionPolicy("timestamp"),
-        KeyField.of(Optional.of("something else"), Optional.empty()),
+        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
+        KeyField.of(Optional.of(ColumnRef.withoutSource(ColumnName.of("something else"))), Optional.empty()),
         ksqlTopic,
-        Optional.of("something"),
+        Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
         OptionalInt.empty(),
         false,
-        SerdeOption.none()
-    );
+        SerdeOption.none(),
+        SourceName.of("0"));
   }
 
   @Test
@@ -218,9 +222,9 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(resultStream).selectKey(
-        KEY_FIELD.name().get(),
+        KEY_FIELD.ref().get(),
         false,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
     );
 
     assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
@@ -236,9 +240,9 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(resultStream).selectKey(
-        "ROWKEY",
+        ColumnRef.withoutSource(ColumnName.of("ROWKEY")),
         false,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
     );
 
     assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
@@ -254,9 +258,9 @@ public class KsqlStructuredDataOutputNodeTest {
 
     // Then:
     verify(resultStream).selectKey(
-        "ROWTIME",
+        ColumnRef.withoutSource(ColumnName.of("ROWTIME")),
         false,
-        new QueryContext.Stacker(QUERY_ID).push(PLAN_NODE_ID.toString())
+        new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
     );
 
     assertThat(result, is(sameInstance(sinkStreamWithKeySelected)));
@@ -268,8 +272,8 @@ public class KsqlStructuredDataOutputNodeTest {
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     // Then:
-    verify(queryIdGenerator, times(1)).getNextId();
-    assertThat(queryId, equalTo(new QueryId("CSAS_0_" + QUERY_ID_STRING)));
+    verify(queryIdGenerator, times(1)).getNext();
+    assertThat(queryId, equalTo(new QueryId("CSAS_0_" + QUERY_ID_VALUE)));
   }
 
   @Test
@@ -282,8 +286,8 @@ public class KsqlStructuredDataOutputNodeTest {
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     // Then:
-    verify(queryIdGenerator, times(1)).getNextId();
-    assertThat(queryId, equalTo(new QueryId("CTAS_0_" + QUERY_ID_STRING)));
+    verify(queryIdGenerator, times(1)).getNext();
+    assertThat(queryId, equalTo(new QueryId("CTAS_0_" + QUERY_ID_VALUE)));
   }
 
   @Test
@@ -295,8 +299,8 @@ public class KsqlStructuredDataOutputNodeTest {
     final QueryId queryId = outputNode.getQueryId(queryIdGenerator);
 
     // Then:
-    verify(queryIdGenerator, times(1)).getNextId();
-    assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_STRING)));
+    verify(queryIdGenerator, times(1)).getNext();
+    assertThat(queryId, equalTo(new QueryId("InsertQuery_" + QUERY_ID_VALUE)));
   }
 
   @Test
@@ -304,7 +308,8 @@ public class KsqlStructuredDataOutputNodeTest {
     // Given:
     givenInsertIntoNode();
 
-    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name")));
+    final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("name"),
+        Optional.empty()));
 
     when(ksqlTopic.getValueFormat()).thenReturn(valueFormat);
 
@@ -312,7 +317,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).into(any(), any(), eq(valueFormat), any(), any(), any());
+    verify(resultStream).into(any(), any(), eq(valueFormat), any(), any());
   }
 
   @Test
@@ -326,8 +331,7 @@ public class KsqlStructuredDataOutputNodeTest {
         eq(SCHEMA),
         eq(JSON_FORMAT),
         eq(SerdeOption.none()),
-        stackerCaptor.capture(),
-        same(ksqlStreamBuilder)
+        stackerCaptor.capture()
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -342,7 +346,7 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   private void givenNodePartitioningByKey(final String field) {
-    this.partitionBy = Optional.of(field);
+    this.partitionBy = Optional.of(ColumnRef.withoutSource(ColumnName.of(field)));
     buildNode();
   }
 
@@ -356,13 +360,13 @@ public class KsqlStructuredDataOutputNodeTest {
         PLAN_NODE_ID,
         sourceNode,
         schema,
-        new LongColumnTimestampExtractionPolicy("timestamp"),
+        new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
         KEY_FIELD,
         ksqlTopic,
         partitionBy,
         OptionalInt.empty(),
         createInto,
-        SerdeOption.none()
-    );
+        SerdeOption.none(),
+        SourceName.of(PLAN_NODE_ID.toString()));
   }
 }

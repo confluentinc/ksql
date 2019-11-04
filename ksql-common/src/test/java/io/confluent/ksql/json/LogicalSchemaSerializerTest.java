@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.BeforeClass;
@@ -35,11 +36,26 @@ public class LogicalSchemaSerializerTest {
   }
 
   @Test
-  public void shouldSchemaAsString() throws Exception {
+  public void shouldSerializeSchemaWithImplicitColumns() throws Exception {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .keyColumn("key0", SqlTypes.STRING)
-        .valueColumn("v0", SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .build();
+
+    // When:
+    final String json = MAPPER.writeValueAsString(schema);
+
+    // Then:
+    assertThat(json, is("\"`ROWKEY` STRING KEY, `v0` INTEGER\""));
+  }
+
+  @Test
+  public void shouldSerializeSchemaWithOutImplicitColumns() throws Exception {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("key0"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
         .build();
 
     // When:
@@ -47,6 +63,21 @@ public class LogicalSchemaSerializerTest {
 
     // Then:
     assertThat(json, is("\"`key0` STRING KEY, `v0` INTEGER\""));
+  }
+
+  @Test
+  public void shouldSerializeSchemaWithKeyAfterValue() throws Exception {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("v0"), SqlTypes.INTEGER)
+        .keyColumn(ColumnName.of("key0"), SqlTypes.STRING)
+        .build();
+
+    // When:
+    final String json = MAPPER.writeValueAsString(schema);
+
+    // Then:
+    assertThat(json, is("\"`v0` INTEGER, `key0` STRING KEY\""));
   }
 
   private static final class TestModule extends SimpleModule {

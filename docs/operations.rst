@@ -40,11 +40,11 @@ ksql-server-start
 ksql-server-stop
     This script stops the KSQL server. It is located in the ``/bin`` directory of your |cp| installation.
 
-============
-Healthchecks
-============
+=============
+Health Checks
+=============
 
-- The KSQL REST API supports a "server info" request at ``http://<server>:8088/info``.
+- The KSQL REST API supports a "server info" request at ``http://<server>:8088/info`` and a basic server health check endpoint at ``http://<server>:8088/healthcheck``.
 - Check runtime stats for the KSQL server that you are connected to via ``DESCRIBE EXTENDED <stream or table>`` and
   ``EXPLAIN <name of query>``.
 - Run ``ksql-print-metrics`` on a KSQL server. For example, see this `blog post <https://www.confluent.io/blog/ksql-january-release-streaming-sql-apache-kafka/>`_.
@@ -98,7 +98,7 @@ Troubleshooting
 ------------------------------------
 SELECT query hangs and doesn’t stop?
 ------------------------------------
-Queries in KSQL, including non-persistent queries such as ``SELECT * FROM myTable``, are continuous streaming queries.
+Queries in KSQL, including non-persistent queries such as ``SELECT * FROM myTable EMIT CHANGES``, are continuous streaming queries.
 Streaming queries  will not stop unless explicitly terminated.  To terminate a non-persistent query in the KSQL CLI you
 must type ``Ctrl + C``.
 

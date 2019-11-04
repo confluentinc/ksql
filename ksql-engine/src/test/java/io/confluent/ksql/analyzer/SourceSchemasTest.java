@@ -22,25 +22,29 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
+import io.confluent.ksql.util.SchemaUtil;
 import org.junit.Before;
 import org.junit.Test;
 
 public class SourceSchemasTest {
 
-  private static final String ALIAS_1 = "S1";
-  private static final String ALIAS_2 = "S2";
-  private static final String COMMON_FIELD_NAME = "F0";
+  private static final SourceName ALIAS_1 = SourceName.of("S1");
+  private static final SourceName ALIAS_2 = SourceName.of("S2");
+  private static final ColumnName COMMON_FIELD_NAME = ColumnName.of("F0");
 
   private static final LogicalSchema SCHEMA_1 = LogicalSchema.builder()
       .valueColumn(COMMON_FIELD_NAME, SqlTypes.STRING)
-      .valueColumn("F1", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F1"), SqlTypes.STRING)
       .build();
 
   private static final LogicalSchema SCHEMA_2 = LogicalSchema.builder()
       .valueColumn(COMMON_FIELD_NAME, SqlTypes.STRING)
-      .valueColumn("F2", SqlTypes.STRING)
+      .valueColumn(ColumnName.of("F2"), SqlTypes.STRING)
       .build();
 
   private SourceSchemas sourceSchemas;
@@ -75,68 +79,68 @@ public class SourceSchemasTest {
 
   @Test
   public void shouldFindNoField() {
-    assertThat(sourceSchemas.sourcesWithField("unknown"), is(empty()));
+    assertThat(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("unknown"))), is(empty()));
   }
 
   @Test
   public void shouldFindNoQualifiedField() {
-    assertThat(sourceSchemas.sourcesWithField(ALIAS_1 + ".F2"), is(empty()));
+    assertThat(sourceSchemas.sourcesWithField(ColumnRef.of(ALIAS_1, ColumnName.of("F2"))), is(empty()));
   }
 
   @Test
   public void shouldFindUnqualifiedUniqueField() {
-    assertThat(sourceSchemas.sourcesWithField("F1"), contains(ALIAS_1));
+    assertThat(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("F1"))), contains(ALIAS_1));
   }
 
   @Test
   public void shouldFindQualifiedUniqueField() {
-    assertThat(sourceSchemas.sourcesWithField(ALIAS_2 + ".F2"), contains(ALIAS_2));
+    assertThat(sourceSchemas.sourcesWithField(ColumnRef.of(ALIAS_2, ColumnName.of("F2"))), contains(ALIAS_2));
   }
 
   @Test
   public void shouldFindUnqualifiedCommonField() {
-    assertThat(sourceSchemas.sourcesWithField(COMMON_FIELD_NAME),
+    assertThat(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(COMMON_FIELD_NAME)),
         containsInAnyOrder(ALIAS_1, ALIAS_2));
   }
 
   @Test
   public void shouldFindQualifiedFieldOnlyInThatSource() {
-    assertThat(sourceSchemas.sourcesWithField(ALIAS_1 + "." + COMMON_FIELD_NAME),
+    assertThat(sourceSchemas.sourcesWithField(ColumnRef.of(ALIAS_1, COMMON_FIELD_NAME)),
         contains(ALIAS_1));
   }
 
   @Test
   public void shouldMatchNonValueFieldNameIfMetaField() {
-    assertThat(sourceSchemas.matchesNonValueField("ROWTIME"), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(ColumnRef.withoutSource(SchemaUtil.ROWTIME_NAME)), is(true));
   }
 
   @Test
   public void shouldMatchNonValueFieldNameIfAliaasedMetaField() {
-    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".ROWTIME"), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(ColumnRef.of(ALIAS_2, SchemaUtil.ROWTIME_NAME)), is(true));
   }
 
   @Test
   public void shouldMatchNonValueFieldNameIfKeyField() {
-    assertThat(sourceSchemas.matchesNonValueField("ROWKEY"), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(ColumnRef.withoutSource(SchemaUtil.ROWKEY_NAME)), is(true));
   }
 
   @Test
   public void shouldMatchNonValueFieldNameIfAliasedKeyField() {
-    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".ROWKEY"), is(true));
+    assertThat(sourceSchemas.matchesNonValueField(ColumnRef.of(ALIAS_2, SchemaUtil.ROWKEY_NAME)), is(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnUknonwnSourceWhenMatchingNonValueFields() {
-    sourceSchemas.matchesNonValueField("unknown.ROWKEY");
+  public void shouldThrowOnUnknownSourceWhenMatchingNonValueFields() {
+    sourceSchemas.matchesNonValueField(ColumnRef.of(SourceName.of("unknown"), SchemaUtil.ROWKEY_NAME));
   }
 
   @Test
   public void shouldNotMatchOtherFields() {
-    assertThat(sourceSchemas.matchesNonValueField(ALIAS_2 + ".F2"), is(false));
+    assertThat(sourceSchemas.matchesNonValueField(ColumnRef.of(ALIAS_2, ColumnName.of("F2"))), is(false));
   }
 
   @Test
   public void shouldNotMatchUnknownFields() {
-    assertThat(sourceSchemas.matchesNonValueField("unknown"), is(false));
+    assertThat(sourceSchemas.matchesNonValueField(ColumnRef.withoutSource(ColumnName.of("unknown"))), is(false));
   }
 }

@@ -17,7 +17,7 @@ package io.confluent.ksql.util;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.internal.QueryStateListener;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.Map;
@@ -37,13 +37,12 @@ public class QueryMetadata {
   private final String statementString;
   private final KafkaStreams kafkaStreams;
   private final String executionPlan;
-  private final DataSourceType dataSourceType;
   private final String queryApplicationId;
   private final Topology topology;
   private final Map<String, Object> streamsProperties;
   private final Map<String, Object> overriddenProperties;
   private final Consumer<QueryMetadata> closeCallback;
-  private final Set<String> sourceNames;
+  private final Set<SourceName> sourceNames;
   private final LogicalSchema logicalSchema;
 
   private Optional<QueryStateListener> queryStateListener = Optional.empty();
@@ -54,9 +53,8 @@ public class QueryMetadata {
       final String statementString,
       final KafkaStreams kafkaStreams,
       final LogicalSchema logicalSchema,
-      final Set<String> sourceNames,
+      final Set<SourceName> sourceNames,
       final String executionPlan,
-      final DataSourceType dataSourceType,
       final String queryApplicationId,
       final Topology topology,
       final Map<String, Object> streamsProperties,
@@ -67,7 +65,6 @@ public class QueryMetadata {
     this.statementString = Objects.requireNonNull(statementString, "statementString");
     this.kafkaStreams = Objects.requireNonNull(kafkaStreams, "kafkaStreams");
     this.executionPlan = Objects.requireNonNull(executionPlan, "executionPlan");
-    this.dataSourceType = Objects.requireNonNull(dataSourceType, "dataSourceType");
     this.queryApplicationId = Objects.requireNonNull(queryApplicationId, "queryApplicationId");
     this.topology = Objects.requireNonNull(topology, "kafkaTopicClient");
     this.streamsProperties =
@@ -85,7 +82,6 @@ public class QueryMetadata {
     this.statementString = other.statementString;
     this.kafkaStreams = other.kafkaStreams;
     this.executionPlan = other.executionPlan;
-    this.dataSourceType = other.dataSourceType;
     this.queryApplicationId = other.queryApplicationId;
     this.topology = other.topology;
     this.streamsProperties = other.streamsProperties;
@@ -120,10 +116,6 @@ public class QueryMetadata {
     return executionPlan;
   }
 
-  public DataSourceType getDataSourceType() {
-    return dataSourceType;
-  }
-
   public String getQueryApplicationId() {
     return queryApplicationId;
   }
@@ -140,7 +132,7 @@ public class QueryMetadata {
     return logicalSchema;
   }
 
-  public Set<String> getSourceNames() {
+  public Set<SourceName> getSourceNames() {
     return sourceNames;
   }
 

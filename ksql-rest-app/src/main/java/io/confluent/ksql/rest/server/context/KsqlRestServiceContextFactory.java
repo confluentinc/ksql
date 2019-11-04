@@ -15,19 +15,21 @@
 
 package io.confluent.ksql.rest.server.context;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.annotations.VisibleForTesting;
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.DefaultServiceContextFactory;
+import io.confluent.ksql.rest.server.services.RestServiceContextFactory.UserServiceContextFactory;
 import io.confluent.ksql.security.KsqlSecurityExtension;
 import io.confluent.ksql.services.ServiceContext;
-import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.util.KsqlConfig;
 import java.security.Principal;
-import java.util.Objects;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.Optional;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.SecurityContext;
-import org.apache.kafka.streams.KafkaClientSupplier;
 import org.glassfish.hk2.api.Factory;
 
 /**
@@ -42,45 +44,51 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
       final KsqlConfig ksqlConfig,
       final KsqlSecurityExtension securityExtension
   ) {
-    KsqlRestServiceContextFactory.ksqlConfig = Objects.requireNonNull(ksqlConfig, "ksqlConfig");
+    KsqlRestServiceContextFactory.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     KsqlRestServiceContextFactory.securityExtension
-        = Objects.requireNonNull(securityExtension, "securityExtension");
-  }
-
-  @VisibleForTesting
-  @FunctionalInterface
-  interface UserServiceContextFactory {
-    ServiceContext create(
-        KsqlConfig ksqlConfig,
-        KafkaClientSupplier kafkaClientSupplier,
-        Supplier<SchemaRegistryClient> srClientFactory
-    );
+        = requireNonNull(securityExtension, "securityExtension");
   }
 
   private final SecurityContext securityContext;
-  private final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory;
+  private final DefaultServiceContextFactory defaultServiceContextFactory;
   private final UserServiceContextFactory userServiceContextFactory;
+  private final HttpServletRequest request;
 
   @Inject
-  public KsqlRestServiceContextFactory(final SecurityContext securityContext) {
-    this(securityContext, ServiceContextFactory::create, ServiceContextFactory::create);
+  public KsqlRestServiceContextFactory(
+      final SecurityContext securityContext,
+      final HttpServletRequest request
+  ) {
+    this(
+        securityContext,
+        request,
+        RestServiceContextFactory::create,
+        RestServiceContextFactory::create
+    );
   }
 
   @VisibleForTesting
   KsqlRestServiceContextFactory(
       final SecurityContext securityContext,
-      final Function<KsqlConfig, ServiceContext> defaultServiceContextFactory,
+      final HttpServletRequest request,
+      final DefaultServiceContextFactory defaultServiceContextFactory,
       final UserServiceContextFactory userServiceContextFactory
   ) {
-    this.securityContext = securityContext;
-    this.defaultServiceContextFactory = defaultServiceContextFactory;
-    this.userServiceContextFactory = userServiceContextFactory;
+    this.securityContext = requireNonNull(securityContext, "securityContext");
+    this.defaultServiceContextFactory = requireNonNull(defaultServiceContextFactory,
+        "defaultServiceContextFactory");
+    this.userServiceContextFactory = requireNonNull(userServiceContextFactory,
+        "userServiceContextFactory");
+    this.request = requireNonNull(request, "request");
   }
 
   @Override
   public ServiceContext provide() {
+    final Optional<String> authHeader =
+        Optional.ofNullable(request.getHeader(HttpHeaders.AUTHORIZATION));
+
     if (!securityExtension.getUserContextProvider().isPresent()) {
-      return defaultServiceContextFactory.apply(ksqlConfig);
+      return defaultServiceContextFactory.create(ksqlConfig, authHeader);
     }
 
     final Principal principal = securityContext.getUserPrincipal();
@@ -88,6 +96,7 @@ public class KsqlRestServiceContextFactory implements Factory<ServiceContext> {
         .map(provider ->
             userServiceContextFactory.create(
                 ksqlConfig,
+                authHeader,
                 provider.getKafkaClientSupplier(principal),
                 provider.getSchemaRegistryClientFactory(principal)))
         .get();

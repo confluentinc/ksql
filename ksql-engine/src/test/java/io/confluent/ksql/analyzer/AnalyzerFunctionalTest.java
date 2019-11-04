@@ -16,11 +16,15 @@
 package io.confluent.ksql.analyzer;
 
 import static io.confluent.ksql.testutils.AnalysisTestUtil.analyzeQuery;
+import static io.confluent.ksql.util.SchemaUtil.ROWTIME_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -34,14 +38,17 @@ import io.confluent.ksql.analyzer.Analysis.JoinInfo;
 import io.confluent.ksql.analyzer.Analyzer.SerdeOptionsSupplier;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
+import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
-import io.confluent.ksql.parser.ExpressionFormatterUtil;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.KsqlParserTestUtil;
 import io.confluent.ksql.parser.properties.with.CreateSourceAsProperties;
@@ -50,6 +57,7 @@ import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.Sink;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.planner.plan.JoinNode.JoinType;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -63,10 +71,10 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -87,6 +95,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AnalyzerFunctionalTest {
 
   private static final Set<SerdeOption> DEFAULT_SERDE_OPTIONS = SerdeOption.none();
+  private static final SourceName TEST1 = SourceName.of("TEST1");
+  private static final ColumnName COL0 = ColumnName.of("COL0");
+  private static final ColumnName COL1 = ColumnName.of("COL1");
+  private static final ColumnName COL2 = ColumnName.of("COL2");
+  private static final ColumnName COL3 = ColumnName.of("COL3");
 
   private MutableMetaStore jsonMetaStore;
   private MutableMetaStore avroMetaStore;
@@ -119,7 +132,7 @@ public class AnalyzerFunctionalTest {
         serdeOptiponsSupplier
     );
 
-    when(sink.getName()).thenReturn("TEST0");
+    when(sink.getName()).thenReturn(SourceName.of("TEST0"));
     when(sink.getProperties()).thenReturn(CreateSourceAsProperties.none());
 
     query = parseSingle("Select COL0, COL1 from TEST1;");
@@ -131,39 +144,19 @@ public class AnalyzerFunctionalTest {
   public void testSimpleQueryAnalysis() {
     final String simpleQuery = "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(simpleQuery, jsonMetaStore);
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT alias is null", analysis.getSelectExpressionAlias());
-    Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName()
-                          .equalsIgnoreCase("test1"));
-    Assert.assertEquals(analysis.getSelectExpressions().size(),
-        analysis.getSelectExpressionAlias().size());
-    final String
-        sqlStr =
-        ExpressionFormatterUtil
-            .formatExpression(analysis.getWhereExpression()).replace("\n", " ");
-    Assert.assertTrue(sqlStr.equalsIgnoreCase("(TEST1.COL0 > 100)"));
+    assertEquals("FROM was not analyzed correctly.",
+        analysis.getFromDataSources().get(0).getDataSource().getName(),
+        TEST1);
+    assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 100)"));
 
-    final String
-        select1 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(0))
-            .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("TEST1.COL0"));
-    final String
-        select2 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(1))
-            .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    final String
-        select3 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(2))
-            .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("TEST1.COL3"));
+    final List<SelectExpression> selects = analysis.getSelectExpressions();
+    assertThat(selects.get(0).getExpression().toString(), is("TEST1.COL0"));
+    assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
+    assertThat(selects.get(2).getExpression().toString(), is("TEST1.COL3"));
 
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(0).equalsIgnoreCase("COL0"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(1).equalsIgnoreCase("COL2"));
-    Assert.assertTrue(analysis.getSelectExpressionAlias().get(2).equalsIgnoreCase("COL3"));
+    assertThat(selects.get(0).getAlias(), is(COL0));
+    assertThat(selects.get(1).getAlias(), is(COL2));
+    assertThat(selects.get(2).getAlias(), is(COL3));
   }
 
   @Test
@@ -176,22 +169,25 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     assertThat(analysis.getFromDataSources(), hasSize(2));
-    assertThat(analysis.getFromDataSources().get(0).getAlias(), is("T1"));
-    assertThat(analysis.getFromDataSources().get(1).getAlias(), is("T2"));
-
-    assertThat(analysis.getSelectExpressions().size(),
-        is(analysis.getSelectExpressionAlias().size()));
+    assertThat(analysis.getFromDataSources().get(0).getAlias(), is(SourceName.of("T1")));
+    assertThat(analysis.getFromDataSources().get(1).getAlias(), is(SourceName.of("T2")));
 
     assertThat(analysis.getJoin(), is(not(Optional.empty())));
-    assertThat(analysis.getJoin().get().getLeftJoinField(), is("T1.COL1"));
-    assertThat(analysis.getJoin().get().getRightJoinField(), is("T2.COL1"));
+    assertThat(analysis.getJoin().get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("COL1"))));
+    assertThat(analysis.getJoin().get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"),ColumnName.of("COL1"))));
 
     final List<String> selects = analysis.getSelectExpressions().stream()
-        .map(ExpressionFormatterUtil::formatExpression)
+        .map(SelectExpression::getExpression)
+        .map(Objects::toString)
         .collect(Collectors.toList());
 
     assertThat(selects, contains("T1.COL1", "T2.COL1", "T2.COL4", "T1.COL5", "T2.COL2"));
-    assertThat(analysis.getSelectExpressionAlias(),
+
+    final List<ColumnName> aliases = analysis.getSelectExpressions().stream()
+        .map(SelectExpression::getAlias)
+        .collect(Collectors.toList());
+
+    assertThat(aliases.stream().map(ColumnName::name).collect(Collectors.toList()),
         contains("T1_COL1", "T2_COL1", "T2_COL4", "COL5", "T2_COL2"));
   }
 
@@ -206,8 +202,8 @@ public class AnalyzerFunctionalTest {
     // Then:
     assertThat(join, is(not(Optional.empty())));
     assertThat(join.get().getType(), is(JoinType.LEFT));
-    assertThat(join.get().getLeftJoinField(), is("T1.ROWKEY"));
-    assertThat(join.get().getRightJoinField(), is("T2.ROWKEY"));
+    assertThat(join.get().getLeftJoinField(), is(ColumnRef.of(SourceName.of("T1"),ColumnName.of("ROWKEY"))));
+    assertThat(join.get().getRightJoinField(), is(ColumnRef.of(SourceName.of("T2"), ColumnName.of("ROWKEY"))));
   }
 
   @Test
@@ -215,28 +211,13 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
-    Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName()
-                          .equalsIgnoreCase("test1"));
+    assertEquals("FROM was not analyzed correctly.",
+        analysis.getFromDataSources().get(0).getDataSource().getName(), TEST1);
 
-    final String
-        select1 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(0))
-            .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
-    final String
-        select2 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(1))
-            .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    final String
-        select3 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(2))
-            .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
+    final List<SelectExpression> selects = analysis.getSelectExpressions();
+    assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
+    assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
+    assertThat(selects.get(2).getExpression().toString(), is("(TEST1.COL3 > TEST1.COL1)"));
   }
 
   @Test
@@ -244,30 +225,13 @@ public class AnalyzerFunctionalTest {
     final String queryStr = "SELECT col0 = 10, col2, col3 > col1 FROM test1 WHERE col0 > 20 EMIT CHANGES;";
     final Analysis analysis = analyzeQuery(queryStr, jsonMetaStore);
 
-    Assert.assertNotNull("INTO is null", analysis.getInto());
-    Assert.assertNotNull("SELECT is null", analysis.getSelectExpressions());
-    Assert.assertNotNull("SELECT aliacs is null", analysis.getSelectExpressionAlias());
-    Assert.assertTrue("FROM was not analyzed correctly.",
-        analysis.getFromDataSources().get(0).getDataSource().getName()
-                    .equalsIgnoreCase("test1"));
+    assertThat(analysis.getFromDataSources().get(0).getDataSource().getName(), is(TEST1));
 
-    final String
-            select1 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(0))
-                    .replace("\n", " ");
-    Assert.assertTrue(select1.equalsIgnoreCase("(TEST1.COL0 = 10)"));
-    final String
-            select2 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(1))
-                    .replace("\n", " ");
-    Assert.assertTrue(select2.equalsIgnoreCase("TEST1.COL2"));
-    final String
-            select3 =
-        ExpressionFormatterUtil.formatExpression(analysis.getSelectExpressions().get(2))
-                    .replace("\n", " ");
-    Assert.assertTrue(select3.equalsIgnoreCase("(TEST1.COL3 > TEST1.COL1)"));
-    Assert.assertTrue("testFilterAnalysis failed.", analysis.getWhereExpression().toString().equalsIgnoreCase("(TEST1.COL0 > 20)"));
-
+    final List<SelectExpression> selects = analysis.getSelectExpressions();
+    assertThat(selects.get(0).getExpression().toString(), is("(TEST1.COL0 = 10)"));
+    assertThat(selects.get(1).getExpression().toString(), is("TEST1.COL2"));
+    assertThat(selects.get(2).getExpression().toString(), is("(TEST1.COL3 > TEST1.COL1)"));
+    assertThat(analysis.getWhereExpression().get().toString(), is("(TEST1.COL0 > 20)"));
   }
 
   @Test
@@ -280,7 +244,6 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
     final Analysis analysis = analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
 
-    Assert.assertNotNull("INTO is null", analysis.getInto());
     final Optional<Into> into = analysis.getInto();
     assertThat(into, is(not((Optional.empty()))));
     final KsqlTopic createdKsqlTopic = into.get().getKsqlTopic();
@@ -299,7 +262,8 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
     assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema")))));
+        is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("com.custom.schema"),
+            Optional.empty()))));
   }
 
   @Test
@@ -330,7 +294,7 @@ public class AnalyzerFunctionalTest {
 
     assertThat(analysis.getInto(), is(not(Optional.empty())));
       assertThat(analysis.getInto().get().getKsqlTopic().getValueFormat(),
-          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1")))));
+          is(ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty()))));
   }
 
   @Test
@@ -342,19 +306,21 @@ public class AnalyzerFunctionalTest {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         "s0",
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"))),
+        ValueFormat.of(FormatInfo.of(Format.AVRO, Optional.of("org.ac.s1"), Optional.empty())),
         false);
 
     final LogicalSchema schema = LogicalSchema.builder()
-            .valueColumn("FIELD1", SqlTypes.BIGINT)
+            .valueColumn(ColumnName.of("FIELD1"), SqlTypes.BIGINT)
             .build();
 
     final KsqlStream<?> ksqlStream = new KsqlStream<>(
         "create stream s0 with(KAFKA_TOPIC='s0', VALUE_AVRO_SCHEMA_FULL_NAME='org.ac.s1', VALUE_FORMAT='avro');",
-        "S0",
+        SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.of("FIELD1", schema.findValueColumn("FIELD1").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("FIELD1")),
+            schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("FIELD1"))).get()),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopic
     );
@@ -416,7 +382,7 @@ public class AnalyzerFunctionalTest {
     final Analyzer analyzer = new Analyzer(jsonMetaStore, "", DEFAULT_SERDE_OPTIONS);
 
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Schema name can not be empty");
+    expectedException.expectMessage("Schema name cannot be empty");
 
     analyzer.analyze(query, Optional.of(createStreamAsSelect.getSink()));
   }
@@ -435,7 +401,7 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     verify(serdeOptiponsSupplier).build(
-        ImmutableList.of("COL0", "COL1"),
+        ImmutableList.of("COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList()),
         Format.AVRO,
         Optional.of(true),
         DEFAULT_SERDE_OPTIONS);
@@ -456,7 +422,7 @@ public class AnalyzerFunctionalTest {
 
     // Then:
     verify(serdeOptiponsSupplier).build(
-        eq(ImmutableList.of("TIME", "KEY", "COL0", "COL1")),
+        eq(ImmutableList.of("TIME", "KEY", "COL0", "COL1").stream().map(ColumnName::of).collect(Collectors.toList())),
         any(),
         any(),
         any());
@@ -496,6 +462,50 @@ public class AnalyzerFunctionalTest {
     analyzer.analyze(query, Optional.of(sink));
   }
 
+  @Test
+  public void shouldCaptureProjectionColumnRefs() {
+    // Given:
+    query = parseSingle("Select COL0, COL0 + COL1, SUBSTRING(COL2, 1) from TEST1;");
+
+    // When:
+    final Analysis analysis = analyzer.analyze(query, Optional.empty());
+
+    // Then:
+    assertThat(analysis.getSelectColumnRefs(), containsInAnyOrder(
+        ColumnRef.of(TEST1, COL0),
+        ColumnRef.of(TEST1, COL1),
+        ColumnRef.of(TEST1, COL2)
+    ));
+  }
+
+  @Test
+  public void shouldIncludeMetaColumnsForSelectStarOnContinuousQueries() {
+    // Given:
+    query = parseSingle("Select * from TEST1 EMIT CHANGES;");
+
+    // When:
+    final Analysis analysis = analyzer.analyze(query, Optional.empty());
+
+    // Then:
+    assertThat(analysis.getSelectExpressions(), hasItem(
+        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+    ));
+  }
+
+  @Test
+  public void shouldNotIncludeMetaColumnsForSelectStartOnStaticQueries() {
+    // Given:
+    query = parseSingle("Select * from TEST1;");
+
+    // When:
+    final Analysis analysis = analyzer.analyze(query, Optional.empty());
+
+    // Then:
+    assertThat(analysis.getSelectExpressions(), not(hasItem(
+        SelectExpression.of(ROWTIME_NAME, new ColumnReferenceExp(ColumnRef.of(TEST1, ROWTIME_NAME)))
+    )));
+  }
+
   @SuppressWarnings("unchecked")
   private <T extends Statement> T parseSingle(final String simpleQuery) {
     return (T) Iterables.getOnlyElement(parse(simpleQuery, jsonMetaStore));
@@ -524,7 +534,7 @@ public class AnalyzerFunctionalTest {
 
   private void registerKafkaSource() {
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
+        .valueColumn(COL0, SqlTypes.BIGINT)
         .build();
 
     final KsqlTopic topic = new KsqlTopic(
@@ -535,7 +545,7 @@ public class AnalyzerFunctionalTest {
 
     final KsqlStream<?> stream = new KsqlStream<>(
         "sqlexpression",
-        "KAFKA_SOURCE",
+        SourceName.of("KAFKA_SOURCE"),
         schema,
         SerdeOption.none(),
         KeyField.none(),

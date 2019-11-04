@@ -146,7 +146,7 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private class LimitHandler implements io.confluent.ksql.physical.LimitHandler {
+  private class LimitHandler implements io.confluent.ksql.query.LimitHandler {
     @Override
     public void limitReached() {
       limitReached = true;

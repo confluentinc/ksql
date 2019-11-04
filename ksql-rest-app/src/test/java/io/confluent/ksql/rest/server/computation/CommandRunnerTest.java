@@ -196,7 +196,7 @@ public class CommandRunnerTest {
 
     // Then:
     final InOrder inOrder = inOrder(executor);
-    inOrder.verify(executor).submit(any(Runnable.class));
+    inOrder.verify(executor).execute(any(Runnable.class));
     inOrder.verify(executor).shutdown();
   }
 

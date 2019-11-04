@@ -35,17 +35,6 @@ public final class KeyFormat {
   }
 
   public static KeyFormat windowed(
-      final Format format,
-      final Optional<String> avroSchemaName,
-      final WindowInfo windowInfo
-  ) {
-    return new KeyFormat(
-        FormatInfo.of(format, avroSchemaName),
-        Optional.of(windowInfo)
-    );
-  }
-
-  public static KeyFormat windowed(
       final FormatInfo format,
       final WindowInfo windowInfo
   ) {

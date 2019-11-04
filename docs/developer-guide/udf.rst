@@ -51,9 +51,9 @@ Follow these steps to create your custom functions:
 
 For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
 
-======================
+=======================
 Creating UDFs and UDAFs
-======================
+=======================
 
 KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAFs) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
@@ -243,9 +243,26 @@ Udf Annotation
 ~~~~~~~~~~~~~~
 
 The ``@Udf`` annotation is applied to public methods of a class annotated with ``@UdfDescription``.
-Each annotated method will become an invocable function in KSQL. The annotation only has a single
-field ``description`` that is optional. You can use this to better describe what a particular version
-of the UDF does, for example:
+Each annotated method will become an invocable function in KSQL. This annotation supports the following
+fields:
+
++---------------+------------------------------+------------------------+
+| Field         | Description                  | Required               |
++===============+==============================+========================+
+| description   | A string describing generally| No                     |
+|               | what a particular version of |                        |
+|               | the UDF does (see example)   |                        |
++---------------+------------------------------+------------------------+
+| schema        | The KSQL schema for the      | For complex types      |
+|               | return type of this UDF.     | such as STRUCT if      |
+|               |                              | ``schemaProvider`` is  |
+|               |                              | not passed in.         |
++---------------+------------------------------+------------------------+
+| schemaProvider| A reference to a method that | For complex types      |
+|               | computes the return schema of| such as STRUCT if      |
+|               | this UDF. (See Dynamic Return| ``schema`` is not      |
+|               | Types for more info)         | passed in.             |
++---------------+------------------------------+------------------------+
 
 .. code:: java
 
@@ -744,7 +761,7 @@ built-in functions. The function names are case-insensitive. For example, using 
     CREATE STREAM number_stream (int1 INT, int2 INT, long1 BIGINT, long2 BIGINT)
       WITH (VALUE_FORMAT = 'JSON', KAFKA_TOPIC = 'numbers');
 
-    SELECT multiply(int1, int2), MULTIPLY(long1, long2) FROM number_stream;
+    SELECT multiply(int1, int2), MULTIPLY(long1, long2) FROM number_stream EMIT CHANGES;
 
 
 

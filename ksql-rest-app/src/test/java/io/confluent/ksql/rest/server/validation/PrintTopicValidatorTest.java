@@ -74,6 +74,7 @@ public class PrintTopicValidatorTest {
     // When:
     CustomValidators.PRINT_TOPIC.validate(
         query,
+        ImmutableMap.of(),
         ksqlEngine,
         serviceContext
     );

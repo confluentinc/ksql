@@ -17,14 +17,18 @@ package io.confluent.ksql.execution.codegen;
 
 import static java.lang.String.format;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.HashMultiset;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Multiset;
 import io.confluent.ksql.execution.codegen.helpers.SearchedCaseFunction;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
 import io.confluent.ksql.execution.expression.tree.BooleanLiteral;
 import io.confluent.ksql.execution.expression.tree.Cast;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.DecimalLiteral;
 import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
@@ -42,8 +46,6 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.NotExpression;
 import io.confluent.ksql.execution.expression.tree.NullLiteral;
-import io.confluent.ksql.execution.expression.tree.QualifiedName;
-import io.confluent.ksql.execution.expression.tree.QualifiedNameReference;
 import io.confluent.ksql.execution.expression.tree.SearchedCaseExpression;
 import io.confluent.ksql.execution.expression.tree.SimpleCaseExpression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
@@ -57,9 +59,10 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlFunctionException;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.Column;
-import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToConnectTypeConverter;
@@ -77,6 +80,7 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringEscapeUtils;
@@ -128,12 +132,39 @@ public class SqlToJavaVisitor {
   private final FunctionRegistry functionRegistry;
 
   private final ExpressionTypeManager expressionTypeManager;
+  private final Function<FunctionName, String> funNameToCodeName;
+  private final Function<ColumnRef, String> colRefToCodeName;
 
-  public SqlToJavaVisitor(final LogicalSchema schema, final FunctionRegistry functionRegistry) {
-    this.schema = Objects.requireNonNull(schema, "schema");
-    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+  public static SqlToJavaVisitor of(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final CodeGenSpec spec
+  ) {
+    final Multiset<FunctionName> nameCounts = HashMultiset.create();
+    return new SqlToJavaVisitor(
+        schema,
+        functionRegistry,
+        spec::getCodeName,
+        name -> {
+          final int index = nameCounts.add(name, 1);
+          return spec.getUniqueNameForFunction(name, index);
+        }
+    );
+  }
+
+  @VisibleForTesting
+  SqlToJavaVisitor(
+      final LogicalSchema schema,
+      final FunctionRegistry functionRegistry,
+      final Function<ColumnRef, String> colRefToCodeName,
+      final Function<FunctionName, String> funNameToCodeName
+  ) {
     this.expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
+    this.schema = Objects.requireNonNull(schema, "schema");
+    this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
+    this.colRefToCodeName = Objects.requireNonNull(colRefToCodeName, "colRefToCodeName");
+    this.funNameToCodeName = Objects.requireNonNull(funNameToCodeName, "funNameToCodeName");
   }
 
   public String process(final Expression expression) {
@@ -150,7 +181,6 @@ public class SqlToJavaVisitor {
   private class Formatter implements ExpressionVisitor<Pair<String, Schema>, Void> {
 
     private final FunctionRegistry functionRegistry;
-    private int functionCounter = 0;
 
     Formatter(final FunctionRegistry functionRegistry) {
       this.functionRegistry = functionRegistry;
@@ -262,31 +292,40 @@ public class SqlToJavaVisitor {
     }
 
     @Override
-    public Pair<String, Schema> visitQualifiedNameReference(
-        final QualifiedNameReference node,
+    public Pair<String, Schema> visitColumnReference(
+        final ColumnReferenceExp node,
         final Void context
     ) {
-      final String fieldName = formatQualifiedName(node.getName());
-      final Column schemaColumn = schema.findValueColumn(fieldName)
+      final ColumnRef fieldName = node.getReference();
+      final Column schemaColumn = schema.findValueColumn(node.getReference())
           .orElseThrow(() ->
-              new KsqlException("Field not found: " + fieldName));
+              new KsqlException("Field not found: " + node.getReference()));
 
       final Schema schema = SQL_TO_CONNECT_SCHEMA_CONVERTER.toConnectSchema(schemaColumn.type());
-      return new Pair<>(fieldName.replace(".", "_"), schema);
+      return new Pair<>(colRefToCodeName.apply(fieldName), schema);
     }
 
+    @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     @Override
     public Pair<String, Schema> visitDereferenceExpression(
         final DereferenceExpression node,
         final Void context
     ) {
-      throw new UnsupportedOperationException(
-          "DereferenceExpression should have been resolved by now");
-    }
+      final String instanceName = funNameToCodeName
+          .apply(FetchFieldFromStruct.FUNCTION_NAME);
 
-    private String formatQualifiedName(final QualifiedName name) {
-      // for now, we don't escape anything in SqlToJavaVisitor
-      return name.toString(FormatOptions.of(word -> false));
+      final Schema functionReturnSchema = expressionTypeManager.getExpressionSchema(node);
+      final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
+
+      final String arguments =
+          process(node.getBase(), context).getLeft()
+          + ", "
+          + process(new StringLiteral(node.getFieldName()), context).getLeft();
+
+      final String codeString = "((" + javaReturnType + ") " + instanceName
+          + ".evaluate(" + arguments + "))";
+
+      return new Pair<>(codeString, functionReturnSchema);
     }
 
     public Pair<String, Schema> visitLongLiteral(
@@ -307,11 +346,13 @@ public class SqlToJavaVisitor {
     @Override
     public Pair<String, Schema> visitFunctionCall(
         final FunctionCall node,
-        final Void context) {
-      final String functionName = node.getName().name();
+        final Void context
+    ) {
+      final FunctionName functionName = node.getName();
 
-      final String instanceName = functionName + "_" + functionCounter++;
-      final Schema functionReturnSchema = getFunctionReturnSchema(node, functionName);
+      final String instanceName = funNameToCodeName.apply(functionName);
+
+      final Schema functionReturnSchema = getFunctionReturnSchema(node);
       final String javaReturnType = SchemaUtil.getJavaType(functionReturnSchema).getSimpleName();
       final String arguments = node.getArguments().stream()
           .map(arg -> process(arg, context).getLeft())
@@ -323,12 +364,9 @@ public class SqlToJavaVisitor {
 
     @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     private Schema getFunctionReturnSchema(
-        final FunctionCall node,
-        final String functionName) {
-      if (functionName.equalsIgnoreCase(FetchFieldFromStruct.FUNCTION_NAME)) {
-        return expressionTypeManager.getExpressionSchema(node);
-      }
-      final UdfFactory udfFactory = functionRegistry.getUdfFactory(functionName);
+        final FunctionCall node
+    ) {
+      final UdfFactory udfFactory = functionRegistry.getUdfFactory(node.getName().name());
       final List<Schema> argumentSchemas = node.getArguments().stream()
           .map(expressionTypeManager::getExpressionSchema)
           .collect(Collectors.toList());
@@ -367,13 +405,11 @@ public class SqlToJavaVisitor {
     }
 
     private String nullCheckPrefix(final ComparisonExpression.Type type) {
-      switch (type) {
-        case IS_DISTINCT_FROM:
-          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
-              + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
-        default:
-          return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
+      if (type == ComparisonExpression.Type.IS_DISTINCT_FROM) {
+        return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? "
+            + "((((Object)(%1$s)) == null ) ^ (((Object)(%2$s)) == null )) : ";
       }
+      return "(((Object)(%1$s)) == null || ((Object)(%2$s)) == null) ? false : ";
     }
 
     private String visitStringComparisonExpression(final ComparisonExpression.Type type) {
@@ -550,6 +586,7 @@ public class SqlToJavaVisitor {
       }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Pair<String, Schema> visitArithmeticBinary(
         final ArithmeticBinaryExpression node,
@@ -558,9 +595,7 @@ public class SqlToJavaVisitor {
       final Pair<String, Schema> left = process(node.getLeft(), context);
       final Pair<String, Schema> right = process(node.getRight(), context);
 
-      final Schema schema =
-          SchemaUtil.resolveBinaryOperatorResultType(
-              left.getRight(), right.getRight(), node.getOperator());
+      final Schema schema = expressionTypeManager.getExpressionSchema(node);
 
       if (DecimalUtil.isDecimal(schema)) {
         final String leftExpr = CastVisitor.getCast(
@@ -601,6 +636,7 @@ public class SqlToJavaVisitor {
       }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Pair<String, Schema> visitSearchedCaseExpression(
         final SearchedCaseExpression node,
@@ -614,7 +650,8 @@ public class SqlToJavaVisitor {
               process(whenClause.getResult(), context)
           ))
           .collect(Collectors.toList());
-      final Schema resultSchema = whenClauses.get(0).thenProcessResult.getRight();
+
+      final Schema resultSchema = expressionTypeManager.getExpressionSchema(node);
       final String resultSchemaString = SchemaUtil.getJavaType(resultSchema).getCanonicalName();
 
       final List<String> lazyWhenClause = whenClauses

@@ -23,10 +23,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.engine.KsqlEngine;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.Queries;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
@@ -49,6 +50,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         engine.configure("SHOW QUERIES;"),
+        ImmutableMap.of(),
         engine.getEngine(),
         engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -68,6 +70,7 @@ public class ListQueriesExecutorTest {
     // When
     final Queries queries = (Queries) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
+        ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -75,8 +78,8 @@ public class ListQueriesExecutorTest {
     assertThat(queries.getQueries(), containsInAnyOrder(
         new RunningQuery(
             metadata.getStatementString(),
-            ImmutableSet.of(metadata.getSinkName()),
-            new EntityQueryId(metadata.getQueryId()))));
+            ImmutableSet.of(metadata.getSinkName().name()),
+            metadata.getQueryId())));
   }
 
   @Test
@@ -84,6 +87,7 @@ public class ListQueriesExecutorTest {
     // Given
     final ConfiguredStatement<?> showQueries = engine.configure("SHOW QUERIES EXTENDED;");
     final PersistentQueryMetadata metadata = givenPersistentQuery("id");
+    when(metadata.getState()).thenReturn("Running");
 
     final KsqlEngine engine = mock(KsqlEngine.class);
     when(engine.getPersistentQueries()).thenReturn(ImmutableList.of(metadata));
@@ -91,6 +95,7 @@ public class ListQueriesExecutorTest {
     // When
     final QueryDescriptionList queries = (QueryDescriptionList) CustomExecutors.LIST_QUERIES.execute(
         showQueries,
+        ImmutableMap.of(),
         engine,
         this.engine.getServiceContext()
     ).orElseThrow(IllegalStateException::new);
@@ -103,7 +108,7 @@ public class ListQueriesExecutorTest {
   public static PersistentQueryMetadata givenPersistentQuery(final String id) {
     final PersistentQueryMetadata metadata = mock(PersistentQueryMetadata.class);
     when(metadata.getQueryId()).thenReturn(new QueryId(id));
-    when(metadata.getSinkName()).thenReturn(id);
+    when(metadata.getSinkName()).thenReturn(SourceName.of(id));
     when(metadata.getLogicalSchema()).thenReturn(TemporaryEngine.SCHEMA);
 
     return metadata;

@@ -16,25 +16,23 @@ package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KStream;
 
 @Immutable
 public class StreamGroupBy<K> implements ExecutionStep<KGroupedStream<Struct, GenericRow>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KStream<K, GenericRow>> source;
+  private final ExecutionStep<KStreamHolder<K>> source;
   private final Formats formats;
   private final List<Expression> groupByExpressions;
 
   public StreamGroupBy(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KStream<K, GenericRow>> source,
+      final ExecutionStep<KStreamHolder<K>> source,
       final Formats formats,
       final List<Expression> groupByExpressions) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -61,13 +59,13 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStream<Struct, Ge
     return formats;
   }
 
-  public ExecutionStep<KStream<K, GenericRow>> getSource() {
+  public ExecutionStep<KStreamHolder<K>> getSource() {
     return source;
   }
 
   @Override
-  public KGroupedStream<Struct, GenericRow> build(final KsqlQueryBuilder streamsBuilder) {
-    throw new UnsupportedOperationException();
+  public KGroupedStream<Struct, GenericRow> build(final PlanBuilder planVisitor) {
+    return planVisitor.visitStreamGroupBy(this);
   }
 
   @Override

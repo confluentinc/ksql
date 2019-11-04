@@ -22,6 +22,9 @@ import io.confluent.ksql.metastore.MutableMetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
@@ -54,12 +57,12 @@ public final class MetaStoreFixture {
     final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
 
     final LogicalSchema test1Schema = LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
-        .valueColumn("COL1", SqlTypes.STRING)
-        .valueColumn("COL2", SqlTypes.STRING)
-        .valueColumn("COL3", SqlTypes.DOUBLE)
-        .valueColumn("COL4", SqlTypes.array(SqlTypes.DOUBLE))
-        .valueColumn("COL5", SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.array(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("COL5"), SqlTypes.map(SqlTypes.DOUBLE))
         .build();
 
     final KsqlTopic ksqlTopic0 = new KsqlTopic(
@@ -71,10 +74,11 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> ksqlStream0 = new KsqlStream<>(
         "sqlexpression",
-        "TEST0",
+        SourceName.of("TEST0"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test1Schema.findValueColumn("COL0").get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")), test1Schema.findValueColumn(
+            ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic0
     );
@@ -88,11 +92,14 @@ public final class MetaStoreFixture {
         false
     );
 
-    final KsqlStream<?> ksqlStream1 = new KsqlStream<>("sqlexpression",
-        "TEST1",
+    final KsqlStream<?> ksqlStream1 = new KsqlStream<>(
+        "sqlexpression",
+        SourceName.of("TEST1"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test1Schema.findValueColumn("COL0").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            test1Schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic1
     );
@@ -100,11 +107,11 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStream1);
 
     final LogicalSchema test2Schema = LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
-        .valueColumn("COL1", SqlTypes.STRING)
-        .valueColumn("COL2", SqlTypes.STRING)
-        .valueColumn("COL3", SqlTypes.DOUBLE)
-        .valueColumn("COL4", SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
         .build();
 
     final KsqlTopic ksqlTopic2 = new KsqlTopic(
@@ -115,10 +122,12 @@ public final class MetaStoreFixture {
     );
     final KsqlTable<String> ksqlTable = new KsqlTable<>(
         "sqlexpression",
-        "TEST2",
+        SourceName.of("TEST2"),
         test2Schema,
         SerdeOption.none(),
-        KeyField.of("COL0", test2Schema.findValueColumn("COL0").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            test2Schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic2
     );
@@ -145,14 +154,14 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema ordersSchema = LogicalSchema.builder()
-        .valueColumn("ORDERTIME", SqlTypes.BIGINT)
-        .valueColumn("ORDERID", SqlTypes.BIGINT)
-        .valueColumn("ITEMID", SqlTypes.STRING)
-        .valueColumn("ITEMINFO", itemInfoSchema)
-        .valueColumn("ORDERUNITS", SqlTypes.INTEGER)
-        .valueColumn("ARRAYCOL", SqlTypes.array(SqlTypes.DOUBLE))
-        .valueColumn("MAPCOL", SqlTypes.map(SqlTypes.DOUBLE))
-        .valueColumn("ADDRESS", addressSchema)
+        .valueColumn(ColumnName.of("ORDERTIME"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("ORDERID"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("ITEMID"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ITEMINFO"), itemInfoSchema)
+        .valueColumn(ColumnName.of("ORDERUNITS"), SqlTypes.INTEGER)
+        .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(SqlTypes.DOUBLE))
+        .valueColumn(ColumnName.of("ADDRESS"), addressSchema)
         .build();
 
     final KsqlTopic ksqlTopicOrders = new KsqlTopic(
@@ -164,10 +173,11 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> ksqlStreamOrders = new KsqlStream<>(
         "sqlexpression",
-        "ORDERS",
+        SourceName.of("ORDERS"),
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of("ORDERTIME", ordersSchema.findValueColumn("ORDERTIME").get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME")),
+            ordersSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))).get()),
         timestampExtractionPolicy,
         ksqlTopicOrders
     );
@@ -175,11 +185,11 @@ public final class MetaStoreFixture {
     metaStore.putSource(ksqlStreamOrders);
 
     final LogicalSchema testTable3 = LogicalSchema.builder()
-        .valueColumn("COL0", SqlTypes.BIGINT)
-        .valueColumn("COL1", SqlTypes.STRING)
-        .valueColumn("COL2", SqlTypes.STRING)
-        .valueColumn("COL3", SqlTypes.DOUBLE)
-        .valueColumn("COL4", SqlTypes.BOOLEAN)
+        .valueColumn(ColumnName.of("COL0"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("COL1"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL2"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("COL3"), SqlTypes.DOUBLE)
+        .valueColumn(ColumnName.of("COL4"), SqlTypes.BOOLEAN)
         .build();
 
     final KsqlTopic ksqlTopic3 = new KsqlTopic(
@@ -190,10 +200,12 @@ public final class MetaStoreFixture {
     );
     final KsqlTable<String> ksqlTable3 = new KsqlTable<>(
         "sqlexpression",
-        "TEST3",
+        SourceName.of("TEST3"),
         testTable3,
         SerdeOption.none(),
-        KeyField.of("COL0", testTable3.findValueColumn("COL0").get()),
+        KeyField.of(
+            ColumnRef.withoutSource(ColumnName.of("COL0")),
+            testTable3.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
         timestampExtractionPolicy,
         ksqlTopic3
     );
@@ -212,10 +224,10 @@ public final class MetaStoreFixture {
         .build();
 
     final LogicalSchema nestedArrayStructMapSchema = LogicalSchema.builder()
-        .valueColumn("ARRAYCOL", SqlTypes.array(itemInfoSchema))
-        .valueColumn("MAPCOL", SqlTypes.map(itemInfoSchema))
-        .valueColumn("NESTED_ORDER_COL", nestedOrdersSchema)
-        .valueColumn("ITEM", itemInfoSchema)
+        .valueColumn(ColumnName.of("ARRAYCOL"), SqlTypes.array(itemInfoSchema))
+        .valueColumn(ColumnName.of("MAPCOL"), SqlTypes.map(itemInfoSchema))
+        .valueColumn(ColumnName.of("NESTED_ORDER_COL"), nestedOrdersSchema)
+        .valueColumn(ColumnName.of("ITEM"), itemInfoSchema)
         .build();
 
     final KsqlTopic nestedArrayStructMapTopic = new KsqlTopic(
@@ -227,7 +239,7 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> nestedArrayStructMapOrders = new KsqlStream<>(
         "sqlexpression",
-        "NESTED_STREAM",
+        SourceName.of("NESTED_STREAM"),
         nestedArrayStructMapSchema,
         SerdeOption.none(),
         KeyField.none(),
@@ -246,7 +258,7 @@ public final class MetaStoreFixture {
 
     final KsqlStream<?> ksqlStream4 = new KsqlStream<>(
         "sqlexpression4",
-        "TEST4",
+        SourceName.of("TEST4"),
         test1Schema,
         SerdeOption.none(),
         KeyField.none(),
@@ -255,6 +267,35 @@ public final class MetaStoreFixture {
     );
 
     metaStore.putSource(ksqlStream4);
+
+
+
+    final LogicalSchema sensorReadingsSchema = LogicalSchema.builder()
+        .valueColumn(ColumnName.of("ID"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("SENSOR_NAME"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("ARR1"), SqlTypes.array(SqlTypes.BIGINT))
+        .valueColumn(ColumnName.of("ARR2"), SqlTypes.array(SqlTypes.STRING))
+        .build();
+
+    final KsqlTopic ksqlTopicSensorReadings = new KsqlTopic(
+        "sensor_readings_topic",
+        keyFormat,
+        valueFormat,
+        false
+    );
+
+    final KsqlStream<?> ksqlStreamSensorReadings = new KsqlStream<>(
+        "sqlexpression",
+        SourceName.of("SENSOR_READINGS"),
+        sensorReadingsSchema,
+        SerdeOption.none(),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID")),
+            sensorReadingsSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ID"))).get()),
+        timestampExtractionPolicy,
+        ksqlTopicSensorReadings
+    );
+
+    metaStore.putSource(ksqlStreamSensorReadings);
 
     return metaStore;
   }

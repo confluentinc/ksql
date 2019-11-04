@@ -17,9 +17,13 @@ package io.confluent.ksql.util;
 
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
+import io.confluent.ksql.execution.ddl.commands.CreateSourceCommand;
+import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
+import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.Format;
+import io.confluent.ksql.serde.FormatInfo;
+import io.confluent.ksql.serde.avro.AvroSchemas;
 import java.io.IOException;
-
 import org.apache.http.HttpStatus;
 
 public final class AvroUtil {
@@ -28,19 +32,28 @@ public final class AvroUtil {
   }
 
   public static void throwOnInvalidSchemaEvolution(
-      final PersistentQueryMetadata queryMetadata,
-      final SchemaRegistryClient schemaRegistryClient
+      final String statementText,
+      final CreateSourceCommand ddl,
+      final SchemaRegistryClient schemaRegistryClient,
+      final KsqlConfig ksqlConfig
   ) {
-    if (queryMetadata.getResultTopicFormat() != Format.AVRO) {
+    final KsqlTopic topic = ddl.getTopic();
+    final FormatInfo format = topic.getValueFormat().getFormatInfo();
+    if (format.getFormat() != Format.AVRO) {
       return;
     }
 
-    final org.apache.avro.Schema avroSchema = SchemaUtil.buildAvroSchema(
-        queryMetadata.getPhysicalSchema().valueSchema(),
-        queryMetadata.getSinkName()
+    final PhysicalSchema physicalSchema = PhysicalSchema.from(
+        ddl.getSchema(),
+        ddl.getSerdeOptions()
+    );
+    final org.apache.avro.Schema avroSchema = AvroSchemas.getAvroSchema(
+        physicalSchema.valueSchema(),
+        format.getAvroFullSchemaName().orElse(KsqlConstants.DEFAULT_AVRO_SCHEMA_FULL_NAME),
+        ksqlConfig
     );
 
-    final String topicName = queryMetadata.getResultTopic().getKafkaTopicName();
+    final String topicName = topic.getKafkaTopicName();
 
     if (!isValidAvroSchemaForTopic(topicName, avroSchema, schemaRegistryClient)) {
       throw new KsqlStatementException(String.format(
@@ -51,7 +64,7 @@ public final class AvroUtil {
           topicName,
           avroSchema,
           getRegisteredSchema(topicName, schemaRegistryClient)
-      ), queryMetadata.getStatementString());
+      ), statementText);
     }
   }
 

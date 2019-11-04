@@ -240,7 +240,8 @@ run a query like this:
     SELECT regionid, COUNT(*) FROM pageviews
       WINDOW HOPPING (SIZE 30 SECONDS, ADVANCE BY 10 SECONDS)
       WHERE UCASE(gender)='FEMALE' AND LCASE (regionid) LIKE '%_6'
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 The hopping window's start time is inclusive, but the end time is exclusive.
 This is important for non-overlapping windows, in which each record must be
@@ -270,7 +271,8 @@ per zip code per hour in an ``orders`` stream, you might run a query like this:
 .. code:: sql
 
     SELECT orderzip_code, TOPK(order_total, 5) FROM orders
-      WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY order_zipcode;
+      WINDOW TUMBLING (SIZE 1 HOUR) GROUP BY order_zipcode
+      EMIT CHANGES;
 
 Here's another example: to detect potential credit card fraud in an
 ``authorization_attempts`` stream, you might run a query for the number of
@@ -281,7 +283,8 @@ a time interval of five seconds.
 
     SELECT card_number, count(*) FROM authorization_attempts
       WINDOW TUMBLING (SIZE 5 SECONDS)
-      GROUP BY card_number HAVING COUNT(*) > 3;
+      GROUP BY card_number HAVING COUNT(*) > 3
+      EMIT CHANGES;
 
 The tumbling window's start time is inclusive, but the end time is exclusive.
 This is important for non-overlapping windows, in which each record must be
@@ -325,7 +328,8 @@ per region:
 
     SELECT regionid, COUNT(*) FROM pageviews
       WINDOW SESSION (60 SECONDS)
-      GROUP BY regionid;
+      GROUP BY regionid
+      EMIT CHANGES;
 
 The start and end times for a session window are both inclusive, in contrast to
 time windows.
@@ -356,7 +360,8 @@ For example, to find orders that have shipped within the last hour from an
       FROM new_orders o
       INNER JOIN shipments s
         WITHIN 1 HOURS
-        ON o.order_id = s.order_id;
+        ON o.order_id = s.order_id
+        EMIT CHANGES;
 
 For more information on joins, see :ref:`join-streams-and-tables`.
 

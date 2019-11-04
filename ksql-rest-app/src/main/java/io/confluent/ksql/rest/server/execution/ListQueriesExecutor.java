@@ -18,13 +18,13 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.parser.tree.ListQueries;
-import io.confluent.ksql.rest.entity.EntityQueryId;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.QueryDescriptionFactory;
 import io.confluent.ksql.rest.entity.QueryDescriptionList;
 import io.confluent.ksql.rest.entity.RunningQuery;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,6 +34,7 @@ public final class ListQueriesExecutor {
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<ListQueries> statement,
+      final Map<String, ?> sessionProperties,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -53,8 +54,8 @@ public final class ListQueriesExecutor {
             .map(
                 q -> new RunningQuery(
                     q.getStatementString(),
-                    ImmutableSet.of(q.getSinkName()),
-                    new EntityQueryId(q.getQueryId())))
+                    ImmutableSet.of(q.getSinkName().name()),
+                    q.getQueryId()))
             .collect(Collectors.toList())));
   }
 

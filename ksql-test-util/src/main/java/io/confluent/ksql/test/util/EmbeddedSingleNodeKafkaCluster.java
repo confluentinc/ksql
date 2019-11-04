@@ -47,6 +47,7 @@ import kafka.security.auth.Operation$;
 import kafka.security.auth.PermissionType;
 import kafka.security.auth.PermissionType$;
 import kafka.security.auth.ResourceType$;
+import kafka.security.authorizer.AclAuthorizer;
 import kafka.server.KafkaConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -89,9 +90,9 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
   private static final List<Credentials> ALL_VALID_USERS =
       ImmutableList.of(VALID_USER1, VALID_USER2);
 
-  public static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
+  static final Duration ZK_SESSION_TIMEOUT = Duration.ofSeconds(30);
   // Jenkins builds can take ages to create the ZK log, so the initial connect can be slow, hence:
-  public static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
+  static final Duration ZK_CONNECT_TIMEOUT = Duration.ofSeconds(60);
 
   private final String jassConfigFile;
   private final String previousJassConfig;
@@ -140,7 +141,12 @@ public final class EmbeddedSingleNodeKafkaCluster extends ExternalResource {
     installJaasConfig();
     zookeeper = new ZooKeeperEmbedded();
     broker = new KafkaEmbedded(buildBrokerConfig(tmpFolder.newFolder().getAbsolutePath()));
-    authorizer.configure(ImmutableMap.of(KafkaConfig.ZkConnectProp(), zookeeperConnect()));
+    final ImmutableMap<String, Object> props = ImmutableMap.of(
+        KafkaConfig.ZkConnectProp(), zookeeperConnect(),
+        AclAuthorizer.ZkConnectionTimeOutProp(), (int) ZK_CONNECT_TIMEOUT.toMillis(),
+        AclAuthorizer.ZkSessionTimeOutProp(), (int) ZK_SESSION_TIMEOUT.toMillis()
+    );
+    authorizer.configure(props);
 
     initialAcls.forEach((key, ops) ->
         addUserAcl(key.userName, AclPermissionType.ALLOW, key.resourcePattern, ops));

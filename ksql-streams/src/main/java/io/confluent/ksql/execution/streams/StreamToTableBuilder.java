@@ -19,6 +19,8 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.ExecutionStep;
+import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamToTable;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
@@ -27,7 +29,6 @@ import io.confluent.ksql.serde.ValueFormat;
 import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
-import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.state.KeyValueStore;
@@ -36,13 +37,13 @@ public final class StreamToTableBuilder {
   private StreamToTableBuilder() {
   }
 
-  public static KTable<Object, GenericRow> build(
-      final KStream<Object, GenericRow> sourceStream,
-      final StreamToTable<KStream<Object, GenericRow>, KTable<Object, GenericRow>> streamToTable,
+  public static <K> KTableHolder<K> build(
+      final KStreamHolder<K> sourceStream,
+      final StreamToTable<K> streamToTable,
       final KsqlQueryBuilder queryBuilder,
       final MaterializedFactory materializedFactory) {
     final QueryContext queryContext = streamToTable.getProperties().getQueryContext();
-    final ExecutionStep<KStream<Object, GenericRow>> sourceStep = streamToTable.getSource();
+    final ExecutionStep<?> sourceStep = streamToTable.getSource();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
         sourceStep.getProperties().getSchema(),
         streamToTable.getFormats().getOptions()
@@ -54,19 +55,18 @@ public final class StreamToTableBuilder {
         queryContext
     );
     final KeyFormat keyFormat = streamToTable.getFormats().getKeyFormat();
-    final KeySerde<Object> keySerde = buildKeySerde(
+    final KeySerde<K> keySerde = sourceStream.getKeySerdeFactory().buildKeySerde(
         keyFormat,
-        queryBuilder,
         physicalSchema,
         queryContext
     );
-    final Materialized<Object, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
+    final Materialized<K, GenericRow, KeyValueStore<Bytes, byte[]>> materialized =
         materializedFactory.create(
             keySerde,
             valueSerde,
             StreamsUtil.buildOpName(queryContext)
         );
-    return  sourceStream
+    final KTable<K, GenericRow> table = sourceStream.getStream()
         // 1. mapValues to transform null records into Optional<GenericRow>.EMPTY. We eventually
         //    need to aggregate the KStream to produce the KTable. However the KStream aggregator
         //    filters out records with null keys or values. For tables, a null value for a key
@@ -83,28 +83,6 @@ public final class StreamToTableBuilder {
             () -> null,
             (k, value, oldValue) -> value.orElse(null),
             materialized);
-  }
-
-  @SuppressWarnings("unchecked")
-  private static KeySerde<Object> buildKeySerde(
-      final KeyFormat keyFormat,
-      final KsqlQueryBuilder queryBuilder,
-      final PhysicalSchema physicalSchema,
-      final QueryContext queryContext
-  ) {
-    if (keyFormat.isWindowed()) {
-      return (KeySerde) queryBuilder.buildKeySerde(
-          keyFormat.getFormatInfo(),
-          keyFormat.getWindowInfo().get(),
-          physicalSchema,
-          queryContext
-      );
-    } else {
-      return (KeySerde) queryBuilder.buildKeySerde(
-          keyFormat.getFormatInfo(),
-          physicalSchema,
-          queryContext
-      );
-    }
+    return KTableHolder.unmaterialized(table, sourceStream.getKeySerdeFactory());
   }
 }

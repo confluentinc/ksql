@@ -30,6 +30,8 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.udf.Kudf;
+import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
@@ -73,7 +75,7 @@ public class InternalFunctionRegistryTest {
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final KsqlFunction func = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_STRING_SCHEMA,
       Collections.emptyList(),
-      "func",
+      FunctionName.of("func"),
       Func1.class);
 
   @Rule
@@ -87,6 +89,9 @@ public class InternalFunctionRegistryTest {
 
   @Mock
   private AggregateFunctionFactory udafFactory;
+
+  @Mock
+  private KsqlTableFunction tableFunction;
 
   @Before
   public void setUp() {
@@ -232,89 +237,18 @@ public class InternalFunctionRegistryTest {
 
   @Test
   public void shouldAddAggregateFunction() {
-    functionRegistry.addAggregateFunctionFactory(
-        new AggregateFunctionFactory("my_aggregate") {
-          @Override
-          public KsqlAggregateFunction getProperAggregateFunction(final List<Schema> argTypeList) {
-            return new KsqlAggregateFunction() {
-              @Override
-              public KsqlAggregateFunction getInstance(final AggregateFunctionArguments aggregateFunctionArguments) {
-                return null;
-              }
+    functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
+    assertThat(functionRegistry.getAggregateFunction("my_aggregate",
+        Schema.OPTIONAL_INT32_SCHEMA,
+        AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
+  }
 
-              @Override
-              public String getFunctionName() {
-                return "my_aggregate";
-              }
-
-              @Override
-              public Supplier getInitialValueSupplier() {
-                return null;
-              }
-
-              @Override
-              public int getArgIndexInValue() {
-                return 0;
-              }
-
-              @Override
-              public Schema getAggregateType() {
-                return null;
-              }
-
-              @Override
-              public SqlType aggregateType() {
-                return null;
-              }
-
-              @Override
-              public Schema getReturnType() {
-                return null;
-              }
-
-              @Override
-              public SqlType returnType() {
-                return null;
-              }
-
-              @Override
-              public boolean hasSameArgTypes(final List argTypeList) {
-                return false;
-              }
-
-              @Override
-              public Object aggregate(final Object currentValue, final Object aggregateValue) {
-                return null;
-              }
-
-              @Override
-              public Merger getMerger() {
-                return null;
-              }
-
-              @Override
-              public Function getResultMapper() {
-                return null;
-              }
-
-              @Override
-              public List<Schema> getArguments() {
-                return argTypeList;
-              }
-
-              @Override
-              public String getDescription() {
-                return null;
-              }
-            };
-          }
-
-          @Override
-          public List<List<Schema>> supportedArgs() {
-            return ImmutableList.of();
-          }
-        });
-    assertThat(functionRegistry.getAggregate("my_aggregate", Schema.OPTIONAL_INT32_SCHEMA), not(nullValue()));
+  @Test
+  public void shouldAddTableFunction() {
+    functionRegistry.addTableFunctionFactory(createTableFunctionFactory());
+    assertThat(functionRegistry.getTableFunction("my_tablefunction",
+        ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA)
+    ), not(nullValue()));
   }
 
   @Test
@@ -323,7 +257,7 @@ public class InternalFunctionRegistryTest {
     givenUdfFactoryRegistered();
     functionRegistry.addFunction(func);
     final KsqlFunction func2 = KsqlFunction.createLegacyBuiltIn(Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), "func", Func1.class);
+        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), FunctionName.of("func"), Func1.class);
 
     // When:
     functionRegistry.addFunction(func2);
@@ -379,7 +313,7 @@ public class InternalFunctionRegistryTest {
         // String UDF
         "LCASE", "UCASE", "CONCAT", "TRIM", "IFNULL", "LEN",
         // Math UDF
-        "CEIL", "ROUND", "RANDOM",
+        "CEIL", "RANDOM",
         // JSON UDF
         "EXTRACTJSONFIELD", "ARRAYCONTAINS",
         // Struct UDF
@@ -423,5 +357,96 @@ public class InternalFunctionRegistryTest {
 
   private void givenUdfFactoryRegistered() {
     functionRegistry.ensureFunctionFactory(UdfLoaderUtil.createTestUdfFactory(func));
+  }
+
+  private static AggregateFunctionFactory createAggregateFunctionFactory() {
+    return new AggregateFunctionFactory("my_aggregate") {
+      @Override
+      public KsqlAggregateFunction createAggregateFunction(final List<Schema> argTypeList,
+          final AggregateFunctionInitArguments initArgs) {
+        return new KsqlAggregateFunction() {
+
+          @Override
+          public FunctionName getFunctionName() {
+            return FunctionName.of("my_aggregate");
+          }
+
+          @Override
+          public Supplier getInitialValueSupplier() {
+            return null;
+          }
+
+          @Override
+          public int getArgIndexInValue() {
+            return 0;
+          }
+
+          @Override
+          public Schema getAggregateType() {
+            return null;
+          }
+
+          @Override
+          public SqlType aggregateType() {
+            return null;
+          }
+
+          @Override
+          public Schema getReturnType() {
+            return null;
+          }
+
+          @Override
+          public SqlType returnType() {
+            return null;
+          }
+
+          @Override
+          public Object aggregate(final Object currentValue, final Object aggregateValue) {
+            return null;
+          }
+
+          @Override
+          public Merger getMerger() {
+            return null;
+          }
+
+          @Override
+          public Function getResultMapper() {
+            return null;
+          }
+
+          @Override
+          public List<Schema> getArguments() {
+            return argTypeList;
+          }
+
+          @Override
+          public String getDescription() {
+            return null;
+          }
+        };
+      }
+
+      @Override
+      public List<List<Schema>> supportedArgs() {
+        return ImmutableList.of();
+      }
+    };
+  }
+
+  private TableFunctionFactory createTableFunctionFactory() {
+    return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
+        "", "", "", "", false)) {
+      @Override
+      public KsqlTableFunction createTableFunction(List<Schema> argTypeList) {
+        return tableFunction;
+      }
+
+      @Override
+      protected List<List<Schema>> supportedArgs() {
+        return null;
+      }
+    };
   }
 }

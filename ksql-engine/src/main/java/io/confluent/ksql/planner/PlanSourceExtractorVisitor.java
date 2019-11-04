@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.planner;
 
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
 import io.confluent.ksql.planner.plan.DataSourceNode;
 import io.confluent.ksql.planner.plan.FilterNode;
+import io.confluent.ksql.planner.plan.FlatMapNode;
 import io.confluent.ksql.planner.plan.JoinNode;
 import io.confluent.ksql.planner.plan.OutputNode;
 import io.confluent.ksql.planner.plan.PlanNode;
@@ -28,7 +30,7 @@ import java.util.Set;
 
 public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
 
-  private final Set<String> sourceNames;
+  private final Set<SourceName> sourceNames;
 
   public PlanSourceExtractorVisitor() {
     sourceNames = new HashSet<>();
@@ -48,7 +50,7 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
   }
 
   protected R visitProject(final ProjectNode node, final C context) {
-    return process(node.getSources().get(0), context);
+    return process(node.getSource(), context);
   }
 
   protected R visitDataSourceNode(final DataSourceNode node, final C context) {
@@ -72,7 +74,13 @@ public class PlanSourceExtractorVisitor<C, R> extends PlanVisitor<C, R> {
     return null;
   }
 
-  public Set<String> getSourceNames() {
+  @Override
+  protected R visitFlatMap(final FlatMapNode node, final C context) {
+    process(node.getSources().get(0), context);
+    return null;
+  }
+
+  public Set<SourceName> getSourceNames() {
     return sourceNames;
   }
 }

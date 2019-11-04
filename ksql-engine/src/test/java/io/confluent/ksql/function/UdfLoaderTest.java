@@ -30,12 +30,18 @@ import static org.junit.Assert.fail;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.confluent.ksql.execution.function.TableAggregationFunction;
+import io.confluent.ksql.function.udaf.TestUdaf;
+import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
+import io.confluent.ksql.metastore.TypeRegistry;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.DecimalUtil;
@@ -44,13 +50,17 @@ import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import org.apache.kafka.common.Configurable;
+import org.apache.kafka.common.metrics.KafkaMetric;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.metrics.Sensor;
 import org.apache.kafka.connect.data.Schema;
@@ -60,6 +70,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 /**
  * This uses ksql-engine/src/test/resource/udf-example.jar to load the custom jars.
@@ -68,7 +79,6 @@ import org.junit.rules.ExpectedException;
 public class UdfLoaderTest {
 
   private static final ClassLoader PARENT_CLASS_LOADER = UdfLoaderTest.class.getClassLoader();
-  private static final UdfCompiler COMPILER = new UdfCompiler(Optional.empty());
   private static final Metrics METRICS = new Metrics();
 
   private static final FunctionRegistry FUNC_REG =
@@ -82,9 +92,14 @@ public class UdfLoaderTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
+  private static final Schema STRUCT_SCHEMA =
+      SchemaBuilder.struct().field("a", Schema.OPTIONAL_STRING_SCHEMA).build();
+
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
 
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @SuppressFBWarnings("ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD")
   @Before
@@ -109,10 +124,9 @@ public class UdfLoaderTest {
   @SuppressWarnings("unchecked")
   @Test
   public void shouldLoadUdafs() {
-    final KsqlAggregateFunction aggregate = FUNC_REG
-        .getAggregate("test_udaf", Schema.OPTIONAL_INT64_SCHEMA);
-    final KsqlAggregateFunction<Long, Long, Long> instance = aggregate.getInstance(
-        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
+    final KsqlAggregateFunction instance = FUNC_REG
+        .getAggregateFunction("test_udaf", Schema.OPTIONAL_INT64_SCHEMA,
+            AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(instance.getInitialValueSupplier().get(), equalTo(0L));
     assertThat(instance.aggregate(1L, 1L), equalTo(2L));
     assertThat(instance.getMerger().apply(null, 2L, 3L), equalTo(5L));
@@ -127,10 +141,8 @@ public class UdfLoaderTest {
         .optional()
         .build();
 
-    final KsqlAggregateFunction aggregate = FUNC_REG
-        .getAggregate("test_udaf", schema);
-    final KsqlAggregateFunction<Struct, Struct, Struct> instance = aggregate.getInstance(
-        new AggregateFunctionArguments(0, Collections.singletonList("udfIndex")));
+    final KsqlAggregateFunction instance = FUNC_REG
+        .getAggregateFunction("test_udaf", schema, AggregateFunctionInitArguments.EMPTY_ARGS);
 
     assertThat(instance.getInitialValueSupplier().get(),
         equalTo(new Struct(schema).put("A", 0).put("B", 0)));
@@ -156,7 +168,7 @@ public class UdfLoaderTest {
         .getFunction(ImmutableList.of(schema));
 
     // Then:
-    assertThat(fun.getFunctionName(), equalToIgnoringCase("floor"));
+    assertThat(fun.getFunctionName().name(), equalToIgnoringCase("floor"));
   }
 
   @Test
@@ -248,7 +260,7 @@ public class UdfLoaderTest {
 
     // Expect:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(is("Return type DECIMAL(2, 1) of UDF ReturnIncompatible does not "
+    expectedException.expectMessage(is("Return type DECIMAL(2, 1) of UDF RETURNINCOMPATIBLE does not "
                                            + "match the declared return type STRING."));
 
     // When:
@@ -264,13 +276,13 @@ public class UdfLoaderTest {
                                                                         PARENT_CLASS_LOADER,
                                                                         resourceName -> false);
     Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingAnnotationUdf");
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources/udf-failing-tests.jar"),
-                                              udfClassLoader,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              true);
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
+        Optional.empty(),
+        SqlTypeParser.create(TypeRegistry.EMPTY),
+        udfClassLoader,
+        true
+    );
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -291,13 +303,13 @@ public class UdfLoaderTest {
                                                                         PARENT_CLASS_LOADER,
                                                                         resourceName -> false);
     Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf.MissingSchemaProviderUdf");
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources/udf-failing-tests.jar"),
-                                              udfClassLoader,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              true);
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
+        Optional.empty(),
+        SqlTypeParser.create(TypeRegistry.EMPTY),
+        udfClassLoader,
+        true
+    );
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -319,13 +331,13 @@ public class UdfLoaderTest {
                                                                         resourceName -> false);
     Class<?> clazz = udfClassLoader.loadClass("org.damian.ksql.udf."
                                                   + "ReturnDecimalWithoutSchemaProviderUdf");
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources/udf-failing-tests.jar"),
-                                              udfClassLoader,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              true);
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
+        Optional.empty(),
+        SqlTypeParser.create(TypeRegistry.EMPTY),
+        udfClassLoader,
+        true
+    );
 
     // Expect:
     expectedException.expect(KsqlException.class);
@@ -355,15 +367,49 @@ public class UdfLoaderTest {
   }
 
   @Test
+  public void shouldAllowClassesWithSameFQCNInDifferentUDFJars() throws Exception {
+
+    File pluginDir = tempFolder.newFolder();
+    Files.copy(Paths.get("src/test/resources/udf-example.jar"),
+        new File(pluginDir, "udf-example.jar").toPath());
+    Files.copy(Paths.get("src/test/resources/udf-isolated.jar"),
+        new File(pluginDir, "udf-isolated.jar").toPath());
+
+    final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
+    final UserFunctionLoader udfLoader = new UserFunctionLoader(
+        functionRegistry,
+        pluginDir,
+        PARENT_CLASS_LOADER,
+        value -> false,
+        Optional.empty(),
+        true)
+        ;
+
+    udfLoader.load();
+
+    final UdfFactory multiply = functionRegistry.getUdfFactory("multiply");
+    final UdfFactory multiply2 = functionRegistry.getUdfFactory("multiply2");
+
+    final Kudf multiplyUdf = multiply.getFunction(Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
+        .newInstance(ksqlConfig);
+
+    final Kudf multiply2Udf = multiply2.getFunction(Arrays.asList(Schema.INT32_SCHEMA, Schema.INT32_SCHEMA))
+        .newInstance(ksqlConfig);
+
+    assertThat(multiplyUdf.evaluate(2, 2), equalTo(4L));
+    assertThat(multiply2Udf.evaluate(2, 2), equalTo(5L));
+  }
+
+  @Test
   public void shouldCreateUdfFactoryWithJarPathWhenExternal() {
     final UdfFactory tostring = FUNC_REG.getUdfFactory("tostring");
-    assertThat(tostring.getPath(), equalTo("src/test/resources/udf-example.jar"));
+    assertThat(tostring.getMetadata().getPath(), equalTo("src/test/resources/udf-example.jar"));
   }
 
   @Test
   public void shouldCreateUdfFactoryWithInternalPathWhenInternal() {
     final UdfFactory substring = FUNC_REG.getUdfFactory("substring");
-    assertThat(substring.getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
+    assertThat(substring.getMetadata().getPath(), equalTo(KsqlFunction.INTERNAL_PATH));
   }
 
   @Test
@@ -417,13 +463,13 @@ public class UdfLoaderTest {
   public void shouldNotLoadInternalUdfs() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources"),
-                                              PARENT_CLASS_LOADER,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              false);
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
+        Optional.empty(),
+        SqlTypeParser.create(TypeRegistry.EMPTY),
+        PARENT_CLASS_LOADER,
+        true
+    );
     udfLoader.loadUdfFromClass(UdfLoaderTest.SomeFunctionUdf.class);
 
     // Expect:
@@ -438,13 +484,13 @@ public class UdfLoaderTest {
   public void shouldLoadSomeFunction() {
     // Given:
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader udfLoader = new UdfLoader(functionRegistry,
-                                              new File("src/test/resources"),
-                                              PARENT_CLASS_LOADER,
-                                              value -> false,
-                                              COMPILER,
-                                              Optional.empty(),
-                                              false);
+    final UdfLoader udfLoader = new UdfLoader(
+        functionRegistry,
+        Optional.empty(),
+        SqlTypeParser.create(TypeRegistry.EMPTY),
+        PARENT_CLASS_LOADER,
+        true
+    );
     final List<Schema> args = ImmutableList.of(
         Schema.STRING_SCHEMA,
         Schema.STRING_SCHEMA,
@@ -457,7 +503,7 @@ public class UdfLoaderTest {
     // Then:
     assertThat(udfFactory, not(nullValue()));
     final KsqlFunction function = udfFactory.getFunction(args);
-    assertThat(function.getFunctionName(), equalToIgnoringCase("somefunction"));
+    assertThat(function.getFunctionName().name(), equalToIgnoringCase("somefunction"));
 
   }
 
@@ -495,7 +541,7 @@ public class UdfLoaderTest {
         .build();
     final KsqlConfig config
         = new KsqlConfig(configMap);
-    UdfLoader.newInstance(config, functionRegistry, "").load();
+    UserFunctionLoader.newInstance(config, functionRegistry, "").load();
     // will throw if it doesn't exist
     functionRegistry.getUdfFactory("tostring");
   }
@@ -508,9 +554,9 @@ public class UdfLoaderTest {
         .build();
     final KsqlConfig config
         = new KsqlConfig(configMap);
-    UdfLoader.newInstance(config, new InternalFunctionRegistry(), "").load();
+    UserFunctionLoader.newInstance(config, new InternalFunctionRegistry(), "").load();
   }
-
+  
   @Test
   public void shouldConfigureConfigurableUdfsOnInstantiation() {
     // Given:
@@ -575,26 +621,639 @@ public class UdfLoaderTest {
             .build()));
   }
 
+  @Test
+  public void shouldInvokeFunctionWithMapArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", Map.class));
+    assertThat(udf.eval(this, Collections.emptyMap()), equalTo("{}"));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithListArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", List.class));
+    assertThat(udf.eval(this, Collections.emptyList()), equalTo("[]"));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithDoubleArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", Double.class));
+    assertThat(udf.eval(this, 1.0d), equalTo(1.0));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithIntegerArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", Integer.class));
+    assertThat(udf.eval(this, 1), equalTo(1));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithLongArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", Long.class));
+    assertThat(udf.eval(this, 1L), equalTo(1L));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithBooleanArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", Boolean.class));
+    assertThat(udf.eval(this, true), equalTo(true));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithIntArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", int.class));
+    assertThat(udf.eval(this, 1), equalTo(1));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithIntVarArgs() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", int[].class));
+    assertThat(udf.eval(this, 1, 1), equalTo(2));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithPrimitiveLongArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", long.class));
+    assertThat(udf.eval(this, 1), equalTo(1L));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithPrimitiveDoubleArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", double.class));
+    assertThat(udf.eval(this, 1), equalTo(1.0));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithPrimitiveBooleanArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfPrimitive", boolean.class));
+    assertThat(udf.eval(this, true), equalTo(true));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithStringArgument() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", String.class));
+    assertThat(udf.eval(this, "foo"), equalTo("foo"));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithStringVarArgs() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udf", String[].class));
+    assertThat(udf.eval(this, "foo", "bar"), equalTo("foobar"));
+  }
+
+  @Test
+  public void shouldHandleMethodsWithMultipleArguments() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils.createFunctionInvoker(
+        getClass().getMethod("multi", int.class, long.class, double.class));
+
+    assertThat(udf.eval(this, 1, 2, 3), equalTo(6.0));
+  }
+
+  @Test
+  public void shouldHandleMethodsWithGenericArguments() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils.createFunctionInvoker(
+        getClass().getMethod("generic", int.class, Object.class));
+
+    assertThat(udf.eval(this, 1, "hi"), equalTo("hi"));
+  }
+
+  @Test
+  public void shouldHandleMethodsWithParameterizedGenericArguments() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils.createFunctionInvoker(
+        getClass().getMethod("generic", int.class, List.class));
+
+    assertThat(udf.eval(this, 1, ImmutableList.of("hi")), equalTo("hi"));
+  }
+
+  @Test
+  public void shouldInvokeUdafWithMethodWithNoArgs() throws Exception {
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumLong"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+    assertThat(creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS),
+        not(nullValue()));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithStructReturnValue() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfStruct", String.class));
+    assertThat(udf.eval(this, "val"), equalTo(new Struct(STRUCT_SCHEMA).put("a", "val")));
+  }
+
+  @Test
+  public void shouldInvokeFunctionWithStructParameter() throws Exception {
+    final FunctionInvoker udf = FunctionLoaderUtils
+        .createFunctionInvoker(getClass().getMethod("udfStruct", Struct.class));
+    assertThat(udf.eval(this, new Struct(STRUCT_SCHEMA).put("a", "val")), equalTo("val"));
+  }
+
+  @Test
+  public void shouldImplementTableAggregateFunctionWhenTableUdafClass() throws Exception {
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumLong"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+    final KsqlAggregateFunction function = creator
+        .createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
+    assertThat(function, instanceOf(TableAggregationFunction.class));
+  }
+
+  @Test
+  public void shouldInvokeUdafWhenMethodHasArgs() throws Exception {
+    final UdafFactoryInvoker creator
+        = createUdafLoader().createUdafFactoryInvoker(
+        TestUdaf.class.getMethod(
+            "createSumLengthString",
+        String.class),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+    final KsqlAggregateFunction instance =
+        creator.createFunction(new AggregateFunctionInitArguments(0, "foo"));
+    assertThat(instance,
+        not(nullValue()));
+    assertThat(instance, not(instanceOf(TableAggregationFunction.class)));
+  }
+
+  @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
+  @SuppressWarnings("unchecked")
+  @Test
+  public void shouldCollectMetricsForUdafsWhenEnabled() throws Exception {
+    final Metrics metrics = new Metrics();
+    final UdafFactoryInvoker creator
+        = createUdafLoader(Optional.of(metrics)).createUdafFactoryInvoker(
+        TestUdaf.class.getMethod("createSumLong"),
+        FunctionName.of("test-udf"),
+        "desc",
+        "",
+        "",
+        "");
+
+    final KsqlAggregateFunction<Long, Long, Long> executable =
+        creator.createFunction(AggregateFunctionInitArguments.EMPTY_ARGS);
+
+    executable.aggregate(1L, 1L);
+    executable.aggregate(1L, 1L);
+    final KafkaMetric metric = metrics.metric(
+        metrics.metricName("aggregate-test-udf-createSumLong-count",
+            "ksql-udaf-test-udf-createSumLong"));
+    assertThat(metric.metricValue(), equalTo(2.0));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfUnsupportedArgumentType() throws Exception {
+    FunctionLoaderUtils.createFunctionInvoker(
+        getClass().getMethod("udf", Set.class));
+  }
+
+  @Test(expected = KsqlException.class)
+  public void shouldThrowIfUnsupportedInputType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("invalidInputTypeUdaf"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        ""
+    );
+  }
+
+  @Test
+  public void shouldThrowIfMissingInputTypeSchema() throws Exception {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Must specify 'paramSchema' for STRUCT parameter in @UdafFactory.");
+
+    // When:
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("missingInputSchemaAnnotationUdaf"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldThrowIfMissingAggregateTypeSchema() throws Exception {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Must specify 'aggregateSchema' for STRUCT parameter in @UdafFactory.");
+
+    // When:
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("missingAggregateSchemaAnnotationUdaf"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldThrowIfMissingOutputTypeSchema() throws Exception {
+    // Then:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage(
+        "Must specify 'returnSchema' for STRUCT parameter in @UdafFactory.");
+
+    // When:
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("missingOutputSchemaAnnotationUdaf"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        ""
+    );
+  }
+
+  @Test
+  public void shouldThrowIfArrayWithoutVarArgs() throws Exception {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException
+        .expectMessage("Invalid function method signature (contains non var-arg array)");
+    FunctionLoaderUtils.createFunctionInvoker(
+        getClass().getMethod("invalidUdf", int[].class));
+  }
+
+  @Test
+  public void shouldThrowIfArrayAndVarArgs() throws Exception {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException
+        .expectMessage("Invalid function method signature (contains non var-arg array):");
+    FunctionLoaderUtils.createFunctionInvoker(
+        getClass().getMethod("invalidUdf", int[].class, int[].class));
+  }
+
+  @Test
+  public void shouldThrowKsqlFunctionExceptionIfNullPassedWhenExpectingPrimitiveType()
+      throws Exception {
+    expectedException.expect(KsqlFunctionException.class);
+    expectedException
+        .expectMessage("Failed to invoke function");
+    final FunctionInvoker udf =
+        FunctionLoaderUtils
+            .createFunctionInvoker(getClass().getMethod("udfPrimitive", double.class));
+    udf.eval(this, (Double)null);
+  }
+
+  @Test
+  public void shouldThrowWhenUdafReturnTypeIsntAUdaf() throws Exception {
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UDAFs must implement io.confluent.ksql.function.udaf.Udaf or io.confluent.ksql.function.udaf.TableUdaf. method='createBlah', functionName='`test`', UDFClass='class io.confluent.ksql.function.UdfLoaderTest");
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createBlah"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithLongValTypeDoubleAggType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createLongDouble"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithDoubleValTypeLongAggType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createDoubleLong"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithIntegerValTypeStringAggType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createIntegerString"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithStringValTypeIntegerAggType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createStringInteger"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithBooleanValTypeListAggType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createBooleanList"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithListValTypeBooleanAggType() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createListBoolean"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithMapValMapAggTypes() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createMapMap"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithMapValMapAggTypesAndFactoryArg() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createMapMap", int.class),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldHandleUdafsWithStructStructTypes() throws Exception {
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createStructStruct"),
+        FunctionName.of("test"),
+        "desc",
+        "STRUCT<A VARCHAR>",
+        "STRUCT<B VARCHAR>",
+        "STRUCT<B VARCHAR>");
+  }
+
+  @Test
+  public void shouldThrowWhenTryingToGenerateUdafThatHasIncorrectTypes() throws Exception {
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("class='class java.lang.Character' is not supported by UDAFs");
+
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createBad"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  @Test
+  public void shouldThrowWhenUdafFactoryMethodIsntStatic() throws Exception {
+
+    // Expect:
+    expectedException.expect(KsqlException.class);
+    expectedException.expectMessage("UDAF factory methods must be static public io.confluent.ksql.function.udaf.Udaf");
+
+    createUdafLoader().createUdafFactoryInvoker(
+        UdfLoaderTest.class.getMethod("createNonStatic"),
+        FunctionName.of("test"),
+        "desc",
+        "",
+        "",
+        "");
+  }
+
+  public String udf(final Set val) {
+    return val.toString();
+  }
+
+  public String udf(final Map<String, Integer> map) {
+    return map.toString();
+  }
+
+  public String udf(final List<String> list) {
+    return list.toString();
+  }
+
+  public Double udf(final Double val) {
+    return val;
+  }
+
+  public Float udf(final Float val) {
+    return val;
+  }
+
+  public Integer udf(final Integer val) {
+    return val;
+  }
+
+  public Long udf(final Long val) {
+    return val;
+  }
+
+  public <T> T generic(final int foo, final T val) {
+    return val;
+  }
+
+  public <T> T generic(final int foo, final List<T> val) {
+    return val.get(0);
+  }
+
+  public Struct udfStruct(final String val) {
+    return new Struct(STRUCT_SCHEMA).put("a", val);
+  }
+
+  public String udfStruct(final Struct struct) {
+    return struct.getString("a");
+  }
+
+  public double udfPrimitive(final double val) {
+    return val;
+  }
+
+  public float udfPrimitive(final float val) {
+    return val;
+  }
+
+  public int udfPrimitive(final int val) {
+    return val;
+  }
+
+  public int udfPrimitive(final int... val) {
+    return Arrays.stream(val).sum();
+  }
+
+  public long udfPrimitive(final long val) {
+    return val;
+  }
+
+  public boolean udfPrimitive(final boolean val) {
+    return val;
+  }
+
+  public Boolean udf(final Boolean val) {
+    return val;
+  }
+
+  public String udf(final String val) {
+    return val;
+  }
+
+  public String udf(final String... val) {
+    return String.join("", val);
+  }
+
+  public double multi(final int i, final long l, final double d) {
+    return i * l * d;
+  }
+
+  public static Udaf<Long, Double, Double> createLongDouble() {
+    return null;
+  }
+
+  public static Udaf<Double, Long, Long> createDoubleLong() {
+    return null;
+  }
+
+  public static Udaf<Integer, String, String> createIntegerString() {
+    return null;
+  }
+
+  public static Udaf<String, Integer, Integer> createStringInteger() {
+    return null;
+  }
+
+  public static Udaf<Boolean, List<Long>, List<Long>> createBooleanList() {
+    return null;
+  }
+
+  public static Udaf<List<Integer>, Boolean, Boolean> createListBoolean() {
+    return null;
+  }
+
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap() {
+    return null;
+  }
+
+  public static Udaf<Map<String, Integer>, Map<String, Boolean>, Map<String, Boolean>> createMapMap(
+      int ignored) {
+    return null;
+  }
+
+  public static Udaf<Struct, Struct, Struct> createStructStruct() {
+    return null;
+  }
+
+  public static String createBlah() {
+    return null;
+  }
+
+  public static Udaf<Character, Character, Character> createBad() {
+    return null;
+  }
+
+  public Udaf<String, String, String> createNonStatic() {
+    return null;
+  }
+
+  public static String invalidUdf(final int[] ints) {
+    return null;
+  }
+
+  public static String invalidUdf(final int[] ints, final int... moreInts) {
+    return null;
+  }
+
+  public static Udaf<List<?>, String, String> invalidInputTypeUdaf() {
+    return null;
+  }
+
+  public static Udaf<Struct, String, String> missingInputSchemaAnnotationUdaf() {
+    return null;
+  }
+
+  public static Udaf<String, Struct, String> missingAggregateSchemaAnnotationUdaf() {
+    return null;
+  }
+
+  public static Udaf<String, String, Struct> missingOutputSchemaAnnotationUdaf() {
+    return null;
+  }
+
+  private static UdafLoader createUdafLoader() {
+    return createUdafLoader(Optional.empty());
+  }
+
+  private static UdafLoader createUdafLoader(Optional<Metrics> metrics) {
+    return new UdafLoader(new InternalFunctionRegistry(), metrics, SqlTypeParser.create(
+        TypeRegistry.EMPTY));
+  }
+
   private static FunctionRegistry initializeFunctionRegistry(
       final boolean loadCustomUdfs,
       final Optional<Metrics> metrics
   ) {
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();
-    final UdfLoader pluginLoader = createUdfLoader(functionRegistry, loadCustomUdfs, metrics);
+    final UserFunctionLoader pluginLoader = createUdfLoader(
+        functionRegistry, loadCustomUdfs, metrics);
     pluginLoader.load();
     return functionRegistry;
   }
 
-  private static UdfLoader createUdfLoader(
+  private static UserFunctionLoader createUdfLoader(
       final MutableFunctionRegistry functionRegistry,
       final boolean loadCustomerUdfs,
       final Optional<Metrics> metrics
   ) {
-    return new UdfLoader(functionRegistry,
+    return new UserFunctionLoader(
+        functionRegistry,
         new File("src/test/resources/udf-example.jar"),
         PARENT_CLASS_LOADER,
         value -> false,
-        COMPILER,
         metrics,
         loadCustomerUdfs
     );
@@ -694,4 +1353,5 @@ public class UdfLoaderTest {
       return SqlDecimal.of(2, 1);
     }
   }
+
 }

@@ -20,6 +20,7 @@ import static org.hamcrest.Matchers.is;
 
 import com.google.common.testing.EqualsTester;
 import com.google.common.testing.NullPointerTester;
+import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.test.util.ImmutableTester;
@@ -31,12 +32,12 @@ import org.junit.rules.ExpectedException;
 public class PhysicalSchemaTest {
 
   private static final LogicalSchema SCHEMA_WITH_MULTIPLE_FIELDS = LogicalSchema.builder()
-      .valueColumn("f0", SqlTypes.BOOLEAN)
-      .valueColumn("f1", SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("f1"), SqlTypes.BOOLEAN)
       .build();
 
   private static final LogicalSchema SCHEMA_WITH_SINGLE_FIELD = LogicalSchema.builder()
-      .valueColumn("f0", SqlTypes.BOOLEAN)
+      .valueColumn(ColumnName.of("f0"), SqlTypes.BOOLEAN)
       .build();
 
   @Rule

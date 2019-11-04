@@ -15,21 +15,31 @@
 
 package io.confluent.ksql.rest.server;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.function.InternalFunctionRegistry;
+import io.confluent.ksql.function.UdtfLoader;
+import io.confluent.ksql.function.udf.UdfParameter;
+import io.confluent.ksql.function.udtf.Udtf;
+import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.MetaStoreImpl;
 import io.confluent.ksql.metastore.MutableMetaStore;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.DefaultKsqlParser;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -45,17 +55,24 @@ import io.confluent.ksql.util.timestamp.MetadataTimestampExtractionPolicy;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
 import org.junit.rules.ExternalResource;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
-      .valueColumn("val", SqlTypes.STRING)
-      .valueColumn("val2", SqlTypes.decimal(2, 1))
+      .valueColumn(ColumnName.of("val"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("val2"), SqlTypes.decimal(2, 1))
+      .valueColumn(ColumnName.of("ADDRESS"), SqlTypes.struct()
+          .field("STREET", SqlTypes.STRING)
+          .field("STATE", SqlTypes.STRING)
+          .build())
       .build();
 
   private MutableMetaStore metaStore;
+  private InternalFunctionRegistry functionRegistry;
 
   private KsqlConfig ksqlConfig;
   private KsqlEngine engine;
@@ -63,7 +80,9 @@ public class TemporaryEngine extends ExternalResource {
 
   @Override
   protected void before() {
-    metaStore = new MetaStoreImpl(new InternalFunctionRegistry());
+    functionRegistry = new InternalFunctionRegistry();
+    metaStore = new MetaStoreImpl(functionRegistry);
+
     serviceContext = TestServiceContext.create();
     engine = (KsqlEngineTestUtil.createKsqlEngine(getServiceContext(), metaStore));
 
@@ -74,6 +93,13 @@ public class TemporaryEngine extends ExternalResource {
             RestConfig.LISTENERS_CONFIG, "http://localhost:8088"
         )
     );
+
+    final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
+    UdtfLoader udtfLoader = new UdtfLoader(functionRegistry, Optional.empty(),
+        typeParser, true
+    );
+    udtfLoader.loadUdtfFromClass(TestUdtf1.class, "whatever");
+    udtfLoader.loadUdtfFromClass(TestUdtf2.class, "whatever");
   }
 
   @Override
@@ -102,10 +128,12 @@ public class TemporaryEngine extends ExternalResource {
         source =
             new KsqlStream<>(
                 "statement",
-                name,
+                SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.findValueColumn("val").get()),
+                KeyField.of(
+                    ColumnRef.withoutSource(ColumnName.of("val")),
+                    SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("val"))).get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -114,10 +142,12 @@ public class TemporaryEngine extends ExternalResource {
         source =
             new KsqlTable<>(
                 "statement",
-                name,
+                SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of("val", SCHEMA.findValueColumn("val").get()),
+                KeyField.of(
+                    ColumnRef.withoutSource(ColumnName.of("val")),
+                    SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("val"))).get()),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -153,4 +183,33 @@ public class TemporaryEngine extends ExternalResource {
   public ServiceContext getServiceContext() {
     return serviceContext;
   }
+
+  @UdtfDescription(name = "test_udtf1", description = "test_udtf1 description")
+  public static class TestUdtf1 {
+
+    @Udtf
+    public List<Integer> foo1(@UdfParameter(value = "foo") int foo) {
+      return ImmutableList.of(1);
+    }
+
+    @Udtf
+    public List<Double> foo2(@UdfParameter(value = "foo") double foo) {
+      return ImmutableList.of(1.0d);
+    }
+  }
+
+  @UdtfDescription(name = "test_udtf2", description = "test_udtf2 description")
+  public static class TestUdtf2 {
+
+    @Udtf
+    public List<Integer> foo1(@UdfParameter(value = "foo") int foo) {
+      return ImmutableList.of(1);
+    }
+
+    @Udtf
+    public List<Double> foo2(@UdfParameter(value = "foo") double foo) {
+      return ImmutableList.of(1.0d);
+    }
+  }
+
 }

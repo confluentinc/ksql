@@ -84,10 +84,16 @@ CREATE TABLE error_counts AS
 <a name="community"></a>
 # Join the Community
 
+For user help, questions or queries about KSQL please use our [user Google Group](https://groups.google.com/forum/#!forum/ksql-users)
+or our public Slack channel #ksql in [Confluent Community Slack](https://slackpass.io/confluentcommunity)
+
+For discussions about development of KSQL please use our [developer Google Group](https://groups.google.com/forum/#!forum/ksql-dev).
+You can also hang out in our developer Slack channel #ksql-dev in - [Confluent Community Slack](https://slackpass.io/confluentcommunity) - this is where day to day chat about the development of KSQL happens.
+Everyone is welcome!
+
 You can get help, learn how to contribute to KSQL, and find the latest news by [connecting with the Confluent community](https://www.confluent.io/contact-us-thank-you/).
 
-* Ask a question in the #ksql channel in our public [Confluent Community Slack](https://slackpass.io/confluentcommunity). Account registration is free and self-service.
-* Join the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
+For more general questions about the Confluent Platform please post in the [Confluent Google group](https://groups.google.com/forum/#!forum/confluent-platform).
 
 
 # Contributing

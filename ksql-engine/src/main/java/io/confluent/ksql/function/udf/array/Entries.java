@@ -60,7 +60,8 @@ public class Entries {
   @Udf(schema = "ARRAY<STRUCT<K STRING, V INT>>")
   public List<Struct> entriesInt(
       @UdfParameter(description = "The map to create entries from") final Map<String, Integer> map,
-      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
   ) {
     return entries(map, INT_STRUCT_SCHEMA, sorted);
   }
@@ -68,7 +69,8 @@ public class Entries {
   @Udf(schema = "ARRAY<STRUCT<K STRING, V BIGINT>>")
   public List<Struct> entriesBigInt(
       @UdfParameter(description = "The map to create entries from") final Map<String, Long> map,
-      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
   ) {
     return entries(map, BIGINT_STRUCT_SCHEMA, sorted);
   }
@@ -76,7 +78,8 @@ public class Entries {
   @Udf(schema = "ARRAY<STRUCT<K STRING, V DOUBLE>>")
   public List<Struct> entriesDouble(
       @UdfParameter(description = "The map to create entries from") final Map<String, Double> map,
-      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
   ) {
     return entries(map, DOUBLE_STRUCT_SCHEMA, sorted);
   }
@@ -84,7 +87,8 @@ public class Entries {
   @Udf(schema = "ARRAY<STRUCT<K STRING, V BOOLEAN>>")
   public List<Struct> entriesBoolean(
       @UdfParameter(description = "The map to create entries from") final Map<String, Boolean> map,
-      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
   ) {
     return entries(map, BOOLEAN_STRUCT_SCHEMA, sorted);
   }
@@ -92,7 +96,8 @@ public class Entries {
   @Udf(schema = "ARRAY<STRUCT<K STRING, V STRING>>")
   public List<Struct> entriesString(
       @UdfParameter(description = "The map to create entries from") final Map<String, String> map,
-      @UdfParameter(description = "If true then the resulting entries are sorted by key") final boolean sorted
+      @UdfParameter(description = "If true then the resulting entries are sorted by key")
+      final boolean sorted
   ) {
     return entries(map, STRING_STRUCT_SCHEMA, sorted);
   }

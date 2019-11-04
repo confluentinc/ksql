@@ -256,10 +256,14 @@ commands.
 ##### Udf Annotation
 
 The `@Udf` annotation is applied to public methods of a class annotated
-with `@UdfDescription`. Each annotated method will become an invocable
-function in KSQL. The annotation only has a single field `description`
-that is optional. You can use this to better describe what a particular
-version of the UDF does, for example:
+with `@UdfDescription`. Each annotated method will become an invocable function
+in KSQL. This annotation supports the following fields:
+
+| Field         | Description                  | Required               |
+|---------------|------------------------------|------------------------|
+| description   | A string describing generally what a particular version of the UDF does (see the following example). | No |
+| schema        | The KSQL schema for the return type of this UDF.  | For complex types such as STRUCT if `schemaProvider` is not passed in.   |
+| schemaProvider| A reference to a method that computes the return schema of this UDF. For more info, see [Dynamic return type](#dynamic-return-type). | For complex types,  like STRUCT, if `schema` is not provided.  |
 
 ```java
 @Udf(description = "Returns a substring of str that starts at pos"

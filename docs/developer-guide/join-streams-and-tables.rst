@@ -40,8 +40,8 @@ matching records that both occur within a specified time interval. For valid
 time units, see :ref:`ksql-time-units`.
 
 Here's an example stream-stream join that combines a ``shipments`` stream with
-an ``orders`` stream, as long as the shipment was sent within two hours of when
-the order was placed.
+an ``orders`` stream. The resulting ``shipped_orders`` stream contains all
+orders shipped within two hours of when the order was placed.
 
 .. code:: sql
 

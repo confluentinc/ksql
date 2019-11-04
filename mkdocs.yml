@@ -113,6 +113,7 @@ nav:
         - Create a ksqlDB Table: developer-guide/create-a-table.md
         - Implement a User-defined Function (UDF and UDAF): developer-guide/implement-a-udf.md
         - Join Event Streams with ksqlDB: developer-guide/join-streams-and-tables.md
+        - Partition Data to Enable Joins: developer-guide/partition-data.md
         - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
         - Query With Structured Data: developer-guide/query-with-structured-data.md
         - Transform a Stream With ksqlDB: developer-guide/transform-a-stream-with-ksql.md

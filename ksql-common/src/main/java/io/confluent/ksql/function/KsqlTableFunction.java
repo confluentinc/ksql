@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import java.util.List;
 import java.util.Objects;
@@ -27,10 +28,9 @@ import org.apache.kafka.connect.data.Schema;
  * description, and allows the function to be invoked.
  */
 @Immutable
-public class KsqlTableFunction extends KsqlFunctionBase {
+public class KsqlTableFunction extends KsqlFunction {
 
-  private final FunctionInvoker invoker;
-  private final Object udtf;
+  private final Kudf udtf;
 
   public KsqlTableFunction(
       final Function<List<Schema>, Schema> returnSchemaProvider,
@@ -38,17 +38,15 @@ public class KsqlTableFunction extends KsqlFunctionBase {
       final Schema outputType,
       final List<Schema> arguments,
       final String description,
-      final FunctionInvoker functionInvoker,
-      final Object udtf
+      final Kudf udtf
   ) {
     super(returnSchemaProvider, outputType, arguments, functionName, description,
         "", false
     );
-    this.invoker = Objects.requireNonNull(functionInvoker, "functionInvoker");
     this.udtf = Objects.requireNonNull(udtf, "udtf");
   }
 
   public List<?> apply(final Object... args) {
-    return (List<?>) invoker.eval(udtf, args);
+    return (List<?>) udtf.evaluate(args);
   }
 }

@@ -46,7 +46,7 @@ public class KsqlFunctionTest {
   @Test
   public void shouldResolveGenericReturnType() {
     // Given:
-    final KsqlFunction function = createFunction(
+    final KsqlScalarFunction function = createFunction(
         GenericsUtil.generic("T").build(),
         ImmutableList.of(GenericsUtil.generic("T").build())
     );
@@ -61,7 +61,7 @@ public class KsqlFunctionTest {
   @Test
   public void shouldResolveGenericReturnTypeFromArray() {
     // Given:
-    final KsqlFunction function = createFunction(
+    final KsqlScalarFunction function = createFunction(
         GenericsUtil.generic("T").build(),
         ImmutableList.of(GenericsUtil.array("T").build())
     );
@@ -77,7 +77,7 @@ public class KsqlFunctionTest {
   @Test
   public void shouldResolveGenericReturnTypeFromSecondArgument() {
     // Given:
-    final KsqlFunction function = createFunction(
+    final KsqlScalarFunction function = createFunction(
         GenericsUtil.generic("T").build(),
         ImmutableList.of(
             GenericsUtil.generic("S").build(),
@@ -98,7 +98,7 @@ public class KsqlFunctionTest {
   @Test
   public void shouldResolveGenericArrayReturnType() {
     // Given:
-    final KsqlFunction function = createFunction(
+    final KsqlScalarFunction function = createFunction(
         GenericsUtil.array("T").build(),
         ImmutableList.of(GenericsUtil.generic("T").build())
     );
@@ -113,7 +113,7 @@ public class KsqlFunctionTest {
   @Test
   public void shouldResolveGenericFromVariadicArgument() {
     // Given:
-    final KsqlFunction function = createFunction(
+    final KsqlScalarFunction function = createFunction(
         GenericsUtil.generic("T").build(),
         ImmutableList.of(GenericsUtil.array("T").build()),
         true
@@ -133,7 +133,7 @@ public class KsqlFunctionTest {
     expectedException.expectMessage("KSQL only supports optional field types");
 
     // When:
-    final KsqlFunction function = createFunction(Schema.INT32_SCHEMA, ImmutableList.of());
+    final KsqlScalarFunction function = createFunction(Schema.INT32_SCHEMA, ImmutableList.of());
     function.getReturnType(ImmutableList.of());
 
   }
@@ -146,7 +146,7 @@ public class KsqlFunctionTest {
       return decimalSchema;
     };
 
-    final KsqlFunction udf = KsqlFunction.create(
+    final KsqlScalarFunction udf = KsqlScalarFunction.create(
         schemaProviderFunction,
         decimalSchema,
         ImmutableList.of(Schema.INT32_SCHEMA),
@@ -164,16 +164,16 @@ public class KsqlFunctionTest {
     assertThat(returnType, is(decimalSchema));
   }
 
-  private KsqlFunction createFunction(final Schema returnSchema, final List<Schema> args) {
+  private KsqlScalarFunction createFunction(final Schema returnSchema, final List<Schema> args) {
     return createFunction(returnSchema, args, false);
   }
 
-  private KsqlFunction createFunction(
+  private KsqlScalarFunction createFunction(
       final Schema returnSchema,
       final List<Schema> args,
       final boolean isVariadic
   ) {
-    return KsqlFunction.create(
+    return KsqlScalarFunction.create(
         ignored -> returnSchema,
         returnSchema,
         args,

@@ -56,7 +56,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.execution.testutil.TestExpressions;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.ColumnName;
@@ -90,7 +90,7 @@ public class ExpressionTypeManagerTest {
   @Mock
   private UdfFactory udfFactory;
   @Mock
-  private KsqlFunction function;
+  private KsqlScalarFunction function;
 
   private ExpressionTypeManager expressionTypeManager;
 
@@ -268,7 +268,7 @@ public class ExpressionTypeManagerTest {
     // Given:
     givenUdfWithNameAndReturnType("EXTRACTJSONFIELD", Schema.OPTIONAL_STRING_SCHEMA);
     final UdfFactory outerFactory = mock(UdfFactory.class);
-    final KsqlFunction function = mock(KsqlFunction.class);
+    final KsqlScalarFunction function = mock(KsqlScalarFunction.class);
     givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA, outerFactory, function);
     final Expression inner = new FunctionCall(
         FunctionName.of("EXTRACTJSONFIELD"),
@@ -558,7 +558,7 @@ public class ExpressionTypeManagerTest {
       final String name,
       final Schema returnType,
       final UdfFactory factory,
-      final KsqlFunction function) {
+      final KsqlScalarFunction function) {
     when(functionRegistry.isAggregate(name)).thenReturn(false);
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);

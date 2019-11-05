@@ -104,7 +104,7 @@ public class UserFunctionLoader {
   @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
   private void loadFunctions(final ClassLoader loader, final Optional<Path> path) {
     final String pathLoadedFrom
-        = path.map(Path::toString).orElse(KsqlFunction.INTERNAL_PATH);
+        = path.map(Path::toString).orElse(KsqlScalarFunction.INTERNAL_PATH);
     final FastClasspathScanner fastClasspathScanner = new FastClasspathScanner();
     if (loader != parentClassLoader) {
       fastClasspathScanner.overrideClassLoaders(loader);

@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
@@ -148,7 +149,8 @@ public class UdtfLoader {
         );
     return new KsqlTableFunction(
         schemaProviderFunction,
-        functionName, outputType, arguments, description, invoker, instance
+        functionName, outputType, arguments, description,
+        new PluggableUdf(invoker, instance)
     );
   }
 }

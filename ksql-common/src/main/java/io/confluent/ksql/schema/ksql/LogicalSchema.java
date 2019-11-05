@@ -136,11 +136,10 @@ public final class LogicalSchema {
    * @param target the exact name of the column to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
-  // Todo(ac): exact match version?
   public OptionalInt valueColumnIndex(final ColumnRef target) {
     int idx = 0;
     for (final Column column : value()) {
-      if (column.matches(target)) {
+      if (column.ref().equals(target)) {
         return OptionalInt.of(idx);
       }
       ++idx;
@@ -313,16 +312,11 @@ public final class LogicalSchema {
     value.stream()
         .filter(c -> !findNamespacedColumn(
             (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
-                .and(thatLooselyMatches(c.column().ref())) // Todo(ac): exact?
+                .and(withRef(c.column().ref()))
             )).isPresent())
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());
-  }
-
-  // Todo(ac): drop
-  private static Predicate<NamespacedColumn> thatLooselyMatches(final ColumnRef ref) {
-    return c -> c.column().matches(ref);
   }
 
   private static Predicate<NamespacedColumn> withRef(final ColumnRef ref) {

@@ -272,7 +272,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldFindExactValueColumnWithSource() {
+  public void shouldFindExactValueColumn() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, SqlTypes.BIGINT)
@@ -313,7 +313,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldFindExactColumnWithSource() {
+  public void shouldFindExactColumn() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .keyColumn(F0, SqlTypes.BIGINT)
@@ -351,6 +351,26 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetAliasedColumnIndex() {
     assertThat(ALIASED_SCHEMA.valueColumnIndex(ColumnRef.of(BOB, F1)), is(OptionalInt.of(1)));
+  }
+
+  @Test
+  public void shouldFindExactColumnIndex() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, SqlTypes.BIGINT)
+        .valueColumn(BOB, F0, SqlTypes.STRING)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.valueColumnIndex(ColumnRef.withoutSource(F0)),
+        is(OptionalInt.of(0))
+    );
+
+    assertThat(
+        schema.valueColumnIndex(ColumnRef.of(BOB, F0)),
+        is(OptionalInt.of(1))
+    );
   }
 
   @Test

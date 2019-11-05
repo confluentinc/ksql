@@ -66,7 +66,7 @@ import org.w3c.dom.NodeList;
  * The steps to generate topology files:
  *
  * 1. Run this class by running the test
- * {@code io.confluent.ksql.test.ManualTopologyFileGeneratorTest} BEFORE you update the pom
+ * {@link io.confluent.ksql.test.ManualTopologyFileGeneratorTest} BEFORE you update the pom
  * with a new version.
  *
  * 2. This class will generate expected topology files

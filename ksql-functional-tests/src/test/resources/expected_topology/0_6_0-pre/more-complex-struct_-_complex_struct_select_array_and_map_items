@@ -1,0 +1,61 @@
+{
+  "ksql.extension.dir" : "ext",
+  "ksql.streams.cache.max.bytes.buffering" : "0",
+  "ksql.security.extension.class" : null,
+  "ksql.transient.prefix" : "transient_",
+  "ksql.persistence.wrap.single.values" : "true",
+  "ksql.named.internal.topics" : "on",
+  "ksql.windowed.session.key.legacy" : "false",
+  "ksql.query.stream.groupby.rowkey.repartition" : "false",
+  "ksql.schema.registry.url" : "http://localhost:8081",
+  "ksql.streams.default.deserialization.exception.handler" : "io.confluent.ksql.errors.LogMetricAndContinueExceptionHandler",
+  "ksql.output.topic.name.prefix" : "",
+  "ksql.streams.auto.offset.reset" : "earliest",
+  "ksql.sink.partitions" : null,
+  "ksql.connect.url" : "http://localhost:8083",
+  "ksql.avro.maps.named" : "true",
+  "ksql.service.id" : "some.ksql.service.id",
+  "ksql.internal.topic.replicas" : "1",
+  "ksql.insert.into.values.enabled" : "true",
+  "ksql.streams.default.production.exception.handler" : "io.confluent.ksql.errors.ProductionExceptionHandlerUtil$LogAndFailProductionExceptionHandler",
+  "ksql.access.validator.enable" : "auto",
+  "ksql.streams.bootstrap.servers" : "localhost:0",
+  "ksql.streams.commit.interval.ms" : "2000",
+  "ksql.metric.reporters" : "",
+  "ksql.streams.auto.commit.interval.ms" : "0",
+  "ksql.sink.replicas" : null,
+  "ksql.metrics.extension" : null,
+  "ksql.streams.topology.optimization" : "all",
+  "ksql.streams.num.stream.threads" : "4",
+  "ksql.metrics.tags.custom" : "",
+  "ksql.query.fields.key.legacy" : "false",
+  "ksql.udfs.enabled" : "true",
+  "ksql.udf.enable.security.manager" : "true",
+  "ksql.functions.substring.legacy.args" : "false",
+  "ksql.connect.worker.config" : "",
+  "ksql.sink.window.change.log.additional.retention" : "1000000",
+  "ksql.query.inject.legacy.map.values.node" : "false",
+  "ksql.udf.collect.metrics" : "false",
+  "ksql.persistent.prefix" : "query_",
+  "ksql.query.persistent.active.limit" : "2147483647"
+}
+CONFIGS_END
+CSAS_S3_0.KsqlTopic.source = STRUCT<NESTED_STRUCT_FIELD STRUCT<SL1_STRUCT STRUCT<SL2_STRUCT STRUCT<SL3_STRUCT STRUCT<SL4_STRING VARCHAR, SL4_INT INT, SL4_DOUBLE_ARRAY ARRAY<DOUBLE>>, SL3_DOUBLE_ARRAY ARRAY<DOUBLE>, SL3_STRING VARCHAR>, SL2_STRUCT_MAP MAP<VARCHAR, STRUCT<SL2_3_STRING VARCHAR, SL2_3_DOUBLE DOUBLE>>, SL2_DOUBLE DOUBLE, SL2_BOOLEAN BOOLEAN>, SL1_STRING VARCHAR, SL1_STRUCT_ARRAY ARRAY<STRUCT<SL1_2_STRING VARCHAR, SL1_2_DOUBLE DOUBLE>>>, COL1 BIGINT, COL2 VARCHAR> NOT NULL
+CSAS_S3_0.S3 = STRUCT<COL1 DOUBLE, COL2 STRUCT<SL2_3_STRING VARCHAR, SL2_3_DOUBLE DOUBLE>, COL3 DOUBLE, COL4 DOUBLE> NOT NULL
+SCHEMAS_END
+Topologies:
+   Sub-topology: 0
+    Source: KSTREAM-SOURCE-0000000000 (topics: [test_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000002
+      <-- KSTREAM-SOURCE-0000000000
+    Processor: KSTREAM-MAPVALUES-0000000002 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000003
+      <-- KSTREAM-TRANSFORMVALUES-0000000001
+    Processor: KSTREAM-MAPVALUES-0000000003 (stores: [])
+      --> KSTREAM-SINK-0000000004
+      <-- KSTREAM-MAPVALUES-0000000002
+    Sink: KSTREAM-SINK-0000000004 (topic: S3)
+      <-- KSTREAM-MAPVALUES-0000000003
+

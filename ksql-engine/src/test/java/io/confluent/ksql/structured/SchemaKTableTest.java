@@ -447,7 +447,7 @@ public class SchemaKTableTest {
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
 
     // When:
-    final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
+    final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
         valueFormat,
         groupByExpressions,
         childContextStacker
@@ -469,7 +469,7 @@ public class SchemaKTableTest {
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
 
     // When:
-    final SchemaKGroupedStream groupedSchemaKTable = initialSchemaKTable.groupBy(
+    final SchemaKGroupedTable groupedSchemaKTable = initialSchemaKTable.groupBy(
         valueFormat,
         groupByExpressions,
         childContextStacker
@@ -477,7 +477,7 @@ public class SchemaKTableTest {
 
     // Then:
     assertThat(
-        ((SchemaKGroupedTable) groupedSchemaKTable).getSourceTableStep(),
+        groupedSchemaKTable.getSourceTableStep(),
         equalTo(
             ExecutionStepFactory.tableGroupBy(
                 childContextStacker,
@@ -510,11 +510,11 @@ public class SchemaKTableTest {
     final SchemaKTable schemaKTable = buildSchemaKTable(ksqlTable, mockKTable);
 
     // When:
-    final SchemaKGroupedStream result =
+    final SchemaKGroupedTable result =
         schemaKTable.groupBy(valueFormat, groupByExpressions, childContextStacker);
 
     // Then:
-    ((SchemaKGroupedTable) result).getSourceTableStep().build(planBuilder);
+    result.getSourceTableStep().build(planBuilder);
     verify(mockKTable, groupedFactory);
   }
 
@@ -547,9 +547,9 @@ public class SchemaKTableTest {
     final List<Expression> groupByExpressions = Arrays.asList(TEST_2_COL_2, TEST_2_COL_1);
 
     // Call groupBy and extract the captured mapper
-    final SchemaKGroupedStream result = initialSchemaKTable.groupBy(
+    final SchemaKGroupedTable result = initialSchemaKTable.groupBy(
         valueFormat, groupByExpressions, childContextStacker);
-    ((SchemaKGroupedTable) result).getSourceTableStep().build(planBuilder);
+    result.getSourceTableStep().build(planBuilder);
     verify(mockKTable, mockKGroupedTable);
     final KeyValueMapper keySelector = capturedKeySelector.getValue();
     final GenericRow value = new GenericRow(Arrays.asList("key", 0, 100, "foo", "bar"));
@@ -691,7 +691,7 @@ public class SchemaKTableTest {
         "SELECT col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
@@ -707,7 +707,7 @@ public class SchemaKTableTest {
         "SELECT test1.col0 as NEWKEY, col2, col3 FROM test1 EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -724,7 +724,7 @@ public class SchemaKTableTest {
         "SELECT t.col0 as NEWKEY, col2, col3 FROM test1 t EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -741,7 +741,7 @@ public class SchemaKTableTest {
         "SELECT * FROM test1 EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -757,7 +757,7 @@ public class SchemaKTableTest {
         "SELECT col2, col0, col3 FROM test1 EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -774,7 +774,7 @@ public class SchemaKTableTest {
         "SELECT col2, col3 FROM test1 EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -788,7 +788,7 @@ public class SchemaKTableTest {
         "SELECT * FROM test4 EMIT CHANGES;");
 
     // When:
-    final SchemaKStream result = initialSchemaKTable
+    final SchemaKTable result = initialSchemaKTable
         .select(selectExpressions, childContextStacker, queryBuilder);
 
     // Then:
@@ -798,16 +798,21 @@ public class SchemaKTableTest {
   @Test
   public void shouldSetKeyOnGroupBySingleExpressionThatIsInProjection() {
     // Given:
-    givenInitialKTableOf("SELECT * FROM test2 EMIT CHANGES;");
+    final List<SelectExpression> selectExpressions = givenInitialKTableOf(
+        "SELECT * FROM test2 EMIT CHANGES;");
+
+    final SchemaKTable selected = initialSchemaKTable
+        .select(selectExpressions, childContextStacker, queryBuilder);
+
     final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
 
     // When:
-    final SchemaKGroupedStream result = initialSchemaKTable
+    final SchemaKGroupedTable result = selected
         .groupBy(valueFormat, groupByExprs, childContextStacker);
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")),
+        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL1")),
             LegacyField.notInSchema(ColumnRef.of(SourceName.of("TEST2"), ColumnName.of("COL1")), SqlTypes.STRING))));
   }
 

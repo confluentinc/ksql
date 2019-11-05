@@ -165,7 +165,7 @@ class Analyzer {
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
       sink.getPartitionBy()
-          .map(name -> ColumnRef.of(sink.getName(), name.name()))
+          .map(name -> ColumnRef.withoutSource(name.name()))
           .ifPresent(analysis::setPartitionBy);
 
       setSerdeOptions(sink);

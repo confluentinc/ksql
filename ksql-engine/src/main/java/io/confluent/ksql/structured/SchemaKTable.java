@@ -156,7 +156,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  public SchemaKGroupedStream groupBy(
+  public SchemaKGroupedTable groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
       final QueryContext.Stacker contextStacker

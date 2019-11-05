@@ -120,14 +120,13 @@ public final class LogicalSchema {
   }
 
   /**
-   * Search for a value column with the supplied {@code target}.
+   * Search for a value column with the supplied {@code columnRef}.
    *
-   * @param target the column name, where any alias is ignored.
+   * @param columnRef the column source and name to match.
    * @return the value column if found, else {@code Optional.empty()}.
    */
-  // todo(ac): Exact version
-  public Optional<Column> findValueColumn(final ColumnRef target) {
-    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(thatLooselyMatches(target)))
+  public Optional<Column> findValueColumn(final ColumnRef columnRef) {
+    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(withRef(columnRef)))
         .map(NamespacedColumn::column);
   }
 

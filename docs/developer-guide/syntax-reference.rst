@@ -1648,8 +1648,8 @@ Scalar functions
 |                        |                                                                           | function is 1-indexed. ELT is the complement to   |
 |                        |                                                                           | FIELD.                                            |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| ENTRIES                | ``ENTRIES(map MAP, sorted BOOLEAN)``                                      | Constructs an array of structs from the entries in|
-|                        |                                                                           | a map. Each struct has a field with name ``K``    |
+| ENTRIES                | ``ENTRIES(map MAP, sorted BOOLEAN)``                                      | Constructs an array of structs from the entries   |
+|                        |                                                                           | in a map. Each struct has a field with name ``K`` |
 |                        |                                                                           | containing the key which is a String and a        |
 |                        |                                                                           | field with name ``V`` holding the value.          |
 |                        |                                                                           | If ``sorted`` is true the entries will be sorted  |
@@ -1679,6 +1679,16 @@ Scalar functions
 |                        |                                                                           | complement to ELT.                                |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | FLOOR                  |  ``FLOOR(col1)``                                                          | The floor of a value.                             |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| GENERATE_SERIES        |  ``GENERATE_SERIES(start, end)``                                          | Constructs an array of values between             |
+|                        |                                                                           | ``start`` and ``end`` (inclusive).                |
+|                        |                                                                           | Parameters can be ``INT`` or ``BIGINT``.          |
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
+| GENERATE_SERIES        |  ``GENERATE_SERIES(start, end, step)``                                    | Constructs an array of values between             |
+|                        |                                                                           | ``start`` and ``end`` (inclusive) with a specified|
+|                        |                                                                           | step size. Step can be positive or negative.      |
+|                        |                                                                           | Parameters ``start`` and ``end`` can be ``INT`` or|
+|                        |                                                                           | ``BIGINT``. Parameter ``step`` must be an ``INT``.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | GEO_DISTANCE           |  ``GEO_DISTANCE(lat1, lon1, lat2, lon2, unit)``                           | The great-circle distance between two lat-long    |
 |                        |                                                                           | points, both specified in decimal degrees. An     |
@@ -1740,16 +1750,6 @@ Scalar functions
 |                        |                                                                           | will return ``My Test -nnn``.                     |
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | RANDOM                 |  ``RANDOM()``                                                             | Return a random DOUBLE value between 0.0 and 1.0. |
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| RANGE                  |  ``GENERATE_SERIES(start, end)``                                          | Constructs an array of values between             |
-|                        |                                                                           | ``start`` and ``end`` (inclusive).                |
-|                        |                                                                           | Parameters can be ``INT`` or ``BIGINT``.          |
-+------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
-| RANGE                  |  ``GENERATE_SERIES(start, end, step)``                                    | Constructs an array of values between             |
-|                        |                                                                           | ``start`` and ``end`` (inclusive) with a specified|
-|                        |                                                                           | step size. Step can be positive or negative.      |
-|                        |                                                                           | Parameters ``start`` and ``end`` can be ``INT`` or|
-|                        |                                                                           | ``BIGINT``. Parameter ``step`` must be an ``INT``.|
 +------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | REPLACE                |  ``REPLACE(col1, 'foo', 'bar')``                                          | Replace all instances of a substring in a string  |
 |                        |                                                                           | with a new string.                                |

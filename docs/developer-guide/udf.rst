@@ -858,32 +858,12 @@ fields:
 |               | Return Types for more info)  | passed in.             |
 +---------------+------------------------------+------------------------+
 
-UdtfParameter Annotation
-~~~~~~~~~~~~~~~~~~~~~~~
+Annotating UDTF Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``@UdtfParameter`` annotation is applied to parameters of methods annotated with ``@Udtf``. KSQL
-will use the additional information in the ``@UdtfParameter`` annotation to specify the parameter
-schema (if it cannot be inferred from the Java type) or to provide users with richer information
-about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the method.
-
-+------------+------------------------------+------------------------+
-| Field      | Description                  | Required               |
-+============+==============================+========================+
-| value      | The case-insensitive name of | Required if the JAR    |
-|            | the parameter                | was not compiled with  |
-|            |                              | the ``-parameters``    |
-|            |                              | javac argument.        |
-+------------+------------------------------+------------------------+
-| description| A string describing generally| No                     |
-|            | what the parameter represents|                        |
-+------------+------------------------------+------------------------+
-| schema     | The KSQL schema for the      | For complex types      |
-|            | parameter.                   | such as STRUCT         |
-+------------+------------------------------+------------------------+
-
-.. note:: If ``schema`` is supplied in the ``@UdtfParameter`` annotation for a ``STRUCT`` it is
-          considered "strict" - any inputs must match exactly, including order and names of the
-          fields.
+You can use the ``@UdfParameter`` annotation to provide extra information for UDTF parameters.
+This is the same annotation as used for UDFs. Please see the earlier documentation on this for
+further information.
 
 ===============
 Supported Types

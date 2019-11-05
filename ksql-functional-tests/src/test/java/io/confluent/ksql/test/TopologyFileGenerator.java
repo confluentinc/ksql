@@ -92,9 +92,6 @@ public final class TopologyFileGenerator {
     private static final StubKafkaService stubKafkaService = StubKafkaService.create();
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";
 
-    private TopologyFileGenerator() {
-    }
-
     static Path findBaseDir() {
         Path path = Paths.get("./ksql-functional-tests");
         if (Files.exists(path)) {
@@ -109,7 +106,7 @@ public final class TopologyFileGenerator {
             + "root of the ksql-functional-tests module");
     }
 
-    static void generateTopologies() throws Exception {
+    private static void generateTopologies() throws Exception {
         generateTopologies(findBaseDir());
     }
 

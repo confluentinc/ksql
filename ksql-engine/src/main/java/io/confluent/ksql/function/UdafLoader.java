@@ -22,10 +22,9 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.Metrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,53 +52,49 @@ class UdafLoader {
 
   void loadUdafFromClass(final Class<?> theClass, final String path) {
     final UdafDescription udafAnnotation = theClass.getAnnotation(UdafDescription.class);
-    final List<UdafFactoryInvoker> argCreators
-        = Arrays.stream(theClass.getMethods())
-        .filter(method -> method.getAnnotation(UdafFactory.class) != null)
-        .filter(method -> {
-          if (!Modifier.isStatic(method.getModifiers())) {
-            LOGGER.warn(
-                "Trying to create a UDAF from a non-static factory method. Udaf factory"
-                    + " methods must be static. class={}, method={}, name={}",
-                method.getDeclaringClass(),
-                method.getName(),
-                udafAnnotation.name()
-            );
-            return false;
-          }
-          return true;
-        })
-        .map(method -> {
-          final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
-          try {
-            LOGGER.info(
-                "Adding UDAF name={} from path={} class={}",
-                udafAnnotation.name(),
-                path,
-                method.getDeclaringClass()
-            );
-            return Optional.of(createUdafFactoryInvoker(
-                method,
-                FunctionName.of(udafAnnotation.name()),
-                annotation.description(),
-                annotation.paramSchema(),
-                annotation.aggregateSchema(),
-                annotation.returnSchema()
-            ));
-          } catch (final Exception e) {
-            LOGGER.warn(
-                "Failed to create UDAF name={}, method={}, class={}, path={}",
-                udafAnnotation.name(),
-                method.getName(),
-                method.getDeclaringClass(),
-                path,
-                e
-            );
-          }
-          return Optional.<UdafFactoryInvoker>empty();
-        }).filter(Optional::isPresent)
-        .map(Optional::get)
-        .collect(Collectors.toList());
+
+    final List<UdafFactoryInvoker> invokers = new ArrayList<>();
+    for (Method method : theClass.getMethods()) {
+      if (method.getAnnotation(UdafFactory.class) != null) {
+        if (!Modifier.isStatic(method.getModifiers())) {
+          LOGGER.warn(
+              "Trying to create a UDAF from a non-static factory method. Udaf factory"
+                  + " methods must be static. class={}, method={}, name={}",
+              method.getDeclaringClass(),
+              method.getName(),
+              udafAnnotation.name()
+          );
+          continue;
+        }
+        final UdafFactory annotation = method.getAnnotation(UdafFactory.class);
+        try {
+          LOGGER.info(
+              "Adding UDAF name={} from path={} class={}",
+              udafAnnotation.name(),
+              path,
+              method.getDeclaringClass()
+          );
+          final UdafFactoryInvoker invoker = createUdafFactoryInvoker(
+              method,
+              FunctionName.of(udafAnnotation.name()),
+              annotation.description(),
+              annotation.paramSchema(),
+              annotation.aggregateSchema(),
+              annotation.returnSchema()
+          );
+          invokers.add(invoker);
+        } catch (final Exception e) {
+          LOGGER.warn(
+              "Failed to create UDAF name={}, method={}, class={}, path={}",
+              udafAnnotation.name(),
+              method.getName(),
+              method.getDeclaringClass(),
+              path,
+              e
+          );
+        }
+      }
+    }
 
     functionRegistry.addAggregateFunctionFactory(new UdafAggregateFunctionFactory(
         new UdfMetadata(
@@ -110,7 +105,7 @@ class UdafLoader {
             path,
             false
         ),
-        argCreators
+        invokers
     ));
   }
 

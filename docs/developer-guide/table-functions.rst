@@ -4,7 +4,7 @@
 Using Table Functions With KSQL
 ###############################
 
-A _table function_ is a function that returns a set of zero or more rows. Contrast this to a scalar
+A table function is a function that returns a set of zero or more rows. Contrast this to a scalar
 function, which returns a single value.
 
 Table functions are analagous to the ``FlatMap`` operation commonly found in

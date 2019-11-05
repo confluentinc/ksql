@@ -60,7 +60,7 @@ Creating UDFs, UDAFs and UDTFs
 ==============================
 
 KSQL supports creating User Defined Scalar Functions (UDFs), User Defined Aggregate Functions (UDAFs) and
- User Defined Table Functions (UDTFs) via custom jars that are
+User Defined Table Functions (UDTFs) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
 At start up time KSQL scans the jars in the directory looking for any classes that annotated
 with ``@UdfDescription`` (UDF), ``@UdafDescription`` (UDAF) or ``@UdtfDescription`` (UDTF).
@@ -688,11 +688,13 @@ You can use this to better describe what a particular version of the UDF does, f
     public static Udaf<String, Struct, Double> averageStringLength(final String initialString){...}
 
 
+.. _ksql-udtfs:
+
 UDTFs
-----
+-----
 
 To create a UDTF you need to create a class that is annotated with ``@UdtfDescription``.
-Each method in the class that represents a UDF must be public and annotated with ``@Udtf``. The class
+Each method in the class that represents a UDTF must be public and annotated with ``@Udtf``. The class
 you create represents a collection of UDTFs all with the same name but may have different
 arguments and return types.
 
@@ -733,6 +735,9 @@ To use this functionality, you need to specify a method with signature
 Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
 parameter of the ``@Udtf`` annotation.
 
+Please note that if your UDTF method returns a value of type ``List<T>`` then the type referred to
+by the schema provider method is the type ``T`` not the type ``List<T>``.
+
 .. _example-udtf-class:
 
 Example UDTF class
@@ -740,7 +745,11 @@ Example UDTF class
 
 The class below creates a UDTF named ``split_string``. The name of the UDTF is provided in the ``name``
 parameter of the ``UdtfDescription`` annotation. This name is case-insensitive and is what can be
-used to call the UDTF. As can be seen this UDTF can be invoked in two different ways:
+used to call the UDTF.
+
+UDTF methods must return a value of type ``List<T>`` where T is any of the supported KSQL Java types.
+
+As can be seen this UDTF can be invoked in two different ways:
 
 - with a single String containing the String to split
 - with a String containing the String to split and a regex to define the delimiter

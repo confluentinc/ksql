@@ -1,21 +1,21 @@
 .. _implement-a-udf:
 
-Implement a User-defined Function (UDF and UDAF)
-################################################
+Implement a User-defined Function (UDF, UDAF or UDTF)
+#####################################################
 
 Prerequisites
      - `Apache Maven <https://maven.apache.org/download.cgi>`__
      - |cp| :ref:`installed <installation>` locally
      - Internet connectivity for downloading Confluent POM files
 
-Create a user-defined function (UDF) or a user-defined aggregation function
-(UDAF) by following these steps:
+Create a user-defined function (UDF), a user-defined aggregation function
+(UDAF) or a user-defined table function (UDTF) by following these steps:
 
 #. :ref:`Create the KSQL extensions directory <create-ksql-ext-dir>` that
-   contains your UDF and UDAF packages.
+   contains your packages.
 #. :ref:`Create Java source and project files <create-source-and-project-files>`
    for your implementation.
-#. :ref:`Build the package <build-udf-package>` for your UDF or UDAF.
+#. :ref:`Build the package <build-udf-package>` for your function.
 #. :ref:`Use your custom function <use-udf-in-ksql-query>` in a KSQL query or
    statement.
 
@@ -379,13 +379,21 @@ Your output should resemble:
 
 Press Ctrl+C to terminate the query.
 
-Custom Aggregation Function (UDAF)
-**********************************
+User Defined Aggregate Function (UDAF)
+**************************************
 
 Implementing a user-defined aggregation function (UDAF) is similar to the way
 that you implement a UDF. You use the ``UdafDescription`` and ``UdafFactory``
 annotations in your Java code, and you deploy a JAR to the KSQL extensions
 directory. For more information, see :ref:`ksql-udafs`.
+
+User Defined Table Function (UDTF)
+**********************************
+
+Implementing a user-defined table function (UDTF) is similar to the way
+that you implement a UDF. You use the ``UdtfDescription`` and ``Udtf``
+annotations in your Java code, and you deploy a JAR to the KSQL extensions
+directory. For more information, see :ref:`ksql-udtfs`.
 
 Next Steps
 **********

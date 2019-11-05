@@ -1,8 +1,8 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
- * Licensed under the Confluent Community License (the "License"); you may not use
- * this file except in compliance with the License.  You may obtain a copy of the
+ * Licensed under the Confluent Community License (the "License"; you may not use
+ * this file except in compliance with the License. You may obtain a copy of the
  * License at
  *
  * http://www.confluent.io/confluent-community-license
@@ -13,14 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.util;
+package io.confluent.ksql.execution.expression.tree;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
 
-public class StringUtilTest {
+public class StringLiteralTest {
 
   @Test
   public void testNotCleanIfMissingQuotePrefix() {
@@ -61,8 +61,9 @@ public class StringUtilTest {
     assertCleaned("'YYYY-''W''ww-u'", "YYYY-'W'ww-u");
   }
 
-  private static void assertCleaned(final String input, final String expected){
-    final String result = StringUtil.cleanQuotes(input);
-    assertThat(result, is(expected));
+  private static void assertCleaned(final String input, final String expected) {
+    final StringLiteral result = new StringLiteral(input);
+    assertThat(result.getValue(), is(expected));
   }
+
 }

@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.cli.console.cmd;
 
-import io.confluent.ksql.util.StringUtil;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.List;
@@ -64,7 +63,17 @@ public final class Spool implements CliSpecificCommand {
     if (filePathOrOff.equalsIgnoreCase(OFF)) {
       unsetSpool.run();
     } else {
-      setSpool.accept(new File(StringUtil.cleanQuotes(filePathOrOff)));
+      setSpool.accept(new File(cleanQuotes(filePathOrOff)));
     }
+  }
+
+  private static String cleanQuotes(final String stringWithQuotes) {
+    if (!stringWithQuotes.startsWith("'") || !stringWithQuotes.endsWith("'")) {
+      return stringWithQuotes;
+    }
+
+    return stringWithQuotes
+        .substring(1, stringWithQuotes.length() - 1)
+        .replaceAll("''", "'");
   }
 }

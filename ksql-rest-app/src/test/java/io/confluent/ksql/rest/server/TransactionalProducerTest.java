@@ -89,7 +89,9 @@ public class TransactionalProducerTest {
   }
 
   @Test
-  public void shouldAssignCorrectPartitionToConsumerAndInitTransaction() {
+  public void shouldAssignCorrectPartitionToConsumerAndInitializeTransaction() {
+    transactionalProducer.initialize();
+
     verify(commandConsumer)
         .assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     verify(commandProducer).initTransactions();

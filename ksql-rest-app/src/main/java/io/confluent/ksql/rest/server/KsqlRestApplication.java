@@ -90,6 +90,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
@@ -108,6 +109,7 @@ import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.common.IsolationLevel;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
@@ -476,7 +478,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
     final Map<String, Object> commandConsumerConfigs = restConfig.getCommandConsumerProperties();
-    commandConsumerConfigs.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
+    commandConsumerConfigs.put(
+        ConsumerConfig.ISOLATION_LEVEL_CONFIG,
+        IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT));
 
     final CommandStore commandStore = CommandStore.Factory.create(
         commandTopicName,
@@ -649,8 +653,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       return;
     }
     final TransactionalProducer transactionalProducer =
-        transactionalProducerFactory.createProducerTransactionManager();
+        transactionalProducerFactory.createTransactionalProducer();
     try {
+      transactionalProducer.initialize();
       transactionalProducer.begin();
   
       final PreparedStatement<?> statement = ProcessingLogServerUtils
@@ -667,8 +672,9 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     } catch (final Exception e) {
       log.warn("Failed to create processing log stream", e);
       transactionalProducer.abort();
+    } finally {
+      transactionalProducer.close();
     }
-    transactionalProducer.close();
   }
 
   /**

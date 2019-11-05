@@ -17,12 +17,14 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
+import java.io.Closeable;
 import org.apache.kafka.clients.producer.RecordMetadata;
 
-public interface TransactionalProducer {
+
+public interface TransactionalProducer extends Closeable {
   void begin();
-  
-  void waitForConsumer();
+
+  void initialize();
 
   RecordMetadata send(CommandId commandId, Command command);
   

@@ -57,7 +57,7 @@ public class TransactionalProducerFactory {
     );
   }
 
-  public TransactionalProducer createProducerTransactionManager() {
+  public TransactionalProducer createTransactionalProducer() {
     return new TransactionalProducerImpl(
         commandTopicName,
         commandRunner,

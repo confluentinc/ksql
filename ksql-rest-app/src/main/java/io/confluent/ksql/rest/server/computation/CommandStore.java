@@ -185,9 +185,13 @@ public class CommandStore implements CommandQueue, Closeable {
     } catch (final TimeoutException e) {
       throw new TimeoutException(
           String.format(
-              "Timeout reached while waiting for command sequence number of %d. (Timeout: %d ms)",
+              "Timeout reached while waiting for command sequence number of %d."
+              + " Caused by: %s"
+              + "(Timeout: %d ms)",
               seqNum,
-              timeout.toMillis()));
+              e.getMessage(),
+              timeout.toMillis()
+          ));
     }
   }
 

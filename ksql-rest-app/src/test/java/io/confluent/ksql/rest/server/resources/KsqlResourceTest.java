@@ -53,6 +53,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
@@ -306,7 +307,7 @@ public class KsqlResourceTest {
         metaStore
     );
 
-    when(transactionalProducerFactory.createProducerTransactionManager())
+    when(transactionalProducerFactory.createTransactionalProducer())
         .thenReturn(transactionalProducer);
 
     ksqlEngine = realEngine;
@@ -849,7 +850,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
+    verify(sandbox, times(2)).execute(any(SandboxedServiceContext.class), eq(configuredStatement));
     verify(commandStore).enqueueCommand(argThat(configured(preparedStatementText(sql))), any(TransactionalProducer.class));
   }
 
@@ -931,7 +932,7 @@ public class KsqlResourceTest {
     makeRequest(sql);
 
     // Then:
-    verify(sandbox).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
+    verify(sandbox, times(2)).execute(any(SandboxedServiceContext.class), eq(CFG_0_WITH_SCHEMA));
     verify(commandStore).enqueueCommand(eq(CFG_1_WITH_SCHEMA), any(TransactionalProducer.class));
   }
 
@@ -1690,6 +1691,7 @@ public class KsqlResourceTest {
         (CommandStatusEntity) ((KsqlEntityList) response.getEntity()).get(0);
     assertThat(commandStatusEntity.getCommandStatus().getStatus(),
         equalTo(CommandStatus.Status.QUEUED));
+    verify(transactionalProducer, times(1)).initialize();
     verify(commandStore).enqueueCommand(
         argThat(is(configured(
             preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT),

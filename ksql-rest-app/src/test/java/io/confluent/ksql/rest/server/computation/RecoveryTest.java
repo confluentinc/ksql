@@ -102,7 +102,7 @@ public class RecoveryTest {
 
   @Before
   public void setup() {
-    when(transactionalProducerFactory.createProducerTransactionManager()).thenReturn(
+    when(transactionalProducerFactory.createTransactionalProducer()).thenReturn(
         transactionalProducer
     );
   }

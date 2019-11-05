@@ -499,13 +499,13 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
             Type.SHORT,
             (short) 1,
-            ConfigDef.Importance.LOW,
+            ConfigDef.Importance.MEDIUM,
             "The replication factor for the internal topics of KSQL server."
         ).define(
             KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY,
             Type.SHORT,
             (short) 1,
-            ConfigDef.Importance.LOW,
+            ConfigDef.Importance.MEDIUM,
             "The minimum number of insync replicas for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,

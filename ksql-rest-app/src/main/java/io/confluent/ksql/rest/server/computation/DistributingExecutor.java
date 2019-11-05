@@ -16,7 +16,7 @@ package io.confluent.ksql.rest.server.computation;
 
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
@@ -70,7 +70,7 @@ public class DistributingExecutor {
 
   public Optional<KsqlEntity> execute(
       final ConfiguredStatement<Statement> statement,
-      final KsqlParser.ParsedStatement parsedStatement,
+      final ParsedStatement parsedStatement,
       final Map<String, Object> mutableScopedProperties,
       final String sql,
       final KsqlExecutionContext executionContext,
@@ -87,7 +87,8 @@ public class DistributingExecutor {
       transactionalProducer.begin();
       
       // Don't perform validation on Terminate Cluster statements
-      if (statement.getStatement() instanceof TerminateCluster) {
+      if (!parsedStatement.getStatementText()
+          .equals(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT)) {
         requestValidator.validate(
             SandboxedServiceContext.create(serviceContext),
             Collections.singletonList(parsedStatement),
@@ -111,7 +112,6 @@ public class DistributingExecutor {
       ));
     } catch (final Exception e) {
       transactionalProducer.abort();
-      transactionalProducer.close();
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);

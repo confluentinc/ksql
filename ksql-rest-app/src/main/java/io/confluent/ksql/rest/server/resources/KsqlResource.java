@@ -190,8 +190,9 @@ public class KsqlResource implements KsqlConfigurable {
 
     ensureValidPatterns(request.getDeleteTopicList());
     final TransactionalProducer transactionalProducer =
-        transactionalProducerFactory.createProducerTransactionManager();
+        transactionalProducerFactory.createTransactionalProducer();
     try {
+      transactionalProducer.initialize();
       final KsqlEntityList entities = handler.execute(
           serviceContext,
           TERMINATE_CLUSTER,
@@ -199,12 +200,12 @@ public class KsqlResource implements KsqlConfigurable {
           request.toString(),
           transactionalProducer
       );
-      transactionalProducer.close();
       return Response.ok(entities).build();
     } catch (final Exception e) {
-      transactionalProducer.close();
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
+    } finally {
+      transactionalProducer.close();
     }
   }
 
@@ -245,9 +246,10 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlRequest request
   ) {
     final TransactionalProducer transactionalProducer =
-        transactionalProducerFactory.createProducerTransactionManager();
+        transactionalProducerFactory.createTransactionalProducer();
 
     try {
+      transactionalProducer.initialize();
       final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
 
       validator.validate(
@@ -257,19 +259,15 @@ public class KsqlResource implements KsqlConfigurable {
           request.getKsql()
       );
 
-      final KsqlEntityList entities = handler.execute(
+      return handler.execute(
           serviceContext,
           statements,
           request.getStreamsProperties(),
           request.getKsql(),
           transactionalProducer
       );
-
+    } finally {
       transactionalProducer.close();
-      return entities;
-    } catch (Exception e) {
-      transactionalProducer.close();
-      throw e;
     }
   }
 

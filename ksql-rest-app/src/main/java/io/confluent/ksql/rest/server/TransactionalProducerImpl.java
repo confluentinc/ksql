@@ -42,10 +42,11 @@ import org.apache.kafka.common.TopicPartition;
 
 
 /**
- * Used to handle transactional writes to the command topic
+ * Used to handle transactional produces to the command topic
  */
 public class TransactionalProducerImpl implements TransactionalProducer {
 
+  private static final int COMMAND_TOPIC_PARTITION = 0;
   private final TopicPartition commandTopicPartition;
   private final String commandTopicName;
   
@@ -88,7 +89,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   ) {
     this.commandTopicPartition = new TopicPartition(
         Objects.requireNonNull(commandTopicName, "commandTopicName"),
-        0
+        COMMAND_TOPIC_PARTITION
     );
     this.commandQueueCatchupTimeout = 
         Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
@@ -96,25 +97,26 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
     this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
-    initialize();
   }
 
-  private void initialize() {
+  public void initialize() {
     commandConsumer.assign(Collections.singleton(commandTopicPartition));
     commandProducer.initTransactions();
   }
 
-  /** begins transaction */
+  /** 
+   * Begins transaction and then waits for CommandRunner to process all records up to 
+   * the start of the transaction
+   */
   public void begin() {
     commandProducer.beginTransaction();
     waitForConsumer();
   }
 
-  public void waitForConsumer() {
+  private void waitForConsumer() {
     try {
       final long endOffset = getEndOffset();
       
-      // timeout hardcoded for now
       commandRunner.ensureProcessedPastOffset(endOffset - 1, commandQueueCatchupTimeout);
     } catch (final InterruptedException e) {
       final String errorMsg = 
@@ -137,7 +139,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   public RecordMetadata send(final CommandId commandId, final Command command) {
     final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
         commandTopicName,
-        0,
+        COMMAND_TOPIC_PARTITION,
         Objects.requireNonNull(commandId, "commandId"),
         Objects.requireNonNull(command, "command"));
     try {
@@ -150,7 +152,6 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     } catch (final InterruptedException e) {
       throw new RuntimeException(e);
     } catch (KafkaException e) {
-      commandProducer.abortTransaction();
       throw new KafkaException(e);
     }
   }

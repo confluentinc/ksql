@@ -228,9 +228,13 @@ public class CommandRunner implements Closeable {
       throw new TimeoutException(
           String.format(
               "Timeout reached while waiting for commandRunner to process up to offset %d."
+              + " Caused by: %s."
               + "(Timeout: %d ms)",
               seqNum,
-          timeout.toMillis()));
+              e.getMessage(),
+              timeout.toMillis()
+          )
+      );
     }
   }
 

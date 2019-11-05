@@ -158,7 +158,7 @@ public class KsqlRestApplicationTest {
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
-    when(transactionalProducerFactory.createProducerTransactionManager()).
+    when(transactionalProducerFactory.createTransactionalProducer()).
         thenReturn(transactionalProducer);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(

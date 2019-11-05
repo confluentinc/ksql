@@ -40,9 +40,10 @@ def job = {
                 doGenerateSubmoduleConfigurations: false,
                 extensions: [],
                 submoduleCfg: [],
-                relativeTargetDir: 'ksql-db'
+                relativeTargetDir: 'ksql-db',
                 userRemoteConfigs: [[credentialsId: 'ConfluentJenkins Github SSH Key',
-                    url: 'git@github.com:confluentinc/ksql.git']]]
+                    url: 'git@github.com:confluentinc/ksql.git']]
+            ]
     }
 
     stage('Set Project Version') {

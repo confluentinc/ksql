@@ -75,7 +75,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> into(
       final String kafkaTopicName,
       final LogicalSchema outputSchema,
@@ -101,7 +100,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<K> filter(
       final Expression filterExpression,
@@ -158,7 +156,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public SchemaKGroupedStream groupBy(
       final ValueFormat valueFormat,
       final List<Expression> groupByExpressions,
@@ -170,7 +167,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
     final LegacyField legacyKeyField = LegacyField.notInSchema(aggregateKeyName, SqlTypes.STRING);
     final Optional<ColumnRef> newKeyField = getSchema()
-        .findValueColumn(ColumnRef.withoutSource(aggregateKeyName.name()))
+        .findValueColumn(aggregateKeyName.withoutSource())
         .map(Column::ref);
 
     final TableGroupBy<K> step = ExecutionStepFactory.tableGroupBy(

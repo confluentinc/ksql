@@ -293,7 +293,27 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldGetColumnIndex() {
+  public void shouldFindExactColumnWithSource() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(F0, SqlTypes.BIGINT)
+        .valueColumn(BOB, F0, SqlTypes.STRING)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.findColumn(ColumnRef.withoutSource(F0)),
+        is(Optional.of(Column.of(ColumnRef.withoutSource(F0), SqlTypes.BIGINT)))
+    );
+
+    assertThat(
+        schema.findColumn(ColumnRef.of(BOB, F0)),
+        is(Optional.of(Column.of(ColumnRef.of(BOB, F0), SqlTypes.STRING)))
+    );
+  }
+
+  @Test
+  public void shouldGetValueColumnIndex() {
     assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(F0)), is(OptionalInt.of(0)));
     assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(F1)), is(OptionalInt.of(1)));
   }

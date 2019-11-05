@@ -109,13 +109,13 @@ public final class LogicalSchema {
   }
 
   /**
-   * Search for a column with the supplied {@code target}.
+   * Search for a column with the supplied {@code columnRef}.
    *
-   * @param target the column name, where any alias is ignored.
+   * @param columnRef the column source and name to match.
    * @return the column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findColumn(final ColumnRef target) {
-    return findNamespacedColumn(thatMatches(target))
+  public Optional<Column> findColumn(final ColumnRef columnRef) {
+    return findNamespacedColumn(withRef(columnRef))
         .map(NamespacedColumn::column);
   }
 
@@ -125,8 +125,9 @@ public final class LogicalSchema {
    * @param target the column name, where any alias is ignored.
    * @return the value column if found, else {@code Optional.empty()}.
    */
+  // todo(ac): Exact version
   public Optional<Column> findValueColumn(final ColumnRef target) {
-    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(thatMatches(target)))
+    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(thatLooselyMatches(target)))
         .map(NamespacedColumn::column);
   }
 
@@ -136,6 +137,7 @@ public final class LogicalSchema {
    * @param target the exact name of the column to get the index of.
    * @return the index if it exists or else {@code empty()}.
    */
+  // Todo(ac): exact match version?
   public OptionalInt valueColumnIndex(final ColumnRef target) {
     int idx = 0;
     for (final Column column : value()) {
@@ -312,19 +314,24 @@ public final class LogicalSchema {
     value.stream()
         .filter(c -> !findNamespacedColumn(
             (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
-                .and(thatMatches(c.column().ref()))
+                .and(thatLooselyMatches(c.column().ref())) // Todo(ac): exact?
             )).isPresent())
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());
   }
 
-  private static Predicate<NamespacedColumn> thatMatches(final ColumnRef ref) {
+  // Todo(ac): drop
+  private static Predicate<NamespacedColumn> thatLooselyMatches(final ColumnRef ref) {
     return c -> c.column().matches(ref);
   }
 
+  private static Predicate<NamespacedColumn> withRef(final ColumnRef ref) {
+    return c -> c.column().ref().equals(ref);
+  }
+
   private static Predicate<NamespacedColumn> withName(final ColumnName name) {
-    return c -> c.column().matches(ColumnRef.withoutSource(name));
+    return c -> c.column().name().equals(name);
   }
 
   private static Predicate<NamespacedColumn> withNamespace(final Namespace ns) {

@@ -459,7 +459,7 @@ class Analyzer {
       final ColumnRef fieldName = joinFieldName.get();
 
       final Optional<ColumnRef> joinField =
-          getJoinFieldNameFromSource(fieldName, sourceAlias, sourceSchema);
+          getJoinFieldNameFromSource(fieldName.withoutSource(), sourceAlias, sourceSchema);
 
       return joinField
           .orElseThrow(() -> new KsqlException(

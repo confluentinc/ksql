@@ -72,7 +72,7 @@ final class SourceSchemas {
       return ImmutableSet.of();
     }
 
-    return sourceSchema.findColumn(target).isPresent()
+    return sourceSchema.findColumn(target.withoutSource()).isPresent()
         ? ImmutableSet.of(sourceName)
         : ImmutableSet.of();
   }

@@ -124,6 +124,7 @@ public final class Column {
    * @param ref the reference to check
    * @return whether or not {@code ref} matches this instance
    */
+  // todo(ac): drop?
   public boolean matches(final ColumnRef ref) {
     return ref.name().equals(this.ref.name())
         && (!source().isPresent()

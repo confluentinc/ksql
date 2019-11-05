@@ -16,13 +16,13 @@
 package io.confluent.ksql.analyzer;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
-import io.confluent.ksql.execution.expression.tree.DereferenceExpression;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.name.ColumnName;
@@ -30,7 +30,8 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
-import java.util.Optional;
+import java.util.Arrays;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.junit.Before;
 import org.junit.Rule;
@@ -95,49 +96,29 @@ public class ExpressionAnalyzerTest {
   }
 
   @Test
-  public void shouldNotThrowOnMultipleSourcesIfFullyQualified() {
+  public void shouldGetSourcesUsingFullColumnRef() {
     // Given:
-    final Expression expression = new ColumnReferenceExp(
-        ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"))
-    );
+    final ColumnRef column = ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"));
+    final Expression expression = new ColumnReferenceExp(column);
 
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("qualified"))))
-        .thenReturn(ImmutableSet.of("multiple", "sources", "fully").stream().map(SourceName::of).collect(Collectors.toSet()));
+    when(sourceSchemas.sourcesWithField(any())).thenReturn(sourceNames("something"));
 
     // When:
     analyzer.analyzeExpression(expression, true);
-
-    // Then: did not throw
-  }
-
-  @Test
-  public void shouldThrowOnMultipleSourcesIfFullyQualifiedButNoMatch() {
-    // Given:
-    final Expression expression = new ColumnReferenceExp(
-        ColumnRef.of(SourceName.of("fully"), ColumnName.of("qualified"))
-    );
-
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("qualified"))))
-        .thenReturn(ImmutableSet.of("not-fully", "also-not-fully").stream().map(SourceName::of).collect(Collectors.toSet()));
 
     // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source 'fully', used in 'fully.qualified' cannot be resolved.");
-
-    // When:
-    analyzer.analyzeExpression(expression, true);
+    verify(sourceSchemas).sourcesWithField(column);
   }
 
   @Test
-  public void shouldThrowOnMultipleSourcesIfNotFullyQualified() {
+  public void shouldThrowOnMultipleSources() {
     // Given:
     final Expression expression = new ColumnReferenceExp(
         ColumnRef.withoutSource(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("just-name"))))
-        .thenReturn(ImmutableSet.of("multiple", "sources").stream().map(SourceName::of).collect(Collectors.toSet()));
+    when(sourceSchemas.sourcesWithField(any()))
+        .thenReturn(sourceNames("multiple", "sources"));
 
     // Then:
     expectedException.expect(KsqlException.class);
@@ -155,7 +136,7 @@ public class ExpressionAnalyzerTest {
         ColumnRef.withoutSource(ColumnName.of("just-name"))
     );
 
-    when(sourceSchemas.sourcesWithField(ColumnRef.withoutSource(ColumnName.of("just-name"))))
+    when(sourceSchemas.sourcesWithField(any()))
         .thenReturn(ImmutableSet.of());
 
     // Then:
@@ -167,25 +148,9 @@ public class ExpressionAnalyzerTest {
     analyzer.analyzeExpression(expression, true);
   }
 
-  @Test
-  public void shouldThrowOnUnknownStructColumn() {
-    // Given:
-    final Expression expression = new DereferenceExpression(
-        Optional.empty(),
-        new ColumnReferenceExp(
-            ColumnRef.withoutSource(ColumnName.of("source-column"))
-        ),
-        "theFieldName"
-    );
-
-    when(sourceSchemas.sourcesWithField(any())).thenReturn(ImmutableSet.of());
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Column 'source-column' cannot be resolved.");
-
-    // When:
-    analyzer.analyzeExpression(expression, true);
+  private static Set<SourceName> sourceNames(final String... names) {
+    return Arrays.stream(names)
+        .map(SourceName::of)
+        .collect(Collectors.toSet());
   }
 }

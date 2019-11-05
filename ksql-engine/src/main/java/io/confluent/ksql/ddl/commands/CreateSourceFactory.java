@@ -151,14 +151,14 @@ public final class CreateSourceFactory {
       final CreateSource statement,
       final LogicalSchema schema) {
     if (statement.getProperties().getKeyField().isPresent()) {
-      final ColumnName columnName = statement.getProperties().getKeyField().get().name();
-      schema.findValueColumn(ColumnRef.withoutSource(columnName)).orElseThrow(
+      final ColumnRef column = statement.getProperties().getKeyField().get();
+      schema.findValueColumn(column).orElseThrow(
           () -> new KsqlException(
               "The KEY column set in the WITH clause does not exist in the schema: '"
-                  + columnName.toString(FormatOptions.noEscape()) + "'"
+                  + column.toString(FormatOptions.noEscape()) + "'"
           )
       );
-      return Optional.of(columnName);
+      return Optional.of(column.name());
     } else {
       return Optional.empty();
     }

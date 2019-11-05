@@ -28,7 +28,6 @@
   "ksql.streams.topology.optimization" : "all",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.metrics.tags.custom" : "",
-  "ksql.query.fields.key.legacy" : "false",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
   "ksql.functions.substring.legacy.args" : "true",

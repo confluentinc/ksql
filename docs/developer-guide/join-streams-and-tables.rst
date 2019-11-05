@@ -35,23 +35,21 @@ combination of a ``pageviews`` stream and a ``users`` table:
 
 For the full code example, see :ref:`ksql_quickstart-docker`.
 
-When you join two streams, you must specify a WITHIN clause for matching
-records that both occur within a specified time interval. For valid time units,
-see :ref:`ksql-time-units`.
+When you join two streams, you must specify a WITHIN clause for
+matching records that both occur within a specified time interval. For valid
+time units, see :ref:`ksql-time-units`.
 
 Here's an example stream-stream join that combines a ``shipments`` stream with
-an ``orders`` stream, within a time window. The resulting ``late_orders`` stream
-detects late orders by matching ``shipments`` rows with ``orders`` rows that
-occur within a two-hour window. If there's no match, the right-hand side of the
-join result is NULL, which indicates that the order wasn't shipped within the
-expected time of two hours.
+an ``orders`` stream. The resulting ``shipped_orders`` stream contains all
+orders shipped within two hours of when the order was placed.
 
 .. code:: sql
 
-   CREATE STREAM late_orders AS
-     SELECT o.orderid, o.itemid FROM orders o
-     FULL OUTER JOIN shipments s WITHIN 2 HOURS
-     ON s.orderid = o.orderid WHERE s.orderid IS NULL;
+   CREATE STREAM shipped_orders AS
+     SELECT o.orderid, o.itemid, s.shipmentid
+     FROM orders o
+     INNER JOIN shipments s WITHIN 2 HOURS
+     ON s.orderid = o.orderid;
 
 Joins and Windows
 *****************

@@ -2104,8 +2104,7 @@ public class KsqlResourceTest {
               SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
-              KeyField
-                  .of(schema.value().get(0).ref(), schema.value().get(0)),
+              KeyField.of(schema.value().get(0).ref()),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));
@@ -2117,8 +2116,7 @@ public class KsqlResourceTest {
               SourceName.of(sourceName),
               schema,
               SerdeOption.none(),
-              KeyField
-                  .of(schema.value().get(0).ref(), schema.value().get(0)),
+              KeyField.of(schema.value().get(0).ref()),
               new MetadataTimestampExtractionPolicy(),
               ksqlTopic
           ));

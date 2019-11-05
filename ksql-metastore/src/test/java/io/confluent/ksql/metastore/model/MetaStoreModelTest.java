@@ -24,7 +24,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.NullPointerTester;
 import com.google.common.testing.NullPointerTester.Visibility;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -65,8 +64,7 @@ public class MetaStoreModelTest {
       .put(ColumnRef.class, ColumnRef.withoutSource(ColumnName.of("f0")))
       .put(org.apache.kafka.connect.data.Field.class,
           new org.apache.kafka.connect.data.Field("bob", 1, Schema.OPTIONAL_STRING_SCHEMA))
-      .put(KeyField.class, KeyField.of(Optional.empty(), Optional.empty()))
-      .put(LegacyField.class, LegacyField.of(ColumnRef.withoutSource(ColumnName.of("something")), SqlTypes.DOUBLE))
+      .put(KeyField.class, KeyField.of(Optional.empty()))
       .put(Column.class, Column.of(ColumnName.of("someField"), SqlTypes.INTEGER))
       .put(SqlType.class, SqlTypes.INTEGER)
       .put(LogicalSchema.class, LogicalSchema.builder()

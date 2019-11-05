@@ -53,6 +53,8 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
+import org.junit.Ignore;
+import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
@@ -65,9 +67,8 @@ import org.w3c.dom.NodeList;
  *
  * The steps to generate topology files:
  *
- * 1. Run this class by running the test
- * {@code io.confluent.ksql.test.ManualTopologyFileGeneratorTest} BEFORE you update the pom
- * with a new version.
+ * 1. Run this class by running the test {@link #manuallyGenerateTopologies} BEFORE you update the
+ * pom with a new version.
  *
  * 2. This class will generate expected topology files
  * for the version specified in the pom file.  The program writes the files to
@@ -75,7 +76,18 @@ import org.w3c.dom.NodeList;
  * VERSION_NUM is the version defined in ksql-engine/pom.xml &lt;parent&gt;&lt;version&gt; element.
  *
  */
+@Ignore
 public final class TopologyFileGenerator {
+
+    /**
+     * This test exists only to be able to generate topologies as part of the release process
+     * It can be run manually from the IDE
+     * It is deliberately excluded from the test suite
+     */
+    @Test
+    public void manuallyGenerateTopologies() throws Exception {
+        generateTopologies();
+    }
 
     private static final StubKafkaService stubKafkaService = StubKafkaService.create();
     private static final String BASE_DIRECTORY = "src/test/resources/expected_topology/";

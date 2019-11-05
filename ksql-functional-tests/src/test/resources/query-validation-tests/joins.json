@@ -37,7 +37,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -98,7 +98,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -130,7 +130,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -165,7 +165,7 @@
           "key field is null because field 'TT_ID' does not always match the key of the output record due to it being an left join"
         ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -197,7 +197,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -226,7 +226,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -282,7 +282,7 @@
           "keyField is wrong - should be T_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "TT.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -319,7 +319,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "TT_ID", "legacyName": "TT.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": "TT_ID"}
         ]
       }
     },
@@ -397,7 +397,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -428,7 +428,7 @@
           "key field has incorrect name - should be TT_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -466,7 +466,7 @@
           "key field is null because field 'T_ID' does not always match the key of the output record due to it being a full outer join"
         ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -503,7 +503,7 @@
           "key field is null because field 'TT_ID' does not always match the key of the output record due to it being a full outer join"
         ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -535,7 +535,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": "T_ID"}
         ]
       }
     },
@@ -566,7 +566,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName":null}}
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": null}
         ]
       }
     },
@@ -600,7 +600,7 @@
           "key field is null because field 'TT_ID' does not always match the key of the output record due to it being an outer join"
         ],
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": null}
         ]
       }
     },
@@ -631,7 +631,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "table", "keyField": "T_ID"}
         ]
       }
     },
@@ -661,7 +661,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "table", "keyField": "T_ID"}
         ]
       }
     },
@@ -690,7 +690,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+          {"name": "INNER_JOIN", "type": "table", "keyField": null}
         ]
       }
     },
@@ -722,7 +722,7 @@
           "key field has incorrect name - should be TT_ID as the right key always matches the record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+          {"name": "INNER_JOIN", "type": "table", "keyField": null}
         ]
       }
     },
@@ -757,7 +757,7 @@
           "key field is null because field 'T_ID' does not always match the key of the output record due to it being a full outer join"
         ],
         "sources": [
-          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+          {"name": "OUTER_JOIN", "type": "table", "keyField": null}
         ]
       }
     },
@@ -791,7 +791,7 @@
           "key field is null because field 'TT_ID' does not always match the key of the output record due to it being a full outer join"
         ],
         "sources": [
-          {"name": "OUTER_JOIN", "type": "table", "keyField": {"name": null, "legacyName": null}}
+          {"name": "OUTER_JOIN", "type": "table", "keyField": null}
         ]
       }
     },
@@ -820,7 +820,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -848,7 +848,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -879,7 +879,7 @@
           "key field is null because field 'TT_ID' does not always match the key of the output record due to it being an outer join"
         ],
         "sources": [
-          {"name": "LEFT_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -907,7 +907,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -934,7 +934,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -964,7 +964,7 @@
           "key field has incorrect name - should be TT_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -992,7 +992,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },
@@ -1024,7 +1024,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -1051,7 +1051,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -1081,7 +1081,7 @@
           "key field has incorrect name - should be TT_ID as right join key always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -1111,7 +1111,7 @@
           "key field has incorrect name - should be ID. See https://github.com/confluentinc/ksql/issues/2743."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -1141,7 +1141,7 @@
           "key field has incorrect name - should be ID as right rowkey always matches record key. See https://github.com/confluentinc/ksql/issues/2741."
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": null, "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": null}
         ]
       }
     },
@@ -1173,7 +1173,7 @@
           "see: https://github.com/confluentinc/ksql/issues/2742"
         ],
         "sources": [
-          {"name": "INNER_JOIN", "type": "stream", "keyField": {"name": "ID1", "legacyName": "T.ROWKEY", "legacySchema": "STRING"}}
+          {"name": "INNER_JOIN", "type": "stream", "keyField": "ID1"}
         ]
       }
     },
@@ -1232,7 +1232,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "table", "keyField": {"name": "T_ID", "legacyName": "T_ID", "legacySchema": "BIGINT"}}
+          {"name": "OUTPUT", "type": "table", "keyField": "T_ID"}
         ]
       }
     },
@@ -1264,7 +1264,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "S_ID"}}
+          {"name": "OUTPUT", "type": "stream", "keyField": "S_ID"}
         ]
       }
     },
@@ -1284,7 +1284,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "OUTPUT", "type": "stream", "keyField": {"name": "S_ID"}}
+          {"name": "OUTPUT", "type": "stream", "keyField": "S_ID"}
         ]
       }
     },
@@ -1726,7 +1726,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "LEFT_ID"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "LEFT_ID"}
         ]
       }
     }

@@ -69,8 +69,8 @@
       ],
       "post": {
         "sources": [
-          {"name": "TEST", "type": "table", "keyField": {"name": "`some.key`", "legacyName": "`some.key`"}},
-          {"name": "OUTPUT", "type": "table", "keyField": {"name": "`some.key`", "legacyName": "`some.key`"}}
+          {"name": "TEST", "type": "table", "keyField": "`some.key`"},
+          {"name": "OUTPUT", "type": "table", "keyField": "`some.key`"}
         ]
       }
     },

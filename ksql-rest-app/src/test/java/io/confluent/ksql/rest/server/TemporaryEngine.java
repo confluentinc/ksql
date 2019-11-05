@@ -59,7 +59,6 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.rules.ExternalResource;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 public class TemporaryEngine extends ExternalResource {
 
   public static final LogicalSchema SCHEMA = LogicalSchema.builder()
@@ -72,7 +71,6 @@ public class TemporaryEngine extends ExternalResource {
       .build();
 
   private MutableMetaStore metaStore;
-  private InternalFunctionRegistry functionRegistry;
 
   private KsqlConfig ksqlConfig;
   private KsqlEngine engine;
@@ -80,7 +78,7 @@ public class TemporaryEngine extends ExternalResource {
 
   @Override
   protected void before() {
-    functionRegistry = new InternalFunctionRegistry();
+    final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
     metaStore = new MetaStoreImpl(functionRegistry);
 
     serviceContext = TestServiceContext.create();
@@ -131,9 +129,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(
-                    ColumnRef.withoutSource(ColumnName.of("val")),
-                    SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("val"))).get()),
+                KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -145,9 +141,7 @@ public class TemporaryEngine extends ExternalResource {
                 SourceName.of(name),
                 SCHEMA,
                 SerdeOption.none(),
-                KeyField.of(
-                    ColumnRef.withoutSource(ColumnName.of("val")),
-                    SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("val"))).get()),
+                KeyField.of(ColumnRef.withoutSource(ColumnName.of("val"))),
                 new MetadataTimestampExtractionPolicy(),
                 topic
             );
@@ -184,6 +178,7 @@ public class TemporaryEngine extends ExternalResource {
     return serviceContext;
   }
 
+  @SuppressWarnings({"MethodMayBeStatic", "unused"}) // Invoked via reflection
   @UdtfDescription(name = "test_udtf1", description = "test_udtf1 description")
   public static class TestUdtf1 {
 
@@ -198,6 +193,7 @@ public class TemporaryEngine extends ExternalResource {
     }
   }
 
+  @SuppressWarnings({"MethodMayBeStatic", "unused"}) // Invoked via reflection
   @UdtfDescription(name = "test_udtf2", description = "test_udtf2 description")
   public static class TestUdtf2 {
 
@@ -211,5 +207,4 @@ public class TemporaryEngine extends ExternalResource {
       return ImmutableList.of(1.0d);
     }
   }
-
 }

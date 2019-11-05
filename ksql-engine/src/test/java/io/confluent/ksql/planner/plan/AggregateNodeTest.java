@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.planner.plan;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.SOURCE_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.TRANSFORM_NODE;
 import static io.confluent.ksql.planner.plan.PlanTestUtil.getNodeByName;
@@ -48,7 +47,6 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
@@ -347,7 +345,6 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream.getKeyField().ref(), is(Optional.empty()));
-    assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("UCASE(KSQL_INTERNAL_COL_0)")));
   }
 
   @Test
@@ -358,7 +355,6 @@ public class AggregateNodeTest {
 
     // Then:
     assertThat(stream.getKeyField().ref(), is(Optional.empty()));
-    assertThat(stream.getKeyField().legacy(), OptionalMatchers.of(hasName("(KSQL_INTERNAL_COL_0 + 10)")));
   }
 
   private SchemaKStream buildQuery(final String queryString) {

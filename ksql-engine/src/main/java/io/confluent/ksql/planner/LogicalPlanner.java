@@ -151,14 +151,14 @@ public class LogicalPlanner {
     final LogicalSchema schema = sourcePlanNode.getSchema();
 
     if (schema.isMetaColumn(partitionBy.name())) {
-      return sourceKeyField.withName(Optional.empty());
+      return KeyField.none();
     }
 
     if (schema.isKeyColumn(partitionBy.name())) {
       return sourceKeyField;
     }
 
-    return sourceKeyField.withName(partitionBy);
+    return KeyField.of(partitionBy);
   }
 
   private TimestampExtractionPolicy getTimestampExtractionPolicy(

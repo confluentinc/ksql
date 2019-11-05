@@ -25,15 +25,16 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
+
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlConfigTestUtil;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.engine.KsqlEngineTestUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStoreImpl;
+import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
@@ -59,7 +60,6 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class PhysicalPlanBuilderTest {
 
@@ -422,150 +422,6 @@ public class PhysicalPlanBuilderTest {
   @Test
   public void shouldHandleRightTableJoiningOnRowKey() {
     // Given:
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.id = test5.rowkey;");
-
-    // Then: did not throw.
-  }
-
-  @Test
-  public void shouldRepartitionLeftStreamIfNotCorrectKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test2", "test3");
-    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
-
-    // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
-        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.col1 = test3.id;")
-        .get(0);
-
-    // Then:
-    assertThat(result.getExecutionPlan(),
-        containsString("[ REKEY ] | Schema: [TEST2."));
-  }
-
-  @Test
-  public void shouldRepartitionRightStreamIfNotCorrectKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test2", "test3");
-    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
-
-    // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
-        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.id = test3.col0;")
-        .get(0);
-
-    // Then:
-    assertThat(result.getExecutionPlan(),
-        containsString("[ REKEY ] | Schema: [TEST3."));
-  }
-
-  @Test
-  public void shouldThrowIfLeftTableNotJoiningOnTableKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST4) key column (ID) is not the column "
-            + "used in the join criteria (TEST4.COL0).");
-
-    // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.col0 = test5.id;");
-  }
-
-  @Test
-  public void shouldThrowIfRightTableNotJoiningOnTableKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // Then:
-    expectedException.expect(KsqlException.class);
-    expectedException.expectMessage(
-        "Source table (TEST5) key column (ID) is not the column "
-            + "used in the join criteria (TEST5.COL0).");
-
-    // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.id = test5.col0;");
-  }
-
-  @Test
-  public void shouldRepartitionBothStreamsIfJoiningOnRowKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test2", "test3");
-    execute(CREATE_STREAM_TEST2 + CREATE_STREAM_TEST3);
-
-    // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
-        + "SELECT * FROM test2 JOIN test3 WITHIN 1 SECOND "
-        + "ON test2.rowkey = test3.rowkey;")
-        .get(0);
-
-    // Then:
-    assertThat(result.getExecutionPlan(),
-        containsString("[ REKEY ] | Schema: [TEST2."));
-    assertThat(result.getExecutionPlan(),
-        containsString("[ REKEY ] | Schema: [TEST3."));
-  }
-
-  @Test
-  public void shouldRepartitionBothStreamsIfJoiningOnRowKeyWhenStreamsHaveNoKeyField_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test6", "test7");
-    execute(CREATE_STREAM_TEST6 + CREATE_STREAM_TEST7);
-
-    // When:
-    final QueryMetadata result = execute("CREATE STREAM s1 AS "
-        + "SELECT * FROM test6 JOIN test7 WITHIN 1 SECOND "
-        + "ON test6.rowkey = test7.rowkey;")
-        .get(0);
-
-    // Then:
-    assertThat(result.getExecutionPlan(),
-        containsString("[ REKEY ] | Schema: [TEST7."));
-    assertThat(result.getExecutionPlan(),
-        containsString("[ REKEY ] | Schema: [TEST7."));
-  }
-
-  @Test
-  public void shouldHandleLeftTableJoiningOnRowKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
-    givenKafkaTopicsExist("test4", "test5");
-    execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
-
-    // When:
-    execute("CREATE TABLE t1 AS "
-        + "SELECT * FROM test4 JOIN test5 "
-        + "ON test4.rowkey = test5.id;");
-
-    // Then: did not throw.
-  }
-
-  @Test
-  public void shouldHandleRightTableJoiningOnRowKey_Legacy() {
-    // Given:
-    givenConfigWith(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true);
     givenKafkaTopicsExist("test4", "test5");
     execute(CREATE_TABLE_TEST4 + CREATE_TABLE_TEST5);
 

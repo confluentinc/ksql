@@ -77,8 +77,7 @@ public final class MetaStoreFixture {
         SourceName.of("TEST0"),
         test1Schema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")), test1Schema.findValueColumn(
-            ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
         ksqlTopic0
     );
@@ -98,8 +97,7 @@ public final class MetaStoreFixture {
         test1Schema,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0")),
-            test1Schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
+            ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
         ksqlTopic1
     );
@@ -126,8 +124,7 @@ public final class MetaStoreFixture {
         test2Schema,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0")),
-            test2Schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
+            ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
         ksqlTopic2
     );
@@ -176,8 +173,7 @@ public final class MetaStoreFixture {
         SourceName.of("ORDERS"),
         ordersSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME")),
-            ordersSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
         timestampExtractionPolicy,
         ksqlTopicOrders
     );
@@ -204,8 +200,7 @@ public final class MetaStoreFixture {
         testTable3,
         SerdeOption.none(),
         KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0")),
-            testTable3.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
+            ColumnRef.withoutSource(ColumnName.of("COL0"))),
         timestampExtractionPolicy,
         ksqlTopic3
     );
@@ -289,8 +284,7 @@ public final class MetaStoreFixture {
         SourceName.of("SENSOR_READINGS"),
         sensorReadingsSchema,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID")),
-            sensorReadingsSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ID"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ID"))),
         timestampExtractionPolicy,
         ksqlTopicSensorReadings
     );

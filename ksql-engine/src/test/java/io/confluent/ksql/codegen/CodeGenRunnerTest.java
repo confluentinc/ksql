@@ -119,7 +119,6 @@ public class CodeGenRunnerTest {
     private static final int MAP_INDEX1 = 11;
     private static final int MAP_INDEX2 = 12;
     private static final int STRUCT_INDEX = 15;
-    private static final int DECIMAL_INDEX = 16;
     private static final int INVALID_JAVA_IDENTIFIER_INDEX = 17;
 
     private static final Schema STRUCT_SCHEMA = SchemaConverters.sqlToConnectConverter()
@@ -183,9 +182,7 @@ public class CodeGenRunnerTest {
             SourceName.of("CODEGEN_TEST"),
             META_STORE_SCHEMA,
             SerdeOption.none(),
-            KeyField.of(
-                ColumnRef.withoutSource(ColumnName.of("COL0")),
-                META_STORE_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("COL0"))).get()),
+            KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0"))),
             new MetadataTimestampExtractionPolicy(),
             ksqlTopic
         );

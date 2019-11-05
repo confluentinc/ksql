@@ -36,7 +36,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
@@ -80,7 +80,7 @@ public class SqlPredicateTest {
   private static final ColumnReferenceExp COL2 =
       new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL2")));
 
-  private static final KsqlFunction LEN_FUNCTION = KsqlFunction.createLegacyBuiltIn(
+  private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
       Schema.OPTIONAL_INT32_SCHEMA,
       ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA),
       FunctionName.of("LEN"),

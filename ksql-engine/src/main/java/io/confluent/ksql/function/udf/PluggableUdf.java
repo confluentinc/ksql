@@ -48,5 +48,4 @@ public class PluggableUdf implements Kudf {
     }
   }
 
-
 }

@@ -38,7 +38,7 @@ import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.function.InternalFunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.MutableFunctionRegistry;
 import io.confluent.ksql.function.UdfLoaderUtil;
 import io.confluent.ksql.function.udf.Kudf;
@@ -149,13 +149,13 @@ public class CodeGenRunnerTest {
 
     @Before
     public void init() {
-        final KsqlFunction whenCondition = KsqlFunction.createLegacyBuiltIn(
+        final KsqlScalarFunction whenCondition = KsqlScalarFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_BOOLEAN_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_BOOLEAN_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             FunctionName.of("WHENCONDITION"),
             WhenCondition.class
         );
-        final KsqlFunction whenResult = KsqlFunction.createLegacyBuiltIn(
+        final KsqlScalarFunction whenResult = KsqlScalarFunction.createLegacyBuiltIn(
             Schema.OPTIONAL_INT32_SCHEMA,
             ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA, Schema.OPTIONAL_BOOLEAN_SCHEMA),
             FunctionName.of("WHENRESULT"),

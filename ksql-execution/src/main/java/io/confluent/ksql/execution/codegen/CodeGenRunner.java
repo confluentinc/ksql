@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldF
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlFunction;
+import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -177,7 +177,7 @@ public class CodeGenRunner {
       }
 
       final UdfFactory holder = functionRegistry.getUdfFactory(functionName.name());
-      final KsqlFunction function = holder.getFunction(argumentTypes);
+      final KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
           function.getFunctionName(),
           function.newInstance(ksqlConfig)
@@ -220,7 +220,7 @@ public class CodeGenRunner {
           Schema.OPTIONAL_STRING_SCHEMA
       );
 
-      final KsqlFunction function = functionRegistry
+      final KsqlScalarFunction function = functionRegistry
           .getUdfFactory(FetchFieldFromStruct.FUNCTION_NAME.name())
           .getFunction(argumentTypes);
 

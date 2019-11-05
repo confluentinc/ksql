@@ -235,7 +235,7 @@ public class UdtfLoaderTest {
             is("UDTF functions must return a List. Class io.confluent.ksql.function.UdtfLoaderTest$UdtfBadReturnValue Method badReturn"));
 
     // When:
-    udtfLoader.loadUdtfFromClass(UdtfBadReturnValue.class, KsqlFunction.INTERNAL_PATH);
+    udtfLoader.loadUdtfFromClass(UdtfBadReturnValue.class, KsqlScalarFunction.INTERNAL_PATH);
   }
 
   @Test
@@ -254,7 +254,7 @@ public class UdtfLoaderTest {
             is("UDTF functions must return a parameterized List. Class io.confluent.ksql.function.UdtfLoaderTest$RawListReturn Method badReturn"));
 
     // When:
-    udtfLoader.loadUdtfFromClass(RawListReturn.class, KsqlFunction.INTERNAL_PATH);
+    udtfLoader.loadUdtfFromClass(RawListReturn.class, KsqlScalarFunction.INTERNAL_PATH);
   }
 
   @Test
@@ -273,7 +273,8 @@ public class UdtfLoaderTest {
             is("Cannot load UDF bigDecimalNoSchemaProvider. BigDecimal return type is not supported without a schema provider method."));
 
     // When:
-    udtfLoader.loadUdtfFromClass(BigDecimalNoSchemaProvider.class, KsqlFunction.INTERNAL_PATH);
+    udtfLoader
+        .loadUdtfFromClass(BigDecimalNoSchemaProvider.class, KsqlScalarFunction.INTERNAL_PATH);
   }
   
   @UdtfDescription(name = "badReturnUdtf", description = "whatever")

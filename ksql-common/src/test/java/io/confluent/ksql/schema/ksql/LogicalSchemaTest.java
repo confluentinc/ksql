@@ -222,12 +222,12 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetColumnByAliasedName() {
     // When:
-    final Optional<Column> result = SOME_SCHEMA.findValueColumn(
-        ColumnRef.of(SourceName.of("SomeAlias"), F0)
+    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(
+        ColumnRef.of(BOB, F0)
     );
 
     // Then:
-    assertThat(result, is(Optional.of(Column.of(F0, SqlTypes.STRING))));
+    assertThat(result, is(Optional.of(Column.of(ColumnRef.of(BOB, F0), SqlTypes.STRING))));
   }
 
   @Test
@@ -243,7 +243,7 @@ public class LogicalSchemaTest {
   @Test
   public void shouldGetColumnByNameIfBothColumnAndNameAreAliased() {
     // When:
-    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(ColumnRef.of(SourceName.of("bob"), F0));
+    final Optional<Column> result = ALIASED_SCHEMA.findValueColumn(ColumnRef.of(BOB, F0));
 
     // Then:
     assertThat(result, is(Optional.of(Column.of(BOB, F0, SqlTypes.STRING))));
@@ -272,6 +272,26 @@ public class LogicalSchemaTest {
   }
 
   @Test
+  public void shouldFindExactValueColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, SqlTypes.BIGINT)
+        .valueColumn(BOB, F0, SqlTypes.STRING)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.findValueColumn(ColumnRef.withoutSource(F0)),
+        is(Optional.of(Column.of(ColumnRef.withoutSource(F0), SqlTypes.BIGINT)))
+    );
+
+    assertThat(
+        schema.findValueColumn(ColumnRef.of(BOB, F0)),
+        is(Optional.of(Column.of(ColumnRef.of(BOB, F0), SqlTypes.STRING)))
+    );
+  }
+
+  @Test
   public void shouldGetMetaFields() {
     assertThat(SOME_SCHEMA.findColumn(ColumnRef.withoutSource(ROWTIME_NAME)), is(Optional.of(
         Column.of(ROWTIME_NAME, SqlTypes.BIGINT)
@@ -293,7 +313,27 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldGetColumnIndex() {
+  public void shouldFindExactColumn() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .keyColumn(F0, SqlTypes.BIGINT)
+        .valueColumn(BOB, F0, SqlTypes.STRING)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.findColumn(ColumnRef.withoutSource(F0)),
+        is(Optional.of(Column.of(ColumnRef.withoutSource(F0), SqlTypes.BIGINT)))
+    );
+
+    assertThat(
+        schema.findColumn(ColumnRef.of(BOB, F0)),
+        is(Optional.of(Column.of(ColumnRef.of(BOB, F0), SqlTypes.STRING)))
+    );
+  }
+
+  @Test
+  public void shouldGetValueColumnIndex() {
     assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(F0)), is(OptionalInt.of(0)));
     assertThat(SOME_SCHEMA.valueColumnIndex(ColumnRef.withoutSource(F1)), is(OptionalInt.of(1)));
   }
@@ -310,7 +350,27 @@ public class LogicalSchemaTest {
 
   @Test
   public void shouldGetAliasedColumnIndex() {
-    assertThat(ALIASED_SCHEMA.valueColumnIndex(ColumnRef.of(SourceName.of("bob"), F1)), is(OptionalInt.of(1)));
+    assertThat(ALIASED_SCHEMA.valueColumnIndex(ColumnRef.of(BOB, F1)), is(OptionalInt.of(1)));
+  }
+
+  @Test
+  public void shouldFindExactColumnIndex() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .valueColumn(F0, SqlTypes.BIGINT)
+        .valueColumn(BOB, F0, SqlTypes.STRING)
+        .build();
+
+    // Then:
+    assertThat(
+        schema.valueColumnIndex(ColumnRef.withoutSource(F0)),
+        is(OptionalInt.of(0))
+    );
+
+    assertThat(
+        schema.valueColumnIndex(ColumnRef.of(BOB, F0)),
+        is(OptionalInt.of(1))
+    );
   }
 
   @Test
@@ -564,10 +624,10 @@ public class LogicalSchemaTest {
 
     // Then:
     assertThat(result.value(), hasSize(schema.value().size() + 2));
-    assertThat(result.value().get(0).source().get(), is(SourceName.of("bob")));
+    assertThat(result.value().get(0).source().get(), is(BOB));
     assertThat(result.value().get(0).name(), is(ROWTIME_NAME));
     assertThat(result.value().get(0).type(), is(SqlTypes.BIGINT));
-    assertThat(result.value().get(1).source().get(), is(SourceName.of("bob")));
+    assertThat(result.value().get(1).source().get(), is(BOB));
     assertThat(result.value().get(1).name(), is(ROWKEY_NAME));
     assertThat(result.value().get(1).type(), is(SqlTypes.STRING));
   }

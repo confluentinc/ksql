@@ -596,7 +596,7 @@ public final class StaticQueryExecutor {
         .noImplicitColumns();
 
     final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        input.schema,
+        input.schema.withAlias(analysis.getFromDataSources().get(0).getAlias()),
         executionContext.getMetaStore()
     );
 

@@ -180,12 +180,7 @@ public class DataSourceNode extends PlanNode {
     }
 
     return originalSchema.valueColumnIndex(timestampField)
-        .orElse(
-            originalSchema
-                .withAlias(alias)
-                .valueColumnIndex(timestampField)
-                .orElse(-1)
-        );
+        .orElseThrow(IllegalStateException::new);
   }
 
   private static Optional<Topology.AutoOffsetReset> getAutoOffsetReset(

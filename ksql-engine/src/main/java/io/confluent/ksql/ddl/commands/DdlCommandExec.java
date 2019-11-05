@@ -137,14 +137,14 @@ public class DdlCommandExec {
         return keyFieldOverride.get();
       }
       if (keyFieldName.isPresent()) {
-        final Column keyColumn = schema.findValueColumn(
-            // for DDL commands, the key name is never specified with a source
-            ColumnRef.withoutSource(keyFieldName.get()))
+        // for DDL commands, the key name is never specified with a source
+        final ColumnRef columnRef = ColumnRef.withoutSource(keyFieldName.get());
+        final Column keyColumn = schema.findValueColumn(columnRef)
             .orElseThrow(() -> new IllegalStateException(
                 "The KEY column set in the WITH clause does not exist in the schema: '"
                     + keyFieldName + "'"
             ));
-        return KeyField.of(ColumnRef.withoutSource(keyFieldName.get()), keyColumn);
+        return KeyField.of(columnRef, keyColumn);
       } else {
         return KeyField.none();
       }

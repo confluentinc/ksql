@@ -109,24 +109,24 @@ public final class LogicalSchema {
   }
 
   /**
-   * Search for a column with the supplied {@code target}.
+   * Search for a column with the supplied {@code columnRef}.
    *
-   * @param target the column name, where any alias is ignored.
+   * @param columnRef the column source and name to match.
    * @return the column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findColumn(final ColumnRef target) {
-    return findNamespacedColumn(thatMatches(target))
+  public Optional<Column> findColumn(final ColumnRef columnRef) {
+    return findNamespacedColumn(withRef(columnRef))
         .map(NamespacedColumn::column);
   }
 
   /**
-   * Search for a value column with the supplied {@code target}.
+   * Search for a value column with the supplied {@code columnRef}.
    *
-   * @param target the column name, where any alias is ignored.
+   * @param columnRef the column source and name to match.
    * @return the value column if found, else {@code Optional.empty()}.
    */
-  public Optional<Column> findValueColumn(final ColumnRef target) {
-    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(thatMatches(target)))
+  public Optional<Column> findValueColumn(final ColumnRef columnRef) {
+    return findNamespacedColumn(withNamespace(Namespace.VALUE).and(withRef(columnRef)))
         .map(NamespacedColumn::column);
   }
 
@@ -139,7 +139,7 @@ public final class LogicalSchema {
   public OptionalInt valueColumnIndex(final ColumnRef target) {
     int idx = 0;
     for (final Column column : value()) {
-      if (column.matches(target)) {
+      if (column.ref().equals(target)) {
         return OptionalInt.of(idx);
       }
       ++idx;
@@ -312,19 +312,19 @@ public final class LogicalSchema {
     value.stream()
         .filter(c -> !findNamespacedColumn(
             (withNamespace(Namespace.META).or(withNamespace(Namespace.KEY))
-                .and(thatMatches(c.column().ref()))
+                .and(withRef(c.column().ref()))
             )).isPresent())
         .forEach(builder::add);
 
     return new LogicalSchema(builder.build());
   }
 
-  private static Predicate<NamespacedColumn> thatMatches(final ColumnRef ref) {
-    return c -> c.column().matches(ref);
+  private static Predicate<NamespacedColumn> withRef(final ColumnRef ref) {
+    return c -> c.column().ref().equals(ref);
   }
 
   private static Predicate<NamespacedColumn> withName(final ColumnName name) {
-    return c -> c.column().matches(ColumnRef.withoutSource(name));
+    return c -> c.column().name().equals(name);
   }
 
   private static Predicate<NamespacedColumn> withNamespace(final Namespace ns) {

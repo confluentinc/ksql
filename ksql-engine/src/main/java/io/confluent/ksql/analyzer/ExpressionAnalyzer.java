@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Searches through the AST for any column references and throws if they are unknown fields.
+ * Searches through the AST for any column references and throws if they are unknown or ambiguous.
  */
 class ExpressionAnalyzer {
 
@@ -122,7 +122,7 @@ class ExpressionAnalyzer {
         final ColumnReferenceExp node,
         final Object context
     ) {
-      throwOnUnknownColumn(node.getReference());
+      throwOnUnknownOrAmbiguousColumn(node.getReference());
       return null;
     }
 
@@ -135,11 +135,8 @@ class ExpressionAnalyzer {
       return null;
     }
 
-    private void throwOnUnknownColumn(final ColumnRef name) {
-      // check all sources
-      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(
-          ColumnRef.withoutSource(name.name())
-      );
+    private void throwOnUnknownOrAmbiguousColumn(final ColumnRef name) {
+      final Set<SourceName> sourcesWithField = sourceSchemas.sourcesWithField(name);
 
       if (sourcesWithField.isEmpty()) {
         if (allowWindowMetaFields && name.name().equals(SchemaUtil.WINDOWSTART_NAME)) {
@@ -150,13 +147,7 @@ class ExpressionAnalyzer {
             + "' cannot be resolved.");
       }
 
-      if (name.source().isPresent()) {
-        final SourceName qualifier = name.source().get();
-        if (!sourcesWithField.contains(qualifier)) {
-          throw new KsqlException("Source '" + qualifier.name() + "', "
-              + "used in '" + name.aliasedFieldName() + "' cannot be resolved.");
-        }
-      } else if (sourcesWithField.size() > 1) {
+      if (sourcesWithField.size() > 1) {
         final String possibilities = sourcesWithField.stream()
             .map(source -> SchemaUtil.buildAliasedFieldName(source.name(), name.name().name()))
             .sorted()

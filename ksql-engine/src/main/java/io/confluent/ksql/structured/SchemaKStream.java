@@ -201,7 +201,6 @@ public class SchemaKStream<K> {
     this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKTable<K> toTable(
       final KeyFormat keyFormat,
       final ValueFormat valueFormat,
@@ -235,7 +234,6 @@ public class SchemaKStream<K> {
     );
   }
 
-  @SuppressWarnings("unchecked")
   public SchemaKStream<K> into(
       final String kafkaTopicName,
       final LogicalSchema outputSchema,
@@ -750,7 +748,7 @@ public class SchemaKStream<K> {
     return functionRegistry;
   }
 
-  ColumnRef groupedKeyNameFor(final List<Expression> groupByExpressions) {
+  static ColumnRef groupedKeyNameFor(final List<Expression> groupByExpressions) {
     if (groupByExpressions.size() == 1 && groupByExpressions.get(0) instanceof ColumnReferenceExp) {
       return ((ColumnReferenceExp) groupByExpressions.get(0)).getReference();
     }

@@ -368,7 +368,7 @@ public class AggregateNode extends PlanNode {
         final ColumnReferenceExp nameRef = (ColumnReferenceExp) e;
         return new ColumnReferenceExp(
             nameRef.getLocation(),
-            ColumnRef.withoutSource(nameRef.getReference().name())
+            nameRef.getReference().withoutSource()
         );
       };
 

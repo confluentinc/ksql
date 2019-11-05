@@ -323,7 +323,8 @@ public class DataSourceNodeTest {
   public void shouldBuildSourceStreamWithCorrectTimestampIndexForQualifiedFieldName() {
     // Given:
     reset(timestampExtractionPolicy);
-    when(timestampExtractionPolicy.timestampField()).thenReturn(ColumnRef.of(SourceName.of("name"), ColumnName.of("field2")));
+    when(timestampExtractionPolicy.timestampField())
+        .thenReturn(ColumnRef.withoutSource(ColumnName.of("field2")));
     final DataSourceNode node = buildNodeWithMockSource();
 
     // When:

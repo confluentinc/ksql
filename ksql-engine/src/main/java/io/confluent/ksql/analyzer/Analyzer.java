@@ -165,7 +165,7 @@ class Analyzer {
     private void analyzeNonStdOutSink(final Sink sink) {
       analysis.setProperties(sink.getProperties());
       sink.getPartitionBy()
-          .map(name -> ColumnRef.of(sink.getName(), name.name()))
+          .map(name -> ColumnRef.withoutSource(name.name()))
           .ifPresent(analysis::setPartitionBy);
 
       setSerdeOptions(sink);
@@ -459,7 +459,7 @@ class Analyzer {
       final ColumnRef fieldName = joinFieldName.get();
 
       final Optional<ColumnRef> joinField =
-          getJoinFieldNameFromSource(fieldName, sourceAlias, sourceSchema);
+          getJoinFieldNameFromSource(fieldName.withoutSource(), sourceAlias, sourceSchema);
 
       return joinField
           .orElseThrow(() -> new KsqlException(

@@ -2179,6 +2179,38 @@
         "type": "io.confluent.ksql.util.KsqlStatementException",
         "message": "Invalid join criteria (T.ID = TT.IID). Column TT.IID does not exist."
       }
+    },
+    {
+      "name": "unqualified join criteria",
+      "statements": [
+        "CREATE STREAM TEST (LEFT_ID bigint, NAME varchar) WITH (kafka_topic='left_topic', value_format='JSON', key='LEFT_ID');",
+        "CREATE STREAM TEST_STREAM (RIGHT_ID bigint, F1 varchar) WITH (kafka_topic='right_topic', value_format='JSON', key='RIGHT_ID');",
+        "CREATE STREAM LEFT_OUTER_JOIN as SELECT t.left_id, name, f1 FROM test t left join TEST_STREAM tt WITHIN 11 seconds ON left_id = right_id;"
+      ],
+      "inputs": [
+        {"topic": "left_topic", "key": 0, "value": {"LEFT_ID": 0, "NAME": "zero"}, "timestamp": 0},
+        {"topic": "right_topic", "key": 0, "value": {"RIGHT_ID": 0, "F1": "blah"}, "timestamp": 10000},
+        {"topic": "left_topic", "key": 10, "value": {"LEFT_ID": 10, "NAME": "100"}, "timestamp": 11000},
+        {"topic": "left_topic", "key": 0, "value": {"LEFT_ID": 0, "NAME": "foo"}, "timestamp": 13000},
+        {"topic": "right_topic", "key": 0, "value": {"RIGHT_ID": 0, "F1": "a"}, "timestamp": 15000},
+        {"topic": "right_topic", "key": 100, "value": {"RIGHT_ID": 100, "F1": "newblah"}, "timestamp": 16000},
+        {"topic": "left_topic", "key": 90, "value": {"LEFT_ID": 90, "NAME": "ninety"}, "timestamp": 17000},
+        {"topic": "left_topic", "key": 0, "value": {"LEFT_ID": 0, "NAME": "bar"}, "timestamp": 30000}
+      ],
+      "outputs": [
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"LEFT_ID": 0, "NAME": "zero", "F1": null}, "timestamp": 0},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"LEFT_ID": 0, "NAME": "zero", "F1": "blah"}, "timestamp": 10000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 10, "value": {"LEFT_ID": 10, "NAME": "100", "F1": null}, "timestamp": 11000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"LEFT_ID": 0, "NAME": "foo", "F1": "blah"}, "timestamp": 13000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"LEFT_ID": 0, "NAME": "foo", "F1": "a"}, "timestamp": 15000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 90, "value": {"LEFT_ID": 90, "NAME": "ninety", "F1": null}, "timestamp": 17000},
+        {"topic": "LEFT_OUTER_JOIN", "key": 0, "value": {"LEFT_ID": 0, "NAME": "bar", "F1": null}, "timestamp": 30000}
+      ],
+      "post": {
+        "sources": [
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "LEFT_ID"}}
+        ]
+      }
     }
   ]
 }

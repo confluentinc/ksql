@@ -137,7 +137,6 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
     );
   }
 
-  @SuppressWarnings("unchecked")
   private SchemaKStream<?> createOutputStream(
       final SchemaKStream schemaKStream,
       final QueryContext.Stacker contextStacker

@@ -65,6 +65,14 @@ public final class ColumnRef {
     return new ColumnRef(Optional.empty(), name);
   }
 
+  public ColumnRef withoutSource() {
+    return withoutSource(name);
+  }
+
+  public ColumnRef withSource(final SourceName source) {
+    return of(source, name);
+  }
+
   private ColumnRef(final Optional<SourceName> qualifier, final ColumnName name) {
     this.qualifier = requireNonNull(qualifier, "qualifier");
     this.name = requireNonNull(name, "name");
@@ -114,9 +122,5 @@ public final class ColumnRef {
   @Override
   public int hashCode() {
     return Objects.hash(qualifier, name);
-  }
-
-  public ColumnRef withSource(final SourceName source) {
-    return of(source, name);
   }
 }

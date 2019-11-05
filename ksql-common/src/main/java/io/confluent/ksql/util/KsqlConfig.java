@@ -211,7 +211,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS_CONFIG,
               ConfigDef.Type.BOOLEAN,
-              true,
+              false,
               false,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -219,7 +219,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_WINDOWED_SESSION_KEY_LEGACY_CONFIG,
               ConfigDef.Type.BOOLEAN,
-              true,
+              false,
               false,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -235,7 +235,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_USE_NAMED_INTERNAL_TOPICS,
               ConfigDef.Type.STRING,
-              KSQL_USE_NAMED_INTERNAL_TOPICS_OFF,
+              KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
               KSQL_USE_NAMED_INTERNAL_TOPICS_ON,
               ConfigDef.Importance.LOW,
               KSQL_USE_NAMED_INTERNAL_TOPICS_DOC,
@@ -244,7 +244,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               SINK_NUMBER_OF_PARTITIONS_PROPERTY,
               Type.INT,
-              4,
+              null,
               null,
               Importance.LOW,
               Optional.empty(),
@@ -254,7 +254,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               SINK_NUMBER_OF_REPLICAS_PROPERTY,
               ConfigDef.Type.SHORT,
-              (short) 1,
+              null,
               null,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -265,7 +265,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_USE_NAMED_AVRO_MAPS,
               ConfigDef.Type.BOOLEAN,
-              false,
+              true,
               true,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -274,7 +274,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_USE_LEGACY_KEY_FIELD,
               ConfigDef.Type.BOOLEAN,
-              true,
+              false,
               false,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -286,7 +286,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY,
               ConfigDef.Type.BOOLEAN,
-              true,
+              false,
               false,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -296,7 +296,7 @@ public class KsqlConfig extends AbstractConfig {
           new CompatibilityBreakingConfigDef(
               KSQL_INJECT_LEGACY_MAP_VALUES_NODE,
               ConfigDef.Type.BOOLEAN,
-              true,
+              false,
               false,
               ConfigDef.Importance.LOW,
               Optional.empty(),
@@ -388,7 +388,7 @@ public class KsqlConfig extends AbstractConfig {
       COMPATIBILITY_BREAKING_STREAMS_CONFIGS = ImmutableList.of(
           new CompatibilityBreakingStreamsConfig(
               StreamsConfig.TOPOLOGY_OPTIMIZATION,
-              StreamsConfig.NO_OPTIMIZATION,
+              StreamsConfig.OPTIMIZE,
               StreamsConfig.OPTIMIZE)
   );
 

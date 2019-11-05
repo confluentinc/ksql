@@ -60,7 +60,6 @@ public class KsqlConfigTest {
 
     assertThat(ksqlConfig.getInt(KsqlConfig.SINK_NUMBER_OF_PARTITIONS_PROPERTY), equalTo(10));
     assertThat(ksqlConfig.getShort(KsqlConfig.SINK_NUMBER_OF_REPLICAS_PROPERTY), equalTo((short) 3));
-
   }
 
   @Test
@@ -588,7 +587,7 @@ public class KsqlConfigTest {
   }
 
   @Test
-  public void shouldDefaultOptimizationsToOffForOldConfigs() {
+  public void shouldDefaultOptimizationsToOnForOldConfigs() {
     // When:
     final KsqlConfig config = new KsqlConfig(Collections.emptyMap())
         .overrideBreakingConfigsWithOriginalValues(Collections.emptyMap());
@@ -596,7 +595,7 @@ public class KsqlConfigTest {
     // Then:
     assertThat(
         config.getKsqlStreamConfigProps().get(StreamsConfig.TOPOLOGY_OPTIMIZATION),
-        equalTo(StreamsConfig.NO_OPTIMIZATION));
+        equalTo(StreamsConfig.OPTIMIZE));
   }
 
   @Test

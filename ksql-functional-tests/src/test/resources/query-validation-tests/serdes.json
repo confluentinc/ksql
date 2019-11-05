@@ -4,7 +4,7 @@
   ],
   "tests": [
     {
-      "name": "deserialize anonymous primitive - value - DELIMITED",
+      "name": "deserialize anonymous primitive by default - value - DELIMITED",
       "comments": "DELIMITED supports anonymous primitives by default",
       "statements": [
         "CREATE STREAM INPUT (foo INT) WITH (kafka_topic='input_topic', value_format='DELIMITED');",

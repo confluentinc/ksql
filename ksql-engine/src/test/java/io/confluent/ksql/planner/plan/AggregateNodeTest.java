@@ -192,25 +192,6 @@ public class AggregateNodeTest {
   }
 
   @Test
-  public void shouldHaveSourceNodeForSecondSubtopolgyWithLegacyNameForRepartition() {
-    // When:
-    buildRequireRekey(
-        KSQL_CONFIG.overrideBreakingConfigsWithOriginalValues(
-            ImmutableMap.of(
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)));
-
-    // Then:
-    final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(builder.build(), "KSTREAM-SOURCE-0000000010");
-    final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
-    assertThat(node.predecessors(), equalTo(Collections.emptySet()));
-    assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000007")));
-    assertThat(
-        node.topicSet(),
-        hasItem(equalTo("KSTREAM-AGGREGATE-STATE-STORE-0000000006-repartition")));
-  }
-
-  @Test
   public void shouldHaveSourceNodeForSecondSubtopolgyWithKsqlNameForRepartition() {
     // When:
     buildRequireRekey();

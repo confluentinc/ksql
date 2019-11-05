@@ -60,6 +60,7 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final KsqlVersion CURRENT_VERSION = KsqlVersion.current();
+  private static final String INVALID_FILENAME_CHARS_PATTERN = "\\s|/|\\\\|:|\\*|\\?|\"|<|>|\\|";
 
   private final String topologyChecksDir;
   private final TestLoader<T> innerLoader;
@@ -135,7 +136,9 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
 
   private List<String> findExpectedTopologyDirectories() {
     try {
-      return findContentsOfDirectory(topologyChecksDir);
+      return findContentsOfDirectory(topologyChecksDir).stream()
+          .filter(file -> !file.endsWith(".md"))
+          .collect(Collectors.toList());
     } catch (final Exception e) {
       throw new RuntimeException("Could not find expected topology directories.", e);
     }
@@ -287,8 +290,8 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
 
   private static String formatQueryName(final String originalQueryName) {
     return originalQueryName
-        .replaceAll(" - (AVRO|JSON)$", "")
-        .replaceAll("\\s|/", "_");
+        .replaceAll(" - (AVRO|JSON|DELIMITED|KAFKA)$", "")
+        .replaceAll(INVALID_FILENAME_CHARS_PATTERN, "_");
   }
 
   private static class TopologiesAndVersion {

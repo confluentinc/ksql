@@ -31,7 +31,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
@@ -271,27 +270,6 @@ public class JoinNodeTest {
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList(TRANSFORM_NODE)));
     assertThat(node.topicSet(), equalTo(ImmutableSet.of("test2")));
-  }
-
-  @Test
-  public void shouldUseLegacyNameForReduceTopicIfOptimizationsOff() {
-    setupTopicClientExpectations(1, 1);
-    when(ksqlStreamBuilder.getKsqlConfig()).thenReturn(
-        ksqlConfig.overrideBreakingConfigsWithOriginalValues(
-            ImmutableMap.of(
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS,
-                KsqlConfig.KSQL_USE_NAMED_INTERNAL_TOPICS_OFF)
-        )
-    );
-
-    buildJoin();
-
-    final Topology topology = builder.build();
-    final TopologyDescription.Processor leftJoin
-        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000015");
-    assertThat(
-        leftJoin.stores(),
-        equalTo(Utils.mkSet("KSTREAM-AGGREGATE-STATE-STORE-0000000004")));
   }
 
   @Test

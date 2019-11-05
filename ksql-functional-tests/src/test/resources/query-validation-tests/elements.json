@@ -52,13 +52,13 @@
     {
       "name": "validate with elements OK - AVRO",
       "statements": [
-        "CREATE STREAM INPUT (c1 INT) WITH (kafka_topic='input', value_format='AVRO');",
+        "CREATE STREAM INPUT (V0 INT) WITH (kafka_topic='input', value_format='AVRO');",
         "CREATE STREAM OUTPUT WITH(PARTITIONS = 4) as SELECT * FROM input;"
       ],
       "topics": [
         {
           "name": "input",
-          "schema": {"name": "blah", "type": "record", "fields": [{"name": "c1", "type": "int"}]},
+          "schema": {"name": "blah", "type": "record", "fields": [{"name": "v0", "type": "int"}]},
           "format": "AVRO"
         },
         {
@@ -67,8 +67,8 @@
           "partitions": 4
         }
       ],
-      "inputs": [{"topic": "input", "value": {"c1": 4}}],
-      "outputs": [{"topic": "OUTPUT", "value": {"C1": 4}}]
+      "inputs": [{"topic": "input", "value": {"v0": 4}}],
+      "outputs": [{"topic": "OUTPUT", "value": {"V0": 4}}]
     },
     {
       "name": "validate multiple value elements in C* FAILS - KAFKA",

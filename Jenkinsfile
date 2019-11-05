@@ -1,4 +1,4 @@
-
+//semantic commit
 def config = [
     owner: 'ksql',
     slackChannel: '#ksql-alerts',

@@ -627,10 +627,14 @@ public class CliTest {
     );
 
     // When:
-    run("SELECT * FROM Y WHERE ROWKEY='ITEM_1';", localCli);
+    final Supplier<String> runner = () -> {
+      // It's possible that the state store is not warm on the first invocation, hence the retry
+      run("SELECT * FROM Y WHERE ROWKEY='ITEM_1';", localCli);
+      return terminal.getOutputString();
+    };
 
-    assertThat(terminal.getOutputString(), containsString("ROWKEY STRING KEY"));
-    assertThat(terminal.getOutputString(), containsString("COUNT BIGINT"));
+    assertThatEventually(runner, containsString("ROWKEY STRING KEY"));
+    assertThatEventually(runner, containsString("COUNT BIGINT"));
   }
 
   @Test

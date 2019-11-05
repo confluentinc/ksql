@@ -20,7 +20,6 @@ import io.confluent.ksql.function.udf.Udf;
 import io.confluent.ksql.function.udf.UdfDescription;
 import io.confluent.ksql.function.udf.UdfParameter;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -31,58 +30,68 @@ public class GenerateSeries {
 
   @Udf
   public List<Integer> generateSeriesInt(
-      @UdfParameter(description = "The beginning of the series") final int startInclusive,
-      @UdfParameter(description = "Marks the end of the series (inclusive)") final int endinclusive
+      @UdfParameter(description = "The beginning of the series") final int start,
+      @UdfParameter(description = "Marks the end of the series (inclusive)") final int end
   ) {
-    return generateSeriesInt(startInclusive, endinclusive, 1);
+    return generateSeriesInt(start, end, end - start > 0 ? 1 : -1);
   }
 
   @Udf
   public List<Integer> generateSeriesInt(
-      @UdfParameter(description = "The beginning of the series") final int startInclusive,
-      @UdfParameter(description = "Marks the end of the series (inclusive)") final int endinclusive,
+      @UdfParameter(description = "The beginning of the series") final int start,
+      @UdfParameter(description = "Marks the end of the series (inclusive)") final int end,
       @UdfParameter(description = "Difference between each value in the series") final int step
   ) {
     checkStep(step);
-    if (endinclusive <= startInclusive) {
-      return Collections.emptyList();
+    final int diff = end - start;
+    if (diff > 0 && step < 0 || diff < 0 && step > 0) {
+      throw new KsqlFunctionException("GENERATE_SERIES step has wrong sign");
     }
-    final List<Integer> result = new ArrayList<>((endinclusive - startInclusive + 1) / step);
-    for (int i = startInclusive; i <= endinclusive; i += step) {
-      result.add(i);
+    final int size = 1 + diff / step;
+    final List<Integer> result = new ArrayList<>(size);
+    int pos = 0;
+    int val = start;
+    while (pos++ < size) {
+      result.add(val);
+      val += step;
     }
     return result;
   }
 
   @Udf
   public List<Long> generateSeriesLong(
-      @UdfParameter(description = "The beginning of the series") final long startInclusive,
-      @UdfParameter(description = "Marks the end of the series (inclusive)") final long endinclusive
+      @UdfParameter(description = "The beginning of the series") final long start,
+      @UdfParameter(description = "Marks the end of the series (inclusive)") final long end
   ) {
-    return generateSeriesLong(startInclusive, endinclusive, 1);
+    return generateSeriesLong(start, end, end - start > 0 ? 1 : -1);
   }
 
   @Udf
   public List<Long> generateSeriesLong(
-      @UdfParameter(description = "The beginning of the series") final long startInclusive,
+      @UdfParameter(description = "The beginning of the series") final long start,
       @UdfParameter
-          (description = "Marks the end of the series (inclusive)") final long endinclusive,
+          (description = "Marks the end of the series (inclusive)") final long end,
       @UdfParameter(description = "Difference between each value in the series") final int step
   ) {
     checkStep(step);
-    if (endinclusive < startInclusive) {
-      return Collections.emptyList();
+    final long diff = end - start;
+    if (diff > 0 && step < 0 || diff < 0 && step > 0) {
+      throw new KsqlFunctionException("GENERATE_SERIES step has wrong sign");
     }
-    final List<Long> result = new ArrayList<>((int) (endinclusive - startInclusive + 1) / step);
-    for (long i = startInclusive; i <= endinclusive; i += step) {
-      result.add(i);
+    final int size = 1 + (int) (diff / step);
+    final List<Long> result = new ArrayList<>(size);
+    int pos = 0;
+    long val = start;
+    while (pos++ < size) {
+      result.add(val);
+      val += step;
     }
     return result;
   }
 
   private void checkStep(final int step) {
-    if (step < 1) {
-      throw new KsqlFunctionException("GENERATE_SERIES step must be > 0");
+    if (step == 0) {
+      throw new KsqlFunctionException("GENERATE_SERIES step cannot be zero");
     }
   }
 

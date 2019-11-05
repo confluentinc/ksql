@@ -688,12 +688,199 @@ You can use this to better describe what a particular version of the UDF does, f
     public static Udaf<String, Struct, Double> averageStringLength(final String initialString){...}
 
 
+UDTFs
+----
+
+To create a UDTF you need to create a class that is annotated with ``@UdtfDescription``.
+Each method in the class that represents a UDF must be public and annotated with ``@Udtf``. The class
+you create represents a collection of UDTFs all with the same name but may have different
+arguments and return types.
+
+``@UdfParameter`` annotations can be added to method parameters to provide users with richer
+information, including the parameter schema. This annotation is required if the KSQL type cannot
+be inferred from the Java type (e.g. ``STRUCT``).
+
+
+Null Handling
+~~~~~~~~~~~~~
+
+If a UDTF uses primitive types in its signature it is indicating that the parameter should never be null.
+Conversely, using boxed types indicates the function can accept null values for the parameter.
+It is up to the implementor of the UDTF to chose which is the most appropriate.
+A common pattern is to return ``null`` if the input is ``null``, though generally this is only for
+parameters that are expected to be supplied from the source row being processed. For example,
+a ``substring(String str, int pos)`` UDF might return null if ``str`` is null, but a
+null ``pos`` parameter would be treated as an error, and hence should be a primitive.
+(In actual fact, the in-built substring is more lenient and would return null if pos was null).
+
+The return type of a UDTF can also be a primitive or boxed type. A primitive return type indicates
+the function will never return ``null``, where as a boxed type indicates it may return ``null``.
+
+The KSQL server will check the value being passed to each parameter and report an error to the server
+log for any null values being passed to a primitive type. The associated column in the output row
+will be ``null``.
+
+
+Dynamic return type
+~~~~~~~~~~~~~~~~~~~
+
+UDTFs support dynamic return types that are resolved at runtime. This is useful if you want to
+implement a UDTF with a non-deterministic return type. A UDTF which returns ``BigDecimal``,
+for example, may vary the precision and scale of the output based on the input schema.
+
+To use this functionality, you need to specify a method with signature
+``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@SchemaProvider``.
+Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
+parameter of the ``@Udtf`` annotation.
+
+.. _example-udtf-class:
+
+Example UDTF class
+~~~~~~~~~~~~~~~~~~
+
+The class below creates a UDTF named ``split_string``. The name of the UDTF is provided in the ``name``
+parameter of the ``UdtfDescription`` annotation. This name is case-insensitive and is what can be
+used to call the UDTF. As can be seen this UDTF can be invoked in two different ways:
+
+- with a single String containing the String to split
+- with a String containing the String to split and a regex to define the delimiter
+
+.. code:: java
+
+    import io.confluent.ksql.function.udf.Udtf;
+    import io.confluent.ksql.function.udf.UdtfDescription;
+
+    @UdfDescription(name = "split_string", description = "splits a string into words")
+    public class SplitString {
+
+      @Udtf(description="Splits a string into words")
+      public List<String> split(String input) {
+        return Arrays.asList(String.split("\\s+"));
+      }
+
+      @Udtf(description="Splits a string into words")
+      public List<String> split(String input, String delimRegex) {
+        return Arrays.asList(String.split(delimRegex));
+      }
+
+    }
+
+If you're using Gradle to build your UDF or UDAF, specify the ``ksql-udf``
+dependency:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:|release|'
+
+To compile with the latest version of ``ksql-udf``:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:+'
+
+If you're using Maven to build your UDF or UDAF, specify the ``ksql-udf``
+dependency in your POM file:
+
+.. codewithvars:: xml
+
+    <!-- Specify the repository for Confluent dependencies -->
+        <repositories>
+            <repository>
+                <id>confluent</id>
+                <url>http://packages.confluent.io/maven/</url>
+            </repository>
+        </repositories>
+
+    <!-- Specify the ksql-udf dependency -->
+    <dependencies>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-udf</artifactId>
+            <version>|release|</version>
+        </dependency>
+    </dependencies>
+
+
+UdtfDescription Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``@UdtfDescription`` annotation is applied at the class level and has four fields, two of which are required.
+The information provided here is used by the ``SHOW FUNCTIONS`` and ``DESCRIBE FUNCTION <function>`` commands.
+
++------------+------------------------------+---------+
+| Field      | Description                  | Required|
++============+==============================+=========+
+| name       | The case-insensitive name of | Yes     |
+|            | the UDTF(s)                  |         |
+|            | represented by this class.   |         |
++------------+------------------------------+---------+
+| description| A string describing generally| Yes     |
+|            | what the function(s) in this |         |
+|            | class do.                    |         |
++------------+------------------------------+---------+
+| author     | The author of the UDTF.      | No      |
++------------+------------------------------+---------+
+| version    | The version of the UDTF.     | No      |
++------------+------------------------------+---------+
+
+
+Udtf Annotation
+~~~~~~~~~~~~~~
+
+The ``@Udtf`` annotation is applied to public methods of a class annotated with ``@UdtfDescription``.
+Each annotated method will become an invocable function in KSQL. This annotation supports the following
+fields:
+
++---------------+------------------------------+------------------------+
+| Field         | Description                  | Required               |
++===============+==============================+========================+
+| description   | A string describing generally| No                     |
+|               | what a particular version of |                        |
+|               | the UDTF does (see example)  |                        |
++---------------+------------------------------+------------------------+
+| schema        | The KSQL schema for the      | For complex types      |
+|               | return type of this UDTF.    | such as STRUCT if      |
+|               |                              | ``schemaProvider`` is  |
+|               |                              | not passed in.         |
++---------------+------------------------------+------------------------+
+| schemaProvider| A reference to a method that | For complex types      |
+|               | computes the return schema of| such as STRUCT if      |
+|               | this UDTF. (See Dynamic      | ``schema`` is not      |
+|               | Return Types for more info)  | passed in.             |
++---------------+------------------------------+------------------------+
+
+UdtfParameter Annotation
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``@UdtfParameter`` annotation is applied to parameters of methods annotated with ``@Udtf``. KSQL
+will use the additional information in the ``@UdtfParameter`` annotation to specify the parameter
+schema (if it cannot be inferred from the Java type) or to provide users with richer information
+about the method when, for example, they execute ``DESCRIBE FUNCTION`` on the method.
+
++------------+------------------------------+------------------------+
+| Field      | Description                  | Required               |
++============+==============================+========================+
+| value      | The case-insensitive name of | Required if the JAR    |
+|            | the parameter                | was not compiled with  |
+|            |                              | the ``-parameters``    |
+|            |                              | javac argument.        |
++------------+------------------------------+------------------------+
+| description| A string describing generally| No                     |
+|            | what the parameter represents|                        |
++------------+------------------------------+------------------------+
+| schema     | The KSQL schema for the      | For complex types      |
+|            | parameter.                   | such as STRUCT         |
++------------+------------------------------+------------------------+
+
+.. note:: If ``schema`` is supplied in the ``@UdtfParameter`` annotation for a ``STRUCT`` it is
+          considered "strict" - any inputs must match exactly, including order and names of the
+          fields.
 
 ===============
 Supported Types
 ===============
 
-The types supported by UDFs are currently limited to:
+The types supported by UDFs/UDAFs/UDTFs are currently limited to:
 
 +--------------+------------------+
 |  Java Type   | KSQL Type        |

@@ -254,7 +254,7 @@ public class JoinNode extends PlanNode {
       );
 
       final boolean namesMatch = keyColumn
-          .map(field -> field.matches(joinFieldName))
+          .map(field -> field.ref().equals(joinFieldName))
           .orElse(false);
 
       if (namesMatch || joinFieldName.equals(rowKey)) {

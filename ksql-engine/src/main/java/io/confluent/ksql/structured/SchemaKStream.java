@@ -319,7 +319,7 @@ public class SchemaKStream<K> {
           final ColumnReferenceExp nameRef
               = (ColumnReferenceExp) toExpression;
 
-          if (keyColumn.matches(nameRef.getReference())) {
+          if (keyColumn.ref().equals(nameRef.getReference())) {
             found = Optional.of(Column.of(toName, keyColumn.type()));
             break;
           }
@@ -499,7 +499,7 @@ public class SchemaKStream<K> {
         : KeyField.of(columnRef);
 
     final boolean namesMatch = existingKey
-        .map(kf -> kf.matches(proposedKey.ref()))
+        .map(kf -> kf.ref().equals(proposedKey.ref()))
         .orElse(false);
 
     if (namesMatch || isRowKey(proposedKey.ref())) {

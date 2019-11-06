@@ -116,21 +116,6 @@ public final class Column {
     return new Column(ref.withSource(source), type);
   }
 
-  /**
-   * A column {@code matches} a column reference if the names match
-   * and either the reference does not specify a source, or the specified
-   * source matches.
-   *
-   * @param ref the reference to check
-   * @return whether or not {@code ref} matches this instance
-   */
-  public boolean matches(final ColumnRef ref) {
-    return ref.name().equals(this.ref.name())
-        && (!source().isPresent()
-        || !ref.source().isPresent()
-        || ref.source().equals(this.ref.source()));
-  }
-
   @Override
   public boolean equals(final Object o) {
     if (this == o) {

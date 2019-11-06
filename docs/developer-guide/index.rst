@@ -13,6 +13,7 @@ These topics show how to develop KSQL applications for |cp|.
     create-a-stream
     create-a-table
     aggregate-streaming-data
+    table-functions
     query-with-arrays-and-maps
     query-with-structured-data
     join-streams-and-tables

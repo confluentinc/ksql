@@ -1,7 +1,7 @@
 .. _ksql-udfs:
 
-KSQL Custom Function Reference (UDF and UDAF)
-=============================================
+KSQL Custom Function Reference (UDF, UDAF and UDTF)
+===================================================
 
 KSQL has many built-in functions that help with processing records in
 streaming data, like ABS and SUM. Functions are used within a KSQL query
@@ -24,20 +24,24 @@ Stateful aggregate function (UDAF)
     enables aggregating results. When you implement a custom aggregate function,
     it's called a *User-Defined Aggregate Function (UDAF)*.
 
-.. note:: Tabular functions, which take one input row and return *N* output
-          values, aren't supported.
+Table function (UDTF)
+    A table function that takes one input row and returns zero or more output rows.
+    No state is retained between function calls. When you implement a custom
+    table function, it's called a *User-Defined Table Function (UDTF)*.
 
 Implement a Custom Function
 *************************** 
 
 Follow these steps to create your custom functions:
 
-#. Write your UDF or UDAF class in Java.
+#. Write your UDF, UDAF or UDTF class in Java.
 
    * If your Java class is a UDF, mark it with the ``@UdfDescription`` and
      ``@Udf`` annotations.
    * If your class is a UDAF, mark it with the ``@UdafDescription`` and
      ``@UdafFactory`` annotations.
+   * If your class is a UDTF, mark it with the ``@UdtfDescription`` and
+     ``@UdtfFactory`` annotations.
 
    For more information, see :ref:`example-udf-class` and :ref:`example-udaf-class`. 
 
@@ -51,19 +55,21 @@ Follow these steps to create your custom functions:
 
 For a detailed walkthrough on creating a UDF, see :ref:`implement-a-udf`.
 
-=======================
-Creating UDFs and UDAFs
-=======================
+==============================
+Creating UDFs, UDAFs and UDTFs
+==============================
 
-KSQL supports creating User Defined Scalar Functions (UDFs) and User Defined Aggregate Functions (UDAFs) via custom jars that are
+KSQL supports creating User Defined Scalar Functions (UDFs), User Defined Aggregate Functions (UDAFs) and
+User Defined Table Functions (UDTFs) via custom jars that are
 uploaded to the ``ext/`` directory of the KSQL installation.
 At start up time KSQL scans the jars in the directory looking for any classes that annotated
-with ``@UdfDescription`` (UDF) or ``@UdafDescription`` (UDAF).
+with ``@UdfDescription`` (UDF), ``@UdafDescription`` (UDAF) or ``@UdtfDescription`` (UDTF).
 Classes annotated with ``@UdfDescription`` are scanned for any public methods that are annotated
 with ``@Udf``. Classes annotated with ``@UdafDescription`` are scanned for any public static methods
-that are annotated with ``@UdafFactory``. Each UD(A)F that is found is parsed and, if successful, loaded into KSQL.
+that are annotated with ``@UdafFactory``. Classes annotated with ``@UdtfDescription`` are scanned for any public methods
+that are annotated with ``@Udtf``. Each function that is found is parsed and, if successful, loaded into KSQL.
 
-Each UD(A)F instance has its own child-first ``ClassLoader`` that is isolated from other UD(A)Fs. If you
+Each function instance has its own child-first ``ClassLoader`` that is isolated from other functions. If you
 need to use any third-party libraries with your UDFs then they should also be part of your jar, i.e.,
 you should create an "uber-jar". The classes in your uber-jar will be loaded in preference to any
 classes on the KSQL classpath excluding anything vital to the running of KSQL, i.e., classes that are
@@ -665,12 +671,188 @@ You can use this to better describe what a particular version of the UDF does, f
     public static Udaf<String, Struct, Double> averageStringLength(final String initialString){...}
 
 
+.. _ksql-udtfs:
+
+UDTFs
+-----
+
+To create a UDTF you need to create a class that is annotated with ``@UdtfDescription``.
+Each method in the class that represents a UDTF must be public and annotated with ``@Udtf``. The class
+you create represents a collection of UDTFs all with the same name but may have different
+arguments and return types.
+
+``@UdfParameter`` annotations can be added to method parameters to provide users with richer
+information, including the parameter schema. This annotation is required if the KSQL type cannot
+be inferred from the Java type (e.g. ``STRUCT``).
+
+
+Null Handling
+~~~~~~~~~~~~~
+
+If a UDTF uses primitive types in its signature it is indicating that the parameter should never be null.
+Conversely, using boxed types indicates the function can accept null values for the parameter.
+It is up to the implementor of the UDTF to chose which is the most appropriate.
+A common pattern is to return ``null`` if the input is ``null``, though generally this is only for
+parameters that are expected to be supplied from the source row being processed. For example,
+a ``substring(String str, int pos)`` UDF might return null if ``str`` is null, but a
+null ``pos`` parameter would be treated as an error, and hence should be a primitive.
+(In actual fact, the in-built substring is more lenient and would return null if pos was null).
+
+The return type of a UDTF can also be a primitive or boxed type. A primitive return type indicates
+the function will never return ``null``, where as a boxed type indicates it may return ``null``.
+
+The KSQL server will check the value being passed to each parameter and report an error to the server
+log for any null values being passed to a primitive type. The associated column in the output row
+will be ``null``.
+
+
+Dynamic return type
+~~~~~~~~~~~~~~~~~~~
+
+UDTFs support dynamic return types that are resolved at runtime. This is useful if you want to
+implement a UDTF with a non-deterministic return type. A UDTF which returns ``BigDecimal``,
+for example, may vary the precision and scale of the output based on the input schema.
+
+To use this functionality, you need to specify a method with signature
+``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@SchemaProvider``.
+Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
+parameter of the ``@Udtf`` annotation.
+
+If your UDTF method returns a value of type ``List<T>``, the type referred to
+by the schema provider method is the type ``T`` not the type ``List<T>``.
+
+.. _example-udtf-class:
+
+Example UDTF class
+~~~~~~~~~~~~~~~~~~
+
+The class below creates a UDTF named ``split_string``. The name of the UDTF is provided in the ``name``
+parameter of the ``UdtfDescription`` annotation. This name is case-insensitive and you can use it
+to call the UDTF.
+
+UDTF methods must return a value of type ``List<T>`` where T is any of the supported KSQL Java types.
+
+You can invoke this UDTF in two different ways:
+
+- with a single String containing the String to split
+- with a String containing the String to split and a regex to define the delimiter
+
+.. code:: java
+
+    import io.confluent.ksql.function.udf.Udtf;
+    import io.confluent.ksql.function.udf.UdtfDescription;
+
+    @UdfDescription(name = "split_string", description = "splits a string into words")
+    public class SplitString {
+
+      @Udtf(description="Splits a string into words")
+      public List<String> split(String input) {
+        return Arrays.asList(String.split("\\s+"));
+      }
+
+      @Udtf(description="Splits a string into words")
+      public List<String> split(String input, String delimRegex) {
+        return Arrays.asList(String.split(delimRegex));
+      }
+
+    }
+
+If you're using Gradle to build your UDF or UDAF, specify the ``ksql-udf``
+dependency:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:|release|'
+
+To compile with the latest version of ``ksql-udf``:
+
+.. codewithvars:: bash
+
+    compile 'io.confluent.ksql:ksql-udf:+'
+
+If you're using Maven to build your function, specify the ``ksql-udf``
+dependency in your POM file:
+
+.. codewithvars:: xml
+
+    <!-- Specify the repository for Confluent dependencies -->
+        <repositories>
+            <repository>
+                <id>confluent</id>
+                <url>http://packages.confluent.io/maven/</url>
+            </repository>
+        </repositories>
+
+    <!-- Specify the ksql-udf dependency -->
+    <dependencies>
+        <dependency>
+            <groupId>io.confluent.ksql</groupId>
+            <artifactId>ksql-udf</artifactId>
+            <version>|release|</version>
+        </dependency>
+    </dependencies>
+
+
+UdtfDescription Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``@UdtfDescription`` annotation is applied at the class level and has four fields, two of which are required.
+The information provided here is used by the ``SHOW FUNCTIONS`` and ``DESCRIBE FUNCTION <function>`` commands.
+
++------------+------------------------------+---------+
+| Field      | Description                  | Required|
++============+==============================+=========+
+| name       | The case-insensitive name of | Yes     |
+|            | the UDTF(s)                  |         |
+|            | represented by this class.   |         |
++------------+------------------------------+---------+
+| description| A string describing generally| Yes     |
+|            | what the function(s) in this |         |
+|            | class do.                    |         |
++------------+------------------------------+---------+
+| author     | The author of the UDTF.      | No      |
++------------+------------------------------+---------+
+| version    | The version of the UDTF.     | No      |
++------------+------------------------------+---------+
+
+
+Udtf Annotation
+~~~~~~~~~~~~~~
+
+The ``@Udtf`` annotation is applied to public methods of a class annotated with ``@UdtfDescription``.
+Each annotated method will become an invocable function in KSQL. This annotation supports the following
+fields:
+
++---------------+------------------------------+------------------------+
+| Field         | Description                  | Required               |
++===============+==============================+========================+
+| description   | A string describing generally| No                     |
+|               | what a particular version of |                        |
+|               | the UDTF does (see example)  |                        |
++---------------+------------------------------+------------------------+
+| schema        | The KSQL schema for the      | For complex types      |
+|               | return type of this UDTF.    | such as STRUCT if      |
+|               |                              | ``schemaProvider`` is  |
+|               |                              | not passed in.         |
++---------------+------------------------------+------------------------+
+| schemaProvider| A reference to a method that | For complex types      |
+|               | computes the return schema of| such as STRUCT if      |
+|               | this UDTF. (See Dynamic      | ``schema`` is not      |
+|               | Return Types for more info)  | passed in.             |
++---------------+------------------------------+------------------------+
+
+Annotating UDTF Parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can use the ``@UdfParameter`` annotation to provide extra information for UDTF parameters.
+This is the same annotation as used for UDFs. Please see the earlier documentation on this for
+further information.
 
 ===============
 Supported Types
 ===============
 
-The types supported by UDFs are currently limited to:
+The types supported by UDFs/UDAFs/UDTFs are currently limited to:
 
 +--------------+------------------+
 |  Java Type   | KSQL Type        |
@@ -706,7 +888,7 @@ The types supported by UDFs are currently limited to:
 Deploying
 =========
 
-To deploy your UD(A)Fs you need to create a jar containing all of the classes required by the UD(A)Fs.
+To deploy your user defined functions you need to create a jar containing all of the classes required by the functions.
 If you depend on third-party libraries then this should be an uber-jar containing those libraries.
 Once the jar is created you need to deploy it to each KSQL server instance. The jar should be copied
 to the ``ext/`` directory that is part of the KSQL distribution. The ``ext/`` directory can be configured
@@ -736,7 +918,7 @@ correct jars installed.
 Usage
 =====
 
-Once your UD(A)Fs are deployed you can call them in the same way you would invoke any of the KSQL
+Once your functions are deployed you can call them in the same way you would invoke any of the KSQL
 built-in functions. The function names are case-insensitive. For example, using the ``multiply`` example above:
 
 .. code:: sql
@@ -783,7 +965,7 @@ Security Manager
 ----------------
 
 By default KSQL installs a simple java security manager for UD(A)F execution. The security manager
-blocks attempts by any UD(A)Fs to fork processes from the KSQL server. It also prevents them from
+blocks attempts by any functions to fork processes from the KSQL server. It also prevents them from
 calling ``System.exit(..)``.
 
 The security manager can be disabled by setting ``ksql.udf.enable.security.manager`` to false.

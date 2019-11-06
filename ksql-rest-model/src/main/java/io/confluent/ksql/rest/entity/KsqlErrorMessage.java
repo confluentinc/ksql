@@ -66,6 +66,7 @@ public class KsqlErrorMessage {
         .collect(Collectors.toList());
   }
 
+  @JsonProperty("error_code")
   public int getErrorCode() {
     return errorCode;
   }

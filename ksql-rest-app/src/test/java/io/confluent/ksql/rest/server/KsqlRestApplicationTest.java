@@ -127,8 +127,6 @@ public class KsqlRestApplicationTest {
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
-  private TransactionalProducerFactory transactionalProducerFactory;
-  @Mock
   private TransactionalProducer transactionalProducer;
   private PreparedStatement<?> logCreateStatement;
   private KsqlRestApplication app;
@@ -158,7 +156,7 @@ public class KsqlRestApplicationTest {
     when(topicClient.isTopicExists(CMD_TOPIC_NAME)).thenReturn(false);
     when(precondition1.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
-    when(transactionalProducerFactory.createTransactionalProducer()).
+    when(commandQueue.createTransactionalProducer()).
         thenReturn(transactionalProducer);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
@@ -184,8 +182,7 @@ public class KsqlRestApplicationTest {
         processingLogContext,
         ImmutableList.of(precondition1, precondition2),
         ImmutableList.of(ksqlResource, streamedQueryResource),
-        rocksDBConfigSetterHandler,
-        transactionalProducerFactory
+        rocksDBConfigSetterHandler
     );
   }
 

@@ -20,11 +20,13 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.TransactionalProducer;
+import io.confluent.ksql.rest.server.TransactionalProducerImpl;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -32,7 +34,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.IsolationLevel;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
@@ -47,6 +52,11 @@ public class CommandStore implements CommandQueue, Closeable {
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
   private final SequenceNumberFutureStore sequenceNumberFutureStore;
 
+  private final String commandTopicName;
+  private final Duration commandQueueCatchupTimeout;
+  private final Map<String, Object> kafkaConsumerProperties;
+  private final Map<String, Object> kafkaProducerProperties;
+
   public static final class Factory {
 
     private Factory() {
@@ -54,26 +64,59 @@ public class CommandStore implements CommandQueue, Closeable {
 
     public static CommandStore create(
         final String commandTopicName,
-        final Map<String, Object> kafkaConsumerProperties
+        final String transactionId,
+        final Duration commandQueueCatchupTimeout,
+        final Map<String, Object> kafkaConsumerProperties,
+        final Map<String, Object> kafkaProducerProperties
     ) {
+      kafkaConsumerProperties.put(
+          ConsumerConfig.ISOLATION_LEVEL_CONFIG,
+          IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT)
+      );
+      kafkaProducerProperties.put(
+          ProducerConfig.TRANSACTIONAL_ID_CONFIG,
+          transactionId
+      );
+      kafkaProducerProperties.put(
+          ProducerConfig.ACKS_CONFIG,
+          "all"
+      );
+
       return new CommandStore(
+          commandTopicName,
+          transactionId,
           new CommandTopic(commandTopicName, kafkaConsumerProperties),
           new CommandIdAssigner(),
-          new SequenceNumberFutureStore()
+          new SequenceNumberFutureStore(),
+          kafkaConsumerProperties,
+          kafkaProducerProperties,
+          commandQueueCatchupTimeout
       );
     }
   }
 
   CommandStore(
+      final String commandTopicName,
+      final String transactionId,
       final CommandTopic commandTopic,
       final CommandIdAssigner commandIdAssigner,
-      final SequenceNumberFutureStore sequenceNumberFutureStore
+      final SequenceNumberFutureStore sequenceNumberFutureStore,
+      final Map<String, Object> kafkaConsumerProperties,
+      final Map<String, Object> kafkaProducerProperties,
+      final Duration commandQueueCatchupTimeout
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
     this.sequenceNumberFutureStore =
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
+    this.commandQueueCatchupTimeout =
+            Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
+    this.kafkaConsumerProperties =
+            Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties");
+    this.kafkaProducerProperties =
+            Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties");
+    this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
   }
 
   @Override
@@ -95,6 +138,17 @@ public class CommandStore implements CommandQueue, Closeable {
   @Override
   public void close() {
     commandTopic.close();
+  }
+
+  @Override
+  public TransactionalProducer createTransactionalProducer() {
+    return new TransactionalProducerImpl(
+        commandTopicName,
+            this,
+            commandQueueCatchupTimeout,
+            kafkaConsumerProperties,
+            kafkaProducerProperties
+    );
   }
 
   @Override
@@ -186,7 +240,7 @@ public class CommandStore implements CommandQueue, Closeable {
       throw new TimeoutException(
           String.format(
               "Timeout reached while waiting for command sequence number of %d."
-              + " Caused by: %s"
+              + " Caused by: %s "
               + "(Timeout: %d ms)",
               seqNum,
               e.getMessage(),

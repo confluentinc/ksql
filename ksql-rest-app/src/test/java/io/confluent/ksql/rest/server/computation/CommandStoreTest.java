@@ -68,9 +68,10 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class CommandStoreTest {
 
-  private static final String COMMAND_TOPIC = "command";
+  private static final String COMMAND_TOPIC_NAME = "command";
+  private static final String TRANSACTION_ID = "ksql";
   private static final TopicPartition COMMAND_TOPIC_PARTITION =
-      new TopicPartition(COMMAND_TOPIC, 0);
+      new TopicPartition(COMMAND_TOPIC_NAME, 0);
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
       Collections.singletonMap(KsqlConfig.KSQL_PERSISTENT_QUERY_NAME_PREFIX_CONFIG, "foo"));
   private static final Map<String, Object> OVERRIDE_PROPERTIES =
@@ -117,7 +118,7 @@ public class CommandStoreTest {
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
-    when(commandTopic.getCommandTopicName()).thenReturn(COMMAND_TOPIC);
+    when(commandTopic.getCommandTopicName()).thenReturn(COMMAND_TOPIC_NAME);
 
     when(sequenceNumberFutureStore.getFutureForSequenceNumber(anyLong())).thenReturn(future);
 
@@ -125,9 +126,14 @@ public class CommandStoreTest {
         PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG);
 
     commandStore = new CommandStore(
+            COMMAND_TOPIC_NAME,
+        TRANSACTION_ID,
         commandTopic,
         commandIdAssigner,
-        sequenceNumberFutureStore
+        sequenceNumberFutureStore,
+        Collections.emptyMap(),
+        Collections.emptyMap(),
+        TIMEOUT
     );
   }
 
@@ -248,7 +254,7 @@ public class CommandStoreTest {
 
     expectedException.expect(TimeoutException.class);
     expectedException.expectMessage(String.format(
-        "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)",
+        "Timeout reached while waiting for command sequence number of 2. Caused by: null (Timeout: 1000 ms)",
         TIMEOUT.toMillis()));
 
     // When:
@@ -308,7 +314,7 @@ public class CommandStoreTest {
 
   @Test
   public void shouldGetCommandTopicName() {
-    assertThat(commandStore.getCommandTopicName(), equalTo(COMMAND_TOPIC));
+    assertThat(commandStore.getCommandTopicName(), equalTo(COMMAND_TOPIC_NAME));
   }
 
   @Test
@@ -327,7 +333,7 @@ public class CommandStoreTest {
       assertThat(args[i], instanceOf(CommandId.class));
       assertThat(args[i + 1], anyOf(is(nullValue()), instanceOf(Command.class)));
       records.add(
-          new ConsumerRecord<>(COMMAND_TOPIC, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
+          new ConsumerRecord<>(COMMAND_TOPIC_NAME, 0, 0, (CommandId) args[i], (Command) args[i + 1]));
     }
     return new ConsumerRecords<>(Collections.singletonMap(COMMAND_TOPIC_PARTITION, records));
   }

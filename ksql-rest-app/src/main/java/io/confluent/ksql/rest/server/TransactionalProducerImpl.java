@@ -20,7 +20,7 @@ import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 
@@ -53,18 +53,18 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   private final Consumer<CommandId, Command> commandConsumer;
   private final Producer<CommandId, Command> commandProducer;
   private final Duration commandQueueCatchupTimeout;
-  private final CommandRunner commandRunner;
+  private final CommandStore commandStore;
 
   public TransactionalProducerImpl(
       final String commandTopicName,
-      final CommandRunner commandRunner,
+      final CommandStore commandStore,
       final Duration commandQueueCatchupTimeout,
       final Map<String, Object> kafkaConsumerProperties,
       final Map<String, Object> kafkaProducerProperties
   ) {
     this(
         commandTopicName,
-        commandRunner,
+        commandStore,
         commandQueueCatchupTimeout,
         new KafkaConsumer<>(
           Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties"),
@@ -82,7 +82,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   @VisibleForTesting
   TransactionalProducerImpl(
       final String commandTopicName,
-      final CommandRunner commandRunner,
+      final CommandStore commandRunner,
       final Duration commandQueueCatchupTimeout,
       final Consumer<CommandId, Command> commandConsumer,
       final Producer<CommandId, Command> commandProducer
@@ -96,7 +96,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     this.commandConsumer = Objects.requireNonNull(commandConsumer, "commandConsumer");
     this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
-    this.commandRunner = Objects.requireNonNull(commandRunner, "commandRunner");
+    this.commandStore = Objects.requireNonNull(commandRunner, "commandRunner");
   }
 
   public void initialize() {
@@ -116,8 +116,8 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   private void waitForConsumer() {
     try {
       final long endOffset = getEndOffset();
-      
-      commandRunner.ensureProcessedPastOffset(endOffset - 1, commandQueueCatchupTimeout);
+
+      commandStore.ensureConsumedPast(endOffset - 1, commandQueueCatchupTimeout);
     } catch (final InterruptedException e) {
       final String errorMsg = 
           "Interrupted while waiting for commandRunner to process command topic";

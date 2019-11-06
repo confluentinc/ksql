@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -43,7 +42,6 @@ import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.TransactionalProducer;
-import io.confluent.ksql.rest.server.TransactionalProducerFactory;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -90,9 +88,6 @@ public class RecoveryTest {
       new HybridQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
   @Mock
-  private final TransactionalProducerFactory transactionalProducerFactory =
-      mock(TransactionalProducerFactory.class);
-  @Mock
   private final TransactionalProducer transactionalProducer =
       mock(TransactionalProducer.class);
 
@@ -101,11 +96,7 @@ public class RecoveryTest {
 
 
   @Before
-  public void setup() {
-    when(transactionalProducerFactory.createTransactionalProducer()).thenReturn(
-        transactionalProducer
-    );
-  }
+  public void setup() { }
 
   @After
   public void tearDown() {
@@ -127,11 +118,12 @@ public class RecoveryTest {
     private final List<QueuedCommand> commandLog;
     private final CommandIdAssigner commandIdAssigner;
     private int offset;
+    private TransactionalProducer transactionalProducer;
 
-    FakeCommandQueue(
-        final List<QueuedCommand> commandLog) {
+    FakeCommandQueue(final List<QueuedCommand> commandLog, final TransactionalProducer transactionalProducer) {
       this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
+      this.transactionalProducer = transactionalProducer;
     }
 
     @Override
@@ -170,6 +162,11 @@ public class RecoveryTest {
     }
 
     @Override
+    public TransactionalProducer createTransactionalProducer() {
+      return transactionalProducer;
+    }
+
+    @Override
     public long getConsumerPosition() {
       return 0L;
     }
@@ -198,7 +195,7 @@ public class RecoveryTest {
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
-      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog, transactionalProducer);
       serverState = new ServerState();
       serverState.setReady();
 
@@ -221,8 +218,7 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          (sc, metastore, statement) -> { },
-          transactionalProducerFactory
+          (sc, metastore, statement) -> { }
       );
 
       this.statementExecutor.configure(ksqlConfig);

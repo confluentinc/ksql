@@ -17,7 +17,7 @@ package io.confluent.ksql.rest.server;
 
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.computation.Command;
-import io.confluent.ksql.rest.server.computation.CommandRunner;
+import io.confluent.ksql.rest.server.computation.CommandStore;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -40,7 +40,6 @@ import java.util.concurrent.TimeoutException;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,7 +55,7 @@ public class TransactionalProducerTest {
   @Mock
   private Producer<CommandId, Command> commandProducer;
   @Mock
-  private CommandRunner commandRunner;
+  private CommandStore commandStore;
 
   private TransactionalProducer transactionalProducer;
 
@@ -78,7 +77,7 @@ public class TransactionalProducerTest {
   public void setup() throws TimeoutException, InterruptedException {
     transactionalProducer = new TransactionalProducerImpl(
         COMMAND_TOPIC_NAME,
-        commandRunner,
+        commandStore,
         TIMEOUT,
         commandConsumer,
         commandProducer
@@ -102,7 +101,7 @@ public class TransactionalProducerTest {
     transactionalProducer.begin();
     
     verify(commandProducer).beginTransaction();
-    verify(commandRunner).ensureProcessedPastOffset(COMMAND_TOPIC_OFFSET - 1,  TIMEOUT);
+    verify(commandStore).ensureConsumedPast(COMMAND_TOPIC_OFFSET - 1,  TIMEOUT);
   }
 
   @Test

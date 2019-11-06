@@ -20,7 +20,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -31,7 +30,7 @@ import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.exception.KsqlTopicAuthorizationException;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.parser.KsqlParser;
+import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.ListProperties;
 import io.confluent.ksql.parser.tree.Statement;
@@ -93,7 +92,7 @@ public class DistributingExecutorTest {
   @Mock KsqlExecutionContext executionContext;
   @Mock MetaStore metaStore;
   @Mock RequestValidator requestValidator;
-  @Mock KsqlParser.ParsedStatement parsedStatement;
+  @Mock ParsedStatement parsedStatement;
   @Mock
   TransactionalProducer transactionalProducer;
 
@@ -114,7 +113,8 @@ public class DistributingExecutorTest {
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(requestValidator.validate(
         serviceContext, Collections.singletonList(parsedStatement), ImmutableMap.of(), SQL_STRING)).thenReturn(1);
-  
+    when(parsedStatement.getStatementText()).thenReturn("statement");
+
     distributor = new DistributingExecutor(
         queue,
         DURATION_10_MS,

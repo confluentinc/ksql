@@ -35,7 +35,6 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TransactionalProducer;
-import io.confluent.ksql.rest.server.TransactionalProducerFactory;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
@@ -100,7 +99,6 @@ public class KsqlResource implements KsqlConfigurable {
   private final ActivenessRegistrar activenessRegistrar;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
   private final KsqlAuthorizationValidator authorizationValidator;
-  private final TransactionalProducerFactory transactionalProducerFactory;
   private RequestValidator validator;
   private RequestHandler handler;
 
@@ -110,8 +108,7 @@ public class KsqlResource implements KsqlConfigurable {
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final KsqlAuthorizationValidator authorizationValidator,
-      final TransactionalProducerFactory transactionalProducerFactory
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this(
         ksqlEngine,
@@ -119,8 +116,7 @@ public class KsqlResource implements KsqlConfigurable {
         distributedCmdResponseTimeout,
         activenessRegistrar,
         Injectors.DEFAULT,
-        authorizationValidator,
-        transactionalProducerFactory
+        authorizationValidator
     );
   }
 
@@ -130,8 +126,7 @@ public class KsqlResource implements KsqlConfigurable {
       final Duration distributedCmdResponseTimeout,
       final ActivenessRegistrar activenessRegistrar,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final KsqlAuthorizationValidator authorizationValidator,
-      final TransactionalProducerFactory transactionalProducerFactory
+      final KsqlAuthorizationValidator authorizationValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -142,8 +137,6 @@ public class KsqlResource implements KsqlConfigurable {
     this.injectorFactory = Objects.requireNonNull(injectorFactory, "injectorFactory");
     this.authorizationValidator = Objects
         .requireNonNull(authorizationValidator, "authorizationValidator");
-    this.transactionalProducerFactory = Objects.requireNonNull(
-        transactionalProducerFactory, "producerTransactionManagerFactory");
   }
 
   @Override
@@ -190,7 +183,7 @@ public class KsqlResource implements KsqlConfigurable {
 
     ensureValidPatterns(request.getDeleteTopicList());
     final TransactionalProducer transactionalProducer =
-        transactionalProducerFactory.createTransactionalProducer();
+        commandQueue.createTransactionalProducer();
     try {
       transactionalProducer.initialize();
       final KsqlEntityList entities = handler.execute(
@@ -246,7 +239,7 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlRequest request
   ) {
     final TransactionalProducer transactionalProducer =
-        transactionalProducerFactory.createTransactionalProducer();
+        commandQueue.createTransactionalProducer();
 
     try {
       transactionalProducer.initialize();

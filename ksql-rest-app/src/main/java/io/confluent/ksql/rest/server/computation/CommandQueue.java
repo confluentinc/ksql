@@ -79,6 +79,13 @@ public interface CommandQueue extends Closeable {
       throws InterruptedException, TimeoutException;
 
   /**
+   * Creates a transactional producer for producing to the command topic
+   *
+   * @return a TransactionalProducer
+   */
+  TransactionalProducer createTransactionalProducer();
+
+  /**
    * @return whether or not there are any enqueued commands
    */
   boolean isEmpty();

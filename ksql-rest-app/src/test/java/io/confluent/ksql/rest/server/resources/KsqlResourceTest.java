@@ -116,7 +116,6 @@ import io.confluent.ksql.rest.entity.StreamsList;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.TransactionalProducer;
-import io.confluent.ksql.rest.server.TransactionalProducerFactory;
 import io.confluent.ksql.rest.server.computation.CommandStatusFuture;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -269,8 +268,6 @@ public class KsqlResourceTest {
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
   @Mock
-  private TransactionalProducerFactory transactionalProducerFactory;
-  @Mock
   private TransactionalProducer transactionalProducer;
 
   private KsqlResource ksqlResource;
@@ -307,7 +304,7 @@ public class KsqlResourceTest {
         metaStore
     );
 
-    when(transactionalProducerFactory.createTransactionalProducer())
+    when(commandStore.createTransactionalProducer())
         .thenReturn(transactionalProducer);
 
     ksqlEngine = realEngine;
@@ -366,8 +363,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator,
-        transactionalProducerFactory
+        authorizationValidator
     );
 
     // Then:
@@ -395,8 +391,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator,
-        transactionalProducerFactory
+        authorizationValidator
     );
 
     // Then:
@@ -2077,8 +2072,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator,
-        transactionalProducerFactory
+        authorizationValidator
     );
 
     ksqlResource.configure(ksqlConfig);

@@ -794,7 +794,7 @@ dependency in your POM file:
 
 
 UdtfDescription Annotation
-~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The ``@UdtfDescription`` annotation is applied at the class level and has four fields, two of which are required.
 The information provided here is used by the ``SHOW FUNCTIONS`` and ``DESCRIBE FUNCTION <function>`` commands.
@@ -817,7 +817,7 @@ The information provided here is used by the ``SHOW FUNCTIONS`` and ``DESCRIBE F
 
 
 Udtf Annotation
-~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 The ``@Udtf`` annotation is applied to public methods of a class annotated with ``@UdtfDescription``.
 Each annotated method will become an invocable function in KSQL. This annotation supports the following

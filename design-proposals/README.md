@@ -37,7 +37,7 @@ This is the guts of our improvement proposal process:
 
 The progression of statuses should be: Proposal, Discussion, Approved, Merged
 
-Next KLIP number: **11**
+Next KLIP number: **12**
 
 | KLIP                                                                               | Status         | Release |
 |------------------------------------------------------------------------------------|:--------------:| ------: |
@@ -51,3 +51,4 @@ Next KLIP number: **11**
 | [KLIP-8: Interactive Queries](klip-8-interactive-queries.md)                       | Approved       | 5.4     |
 | [KLIP-9: Table Functions](klip-9-table-functions.md)                               | Approved       | 5.4     |
 | [KLIP-10: Suppress](klip-10-suppress.md)                                           | Proposal       | N/A     |
+| [KLIP-11: Redesign KSQL query language](klip-11-DQL.md)                            | Proposal       | N/A     |

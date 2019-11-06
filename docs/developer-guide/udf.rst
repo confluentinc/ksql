@@ -735,7 +735,7 @@ To use this functionality, you need to specify a method with signature
 Also, you need to link it to the corresponding UDF by using the ``schemaProvider=<your-method-name>``
 parameter of the ``@Udtf`` annotation.
 
-Please note that if your UDTF method returns a value of type ``List<T>`` then the type referred to
+If your UDTF method returns a value of type ``List<T>``, the type referred to
 by the schema provider method is the type ``T`` not the type ``List<T>``.
 
 .. _example-udtf-class:
@@ -744,12 +744,12 @@ Example UDTF class
 ~~~~~~~~~~~~~~~~~~
 
 The class below creates a UDTF named ``split_string``. The name of the UDTF is provided in the ``name``
-parameter of the ``UdtfDescription`` annotation. This name is case-insensitive and is what can be
-used to call the UDTF.
+parameter of the ``UdtfDescription`` annotation. This name is case-insensitive and you can use it
+to call the UDTF.
 
 UDTF methods must return a value of type ``List<T>`` where T is any of the supported KSQL Java types.
 
-As can be seen this UDTF can be invoked in two different ways:
+You can invoke this UDTF in two different ways:
 
 - with a single String containing the String to split
 - with a String containing the String to split and a regex to define the delimiter
@@ -787,7 +787,7 @@ To compile with the latest version of ``ksql-udf``:
 
     compile 'io.confluent.ksql:ksql-udf:+'
 
-If you're using Maven to build your UDF or UDAF, specify the ``ksql-udf``
+If you're using Maven to build your function, specify the ``ksql-udf``
 dependency in your POM file:
 
 .. codewithvars:: xml

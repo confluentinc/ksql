@@ -114,6 +114,8 @@
         <avro.random.generator.version>0.2.2</avro.random.generator.version>
         <apache.curator.version>2.9.0</apache.curator.version>
         <wiremock.version>2.24.0</wiremock.version>
+        <skip.docker.build>true</skip.docker.build>
+        <skip.docker.test>true</skip.docker.test>
     </properties>
 
     <dependencyManagement>

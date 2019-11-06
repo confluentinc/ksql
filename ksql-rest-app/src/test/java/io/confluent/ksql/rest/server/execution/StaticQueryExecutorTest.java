@@ -30,24 +30,57 @@ import io.confluent.ksql.rest.server.TemporaryEngine;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.server.validation.CustomValidators;
 import io.confluent.ksql.statement.ConfiguredStatement;
+import io.confluent.ksql.util.KsqlConfig;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.runners.Enclosed;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+@RunWith(Enclosed.class)
 public class StaticQueryExecutorTest {
 
-  @Rule
-  public final TemporaryEngine engine = new TemporaryEngine();
+  public static class Disabled {
+    @Rule
+    public final TemporaryEngine engine = new TemporaryEngine()
+        .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG, false));
 
-  @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
 
-  @Test
-  public void shouldThrowExceptionOnQueryEndpoint() {
+    @Test
+    public void shouldThrowExceptionIfConfigDisabled() {
+
+      testForFailure(
+          engine,
+          expectedException,
+          "Pull queries are disabled on this KSQL server"
+      );
+    }
+  }
+
+  public static class Enabled {
+    @Rule
+    public final TemporaryEngine engine = new TemporaryEngine();
+
+    @Rule
+    public final ExpectedException expectedException = ExpectedException.none();
+
+    @Test
+    public void shouldThrowExceptionOnQueryEndpoint() {
+      testForFailure(
+          engine,
+          expectedException,
+          "The following statement types should be issued to the websocket endpoint '/query'"
+      );
+    }
+  }
+
+  private static void testForFailure(
+      TemporaryEngine engine, ExpectedException expectedException, String errorMessage
+  ) {
     // Given:
     final ConfiguredStatement<Query> query = ConfiguredStatement.of(
         PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
@@ -59,7 +92,7 @@ public class StaticQueryExecutorTest {
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
     expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-        "The following statement types should be issued to the websocket endpoint '/query'"
+        errorMessage
     ))));
     expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
         "SELECT * FROM test_table"))));

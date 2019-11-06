@@ -228,8 +228,8 @@ image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
 The default number of partitions for the topics created by KSQL. The
 default is four. This property has been deprecated since 5.3 release.
 For more info see the WITH clause properties in
-[CREATE STREAM AS SELECT](../../developer-guide/syntax-reference.md#create-stream-as-select) and
-[CREATE TABLE AS SELECT](../../developer-guide/syntax-reference.md#create-table-as-select).
+[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
 The corresponding environment variable in the [KSQL Server
 image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
@@ -240,13 +240,13 @@ image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
 The default number of replicas for the topics created by KSQL. The
 default is one. This property has been deprecated since 5.3 release. For
 more info see the WITH clause properties in
-[CREATE STREAM AS SELECT](../../developer-guide/syntax-reference.md#create-stream-as-select) and
-[CREATE TABLE AS SELECT](../../developer-guide/syntax-reference.md#create-table-as-select).
+[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
 ### ksql.functions.substring.legacy.args
 
 Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
-documentation in the [function](../../developer-guide/syntax-reference.md#scalar-functions)
+documentation in the [function](../../developer-guide/ksqldb-reference/scalar-functions.md)
 guide for details.
 
 When upgrading headless mode KSQL applications from versions 5.0.x or
@@ -263,10 +263,10 @@ image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
 ### ksql.persistence.wrap.single.values
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is
-not supplied explicitly in [CREATE TABLE](../../developer-guide/syntax-reference.md#create-table),
-[CREATE STREAM](../../developer-guide/syntax-reference.md#create-stream),
-[CREATE TABLE](../../developer-guide/syntax-reference.md#create-table) or
-[CREATE STREAM AS SELECT](../../developer-guide/syntax-reference.md#create-stream-as-select)
+not supplied explicitly in [CREATE TABLE](../../developer-guide/ksqldb-reference/create-table.md),
+[CREATE STREAM](../../developer-guide/ksqldb-reference/create-stream.md),
+[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md) or
+[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
 When set to the default value, `true`, KSQL serializes the column value
@@ -309,10 +309,10 @@ SET 'ksql.persistence.wrap.single.values'='false';
 ```
 
 For more information, refer to the
-[CREATE TABLE](../../developer-guide/syntax-reference.md#create-table),
-[CREATE STREAM](../../developer-guide/syntax-reference.md#create-stream),
-[CREATE TABLE AS SELECT](../../developer-guide/syntax-reference.md#create-table-as-select) or
-[CREATE STREAM AS SELECT](../../developer-guide/syntax-reference.md#create-stream-as-select)
+[CREATE TABLE](../../developer-guide/ksqldb-reference/create-table.md),
+[CREATE STREAM](../../developer-guide/ksqldb-reference/create-stream.md),
+[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md) or
+[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
 !!! note

@@ -68,8 +68,8 @@ to be serialized as a named field, for example:
 If your data contains only a single field, and that field is not wrapped
 within a JSON object, or an Avro record is using the `AVRO` format, then
 you can use the `WRAP_SINGLE_VALUE` property in the `WITH` clause of
-your [CREATE TABLE](syntax-reference.md#create-table) or
-[CREATE STREAM](syntax-reference.md#create-stream) statements. Setting the
+your [CREATE TABLE](ksqldb-reference/create-table.md) or
+[CREATE STREAM](ksqldb-reference/create-stream.md) statements. Setting the
 property to `false` tells KSQL that the value isn't wrapped, so the
 example above would be a JSON number:
 

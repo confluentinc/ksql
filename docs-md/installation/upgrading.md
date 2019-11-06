@@ -137,7 +137,7 @@ Upgrading from KSQL 5.0.0 and below to KSQL 5.1
          `ksql.functions.substring.legacy.args` to `true`. If possible,
          we recommend that you update your queries accordingly, instead
          of enabling this configuration setting. Refer to the SUBSTRING
-         documentation in the [Scalar functions](../developer-guide/syntax-reference.md#scalar-functions)
+         documentation in the [Scalar functions](../developer-guide/ksqldb-reference/scalar-functions.md)
          guide for details on how to do so. Note that this is NOT
          required for interactive mode KSQL.
 

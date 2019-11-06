@@ -299,19 +299,6 @@ public class CreateSourcePropertiesTest {
   }
 
   @Test
-  public void shouldCleanQuotesForStrings() {
-    // When:
-    final CreateSourceProperties properties = CreateSourceProperties.from(
-        ImmutableMap.<String, Literal>builder()
-            .putAll(MINIMUM_VALID_PROPS)
-            .put(CommonCreateConfigs.VALUE_AVRO_SCHEMA_FULL_NAME, new StringLiteral("'schema'"))
-            .build());
-
-    // Then:
-    assertThat(properties.getValueAvroSchemaName(), is(Optional.of("schema")));
-  }
-
-  @Test
   public void shouldSetReplicasFromNumber() {
     // When:
     final CreateSourceProperties properties = CreateSourceProperties.from(

@@ -225,7 +225,7 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldEscapeQuotesInStringLiteral() {
     // Given:
-    final Expression expression = new StringLiteral("'\"foo\"'");
+    final Expression expression = new StringLiteral("\"foo\"");
 
     // When:
     final String javaExpression = sqlToJavaVisitor.process(expression);
@@ -237,7 +237,7 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldEscapeQuotesInStringLiteralQuote() {
     // Given:
-    final Expression expression = new StringLiteral("'\\\"'");
+    final Expression expression = new StringLiteral("\\\"");
 
     // When:
     final String javaExpression = sqlToJavaVisitor.process(expression);

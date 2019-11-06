@@ -411,3 +411,5 @@ EOF
     (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and setting configuration
     options (SET statement). Other statements and commands such as `SHOW TOPICS`
     and `SHOW STREAMS` are ignored.
+
+Page last revised on: {{ git_revision_date }}

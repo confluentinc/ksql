@@ -288,3 +288,5 @@ To start the KSQL Server in headless, non-interactive configuration via the
     ```bash
     <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
     ```
+
+Page last revised on: {{ git_revision_date }}

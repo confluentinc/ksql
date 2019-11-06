@@ -326,3 +326,5 @@ KSQL 5.1 includes new features, including:
     version 5.0.0 for KSQL server image
 -   [PR-1955](https://github.com/confluentinc/ksql/pull/1955) - Hide ssl
     configs and refactor KsqlResourceTest
+
+Page last revised on: {{ git_revision_date }}

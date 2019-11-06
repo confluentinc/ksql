@@ -312,3 +312,5 @@ Next Steps
 -   [STRUCT](syntax-reference.md#struct)
 -   [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md)
 -   [Query With Arrays and Maps](query-with-arrays-and-maps.md)
+
+Page last revised on: {{ git_revision_date }}

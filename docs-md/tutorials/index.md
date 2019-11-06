@@ -144,3 +144,5 @@ Level Up Your KSQL Videos
 | [Stream-Stream Joins](https://www.youtube.com/watch?v=51yLu5FnPYo)                         | A short tutorial on stream-stream joins in KSQL by Confluent.                                                                                                                                                  |
 | [Table-Table Joins](https://www.youtube.com/watch?v=-eMXWeBfK7U)                           | A short tutorial on table-table joins in KSQL by Confluent.                                                                                                                                                    |
 | [Monitoring KSQL in Confluent Control Center](https://www.youtube.com/watch?v=3o7MzCri4e4) | Monitor performance and end-to-end message delivery of your KSQL queries.                                                                                                                                      |
+
+Page last revised on: {{ git_revision_date }}

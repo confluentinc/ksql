@@ -205,3 +205,5 @@ Next Steps
 -   [Connecting KSQL to Confluent
     Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html)
 -   [Configure Security for KSQL](security.md)
+
+Page last revised on: {{ git_revision_date }}

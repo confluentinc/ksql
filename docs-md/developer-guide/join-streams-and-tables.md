@@ -301,3 +301,5 @@ table, if the corresponding key exists already in the join result table.
 | 13        |                  | null (tombstone) |                  |                  |                  |
 | 14        |                  | d                |                  |                  | [null, d]        |
 | 15        | D                |                  | [D, d]           | [D, d]           | [D, d]           |
+
+Page last revised on: {{ git_revision_date }}

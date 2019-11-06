@@ -60,3 +60,5 @@ INSERT INTO foo (KEY_COL) VALUES ('key');
 
 The values are serialized by using the `value_format` specified in the
 original `CREATE` statement. The key is always serialized as a String.
+
+Page last revised on: {{ git_revision_date }}

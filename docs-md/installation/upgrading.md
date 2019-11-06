@@ -183,3 +183,5 @@ Notable changes in 4.1:
     settings. See [KSQL Configuration Parameter Reference](server-config/config-reference.md) as well as
     [KSQL configuration file](server-config/config-reference.md) and
     [Configure KSQL CLI](cli-config.md#configure-ksql-cli) for details.
+
+Page last revised on: {{ git_revision_date }}

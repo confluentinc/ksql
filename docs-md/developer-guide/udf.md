@@ -777,3 +777,5 @@ Metric collection can be enabled by setting the config
 generally not recommended for production usage, as metrics are
 collected on each invocation and introduce some overhead to
 processing time.
+
+Page last revised on: {{ git_revision_date }}

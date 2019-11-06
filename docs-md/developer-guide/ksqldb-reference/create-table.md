@@ -59,3 +59,5 @@ CREATE TABLE users (usertimestamp BIGINT, user_id VARCHAR, gender VARCHAR, regio
     KAFKA_TOPIC = 'my-users-topic',
     KEY = 'user_id');
 ```
+
+Page last revised on: {{ git_revision_date }}

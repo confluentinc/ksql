@@ -289,3 +289,5 @@ Content-Type: application/vnd.ksql.v1+json
   "commandSequenceNumber":10
 }
 ```
+
+Page last revised on: {{ git_revision_date }}

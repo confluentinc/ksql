@@ -550,3 +550,5 @@ ksql.streams.num.standby.replicas=1
 For more information, see the
 [ksql-production-server.properties](https://github.com/confluentinc/ksql/blob/master/config/ksql-production-server.properties)
 example file.
+
+Page last revised on: {{ git_revision_date }}

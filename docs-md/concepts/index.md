@@ -16,3 +16,5 @@ These topics describe KSQL concepts in {{ site.cp }}.
 - [Time and Windows in KSQL](time-and-windows-in-ksql-queries.md)
 
 Page last revised on: {{ git_revision_date }}
+
+Page last revised on: {{ git_revision_date }}

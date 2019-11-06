@@ -426,3 +426,5 @@ available to KSQL by using a statement like:
 ```sql
 CREATE STREAM USERS (ROWKEY BIGINT KEY, NAME STRING) WITH (KEY_FORMAT='KAFKA', VALUE_FORMAT='JSON', ...);
 ```
+
+Page last revised on: {{ git_revision_date }}

@@ -228,3 +228,5 @@ the testing tool inspects the source topics for the query in the simulated
 Kafka cluster and processes any messages in these topics. For JOIN queries
 that have more than one source topic, the testing tool first processes the
 left-side topic and then processes the right-side topic.
+
+Page last revised on: {{ git_revision_date }}

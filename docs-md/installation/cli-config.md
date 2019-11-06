@@ -37,3 +37,5 @@ Here are some common KSQL CLI properties that you can customize:
 -   [ksql.streams.auto.offset.reset](server-config/config-reference.md#ksqlstreamsautooffsetreset)
 -   [ksql.streams.cache.max.bytes.buffering](server-config/config-reference.md#ksqlstreamscachemaxbytesbuffering)
 -   [ksql.streams.num.stream.threads](server-config/config-reference.md#ksqlstreamsnumstreamthreads)
+
+Page last revised on: {{ git_revision_date }}

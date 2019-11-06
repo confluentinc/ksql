@@ -74,3 +74,5 @@ Deleting: /var/folders/ty/rqbqmjv54rg_v10ykmrgd1_80000gp/T/confluent.PkQpsKfE
     kafka is [DOWN]
     Stopping zookeeper
     zookeeper is [DOWN]
+
+Page last revised on: {{ git_revision_date }}

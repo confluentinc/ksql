@@ -276,3 +276,5 @@ ksql> CREATE STREAM PROCESSING_LOG_STREAM (
 >Note: Processing log stream auto-creation is supported for
 interactive mode only. Enabling this setting in headless mode causes
 a warning to be printed to the server log.
+
+Page last revised on: {{ git_revision_date }}

@@ -270,3 +270,5 @@ confluent log ksql-server
 Look for logs in the default directory at `/usr/local/logs` or in the
 `LOG_DIR` that you assign when you start the KSQL CLI. For more info,
 see [Starting the KSQL CLI](installation/installing.md#start-the-ksql-cli).
+
+Page last revised on: {{ git_revision_date }}

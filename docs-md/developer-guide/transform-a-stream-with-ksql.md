@@ -110,3 +110,5 @@ Here are some examples of useful streaming transformations in the
 -   [Changing Data Serialization Format from Avro to CSV](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-avro-csv)
 -   [Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
 -   [Changing Data Serialization Format from Delimited (CSV) to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-delimited-csv-avro)
+
+Page last revised on: {{ git_revision_date }}

@@ -15,3 +15,5 @@ Installation and Configuration
 - [Configuring KSQL Server](server-config/index.md)
 - [Configure KSQL CLI](cli-config.md)
 - [Upgrade KSQL](upgrading.md)
+
+Page last revised on: {{ git_revision_date }}

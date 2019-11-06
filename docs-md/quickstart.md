@@ -38,3 +38,5 @@ ingest data in multiple ways, including {{ site.ak }} console
 producers, JDBC source connectors, and Java client producers. For
 full code examples,
 [connect-streams-pipeline](https://github.com/confluentinc/examples/tree/master/connect-streams-pipeline).
+
+Page last revised on: {{ git_revision_date }}

@@ -29,3 +29,5 @@ These topics show how to develop KSQL applications for {{ site.cp }}.
 - [KSQL-Connect Integration](ksql-connect.md)
 - [KSQL Tutorials and Examples](../tutorials/index.md)
 
+
+Page last revised on: {{ git_revision_date }}

@@ -1654,7 +1654,7 @@ Scalar functions
 |                        |                                                                           | field with name ``V`` holding the value.          |
 |                        |                                                                           | If ``sorted`` is true the entries will be sorted  |
 |                        |                                                                           | by key.                                           |
-+------------------------|---------------------------------------------------------------------------+---------------------------------------------------+
++------------------------+---------------------------------------------------------------------------+---------------------------------------------------+
 | EXTRACTJSONFIELD       |  ``EXTRACTJSONFIELD(message, '$.log.cloud')``                             | Given a string column in JSON format, extract     |
 |                        |                                                                           | the field that matches.                           |
 |                        |                                                                           |                                                   |

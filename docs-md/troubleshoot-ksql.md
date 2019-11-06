@@ -18,7 +18,7 @@ CLI, use Ctrl-C to stop non-persistent queries, like
 `SELECT * FROM myTable EMIT CHANGES`. To stop a persistent query created by
 CREATE STREAM AS SELECT or CREATE TABLE AS SELECT, use the TERMINATE statement:
 `TERMINATE query_id;`. For more information, see
-[TERMINATE](developer-guide/syntax-reference.md#terminate).
+[TERMINATE](developer-guide/ksqldb-reference/terminate.md).
 
 SELECT query returns no results
 -------------------------------

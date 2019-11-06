@@ -127,7 +127,7 @@ KSQL 5.2 includes new features, including:
     is returned.
 -   A new family of UDFs for improved handling of URIs (e.g. extracting
     information/decoding information), see
-    [UDF table](developer-guide/syntax-reference.md#scalar-functions) for all URL functions
+    [UDF table](developer-guide/ksqldb-reference/scalar-functions.md) for all URL functions
 -   `LIMIT` keyword support for `PRINT`
     ([#1316](https://github.com/confluentinc/ksql/issues/1316))
 -   Support for read-after-write consistency: new commands don't

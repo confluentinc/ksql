@@ -278,8 +278,8 @@ final class EngineExecutor {
     }
 
     enforceKeyEquivalence(
-        existing.getKeyField().resolve(existingSchema, ksqlConfig),
-        keyField.resolve(resultSchema, ksqlConfig)
+        existing.getKeyField().resolve(existingSchema),
+        keyField.resolve(resultSchema)
     );
   }
 

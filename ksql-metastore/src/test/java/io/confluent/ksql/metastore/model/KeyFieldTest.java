@@ -18,16 +18,14 @@ package io.confluent.ksql.metastore.model;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.Optional;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,86 +38,59 @@ public class KeyFieldTest {
       .valueColumn(ColumnName.of("field1"), SqlTypes.BIGINT)
       .build();
 
-  private static final KsqlConfig LEGACY_CONFIG = new KsqlConfig(
-      ImmutableMap.of(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD, true)
-  );
-
-  private static final KsqlConfig LATEST_CONFIG = new KsqlConfig(
-      ImmutableMap.of()
-  );
-
-  private static final LegacyField RANDOM_LEGACY_FIELD =
-      LegacyField.of(ColumnRef.withoutSource(ColumnName.of("won't find me anywhere")), SqlTypes.STRING);
-
-  private static final LegacyField LEGACY_FIELD = LegacyField
-      .of(SCHEMA.value().get(0).ref(), SCHEMA.value().get(0).type());
-
   private static final Column OTHER_SCHEMA_COL = SCHEMA.value().get(1);
 
   private static final String SOME_ALIAS = "fred";
 
   private static final KeyField ALIASED_KEY_FIELD = KeyField.of(
-      ColumnRef.of(SourceName.of(SOME_ALIAS), OTHER_SCHEMA_COL.name()),
-      LegacyField.of(ColumnRef.of(SourceName.of(SOME_ALIAS), LEGACY_FIELD.columnRef().name()), LEGACY_FIELD.type())
+      ColumnRef.of(SourceName.of(SOME_ALIAS), OTHER_SCHEMA_COL.name())
   );
 
-  private static final KeyField UNALIASED_KEY_FIELD = KeyField
-      .of(OTHER_SCHEMA_COL.ref(), LEGACY_FIELD);
+  private static final KeyField UNALIASED_KEY_FIELD = KeyField.of(OTHER_SCHEMA_COL.ref());
+
+  private static final ColumnRef VALID_COL_REF = SCHEMA.value().get(0).ref();
+  private static final SqlType VALID_COL_TYPE = SCHEMA.value().get(0).type();
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void shouldImplementHashCodeAndEqualsProperly() {
-    final Optional<ColumnRef> keyField = Optional.of("key").map(ColumnName::of).map(ColumnRef::withoutSource);
-    final Optional<LegacyField> legacy = Optional.of(LEGACY_FIELD);
+    final ColumnRef keyField = ColumnRef.withoutSource(ColumnName.of("key"));
 
     new EqualsTester()
-        .addEqualityGroup(KeyField.of(keyField, legacy), KeyField.of(keyField, legacy))
-        .addEqualityGroup(KeyField.of(Optional.empty(), legacy))
-        .addEqualityGroup(KeyField.of(keyField, Optional.empty()))
+        .addEqualityGroup(KeyField.of(keyField), KeyField.of(keyField))
+        .addEqualityGroup(KeyField.of(Optional.empty()))
+        .addEqualityGroup(KeyField.of(ColumnRef.withoutSource(ColumnName.of("different"))))
         .testEquals();
   }
 
   @Test
-  public void shouldHandleLegacyEmpty() {
+  public void shouldHandleNonEmpty() {
+    // Given:
+    final ColumnRef columnRef = ColumnRef.withoutSource(ColumnName.of("something"));
+
     // When:
-    final KeyField keyField = KeyField.of(
-        Optional.of("something").map(ColumnName::of).map(ColumnRef::withoutSource),
-        Optional.empty());
+    final KeyField keyField = KeyField.of(columnRef);
 
     // Then:
-    assertThat(keyField.ref(), is(Optional.of("something").map(ColumnName::of).map(ColumnRef::withoutSource)));
-    assertThat(keyField.legacy(), is(Optional.empty()));
+    assertThat(keyField.ref(), is(Optional.of(columnRef)));
   }
 
   @Test
-  public void shouldHandleNewEmpty() {
+  public void shouldHandleEmpty() {
     // When:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty());
 
     // Then:
     assertThat(keyField.ref(), is(Optional.empty()));
-    assertThat(keyField.legacy(), is(Optional.of(RANDOM_LEGACY_FIELD)));
-  }
-
-  @Test
-  public void shouldHandleBothEmpty() {
-    // When:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.empty());
-
-    // Then:
-    assertThat(keyField.ref(), is(Optional.empty()));
-    assertThat(keyField.legacy(), is(Optional.empty()));
+    assertThat(keyField, is(KeyField.none()));
   }
 
   @Test
   public void shouldNotThrowOnValidateIfKeyInSchema() {
     // Given:
-    final KeyField keyField = KeyField.of(
-        Optional.of("field0").map(ColumnName::of).map(ColumnRef::withoutSource),
-        Optional.empty()
-    );
+    final KeyField keyField = KeyField.of(VALID_COL_REF);
 
     // When:
     keyField.validateKeyExistsIn(SCHEMA);
@@ -130,9 +101,7 @@ public class KeyFieldTest {
   @Test
   public void shouldThrowOnValidateIfKeyNotInSchema() {
     // Given:
-    final KeyField keyField = KeyField.of(
-        Optional.of("????").map(ColumnName::of).map(ColumnRef::withoutSource),
-        Optional.empty());
+    final KeyField keyField = KeyField.of(ColumnRef.withoutSource(ColumnName.of("????")));
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
@@ -143,9 +112,9 @@ public class KeyFieldTest {
   }
 
   @Test
-  public void shouldNotThrowOnValidateIfKeyNotInSchema() {
+  public void shouldNotThrowOnValidateIfNoKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
+    final KeyField keyField = KeyField.of(Optional.empty());
 
     // When:
     keyField.validateKeyExistsIn(SCHEMA);
@@ -154,154 +123,39 @@ public class KeyFieldTest {
   }
 
   @Test
-  public void shouldThrowOnResolveIfSchemaDoesNotContainNewKeyField() {
+  public void shouldThrowOnResolveIfSchemaDoesNotContainKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(
-        Optional.of("not found").map(ColumnName::of).map(ColumnRef::withoutSource),
-        Optional.empty());
+    final KeyField keyField = KeyField.of(ColumnRef.withoutSource(ColumnName.of("not found")));
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
 
     // When:
-    keyField.resolve(SCHEMA, LATEST_CONFIG);
+    keyField.resolve(SCHEMA);
   }
 
   @Test
-  public void shouldNotThrowOnResolveIfSchemaDoesNotContainsLegacyKeyField() {
+  public void shouldResolveKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
+    final KeyField keyField = KeyField.of(VALID_COL_REF);
 
     // When:
-    final Optional<Column> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA);
 
     // Then:
-    assertThat(resolved, is(Optional.of(
-        Column.of(RANDOM_LEGACY_FIELD.columnRef(), RANDOM_LEGACY_FIELD.type()))));
+    assertThat(resolved, is(Optional.of(Column.of(VALID_COL_REF, VALID_COL_TYPE))));
   }
 
   @Test
-  public void shouldResolveToNewKeyField() {
+  public void shouldResolveEmptyKeyField() {
     // Given:
-    final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.columnRef()), Optional.empty());
+    final KeyField keyField = KeyField.of(Optional.empty());
 
     // When:
-    final Optional<Column> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.of(Column.of(LEGACY_FIELD.columnRef(), LEGACY_FIELD.type()))));
-  }
-
-  @Test
-  public void shouldResolveToLegacyKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
-
-    // When:
-    final Optional<Column> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.of(Column.of(LEGACY_FIELD.columnRef(), LEGACY_FIELD.type()))));
-  }
-
-  @Test
-  public void shouldResolveToEmptyNewKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
-
-    // When:
-    final Optional<Column> resolved = keyField.resolve(SCHEMA, LATEST_CONFIG);
+    final Optional<Column> resolved = keyField.resolve(SCHEMA);
 
     // Then:
     assertThat(resolved, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldResolveToEmptyLegacyKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(
-        Optional.of("something").map(ColumnName::of).map(ColumnRef::withoutSource),
-        Optional.empty());
-
-    // When:
-    final Optional<Column> resolved = keyField.resolve(SCHEMA, LEGACY_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldResolveNameToNewKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.columnRef()), Optional.empty());
-
-    // When:
-    final Optional<ColumnRef> resolved = keyField.resolveName(LATEST_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.of(LEGACY_FIELD.columnRef())));
-  }
-
-  @Test
-  public void shouldResolveNameToEmptyNewKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(LEGACY_FIELD));
-
-    // When:
-    final Optional<?> resolved = keyField.resolveName(LATEST_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldResolveNameToLegacyKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.empty(), Optional.of(RANDOM_LEGACY_FIELD));
-
-    // When:
-    final Optional<ColumnRef> resolved = keyField.resolveName(LEGACY_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.of(RANDOM_LEGACY_FIELD.columnRef())));
-  }
-
-  @Test
-  public void shouldResolveNameToEmptyLegacyKeyField() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.of(LEGACY_FIELD.columnRef()), Optional.empty());
-
-    // When:
-    final Optional<ColumnRef> resolved = keyField.resolveName(LEGACY_CONFIG);
-
-    // Then:
-    assertThat(resolved, is(Optional.empty()));
-  }
-
-  @Test
-  public void shouldBuildNewWithNewName() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.of("something").map(ColumnName::of).map(ColumnRef::withoutSource), Optional.empty());
-
-    // When:
-    final KeyField result = keyField.withName(ColumnRef.withoutSource(ColumnName.of("new-name")));
-
-    // Then:
-    assertThat(keyField.ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("something")))));
-    assertThat(result, is(KeyField.of(Optional.of("new-name").map(ColumnName::of).map(ColumnRef::withoutSource), Optional.empty())));
-  }
-
-  @Test
-  public void shouldBuildNewWithLegacy() {
-    // Given:
-    final KeyField keyField = KeyField.of(Optional.of("something").map(ColumnName::of).map(ColumnRef::withoutSource), Optional.empty());
-
-    // When:
-    final KeyField result = keyField.withLegacy(Optional.of(LEGACY_FIELD));
-
-    // Then:
-    assertThat(keyField.legacy(), is(Optional.empty()));
-    assertThat(result, is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("something")), LEGACY_FIELD)));
   }
 
   @Test

@@ -16,64 +16,37 @@
 package io.confluent.ksql.test.model;
 
 import static java.util.Objects.requireNonNull;
-import static org.hamcrest.Matchers.allOf;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.test.model.matchers.MetaStoreMatchers.KeyFieldMatchers;
-import io.confluent.ksql.test.serde.KeyFieldDeserializer;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 import org.hamcrest.Matcher;
 
-@JsonDeserialize(using = KeyFieldDeserializer.class)
 public final class KeyFieldNode {
 
-  public static final Optional<String> EXCLUDE_NAME = Optional
-      .of("explicit check that name is not set");
+  private static final KeyFieldNode NONE = new KeyFieldNode(Optional.empty());
 
-  public static final Optional<SqlType> EXCLUDE_SCHEMA = Optional.of(
-      SqlTypes
-          .struct()
-          .field("explicit check that schema is not set", SqlTypes.BIGINT)
-          .build());
-
+  @JsonValue
   private final Optional<String> name;
-  private final Optional<String> legacyName;
-  private final Optional<SqlType> legacySchema;
 
+  @SuppressWarnings("WeakerAccess") // Invoked via reflection
+  @JsonCreator
   public KeyFieldNode(
-      final Optional<String> name,
-      final Optional<String> legacyName,
-      final Optional<SqlType> legacySchema
+      final Optional<String> name
   ) {
     this.name = requireNonNull(name, "name");
-    this.legacyName = requireNonNull(legacyName, "legacyName");
-    this.legacySchema = requireNonNull(legacySchema, "legacySchema");
   }
 
-  @SuppressWarnings("unchecked")
+  /**
+   * @return a node that explicitly checks that no key field is set.
+   */
+  public static KeyFieldNode none() {
+    return NONE;
+  }
+
   Matcher<KeyField> build() {
-    final Matcher<KeyField> nameMatcher = name.equals(EXCLUDE_NAME)
-        ? null
-        : KeyFieldMatchers.hasName(name);
-
-    final Matcher<KeyField> legacyNameMatcher = legacyName.equals(EXCLUDE_NAME)
-        ? null
-        : KeyFieldMatchers.hasLegacyName(legacyName);
-
-    final Matcher<KeyField> legacySchemaMatcher = legacySchema.equals(EXCLUDE_SCHEMA)
-        ? null
-        : KeyFieldMatchers.hasLegacyType(legacySchema);
-
-    final Matcher<KeyField>[] matchers = Stream
-        .of(nameMatcher, legacyNameMatcher, legacySchemaMatcher)
-        .filter(Objects::nonNull)
-        .toArray(Matcher[]::new);
-
-    return allOf(matchers);
+    return KeyFieldMatchers.hasName(name);
   }
 }

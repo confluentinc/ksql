@@ -97,7 +97,6 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class InsertValuesExecutorTest {
 
@@ -710,7 +709,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldHandleTablesWithNoKeyField() {
     // Given:
-    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceTableWithSchema(SerdeOption.none(), Optional.empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("ROWKEY", "COL0", "COL1"),
@@ -753,7 +752,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithNoKeyFieldAndNoRowKeyProvided() {
     // Given:
-    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.empty());
+    givenSourceTableWithSchema(SerdeOption.none(), Optional.empty());
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL0", "COL1"),
@@ -774,7 +773,7 @@ public class InsertValuesExecutorTest {
   @Test
   public void shouldThrowOnTablesWithKeyFieldAndNullKeyFieldValueProvided() {
     // Given:
-    givenSourceTableWithSchema(SCHEMA, SerdeOption.none(), Optional.of(COL0));
+    givenSourceTableWithSchema(SerdeOption.none(), Optional.of(COL0));
 
     final ConfiguredStatement<InsertValues> statement = givenInsertValuesStrings(
         ImmutableList.of("COL1"),
@@ -854,11 +853,10 @@ public class InsertValuesExecutorTest {
   }
 
   private void givenSourceTableWithSchema(
-      final LogicalSchema schema,
       final Set<SerdeOption> serdeOptions,
       final Optional<ColumnName> keyField
   ) {
-    givenDataSourceWithSchema(schema, serdeOptions, keyField, true);
+    givenDataSourceWithSchema(SCHEMA, serdeOptions, keyField, true);
   }
 
   private void givenDataSourceWithSchema(
@@ -875,9 +873,7 @@ public class InsertValuesExecutorTest {
     );
 
     final KeyField valueKeyField = keyField
-        .map(kf -> KeyField.of(
-            ColumnRef.withoutSource(kf),
-            schema.findValueColumn(ColumnRef.withoutSource(kf)).get()))
+        .map(kf -> KeyField.of(ColumnRef.withoutSource(kf)))
         .orElse(KeyField.none());
 
     final DataSource<?> dataSource;

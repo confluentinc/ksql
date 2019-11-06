@@ -15,9 +15,6 @@
 
 package io.confluent.ksql.structured;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyType;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
@@ -48,11 +45,9 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
@@ -96,12 +91,8 @@ public class SchemaKStreamTest {
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
-  private final KeyField validJoinKeyField = KeyField.of(
-      Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL1"))),
-      metaStore.getSource(SourceName.of("TEST1"))
-          .getKeyField()
-          .legacy()
-          .map(field -> field.withSource(SourceName.of("left"))));
+  private final KeyField validJoinKeyField = KeyField
+      .of(Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL1"))));
   private final KeyFormat keyFormat = KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA));
   private final ValueFormat valueFormat = ValueFormat.of(FormatInfo.of(Format.JSON));
   private final ValueFormat rightFormat = ValueFormat.of(FormatInfo.of(Format.DELIMITED));
@@ -227,9 +218,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("NEWKEY")),
-            Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
+        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
   }
 
   @Test
@@ -246,9 +235,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("NEWKEY")),
-            Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
+        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
   }
 
   @Test
@@ -265,9 +252,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        is(KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("NEWKEY")),
-            Column.of(ColumnName.of("NEWKEY"), SqlTypes.BIGINT))));
+        is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
   }
 
   @Test
@@ -283,8 +268,6 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
-    assertThat(result.getKeyField(), hasLegacyName(initialSchemaKStream.keyField.legacy().map(lf -> lf.columnRef.aliasedFieldName())));
-    assertThat(result.getKeyField(), hasLegacyType(initialSchemaKStream.keyField.legacy().map(LegacyField::type)));
   }
 
   @Test
@@ -300,9 +283,7 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(result.getKeyField(),
-        equalTo(KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("COL0")),
-            Column.of(ColumnName.of("COL0"), SqlTypes.BIGINT))));
+        equalTo(KeyField.of(ColumnRef.withoutSource(ColumnName.of("COL0")))));
   }
 
   @Test
@@ -445,10 +426,8 @@ public class SchemaKStreamTest {
     // Given:
     givenInitialKStreamOf("SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
-    final KeyField expected = KeyField.of(
-        ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")),
-        initialSchemaKStream.getSchema().findValueColumn(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1"))).get()
-    );
+    final KeyField expected = KeyField
+        .of(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL1")));
 
     // When:
     final SchemaKStream<?> rekeyedSchemaKStream = initialSchemaKStream.selectKey(
@@ -515,7 +494,6 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.of(ColumnRef.of(SourceName.of("TEST1"), ColumnName.of("COL0")))));
-    assertThat(groupedSchemaKStream.getKeyField().legacy(), OptionalMatchers.of(hasName("COL0")));
   }
 
   @Test
@@ -596,7 +574,6 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
-    assertThat(groupedSchemaKStream.getKeyField().legacy().get().columnRef().name().name(), is("TEST1.COL1|+|TEST1.COL0"));
   }
 
   @Test
@@ -615,7 +592,6 @@ public class SchemaKStreamTest {
 
     // Then:
     assertThat(groupedSchemaKStream.getKeyField().ref(), is(Optional.empty()));
-    assertThat(groupedSchemaKStream.getKeyField().legacy().get().columnRef().name().name(), is("UCASE(TEST1.COL1)"));
   }
 
   @Test
@@ -774,8 +750,7 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key")),
-            simpleSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
         ImmutableList.of(parentSchemaKStream),
         Type.SOURCE,
         ksqlConfig,
@@ -798,9 +773,7 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("key")),
-            simpleSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
         Collections.emptyList(),
         Type.SOURCE,
         ksqlConfig,
@@ -828,9 +801,7 @@ public class SchemaKStreamTest {
     final SchemaKStream schemaKtream = new SchemaKStream(
         sourceStep,
         keyFormat,
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("key")),
-            simpleSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
         ImmutableList.of(parentSchemaKStream1, parentSchemaKStream2),
         Type.SOURCE,
         ksqlConfig,
@@ -877,13 +848,9 @@ public class SchemaKStreamTest {
         .ref()
         .map(ref -> ref.withSource(ksqlStream.getName()));
 
-    final KeyField keyFieldWithAlias = KeyField.of(
-        newKeyName,
-        ksqlStream.getKeyField().legacy());
-
     initialSchemaKStream = buildSchemaKStream(
         schema,
-        keyFieldWithAlias,
+        KeyField.of(newKeyName),
         sourceStep
     );
   }

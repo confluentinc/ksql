@@ -53,7 +53,6 @@ import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
@@ -222,18 +221,6 @@ public class SchemaKStream<K> {
     );
   }
 
-  public SchemaKStream<K> withKeyField(final KeyField resultKeyField) {
-    return new SchemaKStream<>(
-        sourceStep,
-        keyFormat,
-        resultKeyField,
-        sourceSchemaKStreams,
-        type,
-        ksqlConfig,
-        functionRegistry
-    );
-  }
-
   public SchemaKStream<K> into(
       final String kafkaTopicName,
       final LogicalSchema outputSchema,
@@ -315,41 +302,13 @@ public class SchemaKStream<K> {
     }
 
     private KeyField findKeyField(final List<SelectExpression> selectExpressions) {
-      return KeyField.of(findNewKeyField(selectExpressions), findLegacyKeyField(selectExpressions));
-    }
-
-    private Optional<ColumnRef> findNewKeyField(final List<SelectExpression> selectExpressions) {
       if (!getKeyField().ref().isPresent()) {
-        return Optional.empty();
+        return KeyField.none();
       }
 
       final ColumnRef reference = getKeyField().ref().get();
       final Column keyColumn = Column.of(reference, SqlTypes.STRING);
 
-      return doFindKeyColumn(selectExpressions, keyColumn).map(Column::ref);
-    }
-
-    private Optional<LegacyField> findLegacyKeyField(
-        final List<SelectExpression> selectExpressions
-    ) {
-      if (!getKeyField().legacy().isPresent()) {
-        return Optional.empty();
-      }
-
-      final LegacyField keyField = getKeyField().legacy().get();
-      if (keyField.isNotInSchema()) {
-        // The key "field" isn't an actual field in the schema
-        return Optional.of(keyField);
-      }
-
-      return doFindKeyColumn(selectExpressions, Column.of(keyField.columnRef(), keyField.type()))
-          .map(field -> LegacyField.of(field.ref(), field.type()));
-    }
-
-    private Optional<Column> doFindKeyColumn(
-        final List<SelectExpression> selectExpressions,
-        final Column keyField
-    ) {
       Optional<Column> found = Optional.empty();
 
       for (int i = 0; i < selectExpressions.size(); i++) {
@@ -360,16 +319,19 @@ public class SchemaKStream<K> {
           final ColumnReferenceExp nameRef
               = (ColumnReferenceExp) toExpression;
 
-          if (keyField.matches(nameRef.getReference())) {
-            found = Optional.of(Column.of(toName, keyField.type()));
+          if (keyColumn.matches(nameRef.getReference())) {
+            found = Optional.of(Column.of(toName, keyColumn.type()));
             break;
           }
         }
       }
 
-      return found
+      final Optional<ColumnRef> filtered = found
           .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWTIME_NAME.name()))
-          .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()));
+          .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()))
+          .map(Column::ref);
+
+      return KeyField.of(filtered);
     }
 
     public KeyField getKey() {
@@ -527,27 +489,20 @@ public class SchemaKStream<K> {
       throw new UnsupportedOperationException("Can not selectKey of windowed stream");
     }
 
-    final Optional<Column> existingKey = keyField.resolve(getSchema(), ksqlConfig);
+    final Optional<Column> existingKey = keyField.resolve(getSchema());
 
     final Column proposedKey = getSchema().findValueColumn(columnRef)
         .orElseThrow(IllegalArgumentException::new);
 
-    final LegacyField proposedLegacy = LegacyField.of(proposedKey.ref(), proposedKey.type());
-
     final KeyField resultantKeyField = isRowKey(columnRef)
-        ? keyField.withLegacy(proposedLegacy)
-        : KeyField.of(columnRef, proposedLegacy);
+        ? keyField
+        : KeyField.of(columnRef);
 
     final boolean namesMatch = existingKey
         .map(kf -> kf.matches(proposedKey.ref()))
         .orElse(false);
 
-    // Note: Prior to v5.3 a selectKey(ROWKEY) would result in a repartition.
-    // To maintain compatibility, old queries, started prior to v5.3, must have repartition step.
-    // So we only handle rowkey for new queries:
-    final boolean treatAsRowKey = usingNewKeyFields() && isRowKey(proposedKey.ref());
-
-    if (namesMatch || treatAsRowKey) {
+    if (namesMatch || isRowKey(proposedKey.ref())) {
       return (SchemaKStream<Struct>) new SchemaKStream<>(
           sourceStep,
           keyFormat,
@@ -560,7 +515,7 @@ public class SchemaKStream<K> {
     }
 
     final KeyField newKeyField = getSchema().isMetaColumn(columnRef.name())
-        ? resultantKeyField.withName(Optional.empty())
+        ? KeyField.none()
         : resultantKeyField;
 
     final StreamSelectKey<K> step = ExecutionStepFactory.streamSelectKey(
@@ -578,10 +533,6 @@ public class SchemaKStream<K> {
         ksqlConfig,
         functionRegistry
     );
-  }
-
-  private boolean usingNewKeyFields() {
-    return !ksqlConfig.getBoolean(KsqlConfig.KSQL_USE_LEGACY_KEY_FIELD);
   }
 
   private static boolean isRowKey(final ColumnRef fieldName) {
@@ -610,7 +561,7 @@ public class SchemaKStream<K> {
       return false;
     }
 
-    final Optional<Column> keyColumn = getKeyField().resolve(getSchema(), ksqlConfig);
+    final Optional<Column> keyColumn = getKeyField().resolve(getSchema());
     if (!keyColumn.isPresent()) {
       return true;
     }
@@ -631,8 +582,7 @@ public class SchemaKStream<K> {
     }
 
     final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
-    final LegacyField legacyKeyField = LegacyField
-        .notInSchema(aggregateKeyName, SqlTypes.STRING);
+
     final Optional<ColumnRef> newKeyCol = getSchema()
         .findValueColumn(aggregateKeyName)
         .map(Column::ref);
@@ -646,7 +596,7 @@ public class SchemaKStream<K> {
     return new SchemaKGroupedStream(
         source,
         rekeyedKeyFormat,
-        KeyField.of(newKeyCol, Optional.of(legacyKeyField)),
+        KeyField.of(newKeyCol),
         Collections.singletonList(this),
         ksqlConfig,
         functionRegistry

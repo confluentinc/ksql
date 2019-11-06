@@ -81,11 +81,8 @@ public class DataSourceNode extends PlanNode {
     // and a KS transformValues to add the implicit fields
     this.schema = StreamSource.getSchemaWithMetaAndKeyFields(alias, dataSource.getSchema());
 
-    final Optional<ColumnRef> keyFieldName = dataSource.getKeyField()
+    this.keyField = dataSource.getKeyField()
         .withAlias(alias)
-        .ref();
-
-    this.keyField = KeyField.of(keyFieldName, dataSource.getKeyField().legacy())
         .validateKeyExistsIn(schema.getSchema());
 
     this.schemaKStreamFactory = requireNonNull(schemaKStreamFactory, "schemaKStreamFactory");

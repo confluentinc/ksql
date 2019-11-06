@@ -318,9 +318,7 @@ public class AnalyzerFunctionalTest {
         SourceName.of("S0"),
         schema,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("FIELD1")),
-            schema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("FIELD1"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("FIELD1"))),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopic
     );

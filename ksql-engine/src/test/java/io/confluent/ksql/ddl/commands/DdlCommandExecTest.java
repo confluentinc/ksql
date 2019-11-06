@@ -1,6 +1,5 @@
 package io.confluent.ksql.ddl.commands;
 
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasLegacyName;
 import static io.confluent.ksql.metastore.model.MetaStoreMatchers.KeyFieldMatchers.hasName;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -92,7 +91,6 @@ public class DdlCommandExecTest {
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName("F1"));
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName("F1"));
   }
 
   @Test
@@ -105,7 +103,6 @@ public class DdlCommandExecTest {
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasName(Optional.empty()));
-    MatcherAssert.assertThat(metaStore.getSource(STREAM_NAME).getKeyField(), hasLegacyName(Optional.empty()));
   }
 
   @Test
@@ -118,7 +115,6 @@ public class DdlCommandExecTest {
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName("F1"));
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName("F1"));
   }
 
   @Test
@@ -131,7 +127,6 @@ public class DdlCommandExecTest {
 
     // Then:
     MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasName(Optional.empty()));
-    MatcherAssert.assertThat(metaStore.getSource(TABLE_NAME).getKeyField(), hasLegacyName(Optional.empty()));
   }
 
   @Test

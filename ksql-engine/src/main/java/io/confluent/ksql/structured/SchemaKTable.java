@@ -32,11 +32,9 @@ import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -165,7 +163,6 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     final KeyFormat groupedKeyFormat = KeyFormat.nonWindowed(keyFormat.getFormatInfo());
 
     final ColumnRef aggregateKeyName = groupedKeyNameFor(groupByExpressions);
-    final LegacyField legacyKeyField = LegacyField.notInSchema(aggregateKeyName, SqlTypes.STRING);
     final Optional<ColumnRef> newKeyField = getSchema()
         .findValueColumn(aggregateKeyName.withoutSource())
         .map(Column::ref);
@@ -179,7 +176,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKGroupedTable(
         step,
         groupedKeyFormat,
-        KeyField.of(newKeyField, Optional.of(legacyKeyField)),
+        KeyField.of(newKeyField),
         Collections.singletonList(this),
         ksqlConfig,
         functionRegistry);

@@ -50,9 +50,7 @@ public class ProjectNode extends PlanNode {
     this.source = requireNonNull(source, "source");
     this.schema = requireNonNull(schema, "schema");
     this.projectExpressions = ImmutableList.copyOf(source.getSelectExpressions());
-    this.keyField = KeyField.of(
-        requireNonNull(keyFieldName, "keyFieldName"),
-        source.getKeyField().legacy())
+    this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
 
     if (schema.value().size() != projectExpressions.size()) {

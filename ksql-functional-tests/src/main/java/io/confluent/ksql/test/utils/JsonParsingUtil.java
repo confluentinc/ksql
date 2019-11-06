@@ -52,6 +52,38 @@ public final class JsonParsingUtil {
     return Optional.ofNullable(getNode(name, node, jp, type));
   }
 
+  public static <T> T getOrElse(
+      final String name,
+      final JsonNode node,
+      final JsonParser jp,
+      final Class<T> type,
+      final T defaultValue
+  ) throws IOException {
+    return getOptionalOrElse(name, node, jp, type, defaultValue)
+        .orElse(defaultValue);
+  }
+
+  /**
+   * @return {@code empty()} if the node is not present, {@code defaultValue} of the node is
+   *     present, but explicitly set to `null`, otherwise returns the value.
+   */
+  public static <T> Optional<T> getOptionalOrElse(
+      final String name,
+      final JsonNode node,
+      final JsonParser jp,
+      final Class<T> type,
+      final T defaultValue
+  ) throws IOException {
+    if (!node.has(name)) {
+      return Optional.empty();
+    }
+
+    final T t = getOptional(name, node, jp, type)
+        .orElse(defaultValue);
+
+    return Optional.of(t);
+  }
+
   private static <T> T getNode(
       final String name,
       final JsonNode node,

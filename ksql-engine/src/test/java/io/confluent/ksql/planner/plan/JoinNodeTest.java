@@ -41,7 +41,6 @@ import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.tree.WithinExpression;
@@ -80,7 +79,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.TopologyDescription;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -126,11 +124,9 @@ public class JoinNodeTest {
   private static final ColumnRef LEFT_JOIN_FIELD_REF = ColumnRef.of(LEFT_ALIAS, ColumnName.of("C0"));
   private static final ColumnRef RIGHT_JOIN_FIELD_REF = ColumnRef.of(RIGHT_ALIAS, ColumnName.of("R1"));
 
-  private static final KeyField leftJoinField = KeyField
-      .of(LEFT_JOIN_FIELD_REF, Column.of(LEFT_JOIN_FIELD_REF, SqlTypes.STRING));
+  private static final KeyField leftJoinField = KeyField.of(LEFT_JOIN_FIELD_REF);
 
-  private static final KeyField rightJoinField = KeyField
-      .of(RIGHT_JOIN_FIELD_REF, Column.of(RIGHT_JOIN_FIELD_REF, SqlTypes.STRING));
+  private static final KeyField rightJoinField = KeyField.of(RIGHT_JOIN_FIELD_REF);
 
   private static final Optional<WithinExpression> WITHIN_EXPRESSION =
       Optional.of(new WithinExpression(10, TimeUnit.SECONDS));
@@ -273,17 +269,16 @@ public class JoinNodeTest {
   }
 
   @Test
-  @Ignore // ignore this test until Kafka merges KIP-479
   public void shouldHaveLeftJoin() {
     setupTopicClientExpectations(1, 1);
     buildJoin();
     final Topology topology = builder.build();
     final TopologyDescription.Processor leftJoin
-        = (TopologyDescription.Processor) getNodeByName(topology, "KSTREAM-LEFTJOIN-0000000014");
+        = (TopologyDescription.Processor) getNodeByName(topology, "Join");
     final List<String> predecessors = leftJoin.predecessors().stream()
         .map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(leftJoin.stores(), equalTo(Utils.mkSet("KafkaTopic_Right-reduce")));
-    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000013")));
+    assertThat(predecessors, equalTo(Collections.singletonList("KSTREAM-SOURCE-0000000011")));
   }
 
   @Test
@@ -394,7 +389,7 @@ public class JoinNodeTest {
     verify(leftSchemaKStream).outerJoin(
         eq(rightSchemaKStream),
         eq(JOIN_SCHEMA),
-        eq(leftJoinField.withName(Optional.empty())),
+        eq(KeyField.none()),
         eq(WITHIN_EXPRESSION.get().joinWindow()),
         eq(VALUE_FORMAT),
         eq(OTHER_FORMAT),
@@ -811,7 +806,7 @@ public class JoinNodeTest {
     verify(leftSchemaKTable).outerJoin(
         eq(rightSchemaKTable),
         eq(JOIN_SCHEMA),
-        eq(leftJoinField.withName(Optional.empty())),
+        eq(KeyField.none()),
         eq(CONTEXT_STACKER));
   }
 
@@ -943,13 +938,7 @@ public class JoinNodeTest {
   ) {
     setupTable(node, table);
 
-    final LogicalSchema schema = node.getSchema();
-
-    final Optional<LegacyField> keyField = keyFieldName
-        .map(key -> schema.findValueColumn(key).orElseThrow(AssertionError::new))
-        .map(field -> LegacyField.of(field.ref(), field.type()));
-
-    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName, keyField));
+    when(table.getKeyField()).thenReturn(KeyField.of(keyFieldName));
   }
 
   @SuppressWarnings("unchecked")

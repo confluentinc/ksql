@@ -141,23 +141,15 @@ public class KsqlStructuredDataOutputNode extends OutputNode {
       final SchemaKStream schemaKStream,
       final QueryContext.Stacker contextStacker
   ) {
-
     if (schemaKStream instanceof SchemaKTable) {
       return schemaKStream;
     }
 
-    final KeyField resultKeyField = KeyField.of(
-        schemaKStream.getKeyField().ref(),
-        getKeyField().legacy()
-    );
-
-    final SchemaKStream result = schemaKStream.withKeyField(resultKeyField);
-
     if (!partitionByField.isPresent()) {
-      return result;
+      return schemaKStream;
     }
 
-    return result.selectKey(partitionByField.get(), false, contextStacker);
+    return schemaKStream.selectKey(partitionByField.get(), false, contextStacker);
   }
 
   private void validatePartitionByField() {

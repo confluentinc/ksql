@@ -82,7 +82,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "REPARTITIONED", "type": "stream", "keyField": {"name": "ID_NEW", "legacyName": "ID_NEW", "legacySchema": "STRING"}}
+          {"name": "REPARTITIONED", "type": "stream", "keyField": "ID_NEW"}
         ]
       }
     },
@@ -105,7 +105,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "REPARTITIONED", "type": "stream", "keyField": {"name": "ID", "legacyName": "ID", "legacySchema": "STRING"}}
+          {"name": "REPARTITIONED", "type": "stream", "keyField": "ID"}
         ]
       }
     },

@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.ddl.commands.DdlCommand;
 import io.confluent.ksql.execution.ddl.commands.DdlCommandResult;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MutableMetaStore;
-import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.parser.DefaultKsqlParser;
 import io.confluent.ksql.parser.KsqlParser;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
@@ -185,9 +184,9 @@ final class EngineContext {
 
   String executeDdl(
       final String sqlExpression,
-      final DdlCommand command,
-      final Optional<KeyField> keyField) {
-    final DdlCommandResult result = ddlCommandExec.execute(command, keyField);
+      final DdlCommand command
+  ) {
+    final DdlCommandResult result = ddlCommandExec.execute(command);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }

@@ -20,11 +20,27 @@ import java.util.Objects;
 import java.util.Optional;
 
 public final class KsqlPlan {
-  private final String statementText;
-  private Optional<DdlCommand> ddlCommand;
-  private Optional<QueryPlan> queryPlan;
 
-  public KsqlPlan(
+  private final String statementText;
+  private final Optional<DdlCommand> ddlCommand;
+  private final Optional<QueryPlan> queryPlan;
+
+  static KsqlPlan ddlPlan(
+      final String statementText,
+      final DdlCommand ddlCommand
+  ) {
+    return new KsqlPlan(statementText, Optional.of(ddlCommand), Optional.empty());
+  }
+
+  static KsqlPlan queryPlan(
+      final String statementText,
+      final Optional<DdlCommand> ddlCommand,
+      final QueryPlan queryPlan
+  ) {
+    return new KsqlPlan(statementText, ddlCommand, Optional.of(queryPlan));
+  }
+
+  private KsqlPlan(
       final String statementText,
       final Optional<DdlCommand> ddlCommand,
       final Optional<QueryPlan> queryPlan
@@ -34,11 +50,11 @@ public final class KsqlPlan {
     this.queryPlan = Objects.requireNonNull(queryPlan, "queryPlan");
   }
 
-  public Optional<DdlCommand> getDdlCommand() {
+  Optional<DdlCommand> getDdlCommand() {
     return ddlCommand;
   }
 
-  public Optional<QueryPlan> getQueryPlan() {
+  Optional<QueryPlan> getQueryPlan() {
     return queryPlan;
   }
 

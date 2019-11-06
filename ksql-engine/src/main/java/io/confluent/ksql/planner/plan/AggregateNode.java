@@ -112,9 +112,7 @@ public class AggregateNode extends PlanNode {
     this.finalSelectExpressions =
         requireNonNull(finalSelectExpressions, "finalSelectExpressions");
     this.havingExpressions = havingExpressions;
-    this.keyField = KeyField.of(
-        requireNonNull(keyFieldName, "keyFieldName"),
-        Optional.empty())
+    this.keyField = KeyField.of(requireNonNull(keyFieldName, "keyFieldName"))
         .validateKeyExistsIn(schema);
   }
 

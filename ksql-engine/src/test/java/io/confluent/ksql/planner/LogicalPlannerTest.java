@@ -16,8 +16,6 @@
 package io.confluent.ksql.planner;
 
 import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasName;
-import static io.confluent.ksql.metastore.model.MetaStoreMatchers.LegacyFieldMatchers.hasSource;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -26,7 +24,6 @@ import static org.hamcrest.Matchers.is;
 import io.confluent.ksql.function.TestFunctionRegistry;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.metastore.model.MetaStoreMatchers.OptionalMatchers;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.planner.plan.AggregateNode;
@@ -116,8 +113,6 @@ public class LogicalPlannerTest {
     final ProjectNode projectNode = (ProjectNode) logicalPlan.getSources().get(0);
 
     assertThat(projectNode.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("T1_COL1")))));
-    assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasName("COL1")));
-    assertThat(projectNode.getKeyField().legacy(), OptionalMatchers.of(hasSource("T1")));
     assertThat(projectNode.getSchema().value().size(), equalTo(5));
 
     assertThat(projectNode.getSources().get(0), instanceOf(FilterNode.class));
@@ -249,11 +244,9 @@ public class LogicalPlannerTest {
 
     // Then:
     assertThat(logicalPlan.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("NEW_KEY")))));
-    assertThat(logicalPlan.getKeyField().legacy(), is(Optional.empty()));
 
     final PlanNode source = logicalPlan.getSources().get(0);
     assertThat(source.getKeyField().ref(), is(Optional.of(ColumnRef.withoutSource(ColumnName.of("NEW_KEY")))));
-    assertThat(source.getKeyField().legacy(), is(OptionalMatchers.of(hasName("COL0"))));
   }
 
   private PlanNode buildLogicalPlan(final String query) {

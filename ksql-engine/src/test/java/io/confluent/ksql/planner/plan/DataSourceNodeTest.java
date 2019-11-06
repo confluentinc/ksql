@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -46,10 +45,8 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.PhysicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
@@ -66,7 +63,6 @@ import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.common.serialization.Serde;
@@ -74,10 +70,6 @@ import org.apache.kafka.common.serialization.Serializer;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.TopologyDescription;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
-import org.apache.kafka.streams.processor.TimestampExtractor;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -86,7 +78,6 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class DataSourceNodeTest {
 
@@ -110,22 +101,16 @@ public class DataSourceNodeTest {
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
   private static final KeyField KEY_FIELD
-      = KeyField.of(
-          ColumnRef.withoutSource(ColumnName.of("field1")),
-      REAL_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("field1"))).get());
-  private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
+      = KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1")));
 
-  private static final PhysicalSchema PHYSICAL_SCHEMA = PhysicalSchema
-      .from(REAL_SCHEMA.withoutMetaAndKeyColsInValue(), SerdeOption.none());
+  private static final Optional<AutoOffsetReset> OFFSET_RESET = Optional.of(AutoOffsetReset.LATEST);
 
   private final KsqlStream<String> SOME_SOURCE = new KsqlStream<>(
       "sqlExpression",
       SourceName.of("datasource"),
       REAL_SCHEMA,
       SerdeOption.none(),
-      KeyField.of(
-          ColumnRef.withoutSource(ColumnName.of("key")),
-          REAL_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get()),
+      KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
       new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
       new KsqlTopic(
           "topic",
@@ -142,15 +127,10 @@ public class DataSourceNodeTest {
       Collections.emptyList()
   );
 
-  private final QueryId queryId = new QueryId("source-test");
-
-  private final PlanNodeId realNodeId = new PlanNodeId("source");
   @Mock
   private DataSource<?> dataSource;
   @Mock
   private TimestampExtractionPolicy timestampExtractionPolicy;
-  @Mock
-  private TimestampExtractor timestampExtractor;
   @Mock
   private KsqlTopic ksqlTopic;
   @Mock
@@ -158,29 +138,17 @@ public class DataSourceNodeTest {
   @Mock
   private KeySerde<String> keySerde;
   @Mock
-  private StreamsBuilder streamsBuilder;
-  @Mock
-  private KStream<?, ?> kStream;
-  @Mock
-  private KGroupedStream kGroupedStream;
-  @Mock
-  private KTable kTable;
-  @Mock
   private KsqlQueryBuilder ksqlStreamBuilder;
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
   private DataSourceNode.SchemaKStreamFactory schemaKStreamFactory;
   @Captor
-  private ArgumentCaptor<QueryContext> queryContextCaptor;
-  @Captor
   private ArgumentCaptor<QueryContext.Stacker> stackerCaptor;
   @Mock
   private SchemaKStream stream;
   @Mock
   private SchemaKTable table;
-
-  private final Set<SerdeOption> serdeOptions = SerdeOption.none();
 
   @Before
   @SuppressWarnings("unchecked")
@@ -260,9 +228,7 @@ public class DataSourceNodeTest {
         SourceName.of("datasource"),
         REAL_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("field1")),
-            REAL_SCHEMA.findValueColumn( ColumnRef.withoutSource(FIELD1)).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1"))),
         new LongColumnTimestampExtractionPolicy(TIMESTAMP_FIELD),
         new KsqlTopic(
             "topic2",
@@ -410,25 +376,6 @@ public class DataSourceNodeTest {
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
         equalTo(ImmutableList.of("0", "reduce")));
-  }
-
-
-  @SuppressWarnings("unchecked")
-  private DataSourceNode nodeWithMockTableSource() {
-    when(ksqlStreamBuilder.getStreamsBuilder()).thenReturn(streamsBuilder);
-    when(streamsBuilder.stream(anyString(), any())).thenReturn((KStream)kStream);
-    when(dataSource.getSchema()).thenReturn(REAL_SCHEMA);
-    when(dataSource.getKeyField())
-        .thenReturn(KeyField.of(
-            ColumnRef.withoutSource(FIELD1),
-            REAL_SCHEMA.findValueColumn(ColumnRef.withoutSource(FIELD1)).get()));
-
-    return new DataSourceNode(
-        realNodeId,
-        dataSource,
-        SourceName.of("t"),
-        Collections.emptyList()
-    );
   }
 
   private DataSourceNode buildNodeWithMockSource() {

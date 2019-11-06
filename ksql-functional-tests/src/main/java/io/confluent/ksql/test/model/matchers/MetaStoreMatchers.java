@@ -19,12 +19,10 @@ import static org.hamcrest.Matchers.is;
 
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.ColumnReferenceParser;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.KeyFormat;
 import java.util.Optional;
 import org.apache.kafka.connect.data.Schema;
@@ -110,31 +108,5 @@ public final class MetaStoreMatchers {
         }
       };
     }
-
-    public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {
-      return new FeatureMatcher<KeyField, Optional<ColumnName>>(
-          is(name.map(ColumnReferenceParser::parse).map(ColumnRef::name)),
-          "field with legacy name",
-          "legacy name") {
-        @Override
-        protected Optional<ColumnName> featureValueOf(final KeyField actual) {
-          return actual.legacy().map(LegacyField::columnRef).map(ColumnRef::name);
-        }
-      };
-    }
-
-    public static Matcher<KeyField> hasLegacyType(final Optional<? extends SqlType> schema) {
-      return new FeatureMatcher<KeyField, Optional<SqlType>>(
-          is(schema),
-          "field with legacy type",
-          "legacy type"
-      ) {
-        @Override
-        protected Optional<SqlType> featureValueOf(final KeyField actual) {
-          return actual.legacy().map(LegacyField::type);
-        }
-      };
-    }
   }
-
 }

@@ -149,7 +149,6 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_USE_NAMED_AVRO_MAPS = "ksql.avro.maps.named";
   private static final String KSQL_USE_NAMED_AVRO_MAPS_DOC = "";
 
-  public static final String KSQL_USE_LEGACY_KEY_FIELD = "ksql.query.fields.key.legacy";
   public static final String KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY =
       "ksql.query.stream.groupby.rowkey.repartition";
   public static final String KSQL_INJECT_LEGACY_MAP_VALUES_NODE =
@@ -270,18 +269,6 @@ public class KsqlConfig extends AbstractConfig {
               ConfigDef.Importance.LOW,
               Optional.empty(),
               KSQL_USE_NAMED_AVRO_MAPS_DOC
-          ),
-          new CompatibilityBreakingConfigDef(
-              KSQL_USE_LEGACY_KEY_FIELD,
-              ConfigDef.Type.BOOLEAN,
-              false,
-              false,
-              ConfigDef.Importance.LOW,
-              Optional.empty(),
-              "Determines if the legacy key field is used when building queries. "
-                  + "This setting is automatically applied for persistent queries started by "
-                  + "older versions of KSQL. "
-                  + "This setting should not be set manually."
           ),
           new CompatibilityBreakingConfigDef(
               KSQL_LEGACY_REPARTITION_ON_GROUP_BY_ROWKEY,

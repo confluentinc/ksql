@@ -89,7 +89,7 @@
       ],
       "post": {
         "sources": [
-          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": {"name": "T_ID", "legacyName": "T.ID", "legacySchema": "BIGINT"}}
+          {"name": "LEFT_OUTER_JOIN", "type": "stream", "keyField": "T_ID"}
         ]
       }
     },

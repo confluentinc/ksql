@@ -22,7 +22,6 @@ import io.confluent.ksql.query.id.QueryIdGenerator;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
-import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -39,7 +38,7 @@ public class KsqlBareOutputNode extends OutputNode {
       final TimestampExtractionPolicy extractionPolicy
   ) {
     super(id, source, schema, limit, extractionPolicy);
-    this.keyField = KeyField.of(source.getKeyField().ref(), Optional.empty())
+    this.keyField = KeyField.of(source.getKeyField().ref())
         .validateKeyExistsIn(schema);
   }
 

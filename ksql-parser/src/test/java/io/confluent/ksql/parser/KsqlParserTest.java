@@ -161,8 +161,7 @@ public class KsqlParserTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME")),
-            ORDERS_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders
     );
@@ -181,8 +180,7 @@ public class KsqlParserTest {
         SourceName.of("ITEMID"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID")),
-            ORDERS_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ITEMID"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

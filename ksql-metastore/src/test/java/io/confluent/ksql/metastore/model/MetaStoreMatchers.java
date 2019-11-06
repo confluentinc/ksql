@@ -17,7 +17,6 @@ package io.confluent.ksql.metastore.model;
 
 import static org.hamcrest.Matchers.is;
 
-import io.confluent.ksql.metastore.model.KeyField.LegacyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.Column;
@@ -115,70 +114,6 @@ public final class MetaStoreMatchers {
         @Override
         protected Optional<ColumnName> featureValueOf(final KeyField actual) {
           return actual.ref().map(ColumnRef::name);
-        }
-      };
-    }
-
-    public static Matcher<KeyField> hasLegacyName(final String name) {
-      return hasLegacyName(Optional.of(name));
-    }
-
-    public static Matcher<KeyField> hasLegacyName(final Optional<String> name) {
-      return new FeatureMatcher<KeyField, Optional<ColumnName>>
-          (is(name.map(ColumnName::of)), "field with legacy name", "legacy name") {
-        @Override
-        protected Optional<ColumnName> featureValueOf(final KeyField actual) {
-          return actual.legacy().map(LegacyField::columnRef).map(ColumnRef::name);
-        }
-      };
-    }
-
-    public static Matcher<KeyField> hasLegacyType(final SqlType schema) {
-      return hasLegacyType(Optional.of(schema));
-    }
-
-    public static Matcher<KeyField> hasLegacyType(final Optional<? extends SqlType> schema) {
-      return new FeatureMatcher<KeyField, Optional<SqlType>>
-          (is(schema), "field with legacy type", "legacy type") {
-        @Override
-        protected Optional<SqlType> featureValueOf(final KeyField actual) {
-          return actual.legacy().map(LegacyField::type);
-        }
-      };
-    }
-  }
-
-  public static final class LegacyFieldMatchers {
-
-    private LegacyFieldMatchers() {
-    }
-
-    public static Matcher<LegacyField> hasName(final String name) {
-      return new FeatureMatcher<LegacyField, ColumnName>
-          (is(ColumnName.of(name)), "field with name", "name") {
-        @Override
-        protected ColumnName featureValueOf(final LegacyField actual) {
-          return actual.columnRef().name();
-        }
-      };
-    }
-
-    public static Matcher<LegacyField> hasSource(final String name) {
-      return new FeatureMatcher<LegacyField, SourceName>
-          (is(SourceName.of(name)), "field with name", "name") {
-        @Override
-        protected SourceName featureValueOf(final LegacyField actual) {
-          return actual.columnRef().source().get();
-        }
-      };
-    }
-
-    public static Matcher<LegacyField> hasType(final SqlType type) {
-      return new FeatureMatcher<LegacyField, SqlType>
-          (is(type), "field with type", "type") {
-        @Override
-        protected SqlType featureValueOf(final LegacyField actual) {
-          return actual.type();
         }
       };
     }

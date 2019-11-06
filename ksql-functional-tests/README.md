@@ -298,7 +298,7 @@ A post condition can define the list of sources that must exist in the metastore
 {
   "name": "S1",
   "type": "table",
-  "keyField": {"name": "FOO", "legacyName": "KSQL_INTERNAL_COL_0", "legacySchema": {"type": "STRING"}},
+  "keyField": "FOO",
   "valueSchema": "STRUCT<ROWTIME BIGINT, ROWKEY STRING, FOO INT, KSQL_COL_1 BIGINT>"
 }
 ```
@@ -309,7 +309,7 @@ Each source can define the following attributes:
 |-------------|:------------|
 | name        | (Required) The name of the source. |
 | type        | (Required) Specifies if the source is a STREAM or TABLE. |
-| keyField    | (Optional) Specifies the keyField for the source. (See below for details of key field) |
+| keyField    | (Optional) Specifies the keyField for the source. If present, but set to `null`, the name of the key field is expected to not be set. If not supplied, the name of the key field will not be checked. |
 | valueSchema | (Optional) Specifies the value SQL schema for the source. |
 
 #### Topics
@@ -326,86 +326,4 @@ The topics object can define the following attributes:
 | Attribute   | Description |
 |-------------|:------------|
 | blacklist   | Regex defining a blacklist of topic names that should not be created. |
-
-
-##### Key Fields
-
-Key field nodes can define the following attributes:
-
-| Attribute   | Description |
-|-------------|:------------|
-| name        | (Optional) The name of the key field. If present, but set to `null`, the name of the key field is expected to not be set. If not supplied, the name of the key field will not be checked. |
-| legacyName  | (Optional) The legacy name of the key field. If present, but set to `null`, the legacy name of the key field is expected to not be set. If not supplied, the legacy name of the key field will not be checked. |
-| legacySchema| (Optional) The legacy SQL schema of the key field. If present, but set to `null`, the legacy schema of the key field is expected to not be set. If not supplied, the legacy schema of the key field will not be checked. |
-
-A test case can not test the value of the the key field by not including a keyField node in the source:
-
-```json
-{
-  "name": "S1",
-  "type": "table"
-}
-```
-
-Which is equivalent to supplying an empty document:
-
-```json
-{
-  "name": "S1",
-  "type": "table",
-  "keyField": {}
-}
-```
-
-A test case can require the name of the key field to be set to an expected value:
-
-```json
-{
-  "name": "S1",
-  "type": "table",
-  "keyField": {"name": "expected-name"}
-}
-```
-
-Or explicitly not set:
-
-```json
-{
-  "name": "S1",
-  "type": "table",
-  "keyField": {"name": null}
-}
-```
-
-A test case can require the legacy key field to be set:
-
-```json
-{
-  "name": "S1",
-  "type": "table",
-  "keyField": {"legacyName": "OLD_KEY", "legacySchema": "STRING"}
-}
-```
-
-Or explicitly not set:
-
-```json
-{
-  "name": "S1",
-  "type": "table",
-  "keyField": {"legacyName": null}
-}
-```
-
-A test case can of course have requirements on both the latest and legacy key field:
-
-```json
-{
-  "name": "S1",
-  "type": "table",
-  "keyField": {"name": "expected-new", "legacyName": "expected-old", "legacySchema": "STRING"}
-}
-```
-
-
 

@@ -29,9 +29,7 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Objects;
 import java.util.Optional;
@@ -74,7 +72,7 @@ public class DdlCommandExec {
           createStream.getSourceName(),
           createStream.getSchema(),
           createStream.getSerdeOptions(),
-          getKeyField(createStream.getKeyField(), createStream.getSchema()),
+          getKeyField(createStream.getKeyField()),
           createStream.getTimestampExtractionPolicy(),
           createStream.getTopic()
       );
@@ -89,7 +87,7 @@ public class DdlCommandExec {
           createTable.getSourceName(),
           createTable.getSchema(),
           createTable.getSerdeOptions(),
-          getKeyField(createTable.getKeyField(), createTable.getSchema()),
+          getKeyField(createTable.getKeyField()),
           createTable.getTimestampExtractionPolicy(),
           createTable.getTopic()
       );
@@ -129,25 +127,11 @@ public class DdlCommandExec {
           : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
     }
 
-    private KeyField getKeyField(
-        final Optional<ColumnName> keyFieldName,
-        final LogicalSchema schema
-    ) {
-      if (keyFieldOverride.isPresent()) {
-        return keyFieldOverride.get();
-      }
-      if (keyFieldName.isPresent()) {
-        // for DDL commands, the key name is never specified with a source
-        final ColumnRef columnRef = ColumnRef.withoutSource(keyFieldName.get());
-        final Column keyColumn = schema.findValueColumn(columnRef)
-            .orElseThrow(() -> new IllegalStateException(
-                "The KEY column set in the WITH clause does not exist in the schema: '"
-                    + keyFieldName + "'"
-            ));
-        return KeyField.of(columnRef, keyColumn);
-      } else {
-        return KeyField.none();
-      }
+    private KeyField getKeyField(final Optional<ColumnName> keyFieldName) {
+      return keyFieldOverride
+          .orElseGet(() -> keyFieldName
+              .map(columnName -> KeyField.of(ColumnRef.withoutSource(columnName)))
+              .orElseGet(KeyField::none));
     }
   }
 }

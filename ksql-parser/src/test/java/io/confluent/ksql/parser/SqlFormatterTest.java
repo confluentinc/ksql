@@ -35,7 +35,6 @@ import io.confluent.ksql.metastore.model.KsqlStream;
 import io.confluent.ksql.metastore.model.KsqlTable;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.parser.exception.ParseFailedException;
 import io.confluent.ksql.parser.properties.with.CreateSourceProperties;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.CreateStream;
@@ -173,9 +172,7 @@ public class SqlFormatterTest {
         SourceName.of("ADDRESS"),
         ORDERS_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("ORDERTIME")),
-            ORDERS_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ORDERTIME"))),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicOrders
     );
@@ -193,9 +190,7 @@ public class SqlFormatterTest {
         SourceName.of("ITEMID"),
         ITEM_INFO_SCHEMA,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("ITEMID")),
-            ITEM_INFO_SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("ITEMID"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("ITEMID"))),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );
@@ -207,9 +202,7 @@ public class SqlFormatterTest {
         SourceName.of("TABLE"),
         tableSchema,
         SerdeOption.none(),
-        KeyField.of(
-            ColumnRef.withoutSource(ColumnName.of("TABLE")),
-            tableSchema.findValueColumn(ColumnRef.withoutSource(ColumnName.of("TABLE"))).get()),
+        KeyField.of(ColumnRef.withoutSource(ColumnName.of("TABLE"))),
         new MetadataTimestampExtractionPolicy(),
         ksqlTopicItems
     );

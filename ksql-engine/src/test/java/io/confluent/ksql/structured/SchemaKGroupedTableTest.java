@@ -94,7 +94,7 @@ public class SchemaKGroupedTableTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
   }
 
-  private <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
+  private static <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
     final ExecutionStep<S> step = mock(ExecutionStep.class);
     when(step.getSchema()).thenReturn(schema);
     return step;
@@ -151,9 +151,7 @@ public class SchemaKGroupedTableTest {
     return new SchemaKGroupedTable(
         buildSourceTableStep(IN_SCHEMA),
         keyFormat,
-        KeyField.of(
-            IN_SCHEMA.value().get(0).ref(),
-            IN_SCHEMA.value().get(0)),
+        KeyField.of(IN_SCHEMA.value().get(0).ref()),
         Collections.emptyList(),
         ksqlConfig,
         functionRegistry

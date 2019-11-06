@@ -54,9 +54,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
-import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("OptionalGetWithoutIsPresent")
@@ -76,10 +74,9 @@ public class KsqlStructuredDataOutputNodeTest {
       .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
       .build();
 
-  private static final KeyField KEY_FIELD =
-      KeyField.of(
-          ColumnRef.withoutSource(ColumnName.of("key")),
-          SCHEMA.findValueColumn(ColumnRef.withoutSource(ColumnName.of("key"))).get());
+  private static final KeyField KEY_FIELD = KeyField
+      .of(ColumnRef.withoutSource(ColumnName.of("key")));
+
   private static final PlanNodeId PLAN_NODE_ID = new PlanNodeId("0");
   private static final ValueFormat JSON_FORMAT = ValueFormat.of(FormatInfo.of(Format.JSON));
 
@@ -124,13 +121,9 @@ public class KsqlStructuredDataOutputNodeTest {
     when(sourceNode.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(sourceNode.buildStream(ksqlStreamBuilder)).thenReturn((SchemaKStream) sourceStream);
 
-    when(sourceStream.getKeyField()).thenReturn(KeyField.none());
-
-    when(sourceStream.withKeyField(any()))
-        .thenReturn(resultStream);
-    when(resultStream.into(any(), any(), any(), any(), any()))
+    when(sourceStream.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStream);
-    when(resultStream.selectKey(any(), anyBoolean(), any()))
+    when(sourceStream.selectKey(any(), anyBoolean(), any()))
         .thenReturn((SchemaKStream) resultWithKeySelected);
     when(resultWithKeySelected.into(any(), any(), any(), any(), any()))
         .thenReturn((SchemaKStream) sinkStreamWithKeySelected);
@@ -169,7 +162,7 @@ public class KsqlStructuredDataOutputNodeTest {
         sourceNode,
         SCHEMA,
         new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
-        KeyField.of(Optional.of(ColumnRef.withoutSource(ColumnName.of("something else"))), Optional.empty()),
+        KeyField.of(Optional.of(ColumnRef.withoutSource(ColumnName.of("something else")))),
         ksqlTopic,
         Optional.of(ColumnRef.withoutSource(ColumnName.of("something"))),
         OptionalInt.empty(),
@@ -188,31 +181,6 @@ public class KsqlStructuredDataOutputNodeTest {
   }
 
   @Test
-  public void shouldBuildMapNodePriorToOutput() {
-    // When:
-    outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    final InOrder inOrder = Mockito.inOrder(sourceNode, sourceStream);
-
-    inOrder.verify(sourceNode)
-        .buildStream(any());
-
-    inOrder.verify(sourceStream).withKeyField(any());
-  }
-
-  @Test
-  public void shouldBuildOutputNode() {
-    // When:
-    outputNode.buildStream(ksqlStreamBuilder);
-
-    // Then:
-    verify(sourceStream).withKeyField(
-        KEY_FIELD.withName(Optional.empty())
-    );
-  }
-
-  @Test
   public void shouldPartitionByFieldNameInPartitionByProperty() {
     // Given:
     givenNodePartitioningByKey("key");
@@ -221,7 +189,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).selectKey(
+    verify(sourceStream).selectKey(
         KEY_FIELD.ref().get(),
         false,
         new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
@@ -239,7 +207,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).selectKey(
+    verify(sourceStream).selectKey(
         ColumnRef.withoutSource(ColumnName.of("ROWKEY")),
         false,
         new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
@@ -257,7 +225,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final SchemaKStream<?> result = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).selectKey(
+    verify(sourceStream).selectKey(
         ColumnRef.withoutSource(ColumnName.of("ROWTIME")),
         false,
         new QueryContext.Stacker().push(PLAN_NODE_ID.toString())
@@ -317,7 +285,7 @@ public class KsqlStructuredDataOutputNodeTest {
     outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).into(any(), any(), eq(valueFormat), any(), any());
+    verify(sourceStream).into(any(), any(), eq(valueFormat), any(), any());
   }
 
   @Test
@@ -326,7 +294,7 @@ public class KsqlStructuredDataOutputNodeTest {
     final SchemaKStream result = outputNode.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(resultStream).into(
+    verify(sourceStream).into(
         eq(SINK_KAFKA_TOPIC_NAME),
         eq(SCHEMA),
         eq(JSON_FORMAT),

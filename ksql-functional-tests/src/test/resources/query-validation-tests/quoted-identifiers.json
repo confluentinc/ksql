@@ -102,6 +102,19 @@
       "outputs": [
         {"topic": "foo-too", "value": {"ID": "1"}}
       ]
+    },
+    {
+      "name": "literals with quotes galore",
+      "statements": [
+        "CREATE STREAM input (id VARCHAR) WITH (kafka_topic='input', value_format='JSON');",
+        "CREATE STREAM output AS SELECT 'foo', '''foo''' FROM input;"
+      ],
+      "inputs": [
+        {"topic": "input", "value": {"id": "1"}}
+      ],
+      "outputs": [
+        {"topic": "OUTPUT", "value": {"KSQL_COL_0": "foo", "KSQL_COL_1": "'foo'"}}
+      ]
     }
   ]
 }

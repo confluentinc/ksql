@@ -31,7 +31,7 @@ public class StringLiteral extends Literal {
 
   public StringLiteral(final Optional<NodeLocation> location, final String value) {
     super(location);
-    this.value = cleanQuotes(Objects.requireNonNull(value, "value"));
+    this.value = Objects.requireNonNull(value, "value");
   }
 
   @Override
@@ -60,15 +60,5 @@ public class StringLiteral extends Literal {
   @Override
   public int hashCode() {
     return value.hashCode();
-  }
-
-  private static String cleanQuotes(final String stringWithQuotes) {
-    if (!stringWithQuotes.startsWith("'") || !stringWithQuotes.endsWith("'")) {
-      return stringWithQuotes;
-    }
-
-    return stringWithQuotes
-        .substring(1, stringWithQuotes.length() - 1)
-        .replaceAll("''", "'");
   }
 }

@@ -29,6 +29,7 @@ public final class ImmutableProperties {
       .add(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG)
       .add(KsqlConfig.KSQL_EXT_DIR)
       .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
+      .add(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 

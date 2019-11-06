@@ -119,6 +119,16 @@ public final class StaticQueryExecutor {
   ) {
     final Query queryStmt = statement.getStatement();
 
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+      throw new KsqlRestException(
+          Errors.badStatement(
+              "Pull queries are disabled on this KSQL server - please set "
+                  + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable this feature. "
+                  + "If you intended to issue a push query, resubmit the query with the "
+                  + "EMIT CHANGES clause.",
+              statement.getStatementText()));
+    }
+
     if (!queryStmt.isStatic()) {
       throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
     }

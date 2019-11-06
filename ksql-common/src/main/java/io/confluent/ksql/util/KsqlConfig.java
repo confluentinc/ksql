@@ -197,6 +197,11 @@ public class KsqlConfig extends AbstractConfig {
           + "whether the Kafka cluster supports the required API, and enables the validator if "
           + "it does.";
 
+  public static final String KSQL_PULL_QUERIES_ENABLE_CONFIG = "ksql.pull.queries.enable";
+  public static final String KSQL_PULL_QUERIES_ENABLE_DOC =
+      "Config to enable or disable transient pull queries on a specific KSQL server.";
+  public static final boolean KSQL_PULL_QUERIES_ENABLE_DEFAULT = true;
+
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
           new CompatibilityBreakingConfigDef(
@@ -573,6 +578,12 @@ public class KsqlConfig extends AbstractConfig {
             "",
             Importance.LOW,
             METRIC_REPORTER_CLASSES_DOC
+        ).define(
+            KSQL_PULL_QUERIES_ENABLE_CONFIG,
+            Type.BOOLEAN,
+            KSQL_PULL_QUERIES_ENABLE_DEFAULT,
+            Importance.LOW,
+            KSQL_PULL_QUERIES_ENABLE_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

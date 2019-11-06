@@ -56,6 +56,7 @@ import io.confluent.rest.RestConfig;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import org.junit.rules.ExternalResource;
 
@@ -77,6 +78,7 @@ public class TemporaryEngine extends ExternalResource {
   private KsqlConfig ksqlConfig;
   private KsqlEngine engine;
   private ServiceContext serviceContext;
+  private Map<String, Object> configs = ImmutableMap.of();
 
   @Override
   protected void before() {
@@ -88,10 +90,11 @@ public class TemporaryEngine extends ExternalResource {
 
     ksqlConfig = KsqlConfigTestUtil.create(
         "localhost:9092",
-        ImmutableMap.of(
-            "ksql.command.topic.suffix", "commands",
-            RestConfig.LISTENERS_CONFIG, "http://localhost:8088"
-        )
+        ImmutableMap.<String, Object>builder()
+            .putAll(configs)
+            .put("ksql.command.topic.suffix", "commands")
+            .put( RestConfig.LISTENERS_CONFIG, "http://localhost:8088" )
+            .build()
     );
 
     final SqlTypeParser typeParser = SqlTypeParser.create(TypeRegistry.EMPTY);
@@ -100,6 +103,11 @@ public class TemporaryEngine extends ExternalResource {
     );
     udtfLoader.loadUdtfFromClass(TestUdtf1.class, "whatever");
     udtfLoader.loadUdtfFromClass(TestUdtf2.class, "whatever");
+  }
+
+  public TemporaryEngine withConfigs(final Map<String, Object> configs) {
+    this.configs = configs;
+    return this;
   }
 
   @Override

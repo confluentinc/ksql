@@ -146,3 +146,5 @@ Next Steps
 -   [Create a KSQL Table](create-a-table.md)
 -   [Create a KSQL Stream](create-a-stream.md)
 -   [Join Event Streams with KSQL](join-streams-and-tables.md)
+
+Page last revised on: {{ git_revision_date }}

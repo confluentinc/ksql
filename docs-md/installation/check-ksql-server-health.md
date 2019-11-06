@@ -82,3 +82,5 @@ If you're running KSQL server in a Docker container, run the
 `docker ps` or `docker-compose ps` command, and check that the status of
 the `ksql-server` container is `Up`. Check the health of the process in
 the container by running `docker logs <ksql-server-container-id>`.
+
+Page last revised on: {{ git_revision_date }}

@@ -38,3 +38,5 @@ TODO: expand on this
 How to create a collection and a topic at the same time.
 How to declare a collection over an existing topic.
 
+
+Page last revised on: {{ git_revision_date }}

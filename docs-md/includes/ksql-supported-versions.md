@@ -10,3 +10,5 @@ versions.
 +-----------------------+--------------------+
 | {{ site.cp }} version | > 3.3.0 and later  |
 +-----------------------+--------------------+
+
+Page last revised on: {{ git_revision_date }}

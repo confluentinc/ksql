@@ -320,3 +320,5 @@ Next Steps
 
 -   [Join Event Streams with KSQL](join-streams-and-tables.md)
 -   [Clickstream Data Analysis Pipeline Using KSQL (Docker)](../tutorials/clickstream-docker.md)
+
+Page last revised on: {{ git_revision_date }}

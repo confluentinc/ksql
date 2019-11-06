@@ -19,3 +19,5 @@ Prerequisites:
         currently supported by {{ site.cp }}.
     -   [wget](https://www.gnu.org/software/wget/) to get the connector
         configuration file.
+
+Page last revised on: {{ git_revision_date }}

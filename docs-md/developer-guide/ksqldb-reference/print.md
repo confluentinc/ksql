@@ -51,3 +51,5 @@ Your output should resemble:
     {"ROWTIME":1516010709492,"ROWKEY":"\"table/EVENTS_PER_MIN/create\"","statement":"create table events_per_min as select userid, count(*) as events from clickstream window  TUMBLING (size 10 second) group by userid EMIT CHANGES;","streamsProperties":{}}
     ^CTopic printing ceased
 ```
+
+Page last revised on: {{ git_revision_date }}

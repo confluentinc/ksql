@@ -2025,3 +2025,5 @@ CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR
 ```
 
 For more information, see [Partition Data to Enable Joins](partition-data.md).
+
+Page last revised on: {{ git_revision_date }}

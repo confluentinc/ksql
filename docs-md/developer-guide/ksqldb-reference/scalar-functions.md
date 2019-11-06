@@ -596,3 +596,5 @@ present or `url` is not a valid URI.
     structure of a URI, including definitions of the various components, see
     Section 3 of the RFC. For encoding/decoding, the
     `application/x-www-form-urlencoded` convention is followed.
+
+Page last revised on: {{ git_revision_date }}

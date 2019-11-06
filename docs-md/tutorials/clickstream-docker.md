@@ -418,3 +418,5 @@ Things to try
     -   If your data source is shown, select it and scroll to the bottom
         and click the **Save & Test** button. This will indicate whether
         your data source is valid.
+
+Page last revised on: {{ git_revision_date }}

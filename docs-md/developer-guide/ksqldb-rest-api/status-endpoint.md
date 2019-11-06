@@ -59,3 +59,5 @@ Content-Type application/vnd.ksql.v1+json
   "message":"Stream created and running"
 }
 ```
+
+Page last revised on: {{ git_revision_date }}

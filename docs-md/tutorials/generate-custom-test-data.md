@@ -367,3 +367,5 @@ Create the `impressions2` persistent streaming query:
 ```sql
 CREATE STREAM impressions2 as select * from impressions EMIT CHANGES;
 ```
+
+Page last revised on: {{ git_revision_date }}

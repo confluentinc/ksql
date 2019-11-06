@@ -352,3 +352,5 @@ logs, for example:
 docker logs <container-id>
 docker-compose logs ksql-server
 ```
+
+Page last revised on: {{ git_revision_date }}

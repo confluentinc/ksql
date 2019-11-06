@@ -50,3 +50,5 @@ The following statement runs the queries in the file located at
 ```sql
 RUN SCRIPT '/local/path/to/queries.sql';
 ```
+
+Page last revised on: {{ git_revision_date }}

@@ -100,3 +100,5 @@ messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/
   failed-messages:         0      last-failed:       n/a
 (Statistics of the local KSQL server interaction with the Kafka topic IP_SUM)
 ```
+
+Page last revised on: {{ git_revision_date }}

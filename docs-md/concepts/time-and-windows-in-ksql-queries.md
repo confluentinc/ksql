@@ -377,3 +377,5 @@ Next Steps
 -   For a realistic example that manipulates timestamps and uses windows
     in KSQL queries, see
     [KSQL in Action: Real-Time Streaming ETL from Oracle Transactional Data](https://www.confluent.io/blog/ksql-in-action-real-time-streaming-etl-from-oracle-transactional-data).
+
+Page last revised on: {{ git_revision_date }}

@@ -348,3 +348,5 @@ Next Steps
 ----------
 
 -   [Clickstream Data Analysis Pipeline Using KSQL (Docker)](clickstream-docker.md)
+
+Page last revised on: {{ git_revision_date }}

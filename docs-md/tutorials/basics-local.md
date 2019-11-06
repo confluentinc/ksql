@@ -978,3 +978,5 @@ this command.
 ```bash
 <path-to-confluent>/bin/confluent local stop
 ```
+
+Page last revised on: {{ git_revision_date }}

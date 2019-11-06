@@ -156,3 +156,5 @@ CREATE STREAM pageviews_avro
 For more information, see
 [Changing Data Serialization Format from JSON to Avro](https://www.confluent.io/stream-processing-cookbook/ksql-recipes/changing-data-serialization-format-json-avro)
 in the [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook).
+
+Page last revised on: {{ git_revision_date }}

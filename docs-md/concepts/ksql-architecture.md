@@ -397,3 +397,5 @@ If the DML statement is CREATE STREAM AS SELECT or CREATE TABLE AS
 SELECT, the result from the generated {{ site.kstreams }} application is a
 persistent query that writes continuously to its output topic until the
 query is terminated.
+
+Page last revised on: {{ git_revision_date }}

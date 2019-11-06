@@ -252,3 +252,5 @@ Configure KSQL for Confluent Cloud
 You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more
 information, see
 [Connect KSQL to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+
+Page last revised on: {{ git_revision_date }}

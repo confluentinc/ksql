@@ -46,3 +46,5 @@ Execute a push query by sending an HTTP request to the ksqlDB REST API, and
 the API sends back a chunked response of indefinite length.
 
 
+
+Page last revised on: {{ git_revision_date }}

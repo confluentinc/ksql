@@ -69,3 +69,5 @@ Sub-topologies:
         --> KSTREAM-TRANSFORMVALUES-0000000002
         <-- KSTREAM-SOURCE-0000000000
 ```
+
+Page last revised on: {{ git_revision_date }}

@@ -21,3 +21,5 @@ TODO: expand on this
 
 How to create a materialized view over an existing collection.
 How to create a materialized view from another materialized view.
+
+Page last revised on: {{ git_revision_date }}

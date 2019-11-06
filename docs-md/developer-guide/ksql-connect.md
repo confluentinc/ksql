@@ -158,3 +158,5 @@ List all connectors in the {{ site.kconnect }} cluster.
 	The SHOW and LIST statements don't distinguish connectors that are created by
     using the KSQL from connectors that are created independently bu using the
     {{ site.kconnect }} API.
+
+Page last revised on: {{ git_revision_date }}

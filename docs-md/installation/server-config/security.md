@@ -838,3 +838,5 @@ Next Steps
 - See the blog post [Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL](https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/)
 - Try out the [Kafka Event Streaming Application](https://docs.confluent.io/current/tutorials/cp-demo/docs/index.html)
 tutorial.
+
+Page last revised on: {{ git_revision_date }}

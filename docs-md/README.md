@@ -64,3 +64,5 @@ mkdocs serve
 Open a web browser to `http://127.0.0.1:8000` to view the docs. Keep the server
 running, and it will detect file changes as you edit and automatically rebuild
 when you save a file.
+
+Page last revised on: {{ git_revision_date }}

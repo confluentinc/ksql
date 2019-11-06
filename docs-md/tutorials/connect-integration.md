@@ -150,3 +150,5 @@ specified, which re-imports the entire database every time. Obviously, this
 isn't appropriate for production. For more information on changelog capture,
 see [Incremental Query
 Modes](https://docs.confluent.io/current/connect/kafka-connect-jdbc/source-connector/index.html#incremental-query-modes).
+
+Page last revised on: {{ git_revision_date }}

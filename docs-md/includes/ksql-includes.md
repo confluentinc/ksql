@@ -807,3 +807,5 @@ Your output should resemble:
     CSAS_ALL_ORDERS_0 | ALL_ORDERS  | CREATE STREAM ALL_ORDERS AS SELECT 'LOCAL' AS SRC, * FROM ORDERS_SRC_LOCAL;
     InsertQuery_1     | ALL_ORDERS  | INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
     -------------------------------------------------------------------------------------------------------------------
+
+Page last revised on: {{ git_revision_date }}

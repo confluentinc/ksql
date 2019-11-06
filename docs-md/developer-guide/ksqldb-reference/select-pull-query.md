@@ -64,3 +64,5 @@ time zone.
 
 If no bounds are placed on `WINDOWSTART`, rows are returned for all windows
 in the windowed table.
+
+Page last revised on: {{ git_revision_date }}

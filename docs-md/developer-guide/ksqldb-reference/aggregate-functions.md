@@ -176,3 +176,5 @@ WindowEnd
 Extract the end time of the current window, in milliseconds.
 If the query is not windowed the function will return null.
 
+
+Page last revised on: {{ git_revision_date }}

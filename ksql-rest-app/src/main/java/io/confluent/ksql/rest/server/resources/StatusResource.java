@@ -33,16 +33,15 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StatusResource {
 
-  private final InteractiveStatementExecutor interactiveStatementExecutor;
+  private final InteractiveStatementExecutor statementExecutor;
 
-  public StatusResource(final InteractiveStatementExecutor interactiveStatementExecutor) {
-    this.interactiveStatementExecutor = interactiveStatementExecutor;
+  public StatusResource(final InteractiveStatementExecutor statementExecutor) {
+    this.statementExecutor = statementExecutor;
   }
 
   @GET
   public Response getAllStatuses() {
-    return Response.ok(
-        CommandStatuses.fromFullStatuses(interactiveStatementExecutor.getStatuses())).build();
+    return Response.ok(CommandStatuses.fromFullStatuses(statementExecutor.getStatuses())).build();
   }
 
   @GET
@@ -53,7 +52,7 @@ public class StatusResource {
       @PathParam("action") final String action) {
     final CommandId commandId = new CommandId(type, entity, action);
 
-    final Optional<CommandStatus> commandStatus = interactiveStatementExecutor.getStatus(commandId);
+    final Optional<CommandStatus> commandStatus = statementExecutor.getStatus(commandId);
 
     if (!commandStatus.isPresent()) {
       return Errors.notFound("Command not found");

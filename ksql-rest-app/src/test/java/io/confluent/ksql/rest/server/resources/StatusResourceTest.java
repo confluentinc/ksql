@@ -60,19 +60,19 @@ public class StatusResourceTest {
   }
 
   private StatusResource getTestStatusResource() {
-    final InteractiveStatementExecutor mockInteractiveStatementExecutor = mock(InteractiveStatementExecutor.class);
+    final InteractiveStatementExecutor mockStatementExecutor = mock(InteractiveStatementExecutor.class);
 
-    expect(mockInteractiveStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
+    expect(mockStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
 
     for (final Map.Entry<CommandId, CommandStatus> commandEntry : mockCommandStatuses.entrySet()) {
-      expect(mockInteractiveStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
+      expect(mockStatementExecutor.getStatus(commandEntry.getKey())).andReturn(Optional.of(commandEntry.getValue()));
     }
 
-    expect(mockInteractiveStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.empty());
+    expect(mockStatementExecutor.getStatus(anyObject(CommandId.class))).andReturn(Optional.empty());
 
-    replay(mockInteractiveStatementExecutor);
+    replay(mockStatementExecutor);
 
-    return new StatusResource(mockInteractiveStatementExecutor);
+    return new StatusResource(mockStatementExecutor);
   }
 
   @Test

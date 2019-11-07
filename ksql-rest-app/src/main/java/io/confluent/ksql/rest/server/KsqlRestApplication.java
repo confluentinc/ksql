@@ -475,12 +475,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         restConfig.getCommandConsumerProperties(),
         restConfig.getCommandProducerProperties());
 
-    final InteractiveStatementExecutor interactiveStatementExecutor =
+    final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
 
     final RootDocument rootDocument = new RootDocument();
 
-    final StatusResource statusResource = new StatusResource(interactiveStatementExecutor);
+    final StatusResource statusResource = new StatusResource(statementExecutor);
     final VersionCheckerAgent versionChecker
         = versionCheckerFactory.apply(ksqlEngine::hasActiveQueries);
 
@@ -515,7 +515,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
     }
     final CommandRunner commandRunner = new CommandRunner(
-        interactiveStatementExecutor,
+        statementExecutor,
         commandStore,
         maxStatementRetries,
         new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
@@ -530,7 +530,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final List<KsqlConfigurable> configurables = ImmutableList.of(
         ksqlResource,
         streamedQueryResource,
-        interactiveStatementExecutor
+        statementExecutor
     );
 
     final Consumer<KsqlConfig> rocksDBConfigSetterHandler =

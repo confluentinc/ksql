@@ -51,7 +51,7 @@ public class CommandRunner implements Closeable {
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
 
-  private final InteractiveStatementExecutor interactiveStatementExecutor;
+  private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
   private final ExecutorService executor;
   private volatile boolean closed = false;
@@ -60,14 +60,14 @@ public class CommandRunner implements Closeable {
   private final ServerState serverState;
 
   public CommandRunner(
-      final InteractiveStatementExecutor interactiveStatementExecutor,
+      final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
       final ServerState serverState
   ) {
     this(
-        interactiveStatementExecutor,
+        statementExecutor,
         commandStore,
         maxRetries,
         clusterTerminator,
@@ -78,15 +78,14 @@ public class CommandRunner implements Closeable {
 
   @VisibleForTesting
   CommandRunner(
-      final InteractiveStatementExecutor interactiveStatementExecutor,
+      final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
       final ExecutorService executor,
       final ServerState serverState
   ) {
-    this.interactiveStatementExecutor = Objects.requireNonNull(
-        interactiveStatementExecutor, "statementExecutor");
+    this.statementExecutor = Objects.requireNonNull(statementExecutor, "statementExecutor");
     this.commandStore = Objects.requireNonNull(commandStore, "commandStore");
     this.maxRetries = maxRetries;
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
@@ -133,11 +132,11 @@ public class CommandRunner implements Closeable {
             maxRetries,
             STATEMENT_RETRY_MS,
             MAX_STATEMENT_RETRY_MS,
-            () -> interactiveStatementExecutor.handleRestore(command),
+            () -> statementExecutor.handleRestore(command),
             WakeupException.class
         )
     );
-    final KsqlEngine ksqlEngine = interactiveStatementExecutor.getKsqlEngine();
+    final KsqlEngine ksqlEngine = statementExecutor.getKsqlEngine();
     ksqlEngine.getPersistentQueries().forEach(PersistentQueryMetadata::start);
   }
 
@@ -170,7 +169,7 @@ public class CommandRunner implements Closeable {
       if (closed) {
         log.info("Execution aborted as system is closing down");
       } else {
-        interactiveStatementExecutor.handleStatement(queuedCommand);
+        statementExecutor.handleStatement(queuedCommand);
         log.info("Executed statement: " + queuedCommand.getCommand().getStatement());
       }
     };

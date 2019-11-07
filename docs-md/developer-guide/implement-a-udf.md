@@ -5,8 +5,8 @@ tagline: Create functions for custom processing
 description: Learn how to create user-defined functions for event streams processing
 ---
 
-Implement a User-defined Function (UDF and UDAF)
-================================================
+Implement a User-defined Function (UDF, UDAF, or UDTF)
+======================================================
 
 Prerequisites
 -------------
@@ -17,15 +17,14 @@ Prerequisites
     locally
 -   Internet connectivity for downloading Confluent POM files
 
-Create a user-defined function (UDF) or a user-defined aggregation
-function (UDAF) by following these steps:
+Create a user-defined function (UDF), a user-defined aggregation function
+(UDAF), or a user-defined table function (UDTF) by following these steps:
 
 1.  [Create the KSQL extensions directory](#create-the-ksql-extensions-directory)
-    that contains your UDF and UDAF packages.
+    that contains your packages.
 2.  [Create Java source and project files](#create-the-source-and-project-files)
     for your implementation.
-3.  [Build the package](#build-the-udf-package) for your UDF
-    or UDAF.
+3.  [Build the package](#build-the-udf-package) for your function.
 4.  [Use your custom function](#use-your-custom-udf-in-a-ksql-query) in
     a KSQL query or statement.
 
@@ -373,20 +372,27 @@ Your output should resemble:
 
 Press Ctrl+C to terminate the query.
 
-Custom Aggregation Function (UDAF)
-----------------------------------
+User Defined Aggregation Function (UDAF)
+----------------------------------------
 
 Implementing a user-defined aggregation function (UDAF) is similar to
 the way that you implement a UDF. You use the `UdafDescription` and
 `UdafFactory` annotations in your Java code, and you deploy a JAR to the
 KSQL extensions directory. For more information, see
-[UDAFs ](udf.md#udafs).
+[UDAFs](udf.md#udafs).
+
+User Defined Table Function (UDTF)
+----------------------------------
+
+Implementing a user-defined table function (UDTF) is similar to the way
+that you implement a UDF. You use the `UdtfDescription` and `Udtf`
+annotations in your Java code, and you deploy a JAR to the KSQL extensions
+directory. For more information, see [UDTFs](udf.md#udtfs).
 
 Next Steps
 ----------
 
--   [How to Build a UDF and/or UDAF in KSQL
-    5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
+-   [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
 -   [Aggregate Streaming Data With KSQL](aggregate-streaming-data.md)
 -   [Join Event Streams with KSQL](join-streams-and-tables.md)
 

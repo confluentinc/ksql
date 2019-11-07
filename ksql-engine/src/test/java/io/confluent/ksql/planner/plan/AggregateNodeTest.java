@@ -143,7 +143,7 @@ public class AggregateNodeTest {
     assertThat("invalid test", valueMappers, hasSize(greaterThanOrEqualTo(1)));
     final ValueMapper preAggSelectMapper = valueMappers.get(0);
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .apply(new GenericRow("rowtime", "rowkey", "0", "1", "2", "3"));
+        .apply(new GenericRow("rowtime", "rowkey", 0L, "1", "2", 3.0D));
     assertThat("should select col0, col1, col2, col3", result.getColumns(),
         contains(0L, "1", "2", 3.0));
   }
@@ -163,7 +163,7 @@ public class AggregateNodeTest {
     assertThat("invalid test", valueMappers, hasSize(greaterThanOrEqualTo(2)));
     final ValueMapper postAggSelect = valueMappers.get(1);
     final GenericRow result = (GenericRow) postAggSelect
-        .apply(new GenericRow("0", "-1", "2", "3", "4"));
+        .apply(new GenericRow(0L, "-1", 2.0D, 3L, 4.0D));
     assertThat("should select col0, agg1, agg2", result.getColumns(), contains(0L, 2.0, 3L, 4.0));
   }
 

@@ -182,7 +182,7 @@ public class SqlPredicateTest {
         errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
         equalTo(
             "Error evaluating predicate (TEST1.COL0 > 100): "
-                + "Invalid field type. Value must be Long.")
+                + "argument type mismatch")
     );
   }
 

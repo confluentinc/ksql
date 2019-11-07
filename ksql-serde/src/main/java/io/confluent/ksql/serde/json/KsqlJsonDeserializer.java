@@ -42,7 +42,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.kafka.common.errors.SerializationException;
 import org.apache.kafka.common.serialization.Deserializer;
 import org.apache.kafka.connect.data.Field;
@@ -225,9 +224,10 @@ public class KsqlJsonDeserializer implements Deserializer<Object> {
       // during parsing. any ksql fields that are case insensitive, therefore, will be matched
       // in this case insensitive field map without modification but the quoted fields will not
       // (unless they were all uppercase to start off with, which is expected to match)
-      final JsonNode fieldValue = ObjectUtils.defaultIfNull(
-          jsonFields.get(ksqlField.name()),
-          upperCasedFields.get(ksqlField.name()));
+      JsonNode fieldValue = jsonFields.get(ksqlField.name());
+      if (fieldValue == null) {
+        fieldValue = upperCasedFields.get(ksqlField.name());
+      }
 
       final Object coerced = enforceFieldType(
           context.deserializer,

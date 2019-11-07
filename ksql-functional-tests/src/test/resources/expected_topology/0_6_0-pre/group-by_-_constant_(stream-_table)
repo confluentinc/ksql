@@ -59,20 +59,20 @@ Topologies:
       --> Aggregate-groupby
       <-- KSTREAM-MAPVALUES-0000000002
     Processor: Aggregate-groupby (stores: [])
-      --> KSTREAM-FILTER-0000000007
+      --> Aggregate-groupby-repartition-filter
       <-- KSTREAM-FILTER-0000000003
     Processor: KSTREAM-FILTER-0000000007 (stores: [])
-      --> KSTREAM-SINK-0000000006
+      --> Aggregate-groupby-repartition-sink
       <-- Aggregate-groupby
-    Sink: KSTREAM-SINK-0000000006 (topic: Aggregate-groupby-repartition)
+    Sink: Aggregate-groupby-repartition-sink (topic: Aggregate-groupby-repartition)
       <-- KSTREAM-FILTER-0000000007
 
   Sub-topology: 1
-    Source: KSTREAM-SOURCE-0000000008 (topics: [Aggregate-groupby-repartition])
+    Source: Aggregate-groupby-repartition-source (topics: [Aggregate-groupby-repartition])
       --> KSTREAM-AGGREGATE-0000000005
     Processor: KSTREAM-AGGREGATE-0000000005 (stores: [Aggregate-aggregate])
       --> KTABLE-MAPVALUES-0000000009
-      <-- KSTREAM-SOURCE-0000000008
+      <-- Aggregate-groupby-repartition-source
     Processor: KTABLE-MAPVALUES-0000000009 (stores: [])
       --> KTABLE-MAPVALUES-0000000010
       <-- KSTREAM-AGGREGATE-0000000005

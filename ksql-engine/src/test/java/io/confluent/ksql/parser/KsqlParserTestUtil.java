@@ -18,6 +18,7 @@ package io.confluent.ksql.parser;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 
+import io.confluent.ksql.engine.rewrite.AstSanitizer;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.parser.tree.Statement;
@@ -44,6 +45,9 @@ public final class KsqlParserTestUtil {
   public static List<PreparedStatement<?>> buildAst(final String sql, final MetaStore metaStore) {
     return KSQL_PARSER.parse(sql).stream()
         .map(parsed -> KSQL_PARSER.prepare(parsed, metaStore))
+        .map(prepared -> PreparedStatement.of(
+            prepared.getStatementText(),
+            AstSanitizer.sanitize(prepared.getStatement(), metaStore)))
         .collect(Collectors.toList());
   }
 }

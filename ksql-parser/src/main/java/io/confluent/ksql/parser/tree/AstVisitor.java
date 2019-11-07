@@ -19,13 +19,22 @@ import io.confluent.ksql.parser.DropType;
 import javax.annotation.Nullable;
 
 public abstract class AstVisitor<R, C> {
+  private final R defaultResult;
+
+  protected AstVisitor() {
+    this(null);
+  }
+
+  protected AstVisitor(final R defaultResult) {
+    this.defaultResult = defaultResult;
+  }
 
   public R process(final AstNode node, @Nullable final C context) {
     return node.accept(this, context);
   }
 
   protected R visitNode(final AstNode node, final C context) {
-    return null;
+    return defaultResult;
   }
 
   protected R visitStatements(final Statements node, final C context) {

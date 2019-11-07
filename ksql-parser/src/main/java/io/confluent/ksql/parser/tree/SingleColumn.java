@@ -29,12 +29,12 @@ import java.util.Optional;
 @Immutable
 public class SingleColumn extends SelectItem {
 
-  private final ColumnName alias;
+  private final Optional<ColumnName> alias;
   private final Expression expression;
 
   public SingleColumn(
       final Expression expression,
-      final ColumnName alias
+      final Optional<ColumnName> alias
   ) {
     this(Optional.empty(), expression, alias);
   }
@@ -42,7 +42,7 @@ public class SingleColumn extends SelectItem {
   public SingleColumn(
       final Optional<NodeLocation> location,
       final Expression expression,
-      final ColumnName alias
+      final Optional<ColumnName> alias
   ) {
     super(location);
 
@@ -59,10 +59,13 @@ public class SingleColumn extends SelectItem {
 
   private static void checkForReservedToken(
       final Expression expression,
-      final ColumnName alias,
+      final Optional<ColumnName> alias,
       final ColumnName reservedToken
   ) {
-    if (alias.name().equalsIgnoreCase(reservedToken.name())) {
+    if (!alias.isPresent()) {
+      return;
+    }
+    if (alias.get().name().equalsIgnoreCase(reservedToken.name())) {
       final String text = expression.toString();
       if (!text.substring(text.indexOf(".") + 1).equalsIgnoreCase(reservedToken.name())) {
         throw new ParseFailedException(reservedToken.name()
@@ -72,7 +75,7 @@ public class SingleColumn extends SelectItem {
     }
   }
 
-  public ColumnName getAlias() {
+  public Optional<ColumnName> getAlias() {
     return alias;
   }
 

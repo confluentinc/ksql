@@ -516,7 +516,7 @@ class Analyzer {
           visitSelectStar((AllColumns) selectItem);
         } else if (selectItem instanceof SingleColumn) {
           final SingleColumn column = (SingleColumn) selectItem;
-          addSelectItem(column.getExpression(), column.getAlias());
+          addSelectItem(column.getExpression(), column.getAlias().get());
           visitTableFunctions(column.getExpression());
         } else {
           throw new IllegalArgumentException(

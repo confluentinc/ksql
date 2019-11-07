@@ -15,7 +15,6 @@
 
 package io.confluent.ksql.parser;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.util.ParserUtil.getIdentifierText;
 import static io.confluent.ksql.util.ParserUtil.getLocation;
 import static io.confluent.ksql.util.ParserUtil.processIntegerNumber;
@@ -24,7 +23,7 @@ import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
 import io.confluent.ksql.execution.expression.tree.BetweenPredicate;
@@ -55,8 +54,7 @@ import io.confluent.ksql.execution.expression.tree.WhenClause;
 import io.confluent.ksql.execution.windows.HoppingWindowExpression;
 import io.confluent.ksql.execution.windows.SessionWindowExpression;
 import io.confluent.ksql.execution.windows.TumblingWindowExpression;
-import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
+import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.name.SourceName;
@@ -131,40 +129,40 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.parser.tree.WithinExpression;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.util.DataSourceExtractor;
-import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.Pair;
 import io.confluent.ksql.util.ParserUtil;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 public class AstBuilder {
 
-  private final MetaStore metaStore;
+  private final TypeRegistry typeRegistry;
 
-  AstBuilder(final MetaStore metaStore) {
-    this.metaStore = requireNonNull(metaStore, "metaStore");
+  public AstBuilder(final TypeRegistry typeRegistry) {
+    this.typeRegistry = requireNonNull(typeRegistry, "typeRegistry");
   }
 
   public Statement build(final SingleStatementContext statement) {
-    final DataSourceExtractor dataSourceExtractor = new DataSourceExtractor(metaStore);
-    dataSourceExtractor.extractDataSources(statement);
-
-    final Node result = new Visitor(dataSourceExtractor, metaStore).visit(statement);
+    final Node result = new Visitor(
+        getSources(statement),
+        typeRegistry
+    ).visit(statement);
     return (Statement) result;
   }
 
@@ -174,20 +172,14 @@ public class AstBuilder {
 
     private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
-    private final DataSourceExtractor dataSourceExtractor;
-    private final MetaStore metaStore;
+    private final Set<SourceName> sources;
     private final SqlTypeParser typeParser;
 
-    private int selectItemIndex = 0;
     private boolean buildingPersistentQuery = false;
 
-    Visitor(
-        final DataSourceExtractor dataSourceExtractor,
-        final MetaStore metaStore
-    ) {
-      this.dataSourceExtractor = Objects.requireNonNull(dataSourceExtractor, "dataSourceExtractor");
-      this.metaStore = Objects.requireNonNull(metaStore, "metaStore");
-      this.typeParser = SqlTypeParser.create(metaStore);
+    Visitor(final Set<SourceName> sources, final TypeRegistry typeRegistry) {
+      this.sources = ImmutableSet.copyOf(Objects.requireNonNull(sources, "sources"));
+      this.typeParser = SqlTypeParser.create(typeRegistry);
     }
 
     @Override
@@ -312,20 +304,8 @@ public class AstBuilder {
 
     @Override
     public Node visitInsertInto(final SqlBaseParser.InsertIntoContext context) {
-
       final SourceName targetName = ParserUtil.getSourceName(context.sourceName());
-      final Optional<NodeLocation> targetLocation = getLocation(context.sourceName());
-
-      final DataSource<?> target = getSource(targetName, targetLocation);
-
-      if (target.getDataSourceType() != DataSourceType.KSTREAM) {
-        throw new KsqlException(
-            "INSERT INTO can only be used to insert into a stream. "
-                + targetName.toString(FormatOptions.noEscape()) + " is a table.");
-      }
-
       final Query query = withinPersistentQuery(() -> visitQuery(context.query()));
-
       return new InsertInto(
           getLocation(context),
           targetName,
@@ -570,44 +550,15 @@ public class AstBuilder {
     public Node visitSelectSingle(final SqlBaseParser.SelectSingleContext context) {
       final Expression selectItem = (Expression) visit(context.expression());
 
-      final ColumnName alias;
       if (context.identifier() != null) {
-        alias = ColumnName.of(ParserUtil.getIdentifierText(context.identifier()));
+        return new SingleColumn(
+            getLocation(context),
+            selectItem,
+            Optional.of(ColumnName.of(ParserUtil.getIdentifierText(context.identifier())))
+        );
       } else {
-        if (selectItem instanceof ColumnReferenceExp) {
-          final ColumnRef name = ((ColumnReferenceExp) selectItem).getReference();
-          if (dataSourceExtractor.isJoin()
-              && dataSourceExtractor
-              .getCommonFieldNames()
-              .contains(name.name())
-          ) {
-            alias = name.source()
-                .map(q -> q.name() + "_" + name.name().name())
-                .map(ColumnName::of)
-                .orElseGet(name::name);
-          } else {
-            alias = name.name();
-          }
-        } else if (selectItem instanceof DereferenceExpression) {
-          final DereferenceExpression dereferenceExp = (DereferenceExpression) selectItem;
-          final String dereferenceExpressionString = dereferenceExp.toString();
-
-          alias = ColumnName.of(replaceDotFieldRef(
-              dereferenceExpressionString.substring(
-                  dereferenceExpressionString.indexOf(KsqlConstants.DOT) + 1)));
-        } else {
-
-          alias = ColumnName.generatedColumnAlias(selectItemIndex);
-        }
+        return new SingleColumn(getLocation(context), selectItem, Optional.empty());
       }
-      selectItemIndex++;
-      return new SingleColumn(getLocation(context), selectItem, alias);
-    }
-
-    private static String replaceDotFieldRef(final String input) {
-      return input
-          .replace(KsqlConstants.DOT, "_")
-          .replace(KsqlConstants.STRUCT_FIELD_REF, "__");
     }
 
     @Override
@@ -986,55 +937,8 @@ public class AstBuilder {
     public Node visitColumnReference(final SqlBaseParser.ColumnReferenceContext context) {
       final ColumnReferenceExp columnReferenceExp = ColumnReferenceParser.resolve(context);
       final ColumnRef reference = columnReferenceExp.getReference();
-
-      if (reference.source().isPresent()) {
-        throwOnUnknownNameOrAlias(reference.source().get());
-        return columnReferenceExp;
-      }
-
-      final ColumnName columnName = reference.name();
-      if (dataSourceExtractor.isJoin()) {
-        if (dataSourceExtractor.getCommonFieldNames().contains(columnName)) {
-          throw new KsqlException("Column '" + columnName.name() + "' is ambiguous.");
-        }
-
-        if (dataSourceExtractor.getLeftFieldNames().contains(columnName)) {
-          return new ColumnReferenceExp(
-              getLocation(context),
-              ColumnRef.of(dataSourceExtractor.getLeftAlias(), columnName)
-          );
-        }
-
-        if (dataSourceExtractor.getRightFieldNames().contains(columnName)) {
-          return new ColumnReferenceExp(
-              getLocation(context),
-              ColumnRef.of(dataSourceExtractor.getRightAlias(), columnName)
-          );
-        }
-
-        throw new InvalidColumnReferenceException(
-            getLocation(Iterables.getLast(context.identifier())),
-            "Column '" + columnName.name() + "' cannot be resolved."
-        );
-      }
-
-      return
-          new ColumnReferenceExp(
-              getLocation(context),
-              ColumnRef.of(dataSourceExtractor.getFromAlias(), columnName)
-          );
-    }
-
-    private boolean isValidNameOrAlias(final SourceName name) {
-      if (dataSourceExtractor.isJoin()) {
-        final boolean sameAsLeft = name.equals(dataSourceExtractor.getLeftAlias())
-            || name.equals(dataSourceExtractor.getLeftName());
-        final boolean sameAsRight = name.equals(dataSourceExtractor.getRightAlias())
-            || name.equals(dataSourceExtractor.getRightName());
-        return sameAsLeft || sameAsRight;
-      }
-      return ((name.equals(dataSourceExtractor.getFromAlias())
-          || name.equals(dataSourceExtractor.getFromName())));
+      reference.source().ifPresent(this::throwOnUnknownNameOrAlias);
+      return columnReferenceExp;
     }
 
     @Override
@@ -1184,7 +1088,7 @@ public class AstBuilder {
     }
 
     private void throwOnUnknownNameOrAlias(final SourceName name) {
-      if (!isValidNameOrAlias(name)) {
+      if (!sources.contains(name)) {
         throw new KsqlException("'" + name.name() + "' is not a valid stream/table name or alias.");
       }
     }
@@ -1270,18 +1174,6 @@ public class AstBuilder {
           : OptionalInt.of(processIntegerNumber(limitContext.number(), "LIMIT"));
     }
 
-    private DataSource<?> getSource(
-        final SourceName name,
-        final Optional<NodeLocation> location
-    ) {
-      final DataSource<?> source = metaStore.getSource(name);
-      if (source == null) {
-        throw new InvalidColumnReferenceException(location, name.name() + " does not exist.");
-      }
-
-      return source;
-    }
-
     private <T> T withinPersistentQuery(final Supplier<T> task) {
       if (buildingPersistentQuery) {
         throw new UnsupportedOperationException("Nested query building not supported yet");
@@ -1294,15 +1186,46 @@ public class AstBuilder {
         buildingPersistentQuery = false;
       }
     }
+  }
 
-    private static final class InvalidColumnReferenceException extends KsqlException {
+  private static Set<SourceName> getSources(final ParseTree parseTree) {
+    final SourceAccumulator accumulator = new SourceAccumulator();
+    accumulator.visit(parseTree);
+    return accumulator.getSources();
+  }
 
-      private InvalidColumnReferenceException(
-          final Optional<NodeLocation> location,
-          final String message
-      ) {
-        super(location.map(loc -> loc + ": ").orElse("") + message);
+  private static class SourceAccumulator extends SqlBaseBaseVisitor<Void> {
+    final Set<SourceName> sources = new HashSet<>();
+
+    public Set<SourceName> getSources() {
+      return ImmutableSet.copyOf(sources);
+    }
+
+    @Override
+    public Void visitAliasedRelation(final SqlBaseParser.AliasedRelationContext context) {
+      super.visitAliasedRelation(context);
+      switch (context.children.size()) {
+        case 1:
+          break;
+        case 2:
+          sources.add(ParserUtil.getSourceName((SourceNameContext) context.children.get(1)));
+          break;
+        case 3:
+          sources.add(ParserUtil.getSourceName((SourceNameContext) context.children.get(2)));
+          break;
+        default:
+          throw new IllegalArgumentException(
+              "AliasedRelationContext must have between 1 and 3 children, but has:"
+                  + context.children.size()
+          );
       }
+      return null;
+    }
+
+    @Override
+    public Void visitTableName(final SqlBaseParser.TableNameContext context) {
+      sources.add(ParserUtil.getSourceName(context.sourceName()));
+      return null;
     }
   }
 }

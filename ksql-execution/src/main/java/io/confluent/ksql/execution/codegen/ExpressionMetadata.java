@@ -19,7 +19,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.InvocationTargetException;
@@ -32,18 +31,18 @@ public class ExpressionMetadata {
 
   private final IExpressionEvaluator expressionEvaluator;
   private final SqlType expressionType;
-  private final GenericRowValueTypeEnforcer typeEnforcer;
   private final ThreadLocal<Object[]> threadLocalParameters;
   private final Expression expression;
   private final CodeGenSpec spec;
 
   public ExpressionMetadata(
-      IExpressionEvaluator expressionEvaluator, CodeGenSpec spec, SqlType expressionType,
-      GenericRowValueTypeEnforcer typeEnforcer, Expression expression
+      IExpressionEvaluator expressionEvaluator,
+      CodeGenSpec spec,
+      SqlType expressionType,
+      Expression expression
   ) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
-    this.typeEnforcer = Objects.requireNonNull(typeEnforcer, "typeEnforcer");
     this.expression = Objects.requireNonNull(expression, "expression");
     this.spec = Objects.requireNonNull(spec, "spec");
     this.threadLocalParameters = ThreadLocal.withInitial(() -> new Object[spec.arguments().size()]);
@@ -80,7 +79,7 @@ public class ExpressionMetadata {
 
   private Object[] getParameters(GenericRow row) {
     Object[] parameters = this.threadLocalParameters.get();
-    spec.resolve(row, typeEnforcer, parameters);
+    spec.resolve(row, parameters);
     return parameters;
   }
 }

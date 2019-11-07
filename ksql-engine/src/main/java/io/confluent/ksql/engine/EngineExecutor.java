@@ -108,7 +108,7 @@ final class EngineExecutor {
   @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
   private ExecuteResult execute(final KsqlPlan plan) {
     final Optional<String> ddlResult = plan.getDdlCommand()
-        .map(ddl -> executeDdl(ddl, plan.getStatementText()));
+        .map(ddl -> executeDdl(ddl, plan.getStatementText(), plan.getQueryPlan().isPresent()));
 
     final Optional<PersistentQueryMetadata> queryMetadata = plan.getQueryPlan()
         .map(qp -> executePersistentQuery(qp, plan.getStatementText()));
@@ -360,10 +360,11 @@ final class EngineExecutor {
 
   private String executeDdl(
       final DdlCommand ddlCommand,
-      final String statementText
+      final String statementText,
+      final boolean withQuery
   ) {
     try {
-      return engineContext.executeDdl(statementText, ddlCommand);
+      return engineContext.executeDdl(statementText, ddlCommand, withQuery);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {

@@ -188,9 +188,10 @@ final class EngineContext {
 
   String executeDdl(
       final String sqlExpression,
-      final DdlCommand command
+      final DdlCommand command,
+      final boolean withQuery
   ) {
-    final DdlCommandResult result = ddlCommandExec.execute(sqlExpression, command);
+    final DdlCommandResult result = ddlCommandExec.execute(sqlExpression, command, withQuery);
     if (!result.isSuccess()) {
       throw new KsqlStatementException(result.getMessage(), sqlExpression);
     }

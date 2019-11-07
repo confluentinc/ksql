@@ -112,11 +112,11 @@ public class DataSourceNodeTest {
       SerdeOption.none(),
       KeyField.of(ColumnRef.withoutSource(ColumnName.of("key"))),
       new LongColumnTimestampExtractionPolicy(ColumnRef.withoutSource(ColumnName.of("timestamp"))),
+      false,
       new KsqlTopic(
           "topic",
           KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-          ValueFormat.of(FormatInfo.of(Format.JSON)),
-          false
+          ValueFormat.of(FormatInfo.of(Format.JSON))
       )
   );
 
@@ -230,11 +230,11 @@ public class DataSourceNodeTest {
         SerdeOption.none(),
         KeyField.of(ColumnRef.withoutSource(ColumnName.of("field1"))),
         new LongColumnTimestampExtractionPolicy(TIMESTAMP_FIELD),
+        false,
         new KsqlTopic(
             "topic2",
             KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-            ValueFormat.of(FormatInfo.of(Format.JSON)),
-            false
+            ValueFormat.of(FormatInfo.of(Format.JSON))
         )
     );
 

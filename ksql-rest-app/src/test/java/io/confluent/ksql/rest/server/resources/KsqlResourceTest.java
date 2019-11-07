@@ -2095,8 +2095,7 @@ public class KsqlResourceTest {
     final KsqlTopic ksqlTopic = new KsqlTopic(
         topicName,
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     givenKafkaTopicExists(topicName);
@@ -2109,6 +2108,7 @@ public class KsqlResourceTest {
               SerdeOption.none(),
               KeyField.of(schema.value().get(0).ref()),
               new MetadataTimestampExtractionPolicy(),
+              false,
               ksqlTopic
           ));
     }
@@ -2121,6 +2121,7 @@ public class KsqlResourceTest {
               SerdeOption.none(),
               KeyField.of(schema.value().get(0).ref()),
               new MetadataTimestampExtractionPolicy(),
+              false,
               ksqlTopic
           ));
     }

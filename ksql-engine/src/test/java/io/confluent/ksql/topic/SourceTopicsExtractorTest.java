@@ -161,8 +161,7 @@ public class SourceTopicsExtractorTest {
     final KsqlTopic sourceTopic = new KsqlTopic(
         topicDescription.name(),
         KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)),
-        ValueFormat.of(FormatInfo.of(Format.JSON)),
-        false
+        ValueFormat.of(FormatInfo.of(Format.JSON))
     );
 
     final KsqlStream<?> streamSource = new KsqlStream<>(
@@ -172,6 +171,7 @@ public class SourceTopicsExtractorTest {
         SerdeOption.none(),
         KeyField.none(),
         new MetadataTimestampExtractionPolicy(),
+        false,
         sourceTopic
     );
 

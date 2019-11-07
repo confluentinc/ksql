@@ -50,44 +50,44 @@ public class MultiExecutableTest {
   @Test
   public void shouldStartAll() throws Exception {
     // When:
-    multiExecutable.start();
+    multiExecutable.startAsync();
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(executable1, executable2);
-    inOrder.verify(executable1).start();
-    inOrder.verify(executable2).start();
+    inOrder.verify(executable1).startAsync();
+    inOrder.verify(executable2).startAsync();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
   public void shouldJoinAll() throws Exception {
     // When:
-    multiExecutable.join();
+    multiExecutable.awaitTerminated();
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(executable1, executable2);
-    inOrder.verify(executable1).join();
-    inOrder.verify(executable2).join();
+    inOrder.verify(executable1).awaitTerminated();
+    inOrder.verify(executable2).awaitTerminated();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
   public void shouldStopAll() throws Exception {
     // When:
-    multiExecutable.stop();
+    multiExecutable.triggerShutdown();
 
     // Then:
     final InOrder inOrder = Mockito.inOrder(executable1, executable2);
-    inOrder.verify(executable1).stop();
-    inOrder.verify(executable2).stop();
+    inOrder.verify(executable1).triggerShutdown();
+    inOrder.verify(executable2).triggerShutdown();
     inOrder.verifyNoMoreInteractions();
   }
 
   @Test
   public void shouldSuppressExceptions() throws Exception {
     // Given:
-    doThrow(new RuntimeException("danger executable1!")).when(executable1).start();
-    doThrow(new RuntimeException("danger executable2!")).when(executable2).start();
+    doThrow(new RuntimeException("danger executable1!")).when(executable1).startAsync();
+    doThrow(new RuntimeException("danger executable2!")).when(executable2).startAsync();
 
     // Expect:
     expectedException.expectMessage("danger executable1!");
@@ -104,7 +104,7 @@ public class MultiExecutableTest {
     });
 
     // When:
-    multiExecutable.start();
+    multiExecutable.startAsync();
   }
 
 }

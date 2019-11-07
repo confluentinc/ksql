@@ -16,10 +16,12 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.properties.PropertiesUtil;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.version.metrics.KsqlVersionCheckerAgent;
+import io.confluent.rest.ApplicationServer;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
@@ -70,12 +72,12 @@ public class KsqlServerMain {
   void tryStartApp() throws Exception {
     try {
       log.info("Starting server");
-      executable.start();
+      executable.startAsync();
       log.info("Server up and running");
-      executable.join();
+      executable.awaitTerminated();
     } finally {
       log.info("Server shutting down");
-      executable.stop();
+      executable.triggerShutdown();
     }
   }
 
@@ -91,10 +93,13 @@ public class KsqlServerMain {
     }
 
     final KsqlRestConfig restConfig = new KsqlRestConfig(properties);
-    final Executable restApp = KsqlRestApplication.buildApplication(
-        restConfig,
-        KsqlVersionCheckerAgent::new
+    final Executable restApp = new ExecutableServer<>(
+        new ApplicationServer<>(restConfig),
+        ImmutableList.of(
+            KsqlRestApplication.buildApplication(restConfig, KsqlVersionCheckerAgent::new)
+        )
     );
+
     final String connectConfigFile =
         ksqlConfig.getString(KsqlConfig.CONNECT_WORKER_CONFIG_FILE_PROPERTY);
     if (connectConfigFile.isEmpty()) {

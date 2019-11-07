@@ -15,10 +15,27 @@
 
 package io.confluent.ksql.rest.server;
 
+/**
+ * An {@code Executable} is a lifecycle interface that does not conflict with
+ * {@link org.eclipse.jetty.util.component.LifeCycle} so that it can be used
+ * to specify additional operations during start/stop/join.
+ */
 public interface Executable {
-  void start() throws Exception;
 
-  void stop() throws Exception;
+  /**
+   * Starts the executable asynchronously.
+   */
+  default void startAsync() throws Exception {}
 
-  void join() throws InterruptedException;
+  /**
+   * Triggers a shutdown asynchronously, in order to ensure that the shutdown
+   * has finished use {@link #awaitTerminated()}
+   */
+  default void triggerShutdown() throws Exception {}
+
+  /**
+   * Awaits the {@link #triggerShutdown()} to finish. This is a blocking
+   * operation.
+   */
+  default void awaitTerminated() throws InterruptedException {}
 }

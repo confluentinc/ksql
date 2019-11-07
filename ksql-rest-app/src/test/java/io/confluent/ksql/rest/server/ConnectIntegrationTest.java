@@ -87,12 +87,12 @@ public class ConnectIntegrationTest {
         .put("config.storage.replication.factor", "1")
         .build()
     );
-    CONNECT.start();
+    CONNECT.startAsync();
   }
 
   @AfterClass
   public static void tearDownClass() {
-    CONNECT.stop();
+    CONNECT.triggerShutdown();
   }
 
   private KsqlRestClient ksqlRestClient;

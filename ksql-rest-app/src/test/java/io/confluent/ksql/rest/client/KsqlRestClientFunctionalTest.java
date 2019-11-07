@@ -40,14 +40,20 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
 import io.confluent.ksql.rest.entity.ServerInfo;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.server.ExecutableServer;
+import io.confluent.ksql.rest.server.KsqlRestConfig;
 import io.confluent.ksql.rest.server.mock.MockApplication;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource;
 import io.confluent.ksql.rest.server.mock.MockStreamedQueryResource.TestStreamWriter;
+import io.confluent.rest.ApplicationServer;
+import io.confluent.rest.RestConfig;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.Invocation;
@@ -56,6 +62,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.apache.http.HttpStatus;
+import org.apache.kafka.streams.StreamsConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -68,6 +75,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsqlRestClientFunctionalTest {
 
   private MockApplication mockApplication;
+  private ExecutableServer<KsqlRestConfig> mockServer;
   private KsqlRestClient ksqlRestClient;
 
   @Rule
@@ -75,15 +83,32 @@ public class KsqlRestClientFunctionalTest {
 
   @Before
   public void init() throws Exception {
-    mockApplication = new MockApplication();
-    mockApplication.start();
+    final Map<String, Object> props = ImmutableMap.<String, Object>builder()
+        .put(KsqlRestConfig.LISTENERS_CONFIG, "http://localhost:0")
+        .put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092")
+        .put(RestConfig.SHUTDOWN_GRACEFUL_MS_CONFIG, (int) TimeUnit.SECONDS.toMillis(30))
+        .build();
+
+    final KsqlRestConfig ksqlRestConfig = new KsqlRestConfig(props);
+    mockApplication = new MockApplication(ksqlRestConfig);
+    mockServer = new ExecutableServer<>(
+        new ApplicationServer<>(ksqlRestConfig),
+        ImmutableList.of(mockApplication)
+    );
+
+    mockServer.startAsync();
 
     ksqlRestClient = buildClient(mockApplication.getServerAddress());
   }
 
   @After
   public void cleanUp() {
-    mockApplication.stop();
+    try {
+      mockServer.triggerShutdown();
+    } catch (Exception e) {
+      System.err.println("Failed to stop app");
+      e.printStackTrace(System.err);
+    }
   }
 
   @Test

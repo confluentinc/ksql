@@ -9,8 +9,11 @@ keywords: ksqlDB, function, scalar
 - [Numeric Functions](#numeric-functions)
   - [ABS](#abs)
   - [CEIL](#ceil)
+  - [ENTRIES](#entries)
   - [EXP](#exp)
   - [FLOOR](#floor)
+  - [GENERATE_SERIES](#generateseries)
+  - [GENERATE_SERIES](#generateseries-1)
   - [GEO_DISTANCE](#geodistance)
   - [LN](#ln)
   - [RANDOM](#random)
@@ -76,6 +79,17 @@ CEIL
 
 The ceiling of a value.
 
+ENTRIES
+-------
+
+`ENTRIES(map MAP, sorted BOOLEAN)`
+
+Constructs an array of structs from the entries in a map. Each struct has
+a field named `K` containing the key, which is a string, and a field named
+`V`, which holds the value.
+
+If `sorted` is true, the entries are sorted by key.                                          
+
 EXP
 ---
 
@@ -89,6 +103,25 @@ FLOOR
 `FLOOR(col1)`
 
 The floor of a value.
+
+GENERATE_SERIES
+---------------
+
+`GENERATE_SERIES(start, end)`
+
+Constructs an array of values between `start` and `end` (inclusive).       
+Parameters can be `INT` or `BIGINT`.
+
+GENERATE_SERIES
+---------------
+
+`GENERATE_SERIES(start, end, step)`
+
+Constructs an array of values between `start` and `end` (inclusive)
+with a specified step size. The step can be positive or negative.      
+Parameters `start` and `end` can be `INT` or `BIGINT`. Parameter `step`
+must be an `INT`.
+
 
 GEO_DISTANCE
 ------------

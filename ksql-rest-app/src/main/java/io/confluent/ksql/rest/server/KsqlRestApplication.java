@@ -78,7 +78,6 @@ import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
-import io.confluent.rest.Application;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
@@ -119,7 +118,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class KsqlRestApplication extends Application<KsqlRestConfig> implements Executable {
+public final class KsqlRestApplication extends ExecutableApplication<KsqlRestConfig> {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Logger log = LoggerFactory.getLogger(KsqlRestApplication.class);
@@ -208,8 +207,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   @Override
-  public void start() throws Exception {
-    super.start();
+  public void startAsync() throws Exception {
     log.info("KSQL RESTful API listening on {}", StringUtils.join(getListeners(), ", "));
     final KsqlConfig ksqlConfigWithPort = buildConfigWithPort();
     configurables.forEach(c -> c.configure(ksqlConfigWithPort));
@@ -287,7 +285,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   }
 
   @Override
-  public void stop() {
+  public void triggerShutdown() {
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -311,12 +309,11 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
     } catch (final Exception e) {
       log.error("Exception while closing security extension", e);
     }
+  }
 
-    try {
-      super.stop();
-    } catch (final Exception e) {
-      log.error("Exception while stopping rest server", e);
-    }
+  @Override
+  public void onShutdown() {
+    triggerShutdown();
   }
 
   List<URL> getListeners() {

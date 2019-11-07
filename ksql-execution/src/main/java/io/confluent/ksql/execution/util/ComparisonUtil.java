@@ -28,17 +28,13 @@ final class ComparisonUtil {
 
   }
 
-  static boolean isValidComparison(
-      final Schema left,
-      final ComparisonExpression.Type operator,
-      final Schema right
-  ) {
+  static boolean isValidComparison(Schema left, ComparisonExpression.Type operator, Schema right) {
     if (SchemaUtil.isNumber(left) && SchemaUtil.isNumber(right)) {
       return true;
     }
 
     if (left.type() == Type.STRING && right.type() == Type.STRING) {
-      return  true;
+      return true;
     }
 
     if (left.type() == Type.BOOLEAN && right.type() == Type.BOOLEAN) {

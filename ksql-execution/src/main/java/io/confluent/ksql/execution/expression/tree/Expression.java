@@ -28,7 +28,7 @@ import java.util.Optional;
 @Immutable
 public abstract class Expression extends Node {
 
-  protected Expression(final Optional<NodeLocation> location) {
+  protected Expression(Optional<NodeLocation> location) {
     super(location);
   }
 

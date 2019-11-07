@@ -29,14 +29,11 @@ public class InListExpression extends Expression {
 
   private final ImmutableList<Expression> values;
 
-  public InListExpression(final List<Expression> values) {
+  public InListExpression(List<Expression> values) {
     this(Optional.empty(), values);
   }
 
-  public InListExpression(
-      final Optional<NodeLocation> location,
-      final List<Expression> values
-  ) {
+  public InListExpression(Optional<NodeLocation> location, List<Expression> values) {
     super(location);
     this.values = ImmutableList.copyOf(requireNonNull(values, "values"));
 
@@ -50,12 +47,12 @@ public class InListExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitInListExpression(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -63,7 +60,7 @@ public class InListExpression extends Expression {
       return false;
     }
 
-    final InListExpression that = (InListExpression) o;
+    InListExpression that = (InListExpression) o;
     return Objects.equals(values, that.values);
   }
 

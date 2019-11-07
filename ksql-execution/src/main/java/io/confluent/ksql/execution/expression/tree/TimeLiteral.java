@@ -27,11 +27,11 @@ public class TimeLiteral extends Literal {
 
   private final String value;
 
-  public TimeLiteral(final String value) {
+  public TimeLiteral(String value) {
     this(Optional.empty(), value);
   }
 
-  public TimeLiteral(final Optional<NodeLocation> location, final String value) {
+  public TimeLiteral(Optional<NodeLocation> location, String value) {
     super(location);
     this.value = requireNonNull(value, "value");
   }
@@ -42,12 +42,12 @@ public class TimeLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitTimeLiteral(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -55,7 +55,7 @@ public class TimeLiteral extends Literal {
       return false;
     }
 
-    final TimeLiteral that = (TimeLiteral) o;
+    TimeLiteral that = (TimeLiteral) o;
     return Objects.equals(value, that.value);
   }
 

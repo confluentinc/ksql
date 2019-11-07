@@ -39,20 +39,18 @@ public final class UdafUtil {
 
   @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
   public static KsqlAggregateFunction<?, ?, ?> resolveAggregateFunction(
-      final FunctionRegistry functionRegistry,
-      final FunctionCall functionCall,
-      final LogicalSchema schema
+      FunctionRegistry functionRegistry, FunctionCall functionCall, LogicalSchema schema
   ) {
     try {
-      final ExpressionTypeManager expressionTypeManager =
+      ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
 
-      final Schema argumentType =
+      Schema argumentType =
           expressionTypeManager.getExpressionSchema(functionCall.getArguments().get(0));
 
       // UDAFs only support one non-constant argument, and that argument must be a column reference
-      final Expression arg = functionCall.getArguments().get(0);
-      final OptionalInt udafIndex;
+      Expression arg = functionCall.getArguments().get(0);
+      OptionalInt udafIndex;
       if (arg instanceof ColumnReferenceExp) {
         udafIndex = schema.valueColumnIndex(((ColumnReferenceExp) arg).getReference());
       } else {
@@ -63,7 +61,7 @@ public final class UdafUtil {
         throw new KsqlException("Could not find column for expression: " + arg);
       }
 
-      final AggregateFunctionInitArguments aggregateFunctionInitArguments =
+      AggregateFunctionInitArguments aggregateFunctionInitArguments =
           createAggregateFunctionInitArgs(udafIndex.getAsInt(), functionCall);
 
       return functionRegistry.getAggregateFunction(
@@ -71,22 +69,21 @@ public final class UdafUtil {
           argumentType,
           aggregateFunctionInitArguments
       );
-    } catch (final Exception e) {
+    } catch (Exception e) {
       throw new KsqlException("Failed to create aggregate function: " + functionCall, e);
     }
   }
 
   public static AggregateFunctionInitArguments createAggregateFunctionInitArgs(
-      final int udafIndex,
-      final FunctionCall functionCall
+      int udafIndex, FunctionCall functionCall
   ) {
     // args from index > 0 are all literals
-    final List<Object> args = functionCall.getArguments()
+    List<Object> args = functionCall.getArguments()
         .stream()
         .skip(1)
         .map(expr -> {
           if (expr instanceof Literal) {
-            return (Literal)expr;
+            return (Literal) expr;
           } else {
             throw new KsqlException(
                 "Aggregate function initialisation arguments must be literals"

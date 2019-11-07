@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class EngineProcessingLogMessageFactory {
+
   private static final Logger LOGGER
       = LoggerFactory.getLogger(EngineProcessingLogMessageFactory.class);
 
@@ -36,20 +37,19 @@ public final class EngineProcessingLogMessageFactory {
   }
 
   public static Function<ProcessingLogConfig, SchemaAndValue> recordProcessingError(
-      final String errorMsg,
-      final Throwable exception,
-      final GenericRow record
+      String errorMsg, Throwable exception, GenericRow record
   ) {
     return (config) -> {
-      final Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
+      Struct struct = new Struct(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA);
       struct.put(ProcessingLogMessageSchema.TYPE, MessageType.RECORD_PROCESSING_ERROR.getTypeId());
-      final Struct recordProcessingError =
+      Struct recordProcessingError =
           new Struct(MessageType.RECORD_PROCESSING_ERROR.getSchema());
       struct.put(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR, recordProcessingError);
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE,
-          errorMsg);
-      final List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
+          errorMsg
+      );
+      List<String> cause = ErrorMessageUtil.getErrorMessages(exception);
       cause.remove(0);
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE,
@@ -60,18 +60,19 @@ public final class EngineProcessingLogMessageFactory {
       }
       recordProcessingError.put(
           ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD,
-          serializeRow(config, record));
+          serializeRow(config, record)
+      );
       return new SchemaAndValue(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA, struct);
     };
   }
 
-  private static String serializeRow(final ProcessingLogConfig config, final GenericRow record) {
+  private static String serializeRow(ProcessingLogConfig config, GenericRow record) {
     if (!config.getBoolean(ProcessingLogConfig.INCLUDE_ROWS)) {
       return null;
     }
     try {
       return JsonMapper.INSTANCE.mapper.writeValueAsString(record.getColumns());
-    } catch (final Throwable t) {
+    } catch (Throwable t) {
       LOGGER.error("error serializing record for processing log", t);
       return null;
     }

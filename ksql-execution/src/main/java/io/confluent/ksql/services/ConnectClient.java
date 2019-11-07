@@ -66,27 +66,28 @@ public interface ConnectClient {
   ConnectResponse<String> delete(String connector);
 
   /**
-   * An optionally successful response. Either contains a value of type
-   * {@code <T>} or an error, which is the string representation of the
-   * response entity.
+   * An optionally successful response. Either contains a value of type {@code <T>} or an error,
+   * which is the string representation of the response entity.
    */
   class ConnectResponse<T> {
+
     private final Optional<T> datum;
     private final Optional<String> error;
     private final int httpCode;
 
-    public static <T> ConnectResponse<T> success(final T datum, final int code) {
+    public static <T> ConnectResponse<T> success(T datum, int code) {
       return new ConnectResponse<>(datum, null, code);
     }
 
-    public static <T> ConnectResponse<T> failure(final String error, final int code) {
+    public static <T> ConnectResponse<T> failure(String error, int code) {
       return new ConnectResponse<>(null, error, code);
     }
 
-    private ConnectResponse(final T datum, final String error, final int code) {
+    private ConnectResponse(T datum, String error, int code) {
       KsqlPreconditions.checkArgument(
           datum != null ^ error != null,
-          "expected exactly one of datum or error to be null");
+          "expected exactly one of datum or error to be null"
+      );
       this.datum = Optional.ofNullable(datum);
       this.error = Optional.ofNullable(error);
       this.httpCode = code;

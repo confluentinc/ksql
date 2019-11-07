@@ -34,17 +34,17 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBoolean() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("boolean"), SqlTypes.BOOLEAN)
         .build();
     
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, schema);
       fail("Expecting exception: KsqlException");
-    } catch (final KsqlException e) {
+    } catch (KsqlException e) {
       assertEquals(GenericRowValueTypeEnforcer.class.getName(),
                    e.getStackTrace()[0].getClassName());
     }
@@ -52,11 +52,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningBooleanWhereBooleanValueIsFalse() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("boolean"), SqlTypes.BOOLEAN)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(Boolean.FALSE, genericRowValueTypeEnforcer.enforceColumnType(0, "0x"));
@@ -64,11 +64,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningBooleanWhereBooleanValueIsTrue() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("boolean"), SqlTypes.BOOLEAN)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(Boolean.TRUE, genericRowValueTypeEnforcer.enforceColumnType(0, true));
@@ -76,11 +76,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceBooleanReturningNull() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("boolean"), SqlTypes.BOOLEAN)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertNull(genericRowValueTypeEnforcer.enforceColumnType(0, null));
@@ -88,17 +88,17 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("string"), SqlTypes.STRING)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, 0.0);
       fail("Expecting exception: KsqlException");
-    } catch (final KsqlException e) {
+    } catch (KsqlException e) {
       assertEquals(GenericRowValueTypeEnforcer.class.getName(),
                    e.getStackTrace()[0].getClassName());
     }
@@ -106,11 +106,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceStringReturningNull() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("string"), SqlTypes.STRING)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertNull(genericRowValueTypeEnforcer.enforceColumnType(0, null));
@@ -118,17 +118,17 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceInteger() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, schema);
       fail("Expecting exception: KsqlException");
-    } catch (final KsqlException e) {
+    } catch (KsqlException e) {
       assertEquals(GenericRowValueTypeEnforcer.class.getName(),
                    e.getStackTrace()[0].getClassName());
     }
@@ -136,45 +136,45 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, new StringBuilder("Not A number"));
       fail("Expecting exception: NumberFormatException");
-    } catch (final NumberFormatException e) {
+    } catch (NumberFormatException e) {
       assertEquals(NumberFormatException.class.getName(), e.getStackTrace()[0].getClassName());
     }
   }
 
   @Test
   public void testEnforceIntegerThrowsNumberFormatExceptionOnInvalidString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, "Wzhq'Rrv?s=O");
       fail("Expecting exception: NumberFormatException");
-    } catch (final NumberFormatException e) {
+    } catch (NumberFormatException e) {
       assertEquals(NumberFormatException.class.getName(), e.getStackTrace()[0].getClassName());
     }
   }
 
   @Test
   public void testEnforceIntegerOnValidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(55, genericRowValueTypeEnforcer.enforceColumnType(0, new StringBuilder("55")));
@@ -182,11 +182,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerOnValidString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(-55, genericRowValueTypeEnforcer.enforceColumnType(0, "-55"));
@@ -194,11 +194,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerOne() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(55, genericRowValueTypeEnforcer.enforceColumnType(0, 55));
@@ -206,11 +206,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerThree() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(361, genericRowValueTypeEnforcer.enforceColumnType(0, 361L));
@@ -218,11 +218,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerAndEnforceIntegerFour() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(1, genericRowValueTypeEnforcer.enforceColumnType(0, 1));
@@ -230,11 +230,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceIntegerReturningNull() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("int"), SqlTypes.INTEGER)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertNull(genericRowValueTypeEnforcer.enforceColumnType(0, null));
@@ -242,17 +242,17 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLong() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, Boolean.FALSE);
       fail("Expecting exception: KsqlException");
-    } catch (final KsqlException e) {
+    } catch (KsqlException e) {
       assertEquals(GenericRowValueTypeEnforcer.class.getName(),
                    e.getStackTrace()[0].getClassName());
     }
@@ -260,45 +260,45 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, new StringBuilder("Not a Long"));
       fail("Expecting exception: NumberFormatException");
-    } catch (final NumberFormatException e) {
+    } catch (NumberFormatException e) {
       assertEquals(NumberFormatException.class.getName(), e.getStackTrace()[0].getClassName());
     }
   }
 
   @Test
   public void testEnforceLongThrowsNumberFormatExceptionOnInvalidString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, "-drbetk");
       fail("Expecting exception: NumberFormatException");
-    } catch (final NumberFormatException e) {
+    } catch (NumberFormatException e) {
       assertEquals(NumberFormatException.class.getName(), e.getStackTrace()[0].getClassName());
     }
   }
 
   @Test
   public void testEnforceLongOnValidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(123L, genericRowValueTypeEnforcer.enforceColumnType(0, new StringBuilder("123")));
@@ -306,11 +306,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongOnValidString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(-123L, genericRowValueTypeEnforcer.enforceColumnType(0, "-123"));
@@ -318,11 +318,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongAndEnforceLongOne() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(0L, genericRowValueTypeEnforcer.enforceColumnType(0, 0));
@@ -330,11 +330,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningLongWhereByteValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(-2315L, genericRowValueTypeEnforcer.enforceColumnType(0, -2315));
@@ -342,11 +342,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningLongWhereShortValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(-446L, genericRowValueTypeEnforcer.enforceColumnType(0, -446.28F));
@@ -354,11 +354,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceLongReturningNull() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("long"), SqlTypes.BIGINT)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertNull(genericRowValueTypeEnforcer.enforceColumnType(0, null));
@@ -366,18 +366,18 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDouble() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
-    final Object object = new Object();
+    Object object = new Object();
 
     try {
       genericRowValueTypeEnforcer.enforceColumnType(0, object);
       fail("Expecting exception: KsqlException");
-    } catch (final KsqlException e) {
+    } catch (KsqlException e) {
       assertEquals(GenericRowValueTypeEnforcer.class.getName(),
                    e.getStackTrace()[0].getClassName());
     }
@@ -385,11 +385,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test(expected = NumberFormatException.class)
   public void testEnforceDoubleThrowsNumberFormatExceptionOnInvalidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     genericRowValueTypeEnforcer.enforceColumnType(0, new StringBuilder("not a double"));
@@ -397,11 +397,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test(expected = NumberFormatException.class)
   public void testEnforceDoubleThrowsNumberFormatExceptionOnInvalidString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     genericRowValueTypeEnforcer.enforceColumnType(0, "not a double");
@@ -409,11 +409,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleOnValidCharSequence() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(1.0, genericRowValueTypeEnforcer.enforceColumnType(0, new StringBuilder("1.0")));
@@ -421,11 +421,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleOnValidString() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(-1.0, genericRowValueTypeEnforcer.enforceColumnType(0, "-1.0"));
@@ -433,11 +433,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleAndEnforceDoubleOne() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(0.0, genericRowValueTypeEnforcer.enforceColumnType(0, 0));
@@ -445,11 +445,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereByteValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals((-1.0), genericRowValueTypeEnforcer.enforceColumnType(0, -1));
@@ -457,11 +457,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleAndEnforceDoubleTwo() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(0.0, genericRowValueTypeEnforcer.enforceColumnType(0, 0.0F));
@@ -469,11 +469,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereShortValueIsPositive() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(366.0, genericRowValueTypeEnforcer.enforceColumnType(0, 366L));
@@ -481,11 +481,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningDoubleWhereShortValueIsNegative() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertEquals(-433.0, genericRowValueTypeEnforcer.enforceColumnType(0, -433));
@@ -493,11 +493,11 @@ public class GenericRowValueTypeEnforcerTest {
 
   @Test
   public void testEnforceDoubleReturningNull() {
-    final LogicalSchema schema = LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("double"), SqlTypes.DOUBLE)
         .build();
 
-    final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
+    GenericRowValueTypeEnforcer genericRowValueTypeEnforcer =
         new GenericRowValueTypeEnforcer(schema);
 
     assertNull(genericRowValueTypeEnforcer.enforceColumnType(0, null));

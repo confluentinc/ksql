@@ -42,13 +42,10 @@ public final class WindowSelectMapper
 
   private final Map<Integer, Type> windowSelects;
 
-  public WindowSelectMapper(
-      final int initialUdafIndex,
-      final List<KsqlAggregateFunction<?, ?, ?>> functions
-  ) {
-    final ImmutableMap.Builder<Integer, Type> selectsBuilder = new Builder<>();
+  public WindowSelectMapper(int initialUdafIndex, List<KsqlAggregateFunction<?, ?, ?>> functions) {
+    Builder<Integer, Type> selectsBuilder = new Builder<>();
     for (int i = 0; i < functions.size(); i++) {
-      final String name = functions.get(i).getFunctionName().name().toUpperCase();
+      String name = functions.get(i).getFunctionName().name().toUpperCase();
       if (WINDOW_FUNCTION_NAMES.containsKey(name)) {
         selectsBuilder.put(initialUdafIndex + i, WINDOW_FUNCTION_NAMES.get(name));
       }
@@ -61,8 +58,8 @@ public final class WindowSelectMapper
   }
 
   @Override
-  public GenericRow apply(final Windowed<?> readOnlyKey, final GenericRow row) {
-    final Window window = readOnlyKey.window();
+  public GenericRow apply(Windowed<?> readOnlyKey, GenericRow row) {
+    Window window = readOnlyKey.window();
 
     windowSelects.forEach((index, type) ->
         row.getColumns().set(index, type.mapper.apply(window)));
@@ -75,7 +72,7 @@ public final class WindowSelectMapper
 
     private final Function<Window, Object> mapper;
 
-    Type(final Function<Window, Object> mapper) {
+    Type(Function<Window, Object> mapper) {
       this.mapper = mapper;
     }
   }

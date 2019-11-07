@@ -76,16 +76,16 @@ public class WindowSelectMapperTest {
   @Test
   public void shouldUpdateRowWithWindowBounds() {
     // Given:
-    final WindowSelectMapper mapper = new WindowSelectMapper(
+    WindowSelectMapper mapper = new WindowSelectMapper(
         1,
         ImmutableList.of(otherFunc, windowStartFunc, windowEndFunc, windowStartFunc)
     );
 
-    final Window window = new SessionWindow(12345L, 54321L);
-    final GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
+    Window window = new SessionWindow(12345L, 54321L);
+    GenericRow row = new GenericRow(Arrays.asList(0, 1, 2, 3, 4, 5));
 
     // When:
-    final GenericRow result = mapper.apply(new Windowed<>("k", window), row);
+    GenericRow result = mapper.apply(new Windowed<>("k", window), row);
 
     // Then:
     assertThat(result, is(sameInstance(row)));
@@ -95,10 +95,10 @@ public class WindowSelectMapperTest {
   @Test(expected = IndexOutOfBoundsException.class)
   public void shouldThrowIfRowNotBigEnough() {
     // Given:
-    final WindowSelectMapper mapper = new WindowSelectMapper(0, ImmutableList.of(windowStartFunc));
+    WindowSelectMapper mapper = new WindowSelectMapper(0, ImmutableList.of(windowStartFunc));
 
-    final Window window = new SessionWindow(12345L, 54321L);
-    final GenericRow row = new GenericRow(new ArrayList<>());
+    Window window = new SessionWindow(12345L, 54321L);
+    GenericRow row = new GenericRow(new ArrayList<>());
 
     // When:
     mapper.apply(new Windowed<>("k", window), row);

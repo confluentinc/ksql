@@ -27,9 +27,8 @@ public final class SearchedCaseFunction {
   }
 
   public static <T> T searchedCaseFunction(
-      final List<LazyWhenClause<T>> whenClauses,
-      final Supplier<T> defaultValue
-  ) throws KsqlException {
+      List<LazyWhenClause<T>> whenClauses, Supplier<T> defaultValue
+  ) {
     if (whenClauses.isEmpty()) {
       throw new KsqlException("When clause cannot be empty.");
     }
@@ -40,21 +39,16 @@ public final class SearchedCaseFunction {
         .orElseGet(defaultValue);
   }
 
-  public static <T> LazyWhenClause<T> whenClause(
-      final Supplier<Boolean> operand,
-      final Supplier<T> result
-  ) {
+  public static <T> LazyWhenClause<T> whenClause(Supplier<Boolean> operand, Supplier<T> result) {
     return new LazyWhenClause<>(operand, result);
   }
 
   public static final class LazyWhenClause<T> {
+
     private final Supplier<Boolean> operand;
     private final Supplier<T> result;
 
-    private LazyWhenClause(
-        final Supplier<Boolean> operand,
-        final Supplier<T> result
-    ) {
+    private LazyWhenClause(Supplier<Boolean> operand, Supplier<T> result) {
       this.operand = Objects.requireNonNull(operand, "operand");
       this.result = Objects.requireNonNull(result, "result");
     }

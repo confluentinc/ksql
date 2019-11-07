@@ -38,7 +38,7 @@ public class FetchFieldFromStructTest {
       .optional().build();
 
   private Struct getStruct() {
-    final Struct address = new Struct(addressSchema);
+    Struct address = new Struct(addressSchema);
     address.put("NUMBER", 101L);
     address.put("STREET", "University Ave.");
     address.put("CITY", "Palo Alto");

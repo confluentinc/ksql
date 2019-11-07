@@ -28,18 +28,11 @@ public class LikePredicate extends Expression {
   private final Expression value;
   private final Expression pattern;
 
-  public LikePredicate(
-      final Expression value,
-      final Expression pattern
-  ) {
+  public LikePredicate(Expression value, Expression pattern) {
     this(Optional.empty(), value, pattern);
   }
 
-  public LikePredicate(
-      final Optional<NodeLocation> location,
-      final Expression value,
-      final Expression pattern
-  ) {
+  public LikePredicate(Optional<NodeLocation> location, Expression value, Expression pattern) {
     super(location);
     this.value = requireNonNull(value, "value");
     this.pattern = requireNonNull(pattern, "pattern");
@@ -54,12 +47,12 @@ public class LikePredicate extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitLikePredicate(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -67,9 +60,9 @@ public class LikePredicate extends Expression {
       return false;
     }
 
-    final LikePredicate that = (LikePredicate) o;
+    LikePredicate that = (LikePredicate) o;
     return Objects.equals(value, that.value)
-           && Objects.equals(pattern, that.pattern);
+        && Objects.equals(pattern, that.pattern);
   }
 
   @Override

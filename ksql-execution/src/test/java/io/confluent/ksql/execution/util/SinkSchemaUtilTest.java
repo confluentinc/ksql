@@ -35,13 +35,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SinkSchemaUtilTest {
+
   @Mock
   private ExecutionStep step;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-  private void givenStepWithSchema(final LogicalSchema schema) {
+  private void givenStepWithSchema(LogicalSchema schema) {
     when(step.getSources()).thenReturn(ImmutableList.of(step));
     when(step.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(schema, mock(QueryContext.class))
@@ -62,7 +63,7 @@ public class SinkSchemaUtilTest {
     );
 
     // When:
-    final Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(step);
+    Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(step);
 
     // Then:
     assertThat(indices, contains(0, 1));
@@ -83,7 +84,7 @@ public class SinkSchemaUtilTest {
     );
 
     // When:
-    final Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(step);
+    Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(step);
 
     // Then:
     assertThat(indices, contains(2, 5));

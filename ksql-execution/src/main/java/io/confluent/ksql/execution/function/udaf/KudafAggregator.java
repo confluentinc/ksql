@@ -33,10 +33,7 @@ public class KudafAggregator implements UdafAggregator {
   private final List<KsqlAggregateFunction<?, ?, ?>> aggregateFunctions;
   private final int columnCount;
 
-  public KudafAggregator(
-      final int initialUdafIndex,
-      final List<KsqlAggregateFunction<?, ?, ?>> functions
-  ) {
+  public KudafAggregator(int initialUdafIndex, List<KsqlAggregateFunction<?, ?, ?>> functions) {
     this.initialUdafIndex = initialUdafIndex;
     this.aggregateFunctions = ImmutableList.copyOf(requireNonNull(functions, "functions"));
     this.columnCount = initialUdafIndex + aggregateFunctions.size();
@@ -48,7 +45,7 @@ public class KudafAggregator implements UdafAggregator {
 
   @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
+  public GenericRow apply(Struct k, GenericRow rowValue, GenericRow aggRowValue) {
     // copy over group-by and aggregate parameter columns into the output row
     for (int idx = 0; idx < initialUdafIndex; idx++) {
       aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
@@ -58,10 +55,10 @@ public class KudafAggregator implements UdafAggregator {
     // the columns written by this statement do not overlap with those written by
     // the above statement.
     for (int idx = initialUdafIndex; idx < columnCount; idx++) {
-      final KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
-      final Object currentValue = rowValue.getColumns().get(function.getArgIndexInValue());
-      final Object currentAggregate = aggRowValue.getColumns().get(idx);
-      final Object newAggregate = function.aggregate(currentValue, currentAggregate);
+      KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+      Object currentValue = rowValue.getColumns().get(function.getArgIndexInValue());
+      Object currentAggregate = aggRowValue.getColumns().get(idx);
+      Object newAggregate = function.aggregate(currentValue, currentAggregate);
       aggRowValue.getColumns().set(idx, newAggregate);
     }
 
@@ -72,16 +69,16 @@ public class KudafAggregator implements UdafAggregator {
   public ValueMapper<GenericRow, GenericRow> getResultMapper() {
 
     return aggRow -> {
-      final List<Object> columns = new ArrayList<>(columnCount);
+      List<Object> columns = new ArrayList<>(columnCount);
 
       for (int idx = 0; idx < initialUdafIndex; idx++) {
         columns.add(idx, aggRow.getColumns().get(idx));
       }
 
       for (int idx = initialUdafIndex; idx < columnCount; idx++) {
-        final KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
-        final Object agg = aggRow.getColumns().get(idx);
-        final Object reduced = function.getResultMapper().apply(agg);
+        KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+        Object agg = aggRow.getColumns().get(idx);
+        Object reduced = function.getResultMapper().apply(agg);
         columns.add(idx, reduced);
       }
 
@@ -94,7 +91,7 @@ public class KudafAggregator implements UdafAggregator {
   public Merger<Struct, GenericRow> getMerger() {
 
     return (key, aggRowOne, aggRowTwo) -> {
-      final List<Object> columns = new ArrayList<>(columnCount);
+      List<Object> columns = new ArrayList<>(columnCount);
 
       for (int idx = 0; idx < initialUdafIndex; idx++) {
         if (aggRowOne.getColumns().get(idx) == null) {
@@ -105,10 +102,10 @@ public class KudafAggregator implements UdafAggregator {
       }
 
       for (int idx = initialUdafIndex; idx < columnCount; idx++) {
-        final KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
-        final Object aggOne = aggRowOne.getColumns().get(idx);
-        final Object aggTwo = aggRowTwo.getColumns().get(idx);
-        final Object merged = function.getMerger().apply(key, aggOne, aggTwo);
+        KsqlAggregateFunction function = aggregateFunctionForColumn(idx);
+        Object aggOne = aggRowOne.getColumns().get(idx);
+        Object aggTwo = aggRowTwo.getColumns().get(idx);
+        Object merged = function.getMerger().apply(key, aggOne, aggTwo);
         columns.add(idx, merged);
       }
 
@@ -116,7 +113,7 @@ public class KudafAggregator implements UdafAggregator {
     };
   }
 
-  private KsqlAggregateFunction aggregateFunctionForColumn(final int columnIndex) {
+  private KsqlAggregateFunction aggregateFunctionForColumn(int columnIndex) {
     return aggregateFunctions.get(columnIndex - initialUdafIndex);
   }
 }

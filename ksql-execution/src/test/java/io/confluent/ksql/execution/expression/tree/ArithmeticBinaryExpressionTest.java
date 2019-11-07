@@ -20,8 +20,6 @@ import static io.confluent.ksql.schema.Operator.DIVIDE;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;

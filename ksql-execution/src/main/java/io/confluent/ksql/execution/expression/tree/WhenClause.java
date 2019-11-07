@@ -28,15 +28,11 @@ public class WhenClause extends Expression {
   private final Expression operand;
   private final Expression result;
 
-  public WhenClause(final Expression operand, final Expression result) {
+  public WhenClause(Expression operand, Expression result) {
     this(Optional.empty(), operand, result);
   }
 
-  public WhenClause(
-      final Optional<NodeLocation> location,
-      final Expression operand,
-      final Expression result
-  ) {
+  public WhenClause(Optional<NodeLocation> location, Expression operand, Expression result) {
     super(location);
     this.operand = requireNonNull(operand, "operand");
     this.result = requireNonNull(result, "result");
@@ -51,12 +47,12 @@ public class WhenClause extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitWhenClause(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -64,9 +60,9 @@ public class WhenClause extends Expression {
       return false;
     }
 
-    final WhenClause that = (WhenClause) o;
+    WhenClause that = (WhenClause) o;
     return Objects.equals(operand, that.operand)
-           && Objects.equals(result, that.result);
+        && Objects.equals(result, that.result);
   }
 
   @Override

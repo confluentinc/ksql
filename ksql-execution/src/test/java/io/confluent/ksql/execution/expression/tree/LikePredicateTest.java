@@ -18,8 +18,6 @@ package io.confluent.ksql.execution.expression.tree;
 import static org.mockito.Mockito.mock;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.LikePredicate;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;

@@ -24,17 +24,13 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.IntegerLiteral;
 import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
-import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -43,6 +39,10 @@ import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.name.SourceName;
+import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
@@ -108,13 +108,14 @@ public class SqlPredicateTest {
   @Test
   public void testFilter() {
     // Given:
-    final SqlPredicate predicate = givenSqlPredicateFor(
+    SqlPredicate predicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When/Then:
     assertThat(
         predicate.getFilterExpression().toString().toUpperCase(),
-        equalTo("(TEST1.COL0 > 100)"));
+        equalTo("(TEST1.COL0 > 100)")
+    );
     assertThat(predicate.getColumnIndexes().length, equalTo(1));
 
   }
@@ -122,7 +123,7 @@ public class SqlPredicateTest {
   @Test
   public void testFilterBiggerExpression() {
     // Given:
-    final SqlPredicate predicate = givenSqlPredicateFor(
+    SqlPredicate predicate = givenSqlPredicateFor(
         new LogicalBinaryExpression(
             LogicalBinaryExpression.Type.AND,
             new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)),
@@ -137,14 +138,15 @@ public class SqlPredicateTest {
     // When/Then:
     assertThat(
         predicate.getFilterExpression().toString().toUpperCase(),
-        equalTo("((TEST1.COL0 > 100) AND (LEN(TEST1.COL2) = 5))"));
+        equalTo("((TEST1.COL0 > 100) AND (LEN(TEST1.COL2) = 5))")
+    );
     assertThat(predicate.getColumnIndexes().length, equalTo(3));
   }
 
   @Test
   public void shouldIgnoreNullRows() {
     // Given:
-    final SqlPredicate sqlPredicate = givenSqlPredicateFor(
+    SqlPredicate sqlPredicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When/Then:
@@ -154,25 +156,27 @@ public class SqlPredicateTest {
   @Test
   public void shouldWriteProcessingLogOnError() {
     // Given:
-    final SqlPredicate sqlPredicate = givenSqlPredicateFor(
+    SqlPredicate sqlPredicate = givenSqlPredicateFor(
         new ComparisonExpression(Type.GREATER_THAN, COL0, new IntegerLiteral(100)));
 
     // When:
     sqlPredicate.getPredicate().test(
         "key",
-        new GenericRow(0L, "key", Collections.emptyList()));
+        new GenericRow(0L, "key", Collections.emptyList())
+    );
 
     // Then:
-    final ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
+    ArgumentCaptor<Function<ProcessingLogConfig, SchemaAndValue>> captor
         = ArgumentCaptor.forClass(Function.class);
     verify(processingLogger).error(captor.capture());
-    final SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
+    SchemaAndValue schemaAndValue = captor.getValue().apply(processingLogConfig);
     assertThat(schemaAndValue.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    final Struct struct = (Struct) schemaAndValue.value();
+    Struct struct = (Struct) schemaAndValue.value();
     assertThat(
         struct.get(ProcessingLogMessageSchema.TYPE),
-        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal()));
-    final Struct errorStruct
+        equalTo(MessageType.RECORD_PROCESSING_ERROR.ordinal())
+    );
+    Struct errorStruct
         = struct.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
     assertThat(
         errorStruct.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_MESSAGE),
@@ -182,7 +186,7 @@ public class SqlPredicateTest {
     );
   }
 
-  private SqlPredicate givenSqlPredicateFor(final Expression sqlPredicate) {
+  private SqlPredicate givenSqlPredicateFor(Expression sqlPredicate) {
     return new SqlPredicate(
         sqlPredicate,
         SCHEMA,

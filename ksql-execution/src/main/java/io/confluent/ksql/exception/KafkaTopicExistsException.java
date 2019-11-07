@@ -16,7 +16,8 @@
 package io.confluent.ksql.exception;
 
 public class KafkaTopicExistsException extends KafkaTopicClientException {
-  public KafkaTopicExistsException(final String message) {
+
+  public KafkaTopicExistsException(String message) {
     super(message);
   }
 

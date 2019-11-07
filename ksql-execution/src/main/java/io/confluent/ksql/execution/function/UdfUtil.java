@@ -59,13 +59,11 @@ public final class UdfUtil {
    * Given the arguments and types for a function ensures the args are correct type.
    *
    * @param functionName The name of the function
-   * @param args Argument array
-   * @param argTypes Expected argument types
+   * @param args         Argument array
+   * @param argTypes     Expected argument types
    */
   public static void ensureCorrectArgs(
-      final FunctionName functionName,
-      final Object[] args,
-      final Class<?>... argTypes
+      FunctionName functionName, Object[] args, Class<?>... argTypes
   ) {
     if (args == null) {
       throw new KsqlFunctionException("Null argument list for " + functionName.name() + ".");
@@ -82,22 +80,24 @@ public final class UdfUtil {
 
       if (!argTypes[i].isAssignableFrom(args[i].getClass())) {
         throw new KsqlFunctionException(
-            String.format("Incorrect arguments type for %s. "
+            String.format(
+                "Incorrect arguments type for %s. "
                     + "Expected %s for arg number %d but found %s.",
                 functionName.name(),
                 argTypes[i].getCanonicalName(),
                 i,
-                args[i].getClass().getCanonicalName()));
+                args[i].getClass().getCanonicalName()
+            ));
       }
     }
   }
 
-  public static Schema getSchemaFromType(final Type type) {
+  public static Schema getSchemaFromType(Type type) {
     return getSchemaFromType(type, null, null);
   }
 
-  public static Schema getSchemaFromType(final Type type, final String name, final String doc) {
-    final SchemaBuilder schema;
+  public static Schema getSchemaFromType(Type type, String name, String doc) {
+    SchemaBuilder schema;
     if (type instanceof TypeVariable) {
       schema = GenericsUtil.generic(((TypeVariable) type).getName());
     } else {
@@ -111,19 +111,19 @@ public final class UdfUtil {
     return schema.build();
   }
 
-  private static SchemaBuilder handleParameterizedType(final Type type) {
+  private static SchemaBuilder handleParameterizedType(Type type) {
     if (type instanceof ParameterizedType) {
-      final ParameterizedType parameterizedType = (ParameterizedType) type;
+      ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
-        final Schema keySchema = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
-        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
+        Schema keySchema = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
+        Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
         if (valueType instanceof TypeVariable) {
           return GenericsUtil.map(keySchema, ((TypeVariable) valueType).getName());
         }
 
         return SchemaBuilder.map(keySchema, getSchemaFromType(valueType));
       } else if (parameterizedType.getRawType() == List.class) {
-        final Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
+        Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
         if (valueType instanceof TypeVariable) {
           return GenericsUtil.array(((TypeVariable) valueType).getName());
         }

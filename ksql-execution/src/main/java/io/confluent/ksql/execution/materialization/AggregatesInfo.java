@@ -33,22 +33,18 @@ public final class AggregatesInfo {
 
   /**
    * @param startingColumnIndex column index of first aggregate function.
-   * @param aggregateFunctions the map of column index to aggregate function.
-   * @param schema the schema required by the aggregators.
+   * @param aggregateFunctions  the map of column index to aggregate function.
+   * @param schema              the schema required by the aggregators.
    * @return the immutable instance.
    */
   public static AggregatesInfo of(
-      final int startingColumnIndex,
-      final List<FunctionCall> aggregateFunctions,
-      final LogicalSchema schema
+      int startingColumnIndex, List<FunctionCall> aggregateFunctions, LogicalSchema schema
   ) {
     return new AggregatesInfo(startingColumnIndex, aggregateFunctions, schema);
   }
 
   private AggregatesInfo(
-      final int startingColumnIndex,
-      final List<FunctionCall> aggregateFunctions,
-      final LogicalSchema prepareSchema
+      int startingColumnIndex, List<FunctionCall> aggregateFunctions, LogicalSchema prepareSchema
   ) {
     this.startingColumnIndex = startingColumnIndex;
     this.aggregateFunctions = ImmutableList

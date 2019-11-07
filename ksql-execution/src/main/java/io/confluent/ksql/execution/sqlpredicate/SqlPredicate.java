@@ -36,6 +36,7 @@ import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
 
 public final class SqlPredicate {
+
   private final Expression filterExpression;
   private final IExpressionEvaluator ee;
   private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
@@ -43,17 +44,14 @@ public final class SqlPredicate {
   private final CodeGenSpec spec;
 
   public SqlPredicate(
-      final Expression filterExpression,
-      final LogicalSchema schema,
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final ProcessingLogger processingLogger
+      Expression filterExpression, LogicalSchema schema, KsqlConfig ksqlConfig,
+      FunctionRegistry functionRegistry, ProcessingLogger processingLogger
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
     this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.processingLogger = requireNonNull(processingLogger);
 
-    final CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
+    CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
     spec = codeGenRunner.getCodeGenSpec(this.filterExpression);
 
     try {
@@ -63,18 +61,18 @@ public final class SqlPredicate {
 
       ee.setExpressionType(boolean.class);
 
-      final String expressionStr = SqlToJavaVisitor.of(
+      String expressionStr = SqlToJavaVisitor.of(
           schema,
           functionRegistry,
           spec
       ).process(this.filterExpression);
 
       ee.cook(expressionStr);
-    } catch (final Exception e) {
+    } catch (Exception e) {
       throw new KsqlException(
           "Failed to generate code for SqlPredicate."
-          + " filterExpression: " + filterExpression
-          + ", schema:" + schema,
+              + " filterExpression: " + filterExpression
+              + ", schema:" + schema,
           e
       );
     }
@@ -87,17 +85,17 @@ public final class SqlPredicate {
       }
 
       try {
-        final Object[] values = new Object[spec.arguments().size()];
+        Object[] values = new Object[spec.arguments().size()];
         spec.resolve(row, genericRowValueTypeEnforcer, values);
         return (Boolean) ee.evaluate(values);
-      } catch (final Exception e) {
+      } catch (Exception e) {
         logProcessingError(e, row);
       }
       return false;
     };
   }
 
-  private void logProcessingError(final Exception e, final GenericRow row) {
+  private void logProcessingError(Exception e, GenericRow row) {
     processingLogger.error(
         EngineProcessingLogMessageFactory.recordProcessingError(
             String.format(

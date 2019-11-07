@@ -33,14 +33,12 @@ public final class UdtfUtil {
 
   @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
   public static KsqlTableFunction resolveTableFunction(
-      final FunctionRegistry functionRegistry,
-      final FunctionCall functionCall,
-      final LogicalSchema schema
+      FunctionRegistry functionRegistry, FunctionCall functionCall, LogicalSchema schema
   ) {
-    final ExpressionTypeManager expressionTypeManager =
+    ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
-    final List<Expression> functionArgs = functionCall.getArguments();
-    final List<Schema> argTypes = functionArgs.isEmpty()
+    List<Expression> functionArgs = functionCall.getArguments();
+    List<Schema> argTypes = functionArgs.isEmpty()
         ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
         : functionArgs.stream().map(expressionTypeManager::getExpressionSchema)
             .collect(Collectors.toList());

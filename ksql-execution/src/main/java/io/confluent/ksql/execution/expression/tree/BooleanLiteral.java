@@ -29,14 +29,11 @@ public class BooleanLiteral extends Literal {
 
   private final boolean value;
 
-  public BooleanLiteral(final String value) {
+  public BooleanLiteral(String value) {
     this(Optional.empty(), value);
   }
 
-  public BooleanLiteral(
-      final Optional<NodeLocation> location,
-      final String value
-  ) {
+  public BooleanLiteral(Optional<NodeLocation> location, String value) {
     super(location);
     this.value = requireNonNull(value, "value")
         .toLowerCase(ENGLISH)
@@ -52,7 +49,7 @@ public class BooleanLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitBooleanLiteral(this, context);
   }
 
@@ -62,14 +59,14 @@ public class BooleanLiteral extends Literal {
   }
 
   @Override
-  public boolean equals(final Object obj) {
+  public boolean equals(Object obj) {
     if (this == obj) {
       return true;
     }
     if (obj == null || getClass() != obj.getClass()) {
       return false;
     }
-    final BooleanLiteral other = (BooleanLiteral) obj;
+    BooleanLiteral other = (BooleanLiteral) obj;
     return Objects.equals(this.value, other.value);
   }
 }

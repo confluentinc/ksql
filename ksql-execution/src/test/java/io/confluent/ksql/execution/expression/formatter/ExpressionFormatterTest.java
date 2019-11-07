@@ -123,14 +123,14 @@ public class ExpressionFormatterTest {
   @Test
   public void shouldFormatDereferenceExpression() {
     // Given:
-    final DereferenceExpression expression = new DereferenceExpression(
+    DereferenceExpression expression = new DereferenceExpression(
         Optional.of(LOCATION),
         new StringLiteral("foo"),
         "name"
     );
 
     // When:
-    final String text = ExpressionFormatter.formatExpression(expression);
+    String text = ExpressionFormatter.formatExpression(expression);
 
     // Then:
     assertThat(text, equalTo("'foo'->name"));
@@ -138,7 +138,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionCallWithCount() {
-    final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"),
+    FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
 
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
@@ -146,13 +146,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatFunctionCountStar() {
-    final FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"), Collections.emptyList());
+    FunctionCall functionCall = new FunctionCall(FunctionName.of("COUNT"), Collections.emptyList());
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT(*)"));
   }
 
   @Test
   public void shouldFormatFunctionWithDistinct() {
-    final FunctionCall functionCall = new FunctionCall(
+    FunctionCall functionCall = new FunctionCall(
         FunctionName.of("COUNT"),
         Collections.singletonList(new StringLiteral("name")));
     assertThat(ExpressionFormatter.formatExpression(functionCall), equalTo("COUNT('name')"));
@@ -160,7 +160,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLogicalBinaryExpression() {
-    final LogicalBinaryExpression expression = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
+    LogicalBinaryExpression expression = new LogicalBinaryExpression(LogicalBinaryExpression.Type.AND,
         new StringLiteral("a"),
         new StringLiteral("b"));
     assertThat(ExpressionFormatter.formatExpression(expression), equalTo("('a' AND 'b')"));
@@ -208,19 +208,19 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatLikePredicate() {
-    final LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
+    LikePredicate predicate = new LikePredicate(new StringLiteral("string"), new StringLiteral("*"));
     assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('string' LIKE '*')"));
   }
 
   @Test
   public void shouldFormatCast() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new LongLiteral(1),
         new Type(SqlTypes.DOUBLE));
 
     // When:
-    final String result = ExpressionFormatter.formatExpression(cast);
+    String result = ExpressionFormatter.formatExpression(cast);
 
     // Then:
     assertThat(result, equalTo("CAST(1 AS DOUBLE)"));
@@ -228,7 +228,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSearchedCaseExpression() {
-    final SearchedCaseExpression expression = new SearchedCaseExpression(
+    SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
                 new LongLiteral(1))),
@@ -238,7 +238,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSearchedCaseExpressionWithDefaultValue() {
-    final SearchedCaseExpression expression = new SearchedCaseExpression(
+    SearchedCaseExpression expression = new SearchedCaseExpression(
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
                 new LongLiteral(1))),
@@ -248,7 +248,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSimpleCaseExpressionWithDefaultValue() {
-    final SimpleCaseExpression expression = new SimpleCaseExpression(
+    SimpleCaseExpression expression = new SimpleCaseExpression(
         new StringLiteral("operand"),
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
@@ -259,7 +259,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatSimpleCaseExpression() {
-    final SimpleCaseExpression expression = new SimpleCaseExpression(
+    SimpleCaseExpression expression = new SimpleCaseExpression(
         new StringLiteral("operand"),
         Collections.singletonList(
             new WhenClause(new StringLiteral("foo"),
@@ -275,13 +275,13 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatBetweenPredicate() {
-    final BetweenPredicate predicate = new BetweenPredicate(new StringLiteral("blah"), new LongLiteral(5), new LongLiteral(10));
+    BetweenPredicate predicate = new BetweenPredicate(new StringLiteral("blah"), new LongLiteral(5), new LongLiteral(10));
     assertThat(ExpressionFormatter.formatExpression(predicate), equalTo("('blah' BETWEEN 5 AND 10)"));
   }
 
   @Test
   public void shouldFormatInPredicate() {
-    final InPredicate predicate = new InPredicate(
+    InPredicate predicate = new InPredicate(
         new StringLiteral("foo"),
         new InListExpression(ImmutableList.of(new StringLiteral("a"))));
 
@@ -295,7 +295,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStruct() {
-    final SqlStruct struct = SqlStruct.builder()
+    SqlStruct struct = SqlStruct.builder()
         .field("field1", SqlTypes.INTEGER)
         .field("field2", SqlTypes.STRING)
         .build();
@@ -307,7 +307,7 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatStructWithColumnWithReservedWordName() {
-    final SqlStruct struct = SqlStruct.builder()
+    SqlStruct struct = SqlStruct.builder()
         .field("RESERVED", SqlTypes.INTEGER)
         .build();
 
@@ -318,14 +318,14 @@ public class ExpressionFormatterTest {
 
   @Test
   public void shouldFormatMap() {
-    final SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
+    SqlMap map = SqlTypes.map(SqlTypes.BIGINT);
     assertThat(ExpressionFormatter.formatExpression(new Type(map)),
         equalTo("MAP<STRING, BIGINT>"));
   }
 
   @Test
   public void shouldFormatArray() {
-    final SqlArray array = SqlTypes.array(SqlTypes.BOOLEAN);
+    SqlArray array = SqlTypes.array(SqlTypes.BOOLEAN);
     assertThat(ExpressionFormatter.formatExpression(new Type(array)), equalTo("ARRAY<BOOLEAN>"));
   }
 }

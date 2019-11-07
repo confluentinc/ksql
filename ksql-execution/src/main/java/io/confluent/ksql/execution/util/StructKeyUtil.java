@@ -43,8 +43,8 @@ public final class StructKeyUtil {
   private StructKeyUtil() {
   }
 
-  public static Struct asStructKey(final String rowKey) {
-    final Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
+  public static Struct asStructKey(String rowKey) {
+    Struct keyStruct = new Struct(ROWKEY_STRUCT_SCHEMA);
     keyStruct.put(ROWKEY_FIELD, rowKey);
     return keyStruct;
   }

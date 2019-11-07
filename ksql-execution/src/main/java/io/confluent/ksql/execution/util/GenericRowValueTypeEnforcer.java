@@ -43,17 +43,17 @@ public class GenericRowValueTypeEnforcer {
           .put(SqlBaseType.STRUCT, v -> v)
           .build();
 
-  public GenericRowValueTypeEnforcer(final LogicalSchema schema) {
+  public GenericRowValueTypeEnforcer(LogicalSchema schema) {
     this.columns = schema.value();
   }
 
-  public Object enforceColumnType(final int index, final Object value) {
-    final Column column = columns.get(index);
+  public Object enforceColumnType(int index, Object value) {
+    Column column = columns.get(index);
     return enforceColumnType(column.type(), value);
   }
 
-  private static Object enforceColumnType(final SqlType sqlType, final Object value) {
-    final Function<Object, Object> handler = SCHEMA_TYPE_TO_ENFORCE.get(sqlType.baseType());
+  private static Object enforceColumnType(SqlType sqlType, Object value) {
+    Function<Object, Object> handler = SCHEMA_TYPE_TO_ENFORCE.get(sqlType.baseType());
     if (handler == null) {
       throw new KsqlException("Type is not supported: " + sqlType);
     }
@@ -61,7 +61,7 @@ public class GenericRowValueTypeEnforcer {
     return handler.apply(value);
   }
 
-  private static Double enforceDouble(final Object value) {
+  private static Double enforceDouble(Object value) {
     if (value instanceof Double) {
       return (Double) value;
     } else if (value instanceof Integer) {
@@ -83,7 +83,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  private static Long enforceLong(final Object value) {
+  private static Long enforceLong(Object value) {
     if (value instanceof Long) {
       return (Long) value;
     } else if (value instanceof Integer) {
@@ -103,7 +103,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  private static Integer enforceInteger(final Object value) {
+  private static Integer enforceInteger(Object value) {
 
     if (value instanceof Integer) {
       return (Integer) value;
@@ -124,7 +124,7 @@ public class GenericRowValueTypeEnforcer {
     }
   }
 
-  private static String enforceString(final Object value) {
+  private static String enforceString(Object value) {
     if (value instanceof CharSequence) {
       return value.toString();
     } else if (value == null) {
@@ -135,7 +135,7 @@ public class GenericRowValueTypeEnforcer {
   }
 
   @SuppressFBWarnings("NP_BOOLEAN_RETURN_NULL")
-  private static Boolean enforceBoolean(final Object value) {
+  private static Boolean enforceBoolean(Object value) {
     if (value instanceof Boolean) {
       return (Boolean) value;
     } else if (value instanceof String) {

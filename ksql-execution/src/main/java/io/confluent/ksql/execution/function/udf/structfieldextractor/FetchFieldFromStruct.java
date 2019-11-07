@@ -25,12 +25,12 @@ public class FetchFieldFromStruct implements Kudf {
   public static final FunctionName FUNCTION_NAME = FunctionName.of("FETCH_FIELD_FROM_STRUCT");
 
   @Override
-  public Object evaluate(final Object... args) {
+  public Object evaluate(Object... args) {
     UdfUtil.ensureCorrectArgs(FUNCTION_NAME, args, Struct.class, String.class);
     if (args[0] == null) {
       return null;
     }
-    final Struct struct = (Struct) args[0];
+    Struct struct = (Struct) args[0];
     return struct.get((String) args[1]);
   }
 }

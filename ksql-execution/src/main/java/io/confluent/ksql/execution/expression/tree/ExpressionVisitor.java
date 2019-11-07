@@ -18,7 +18,8 @@ package io.confluent.ksql.execution.expression.tree;
 import javax.annotation.Nullable;
 
 public interface ExpressionVisitor<R, C> {
-  default R process(final Expression node, @Nullable final C context) {
+
+  default R process(Expression node, @Nullable C context) {
     return node.accept(this, context);
   }
 

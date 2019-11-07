@@ -19,9 +19,6 @@ import static io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpress
 import static io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression.Sign.PLUS;
 
 import com.google.common.testing.EqualsTester;
-import io.confluent.ksql.execution.expression.tree.ArithmeticUnaryExpression;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.parser.NodeLocation;
 import java.util.Optional;
 import org.junit.Test;

@@ -29,8 +29,7 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
   private final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions;
 
   public KudafUndoAggregator(
-      final int initialUdafIndex,
-      final List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
+      int initialUdafIndex, List<TableAggregationFunction<?, ?, ?>> aggregateFunctions
   ) {
     Objects.requireNonNull(aggregateFunctions, "aggregateFunctions");
     this.aggregateFunctions = ImmutableList.copyOf(aggregateFunctions);
@@ -39,15 +38,15 @@ public class KudafUndoAggregator implements Aggregator<Struct, GenericRow, Gener
 
   @SuppressWarnings("unchecked")
   @Override
-  public GenericRow apply(final Struct k, final GenericRow rowValue, final GenericRow aggRowValue) {
+  public GenericRow apply(Struct k, GenericRow rowValue, GenericRow aggRowValue) {
     int idx = 0;
     for (; idx < initialUdafIndex; idx++) {
       aggRowValue.getColumns().set(idx, rowValue.getColumns().get(idx));
     }
 
-    for (final TableAggregationFunction function : aggregateFunctions) {
-      final Object argument = rowValue.getColumns().get(function.getArgIndexInValue());
-      final Object previous = aggRowValue.getColumns().get(idx);
+    for (TableAggregationFunction function : aggregateFunctions) {
+      Object argument = rowValue.getColumns().get(function.getArgIndexInValue());
+      Object previous = aggRowValue.getColumns().get(idx);
       aggRowValue.getColumns().set(idx, function.undo(argument, previous));
       idx++;
     }

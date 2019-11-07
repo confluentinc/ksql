@@ -24,11 +24,11 @@ import java.util.Optional;
 @Immutable
 public abstract class KsqlWindowExpression extends Node {
 
-  KsqlWindowExpression(final Optional<NodeLocation> nodeLocation) {
+  KsqlWindowExpression(Optional<NodeLocation> nodeLocation) {
     super(nodeLocation);
   }
 
   public abstract WindowInfo getWindowInfo();
 
-  public abstract  <R, C> R accept(WindowVisitor<R, C> visitor, C context);
+  public abstract <R, C> R accept(WindowVisitor<R, C> visitor, C context);
 }

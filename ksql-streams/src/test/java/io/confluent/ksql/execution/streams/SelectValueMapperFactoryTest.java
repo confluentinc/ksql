@@ -74,7 +74,7 @@ public class SelectValueMapperFactoryTest {
   @Test
   public void shouldBuildSelects() {
     // When:
-    final SelectValueMapper mapper = factory
+    final SelectValueMapper<?> mapper = factory
         .create(ImmutableList.of(select_0, select_1), processingLogger);
 
     // Then:

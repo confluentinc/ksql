@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.execution.streams;
 
+import static java.util.Objects.requireNonNull;
+
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
@@ -27,39 +29,44 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 
-public final class Selection {
+public final class Selection<K> {
   private static final String SELECTION_CONTEXT = "PROJECT";
 
-  private final SelectValueMapper mapper;
+  private final SelectValueMapper<K> mapper;
   private final LogicalSchema schema;
 
-  public static Selection of(
+  public static <K> Selection<K> of(
       final QueryId queryId,
       final QueryContext queryContext,
       final LogicalSchema sourceSchema,
       final List<SelectExpression> selectExpressions,
       final KsqlConfig ksqlConfig,
       final FunctionRegistry functionRegistry,
-      final ProcessingLogContext processingLogContext) {
+      final ProcessingLogContext processingLogContext
+  ) {
     final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(queryContext);
+
     final String loggerName = QueryLoggerUtil.queryLoggerName(
         queryId,
         contextStacker.push(SELECTION_CONTEXT).getQueryContext()
     );
-    final SelectValueMapper mapper = SelectValueMapperFactory.create(
+
+    final SelectValueMapper<K> mapper = SelectValueMapperFactory.create(
         selectExpressions,
         sourceSchema,
         ksqlConfig,
         functionRegistry,
         processingLogContext.getLoggerFactory().getLogger(loggerName)
     );
+
     final LogicalSchema schema = buildSchema(sourceSchema, mapper);
-    return new Selection(mapper, schema);
+    return new Selection<>(mapper, schema);
   }
 
   private static LogicalSchema buildSchema(
       final LogicalSchema sourceSchema,
-      final SelectValueMapper mapper) {
+      final SelectValueMapper<?> mapper
+  ) {
     final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
 
     final List<Column> keyCols = sourceSchema.isAliased()
@@ -75,12 +82,12 @@ public final class Selection {
 
   }
 
-  private Selection(final SelectValueMapper mapper, final LogicalSchema schema) {
-    this.mapper = mapper;
-    this.schema = schema;
+  private Selection(final SelectValueMapper<K> mapper, final LogicalSchema schema) {
+    this.mapper = requireNonNull(mapper, "mapper");
+    this.schema = requireNonNull(schema, "schema");
   }
 
-  public SelectValueMapper getMapper() {
+  public SelectValueMapper<K> getMapper() {
     return mapper;
   }
 

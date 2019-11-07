@@ -22,6 +22,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.streams.SelectValueMapper;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
+import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.metastore.MetaStore;
@@ -34,6 +35,7 @@ import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.kafka.connect.data.Struct;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -41,8 +43,12 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 public class SelectValueMapperIntegrationTest {
-  private final MetaStore metaStore =
-      MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
+
+  private static final Struct NON_WINDOWED_KEY = StructKeyUtil.asStructKey("someKey");
+
+  private final MetaStore metaStore = MetaStoreFixture
+      .getNewMetaStore(new InternalFunctionRegistry());
+
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
 
   @Mock
@@ -54,12 +60,14 @@ public class SelectValueMapperIntegrationTest {
   @Test
   public void shouldSelectChosenColumns() {
     // Given:
-    final SelectValueMapper selectMapper = givenSelectMapperFor(
+    final SelectValueMapper<Struct> selectMapper = givenSelectMapperFor(
         "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
-    final GenericRow transformed = selectMapper.apply(
-        genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0F, "blah"));
+    final GenericRow transformed = selectMapper.transform(
+        NON_WINDOWED_KEY,
+        genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0F, "blah")
+    );
 
     // Then:
     assertThat(transformed, is(genericRow(1L, "bye", 2.0F)));
@@ -68,18 +76,20 @@ public class SelectValueMapperIntegrationTest {
   @Test
   public void shouldApplyUdfsToColumns() {
     // Given:
-    final SelectValueMapper selectMapper = givenSelectMapperFor(
+    final SelectValueMapper<Struct> selectMapper = givenSelectMapperFor(
         "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
-    final GenericRow row = selectMapper.apply(
-        genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9F, "boo", "hoo"));
+    final GenericRow row = selectMapper.transform(
+        NON_WINDOWED_KEY,
+        genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9F, "boo", "hoo")
+    );
 
     // Then:
     assertThat(row, is(genericRow(2L, "foo", "whatever", 7.0F)));
   }
 
-  private SelectValueMapper givenSelectMapperFor(final String query) {
+  private SelectValueMapper<Struct> givenSelectMapperFor(final String query) {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final LogicalSchema schema = planNode.getTheSourceNode().getSchema();

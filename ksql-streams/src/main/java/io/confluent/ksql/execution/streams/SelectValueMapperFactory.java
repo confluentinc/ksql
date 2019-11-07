@@ -41,7 +41,7 @@ public final class SelectValueMapperFactory {
     this.codeGenerator = codeGenerator;
   }
 
-  public static SelectValueMapper create(
+  public static <K> SelectValueMapper<K> create(
       final List<SelectExpression> selectExpressions,
       final LogicalSchema sourceSchema,
       final KsqlConfig ksqlConfig,
@@ -57,11 +57,11 @@ public final class SelectValueMapperFactory {
   }
 
   @VisibleForTesting
-  SelectValueMapper create(
+  <K> SelectValueMapper<K> create(
       final List<SelectExpression> selectExpressions,
       final ProcessingLogger processingLogger
   ) {
-    return new SelectValueMapper(
+    return new SelectValueMapper<>(
         buildSelects(selectExpressions),
         processingLogger
     );

@@ -273,15 +273,20 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
+      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder ksqlQueryBuilder) {
+      final KsqlQueryBuilder ksqlQueryBuilder
+  ) {
     final KeySelection selection = new KeySelection(selectExpressions);
+
     final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
         contextStacker,
         sourceStep,
         selectExpressions,
+        selectNodeName,
         ksqlQueryBuilder
     );
+
     return new SchemaKStream<>(
         step,
         keyFormat,

@@ -81,13 +81,15 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@SuppressWarnings({"unchecked", "OptionalGetWithoutIsPresent"})
+@SuppressWarnings("unchecked")
 @RunWith(MockitoJUnitRunner.class)
 public class SchemaKStreamTest {
 
   private static final SourceName TEST1 = SourceName.of("TEST1");
   private static final Expression COL1 =
       new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL1")));
+
+  private static final String SELECT_NODE_NAME = "SelectStep";
 
   private final KsqlConfig ksqlConfig = new KsqlConfig(Collections.emptyMap());
   private final MetaStore metaStore = MetaStoreFixture.getNewMetaStore(new InternalFunctionRegistry());
@@ -164,6 +166,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
+        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 
@@ -187,6 +190,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         selectExpressions,
+        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 
@@ -198,6 +202,7 @@ public class SchemaKStreamTest {
                 childContextStacker,
                 initialSchemaKStream.getSourceStep(),
                 selectExpressions,
+                SELECT_NODE_NAME,
                 queryBuilder
             )
         )
@@ -214,7 +219,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select( selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -231,7 +236,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -248,7 +253,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -264,7 +269,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
@@ -279,7 +284,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -295,7 +300,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -310,7 +315,7 @@ public class SchemaKStreamTest {
 
     // When:
     final SchemaKStream result = initialSchemaKStream
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -326,6 +331,7 @@ public class SchemaKStreamTest {
     // When:
     final SchemaKStream projectedSchemaKStream = initialSchemaKStream.select(
         projectNode.getSelectExpressions(),
+        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder);
 

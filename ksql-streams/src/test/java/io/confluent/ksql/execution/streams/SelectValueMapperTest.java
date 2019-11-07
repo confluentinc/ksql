@@ -12,13 +12,12 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema.MessageType;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.FunctionName;
 import java.util.Collections;
 import java.util.function.Function;
 import org.apache.kafka.connect.data.SchemaAndValue;
@@ -46,14 +45,14 @@ public class SelectValueMapperTest {
   @Mock
   private ProcessingLogger processingLogger;
 
-  private SelectValueMapper selectValueMapper;
+  private SelectValueMapper<?> selectValueMapper;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
   @Before
   public void setup() {
-    selectValueMapper = new SelectValueMapper(
+    selectValueMapper = new SelectValueMapper<>(
         ImmutableList.of(
             SelectValueMapper.SelectInfo.of(NAME0, col0),
             SelectValueMapper.SelectInfo.of(NAME1, col1),
@@ -75,7 +74,7 @@ public class SelectValueMapperTest {
     givenEvaluations(100, 200, 300);
 
     // When:
-    final GenericRow result = selectValueMapper.apply(ROW);
+    final GenericRow result = selectValueMapper.transform(ROW);
 
     // Then:
     assertThat(result, equalTo(new GenericRow(ImmutableList.of(100, 200, 300))));
@@ -84,7 +83,7 @@ public class SelectValueMapperTest {
   @Test
   public void shouldHandleNullRows() {
     // When:
-    final GenericRow result = selectValueMapper.apply(null);
+    final GenericRow result = selectValueMapper.transform(null);
 
     // Then:
     assertThat(result, is(nullValue()));
@@ -100,7 +99,7 @@ public class SelectValueMapperTest {
     when(col0.evaluate(any())).thenThrow(new RuntimeException("oops"));
 
     // When:
-    selectValueMapper.apply(
+    selectValueMapper.transform(
         new GenericRow(0L, "key", 2L, "foo", "whatever", null, "boo", "hoo"));
 
     // Then:

@@ -62,6 +62,7 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @RunWith(MockitoJUnitRunner.class)
 public class KsqlMaterializationFactoryTest {
 
@@ -112,7 +113,7 @@ public class KsqlMaterializationFactoryTest {
   @Mock
   private Predicate<Struct, GenericRow> havingPredicate;
   @Mock
-  private Function<GenericRow, GenericRow> selectMapper;
+  private BiFunction<Object, GenericRow, GenericRow> selectMapper;
   @Mock
   private MaterializationFactory materializationFactory;
   @Mock
@@ -292,12 +293,12 @@ public class KsqlMaterializationFactoryTest {
   public void shouldBuildMaterializationWithSelectTransform() {
     // When:
     factory.create(materialization, info, queryId, contextStacker);
-    when(selectMapper.apply(any())).thenReturn(rowOut);
+    when(selectMapper.apply(any(), any())).thenReturn(rowOut);
 
     // Then:
     final BiFunction<Struct, GenericRow, Optional<GenericRow>> transform = getTransform(1);
     assertThat(transform.apply(keyIn, rowIn).get(), is(rowOut));
-    verify(selectMapper).apply(rowIn);
+    verify(selectMapper).apply(keyIn, rowIn);
   }
 
   @Test

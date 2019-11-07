@@ -564,7 +564,7 @@ public final class StaticQueryExecutor {
     final KsqlConfig ksqlConfig = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    final SelectValueMapper select = SelectValueMapperFactory.create(
+    final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         analysis.getSelectExpressions(),
         intermediateSchema.withAlias(sourceName),
         ksqlConfig,
@@ -575,7 +575,7 @@ public final class StaticQueryExecutor {
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
       final GenericRow intermediate = preSelectTransform.apply(r.key(), r.value());
-      final GenericRow mapped = select.apply(intermediate);
+      final GenericRow mapped = select.transform(r.key(), intermediate);
       validateProjection(mapped, outputSchema);
       output.add(mapped.getColumns());
     });

@@ -78,10 +78,13 @@ import org.apache.kafka.streams.kstream.KStream;
 import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 import org.apache.kafka.streams.kstream.Materialized;
+import org.apache.kafka.streams.kstream.Named;
 import org.apache.kafka.streams.kstream.Predicate;
 import org.apache.kafka.streams.kstream.ValueMapper;
 import org.apache.kafka.streams.kstream.ValueMapperWithKey;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKey;
 import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -106,6 +109,11 @@ public class AggregateNodeTest {
   private StreamsBuilder builder = new StreamsBuilder();
   private final ProcessingLogContext processingLogContext = ProcessingLogContext.create();
   private final QueryId queryId = new QueryId("queryid");
+
+  @Before
+  public void setUp() {
+    when(ksqlStreamBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0));
+  }
 
   @Test
   public void shouldBuildSourceNode() {
@@ -139,11 +147,13 @@ public class AggregateNodeTest {
         + "GROUP BY col0,col1,col2 EMIT CHANGES;");
 
     // Then:
-    final List<ValueMapper> valueMappers = mocker.collectValueMappers();
-    assertThat("invalid test", valueMappers, hasSize(greaterThanOrEqualTo(1)));
-    final ValueMapper preAggSelectMapper = valueMappers.get(0);
+    final List<ValueTransformerWithKeySupplier> valueTransformers = mocker
+        .collectValueTransformerWithKeySuppliers();
+
+    assertThat("invalid test", valueTransformers, hasSize(greaterThanOrEqualTo(2)));
+    final ValueTransformerWithKey preAggSelectMapper = valueTransformers.get(1).get();
     final GenericRow result = (GenericRow) preAggSelectMapper
-        .apply(new GenericRow("rowtime", "rowkey", "0", "1", "2", "3"));
+        .transform(null, new GenericRow("rowtime", "rowkey", "0", "1", "2", "3"));
     assertThat("should select col0, col1, col2, col3", result.getColumns(),
         contains(0L, "1", "2", 3.0));
   }
@@ -159,11 +169,13 @@ public class AggregateNodeTest {
     buildQuery("SELECT col0, sum(col3), count(col3), max(col3) FROM test1 GROUP BY col0 EMIT CHANGES;");
 
     // Then:
-    final List<ValueMapper> valueMappers = mocker.collectValueMappers();
-    assertThat("invalid test", valueMappers, hasSize(greaterThanOrEqualTo(2)));
-    final ValueMapper postAggSelect = valueMappers.get(1);
+    final List<ValueTransformerWithKeySupplier> valueTransformers = mocker
+        .collectValueTransformerWithKeySuppliers();
+
+    assertThat("invalid test", valueTransformers, hasSize(greaterThanOrEqualTo(3)));
+    final ValueTransformerWithKey postAggSelect = valueTransformers.get(2).get();
     final GenericRow result = (GenericRow) postAggSelect
-        .apply(new GenericRow("0", "-1", "2", "3", "4"));
+        .transform(null, new GenericRow("0", "-1", "2", "3", "4"));
     assertThat("should select col0, agg1, agg2", result.getColumns(), contains(0L, 2.0, 3L, 4.0));
   }
 
@@ -415,6 +427,18 @@ public class AggregateNodeTest {
           )).collect(Collectors.toList());
     }
 
+    List<ValueTransformerWithKeySupplier> collectValueTransformerWithKeySuppliers() {
+      return sources.values().stream()
+          .flatMap(stream -> Streams.concat(Stream.of(stream), stream.stream()))
+          .flatMap(stream -> Streams.concat(
+              stream.transformValues.keySet().stream(),
+              stream.groupStreams()
+                  .flatMap(FakeKGroupedStream::tables)
+                  .flatMap(FakeKTable::tables)
+                  .flatMap(t -> t.transformValues.keySet().stream())
+          )).collect(Collectors.toList());
+    }
+
     private static final class FakeKStream {
 
       private final Map<ValueMapper, FakeKStream> mapValues = new IdentityHashMap<>();
@@ -429,6 +453,8 @@ public class AggregateNodeTest {
             .forward("mapValues", methodParams(ValueMapperWithKey.class), this)
             .forward("transformValues",
                 methodParams(ValueTransformerWithKeySupplier.class, String[].class), this)
+            .forward("transformValues",
+                methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class), this)
             .forward("filter", methodParams(Predicate.class), this)
             .forward("groupByKey", methodParams(Grouped.class), this)
             .forward("groupBy", methodParams(KeyValueMapper.class, Grouped.class), this)
@@ -452,6 +478,17 @@ public class AggregateNodeTest {
       @SuppressWarnings("unused") // Invoked via reflection.
       private KStream transformValues(
           final ValueTransformerWithKeySupplier valueTransformerSupplier,
+          final String... stateStoreNames
+      ) {
+        final FakeKStream stream = new FakeKStream();
+        transformValues.put(valueTransformerSupplier, stream);
+        return stream.createProxy();
+      }
+
+      @SuppressWarnings("unused") // Invoked via reflection.
+      private KStream transformValues(
+          final ValueTransformerWithKeySupplier valueTransformerSupplier,
+          final Named named,
           final String... stateStoreNames
       ) {
         final FakeKStream stream = new FakeKStream();
@@ -532,10 +569,13 @@ public class AggregateNodeTest {
     private static final class FakeKTable {
 
       private final Map<ValueMapper, FakeKTable> mapValues = new IdentityHashMap<>();
+      private final Map<ValueTransformerWithKeySupplier, FakeKTable> transformValues = new IdentityHashMap<>();
 
       KTable createProxy() {
         return LimitedProxyBuilder.forClass(KTable.class)
             .forward("mapValues", methodParams(ValueMapper.class), this)
+            .forward("transformValues",
+                methodParams(ValueTransformerWithKeySupplier.class, Named.class, String[].class), this)
             .build();
       }
 
@@ -546,10 +586,26 @@ public class AggregateNodeTest {
         return table.createProxy();
       }
 
+      @SuppressWarnings("unused") // Invoked via reflection.
+      private KTable transformValues(
+          final ValueTransformerWithKeySupplier valueTransformerSupplier,
+          final Named named,
+          final String... stateStoreNames
+      ) {
+        final FakeKTable table = new FakeKTable();
+        transformValues.put(valueTransformerSupplier, table);
+        return table.createProxy();
+      }
+
       Stream<FakeKTable> tables() {
-        final Stream<FakeKTable> children = mapValues.values().stream();
-        final Stream<FakeKTable> grandChildren =
-            mapValues.values().stream().flatMap(FakeKTable::tables);
+        final Stream<FakeKTable> children = Streams.concat(
+            mapValues.values().stream(),
+            transformValues.values().stream()
+        );
+        final Stream<FakeKTable> grandChildren = Streams.concat(
+            mapValues.values().stream(),
+            transformValues.values().stream()
+        ).flatMap(FakeKTable::tables);
 
         return Streams.concat(children, grandChildren);
       }

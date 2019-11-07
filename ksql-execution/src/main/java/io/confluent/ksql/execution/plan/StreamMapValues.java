@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import static java.util.Objects.requireNonNull;
+
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
@@ -22,17 +24,22 @@ import java.util.Objects;
 
 @Immutable
 public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
+
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final List<SelectExpression> selectExpressions;
+  private final String selectNodeName;
 
   public StreamMapValues(
       final ExecutionStepProperties properties,
       final ExecutionStep<KStreamHolder<K>> source,
-      final List<SelectExpression> selectExpressions) {
-    this.properties = Objects.requireNonNull(properties, "properties");
-    this.source = Objects.requireNonNull(source, "source");
+      final List<SelectExpression> selectExpressions,
+      final String selectNodeName
+  ) {
+    this.properties = requireNonNull(properties, "properties");
+    this.source = requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
+    this.selectNodeName = requireNonNull(selectNodeName, "selectNodeName");
   }
 
   @Override
@@ -53,6 +60,10 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
     return source;
   }
 
+  public String getSelectNodeName() {
+    return selectNodeName;
+  }
+
   @Override
   public KStreamHolder<K> build(final PlanBuilder builder) {
     return builder.visitStreamMapValues(this);
@@ -69,12 +80,13 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
     final StreamMapValues<?> that = (StreamMapValues<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
-        && Objects.equals(selectExpressions, that.selectExpressions);
+        && Objects.equals(selectExpressions, that.selectExpressions)
+        && Objects.equals(selectNodeName, that.selectNodeName);
   }
 
   @Override
   public int hashCode() {
 
-    return Objects.hash(properties, source, selectExpressions);
+    return Objects.hash(properties, source, selectExpressions, selectNodeName);
   }
 }

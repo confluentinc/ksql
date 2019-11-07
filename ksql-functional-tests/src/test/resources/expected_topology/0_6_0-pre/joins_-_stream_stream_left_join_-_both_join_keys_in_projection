@@ -107,14 +107,14 @@ Topologies:
       --> Join-merge
       <-- Join-this-windowed
     Processor: Join-merge (stores: [])
-      --> KSTREAM-MAPVALUES-0000000021
+      --> SELECT-0
       <-- Join-this-join, Join-outer-other-join
-    Processor: KSTREAM-MAPVALUES-0000000021 (stores: [])
+    Processor: SELECT-0 (stores: [])
       --> KSTREAM-MAPVALUES-0000000022
       <-- Join-merge
     Processor: KSTREAM-MAPVALUES-0000000022 (stores: [])
       --> KSTREAM-SINK-0000000023
-      <-- KSTREAM-MAPVALUES-0000000021
+      <-- SELECT-0
     Sink: KSTREAM-SINK-0000000023 (topic: LEFT_OUTER_JOIN)
       <-- KSTREAM-MAPVALUES-0000000022
 

@@ -28,7 +28,6 @@ import java.util.Set;
  * Base class of create table/stream command
  */
 public abstract class CreateSourceCommand implements DdlCommand {
-  private final String sqlExpression;
   private final SourceName sourceName;
   private final LogicalSchema schema;
   private final Optional<ColumnName> keyField;
@@ -37,7 +36,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
   private final KsqlTopic topic;
 
   CreateSourceCommand(
-      final String sqlExpression,
       final SourceName sourceName,
       final LogicalSchema schema,
       final Optional<ColumnName> keyField,
@@ -45,7 +43,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
       final Set<SerdeOption> serdeOptions,
       final KsqlTopic ksqlTopic
   ) {
-    this.sqlExpression = Objects.requireNonNull(sqlExpression, "sqlExpression");
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
     this.schema = Objects.requireNonNull(schema, "schema");
     this.topic = Objects.requireNonNull(ksqlTopic, "topic");
@@ -61,10 +58,6 @@ public abstract class CreateSourceCommand implements DdlCommand {
 
   public KsqlTopic getTopic() {
     return topic;
-  }
-
-  public String getSqlExpression() {
-    return sqlExpression;
   }
 
   public SourceName getSourceName() {

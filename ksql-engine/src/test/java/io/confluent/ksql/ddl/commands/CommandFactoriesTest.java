@@ -127,9 +127,9 @@ public class CommandFactoriesTest {
   public void before() {
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
     when(topicClient.isTopicExists(any())).thenReturn(true);
-    when(createSourceFactory.createStreamCommand(any(), any(), any()))
+    when(createSourceFactory.createStreamCommand(any(), any()))
         .thenReturn(createStreamCommand);
-    when(createSourceFactory.createTableCommand(any(), any(), any()))
+    when(createSourceFactory.createTableCommand(any(), any()))
         .thenReturn(createTableCommand);
     when(dropSourceFactory.create(any(DropStream.class))).thenReturn(dropSourceCommand);
     when(dropSourceFactory.create(any(DropTable.class))).thenReturn(dropSourceCommand);
@@ -165,7 +165,7 @@ public class CommandFactoriesTest {
         .create(sqlExpression, statement, ksqlConfig, emptyMap());
 
     assertThat(result, is(createStreamCommand));
-    verify(createSourceFactory).createStreamCommand(sqlExpression, statement, ksqlConfig);
+    verify(createSourceFactory).createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -177,7 +177,6 @@ public class CommandFactoriesTest {
     commandFactories.create(sqlExpression, statement, ksqlConfig, OVERRIDES);
 
     verify(createSourceFactory).createStreamCommand(
-        sqlExpression,
         statement,
         ksqlConfig.cloneWithPropertyOverwrite(OVERRIDES));
   }
@@ -197,7 +196,7 @@ public class CommandFactoriesTest {
 
     // Then:
     assertThat(result, is(createTableCommand));
-    verify(createSourceFactory).createTableCommand(sqlExpression, statement, ksqlConfig);
+    verify(createSourceFactory).createTableCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -214,7 +213,6 @@ public class CommandFactoriesTest {
 
     // Then:
     verify(createSourceFactory).createTableCommand(
-        sqlExpression,
         statement,
         ksqlConfig.cloneWithPropertyOverwrite(OVERRIDES)
     );

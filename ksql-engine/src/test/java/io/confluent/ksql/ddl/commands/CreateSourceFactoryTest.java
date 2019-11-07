@@ -87,7 +87,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class CreateSourceFactoryTest {
   private static final SourceName SOME_NAME = SourceName.of("bob");
-  private static final String sqlExpression = "sqlExpression";
   private static final TableElement ELEMENT1 =
       tableElement(Namespace.VALUE, "bob", new Type(SqlTypes.STRING));
   private static final TableElement ELEMENT2 =
@@ -153,7 +152,7 @@ public class CreateSourceFactoryTest {
 
     // When:
     final DdlCommand result = createSourceFactory
-        .createStreamCommand(sqlExpression, ddlStatement, ksqlConfig);
+        .createStreamCommand(ddlStatement, ksqlConfig);
 
     assertThat(result, instanceOf(CreateStreamCommand.class));
   }
@@ -169,7 +168,7 @@ public class CreateSourceFactoryTest {
 
     // When:
     final DdlCommand result = createSourceFactory
-        .createTableCommand(sqlExpression, ddlStatement, ksqlConfig);
+        .createTableCommand(ddlStatement, ksqlConfig);
 
     // Then:
     assertThat(result, instanceOf(CreateTableCommand.class));
@@ -194,7 +193,6 @@ public class CreateSourceFactoryTest {
     // When:
     final DdlCommand cmd = createSourceFactory
         .createStreamCommand(
-            sqlExpression,
             statement,
             ksqlConfig.cloneWithPropertyOverwrite(overrides)
         );
@@ -217,7 +215,7 @@ public class CreateSourceFactoryTest {
 
     // When:
     final DdlCommand cmd = createSourceFactory
-        .createStreamCommand(sqlExpression, statement, ksqlConfig);
+        .createStreamCommand(statement, ksqlConfig);
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
@@ -233,7 +231,7 @@ public class CreateSourceFactoryTest {
 
     // When:
     final DdlCommand cmd = createSourceFactory
-        .createStreamCommand(sqlExpression, statement, ksqlConfig);
+        .createStreamCommand(statement, ksqlConfig);
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateStreamCommand.class)));
@@ -260,7 +258,6 @@ public class CreateSourceFactoryTest {
     // When:
     final DdlCommand cmd = createSourceFactory
         .createTableCommand(
-            sqlExpression,
             statement,
             ksqlConfig.cloneWithPropertyOverwrite(overrides));
 
@@ -282,7 +279,7 @@ public class CreateSourceFactoryTest {
 
     // When:
     final DdlCommand cmd = createSourceFactory
-        .createTableCommand(sqlExpression, statement, ksqlConfig);
+        .createTableCommand(statement, ksqlConfig);
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
@@ -298,7 +295,7 @@ public class CreateSourceFactoryTest {
 
     // When:
     final DdlCommand cmd = createSourceFactory
-        .createTableCommand(sqlExpression, statement, ksqlConfig);
+        .createTableCommand(statement, ksqlConfig);
 
     // Then:
     assertThat(cmd, is(instanceOf(CreateTableCommand.class)));
@@ -318,7 +315,7 @@ public class CreateSourceFactoryTest {
         "The statement does not define any columns.");
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -333,7 +330,7 @@ public class CreateSourceFactoryTest {
         "The statement does not define any columns.");
 
     // When:
-    createSourceFactory.createTableCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createTableCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -343,7 +340,7 @@ public class CreateSourceFactoryTest {
         new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
 
     // Then: not exception thrown
   }
@@ -355,7 +352,7 @@ public class CreateSourceFactoryTest {
         new CreateTable(SOME_NAME, SOME_ELEMENTS, true, withProperties);
 
     // When:
-    createSourceFactory.createTableCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createTableCommand(statement, ksqlConfig);
 
     // Then: not exception thrown
   }
@@ -372,7 +369,7 @@ public class CreateSourceFactoryTest {
     expectedException.expectMessage("Kafka topic does not exist: " + TOPIC_NAME);
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_NO_SIDE_EFFECT")
@@ -383,7 +380,7 @@ public class CreateSourceFactoryTest {
         new CreateStream(SOME_NAME, SOME_ELEMENTS, true, withProperties);
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
 
     // Then:
     verify(topicClient).isTopicExists(TOPIC_NAME);
@@ -402,7 +399,7 @@ public class CreateSourceFactoryTest {
             + "'will-not-find-me'");
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -422,7 +419,7 @@ public class CreateSourceFactoryTest {
             + "'will-not-find-me'");
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -437,7 +434,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -459,7 +455,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand result = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -489,7 +484,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand result = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -514,7 +508,7 @@ public class CreateSourceFactoryTest {
         .build();
 
     // When:
-    createSourceFactory.createStreamCommand("expression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
 
     // Then:
     verify(serdeFactory).create(
@@ -533,7 +527,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -552,7 +545,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -570,7 +562,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -593,7 +584,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -616,7 +606,6 @@ public class CreateSourceFactoryTest {
 
     // When:
     final CreateStreamCommand cmd = createSourceFactory.createStreamCommand(
-        "expression",
         statement,
         ksqlConfig
     );
@@ -643,7 +632,7 @@ public class CreateSourceFactoryTest {
     expectedException.expectMessage("'ROWTIME' is a reserved column name.");
 
     // When:
-    createSourceFactory.createStreamCommand("sqlExpression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -661,7 +650,7 @@ public class CreateSourceFactoryTest {
     expectedException.expectMessage("'ROWTIME' is a reserved column name.");
 
     // When:
-    createSourceFactory.createStreamCommand("sqlExpression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -680,7 +669,7 @@ public class CreateSourceFactoryTest {
         "'ROWKEY' is a reserved column name. It can only be used for KEY columns.");
 
     // When:
-    createSourceFactory.createStreamCommand("sqlExpression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -694,7 +683,7 @@ public class CreateSourceFactoryTest {
     );
 
     // When:
-    createSourceFactory.createStreamCommand("sqlExpression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
 
     // Then: did not throw
   }
@@ -715,7 +704,7 @@ public class CreateSourceFactoryTest {
         + "KSQL currently only supports KEY columns of type STRING.");
 
     // When:
-    createSourceFactory.createStreamCommand("sqlExpression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   @Test
@@ -734,7 +723,7 @@ public class CreateSourceFactoryTest {
         + "KSQL currently only supports KEY columns named ROWKEY.");
 
     // When:
-    createSourceFactory.createStreamCommand("sqlExpression", statement, ksqlConfig);
+    createSourceFactory.createStreamCommand(statement, ksqlConfig);
   }
 
   private void givenProperty(final String name, final Literal value) {

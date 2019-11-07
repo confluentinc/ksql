@@ -60,13 +60,13 @@ Topologies:
       --> KSTREAM-MAPVALUES-0000000004
       <-- KSTREAM-FILTER-0000000002
     Processor: KSTREAM-MAPVALUES-0000000004 (stores: [])
-      --> KSTREAM-FILTER-0000000011
+      --> Join-left-repartition-filter
       <-- KSTREAM-KEY-SELECT-0000000003
-    Processor: KSTREAM-FILTER-0000000011 (stores: [])
-      --> KSTREAM-SINK-0000000010
+    Processor: Join-left-repartition-filter (stores: [])
+      --> Join-left-repartition-sink
       <-- KSTREAM-MAPVALUES-0000000004
-    Sink: KSTREAM-SINK-0000000010 (topic: Join-left-repartition)
-      <-- KSTREAM-FILTER-0000000011
+    Sink: Join-left-repartition-sink (topic: Join-left-repartition)
+      <-- Join-left-repartition-filter
 
   Sub-topology: 1
     Source: KSTREAM-SOURCE-0000000005 (topics: [right_topic])
@@ -81,25 +81,25 @@ Topologies:
       --> KSTREAM-MAPVALUES-0000000009
       <-- KSTREAM-FILTER-0000000007
     Processor: KSTREAM-MAPVALUES-0000000009 (stores: [])
-      --> KSTREAM-FILTER-0000000014
+      --> Join-right-repartition-filter
       <-- KSTREAM-KEY-SELECT-0000000008
-    Processor: KSTREAM-FILTER-0000000014 (stores: [])
-      --> KSTREAM-SINK-0000000013
+    Processor: Join-right-repartition-filter (stores: [])
+      --> Join-right-repartition-sink
       <-- KSTREAM-MAPVALUES-0000000009
-    Sink: KSTREAM-SINK-0000000013 (topic: Join-right-repartition)
-      <-- KSTREAM-FILTER-0000000014
+    Sink: Join-right-repartition-sink (topic: Join-right-repartition)
+      <-- Join-right-repartition-filter
 
   Sub-topology: 2
-    Source: KSTREAM-SOURCE-0000000012 (topics: [Join-left-repartition])
+    Source: Join-left-repartition-source (topics: [Join-left-repartition])
       --> Join-this-windowed
-    Source: KSTREAM-SOURCE-0000000015 (topics: [Join-right-repartition])
+    Source: Join-right-repartition-source (topics: [Join-right-repartition])
       --> Join-other-windowed
     Processor: Join-other-windowed (stores: [KSTREAM-OUTEROTHER-0000000019-store])
       --> Join-outer-other-join
-      <-- KSTREAM-SOURCE-0000000015
+      <-- Join-right-repartition-source
     Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000018-store])
       --> Join-this-join
-      <-- KSTREAM-SOURCE-0000000012
+      <-- Join-left-repartition-source
     Processor: Join-outer-other-join (stores: [KSTREAM-JOINTHIS-0000000018-store])
       --> Join-merge
       <-- Join-other-windowed

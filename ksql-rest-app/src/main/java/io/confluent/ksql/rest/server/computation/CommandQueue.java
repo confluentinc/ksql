@@ -35,8 +35,8 @@ public interface CommandQueue extends Closeable {
    * it is guaranteed that the command has been persisted, without regard
    * for the {@link io.confluent.ksql.rest.entity.CommandStatus CommandStatus}.
    *
-   * @param statement                   The statement to be distributed
-   * @param transactionalProducer  The transaction manager for enqueueing command
+   * @param statement              The statement to be distributed
+   * @param transactionalProducer  The transactional producer used to for enqueue the command
    * @return an asynchronous tracker that can be used to determine the current
    *         state of the command
    */
@@ -89,11 +89,6 @@ public interface CommandQueue extends Closeable {
    * @return whether or not there are any enqueued commands
    */
   boolean isEmpty();
-
-  /**
-   * @return the next record offset that will be fetched
-   */
-  long getConsumerPosition();
 
   /**
    * Cause any blocked {@link #getNewCommands(Duration)} calls to return early.

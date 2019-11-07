@@ -80,6 +80,7 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URL;
@@ -651,7 +652,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       log.warn("Failed to create processing log stream", e);
       transactionalProducer.abort();
     } finally {
-      transactionalProducer.close();
+      try {
+        transactionalProducer.close();
+      } catch (IOException e) {
+        log.error("Failed to close TransactionProducer for creating process log stream\n"
+            + "Error: " + e.getMessage());
+      }
     }
   }
 

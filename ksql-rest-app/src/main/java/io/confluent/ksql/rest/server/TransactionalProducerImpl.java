@@ -16,21 +16,23 @@
 package io.confluent.ksql.rest.server;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.io.Closer;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.computation.Command;
+import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
-
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-
+import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -42,8 +44,11 @@ import org.apache.kafka.common.TopicPartition;
 
 
 /**
- * Used to handle transactional produces to the command topic
+ * Used to handle transactional produces to the command topic. Ensures that commands are only 
+ * produced to the command topic if the server is in sync (commandRunner has processed all available
+ * records in the command topic). Consists of a transactional producer and consumer.
  */
+@NotThreadSafe
 public class TransactionalProducerImpl implements TransactionalProducer {
 
   private static final int COMMAND_TOPIC_PARTITION = 0;
@@ -54,6 +59,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
   private final Producer<CommandId, Command> commandProducer;
   private final Duration commandQueueCatchupTimeout;
   private final CommandStore commandStore;
+  private final Closer closer;
 
   public TransactionalProducerImpl(
       final String commandTopicName,
@@ -97,22 +103,33 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     this.commandProducer = Objects.requireNonNull(commandProducer, "commandProducer");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
     this.commandStore = Objects.requireNonNull(commandRunner, "commandRunner");
+    this.closer = Closer.create();
+    closer.register(commandConsumer);
+    closer.register(commandProducer);
   }
 
+  /**
+   * Initializes the transactional producer and assigns the consumer to the command topic partition.
+   * Must be called before any other method.
+   */
   public void initialize() {
-    commandConsumer.assign(Collections.singleton(commandTopicPartition));
     commandProducer.initTransactions();
+    commandConsumer.assign(Collections.singleton(commandTopicPartition));
   }
 
   /** 
-   * Begins transaction and then waits for CommandRunner to process all records up to 
-   * the start of the transaction
+   * Begins the transaction and waits for the {@link CommandRunner} to process all
+   * available records in the command topic
    */
   public void begin() {
     commandProducer.beginTransaction();
     waitForConsumer();
   }
 
+  /**
+   * Helper function that blocks until the commandStore has consumed past the current
+   * end offset of the command topic and the commandRunner has processed those records.
+   */
   private void waitForConsumer() {
     try {
       final long endOffset = getEndOffset();
@@ -130,7 +147,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
           Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
     }
   }
-
+  
   private long getEndOffset() {
     return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))
         .get(commandTopicPartition);
@@ -164,8 +181,7 @@ public class TransactionalProducerImpl implements TransactionalProducer {
     commandProducer.commitTransaction();
   }
 
-  public void close() {
-    commandConsumer.close();
-    commandProducer.close();
+  public void close() throws IOException {
+    closer.close();
   }
 }

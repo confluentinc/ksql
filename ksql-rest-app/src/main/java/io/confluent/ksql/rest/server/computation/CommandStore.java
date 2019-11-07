@@ -84,7 +84,6 @@ public class CommandStore implements CommandQueue, Closeable {
 
       return new CommandStore(
           commandTopicName,
-          transactionId,
           new CommandTopic(commandTopicName, kafkaConsumerProperties),
           new CommandIdAssigner(),
           new SequenceNumberFutureStore(),
@@ -97,7 +96,6 @@ public class CommandStore implements CommandQueue, Closeable {
 
   CommandStore(
       final String commandTopicName,
-      final String transactionId,
       final CommandTopic commandTopic,
       final CommandIdAssigner commandIdAssigner,
       final SequenceNumberFutureStore sequenceNumberFutureStore,
@@ -111,11 +109,11 @@ public class CommandStore implements CommandQueue, Closeable {
     this.sequenceNumberFutureStore =
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
     this.commandQueueCatchupTimeout =
-            Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
+        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
     this.kafkaConsumerProperties =
-            Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties");
+        Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties");
     this.kafkaProducerProperties =
-            Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties");
+        Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties");
     this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
   }
 
@@ -144,10 +142,10 @@ public class CommandStore implements CommandQueue, Closeable {
   public TransactionalProducer createTransactionalProducer() {
     return new TransactionalProducerImpl(
         commandTopicName,
-            this,
-            commandQueueCatchupTimeout,
-            kafkaConsumerProperties,
-            kafkaProducerProperties
+        this,
+        commandQueueCatchupTimeout,
+        kafkaConsumerProperties,
+        kafkaProducerProperties
     );
   }
 
@@ -247,10 +245,6 @@ public class CommandStore implements CommandQueue, Closeable {
               timeout.toMillis()
           ));
     }
-  }
-
-  public long getConsumerPosition() {
-    return commandTopic.getCommandTopicConsumerPosition();
   }
   
   public boolean isEmpty() {

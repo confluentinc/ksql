@@ -54,6 +54,8 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
+
+import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -198,7 +200,12 @@ public class KsqlResource implements KsqlConfigurable {
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
     } finally {
-      transactionalProducer.close();
+      try {
+        transactionalProducer.close();
+      } catch (IOException e) {
+        LOG.error("Failed to close TransactionProducer for request: " + request
+            + "\nError: " + e.getMessage());
+      }
     }
   }
 
@@ -260,7 +267,12 @@ public class KsqlResource implements KsqlConfigurable {
           transactionalProducer
       );
     } finally {
-      transactionalProducer.close();
+      try {
+        transactionalProducer.close();
+      } catch (IOException e) {
+        LOG.error("Failed to close TransactionProducer for request: " + request
+            + "\nError: " + e.getMessage());
+      }
     }
   }
 

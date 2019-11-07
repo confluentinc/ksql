@@ -31,6 +31,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
@@ -85,12 +86,12 @@ public class TransactionalProducerTest {
     when(commandProducer.send(any(ProducerRecord.class))).thenReturn(future);
     when(commandConsumer.endOffsets(any()))
         .thenReturn(Collections.singletonMap(TOPIC_PARTITION, COMMAND_TOPIC_OFFSET));
+
+    transactionalProducer.initialize();
   }
 
   @Test
   public void shouldAssignCorrectPartitionToConsumerAndInitializeTransaction() {
-    transactionalProducer.initialize();
-
     verify(commandConsumer)
         .assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
     verify(commandProducer).initTransactions();
@@ -105,7 +106,7 @@ public class TransactionalProducerTest {
   }
 
   @Test
-  public void shouldCloseAllResources() {
+  public void shouldCloseAllResources() throws IOException {
     // When:
     transactionalProducer.close();
 

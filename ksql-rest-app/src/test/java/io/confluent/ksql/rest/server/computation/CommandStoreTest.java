@@ -69,7 +69,6 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class CommandStoreTest {
 
   private static final String COMMAND_TOPIC_NAME = "command";
-  private static final String TRANSACTION_ID = "ksql";
   private static final TopicPartition COMMAND_TOPIC_PARTITION =
       new TopicPartition(COMMAND_TOPIC_NAME, 0);
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(
@@ -126,8 +125,7 @@ public class CommandStoreTest {
         PreparedStatement.of(statementText, statement), OVERRIDE_PROPERTIES, KSQL_CONFIG);
 
     commandStore = new CommandStore(
-            COMMAND_TOPIC_NAME,
-        TRANSACTION_ID,
+        COMMAND_TOPIC_NAME,
         commandTopic,
         commandIdAssigner,
         sequenceNumberFutureStore,

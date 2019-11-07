@@ -165,11 +165,6 @@ public class RecoveryTest {
     public TransactionalProducer createTransactionalProducer() {
       return transactionalProducer;
     }
-
-    @Override
-    public long getConsumerPosition() {
-      return 0L;
-    }
     
     @Override
     public boolean isEmpty() {

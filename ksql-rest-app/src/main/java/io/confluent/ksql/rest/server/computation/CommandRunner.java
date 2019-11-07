@@ -32,7 +32,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,7 +58,6 @@ public class CommandRunner implements Closeable {
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
-  private final SequenceNumberFutureStore offsetProcessedFutureStore;
   
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
@@ -93,7 +91,6 @@ public class CommandRunner implements Closeable {
     this.clusterTerminator = Objects.requireNonNull(clusterTerminator, "clusterTerminator");
     this.executor = Objects.requireNonNull(executor, "executor");
     this.serverState = Objects.requireNonNull(serverState, "serverState");
-    this.offsetProcessedFutureStore = new SequenceNumberFutureStore();
   }
 
   /**
@@ -148,6 +145,7 @@ public class CommandRunner implements Closeable {
     if (commands.isEmpty()) {
       return;
     }
+
     final Optional<QueuedCommand> terminateCmd = findTerminateCommand(commands);
     if (terminateCmd.isPresent()) {
       terminateCluster(terminateCmd.get().getCommand());

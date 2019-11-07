@@ -62,8 +62,9 @@ nav:
                 - Configure Security for ksqlDB: installation/server-config/security.md
                 
     - Reference:
-        - ksqlDB Syntax Reference:
-            - ksqlDB Syntax Reference: developer-guide/syntax-reference.md # old reference topic
+        - ksqlDB Syntax Reference: developer-guide/syntax-reference.md
+        - ksqlDB API Reference:
+            - ksqlDB API Reference: developer-guide/ksqldb-reference/index.md 
             - Aggregate Functions: developer-guide/ksqldb-reference/aggregate-functions.md
             - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
             - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
@@ -90,6 +91,7 @@ nav:
             - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
             - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
             - SPOOL: developer-guide/ksqldb-reference/spool.md
+            - Table Functions: developer-guide/ksqldb-reference/table-functions.md
             - TERMINATE: developer-guide/ksqldb-reference/terminate.md
         - ksqlDB REST API Reference: 
             - ksqlDB REST API Reference: developer-guide/api.md # old reference topic

@@ -33,26 +33,20 @@ public class ArithmeticUnaryExpression extends Expression {
   private final Expression value;
   private final Sign sign;
 
-  public ArithmeticUnaryExpression(
-      final Optional<NodeLocation> location,
-      final Sign sign,
-      final Expression value
-  ) {
+  public ArithmeticUnaryExpression(Optional<NodeLocation> location, Sign sign, Expression value) {
     super(location);
     this.value = requireNonNull(value, "value");
     this.sign = requireNonNull(sign, "sign");
   }
 
   public static ArithmeticUnaryExpression positive(
-      final Optional<NodeLocation> location,
-      final Expression value
+      Optional<NodeLocation> location, Expression value
   ) {
     return new ArithmeticUnaryExpression(location, Sign.PLUS, value);
   }
 
   public static ArithmeticUnaryExpression negative(
-      final Optional<NodeLocation> location,
-      final Expression value
+      Optional<NodeLocation> location, Expression value
   ) {
     return new ArithmeticUnaryExpression(location, Sign.MINUS, value);
   }
@@ -66,12 +60,12 @@ public class ArithmeticUnaryExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitArithmeticUnary(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -79,9 +73,9 @@ public class ArithmeticUnaryExpression extends Expression {
       return false;
     }
 
-    final ArithmeticUnaryExpression that = (ArithmeticUnaryExpression) o;
+    ArithmeticUnaryExpression that = (ArithmeticUnaryExpression) o;
     return Objects.equals(value, that.value)
-           && (sign == that.sign);
+        && (sign == that.sign);
   }
 
   @Override

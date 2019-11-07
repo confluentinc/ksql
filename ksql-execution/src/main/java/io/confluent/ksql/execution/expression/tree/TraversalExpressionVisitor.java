@@ -22,20 +22,21 @@ package io.confluent.ksql.execution.expression.tree;
  * @param <C> The type of the context object passed through the visitor.
  */
 public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor<Void, C> {
+
   @Override
-  public Void visitCast(final Cast node, final C context) {
+  public Void visitCast(Cast node, C context) {
     return process(node.getExpression(), context);
   }
 
   @Override
-  public Void visitArithmeticBinary(final ArithmeticBinaryExpression node, final C context) {
+  public Void visitArithmeticBinary(ArithmeticBinaryExpression node, C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
     return null;
   }
 
   @Override
-  public Void visitBetweenPredicate(final BetweenPredicate node, final C context) {
+  public Void visitBetweenPredicate(BetweenPredicate node, C context) {
     process(node.getValue(), context);
     process(node.getMin(), context);
     process(node.getMax(), context);
@@ -43,51 +44,51 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitSubscriptExpression(final SubscriptExpression node, final C context) {
+  public Void visitSubscriptExpression(SubscriptExpression node, C context) {
     process(node.getBase(), context);
     process(node.getIndex(), context);
     return null;
   }
 
   @Override
-  public Void visitComparisonExpression(final ComparisonExpression node, final C context) {
+  public Void visitComparisonExpression(ComparisonExpression node, C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
     return null;
   }
 
   @Override
-  public Void visitWhenClause(final WhenClause node, final C context) {
+  public Void visitWhenClause(WhenClause node, C context) {
     process(node.getOperand(), context);
     process(node.getResult(), context);
     return null;
   }
 
   @Override
-  public Void visitInPredicate(final InPredicate node, final C context) {
+  public Void visitInPredicate(InPredicate node, C context) {
     process(node.getValue(), context);
     process(node.getValueList(), context);
     return null;
   }
 
   @Override
-  public Void visitFunctionCall(final FunctionCall node, final C context) {
-    for (final Expression argument : node.getArguments()) {
+  public Void visitFunctionCall(FunctionCall node, C context) {
+    for (Expression argument : node.getArguments()) {
       process(argument, context);
     }
     return null;
   }
 
   @Override
-  public Void visitDereferenceExpression(final DereferenceExpression node, final C context) {
+  public Void visitDereferenceExpression(DereferenceExpression node, C context) {
     process(node.getBase(), context);
     return null;
   }
 
   @Override
-  public Void visitSimpleCaseExpression(final SimpleCaseExpression node, final C context) {
+  public Void visitSimpleCaseExpression(SimpleCaseExpression node, C context) {
     process(node.getOperand(), context);
-    for (final WhenClause clause : node.getWhenClauses()) {
+    for (WhenClause clause : node.getWhenClauses()) {
       process(clause, context);
     }
     node.getDefaultValue()
@@ -96,26 +97,26 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitInListExpression(final InListExpression node, final C context) {
-    for (final Expression value : node.getValues()) {
+  public Void visitInListExpression(InListExpression node, C context) {
+    for (Expression value : node.getValues()) {
       process(value, context);
     }
     return null;
   }
 
   @Override
-  public Void visitArithmeticUnary(final ArithmeticUnaryExpression node, final C context) {
+  public Void visitArithmeticUnary(ArithmeticUnaryExpression node, C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  public Void visitNotExpression(final NotExpression node, final C context) {
+  public Void visitNotExpression(NotExpression node, C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  public Void visitSearchedCaseExpression(final SearchedCaseExpression node, final C context) {
-    for (final WhenClause clause : node.getWhenClauses()) {
+  public Void visitSearchedCaseExpression(SearchedCaseExpression node, C context) {
+    for (WhenClause clause : node.getWhenClauses()) {
       process(clause, context);
     }
     node.getDefaultValue()
@@ -124,81 +125,81 @@ public abstract class TraversalExpressionVisitor<C> implements ExpressionVisitor
   }
 
   @Override
-  public Void visitLikePredicate(final LikePredicate node, final C context) {
+  public Void visitLikePredicate(LikePredicate node, C context) {
     process(node.getValue(), context);
     process(node.getPattern(), context);
     return null;
   }
 
   @Override
-  public Void visitIsNotNullPredicate(final IsNotNullPredicate node, final C context) {
+  public Void visitIsNotNullPredicate(IsNotNullPredicate node, C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  public Void visitIsNullPredicate(final IsNullPredicate node, final C context) {
+  public Void visitIsNullPredicate(IsNullPredicate node, C context) {
     return process(node.getValue(), context);
   }
 
   @Override
-  public Void visitLogicalBinaryExpression(final LogicalBinaryExpression node, final C context) {
+  public Void visitLogicalBinaryExpression(LogicalBinaryExpression node, C context) {
     process(node.getLeft(), context);
     process(node.getRight(), context);
     return null;
   }
 
   @Override
-  public Void visitDoubleLiteral(final DoubleLiteral node, final C context) {
+  public Void visitDoubleLiteral(DoubleLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitDecimalLiteral(final DecimalLiteral node, final C context) {
+  public Void visitDecimalLiteral(DecimalLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitTimeLiteral(final TimeLiteral node, final C context) {
+  public Void visitTimeLiteral(TimeLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitTimestampLiteral(final TimestampLiteral node, final C context) {
+  public Void visitTimestampLiteral(TimestampLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitStringLiteral(final StringLiteral node, final C context) {
+  public Void visitStringLiteral(StringLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitBooleanLiteral(final BooleanLiteral node, final C context) {
+  public Void visitBooleanLiteral(BooleanLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitColumnReference(final ColumnReferenceExp node, final C context) {
+  public Void visitColumnReference(ColumnReferenceExp node, C context) {
     return null;
   }
 
   @Override
-  public Void visitNullLiteral(final NullLiteral node, final C context) {
+  public Void visitNullLiteral(NullLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitLongLiteral(final LongLiteral node, final C context) {
+  public Void visitLongLiteral(LongLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitIntegerLiteral(final IntegerLiteral node, final C context) {
+  public Void visitIntegerLiteral(IntegerLiteral node, C context) {
     return null;
   }
 
   @Override
-  public Void visitType(final Type node, final C context) {
+  public Void visitType(Type node, C context) {
     return null;
   }
 }

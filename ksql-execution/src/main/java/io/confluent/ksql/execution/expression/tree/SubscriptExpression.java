@@ -28,25 +28,18 @@ public class SubscriptExpression extends Expression {
   private final Expression base;
   private final Expression index;
 
-  public SubscriptExpression(
-      final Expression base,
-      final Expression index
-  ) {
+  public SubscriptExpression(Expression base, Expression index) {
     this(Optional.empty(), base, index);
   }
 
-  public SubscriptExpression(
-      final Optional<NodeLocation> location,
-      final Expression base,
-      final Expression index
-  ) {
+  public SubscriptExpression(Optional<NodeLocation> location, Expression base, Expression index) {
     super(location);
     this.base = requireNonNull(base, "base");
     this.index = requireNonNull(index, "index");
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitSubscriptExpression(this, context);
   }
 
@@ -59,7 +52,7 @@ public class SubscriptExpression extends Expression {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -67,7 +60,7 @@ public class SubscriptExpression extends Expression {
       return false;
     }
 
-    final SubscriptExpression that = (SubscriptExpression) o;
+    SubscriptExpression that = (SubscriptExpression) o;
 
     return Objects.equals(this.base, that.base) && Objects.equals(this.index, that.index);
   }

@@ -69,7 +69,7 @@ public class UdafUtilTest {
   @Test
   public void shouldResolveUDAF() {
     // When:
-    final KsqlAggregateFunction returned =
+    KsqlAggregateFunction returned =
         UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:

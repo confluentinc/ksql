@@ -22,7 +22,7 @@ import java.util.Optional;
 @Immutable
 public abstract class Literal extends Expression {
 
-  protected Literal(final Optional<NodeLocation> location) {
+  protected Literal(Optional<NodeLocation> location) {
     super(location);
   }
 

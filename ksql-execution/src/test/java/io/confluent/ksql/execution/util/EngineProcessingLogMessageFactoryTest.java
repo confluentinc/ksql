@@ -33,18 +33,18 @@ public class EngineProcessingLogMessageFactoryTest {
   @SuppressWarnings("unchecked")
   public void shouldBuildRecordProcessingErrorCorrectly() throws IOException {
     // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+    SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
         errorMsg, error, new GenericRow(123, "data")
     ).apply(config);
 
     // Then:
     assertThat(msgAndSchema.schema(), equalTo(ProcessingLogMessageSchema.PROCESSING_LOG_SCHEMA));
-    final Struct msg = (Struct) msgAndSchema.value();
+    Struct msg = (Struct) msgAndSchema.value();
     assertThat(
         msg.get(ProcessingLogMessageSchema.TYPE),
         equalTo(MessageType.RECORD_PROCESSING_ERROR.getTypeId()));
     assertThat(msg.get(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR), notNullValue());
-    final Struct recordProcessingError =
+    Struct recordProcessingError =
         msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
     assertThat(
         recordProcessingError.get(
@@ -54,7 +54,7 @@ public class EngineProcessingLogMessageFactoryTest {
         recordProcessingError.get(
             ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_CAUSE),
         equalTo(ErrorMessageUtil.getErrorMessages(cause)));
-    final List<Object> rowAsList =
+    List<Object> rowAsList =
         OBJECT_MAPPER.readValue(
             recordProcessingError.getString(
                 ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR_FIELD_RECORD),
@@ -66,13 +66,13 @@ public class EngineProcessingLogMessageFactoryTest {
   @Test
   public void shouldBuildRecordProcessingErrorCorrectlyIfRowNull() {
     // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+    SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
         errorMsg, error, null
     ).apply(config);
 
     // Then:
-    final Struct msg = (Struct) msgAndSchema.value();
-    final Struct recordProcessingError =
+    Struct msg = (Struct) msgAndSchema.value();
+    Struct recordProcessingError =
         msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
     assertThat(
         recordProcessingError.get(
@@ -83,18 +83,18 @@ public class EngineProcessingLogMessageFactoryTest {
   @Test
   public void shouldBuildRecordProcessingErrorWithNullRowIfIncludeRowsFalse() {
     // Given:
-    final ProcessingLogConfig config = new ProcessingLogConfig(
+    ProcessingLogConfig config = new ProcessingLogConfig(
         Collections.singletonMap(ProcessingLogConfig.INCLUDE_ROWS,  false)
     );
 
     // When:
-    final SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
+    SchemaAndValue msgAndSchema = EngineProcessingLogMessageFactory.recordProcessingError(
         errorMsg, error, new GenericRow(123, "data")
     ).apply(config);
 
     // Then:
-    final Struct msg = (Struct) msgAndSchema.value();
-    final Struct recordProcessingError =
+    Struct msg = (Struct) msgAndSchema.value();
+    Struct recordProcessingError =
         msg.getStruct(ProcessingLogMessageSchema.RECORD_PROCESSING_ERROR);
     assertThat(
         recordProcessingError.get(

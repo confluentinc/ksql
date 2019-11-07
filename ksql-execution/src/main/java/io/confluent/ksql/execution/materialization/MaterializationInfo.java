@@ -54,10 +54,8 @@ public final class MaterializationInfo {
   }
 
   private MaterializationInfo(
-      final String stateStoreName,
-      final LogicalSchema stateStoreSchema,
-      final List<TransformInfo> transforms,
-      final LogicalSchema schema
+      String stateStoreName, LogicalSchema stateStoreSchema, List<TransformInfo> transforms,
+      LogicalSchema schema
   ) {
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.stateStoreSchema = requireNonNull(stateStoreSchema, "stateStoreSchema");
@@ -68,21 +66,22 @@ public final class MaterializationInfo {
   /**
    * Create a MaterializationInfo builder.
    *
-   * @param stateStoreName the name of the state store
+   * @param stateStoreName   the name of the state store
    * @param stateStoreSchema the schema of the data in the state store
    * @return builder instance.
    */
-  public static Builder builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
+  public static Builder builder(String stateStoreName, LogicalSchema stateStoreSchema) {
     return new Builder(stateStoreName, stateStoreSchema);
   }
 
   public static final class Builder {
+
     private final String stateStoreName;
     private final LogicalSchema stateStoreSchema;
     private final List<TransformInfo> transforms;
     private LogicalSchema schema;
 
-    private Builder(final String stateStoreName, final LogicalSchema stateStoreSchema) {
+    private Builder(String stateStoreName, LogicalSchema stateStoreSchema) {
       this.stateStoreName = Objects.requireNonNull(stateStoreName, "stateStoreName");
       this.stateStoreSchema = Objects.requireNonNull(stateStoreSchema, "stateStoreSchema");
       this.transforms = new LinkedList<>();
@@ -91,13 +90,12 @@ public final class MaterializationInfo {
 
     /**
      * Adds an aggregate map transform for mapping final result of complex aggregates (e.g. avg)
+     *
      * @param aggregatesInfo descriptor of aggregation functions.
-     * @param resultSchema schema after applying aggregate result mapping.
+     * @param resultSchema   schema after applying aggregate result mapping.
      * @return A builder instance with this transformation.
      */
-    public Builder mapAggregates(
-        final AggregatesInfo aggregatesInfo,
-        final LogicalSchema resultSchema) {
+    public Builder mapAggregates(AggregatesInfo aggregatesInfo, LogicalSchema resultSchema) {
       transforms.add(new AggregateMapInfo(aggregatesInfo));
       this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
@@ -105,13 +103,12 @@ public final class MaterializationInfo {
 
     /**
      * Adds a transform that projects a list of expressions from the value.
+     *
      * @param selectExpressions The list of expressions to project.
-     * @param resultSchema The schema after applying the projection.
+     * @param resultSchema      The schema after applying the projection.
      * @return A builder instance with this transformation.
      */
-    public Builder project(
-        final List<SelectExpression> selectExpressions,
-        final LogicalSchema resultSchema) {
+    public Builder project(List<SelectExpression> selectExpressions, LogicalSchema resultSchema) {
       transforms.add(new ProjectInfo(selectExpressions, this.schema));
       this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
@@ -119,16 +116,18 @@ public final class MaterializationInfo {
 
     /**
      * Adds a transform that filters rows from the materialization.
+     *
      * @param filterExpression A boolean expression to filter rows on.
      * @return A builder instance with this transformation.
      */
-    public Builder filter(final Expression filterExpression) {
+    public Builder filter(Expression filterExpression) {
       transforms.add(new SqlPredicateInfo(filterExpression, schema));
       return this;
     }
 
     /**
      * Builds a MaterializationInfo with the properties and transforms in the builder.
+     *
      * @return a MaterializationInfo instance.
      */
     public MaterializationInfo build() {
@@ -137,10 +136,12 @@ public final class MaterializationInfo {
   }
 
   public interface TransformInfo {
+
     <R> R visit(TransformVisitor<R> visitor);
   }
 
   public interface TransformVisitor<R> {
+
     R visit(AggregateMapInfo mapInfo);
 
     R visit(SqlPredicateInfo info);
@@ -149,9 +150,10 @@ public final class MaterializationInfo {
   }
 
   public static class AggregateMapInfo implements TransformInfo {
+
     final AggregatesInfo info;
 
-    AggregateMapInfo(final AggregatesInfo info) {
+    AggregateMapInfo(AggregatesInfo info) {
       this.info = Objects.requireNonNull(info, "info");
     }
 
@@ -159,16 +161,17 @@ public final class MaterializationInfo {
       return info;
     }
 
-    public <R> R visit(final TransformVisitor<R> visitor) {
+    public <R> R visit(TransformVisitor<R> visitor) {
       return visitor.visit(this);
     }
   }
 
   public static class SqlPredicateInfo implements TransformInfo {
+
     final Expression filterExpression;
     final LogicalSchema schema;
 
-    SqlPredicateInfo(final Expression filterExpression, final LogicalSchema schema) {
+    SqlPredicateInfo(Expression filterExpression, LogicalSchema schema) {
       this.filterExpression = Objects.requireNonNull(filterExpression, "filterExpression");
       this.schema = Objects.requireNonNull(schema, "schema");
     }
@@ -182,16 +185,17 @@ public final class MaterializationInfo {
     }
 
     @Override
-    public <R> R visit(final TransformVisitor<R> visitor) {
+    public <R> R visit(TransformVisitor<R> visitor) {
       return visitor.visit(this);
     }
   }
 
   public static class ProjectInfo implements TransformInfo {
+
     final List<SelectExpression> selectExpressions;
     final LogicalSchema schema;
 
-    ProjectInfo(final List<SelectExpression> selectExpressions, final LogicalSchema schema) {
+    ProjectInfo(List<SelectExpression> selectExpressions, LogicalSchema schema) {
       this.selectExpressions = Objects.requireNonNull(selectExpressions, "selectExpressions");
       this.schema = Objects.requireNonNull(schema, "schema");
     }
@@ -205,7 +209,7 @@ public final class MaterializationInfo {
     }
 
     @Override
-    public <R> R visit(final TransformVisitor<R> visitor) {
+    public <R> R visit(TransformVisitor<R> visitor) {
       return visitor.visit(this);
     }
   }

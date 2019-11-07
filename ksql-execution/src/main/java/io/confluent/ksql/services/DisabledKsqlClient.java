@@ -32,10 +32,7 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
   }
 
   @Override
-  public RestResponse<KsqlEntityList> makeKsqlRequest(
-      final URI serverEndPoint,
-      final String sql
-  ) {
+  public RestResponse<KsqlEntityList> makeKsqlRequest(URI serverEndPoint, String sql) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
 }

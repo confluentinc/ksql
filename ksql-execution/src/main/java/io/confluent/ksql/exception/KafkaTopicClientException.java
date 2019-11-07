@@ -16,11 +16,12 @@
 package io.confluent.ksql.exception;
 
 abstract class KafkaTopicClientException extends RuntimeException {
-  KafkaTopicClientException(final String message) {
+
+  KafkaTopicClientException(String message) {
     super(message);
   }
 
-  KafkaTopicClientException(final String message, final Throwable throwable) {
+  KafkaTopicClientException(String message, Throwable throwable) {
     super(message, throwable);
   }
 }

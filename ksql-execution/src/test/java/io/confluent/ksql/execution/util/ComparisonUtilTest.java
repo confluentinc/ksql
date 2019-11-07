@@ -70,8 +70,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (final Schema leftType: typesTable) {
-      for (final Schema rightType: typesTable) {
+    for (Schema leftType: typesTable) {
+      for (Schema rightType: typesTable) {
         if (expectedResults.get(i).get(j)) {
           assertThat(
               ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType)
@@ -90,13 +90,13 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (final Schema leftType: typesTable) {
-      for (final Schema rightType: typesTable) {
+    for (Schema leftType: typesTable) {
+      for (Schema rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
           try {
             ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);
             assertThat("fail", false);
-          } catch (final KsqlException e) {
+          } catch (KsqlException e) {
             assertThat(e.getMessage(), is("Operator EQUAL cannot be used to compare "
                 + SCHEMA_TO_SQL_NAME[i]
                 + " and "

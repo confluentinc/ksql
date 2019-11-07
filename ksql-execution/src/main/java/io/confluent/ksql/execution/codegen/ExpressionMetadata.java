@@ -38,11 +38,8 @@ public class ExpressionMetadata {
   private final CodeGenSpec spec;
 
   public ExpressionMetadata(
-      final IExpressionEvaluator expressionEvaluator,
-      final CodeGenSpec spec,
-      final SqlType expressionType,
-      final GenericRowValueTypeEnforcer typeEnforcer,
-      final Expression expression
+      IExpressionEvaluator expressionEvaluator, CodeGenSpec spec, SqlType expressionType,
+      GenericRowValueTypeEnforcer typeEnforcer, Expression expression
   ) {
     this.expressionEvaluator = Objects.requireNonNull(expressionEvaluator, "expressionEvaluator");
     this.expressionType = Objects.requireNonNull(expressionType, "expressionType");
@@ -73,7 +70,7 @@ public class ExpressionMetadata {
     return expression;
   }
 
-  public Object evaluate(final GenericRow row) {
+  public Object evaluate(GenericRow row) {
     try {
       return expressionEvaluator.evaluate(getParameters(row));
     } catch (InvocationTargetException e) {
@@ -81,8 +78,8 @@ public class ExpressionMetadata {
     }
   }
 
-  private Object[] getParameters(final GenericRow row) {
-    final Object[] parameters = this.threadLocalParameters.get();
+  private Object[] getParameters(GenericRow row) {
+    Object[] parameters = this.threadLocalParameters.get();
     spec.resolve(row, typeEnforcer, parameters);
     return parameters;
   }

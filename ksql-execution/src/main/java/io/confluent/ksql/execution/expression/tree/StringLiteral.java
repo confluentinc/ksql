@@ -25,11 +25,11 @@ public class StringLiteral extends Literal {
 
   private final String value;
 
-  public StringLiteral(final String value) {
+  public StringLiteral(String value) {
     this(Optional.empty(), value);
   }
 
-  public StringLiteral(final Optional<NodeLocation> location, final String value) {
+  public StringLiteral(Optional<NodeLocation> location, String value) {
     super(location);
     this.value = Objects.requireNonNull(value, "value");
   }
@@ -40,12 +40,12 @@ public class StringLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitStringLiteral(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -53,7 +53,7 @@ public class StringLiteral extends Literal {
       return false;
     }
 
-    final StringLiteral that = (StringLiteral) o;
+    StringLiteral that = (StringLiteral) o;
     return Objects.equals(value, that.value);
   }
 

@@ -27,21 +27,20 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.ConnectSchema;
 
 public final class SinkSchemaUtil {
+
   private SinkSchemaUtil() {
   }
 
-  public static LogicalSchema sinkSchema(final ExecutionStep<?> step) {
-    final LogicalSchema schema = step.getSources().get(0).getProperties().getSchema();
+  public static LogicalSchema sinkSchema(ExecutionStep<?> step) {
+    LogicalSchema schema = step.getSources().get(0).getProperties().getSchema();
     return schema.withoutMetaAndKeyColsInValue();
   }
 
-  public static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(
-      final ExecutionStep<?> step
-  ) {
-    final LogicalSchema schema = step.getSources().get(0).getProperties().getSchema();
-    final ConnectSchema valueSchema = schema.valueConnectSchema();
+  public static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(ExecutionStep<?> step) {
+    LogicalSchema schema = step.getSources().get(0).getProperties().getSchema();
+    ConnectSchema valueSchema = schema.valueConnectSchema();
 
-    final Stream<Column> cols = Streams.concat(
+    Stream<Column> cols = Streams.concat(
         schema.metadata().stream(),
         schema.key().stream()
     );

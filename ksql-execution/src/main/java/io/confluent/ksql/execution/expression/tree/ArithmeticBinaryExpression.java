@@ -28,19 +28,12 @@ public class ArithmeticBinaryExpression extends Expression {
   private final Expression left;
   private final Expression right;
 
-  public ArithmeticBinaryExpression(
-      final Operator operator,
-      final Expression left,
-      final Expression right
-  ) {
+  public ArithmeticBinaryExpression(Operator operator, Expression left, Expression right) {
     this(Optional.empty(), operator, left, right);
   }
 
   public ArithmeticBinaryExpression(
-      final Optional<NodeLocation> location,
-      final Operator operator,
-      final Expression left,
-      final Expression right
+      Optional<NodeLocation> location, Operator operator, Expression left, Expression right
   ) {
     super(location);
     this.operator = Objects.requireNonNull(operator, "operator");
@@ -61,12 +54,12 @@ public class ArithmeticBinaryExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitArithmeticBinary(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -74,10 +67,10 @@ public class ArithmeticBinaryExpression extends Expression {
       return false;
     }
 
-    final ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
+    ArithmeticBinaryExpression that = (ArithmeticBinaryExpression) o;
     return (operator == that.operator)
-           && Objects.equals(left, that.left)
-           && Objects.equals(right, that.right);
+        && Objects.equals(left, that.left)
+        && Objects.equals(right, that.right);
   }
 
   @Override

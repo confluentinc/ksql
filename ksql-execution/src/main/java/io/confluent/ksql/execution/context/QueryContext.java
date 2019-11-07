@@ -22,13 +22,14 @@ import java.util.List;
 import java.util.Objects;
 
 public final class QueryContext {
+
   private final List<String> context;
 
   private QueryContext() {
     this(Collections.emptyList());
   }
 
-  private QueryContext(final List<String> context) {
+  private QueryContext(List<String> context) {
     this.context = Objects.requireNonNull(context);
   }
 
@@ -36,7 +37,7 @@ public final class QueryContext {
     return context;
   }
 
-  private QueryContext push(final String ...context) {
+  private QueryContext push(String... context) {
     return new QueryContext(
         new ImmutableList.Builder<String>()
             .addAll(this.context)
@@ -46,21 +47,22 @@ public final class QueryContext {
   }
 
   public static class Stacker {
+
     final QueryContext queryContext;
 
     public Stacker() {
       this.queryContext = new QueryContext();
     }
 
-    public static Stacker of(final QueryContext queryContext) {
+    public static Stacker of(QueryContext queryContext) {
       return new Stacker(queryContext);
     }
 
-    private Stacker(final QueryContext queryContext) {
+    private Stacker(QueryContext queryContext) {
       this.queryContext = Objects.requireNonNull(queryContext);
     }
 
-    public Stacker push(final String ...context) {
+    public Stacker push(String... context) {
       return new Stacker(queryContext.push(context));
     }
 
@@ -69,9 +71,9 @@ public final class QueryContext {
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public boolean equals(Object o) {
       return o instanceof Stacker
-          && Objects.equals(queryContext, ((Stacker)o).queryContext);
+          && Objects.equals(queryContext, ((Stacker) o).queryContext);
     }
 
     @Override
@@ -81,9 +83,9 @@ public final class QueryContext {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     return o instanceof QueryContext
-        && Objects.equals(context, ((QueryContext)o).context);
+        && Objects.equals(context, ((QueryContext) o).context);
   }
 
   @Override

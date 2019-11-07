@@ -19,10 +19,11 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.query.QueryId;
 
 public final class QueryLoggerUtil {
+
   private QueryLoggerUtil() {
   }
 
-  public static String queryLoggerName(final QueryId queryId, final QueryContext queryContext) {
+  public static String queryLoggerName(QueryId queryId, QueryContext queryContext) {
     return String.join(
         ".",
         new ImmutableList.Builder<String>()

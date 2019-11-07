@@ -35,20 +35,14 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   private final TimeUnit advanceByUnit;
 
   public HoppingWindowExpression(
-      final long size,
-      final TimeUnit sizeUnit,
-      final long advanceBy,
-      final TimeUnit advanceByUnit
+      long size, TimeUnit sizeUnit, long advanceBy, TimeUnit advanceByUnit
   ) {
     this(Optional.empty(), size, sizeUnit, advanceBy, advanceByUnit);
   }
 
   public HoppingWindowExpression(
-      final Optional<NodeLocation> location,
-      final long size,
-      final TimeUnit sizeUnit,
-      final long advanceBy,
-      final TimeUnit advanceByUnit
+      Optional<NodeLocation> location, long size, TimeUnit sizeUnit, long advanceBy,
+      TimeUnit advanceByUnit
   ) {
     super(location);
     this.size = size;
@@ -82,7 +76,7 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <R, C> R accept(final WindowVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(WindowVisitor<R, C> visitor, C context) {
     return visitor.visitHoppingWindowExpression(this, context);
   }
 
@@ -98,14 +92,14 @@ public class HoppingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
+    HoppingWindowExpression hoppingWindowExpression = (HoppingWindowExpression) o;
     return hoppingWindowExpression.size == size && hoppingWindowExpression.sizeUnit == sizeUnit
         && hoppingWindowExpression.advanceBy == advanceBy && hoppingWindowExpression
         .advanceByUnit == advanceByUnit;

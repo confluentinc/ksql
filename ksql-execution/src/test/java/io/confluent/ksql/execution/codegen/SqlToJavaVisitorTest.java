@@ -93,7 +93,7 @@ public class SqlToJavaVisitorTest {
 
   @Before
   public void init() {
-    final AtomicInteger funCounter = new AtomicInteger();
+    AtomicInteger funCounter = new AtomicInteger();
     sqlToJavaVisitor = new SqlToJavaVisitor(
         SCHEMA,
         functionRegistry,
@@ -105,10 +105,10 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldProcessBasicJavaMath() {
     // Given:
-    final Expression expression = new ArithmeticBinaryExpression(Operator.ADD, COL0, COL3);
+    Expression expression = new ArithmeticBinaryExpression(Operator.ADD, COL0, COL3);
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL0 + TEST1_COL3)"));
@@ -117,39 +117,44 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldProcessArrayExpressionCorrectly() {
     // Given:
-    final Expression expression = new SubscriptExpression(ARRAYCOL, literal(0));
+    Expression expression = new SubscriptExpression(ARRAYCOL, literal(0));
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression,
-       equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))"));
+    assertThat(
+        javaExpression,
+        equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)0))")
+    );
   }
 
   @Test
   public void shouldProcessArrayNegativeIndexExpressionCorrectly() {
     // Given:
-    final Expression expression = new SubscriptExpression(
+    Expression expression = new SubscriptExpression(
         ARRAYCOL,
         ArithmeticUnaryExpression.negative(Optional.empty(), new IntegerLiteral(1))
     );
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression,
-            equalTo("((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))"));
+    assertThat(
+        javaExpression,
+        equalTo(
+            "((Double) ((java.util.List)TEST1_COL4).get((int)((java.util.List)TEST1_COL4).size()-1))")
+    );
   }
 
   @Test
   public void shouldProcessMapExpressionCorrectly() {
     // Given:
-    final Expression expression = new SubscriptExpression(MAPCOL, new StringLiteral("key1"));
+    Expression expression = new SubscriptExpression(MAPCOL, new StringLiteral("key1"));
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("((Double) ((java.util.Map)TEST1_COL5).get(\"key1\"))"));
@@ -158,15 +163,15 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldCreateCorrectCastJavaExpression() {
     // Given:
-    final Expression castBigintInteger = new Cast(
+    Expression castBigintInteger = new Cast(
         COL0,
         new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("INTEGER"))
     );
-    final Expression castDoubleBigint = new Cast(
+    Expression castDoubleBigint = new Cast(
         COL3,
         new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("BIGINT"))
     );
-    final Expression castDoubleString = new Cast(
+    Expression castDoubleString = new Cast(
         COL3,
         new io.confluent.ksql.execution.expression.tree.Type(SqlPrimitiveType.of("VARCHAR"))
     );
@@ -174,45 +179,48 @@ public class SqlToJavaVisitorTest {
     // Then:
     assertThat(
         sqlToJavaVisitor.process(castBigintInteger),
-        equalTo("(new Long(TEST1_COL0).intValue())"));
+        equalTo("(new Long(TEST1_COL0).intValue())")
+    );
     assertThat(
         sqlToJavaVisitor.process(castDoubleBigint),
-        equalTo("(new Double(TEST1_COL3).longValue())"));
+        equalTo("(new Double(TEST1_COL3).longValue())")
+    );
     assertThat(
         sqlToJavaVisitor.process(castDoubleString),
-        equalTo("String.valueOf(TEST1_COL3)"));
+        equalTo("String.valueOf(TEST1_COL3)")
+    );
   }
 
   @Test
   public void shouldPostfixFunctionInstancesWithUniqueId() {
     // Given:
-    final UdfFactory ssFactory = mock(UdfFactory.class);
-    final KsqlScalarFunction ssFunction = mock(KsqlScalarFunction.class);
-    final UdfFactory catFactory = mock(UdfFactory.class);
-    final KsqlScalarFunction catFunction = mock(KsqlScalarFunction.class);
+    UdfFactory ssFactory = mock(UdfFactory.class);
+    KsqlScalarFunction ssFunction = mock(KsqlScalarFunction.class);
+    UdfFactory catFactory = mock(UdfFactory.class);
+    KsqlScalarFunction catFunction = mock(KsqlScalarFunction.class);
     givenUdf("SUBSTRING", Schema.OPTIONAL_STRING_SCHEMA, ssFactory, ssFunction);
     givenUdf("CONCAT", Schema.OPTIONAL_STRING_SCHEMA, catFactory, catFunction);
-    final FunctionName ssName = FunctionName.of("SUBSTRING");
-    final FunctionName catName = FunctionName.of("CONCAT");
-    final FunctionCall substring1 = new FunctionCall(
+    FunctionName ssName = FunctionName.of("SUBSTRING");
+    FunctionName catName = FunctionName.of("CONCAT");
+    FunctionCall substring1 = new FunctionCall(
         ssName,
         ImmutableList.of(COL1, new IntegerLiteral(1), new IntegerLiteral(3))
     );
-    final FunctionCall substring2 = new FunctionCall(
+    FunctionCall substring2 = new FunctionCall(
         ssName,
         ImmutableList.of(COL1, new IntegerLiteral(4), new IntegerLiteral(5))
     );
-    final FunctionCall concat = new FunctionCall(
+    FunctionCall concat = new FunctionCall(
         catName,
         ImmutableList.of(new StringLiteral("-"), substring2)
     );
-    final Expression expression = new FunctionCall(
+    Expression expression = new FunctionCall(
         catName,
         ImmutableList.of(substring1, concat)
     );
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, is(
@@ -225,10 +233,10 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldEscapeQuotesInStringLiteral() {
     // Given:
-    final Expression expression = new StringLiteral("\"foo\"");
+    Expression expression = new StringLiteral("'\"foo\"'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("\"\\\"foo\\\"\""));
@@ -237,10 +245,10 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldEscapeQuotesInStringLiteralQuote() {
     // Given:
-    final Expression expression = new StringLiteral("\\\"");
+    Expression expression = new StringLiteral("'\\\"'");
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("\"\\\\\\\"\""));
@@ -249,26 +257,28 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForComparisonWithNegativeNumbers() {
     // Given:
-    final Expression expression = new ComparisonExpression(
+    Expression expression = new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
         COL3,
         new DoubleLiteral(-10.0)
     );
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
-    assertThat(javaExpression, equalTo("((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
+    assertThat(
+        javaExpression, equalTo(
+            "((((Object)(TEST1_COL3)) == null || ((Object)(-10.0)) == null) ? false : (TEST1_COL3 > -10.0))"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithLeadingWildcard() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"));
+    Expression expression = new LikePredicate(COL1, new StringLiteral("%foo"));
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).endsWith(\"foo\")"));
@@ -277,10 +287,10 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithTrailingWildcard() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("foo%"));
+    Expression expression = new LikePredicate(COL1, new StringLiteral("foo%"));
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).startsWith(\"foo\")"));
@@ -289,10 +299,10 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithLeadingAndTrailingWildcards() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("%foo%"));
+    Expression expression = new LikePredicate(COL1, new StringLiteral("%foo%"));
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).contains(\"foo\")"));
@@ -301,10 +311,10 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForLikePatternWithoutWildcards() {
     // Given:
-    final Expression expression = new LikePredicate(COL1, new StringLiteral("foo"));
+    Expression expression = new LikePredicate(COL1, new StringLiteral("foo"));
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // Then:
     assertThat(javaExpression, equalTo("(TEST1_COL1).equals(\"foo\")"));
@@ -313,13 +323,16 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForCaseStatement() {
     // Given:
-    final Expression expression = new SearchedCaseExpression(
+    Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(10)),
-                new StringLiteral("small")),
+                new ComparisonExpression(
+                    ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(10)),
+                new StringLiteral("small")
+            ),
             new WhenClause(
-                new ComparisonExpression(ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(100)),
+                new ComparisonExpression(
+                    ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(100)),
                 new StringLiteral("medium")
             )
         ),
@@ -327,22 +340,27 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // ThenL
-    assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
+    assertThat(
+        javaExpression, equalTo(
+            "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"large\"; }}))"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForCaseStatementWithNoElse() {
     // Given:
-    final Expression expression = new SearchedCaseExpression(
+    Expression expression = new SearchedCaseExpression(
         ImmutableList.of(
             new WhenClause(
-                new ComparisonExpression(ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(10)),
-                new StringLiteral("small")),
+                new ComparisonExpression(
+                    ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(10)),
+                new StringLiteral("small")
+            ),
             new WhenClause(
-                new ComparisonExpression(ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(100)),
+                new ComparisonExpression(
+                    ComparisonExpression.Type.LESS_THAN, COL7, new IntegerLiteral(100)),
                 new StringLiteral("medium")
             )
         ),
@@ -350,39 +368,44 @@ public class SqlToJavaVisitorTest {
     );
 
     // When:
-    final String javaExpression = sqlToJavaVisitor.process(expression);
+    String javaExpression = sqlToJavaVisitor.process(expression);
 
     // ThenL
-    assertThat(javaExpression, equalTo("((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
+    assertThat(
+        javaExpression, equalTo(
+            "((java.lang.String)SearchedCaseFunction.searchedCaseFunction(ImmutableList.of( SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(10)) == null) ? false : (TEST1_COL7 < 10)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"small\"; }}), SearchedCaseFunction.whenClause( new Supplier<Boolean>() { @Override public Boolean get() { return ((((Object)(TEST1_COL7)) == null || ((Object)(100)) == null) ? false : (TEST1_COL7 < 100)); }},  new Supplier<java.lang.String>() { @Override public java.lang.String get() { return \"medium\"; }})), new Supplier<java.lang.String>() { @Override public java.lang.String get() { return null; }}))"));
   }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalAdd() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.ADD,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(TEST1_COL8.add(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))"));
+    assertThat(
+        java,
+        is("(TEST1_COL8.add(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))")
+    );
   }
 
   @Test
   public void shouldGenerateCastLongToDecimalInBinaryExpression() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.ADD,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL0")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
     assertThat(java, containsString("DecimalUtil.cast(TEST1_COL0, 19, 0)"));
@@ -391,14 +414,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCastDecimalToDoubleInBinaryExpression() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.ADD,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL3")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8).doubleValue()"));
@@ -407,78 +430,90 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalSubtract() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.SUBTRACT,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(TEST1_COL8.subtract(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))"));
+    assertThat(
+        java,
+        is("(TEST1_COL8.subtract(TEST1_COL8, new MathContext(3, RoundingMode.UNNECESSARY)).setScale(1))")
+    );
   }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalMultiply() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.MULTIPLY,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(TEST1_COL8.multiply(TEST1_COL8, new MathContext(5, RoundingMode.UNNECESSARY)).setScale(2))"));
+    assertThat(
+        java,
+        is("(TEST1_COL8.multiply(TEST1_COL8, new MathContext(5, RoundingMode.UNNECESSARY)).setScale(2))")
+    );
   }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalDivide() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.DIVIDE,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(TEST1_COL8.divide(TEST1_COL8, new MathContext(8, RoundingMode.UNNECESSARY)).setScale(6))"));
+    assertThat(
+        java,
+        is("(TEST1_COL8.divide(TEST1_COL8, new MathContext(8, RoundingMode.UNNECESSARY)).setScale(6))")
+    );
   }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalMod() {
     // Given:
-    final ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
+    ArithmeticBinaryExpression binExp = new ArithmeticBinaryExpression(
         Operator.MODULUS,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
-    assertThat(java, is("(TEST1_COL8.remainder(TEST1_COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))"));
+    assertThat(
+        java,
+        is("(TEST1_COL8.remainder(TEST1_COL8, new MathContext(2, RoundingMode.UNNECESSARY)).setScale(1))")
+    );
   }
 
   @Test
   public void shouldGenerateCorrectCodeForDecimalDecimalEQ() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.EQUAL,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL9")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) == 0))"));
@@ -487,14 +522,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalDecimalGT() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL9")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) > 0))"));
@@ -503,14 +538,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalDecimalGEQ() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.GREATER_THAN_OR_EQUAL,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL9")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) >= 0))"));
@@ -519,14 +554,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalDecimalLT() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.LESS_THAN,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL9")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) < 0))"));
@@ -535,14 +570,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalDecimalLEQ() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.LESS_THAN_OR_EQUAL,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL9")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) <= 0))"));
@@ -551,14 +586,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalDecimalIsDistinct() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.IS_DISTINCT_FROM,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL9")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(TEST1_COL9) != 0))"));
@@ -567,14 +602,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalDoubleEQ() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.EQUAL,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL3")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(TEST1_COL8.compareTo(new BigDecimal(TEST1_COL3)) == 0))"));
@@ -583,14 +618,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDoubleDecimalEQ() {
     // Given:
-    final ComparisonExpression compExp = new ComparisonExpression(
+    ComparisonExpression compExp = new ComparisonExpression(
         ComparisonExpression.Type.EQUAL,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL3"))),
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(compExp);
+    String java = sqlToJavaVisitor.process(compExp);
 
     // Then:
     assertThat(java, containsString("(new BigDecimal(TEST1_COL3).compareTo(TEST1_COL8) == 0))"));
@@ -599,14 +634,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalNegation() {
     // Given:
-    final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
+    ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
         Optional.empty(),
         Sign.MINUS,
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
     assertThat(java, is("(TEST1_COL8.negate(new MathContext(2, RoundingMode.UNNECESSARY)))"));
@@ -615,13 +650,14 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalUnaryPlus() {
     // Given:
-    final ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
+    ArithmeticUnaryExpression binExp = new ArithmeticUnaryExpression(
         Optional.empty(),
         Sign.PLUS,
-    new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))));
+        new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8")))
+    );
 
-      // When:
-    final String java = sqlToJavaVisitor.process(binExp);
+    // When:
+    String java = sqlToJavaVisitor.process(binExp);
 
     // Then:
     assertThat(java, is("(TEST1_COL8.plus(new MathContext(2, RoundingMode.UNNECESSARY)))"));
@@ -630,13 +666,13 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalCast() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL3"))),
         new Type(SqlDecimal.of(2, 1))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    String java = sqlToJavaVisitor.process(cast);
 
     // Then:
     assertThat(java, is("(DecimalUtil.cast(TEST1_COL3, 2, 1))"));
@@ -645,13 +681,13 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalCastNoOp() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new Type(SqlDecimal.of(2, 1))
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    String java = sqlToJavaVisitor.process(cast);
 
     // Then:
     assertThat(java, is("TEST1_COL8"));
@@ -660,13 +696,13 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalToIntCast() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new Type(SqlTypes.INTEGER)
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    String java = sqlToJavaVisitor.process(cast);
 
     // Then:
     assertThat(java, is("((TEST1_COL8).intValue())"));
@@ -675,13 +711,13 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalToLongCast() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new Type(SqlTypes.BIGINT)
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    String java = sqlToJavaVisitor.process(cast);
 
     // Then:
     assertThat(java, is("((TEST1_COL8).longValue())"));
@@ -690,13 +726,13 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalToDoubleCast() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new Type(SqlTypes.DOUBLE)
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    String java = sqlToJavaVisitor.process(cast);
 
     // Then:
     assertThat(java, is("((TEST1_COL8).doubleValue())"));
@@ -705,13 +741,13 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldGenerateCorrectCodeForDecimalToStringCast() {
     // Given:
-    final Cast cast = new Cast(
+    Cast cast = new Cast(
         new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL8"))),
         new Type(SqlTypes.STRING)
     );
 
     // When:
-    final String java = sqlToJavaVisitor.process(cast);
+    String java = sqlToJavaVisitor.process(cast);
 
     // Then:
     assertThat(java, is("DecimalUtil.format(2, 1, TEST1_COL8)"));
@@ -720,7 +756,7 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldThrowOnIn() {
     // Given:
-    final Expression expression = new InPredicate(
+    Expression expression = new InPredicate(
         COL0,
         new InListExpression(ImmutableList.of(new IntegerLiteral(1), new IntegerLiteral(2)))
     );
@@ -735,7 +771,7 @@ public class SqlToJavaVisitorTest {
   @Test
   public void shouldThrowOnSimpleCase() {
     // Given:
-    final Expression expression = new SimpleCaseExpression(
+    Expression expression = new SimpleCaseExpression(
         COL0,
         ImmutableList.of(new WhenClause(new IntegerLiteral(10), new StringLiteral("ten"))),
         Optional.empty()
@@ -767,10 +803,7 @@ public class SqlToJavaVisitorTest {
   }
 
   private void givenUdf(
-      final String name,
-      final Schema returnType,
-      final UdfFactory factory,
-      final KsqlScalarFunction function
+      String name, Schema returnType, UdfFactory factory, KsqlScalarFunction function
   ) {
     when(functionRegistry.isAggregate(name)).thenReturn(false);
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);

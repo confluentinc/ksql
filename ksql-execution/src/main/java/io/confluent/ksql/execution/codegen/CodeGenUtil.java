@@ -24,11 +24,11 @@ public final class CodeGenUtil {
   private CodeGenUtil() {
   }
 
-  public static String paramName(final int index) {
+  public static String paramName(int index) {
     return PARAM_NAME_PREFIX + index;
   }
 
-  public static String functionName(final FunctionName fun, final int index) {
+  public static String functionName(FunctionName fun, int index) {
     return fun.name() + "_" + index;
   }
 

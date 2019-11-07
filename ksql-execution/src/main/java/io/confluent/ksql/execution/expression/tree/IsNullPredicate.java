@@ -27,11 +27,11 @@ public class IsNullPredicate extends Expression {
 
   private final Expression value;
 
-  public IsNullPredicate(final Expression value) {
+  public IsNullPredicate(Expression value) {
     this(Optional.empty(), value);
   }
 
-  public IsNullPredicate(final Optional<NodeLocation> location, final Expression value) {
+  public IsNullPredicate(Optional<NodeLocation> location, Expression value) {
     super(location);
     this.value = requireNonNull(value, "value");
   }
@@ -41,12 +41,12 @@ public class IsNullPredicate extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitIsNullPredicate(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -54,7 +54,7 @@ public class IsNullPredicate extends Expression {
       return false;
     }
 
-    final IsNullPredicate that = (IsNullPredicate) o;
+    IsNullPredicate that = (IsNullPredicate) o;
     return Objects.equals(value, that.value);
   }
 

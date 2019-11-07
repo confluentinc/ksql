@@ -32,15 +32,11 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   private final long size;
   private final TimeUnit sizeUnit;
 
-  public TumblingWindowExpression(final long size, final TimeUnit sizeUnit) {
+  public TumblingWindowExpression(long size, TimeUnit sizeUnit) {
     this(Optional.empty(), size, sizeUnit);
   }
 
-  public TumblingWindowExpression(
-      final Optional<NodeLocation> location,
-      final long size,
-      final TimeUnit sizeUnit
-  ) {
+  public TumblingWindowExpression(Optional<NodeLocation> location, long size, TimeUnit sizeUnit) {
     super(location);
     this.size = size;
     this.sizeUnit = requireNonNull(sizeUnit, "sizeUnit");
@@ -63,7 +59,7 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public <R, C> R accept(final WindowVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(WindowVisitor<R, C> visitor, C context) {
     return visitor.visitTumblingWindowExpression(this, context);
   }
 
@@ -78,14 +74,14 @@ public class TumblingWindowExpression extends KsqlWindowExpression {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
+    TumblingWindowExpression tumblingWindowExpression = (TumblingWindowExpression) o;
     return tumblingWindowExpression.size == size && tumblingWindowExpression.sizeUnit == sizeUnit;
   }
 }

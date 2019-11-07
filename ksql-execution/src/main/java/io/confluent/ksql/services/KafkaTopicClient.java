@@ -36,10 +36,7 @@ public interface KafkaTopicClient {
     COMPACT_DELETE
   }
 
-  default void validateCreateTopic(
-      final String topic,
-      final int numPartitions,
-      final short replicationFactor) {
+  default void validateCreateTopic(String topic, int numPartitions, short replicationFactor) {
     validateCreateTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
@@ -47,7 +44,8 @@ public interface KafkaTopicClient {
       String topic,
       int numPartitions,
       short replicationFactor,
-      Map<String, ?> configs) {
+      Map<String, ?> configs
+  ) {
     createTopic(
         topic,
         numPartitions,
@@ -61,17 +59,14 @@ public interface KafkaTopicClient {
    * Create a new topic with the specified name, numPartitions and replicationFactor.
    *
    * <p>If the topic already exists the method checks that partition count <i>matches</i>matches
-   * {@code numPartitions} and that the replication factor is <i>at least</i>
-   * {@code replicationFactor}
+   * {@code numPartitions} and that the replication factor is <i>at least</i> {@code
+   * replicationFactor}
    *
-   * @param topic name of the topic to create
+   * @param topic             name of the topic to create
    * @param replicationFactor the rf of the topic.
-   * @param numPartitions the partition count of the topic.
+   * @param numPartitions     the partition count of the topic.
    */
-  default void createTopic(
-      final String topic,
-      final int numPartitions,
-      final short replicationFactor) {
+  default void createTopic(String topic, int numPartitions, short replicationFactor) {
     createTopic(topic, numPartitions, replicationFactor, Collections.emptyMap());
   }
 
@@ -79,12 +74,12 @@ public interface KafkaTopicClient {
    * Create a new topic with the specified name, numPartitions and replicationFactor.
    *
    * <p>If the topic already exists the method checks that partition count <i>matches</i>matches
-   * {@code numPartitions} and that the replication factor is <i>at least</i>
-   * {@code replicationFactor}
+   * {@code numPartitions} and that the replication factor is <i>at least</i> {@code
+   * replicationFactor}
    *
    * @param topic             name of the topic to create
-   * @param replicationFactor the replication factor for the new topic, or
-   *                          to use the default replication of the cluster
+   * @param replicationFactor the replication factor for the new topic, or to use the default
+   *                          replication of the cluster
    * @param numPartitions     the partition count of the topic.
    * @param configs           any additional topic configs to use
    */
@@ -107,13 +102,13 @@ public interface KafkaTopicClient {
    * Create a new topic with the specified name, numPartitions and replicationFactor.
    *
    * <p>If the topic already exists the method checks that partition count <i>matches</i>matches
-   * {@code numPartitions} and that the replication factor is <i>at least</i>
-   * {@code replicationFactor}
+   * {@code numPartitions} and that the replication factor is <i>at least</i> {@code
+   * replicationFactor}
    *
    * @param topic             name of the topic to create
-   * @param replicationFactor the replication factor for the new topic, or
-   *                          {@link io.confluent.ksql.topic.TopicProperties#DEFAULT_REPLICAS}
-   *                          to use the default replication of the cluster
+   * @param replicationFactor the replication factor for the new topic, or {@link
+   *                          io.confluent.ksql.topic.TopicProperties#DEFAULT_REPLICAS} to use the
+   *                          default replication of the cluster
    * @param numPartitions     the partition count of the topic.
    * @param configs           any additional topic configs to use
    * @param createOptions     the options to use when creating the new topic

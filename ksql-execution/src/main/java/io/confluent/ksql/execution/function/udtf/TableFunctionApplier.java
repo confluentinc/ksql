@@ -26,18 +26,19 @@ import java.util.Objects;
  */
 @Immutable
 public class TableFunctionApplier {
+
   private final KsqlTableFunction tableFunction;
   private final List<ExpressionMetadata> expressionMetadataList;
 
-  public TableFunctionApplier(final KsqlTableFunction tableFunction,
-      final List<ExpressionMetadata> expressionMetadataList
+  public TableFunctionApplier(
+      KsqlTableFunction tableFunction, List<ExpressionMetadata> expressionMetadataList
   ) {
     this.tableFunction = Objects.requireNonNull(tableFunction);
     this.expressionMetadataList = Objects.requireNonNull(expressionMetadataList);
   }
 
-  List<?> apply(final GenericRow row) {
-    final Object[] args = new Object[expressionMetadataList.size()];
+  List<?> apply(GenericRow row) {
+    Object[] args = new Object[expressionMetadataList.size()];
     int i = 0;
     for (ExpressionMetadata expressionMetadata : expressionMetadataList) {
       args[i++] = expressionMetadata.evaluate(row);

@@ -19,11 +19,10 @@ import io.confluent.ksql.util.Pair;
 import java.util.List;
 
 public class KafkaDeleteTopicsException extends KafkaTopicClientException {
+
   private final List<Pair<String, Throwable>> exceptionList;
 
-  public KafkaDeleteTopicsException(
-          final String message,
-          final List<Pair<String, Throwable>> failList) {
+  public KafkaDeleteTopicsException(String message, List<Pair<String, Throwable>> failList) {
     super(message);
     exceptionList = failList;
   }

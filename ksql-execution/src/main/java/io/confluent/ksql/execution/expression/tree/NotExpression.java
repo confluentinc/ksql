@@ -27,11 +27,11 @@ public class NotExpression extends Expression {
 
   private final Expression value;
 
-  public NotExpression(final Expression value) {
+  public NotExpression(Expression value) {
     this(Optional.empty(), value);
   }
 
-  public NotExpression(final Optional<NodeLocation> location, final Expression value) {
+  public NotExpression(Optional<NodeLocation> location, Expression value) {
     super(location);
     this.value = requireNonNull(value, "value");
   }
@@ -41,12 +41,12 @@ public class NotExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitNotExpression(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -54,7 +54,7 @@ public class NotExpression extends Expression {
       return false;
     }
 
-    final NotExpression that = (NotExpression) o;
+    NotExpression that = (NotExpression) o;
     return Objects.equals(value, that.value);
   }
 

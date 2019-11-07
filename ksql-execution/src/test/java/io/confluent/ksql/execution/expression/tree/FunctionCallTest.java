@@ -19,7 +19,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.testing.EqualsTester;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.NodeLocation;
-import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.List;
 import java.util.Optional;
 import org.junit.Test;

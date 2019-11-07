@@ -39,9 +39,8 @@ public final class CodeGenSpec {
   private final ImmutableListMultimap<FunctionName, String> functionToCodeName;
 
   private CodeGenSpec(
-      final ImmutableList<ArgumentSpec> arguments,
-      final ImmutableMap<ColumnRef, String> columnToCodeName,
-      final ImmutableListMultimap<FunctionName, String> functionToCodeName
+      ImmutableList<ArgumentSpec> arguments, ImmutableMap<ColumnRef, String> columnToCodeName,
+      ImmutableListMultimap<FunctionName, String> functionToCodeName
   ) {
     this.arguments = arguments;
     this.columnToCodeName = columnToCodeName;
@@ -60,12 +59,12 @@ public final class CodeGenSpec {
     return arguments;
   }
 
-  public String getCodeName(final ColumnRef columnRef) {
+  public String getCodeName(ColumnRef columnRef) {
     return columnToCodeName.get(columnRef);
   }
 
-  public String getUniqueNameForFunction(final FunctionName functionName, final int index) {
-    final List<String> names = functionToCodeName.get(functionName);
+  public String getUniqueNameForFunction(FunctionName functionName, int index) {
+    List<String> names = functionToCodeName.get(functionName);
     if (names.size() <= index) {
       throw new KsqlException("Cannot get name for " + functionName + " " + index + " times");
     }
@@ -73,18 +72,17 @@ public final class CodeGenSpec {
   }
 
   public void resolve(
-      final GenericRow row,
-      final GenericRowValueTypeEnforcer typeEnforcer,
-      final Object[] parameters) {
+      GenericRow row, GenericRowValueTypeEnforcer typeEnforcer, Object[] parameters
+  ) {
     for (int paramIdx = 0; paramIdx < arguments.size(); paramIdx++) {
-      final ArgumentSpec spec = arguments.get(paramIdx);
+      ArgumentSpec spec = arguments.get(paramIdx);
 
       if (spec.colIndex().isPresent()) {
-        final int colIndex = spec.colIndex().getAsInt();
+        int colIndex = spec.colIndex().getAsInt();
         parameters[paramIdx] = typeEnforcer
             .enforceColumnType(colIndex, row.getColumns().get(colIndex));
       } else {
-        final int copyOfParamIdxForLambda = paramIdx;
+        int copyOfParamIdxForLambda = paramIdx;
         parameters[paramIdx] = spec.kudf()
             .orElseThrow(() -> new KsqlException(
                 "Expected parameter at index "
@@ -104,8 +102,8 @@ public final class CodeGenSpec {
 
     private int argumentCount = 0;
 
-    void addParameter(final ColumnRef columnRef, final Class<?> type, final int colIndex) {
-      final String codeName = CodeGenUtil.paramName(argumentCount);
+    void addParameter(ColumnRef columnRef, Class<?> type, int colIndex) {
+      String codeName = CodeGenUtil.paramName(argumentCount);
       argumentBuilder.add(new ArgumentSpec(
           codeName,
           type,
@@ -116,8 +114,8 @@ public final class CodeGenSpec {
       argumentCount++;
     }
 
-    void addFunction(final FunctionName functionName, final Kudf function) {
-      final String codeName = CodeGenUtil.functionName(functionName, argumentCount);
+    void addFunction(FunctionName functionName, Kudf function) {
+      String codeName = CodeGenUtil.functionName(functionName, argumentCount);
       functionNameBuilder.put(functionName, codeName);
       argumentBuilder.add(new ArgumentSpec(
           codeName,
@@ -138,8 +136,8 @@ public final class CodeGenSpec {
   }
 
   /**
-   * Represents either a named reference to a column in a generic row, or
-   * a function wrapped in a {@code Kudf}.
+   * Represents either a named reference to a column in a generic row, or a function wrapped in a
+   * {@code Kudf}.
    */
   @Immutable
   public static class ArgumentSpec {
@@ -149,12 +147,7 @@ public final class CodeGenSpec {
     private final OptionalInt columnIndex;
     private final Optional<Kudf> kudf;
 
-    ArgumentSpec(
-        final String name,
-        final Class<?> type,
-        final OptionalInt columnIndex,
-        final Optional<Kudf> kudf
-    ) {
+    ArgumentSpec(String name, Class<?> type, OptionalInt columnIndex, Optional<Kudf> kudf) {
       this.name = name;
       this.type = type;
       this.columnIndex = columnIndex;

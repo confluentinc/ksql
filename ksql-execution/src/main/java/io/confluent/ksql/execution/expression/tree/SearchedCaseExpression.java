@@ -30,17 +30,13 @@ public class SearchedCaseExpression extends Expression {
   private final ImmutableList<WhenClause> whenClauses;
   private final Optional<Expression> defaultValue;
 
-  public SearchedCaseExpression(
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue
-  ) {
+  public SearchedCaseExpression(List<WhenClause> whenClauses, Optional<Expression> defaultValue) {
     this(Optional.empty(), whenClauses, defaultValue);
   }
 
   public SearchedCaseExpression(
-      final Optional<NodeLocation> location,
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue
+      Optional<NodeLocation> location, List<WhenClause> whenClauses,
+      Optional<Expression> defaultValue
   ) {
     super(location);
     this.whenClauses = ImmutableList.copyOf(requireNonNull(whenClauses, "whenClauses"));
@@ -56,12 +52,12 @@ public class SearchedCaseExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitSearchedCaseExpression(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -69,9 +65,9 @@ public class SearchedCaseExpression extends Expression {
       return false;
     }
 
-    final SearchedCaseExpression that = (SearchedCaseExpression) o;
+    SearchedCaseExpression that = (SearchedCaseExpression) o;
     return Objects.equals(whenClauses, that.whenClauses)
-           && Objects.equals(defaultValue, that.defaultValue);
+        && Objects.equals(defaultValue, that.defaultValue);
   }
 
   @Override

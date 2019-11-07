@@ -54,114 +54,108 @@ import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 
 public final class ExpressionFormatter {
+
   private ExpressionFormatter() {
   }
 
-  public static String formatExpression(final Expression expression) {
+  public static String formatExpression(Expression expression) {
     return formatExpression(expression, true, FormatOptions.of(s -> false));
   }
 
   public static String formatExpression(
-      final Expression expression,
-      final boolean unmangleNames,
-      final FormatOptions formatOptions) {
+      Expression expression, boolean unmangleNames, FormatOptions formatOptions
+  ) {
     return new Formatter().process(expression, new Context(unmangleNames, formatOptions));
   }
 
   private static final class Context {
+
     final boolean unmangleNames;
     final FormatOptions formatOptions;
 
-    private Context(final boolean unmangleNames, final FormatOptions formatOptions) {
+    private Context(boolean unmangleNames, FormatOptions formatOptions) {
       this.unmangleNames = unmangleNames;
       this.formatOptions = formatOptions;
     }
   }
 
   private static class Formatter implements ExpressionVisitor<String, Context> {
+
     @Override
-    public String visitType(final Type node, final Context context) {
+    public String visitType(Type node, Context context) {
       return node.getSqlType().toString(context.formatOptions);
     }
 
     @Override
-    public String visitBooleanLiteral(final BooleanLiteral node, final Context context) {
+    public String visitBooleanLiteral(BooleanLiteral node, Context context) {
       return String.valueOf(node.getValue());
     }
 
     @Override
-    public String visitStringLiteral(final StringLiteral node, final Context context) {
+    public String visitStringLiteral(StringLiteral node, Context context) {
       return formatStringLiteral(node.getValue());
     }
 
     @Override
-    public String visitSubscriptExpression(
-        final SubscriptExpression node,
-        final Context context) {
+    public String visitSubscriptExpression(SubscriptExpression node, Context context) {
       return process(node.getBase(), context)
           + "[" + process(node.getIndex(), context) + "]";
     }
 
     @Override
-    public String visitLongLiteral(final LongLiteral node, final Context context) {
+    public String visitLongLiteral(LongLiteral node, Context context) {
       return Long.toString(node.getValue());
     }
 
     @Override
-    public String visitIntegerLiteral(final IntegerLiteral node, final Context context) {
+    public String visitIntegerLiteral(IntegerLiteral node, Context context) {
       return Integer.toString(node.getValue());
     }
 
     @Override
-    public String visitDoubleLiteral(final DoubleLiteral node, final Context context) {
+    public String visitDoubleLiteral(DoubleLiteral node, Context context) {
       return Double.toString(node.getValue());
     }
 
     @Override
-    public String visitDecimalLiteral(final DecimalLiteral node, final Context context) {
+    public String visitDecimalLiteral(DecimalLiteral node, Context context) {
       return "DECIMAL '" + node.getValue() + "'";
     }
 
     @Override
-    public String visitTimeLiteral(final TimeLiteral node, final Context context) {
+    public String visitTimeLiteral(TimeLiteral node, Context context) {
       return "TIME '" + node.getValue() + "'";
     }
 
     @Override
-    public String visitTimestampLiteral(
-        final TimestampLiteral node,
-        final Context context) {
+    public String visitTimestampLiteral(TimestampLiteral node, Context context) {
       return "TIMESTAMP '" + node.getValue() + "'";
     }
 
     @Override
-    public String visitNullLiteral(final NullLiteral node, final Context context) {
+    public String visitNullLiteral(NullLiteral node, Context context) {
       return "null";
     }
 
     @Override
-    public String visitColumnReference(final ColumnReferenceExp node,
-        final Context context) {
+    public String visitColumnReference(ColumnReferenceExp node, Context context) {
       return node.getReference().toString(context.formatOptions);
     }
 
     @Override
-    public String visitDereferenceExpression(
-        final DereferenceExpression node,
-        final Context context
-    ) {
-      final String baseString = process(node.getBase(), context);
+    public String visitDereferenceExpression(DereferenceExpression node, Context context) {
+      String baseString = process(node.getBase(), context);
       return baseString + KsqlConstants.STRUCT_FIELD_REF
           + context.formatOptions.escape(node.getFieldName());
     }
 
-    private static String formatName(final Name<?> name, final Context context) {
+    private static String formatName(Name<?> name, Context context) {
       return name.toString(context.formatOptions);
     }
 
     @Override
-    public String visitFunctionCall(final FunctionCall node, final Context context) {
-      final StringBuilder builder = new StringBuilder();
+    public String visitFunctionCall(FunctionCall node, Context context) {
+      StringBuilder builder = new StringBuilder();
 
       String arguments = joinExpressions(node.getArguments(), context);
       if (node.getArguments().isEmpty() && "COUNT".equals(node.getName().name())) {
@@ -175,47 +169,42 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitLogicalBinaryExpression(final LogicalBinaryExpression node,
-        final Context context) {
+    public String visitLogicalBinaryExpression(LogicalBinaryExpression node, Context context) {
       return formatBinaryExpression(node.getType().toString(), node.getLeft(), node.getRight(),
-          context);
+          context
+      );
     }
 
     @Override
-    public String visitNotExpression(final NotExpression node, final Context context) {
+    public String visitNotExpression(NotExpression node, Context context) {
       return "(NOT " + process(node.getValue(), context) + ")";
     }
 
     @Override
-    public String visitComparisonExpression(
-        final ComparisonExpression node,
-        final Context context) {
+    public String visitComparisonExpression(ComparisonExpression node, Context context) {
       return formatBinaryExpression(node.getType().getValue(), node.getLeft(), node.getRight(),
-          context);
+          context
+      );
     }
 
     @Override
-    public String visitIsNullPredicate(final IsNullPredicate node, final Context context) {
+    public String visitIsNullPredicate(IsNullPredicate node, Context context) {
       return "(" + process(node.getValue(), context) + " IS NULL)";
     }
 
     @Override
-    public String visitIsNotNullPredicate(
-        final IsNotNullPredicate node,
-        final Context context) {
+    public String visitIsNotNullPredicate(IsNotNullPredicate node, Context context) {
       return "(" + process(node.getValue(), context) + " IS NOT NULL)";
     }
 
     @Override
-    public String visitArithmeticUnary(
-        final ArithmeticUnaryExpression node,
-        final Context context) {
-      final String value = process(node.getValue(), context);
+    public String visitArithmeticUnary(ArithmeticUnaryExpression node, Context context) {
+      String value = process(node.getValue(), context);
 
       switch (node.getSign()) {
         case MINUS:
           // this is to avoid turning a sequence of "-" into a comment (i.e., "-- comment")
-          final String separator = value.startsWith("-") ? " " : "";
+          String separator = value.startsWith("-") ? " " : "";
           return "-" + separator + value;
         case PLUS:
           return "+" + value;
@@ -225,15 +214,14 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitArithmeticBinary(
-        final ArithmeticBinaryExpression node,
-        final Context context) {
+    public String visitArithmeticBinary(ArithmeticBinaryExpression node, Context context) {
       return formatBinaryExpression(node.getOperator().getSymbol(), node.getLeft(), node.getRight(),
-          context);
+          context
+      );
     }
 
     @Override
-    public String visitLikePredicate(final LikePredicate node, final Context context) {
+    public String visitLikePredicate(LikePredicate node, Context context) {
       return "("
           + process(node.getValue(), context)
           + " LIKE "
@@ -242,17 +230,16 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitCast(final Cast node, final Context context) {
+    public String visitCast(Cast node, Context context) {
       return "CAST"
           + "(" + process(node.getExpression(), context) + " AS " + node.getType() + ")";
     }
 
     @Override
-    public String visitSearchedCaseExpression(final SearchedCaseExpression node,
-        final Context context) {
-      final ImmutableList.Builder<String> parts = ImmutableList.builder();
+    public String visitSearchedCaseExpression(SearchedCaseExpression node, Context context) {
+      ImmutableList.Builder<String> parts = ImmutableList.builder();
       parts.add("CASE");
-      for (final WhenClause whenClause : node.getWhenClauses()) {
+      for (WhenClause whenClause : node.getWhenClauses()) {
         parts.add(process(whenClause, context));
       }
 
@@ -265,15 +252,13 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitSimpleCaseExpression(
-        final SimpleCaseExpression node,
-        final Context context) {
-      final ImmutableList.Builder<String> parts = ImmutableList.builder();
+    public String visitSimpleCaseExpression(SimpleCaseExpression node, Context context) {
+      ImmutableList.Builder<String> parts = ImmutableList.builder();
 
       parts.add("CASE")
           .add(process(node.getOperand(), context));
 
-      for (final WhenClause whenClause : node.getWhenClauses()) {
+      for (WhenClause whenClause : node.getWhenClauses()) {
         parts.add(process(whenClause, context));
       }
 
@@ -286,51 +271,51 @@ public final class ExpressionFormatter {
     }
 
     @Override
-    public String visitWhenClause(final WhenClause node, final Context context) {
+    public String visitWhenClause(WhenClause node, Context context) {
       return "WHEN " + process(node.getOperand(), context) + " THEN " + process(
           node.getResult(), context);
     }
 
     @Override
-    public String visitBetweenPredicate(
-        final BetweenPredicate node,
-        final Context context) {
+    public String visitBetweenPredicate(BetweenPredicate node, Context context) {
       return "(" + process(node.getValue(), context) + " BETWEEN "
-          + process(node.getMin(), context) + " AND " + process(node.getMax(),
-          context)
+          + process(node.getMin(), context) + " AND " + process(
+          node.getMax(),
+          context
+      )
           + ")";
     }
 
     @Override
-    public String visitInPredicate(final InPredicate node, final Context context) {
-      return "(" + process(node.getValue(), context) + " IN " + process(node.getValueList(),
-          context) + ")";
+    public String visitInPredicate(InPredicate node, Context context) {
+      return "(" + process(node.getValue(), context) + " IN " + process(
+          node.getValueList(),
+          context
+      ) + ")";
     }
 
     @Override
-    public String visitInListExpression(
-        final InListExpression node,
-        final Context context) {
+    public String visitInListExpression(InListExpression node, Context context) {
       return "(" + joinExpressions(node.getValues(), context) + ")";
     }
 
     private String formatBinaryExpression(
-        final String operator, final Expression left, final Expression right,
-        final Context context) {
-      return '(' + process(left, context) + ' ' + operator + ' ' + process(right,
-          context)
+        String operator, Expression left, Expression right, Context context
+    ) {
+      return '(' + process(left, context) + ' ' + operator + ' ' + process(
+          right,
+          context
+      )
           + ')';
     }
 
-    private String joinExpressions(
-        final List<Expression> expressions,
-        final Context context) {
+    private String joinExpressions(List<Expression> expressions, Context context) {
       return Joiner.on(", ").join(expressions.stream()
           .map((e) -> process(e, context))
           .iterator());
     }
 
-    private static String formatStringLiteral(final String s) {
+    private static String formatStringLiteral(String s) {
       return "'" + s.replace("'", "''") + "'";
     }
   }

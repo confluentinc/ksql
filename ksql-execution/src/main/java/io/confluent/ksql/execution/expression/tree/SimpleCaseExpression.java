@@ -32,18 +32,14 @@ public class SimpleCaseExpression extends Expression {
   private final Optional<Expression> defaultValue;
 
   public SimpleCaseExpression(
-      final Expression operand,
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue
+      Expression operand, List<WhenClause> whenClauses, Optional<Expression> defaultValue
   ) {
     this(Optional.empty(), operand, whenClauses, defaultValue);
   }
 
   public SimpleCaseExpression(
-      final Optional<NodeLocation> location,
-      final Expression operand,
-      final List<WhenClause> whenClauses,
-      final Optional<Expression> defaultValue
+      Optional<NodeLocation> location, Expression operand, List<WhenClause> whenClauses,
+      Optional<Expression> defaultValue
   ) {
     super(location);
     this.operand = requireNonNull(operand, "operand");
@@ -64,12 +60,12 @@ public class SimpleCaseExpression extends Expression {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitSimpleCaseExpression(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
@@ -77,10 +73,10 @@ public class SimpleCaseExpression extends Expression {
       return false;
     }
 
-    final SimpleCaseExpression that = (SimpleCaseExpression) o;
+    SimpleCaseExpression that = (SimpleCaseExpression) o;
     return Objects.equals(operand, that.operand)
-           && Objects.equals(whenClauses, that.whenClauses)
-           && Objects.equals(defaultValue, that.defaultValue);
+        && Objects.equals(whenClauses, that.whenClauses)
+        && Objects.equals(defaultValue, that.defaultValue);
   }
 
   @Override

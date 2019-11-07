@@ -31,7 +31,7 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
 
   private final List<TableFunctionApplier> tableFunctionAppliers;
 
-  public KudtfFlatMapper(final List<TableFunctionApplier> tableFunctionAppliers) {
+  public KudtfFlatMapper(List<TableFunctionApplier> tableFunctionAppliers) {
     this.tableFunctionAppliers = Objects.requireNonNull(tableFunctionAppliers);
   }
 
@@ -40,17 +40,17 @@ public class KudtfFlatMapper implements ValueMapper<GenericRow, Iterable<Generic
   in the design-proposals directory.
    */
   @Override
-  public Iterable<GenericRow> apply(final GenericRow row) {
-    final List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
+  public Iterable<GenericRow> apply(GenericRow row) {
+    List<Iterator<?>> iters = new ArrayList<>(tableFunctionAppliers.size());
     int maxLength = 0;
-    for (TableFunctionApplier applier: tableFunctionAppliers) {
-      final List<?> exploded = applier.apply(row);
+    for (TableFunctionApplier applier : tableFunctionAppliers) {
+      List<?> exploded = applier.apply(row);
       iters.add(exploded.iterator());
       maxLength = Math.max(maxLength, exploded.size());
     }
-    final List<GenericRow> rows = new ArrayList<>(maxLength);
+    List<GenericRow> rows = new ArrayList<>(maxLength);
     for (int i = 0; i < maxLength; i++) {
-      final List<Object> newRow = new ArrayList<>(row.getColumns());
+      List<Object> newRow = new ArrayList<>(row.getColumns());
       for (Iterator<?> iter : iters) {
         if (iter.hasNext()) {
           newRow.add(iter.next());

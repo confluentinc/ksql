@@ -11,6 +11,7 @@ import io.confluent.ksql.schema.ksql.types.SqlStruct;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
 public final class TestExpressions {
+
   private TestExpressions() {
   }
 
@@ -45,7 +46,7 @@ public final class TestExpressions {
   public static final ColumnReferenceExp MAPCOL = columnRef(TEST1, "COL5");
   public static final ColumnReferenceExp COL7 = columnRef(TEST1, "COL7");
 
-  private static ColumnReferenceExp columnRef(final String source, final String name) {
+  private static ColumnReferenceExp columnRef(String source, String name) {
     return new ColumnReferenceExp(ColumnRef.of(SourceName.of(source), ColumnName.of(name)));
   }
 

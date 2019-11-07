@@ -27,11 +27,11 @@ public class DecimalLiteral extends Literal {
 
   private final String value;
 
-  public DecimalLiteral(final String value) {
+  public DecimalLiteral(String value) {
     this(Optional.empty(), value);
   }
 
-  public DecimalLiteral(final Optional<NodeLocation> location, final String value) {
+  public DecimalLiteral(Optional<NodeLocation> location, String value) {
     super(location);
     this.value = requireNonNull(value, "value");
   }
@@ -42,19 +42,19 @@ public class DecimalLiteral extends Literal {
   }
 
   @Override
-  public <R, C> R accept(final ExpressionVisitor<R, C> visitor, final C context) {
+  public <R, C> R accept(ExpressionVisitor<R, C> visitor, C context) {
     return visitor.visitDecimalLiteral(this, context);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final DecimalLiteral that = (DecimalLiteral) o;
+    DecimalLiteral that = (DecimalLiteral) o;
     return Objects.equals(value, that.value);
   }
 

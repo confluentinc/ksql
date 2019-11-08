@@ -16,11 +16,9 @@
 package io.confluent.ksql.execution.util;
 
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
 
 final class ComparisonUtil {
 
@@ -28,26 +26,27 @@ final class ComparisonUtil {
 
   }
 
-  static boolean isValidComparison(Schema left, ComparisonExpression.Type operator, Schema right) {
-    if (SchemaUtil.isNumber(left) && SchemaUtil.isNumber(right)) {
+  static boolean isValidComparison(
+      SqlType left, ComparisonExpression.Type operator, SqlType right
+  ) {
+    if (left.baseType().isNumber() && right.baseType().isNumber()) {
       return true;
     }
 
-    if (left.type() == Type.STRING && right.type() == Type.STRING) {
+    if (left.baseType() == SqlBaseType.STRING && right.baseType() == SqlBaseType.STRING) {
       return true;
     }
 
-    if (left.type() == Type.BOOLEAN && right.type() == Type.BOOLEAN) {
+    if (left.baseType() == SqlBaseType.BOOLEAN && right.baseType() == SqlBaseType.BOOLEAN) {
       if (operator == ComparisonExpression.Type.EQUAL
           || operator == ComparisonExpression.Type.NOT_EQUAL) {
         return true;
       }
     }
 
-    throw new KsqlException("Operator " + operator + " cannot be used to compare "
-        + SchemaConverters.connectToSqlConverter().toSqlType(left).baseType()
-        + " and "
-        + SchemaConverters.connectToSqlConverter().toSqlType(right).baseType()
+    throw new KsqlException(
+        "Operator " + operator + " cannot be used to compare "
+            + left.baseType() + " and " + right.baseType()
     );
   }
 }

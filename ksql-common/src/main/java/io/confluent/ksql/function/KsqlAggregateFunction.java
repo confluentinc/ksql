@@ -18,7 +18,6 @@ package io.confluent.ksql.function;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -28,11 +27,7 @@ public interface KsqlAggregateFunction<I, A, O> extends FunctionSignature {
 
   int getArgIndexInValue();
 
-  Schema getAggregateType();
-
-  SqlType aggregateType();
-
-  Schema getReturnType();
+  SqlType getAggregateType();
 
   SqlType returnType();
 

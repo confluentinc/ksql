@@ -16,13 +16,18 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.types.DecimalType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.UdfMetadata;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConstants;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import org.apache.kafka.connect.data.Schema;
+import java.util.stream.Collectors;
 
 
 public abstract class AggregateFunctionFactory {
@@ -30,12 +35,12 @@ public abstract class AggregateFunctionFactory {
   private final UdfMetadata metadata;
 
   // used in most numeric functions
-  protected static final List<List<Schema>> NUMERICAL_ARGS = ImmutableList
-      .<List<Schema>>builder()
-      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
-      .add(ImmutableList.of(DecimalUtil.builder(1, 1).build()))
+  protected static final List<List<ParamType>> NUMERICAL_ARGS = ImmutableList
+      .<List<ParamType>>builder()
+      .add(ImmutableList.of(ParamTypes.INTEGER))
+      .add(ImmutableList.of(ParamTypes.LONG))
+      .add(ImmutableList.of(ParamTypes.DOUBLE))
+      .add(ImmutableList.of(ParamTypes.DECIMAL))
       .build();
 
   public AggregateFunctionFactory(final String functionName) {
@@ -54,9 +59,9 @@ public abstract class AggregateFunctionFactory {
   }
 
   public abstract KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-      List<Schema> argTypeList, AggregateFunctionInitArguments initArgs);
+      List<SqlType> argTypeList, AggregateFunctionInitArguments initArgs);
 
-  protected abstract List<List<Schema>> supportedArgs();
+  protected abstract List<List<ParamType>> supportedArgs();
 
   public UdfMetadata getMetadata() {
     return metadata;
@@ -67,8 +72,28 @@ public abstract class AggregateFunctionFactory {
   }
 
   public void eachFunction(final Consumer<KsqlAggregateFunction<?, ?, ?>> consumer) {
-    supportedArgs().forEach(args ->
-        consumer.accept(createAggregateFunction(args, getDefaultArguments())));
+    supportedArgs()
+        .stream()
+        .map(args -> args
+            .stream()
+            .map(AggregateFunctionFactory::getSampleSqlType)
+            .collect(Collectors.toList()))
+        .forEach(args -> consumer.accept(createAggregateFunction(args, getDefaultArguments())));
+  }
+
+  /**
+   * This method turns a {@link ParamType} into a {@link SqlType} - this is a
+   * narrowing operations in that the {@code SqlType} that is returned may represent
+   * only a small subset of of what is a valid {@link ParamType}. For example,
+   * the {@code DecimalType} will return a {@code SqlDecimal} with specific precision
+   * and scale.
+   */
+  private static SqlType getSampleSqlType(final ParamType paramType) {
+    if (paramType instanceof DecimalType) {
+      return SqlDecimal.of(2, 1);
+    }
+
+    return SchemaConverters.functionToSqlConverter().toSqlType(paramType);
   }
 
   public AggregateFunctionInitArguments getDefaultArguments() {

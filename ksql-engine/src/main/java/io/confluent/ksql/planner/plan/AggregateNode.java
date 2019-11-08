@@ -38,8 +38,6 @@ import io.confluent.ksql.parser.tree.WindowExpression;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.schema.ksql.SchemaConverters.ConnectToSqlTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
@@ -300,15 +298,13 @@ public class AggregateNode extends PlanNode {
       schemaBuilder.valueColumn(cols.get(i));
     }
 
-    final ConnectToSqlTypeConverter converter = SchemaConverters.connectToSqlConverter();
-
     for (int i = 0; i < aggregations.size(); i++) {
       final KsqlAggregateFunction aggregateFunction =
           UdafUtil.resolveAggregateFunction(functionRegistry, aggregations.get(i), inputSchema);
       final ColumnName colName = ColumnName.aggregateColumn(i);
-      final SqlType fieldType = converter.toSqlType(
-          useAggregate ? aggregateFunction.getAggregateType() : aggregateFunction.getReturnType()
-      );
+      final SqlType fieldType = useAggregate
+          ? aggregateFunction.getAggregateType()
+          : aggregateFunction.returnType();
       schemaBuilder.valueColumn(colName, fieldType);
     }
 

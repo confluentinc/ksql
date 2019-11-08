@@ -17,12 +17,15 @@ package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.function.UdfUtil;
+import io.confluent.ksql.function.types.DecimalType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfParameter;
 import io.confluent.ksql.function.udf.UdfSchemaProvider;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.lang.reflect.InvocationTargetException;
@@ -30,7 +33,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -42,7 +47,6 @@ import org.apache.kafka.common.metrics.stats.Avg;
 import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * Utility class for loading different types of user defined funcrions
@@ -54,7 +58,7 @@ public final class FunctionLoaderUtils {
   private FunctionLoaderUtils() {
   }
 
-  static List<Schema> createParameters(
+  static List<ParameterInfo> createParameters(
       final Method method, final String functionName,
       final SqlTypeParser typeParser
   ) {
@@ -79,17 +83,19 @@ public final class FunctionLoaderUtils {
             ));
       }
 
-      final String doc = annotation.map(UdfParameter::description).orElse("");
+      final ParamType paramType;
       if (annotation.isPresent() && !annotation.get().schema().isEmpty()) {
-        return SchemaConverters.sqlToConnectConverter()
-            .toConnectSchema(
-                typeParser.parse(annotation.get().schema()).getSqlType(),
-                name,
-                doc
+        paramType = SchemaConverters.sqlToFunctionConverter()
+            .toFunctionType(
+                typeParser.parse(annotation.get().schema()).getSqlType()
             );
+      } else {
+        paramType = UdfUtil.getSchemaFromType(type);
       }
 
-      return UdfUtil.getSchemaFromType(type, name, doc);
+      String doc = annotation.map(UdfParameter::description).orElse("");
+      boolean isVariadicParam = idx == method.getParameterCount() - 1 && method.isVarArgs();
+      return new ParameterInfo(name, paramType, doc, isVariadicParam);
     }).collect(Collectors.toList());
   }
 
@@ -148,49 +154,86 @@ public final class FunctionLoaderUtils {
     });
   }
 
-  static Schema getReturnType(
+  static ParamType getReturnType(
       final Method method, final String annotationSchema,
       final SqlTypeParser typeParser
   ) {
     return getReturnType(method, method.getGenericReturnType(), annotationSchema, typeParser);
   }
 
-  static Schema getReturnType(
+  static ParamType getReturnType(
       final Method method, final Type type, final String annotationSchema,
       final SqlTypeParser typeParser
   ) {
     try {
-      final Schema returnType = annotationSchema.isEmpty()
+      return annotationSchema.isEmpty()
           ? UdfUtil.getSchemaFromType(type)
           : SchemaConverters
-              .sqlToConnectConverter()
-              .toConnectSchema(
+              .sqlToFunctionConverter()
+              .toFunctionType(
                   typeParser.parse(annotationSchema).getSqlType());
-
-      return SchemaUtil.ensureOptional(returnType);
     } catch (final KsqlException e) {
       throw new KsqlException("Could not load UDF method with signature: " + method, e);
     }
   }
 
-  static Function<List<Schema>, Schema> handleUdfReturnSchema(
+  static SchemaProvider handleUdfReturnSchema(
       final Class theClass,
-      final Schema javaReturnSchema,
+      final ParamType javaReturnSchema,
       final String schemaProviderFunctionName,
-      final String functionName
+      final String functionName,
+      final boolean isVariadic
   ) {
+    final Function<List<SqlType>, SqlType> schemaProvider;
     if (!schemaProviderFunctionName.equals("")) {
-      return handleUdfSchemaProviderAnnotation(
+      schemaProvider = handleUdfSchemaProviderAnnotation(
           schemaProviderFunctionName, theClass, functionName);
-    } else if (DecimalUtil.isDecimal(javaReturnSchema)) {
+    } else if (javaReturnSchema instanceof DecimalType) {
       throw new KsqlException(String.format("Cannot load UDF %s. BigDecimal return type "
           + "is not supported without a schema provider method.", functionName));
+    } else {
+      schemaProvider = null;
     }
 
-    return ignored -> javaReturnSchema;
+    return (parameters, arguments) -> {
+      if (schemaProvider != null) {
+        SqlType returnType = schemaProvider.apply(arguments);
+        if (!(SchemaUtil.areCompatible(returnType, javaReturnSchema))) {
+          throw new KsqlException(String.format(
+              "Return type %s of UDF %s does not match the declared "
+                  + "return type %s.",
+              returnType,
+              functionName.toUpperCase(),
+              SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema)
+          ));
+        }
+        return returnType;
+      }
+
+      if (!GenericsUtil.hasGenerics(javaReturnSchema)) {
+        return SchemaConverters.functionToSqlConverter().toSqlType(javaReturnSchema);
+      }
+
+      final Map<GenericType, SqlType> genericMapping = new HashMap<>();
+      for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
+        final ParamType schema = parameters.get(i);
+
+        // we resolve any variadic as if it were an array so that the type
+        // structure matches the input type
+        final SqlType instance = isVariadic && i == parameters.size() - 1
+            ? SqlTypes.array(arguments.get(i))
+            : arguments.get(i);
+
+        genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
+      }
+
+      return GenericsUtil.applyResolved(javaReturnSchema, genericMapping);
+    };
   }
 
-  private static Function<List<Schema>, Schema> handleUdfSchemaProviderAnnotation(
+
+
+  private static Function<List<SqlType>, SqlType> handleUdfSchemaProviderAnnotation(
       final String schemaProviderName,
       final Class theClass,
       final String functionName
@@ -200,13 +243,8 @@ public final class FunctionLoaderUtils {
     final Object instance = FunctionLoaderUtils
         .instantiateFunctionInstance(theClass, functionName);
 
-    return parameterSchemas -> {
-      final List<SqlType> parameterTypes = parameterSchemas.stream()
-          .map(p -> SchemaConverters.connectToSqlConverter().toSqlType(p))
-          .collect(Collectors.toList());
-      return SchemaConverters.sqlToConnectConverter().toConnectSchema(invokeSchemaProviderMethod(
-          instance, m, parameterTypes, functionName));
-    };
+    return
+        parameterSchemas -> invokeSchemaProviderMethod(instance, m, parameterSchemas, functionName);
   }
 
   private static Method findSchemaProvider(

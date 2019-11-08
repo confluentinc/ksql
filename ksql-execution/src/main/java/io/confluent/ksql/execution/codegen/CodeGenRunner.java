@@ -35,6 +35,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SchemaConverters.SqlToJavaTypeConverter;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -42,7 +43,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.apache.kafka.connect.data.Schema;
 import org.codehaus.commons.compiler.CompileException;
 import org.codehaus.commons.compiler.CompilerFactoryFactory;
 import org.codehaus.commons.compiler.IExpressionEvaluator;
@@ -158,17 +158,17 @@ public class CodeGenRunner {
 
     @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
     public Void visitFunctionCall(FunctionCall node, Void context) {
-      List<Schema> argumentTypes = new ArrayList<>();
+      List<SqlType> argumentTypes = new ArrayList<>();
       FunctionName functionName = node.getName();
       for (Expression argExpr : node.getArguments()) {
         process(argExpr, null);
-        argumentTypes.add(expressionTypeManager.getExpressionSchema(argExpr));
+        argumentTypes.add(expressionTypeManager.getExpressionSqlType(argExpr));
       }
 
       UdfFactory holder = functionRegistry.getUdfFactory(functionName.name());
       KsqlScalarFunction function = holder.getFunction(argumentTypes);
       spec.addFunction(
-          function.getFunctionName(),
+          function.name(),
           function.newInstance(ksqlConfig)
       );
 
@@ -193,14 +193,13 @@ public class CodeGenRunner {
       return null;
     }
 
-    @SuppressWarnings("deprecation")
     @Override
     public Void visitDereferenceExpression(DereferenceExpression node, Void context) {
       process(node.getBase(), null);
 
-      List<Schema> argumentTypes = ImmutableList.of(
-          expressionTypeManager.getExpressionSchema(node.getBase()),
-          Schema.OPTIONAL_STRING_SCHEMA
+      ImmutableList<SqlType> argumentTypes = ImmutableList.of(
+          expressionTypeManager.getExpressionSqlType(node.getBase()),
+          SqlTypes.STRING
       );
 
       KsqlScalarFunction function = functionRegistry
@@ -208,7 +207,7 @@ public class CodeGenRunner {
           .getFunction(argumentTypes);
 
       spec.addFunction(
-          function.getFunctionName(),
+          function.name(),
           function.newInstance(ksqlConfig)
       );
 

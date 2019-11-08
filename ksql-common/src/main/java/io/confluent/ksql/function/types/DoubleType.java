@@ -13,26 +13,24 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.function;
+package io.confluent.ksql.function.types;
 
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import java.util.function.Predicate;
-import org.apache.kafka.connect.data.Schema;
+public final class DoubleType extends ObjectType {
 
-public class UdfSchemaFormatter extends SqlSchemaFormatter {
-
-  public UdfSchemaFormatter(
-      final Predicate<String> reservedWordPredicate,
-      final Option... options) {
-    super(reservedWordPredicate, options);
+  @Override
+  public int hashCode() {
+    return 3;
   }
 
   @Override
-  protected String visitBytes(final Schema schema) {
-    if (GenericsUtil.isGeneric(schema)) {
-      return GenericsUtil.name(schema);
-    }
-
-    return super.visitBytes(schema);
+  public boolean equals(Object obj) {
+    return obj instanceof DoubleType;
   }
+
+  @Override
+  public String toString() {
+    return "DOUBLE";
+  }
+
+
 }

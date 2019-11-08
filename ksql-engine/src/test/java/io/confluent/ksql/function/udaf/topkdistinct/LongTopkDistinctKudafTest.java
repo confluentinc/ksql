@@ -19,9 +19,9 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 public class LongTopkDistinctKudafTest {
@@ -29,7 +29,7 @@ public class LongTopkDistinctKudafTest {
   private final List<Long> valuesArray = ImmutableList.of(10L, 30L, 45L, 10L, 50L, 60L, 20L, 60L, 80L, 35L, 25L,
       60L, 80L);
   private final TopkDistinctKudaf<Long> longTopkDistinctKudaf
-      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_INT64_SCHEMA);
+      = TopKDistinctTestUtils.getTopKDistinctKudaf(3, SqlTypes.BIGINT);
 
   @Test
   public void shouldAggregateTopK() {

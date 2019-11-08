@@ -17,6 +17,9 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.function.udaf.count.CountAggFunctionFactory;
 import io.confluent.ksql.function.udaf.max.MaxAggFunctionFactory;
 import io.confluent.ksql.function.udaf.min.MinAggFunctionFactory;
@@ -35,6 +38,8 @@ import io.confluent.ksql.function.udf.string.LenKudf;
 import io.confluent.ksql.function.udf.string.TrimKudf;
 import io.confluent.ksql.function.udf.string.UCaseKudf;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConstants;
 import io.confluent.ksql.util.KsqlException;
 import java.util.ArrayList;
@@ -44,8 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.annotation.concurrent.ThreadSafe;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 @ThreadSafe
 public class InternalFunctionRegistry implements MutableFunctionRegistry {
@@ -69,9 +72,9 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
 
   @Override
   public synchronized void addFunction(final KsqlScalarFunction ksqlFunction) {
-    final UdfFactory udfFactory = udfs.get(ksqlFunction.getFunctionName().name().toUpperCase());
+    final UdfFactory udfFactory = udfs.get(ksqlFunction.name().name().toUpperCase());
     if (udfFactory == null) {
-      throw new KsqlException("Unknown function factory: " + ksqlFunction.getFunctionName());
+      throw new KsqlException("Unknown function factory: " + ksqlFunction.name());
     }
     udfFactory.addFunction(ksqlFunction);
   }
@@ -111,7 +114,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   @Override
   public synchronized KsqlAggregateFunction getAggregateFunction(
       final String functionName,
-      final Schema argumentType,
+      final SqlType argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
     final AggregateFunctionFactory udafFactory = udafs.get(functionName.toUpperCase());
@@ -127,7 +130,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
   @Override
   public synchronized KsqlTableFunction getTableFunction(
       final String functionName,
-      final List<Schema> argumentTypes
+      final List<SqlType> argumentTypes
   ) {
     final TableFunctionFactory udtfFactory = udtfs.get(functionName.toUpperCase());
     if (udtfFactory == null) {
@@ -242,7 +245,7 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
         final boolean internal
     ) {
       final UdfMetadata metadata = new UdfMetadata(
-          ksqlFunction.getFunctionName().name(),
+          ksqlFunction.name().name(),
           ksqlFunction.getDescription(),
           KsqlConstants.CONFLUENT_AUTHOR,
           "",
@@ -264,41 +267,41 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     private void addStringFunctions() {
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.STRING,
+          Collections.singletonList(ParamTypes.STRING),
           FunctionName.of("LCASE"), LCaseKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.STRING,
+          Collections.singletonList(ParamTypes.STRING),
           FunctionName.of("UCASE"), UCaseKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.STRING,
+          ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
           FunctionName.of(ConcatKudf.NAME), ConcatKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.STRING,
+          Collections.singletonList(ParamTypes.STRING),
           FunctionName.of("TRIM"), TrimKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
+          SqlTypes.STRING,
           ImmutableList.of(
-              Schema.OPTIONAL_STRING_SCHEMA,
-              Schema.OPTIONAL_STRING_SCHEMA
+              ParamTypes.STRING,
+              ParamTypes.STRING
           ),
           FunctionName.of("IFNULL"), IfNullKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_INT32_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.INTEGER,
+          Collections.singletonList(ParamTypes.STRING),
           FunctionName.of("LEN"),
           LenKudf.class
       ));
@@ -307,14 +310,14 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     private void addMathFunctions() {
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+          SqlTypes.DOUBLE,
+          Collections.singletonList(ParamTypes.DOUBLE),
           FunctionName.of("CEIL"),
           CeilKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          SqlTypes.DOUBLE,
           Collections.emptyList(),
           FunctionName.of("RANDOM"),
           RandomKudf.class
@@ -324,54 +327,54 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     private void addJsonFunctions() {
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_STRING_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.STRING,
+          ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
           JsonExtractStringKudf.FUNCTION_NAME,
           JsonExtractStringKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
-          ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
+          SqlTypes.BOOLEAN,
+          ImmutableList.of(ParamTypes.STRING, ParamTypes.STRING),
           FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          SqlTypes.BOOLEAN,
           ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
-              Schema.OPTIONAL_STRING_SCHEMA
+              ArrayType.of(ParamTypes.STRING),
+              ParamTypes.STRING
           ),
           FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          SqlTypes.BOOLEAN,
           ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
-              Schema.OPTIONAL_INT32_SCHEMA
+              ArrayType.of(ParamTypes.INTEGER),
+              ParamTypes.INTEGER
           ),
           FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          SqlTypes.BOOLEAN,
           ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
-              Schema.OPTIONAL_INT64_SCHEMA
+              ArrayType.of(ParamTypes.LONG),
+              ParamTypes.LONG
           ),
           FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class
       ));
 
       addBuiltInFunction(KsqlScalarFunction.createLegacyBuiltIn(
-          Schema.OPTIONAL_BOOLEAN_SCHEMA,
+          SqlTypes.BOOLEAN,
           ImmutableList.of(
-              SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
-              Schema.OPTIONAL_FLOAT64_SCHEMA
+              ArrayType.of(ParamTypes.DOUBLE),
+              ParamTypes.DOUBLE
           ),
           FunctionName.of("ARRAYCONTAINS"),
           ArrayContainsKudf.class
@@ -379,16 +382,30 @@ public class InternalFunctionRegistry implements MutableFunctionRegistry {
     }
 
     private void addStructFieldFetcher() {
-
       addBuiltInFunction(
-          KsqlScalarFunction.createLegacyBuiltIn(
-              SchemaBuilder.struct().optional().build(),
+          KsqlScalarFunction.create(
+              ((parameters, arguments) -> SqlTypes.struct().build()),
+              StructType.builder().build(),
               ImmutableList.of(
-                  SchemaBuilder.struct().optional().build(),
-                  Schema.STRING_SCHEMA
+                  new ParameterInfo(
+                      "struct",
+                      StructType.builder().build(),
+                      "",
+                      false
+                  ),
+                  new ParameterInfo(
+                      "fieldName",
+                      ParamTypes.STRING,
+                      "",
+                      false
+                  )
               ),
               FetchFieldFromStruct.FUNCTION_NAME,
-              FetchFieldFromStruct.class
+              FetchFieldFromStruct.class,
+              config -> new FetchFieldFromStruct(),
+              "",
+              KsqlScalarFunction.INTERNAL_PATH,
+              false
           ),
           true
       );

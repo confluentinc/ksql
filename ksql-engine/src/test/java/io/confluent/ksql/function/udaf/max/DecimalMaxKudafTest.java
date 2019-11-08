@@ -22,7 +22,7 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
@@ -79,7 +79,7 @@ public class DecimalMaxKudafTest {
 
   private DecimalMaxKudaf getDecimalMaxKudaf(final int precision) {
     final KsqlAggregateFunction aggregateFunction = new MaxAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(DecimalUtil.builder(precision, 1))
+        .createAggregateFunction(Collections.singletonList(SqlDecimal.of(precision, 1))
             , AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DecimalMaxKudaf.class));
     return  (DecimalMaxKudaf) aggregateFunction;

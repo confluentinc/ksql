@@ -18,6 +18,23 @@ package io.confluent.ksql.function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.BooleanType;
+import io.confluent.ksql.function.types.DecimalType;
+import io.confluent.ksql.function.types.DoubleType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.IntegerType;
+import io.confluent.ksql.function.types.LongType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.StringType;
+import io.confluent.ksql.function.types.StructType;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlPreconditions;
 import java.util.ArrayList;
@@ -27,56 +44,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Field;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class GenericsUtil {
 
-  private static final String PREFIX = "<";
-  private static final String SUFFIX = ">";
-  private static final Pattern GENERIC_PATTERN = Pattern.compile("<(?<name>.*)>");
-
   private GenericsUtil() { }
-
-  /**
-   * @param typeName  the generic type name (e.g. {@code T})
-   * @return a {@link SchemaBuilder} for a generic type with that name
-   */
-  public static SchemaBuilder generic(final String typeName) {
-    return SchemaBuilder.bytes().optional().name(PREFIX + typeName + SUFFIX);
-  }
-
-  /**
-   * @param typeName  the generic type name (e.g. {@code T})
-   * @return a {@link SchemaBuilder} for a generic array with generic element type
-   */
-  public static SchemaBuilder array(final String typeName) {
-    return SchemaBuilder.array(generic(typeName).build()).optional();
-  }
-
-  /**
-   * @param keyType       the type for the map key
-   * @param valueTypeName the generic type name (e.g. {@code T}) for the map value
-   * @return a {@link SchemaBuilder} for a map with {@code keyType} keys and generic value type
-   */
-  public static SchemaBuilder map(final Schema keyType, final String valueTypeName) {
-    return SchemaBuilder.map(keyType, generic(valueTypeName).build()).optional();
-  }
 
   /**
    * @param type  the type
    * @return whether or not {@code type} is a generic type
    * @apiNote container generics (e.g. {@code ARRAY<T>}) will return {@code false},
-   *          use {@link #constituentGenerics(Schema)}
+   *          use {@link #constituentGenerics(ParamType)}
    */
-  public static boolean isGeneric(final Schema type) {
-    return type.name() != null
-        && type.name().startsWith(PREFIX)
-        && type.name().endsWith(SUFFIX);
+  public static boolean isGeneric(final ParamType type) {
+    return type instanceof GenericType;
   }
 
   /**
@@ -84,27 +65,24 @@ public final class GenericsUtil {
    * @return all generics contained within the type, for example: {@code Map<K, V>} would return
    *         a set containing {@code {<K>, <V>}}
    */
-  public static Set<Schema> constituentGenerics(final Schema type) {
-    switch (type.type()) {
-      case ARRAY:
-        return constituentGenerics(type.valueSchema());
-      case MAP:
-        return Sets.union(
-            constituentGenerics(type.keySchema()),
-            constituentGenerics(type.valueSchema()));
-      case STRUCT:
-        return type.fields().stream()
-            .map(Field::schema)
-            .map(GenericsUtil::constituentGenerics)
-            .flatMap(Collection::stream)
-            .collect(Collectors.toSet());
-      case BYTES:
-        if (isGeneric(type)) {
-          return ImmutableSet.of(type);
-        }
-        return ImmutableSet.of();
-      default:
-        return ImmutableSet.of();
+  public static Set<ParamType> constituentGenerics(final ParamType type) {
+    if (type instanceof ArrayType) {
+      return constituentGenerics(((ArrayType) type).element());
+    } else if (type instanceof MapType) {
+      return Sets.union(
+          constituentGenerics(((MapType) type).key()),
+          constituentGenerics(((MapType) type).value()));
+    } else if (type instanceof StructType) {
+      return ((StructType) type).getSchema()
+          .values()
+          .stream()
+          .map(GenericsUtil::constituentGenerics)
+          .flatMap(Collection::stream)
+          .collect(Collectors.toSet());
+    } else if (type instanceof GenericType) {
+      return ImmutableSet.of(type);
+    } else {
+      return ImmutableSet.of();
     }
   }
 
@@ -112,7 +90,7 @@ public final class GenericsUtil {
    * @param type  the schema
    * @return whether or not there are any generics contained in {@code type}
    */
-  public static boolean hasGenerics(final Schema type) {
+  public static boolean hasGenerics(final ParamType type) {
     return !constituentGenerics(type).isEmpty();
   }
 
@@ -126,33 +104,32 @@ public final class GenericsUtil {
    * @throws KsqlException if there is a generic in {@code schema} that is not present
    *                       in {@code mapping}
    */
-  public static Schema applyResolved(final Schema schema, final Map<Schema, Schema> resolved) {
-    switch (schema.type()) {
-      case ARRAY:
-        return SchemaBuilder
-            .array(applyResolved(schema.valueSchema(), resolved))
-            .optional()
-            .build();
-      case MAP:
-        return SchemaBuilder
-            .map(
-                applyResolved(schema.keySchema(), resolved),
-                applyResolved(schema.valueSchema(), resolved))
-            .optional()
-            .build();
-      case BYTES:
-        if (!isGeneric(schema)) {
-          return schema;
-        }
-
-        final Schema instance = resolved.get(schema);
-        if (instance == null) {
-          throw new KsqlException("Could not find mapping for generic type: " + schema);
-        }
-        return instance;
-      default:
-        return schema;
+  public static SqlType applyResolved(ParamType schema, Map<GenericType, SqlType> resolved) {
+    if (schema instanceof ArrayType) {
+      return SqlTypes.array(applyResolved(((ArrayType) schema).element(), resolved));
     }
+
+    if (schema instanceof MapType) {
+      return SqlTypes.map(applyResolved(((MapType) schema).value(), resolved));
+    }
+
+    if (schema instanceof StructType) {
+      final Builder struct = SqlTypes.struct();
+      ((StructType) schema).getSchema().forEach(
+          (fieldName, type) -> struct.field(fieldName, applyResolved(type, resolved))
+      );
+      return struct.build();
+    }
+
+    if (schema instanceof GenericType) {
+      final SqlType instance = resolved.get(schema);
+      if (instance == null) {
+        throw new KsqlException("Could not find mapping for generic type: " + schema);
+      }
+      return instance;
+    }
+
+    return SchemaConverters.functionToSqlConverter().toSqlType(schema);
   }
 
   /**
@@ -165,11 +142,11 @@ public final class GenericsUtil {
    *
    * @return a mapping from generic type to resolved type
    */
-  public static Map<Schema, Schema> resolveGenerics(
-      final Schema schema,
-      final Schema instance
+  public static Map<GenericType, SqlType> resolveGenerics(
+      final ParamType schema,
+      final SqlType instance
   ) {
-    final List<Entry<Schema, Schema>> genericMapping = new ArrayList<>();
+    final List<Entry<GenericType, SqlType>> genericMapping = new ArrayList<>();
     final boolean success = resolveGenerics(genericMapping, schema, instance);
     if (!success) {
       throw new KsqlException(
@@ -179,13 +156,13 @@ public final class GenericsUtil {
               instance));
     }
 
-    final Map<Schema, Schema> mapping = new HashMap<>();
-    for (final Entry<Schema, Schema> entry : genericMapping) {
-      final Schema old = mapping.putIfAbsent(entry.getKey(), entry.getValue());
+    final Map<GenericType, SqlType> mapping = new HashMap<>();
+    for (final Entry<GenericType, SqlType> entry : genericMapping) {
+      final SqlType old = mapping.putIfAbsent(entry.getKey(), entry.getValue());
       if (old != null && !old.equals(entry.getValue())) {
         throw new KsqlException(String.format(
             "Found invalid instance of generic schema. Cannot map %s to both %s and %s",
-            schema.name(),
+            schema,
             old,
             instance));
       }
@@ -195,11 +172,11 @@ public final class GenericsUtil {
   }
 
   private static boolean resolveGenerics(
-      final List<Entry<Schema, Schema>> mapping,
-      final Schema schema,
-      final Schema instance
+      final List<Entry<GenericType, SqlType>> mapping,
+      final ParamType schema,
+      final SqlType instance
   ) {
-    if (!isGeneric(schema) && instance.type() != schema.type()) {
+    if (!isGeneric(schema) && !matches(schema, instance)) {
       // cannot identify from type mismatch
       return false;
     } else if (!hasGenerics(schema)) {
@@ -208,22 +185,43 @@ public final class GenericsUtil {
     }
 
     KsqlPreconditions.checkArgument(
-        isGeneric(schema) || (instance.type() == schema.type()),
+        isGeneric(schema) || (matches(schema, instance)),
         "Cannot resolve generics if the schema and instance have differing types: "
             + schema + " vs. " + instance);
-    switch (schema.type()) {
-      case BYTES:
-        mapping.add(new HashMap.SimpleEntry<>(schema, instance));
-        return true;
-      case ARRAY:
-        return resolveGenerics(mapping, schema.valueSchema(), instance.valueSchema());
-      case MAP:
-        return resolveGenerics(mapping, schema.keySchema(), instance.keySchema())
-            && resolveGenerics(mapping, schema.valueSchema(), instance.valueSchema());
-      case STRUCT:
-        throw new KsqlException("Generic STRUCT is not yet supported");
-      default:
-        return true;
+
+    if (isGeneric(schema)) {
+      mapping.add(new HashMap.SimpleEntry<>((GenericType) schema, instance));
+    }
+
+    if (schema instanceof ArrayType) {
+      return resolveGenerics(
+          mapping, ((ArrayType) schema).element(), ((SqlArray) instance).getItemType());
+    }
+
+    if (schema instanceof MapType) {
+      return resolveGenerics(
+          mapping, ((MapType) schema).value(), ((SqlMap) instance).getValueType());
+    }
+
+    if (schema instanceof StructType) {
+      throw new KsqlException("Generic STRUCT is not yet supported");
+    }
+
+    return true;
+  }
+
+  private static boolean matches(ParamType schema, SqlType instance) {
+    switch (instance.baseType()) {
+      case BOOLEAN: return schema instanceof BooleanType;
+      case INTEGER: return schema instanceof IntegerType;
+      case BIGINT:  return schema instanceof LongType;
+      case DECIMAL: return schema instanceof DecimalType;
+      case DOUBLE:  return schema instanceof DoubleType;
+      case STRING:  return schema instanceof StringType;
+      case ARRAY:   return schema instanceof ArrayType;
+      case MAP:     return schema instanceof MapType;
+      case STRUCT:  return schema instanceof StructType;
+      default:      return false;
     }
   }
 
@@ -232,16 +230,16 @@ public final class GenericsUtil {
    * @param instance  a schema without generics
    * @return whether {@code instance} conforms to the structure of {@code schema}
    */
-  public static boolean instanceOf(final Schema schema, final Schema instance) {
-    final List<Entry<Schema, Schema>> mappings = new ArrayList<>();
+  public static boolean instanceOf(final ParamType schema, final SqlType instance) {
+    final List<Entry<GenericType, SqlType>> mappings = new ArrayList<>();
 
     if (!resolveGenerics(mappings, schema, instance)) {
       return false;
     }
 
-    final Map<Schema, Schema> asMap = new HashMap<>();
-    for (final Entry<Schema, Schema> entry : mappings) {
-      final Schema old = asMap.putIfAbsent(entry.getKey(), entry.getValue());
+    final Map<ParamType, SqlType> asMap = new HashMap<>();
+    for (final Entry<GenericType, SqlType> entry : mappings) {
+      final SqlType old = asMap.putIfAbsent(entry.getKey(), entry.getValue());
       if (old != null && !old.equals(entry.getValue())) {
         return false;
       }
@@ -250,17 +248,4 @@ public final class GenericsUtil {
     return true;
   }
 
-  /**
-   * @param schema the schema to extract the name for
-   * @return the name of {@code schema}
-   * @throws KsqlException if {@code schema} is not a generic schema
-   */
-  public static String name(final Schema schema) {
-    final Matcher matcher = GENERIC_PATTERN.matcher(schema.name());
-    if (matcher.matches()) {
-      return matcher.group("name");
-    }
-
-    throw new KsqlException("Cannot extract name from non-generic schema: " + schema);
-  }
 }

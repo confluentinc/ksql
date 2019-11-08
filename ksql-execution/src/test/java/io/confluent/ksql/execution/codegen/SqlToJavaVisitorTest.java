@@ -67,7 +67,6 @@ import io.confluent.ksql.schema.ksql.types.SqlPrimitiveType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -198,8 +197,8 @@ public class SqlToJavaVisitorTest {
     KsqlScalarFunction ssFunction = mock(KsqlScalarFunction.class);
     UdfFactory catFactory = mock(UdfFactory.class);
     KsqlScalarFunction catFunction = mock(KsqlScalarFunction.class);
-    givenUdf("SUBSTRING", Schema.OPTIONAL_STRING_SCHEMA, ssFactory, ssFunction);
-    givenUdf("CONCAT", Schema.OPTIONAL_STRING_SCHEMA, catFactory, catFunction);
+    givenUdf("SUBSTRING", ssFactory, ssFunction);
+    givenUdf("CONCAT", catFactory, catFunction);
     FunctionName ssName = FunctionName.of("SUBSTRING");
     FunctionName catName = FunctionName.of("CONCAT");
     FunctionCall substring1 = new FunctionCall(
@@ -803,12 +802,12 @@ public class SqlToJavaVisitorTest {
   }
 
   private void givenUdf(
-      String name, Schema returnType, UdfFactory factory, KsqlScalarFunction function
+      String name, UdfFactory factory, KsqlScalarFunction function
   ) {
     when(functionRegistry.isAggregate(name)).thenReturn(false);
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);
     when(factory.getFunction(anyList())).thenReturn(function);
-    when(function.getReturnType(anyList())).thenReturn(returnType);
+    when(function.getReturnType(anyList())).thenReturn(SqlTypes.STRING);
     UdfMetadata metadata = mock(UdfMetadata.class);
     when(factory.getMetadata()).thenReturn(metadata);
   }

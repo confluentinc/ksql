@@ -16,14 +16,14 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
 public class IntegerMaxKudaf extends BaseNumberKudaf<Integer> {
 
   IntegerMaxKudaf(final String functionName, final int argIndexInValue) {
     super(functionName,
           argIndexInValue,
-          Schema.OPTIONAL_INT32_SCHEMA,
+          SqlTypes.INTEGER,
           Integer::max,
           "Computes the maximum integer value for a key.");
   }

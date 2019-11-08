@@ -16,14 +16,14 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
 public class DoubleMaxKudaf extends BaseNumberKudaf<Double> {
 
   DoubleMaxKudaf(final String functionName, final int argIndexInValue) {
     super(functionName,
           argIndexInValue,
-          Schema.OPTIONAL_FLOAT64_SCHEMA,
+          SqlTypes.DOUBLE,
           Double::max,
           "Computes the maximum double value for a key.");
   }

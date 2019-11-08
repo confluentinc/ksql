@@ -16,14 +16,14 @@
 package io.confluent.ksql.function.udaf.max;
 
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
 public class LongMaxKudaf extends BaseNumberKudaf<Long> {
 
   LongMaxKudaf(final String functionName, final int argIndexInValue) {
     super(functionName,
           argIndexInValue,
-          Schema.OPTIONAL_INT64_SCHEMA,
+          SqlTypes.BIGINT,
           Long::max,
           "Computes the maximum long value for a key.");
   }

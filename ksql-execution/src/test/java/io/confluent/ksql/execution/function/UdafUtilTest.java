@@ -91,7 +91,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregateFunction(any(), eq(Schema.OPTIONAL_INT64_SCHEMA), any());
+    verify(functionRegistry).getAggregateFunction(any(), eq(SqlTypes.BIGINT), any());
   }
 
 }

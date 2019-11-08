@@ -19,23 +19,24 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 
 public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
 
   private static final String NAME = "TOPKDISTINCT";
 
-  private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
-      .<List<Schema>>builder()
-      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA))
-      .add(ImmutableList.of(DecimalUtil.builder(1, 1)))
+  private static final List<List<ParamType>> SUPPORTED_TYPES = ImmutableList
+      .<List<ParamType>>builder()
+      .add(ImmutableList.of(ParamTypes.INTEGER))
+      .add(ImmutableList.of(ParamTypes.LONG))
+      .add(ImmutableList.of(ParamTypes.DOUBLE))
+      .add(ImmutableList.of(ParamTypes.STRING))
+      .add(ImmutableList.of(ParamTypes.DECIMAL))
       .build();
 
   public TopkDistinctAggFunctionFactory() {
@@ -48,24 +49,23 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   @SuppressWarnings("unchecked")
   @Override
   public KsqlAggregateFunction createAggregateFunction(
-      final List<Schema> argTypeList,
+      final List<SqlType> argTypeList,
       final AggregateFunctionInitArguments initArgs) {
     if (argTypeList.isEmpty()) {
       throw new KsqlException("TOPKDISTINCT function should have two arguments.");
     }
     final int tkValFromArg = (Integer)(initArgs.arg(0));
-    final Schema argSchema = argTypeList.get(0);
-    switch (argSchema.type()) {
-      case INT32:
-      case INT64:
-      case FLOAT64:
+    final SqlType argSchema = argTypeList.get(0);
+    switch (argSchema.baseType()) {
+      case INTEGER:
+      case BIGINT:
+      case DOUBLE:
       case STRING:
-        return new TopkDistinctKudaf(NAME, initArgs.udafIndex(), tkValFromArg, argSchema,
-            SchemaUtil.getJavaType(argSchema));
-      case BYTES:
-        DecimalUtil.requireDecimal(argSchema);
-        return new TopkDistinctKudaf(NAME, initArgs.udafIndex(), tkValFromArg, argSchema,
-            SchemaUtil.getJavaType(argSchema));
+      case DECIMAL:
+        return new TopkDistinctKudaf(
+            NAME, initArgs.udafIndex(), tkValFromArg, argSchema,
+            SchemaConverters.sqlToFunctionConverter().toFunctionType(argSchema),
+            SchemaConverters.sqlToJavaConverter().toJavaType(argSchema));
       default:
         throw new KsqlException("No TOPKDISTINCT aggregate function with " + argTypeList.get(0)
             + " argument type exists!");
@@ -73,7 +73,7 @@ public class TopkDistinctAggFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public List<List<Schema>> supportedArgs() {
+  public List<List<ParamType>> supportedArgs() {
     return SUPPORTED_TYPES;
   }
 

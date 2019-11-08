@@ -29,19 +29,19 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -74,7 +74,7 @@ public class InternalFunctionRegistryTest {
 
   private final InternalFunctionRegistry functionRegistry = new InternalFunctionRegistry();
   private final KsqlScalarFunction func = KsqlScalarFunction.createLegacyBuiltIn(
-      Schema.OPTIONAL_STRING_SCHEMA,
+      SqlTypes.STRING,
       Collections.emptyList(),
       FunctionName.of("func"),
       Func1.class);
@@ -90,6 +90,9 @@ public class InternalFunctionRegistryTest {
 
   @Mock
   private AggregateFunctionFactory udafFactory;
+
+  @Mock
+  private KsqlAggregateFunction mockAggFun;
 
   @Mock
   private KsqlTableFunction tableFunction;
@@ -122,9 +125,9 @@ public class InternalFunctionRegistryTest {
     givenUdfFactoryRegistered();
 
     final KsqlScalarFunction func2 = KsqlScalarFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_STRING_SCHEMA,
+        SqlTypes.STRING,
         Collections.emptyList(),
-        func.getFunctionName(),
+        func.name(),
         Func2.class);
 
     functionRegistry.addFunction(func);
@@ -241,7 +244,7 @@ public class InternalFunctionRegistryTest {
   public void shouldAddAggregateFunction() {
     functionRegistry.addAggregateFunctionFactory(createAggregateFunctionFactory());
     assertThat(functionRegistry.getAggregateFunction("my_aggregate",
-        Schema.OPTIONAL_INT32_SCHEMA,
+        SqlTypes.INTEGER,
         AggregateFunctionInitArguments.EMPTY_ARGS), not(nullValue()));
   }
 
@@ -249,7 +252,7 @@ public class InternalFunctionRegistryTest {
   public void shouldAddTableFunction() {
     functionRegistry.addTableFunctionFactory(createTableFunctionFactory());
     assertThat(functionRegistry.getTableFunction("my_tablefunction",
-        ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA)
+        ImmutableList.of(SqlTypes.INTEGER)
     ), not(nullValue()));
   }
 
@@ -259,8 +262,9 @@ public class InternalFunctionRegistryTest {
     givenUdfFactoryRegistered();
     functionRegistry.addFunction(func);
     final KsqlScalarFunction func2 = KsqlScalarFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_INT64_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA), FunctionName.of("func"), Func1.class);
+        SqlTypes.BIGINT,
+        Collections.singletonList(ParamTypes.LONG),
+        FunctionName.of("func"), Func1.class);
 
     // When:
     functionRegistry.addFunction(func2);
@@ -274,9 +278,9 @@ public class InternalFunctionRegistryTest {
     givenUdfFactoryRegistered();
 
     final KsqlScalarFunction func2 = KsqlScalarFunction.createLegacyBuiltIn(
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-        func.getFunctionName(),
+        SqlTypes.STRING,
+        Collections.singletonList(ParamTypes.LONG),
+        func.name(),
         Func1.class);
 
     functionRegistry.addFunction(func);
@@ -286,7 +290,7 @@ public class InternalFunctionRegistryTest {
 
     // Then:
     assertThat(functionRegistry.getUdfFactory("func")
-        .getFunction(Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA)), equalTo(func2));
+        .getFunction(Collections.singletonList(SqlTypes.BIGINT)), equalTo(func2));
     assertThat(functionRegistry.getUdfFactory("func")
         .getFunction(Collections.emptyList()), equalTo(func));
   }
@@ -362,77 +366,16 @@ public class InternalFunctionRegistryTest {
     functionRegistry.ensureFunctionFactory(UdfLoaderUtil.createTestUdfFactory(func));
   }
 
-  private static AggregateFunctionFactory createAggregateFunctionFactory() {
+  private AggregateFunctionFactory createAggregateFunctionFactory() {
     return new AggregateFunctionFactory("my_aggregate") {
       @Override
-      public KsqlAggregateFunction createAggregateFunction(final List<Schema> argTypeList,
+      public KsqlAggregateFunction createAggregateFunction(final List<SqlType> argTypeList,
           final AggregateFunctionInitArguments initArgs) {
-        return new KsqlAggregateFunction() {
-
-          @Override
-          public FunctionName getFunctionName() {
-            return FunctionName.of("my_aggregate");
-          }
-
-          @Override
-          public Supplier getInitialValueSupplier() {
-            return null;
-          }
-
-          @Override
-          public int getArgIndexInValue() {
-            return 0;
-          }
-
-          @Override
-          public Schema getAggregateType() {
-            return null;
-          }
-
-          @Override
-          public SqlType aggregateType() {
-            return null;
-          }
-
-          @Override
-          public Schema getReturnType() {
-            return null;
-          }
-
-          @Override
-          public SqlType returnType() {
-            return null;
-          }
-
-          @Override
-          public Object aggregate(final Object currentValue, final Object aggregateValue) {
-            return null;
-          }
-
-          @Override
-          public Merger getMerger() {
-            return null;
-          }
-
-          @Override
-          public Function getResultMapper() {
-            return null;
-          }
-
-          @Override
-          public List<Schema> getArguments() {
-            return argTypeList;
-          }
-
-          @Override
-          public String getDescription() {
-            return null;
-          }
-        };
+        return mockAggFun;
       }
 
       @Override
-      public List<List<Schema>> supportedArgs() {
+      public List<List<ParamType>> supportedArgs() {
         return ImmutableList.of();
       }
     };
@@ -442,12 +385,12 @@ public class InternalFunctionRegistryTest {
     return new TableFunctionFactory(new UdfMetadata("my_tablefunction",
         "", "", "", "", false)) {
       @Override
-      public KsqlTableFunction createTableFunction(List<Schema> argTypeList) {
+      public KsqlTableFunction createTableFunction(List<SqlType> argTypeList) {
         return tableFunction;
       }
 
       @Override
-      protected List<List<Schema>> supportedArgs() {
+      protected List<List<ParamType>> supportedParams() {
         return null;
       }
     };

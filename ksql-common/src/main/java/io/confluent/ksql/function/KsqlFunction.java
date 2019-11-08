@@ -17,37 +17,31 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
-import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
-import java.util.HashMap;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.Schema.Type;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 @Immutable
 public class KsqlFunction implements FunctionSignature {
 
-  private final Function<List<Schema>, Schema> returnSchemaProvider;
-  private final Schema javaReturnType;
-  private final List<Schema> parameters;
+  private final SchemaProvider returnSchemaProvider;
+  private final ParamType declaredReturnType;
+  private final List<ParameterInfo> parameters;
+  private final List<ParamType> paramTypes;
   private final FunctionName functionName;
   private final String description;
   private final String pathLoadedFrom;
   private final boolean isVariadic;
 
   KsqlFunction(
-      final Function<List<Schema>, Schema> returnSchemaProvider,
-      final Schema javaReturnType,
-      final List<Schema> arguments,
+      final SchemaProvider returnSchemaProvider,
+      final ParamType declaredReturnType,
+      final List<ParameterInfo> parameters,
       final FunctionName functionName,
       final String description,
       final String pathLoadedFrom,
@@ -55,84 +49,50 @@ public class KsqlFunction implements FunctionSignature {
   ) {
 
     this.returnSchemaProvider = Objects.requireNonNull(returnSchemaProvider, "schemaProvider");
-    this.javaReturnType = Objects.requireNonNull(javaReturnType, "javaReturnType");
-    this.parameters = ImmutableList.copyOf(Objects.requireNonNull(arguments, "arguments"));
+    this.declaredReturnType = Objects.requireNonNull(declaredReturnType, "javaReturnType");
+    this.parameters = ImmutableList.copyOf(Objects.requireNonNull(parameters, "parameters"));
+    this.paramTypes = parameters.stream().map(ParameterInfo::type).collect(Collectors.toList());
     this.functionName = Objects.requireNonNull(functionName, "functionName");
     this.description = Objects.requireNonNull(description, "description");
     this.pathLoadedFrom = Objects.requireNonNull(pathLoadedFrom, "pathLoadedFrom");
     this.isVariadic = isVariadic;
 
-    if (arguments.stream().anyMatch(Objects::isNull)) {
+    if (parameters.stream().anyMatch(Objects::isNull)) {
       throw new IllegalArgumentException("KSQL Function can't have null argument types");
     }
     if (isVariadic) {
-      if (arguments.isEmpty()) {
+      if (parameters.isEmpty()) {
         throw new IllegalArgumentException(
             "KSQL variadic functions must have at least one parameter");
       }
-      if (!Iterables.getLast(arguments).type().equals(Type.ARRAY)) {
+      if (!(Iterables.getLast(parameters).type() instanceof ArrayType)) {
         throw new IllegalArgumentException(
             "KSQL variadic functions must have ARRAY type as their last parameter");
       }
     }
   }
 
-  public Schema getReturnType(final List<Schema> arguments) {
-
-    final Schema returnType = returnSchemaProvider.apply(arguments);
-
-    if (returnType == null) {
-      throw new KsqlException(String.format("Return type of UDF %s cannot be null.", functionName));
-    }
-
-    if (!returnType.isOptional()) {
-      throw new IllegalArgumentException("KSQL only supports optional field types");
-    }
-
-    if (!GenericsUtil.hasGenerics(returnType)) {
-      checkMatchingReturnTypes(returnType, javaReturnType);
-      return returnType;
-    }
-
-    final Map<Schema, Schema> genericMapping = new HashMap<>();
-    for (int i = 0; i < Math.min(parameters.size(), arguments.size()); i++) {
-      final Schema schema = parameters.get(i);
-
-      // we resolve any variadic as if it were an array so that the type
-      // structure matches the input type
-      final Schema instance = isVariadic && i == parameters.size() - 1
-          ? SchemaBuilder.array(arguments.get(i)).build()
-          : arguments.get(i);
-
-      genericMapping.putAll(GenericsUtil.resolveGenerics(schema, instance));
-    }
-
-    final Schema genericSchema = GenericsUtil.applyResolved(returnType, genericMapping);
-    final Schema genericJavaSchema = GenericsUtil.applyResolved(javaReturnType, genericMapping);
-    checkMatchingReturnTypes(genericSchema, genericJavaSchema);
-
-    return genericSchema;
+  public SqlType getReturnType(final List<SqlType> arguments) {
+    return returnSchemaProvider.resolve(parameters(), arguments);
   }
 
-  private void checkMatchingReturnTypes(final Schema s1, final Schema s2) {
-    if (!SchemaUtil.areCompatible(s1, s2)) {
-      throw new KsqlException(String.format(
-          "Return type %s of UDF %s does not match the declared "
-              + "return type %s.",
-          SchemaConverters.connectToSqlConverter().toSqlType(
-              s1).toString(),
-          functionName.toString(FormatOptions.noEscape()),
-          SchemaConverters.connectToSqlConverter().toSqlType(
-              s2).toString()
-      ));
-    }
+  @Override
+  public ParamType declaredReturnType() {
+    return declaredReturnType;
   }
 
-  public List<Schema> getArguments() {
+  @Override
+  public List<ParamType> parameters() {
+    return paramTypes;
+  }
+
+  @Override
+  public List<ParameterInfo> parameterInfo() {
     return parameters;
   }
 
-  public FunctionName getFunctionName() {
+  @Override
+  public FunctionName name() {
     return functionName;
   }
 
@@ -151,8 +111,8 @@ public class KsqlFunction implements FunctionSignature {
   @Override
   public String toString() {
     return "KsqlFunction{"
-        + "returnType=" + javaReturnType
-        + ", arguments=" + parameters.stream().map(Schema::type).collect(Collectors.toList())
+        + "returnType=" + declaredReturnType
+        + ", arguments=" + parameters
         + ", functionName='" + functionName + '\''
         + ", description='" + description + "'"
         + ", pathLoadedFrom='" + pathLoadedFrom + "'"

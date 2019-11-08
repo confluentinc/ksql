@@ -26,7 +26,7 @@ theme:
 
 nav:
     - Home: index.md
-    - Quickstart: tutorials/ksqldb-quickstart.md
+    - Quickstart (TODO): tutorials/ksqldb-quickstart.md
     - Concepts: 
         - Concepts: concepts/index.md
         - Architecture: concepts/ksql-architecture.md

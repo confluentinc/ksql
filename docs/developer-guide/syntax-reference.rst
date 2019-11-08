@@ -788,6 +788,77 @@ The WITH clause supports the following properties:
     :start-after: Avro_note_start
     :end-before: Avro_note_end
 
+.. _create-type:
+
+CREATE TYPE
+-----------
+
+**Synopsis**
+
+.. code:: sql
+
+    CREATE TYPE <type_name> AS <type>;
+
+**Description**
+
+Create an alias for a complex type declaration.
+
+The CREATE TYPE statement registers a type alias directly in KSQL. Any types
+registered by using this command can be leveraged in future statements. The
+CREATE TYPE statement works in interactive and headless modes.
+
+Any attempt to register the same type twice, without a corresponding DROP TYPE
+statement, will fail.
+
+**Example**
+
+.. code:: sql
+
+    CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;
+
+.. _drop-type:
+
+DROP TYPE
+---------
+
+**Synopsis**
+
+.. code:: sql
+
+    DROP TYPE <type_name>;
+
+**Description**
+
+The DROP TYPE statement removes a type alias from KSQL. This statement fails
+if the type is being used in any active query or user-defined function.
+
+**Example**
+
+.. code:: sql
+
+    DROP TYPE ADDRESS;
+
+.. _show-types:
+
+SHOW TYPES
+----------
+
+**Synopsis**
+
+.. code:: sql
+
+    SHOW TYPES;
+
+**Description**
+
+The SHOW TYPES command lists all custom types and their type definitions.
+
+**Example**
+
+.. code:: sql
+
+    SHOW TYPES;
+
 .. _insert-into:
 
 INSERT INTO

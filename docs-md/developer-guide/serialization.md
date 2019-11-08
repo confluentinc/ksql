@@ -389,6 +389,28 @@ For more information, see [Single field (un)wrapping](#single-field-unwrapping).
 The format is case-insensitive when matching a KSQL field name with an
 Avro record's field name. The first case-insensitive match is used.
 
+### Decimal Serialization
+
+KSQL accepts Decimals that are serialized either as numbers, or the text
+representation of the base 10 equivalent. For example, KSQL can read data
+from both formats below:
+
+```json
+{
+  "value": 1.12345678912345,
+  "value": "1.12345678912345"
+}
+```
+
+Decimals with specified precision and scale are serialized as JSON floating
+point numbers. For example:
+
+```json
+{
+  "value": 1.12345678912345
+}
+```
+
 ### KAFKA
 
 The `KAFKA` format supports`INT`, `BIGINT`, `DOUBLE` and `STRING`

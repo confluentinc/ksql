@@ -45,8 +45,8 @@ KSQL server configuration file
 information, see [Installation Instructions](../installing.md#installation-instructions).
 
 !!! important
-		Don't use the SET statement in the KSQL CLI to configure the registry
-    endpoint.
+      Don't use the SET statement in the KSQL CLI to configure the registry
+      endpoint.
 
 Using Avro in KSQL
 ==================
@@ -59,14 +59,14 @@ default](https://docs.confluent.io/current/quickstart/index.html) with
 {{ site.cp }}.
 
 !!! important
-		By default, KSQL registered Avro schemas have the same name
-    (`KsqlDataSourceSchema`) and the same namespace
-    (`io.confluent.ksql.avro_schemas`). You can override this behavior by
-    providing a `VALUE_AVRO_SCHEMA_FULL_NAME` property in the `WITH` clause,
-    where you set the `VALUE_FORMAT` to `'AVRO'`. As the name suggests, this
-    property overrides the default name/namespace with the provided one.
-    For example, `com.mycompany.MySchema` registers a schema with the
-    `MySchema` name and the `com.mycompany` namespace.
+      By default, KSQL registered Avro schemas have the same name
+      (`KsqlDataSourceSchema`) and the same namespace
+      (`io.confluent.ksql.avro_schemas`). You can override this behavior by
+      providing a `VALUE_AVRO_SCHEMA_FULL_NAME` property in the `WITH` clause,
+      where you set the `VALUE_FORMAT` to `'AVRO'`. As the name suggests, this
+      property overrides the default name/namespace with the provided one.
+      For example, `com.mycompany.MySchema` registers a schema with the
+      `MySchema` name and the `com.mycompany` namespace.
 
 Here's what you can do with Avro in KSQL:
 

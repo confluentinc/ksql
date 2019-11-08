@@ -58,8 +58,8 @@ These steps use the KSQL datagen that is included {{ site.cp }}.
     ```
 
 !!! tip
-		You can also produce Kafka data using the `kafka-console-producer` CLI
-    provided with {{ site.cp }}.
+      You can also produce Kafka data using the `kafka-console-producer` CLI
+      provided with {{ site.cp }}.
 
 Launch the KSQL CLI
 ===================
@@ -74,12 +74,12 @@ LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql
 ```
 
 !!! important
-		By default KSQL attempts to store its logs in a directory called `logs`
-    that is relative to the location of the `ksql` executable. For example,
-    if `ksql` is installed at `/usr/local/bin/ksql`, then it would attempt
-    to store its logs in `/usr/local/logs`. If you are running `ksql` from
-    the default {{ site.cp }} location, `<path-to-confluent>/bin`, you must
-    override this default behavior by using the `LOG_DIR` variable.
+      By default KSQL attempts to store its logs in a directory called `logs`
+      that is relative to the location of the `ksql` executable. For example,
+      if `ksql` is installed at `/usr/local/bin/ksql`, then it would attempt
+      to store its logs in `/usr/local/logs`. If you are running `ksql` from
+      the default {{ site.cp }} location, `<path-to-confluent>/bin`, you must
+      override this default behavior by using the `LOG_DIR` variable.
 
 After KSQL is started, your terminal should resemble this.
 
@@ -200,10 +200,10 @@ These examples query messages from Kafka topics called `pageviews` and
     ```
 
     !!! tip
-        You can run `DESCRIBE pageviews_original;` to see the schema for the
-        stream. Notice that KSQL created two additional columns, named
-        `ROWTIME`, which corresponds with the Kafka message timestamp, and
-        `ROWKEY`, which corresponds with the Kafka message key.
+          You can run `DESCRIBE pageviews_original;` to see the schema for the
+          stream. Notice that KSQL created two additional columns, named
+          `ROWTIME`, which corresponds with the Kafka message timestamp, and
+          `ROWKEY`, which corresponds with the Kafka message key.
 
 2.  Create a table, named `users_original`, from the `users` Kafka
     topic, specifying the `value_format` of `JSON`.
@@ -223,8 +223,8 @@ These examples query messages from Kafka topics called `pageviews` and
     ```
 
     !!! tip
-        You can run `DESCRIBE users_original;` to see the schema for the
-        Table.
+          You can run `DESCRIBE users_original;` to see the schema for the
+          Table.
 
 3.  Optional: Show all streams and tables.
     ```
@@ -247,8 +247,8 @@ Write Queries
 These examples write queries using KSQL.
 
 !!! note
-		By default, KSQL reads the topics for streams and tables from
-    the latest offset.
+      By default, KSQL reads the topics for streams and tables from
+      the latest offset.
 
 1.  Use `SELECT` to create a query that returns data from a STREAM. This
     query includes the `LIMIT` keyword to limit the number of rows
@@ -574,12 +574,12 @@ EOF
 ```
 
 !!! note
-		You may see the following warning message when running the
-    above statements, but it can be safely ignored:
-    ```
-    Error while fetching metadata with correlation id 1 : {new_orders=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
-    Error while fetching metadata with correlation id 1 : {shipments=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
-    ```
+      You may see the following warning message when running the
+      above statements, but it can be safely ignored:
+      ```
+      Error while fetching metadata with correlation id 1 : {new_orders=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+      Error while fetching metadata with correlation id 1 : {shipments=LEADER_NOT_AVAILABLE} (org.apache.kafka.clients.NetworkClient)
+      ```
 
 In the KSQL CLI, register both topics as KSQL streams:
 
@@ -603,12 +603,12 @@ After both `CREATE STREAM` statements, your output should resemble:
 Query the data to confirm that it's present in the topics.
 
 !!! tip
-		Run the following to tell KSQL to read from the beginning of the topic: 
-    ```sql
-    SET 'auto.offset.reset' = 'earliest';
-    ```
-    You can skip this if you have already run it within your current
-    KSQL CLI session.
+      Run the following to tell KSQL to read from the beginning of the topic: 
+      ```sql
+      SET 'auto.offset.reset' = 'earliest';
+      ```
+      You can skip this if you have already run it within your current
+      KSQL CLI session.
 
 For the `NEW_ORDERS` topic, run:
 
@@ -738,12 +738,12 @@ key (`WAREHOUSE_ID`) - the output should show that they are equal. If
 they are not, the join will not succeed or behave as expected.
 
 !!! tip
-		Run the following to tell KSQL to read from the beginning of the topic: 
-    ```sql
-    SET 'auto.offset.reset' = 'earliest';
-    ```
-    You can skip this if you have already run it within your current
-    KSQL CLI session.
+      Run the following to tell KSQL to read from the beginning of the topic: 
+      ```sql
+      SET 'auto.offset.reset' = 'earliest';
+      ```
+      You can skip this if you have already run it within your current
+      KSQL CLI session.
 
 Inspect the WAREHOUSE_LOCATION table:
 
@@ -809,8 +809,8 @@ order data arriving from a local installation vs from a third-party:
 :::
 
 !!! tip
-		Each of these commands should be run in a separate window. When the
-    exercise is finished, exit them by pressing Ctrl-C.
+      Each of these commands should be run in a separate window. When the
+      exercise is finished, exit them by pressing Ctrl-C.
 
 ```bash
 <path-to-confluent>/bin/ksql-datagen \ 
@@ -946,9 +946,9 @@ KSQL
 ----
 
 !!! important
-		Persisted queries will continuously run as KSQL
-    applications until they are manually terminated. Exiting KSQL CLI does
-    not terminate persistent queries.
+      Persisted queries will continuously run as KSQL
+      applications until they are manually terminated. Exiting KSQL CLI does
+      not terminate persistent queries.
 
 1.  From the output of `SHOW QUERIES;` identify a query ID you would
     like to terminate. For example, if you wish to terminate query ID
@@ -959,8 +959,8 @@ KSQL
     ```
 
     !!! tip
-        The actual name of the query running may vary; refer to the output
-        of `SHOW QUERIES;`.
+          The actual name of the query running may vary; refer to the output
+          of `SHOW QUERIES;`.
 
 2.  Run the `exit` command to leave the KSQL CLI.
 

@@ -20,12 +20,12 @@ your KSQL deployment and answers these questions:
     message rate, and how can I tune KSQL if it's falling behind?
 
 !!! tip
-		Because the underlying implementation of KSQL uses the
-    [Kafka Streams API](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html)
-    for query processing, the details covered in the Streams documentation
-    apply to KSQL as well. The [Kafka Streams capacity planning
-    guide](https://docs.confluent.io/current/streams/sizing.html) is another
-    useful resource for KSQL capacity planning.
+      Because the underlying implementation of KSQL uses the
+      [Kafka Streams API](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html)
+      for query processing, the details covered in the Streams documentation
+      apply to KSQL as well. The [Kafka Streams capacity planning
+      guide](https://docs.confluent.io/current/streams/sizing.html) is another
+      useful resource for KSQL capacity planning.
 
 Approach To Sizing
 ------------------
@@ -66,14 +66,14 @@ General guidelines for a basic KSQL server are:
 -   1 Gbit network
 
 !!! important "Don't deploy multi-tenant KSQL Server instances."
-    We recommend against using KSQL in a multi-tenant fashion. For example,
-    if you have two KSQL applications running on the same node, and one is
-    greedy, you\'re likely to encounter resource issues related to
-    multi-tenancy. We recommend using a single pool of KSQL Server instances
-    per use case. You should deploy separate applications onto separate KSQL
-    nodes, because it becomes easier to reason about scaling and resource
-    utilization. Also, deploying per use case makes it easier to reason
-    about failovers and replication.
+      We recommend against using KSQL in a multi-tenant fashion. For example,
+      if you have two KSQL applications running on the same node, and one is
+      greedy, you're likely to encounter resource issues related to
+      multi-tenancy. We recommend using a single pool of KSQL Server instances
+      per use case. You should deploy separate applications onto separate KSQL
+      nodes, because it becomes easier to reason about scaling and resource
+      utilization. Also, deploying per use case makes it easier to reason
+      about failovers and replication.
 
 ### Kafka
 
@@ -439,9 +439,9 @@ This section provides sizing scenarios with examples of how to think
 about sizing. These examples analyze a stream of `pageview` events.
 
 !!! note
-		The environment and numbers in this section are hypothetical and only
-    meant for illustration purposes. You should perform your own
-    benchmarking and testing to match your use cases and environments.
+      The environment and numbers in this section are hypothetical and only
+      meant for illustration purposes. You should perform your own
+      benchmarking and testing to match your use cases and environments.
 
 The examples assume the following DDL statements to declare the schema
 for the input data:

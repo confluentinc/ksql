@@ -31,8 +31,8 @@ be controlled:
 ### Single field (un)wrapping
 
 !!! note
-		The `DELIMITED` and `KAFKA` formats don't support single-field
-    unwrapping.
+      The `DELIMITED` and `KAFKA` formats don't support single-field
+      unwrapping.
 
 Controlling deserializing of single fields
 ==========================================
@@ -90,9 +90,9 @@ You can change the system default. For more information, see
 [ksql.persistence.wrap.single.values](../installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
-		KSQL treats `null` keys and values as a special case. We recommend
-    avoiding unwrapped single-field schemas if the field can have a `null`
-    value.
+      KSQL treats `null` keys and values as a special case. We recommend
+      avoiding unwrapped single-field schemas if the field can have a `null`
+      value.
 
 A `null` value in a table's topic is treated as a tombstone, which
 indicates that a row has been removed. If a table's source topic has an
@@ -159,9 +159,9 @@ can change the system default. For more information, see
 [ksql.persistence.wrap.single.values](../installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
-		KSQL treats `null` keys and values as a special case. We recommended
-    avoiding unwrapped single-field schemas if the field can have a `null`
-    value.
+      KSQL treats `null` keys and values as a special case. We recommended
+      avoiding unwrapped single-field schemas if the field can have a `null`
+      value.
 
 TODO: Is the next para redundant?
 

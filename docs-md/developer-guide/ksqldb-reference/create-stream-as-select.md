@@ -64,11 +64,11 @@ The WITH clause for the result supports the following properties:
 
 
 !!! note
-		- To use Avro, you must have {{ site.sr }} enabled and
-      `ksql.schema.registry.url` must be set in the KSQL server configuration
-      file. See [Configure Avro and {{ site.sr }} for KSQL](../../installation/server-config/avro-schema.md). 
-    - Avro field names are not case sensitive in KSQL. This matches the KSQL
-      column name behavior.
+      - To use Avro, you must have {{ site.sr }} enabled and
+        `ksql.schema.registry.url` must be set in the KSQL server configuration
+        file. See [Configure Avro and {{ site.sr }} for KSQL](../../installation/server-config/avro-schema.md). 
+      - Avro field names are not case sensitive in KSQL. This matches the KSQL
+        column name behavior.
 
 !!! note
 		The `KEY` property is not supported. Use PARTITION BY instead.

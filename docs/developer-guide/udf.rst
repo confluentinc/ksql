@@ -115,8 +115,9 @@ Dynamic return type
 ~~~~~~~~~~~~~~~~~~~
 
 UDFs support dynamic return types that are resolved at runtime. This is useful if you want to
-implement a UDF with a non-deterministic return type. A UDF which returns ``BigDecimal``,
-for example, may vary the precision and scale of the output based on the input schema.
+implement a UDF with a non-deterministic return type such as ``DECIMAL`` or ``STRUCT``. For example,
+A UDF that returns ``BigDecimal`` (which maps to the SQL ``DECIMAL`` type) may vary the precision
+and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
 ``public SqlType <your-method-name>(final List<SqlType> params)`` and annotate it with ``@SchemaProvider``.
@@ -896,8 +897,14 @@ The types supported by UDFs/UDAFs/UDTFs are currently limited to:
 +--------------+------------------+
 | Map          | MAP              |
 +--------------+------------------+
-| Struct       | STRUCT           |
+| Struct       | STRUCT\ :sup:`1` |
 +--------------+------------------+
+| BigDecimal   | DECIMAL\ :sup:`1`|
++--------------+------------------+
+
+1. Using Struct or BigDecimal in UDFs requires specifying the schema using ``paramSchema``,
+``returnSchema``, ``aggregateSchema`` or a schema provider.
+
 
 .. _deploying-udf:
 

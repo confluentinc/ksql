@@ -39,6 +39,7 @@ import io.confluent.ksql.test.tools.Record;
 import io.confluent.ksql.test.tools.Topic;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConstants;
+import io.confluent.ksql.util.KsqlServerException;
 import io.confluent.ksql.util.RetryUtil;
 import java.io.Closeable;
 import java.net.URL;
@@ -327,7 +328,9 @@ public class RestTestExecutor implements Closeable {
     final Object actualValue = actual.value();
 
     final Object expectedKey = expected.key();
-    final JsonNode expectedValue = expected.getJsonValue();
+    final JsonNode expectedValue = expected.getJsonValue()
+        .orElseThrow(() -> new KsqlServerException(
+            "could not get expected value from test record: " + expected));
     final long expectedTimestamp = expected.timestamp().orElse(actualTimestamp);
 
     final AssertionError error = new AssertionError(

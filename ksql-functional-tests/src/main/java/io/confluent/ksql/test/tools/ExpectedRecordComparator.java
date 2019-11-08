@@ -54,11 +54,19 @@ public final class ExpectedRecordComparator {
   private static boolean compareStruct(final Object actualValue, final JsonNode expectedValue) {
     final ObjectNode expected = (ObjectNode) expectedValue;
     final Function<String, Object> getter;
+    final int numFields;
+
     if (actualValue instanceof Struct) {
       getter = ((Struct) actualValue)::get;
+      numFields = ((Struct) actualValue).schema().fields().size();
     } else if (actualValue instanceof Map) {
       getter = ((Map<?, ?>) actualValue)::get;
+      numFields = ((Map<?, ?>) actualValue).size();
     } else {
+      return false;
+    }
+
+    if (numFields != expected.size()) {
       return false;
     }
 
@@ -74,22 +82,27 @@ public final class ExpectedRecordComparator {
 
   private static boolean compareArray(final Object actualValue, final JsonNode expectedValue) {
     final ArrayNode expected = (ArrayNode) expectedValue;
-    if (actualValue instanceof List) {
-      final List<?> actual = (List<?>) actualValue;
-      final Iterator<JsonNode> elements = expected.elements();
-
-      int i = 0;
-      while (elements.hasNext()) {
-        final JsonNode el = elements.next();
-        if (!comparator(el).test(actual.get(i), el)) {
-          return false;
-        }
-        i++;
-      }
-
-      return true;
+    if (!(actualValue instanceof List)) {
+      return false;
     }
-    return false;
+
+    final List<?> actual = (List<?>) actualValue;
+    if (actual.size() != expected.size()) {
+      return false;
+    }
+
+    final Iterator<JsonNode> elements = expected.elements();
+
+    int i = 0;
+    while (elements.hasNext()) {
+      final JsonNode el = elements.next();
+      if (!comparator(el).test(actual.get(i), el)) {
+        return false;
+      }
+      i++;
+    }
+
+    return true;
   }
 
   private static boolean compareNumber(final Object actualValue, final JsonNode expectedValue) {
@@ -110,7 +123,6 @@ public final class ExpectedRecordComparator {
         return false;
       }
 
-      expected.isBigDecimal();
       try {
         return expected.decimalValue()
             .setScale(((BigDecimal) actualValue).scale(), RoundingMode.UNNECESSARY)

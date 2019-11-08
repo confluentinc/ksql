@@ -26,21 +26,22 @@ theme:
 
 nav:
     - Home: index.md
+    - Quickstart: tutorials/ksqldb-quickstart.md
     - Concepts: 
-        - ksqlDB Concepts: concepts/index.md
-        - ksqlDB Architecture: concepts/ksql-architecture.md
-        - ksqlDB and Kafka Streams: concepts/ksql-and-kafka-streams.md
-        - Time and Windows in ksqlDB: concepts/time-and-windows-in-ksql-queries.md
+        - Concepts: concepts/index.md
+        - Architecture: concepts/ksql-architecture.md
+        - Kafka Streams and ksqlDB: concepts/ksql-and-kafka-streams.md
+        - Time and Windows: concepts/time-and-windows-in-ksql-queries.md
         - Collections (TODO): concepts/collections.md 
         - Materialized Views (TODO): concepts/materialized-views.md
+        - Processing Guarantees (TODO): concepts/ksqldb-processing-guarantees.md
         - Push and Pull Queries (TODO): concepts/push-and-pull-queries.md
-        # - Schema: Data types and formats (TODO: refactored from old syntax reference)
-        # - Schema Evolution with ksqlDB and Avro (TODO)
+        - Schemas in ksqlDB (TODO): concepts/ksqldb-schemas.md
         # - Functions: Built-in functions (TODO)
         # - Functions: UDF/UDAFs (TODO)
         # - Connect to external systems Import data from external sources (TODO)
         # - Connect to external systems Exporting data to external sinks (TODO)
-
+ 
     - Operate ksqlDB:
         - ksqlDB Operations: operations.md
         - ksqlDB Capacity Planning: capacity-planning.md

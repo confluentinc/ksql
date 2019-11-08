@@ -10,9 +10,9 @@ Aggregate Functions
 ===================
 
 For more information, see
-[Aggregate Streaming Data With KSQL](aggregate-streaming-data.md).
+[Aggregate Streaming Data With KSQL](../aggregate-streaming-data.md).
 
-  - [AVERAGE](#average)
+  - [AVG](#average)
   - [COLLECT_LIST](#collectlist)
   - [COLLECT_SET](#collectset)
   - [COUNT](#count)
@@ -25,8 +25,8 @@ For more information, see
   - [WindowStart](#windowstart)
   - [WindowEnd](#windowend)
 
-AVERAGE
--------
+AVG
+---
 
 `AVG(col1)`
 

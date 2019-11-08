@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Frequently Asked Questions
-tagline: FAQ for KSQL
-description: Common issues and gotchas when you use KSQL
+title: ksqlDB Frequently Asked Questions
+tagline: FAQ for ksqlDB
+description: Common issues and gotchas when you use ksqlDB
 ---
-
-Frequently Asked Questions
-==========================
 
 What are the benefits of KSQL?
 ------------------------------

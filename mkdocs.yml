@@ -43,9 +43,9 @@ nav:
         # - Connect to external systems Exporting data to external sinks (TODO)
  
     - Operate ksqlDB:
-        - ksqlDB Operations: operations.md
-        - ksqlDB Capacity Planning: capacity-planning.md
-        - ksqlDB Changelog: changelog.md
+        - Operations: operations.md
+        - Capacity Planning: capacity-planning.md
+        - Changelog: changelog.md
         - Frequently Asked Questions: faq.md
         - Troubleshoot ksqlDB Operations: troubleshoot-ksql.md
         - Install and Upgrade:
@@ -63,9 +63,9 @@ nav:
                 - Configure Security for ksqlDB: installation/server-config/security.md
                 
     - Reference:
-        - ksqlDB Syntax Reference: developer-guide/syntax-reference.md
-        - ksqlDB API Reference:
-            - ksqlDB API Reference: developer-guide/ksqldb-reference/index.md 
+        - Syntax Reference: developer-guide/syntax-reference.md
+        - API Reference:
+            - ksqlDB API Index: developer-guide/ksqldb-reference/index.md 
             - Aggregate Functions: developer-guide/ksqldb-reference/aggregate-functions.md
             - CREATE STREAM: developer-guide/ksqldb-reference/create-stream.md
             - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
@@ -101,31 +101,30 @@ nav:
             - Run a KSQL Statement (/ksql): developer-guide/ksqldb-rest-api/ksql-endpoint.md
             - Run A Query And Stream Back The Output (/query endpoint): developer-guide/ksqldb-rest-api/query-endpoint.md
             - Terminate a Cluster (/ksql/terminate endpoint): developer-guide/ksqldb-rest-api/terminate-endpoint.md
-        - ksqlDB Custom Function Reference (UDF and UDAF): developer-guide/udf.md        
+        - Custom Function Reference (UDF and UDAF): developer-guide/udf.md        
         - Serialization: developer-guide/serialization.md
-        - ksqlDB Processing Log: developer-guide/processing-log.md
+        - Processing Log: developer-guide/processing-log.md
         - ksqlDB-Connect Integration: developer-guide/ksql-connect.md
-        - ksqlDB Testing Tool: developer-guide/ksql-testing-tool.md        
-        # - Processing Guarantees: TODO
+        - Testing Tool: developer-guide/ksql-testing-tool.md        
 
     - How To:
-        - ksqlDB Developer Guide: developer-guide/index.md # may go away
+        - Developer Guide: developer-guide/index.md # may go away
         - Generate Custom Test Data by Using the ksql-datagen Tool: tutorials/generate-custom-test-data.md    
         - Aggregate Streaming Data With ksqlDB: developer-guide/aggregate-streaming-data.md
-        - Create a ksqlDB Stream: developer-guide/create-a-stream.md
-        - Create a ksqlDB Table: developer-guide/create-a-table.md
-        - Implement a User-defined Function (UDF and UDAF): developer-guide/implement-a-udf.md
-        - Join Event Streams with ksqlDB: developer-guide/join-streams-and-tables.md
+        - Create a Stream: developer-guide/create-a-stream.md
+        - Create a Table: developer-guide/create-a-table.md
+        - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
+        - Join Event Streams: developer-guide/join-streams-and-tables.md
         - Partition Data to Enable Joins: developer-guide/partition-data.md
         - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
         - Query With Structured Data: developer-guide/query-with-structured-data.md
         - Transform a Stream With ksqlDB: developer-guide/transform-a-stream-with-ksql.md
-        - Example ksqlDB queris: tutorials/examples.md
-        - Troubleshoot ksqlDB queries: troubleshoot-ksql.md
+        - Example queries: tutorials/examples.md
+        - Troubleshoot queries: troubleshoot-ksql.md
 
     - Tutorials:
-        - ksqlDB Tutorials and Examples: tutorials//index.md
-        - ksqlDB Quick Start: quickstart.md # This should go away
+        - Tutorials and Examples: tutorials//index.md
+        - Quick Start: quickstart.md # This should go away
         - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center: tutorials/basics-control-center.md
         - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md
         - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md

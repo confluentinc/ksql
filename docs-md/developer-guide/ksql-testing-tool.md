@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Testing Tool
-tagline: Test your KSQL statements
-description: Test your KSQL statements without the need for a full Kafka cluster
+title: ksqlDB Testing Tool
+tagline: Test your SQL statements in ksqlDB
+description: Test your SQL statements in ksqlDB without the need for a full Kafka cluster
 ---
-
-KSQL Testing Tool
-=================
 
 Use the KSQL testing tool to test a set of KSQL statements. The KSQL
 testing tool is a command line utility that enables testing KSQL

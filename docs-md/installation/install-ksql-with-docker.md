@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Install KSQL with Docker
-tagline: Run KSQL by using Docker containers
-description: Learn how to install KSQL in various configurations by using Docker containers
-keywords: ksql, docker, install
+title: Install ksqlDB with Docker
+tagline: Run ksqlDB by using Docker containers
+description: Learn how to install ksqlDB in various configurations by using Docker containers
+keywords: ksqldb, docker, install
 ---
-
-Install KSQL with Docker
-========================
 
 You can deploy KSQL by using Docker containers. Starting with {{ site.cp }}
 4.1.2, Confluent maintains images at [Docker Hub](https://hub.docker.com/u/confluentinc)
@@ -23,14 +20,6 @@ container for KSQL Server. To set up {{ site.cp }} by using containers, see
 Use the following settings to start containers that run KSQL in various
 configurations.
 
-- [Install KSQL with Docker](#install-ksql-with-docker)
-  - [Scale Your KSQL Server Deployment](#scale-your-ksql-server-deployment)
-  - [Assign Configuration Settings in the Docker Run Command](#assign-configuration-settings-in-the-docker-run-command)
-  - [KSQL Server](#ksql-server)
-    - [KSQL Headless Server Settings (Production)](#ksql-headless-server-settings-production)
-    - [KSQL Headless Server with Interceptors Settings (Production)](#ksql-headless-server-with-interceptors-settings-production)
-    - [KSQL Interactive Server Settings (Development)](#ksql-interactive-server-settings-development)
-    - [KSQL Interactive Server with Interceptors Settings (Development)](#ksql-interactive-server-with-interceptors-settings-development)
 - [Connect KSQL Server to a Secure Kafka Cluster, Like Confluent Cloud](#connect-ksql-server-to-a-secure-kafka-cluster-like-confluent-cloud)
     - [Configure a KSQL Server by Using Java System Properties](#configure-a-ksql-server-by-using-java-system-properties)
     - [View KSQL Server Logs](#view-ksql-server-logs)

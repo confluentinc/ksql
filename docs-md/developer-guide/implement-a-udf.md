@@ -1,12 +1,9 @@
 ---
 layout: page
-title: Implement a User-defined Function (UDF and UDAF)
+title: Implement a User-defined Function (UDF, UDAF, or UDTF)
 tagline: Create functions for custom processing
 description: Learn how to create user-defined functions for event streams processing
 ---
-
-Implement a User-defined Function (UDF, UDAF, or UDTF)
-======================================================
 
 Prerequisites
 -------------

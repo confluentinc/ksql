@@ -1,14 +1,10 @@
 ---
 layout: page
-title: Get the Status of a CREATE, DROP, or TERMINATE
+title: Get the status of a CREATE, DROP, or TERMINATE
 tagline: status endpoint
 description: The `/status` resource returns the current state of statement execution
 keywords: ksqlDB, status, create, drop, terminate
 ---
-
-
-Get the Status of a CREATE, DROP, or TERMINATE statement
-========================================================
 
 CREATE, DROP, and TERMINATE statements returns an object that indicates
 the current state of statement execution. A statement can be in one of

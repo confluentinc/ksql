@@ -1,13 +1,10 @@
 ---
 layout: page
-title: KSQL Examples
-tagline: KSQL queries and statements in action
-description: See examples of commonly used KSQL queries and statements 
-keywords: ksql
+title: ksqlDB Examples
+tagline: ksqlDB queries and statements in action
+description: See examples of commonly used ksqlDB queries and statements 
+keywords: ksqldb
 ---
-
-KSQL Examples
-=============
 
 These examples use a `pageviews` stream and a `users` table.
 

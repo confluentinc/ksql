@@ -1,9 +1,9 @@
 ---
 layout: page
-title: Write Streaming Queries Against Apache Kafka® Using KSQL and Confluent Control Center
-tagline: Use KSQL for event streaming applications
-description: Learn how to use KSQL to create event streaming applications on Kafka topics
-keywords: ksql, confluent control center
+title: Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center
+tagline: Use ksqlDB for event streaming applications
+description: Learn how to use ksqlDB to create event streaming applications on Kafka topics
+keywords: ksqldb, confluent control center
 ---
 
 Write Streaming Queries Against {{ site.aktm }} Using KSQL and {{ site.c3 }}

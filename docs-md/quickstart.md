@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Quick Start
-tagline: Get Started with KSQL
-description:  Get started fast with KSQL quick starts and tutorials
+title: ksqlDB Quick Start
+tagline: Get Started with ksqlDB
+description:  Get started fast with ksqlDB quick starts and tutorials
 ---
-
-KSQL Quick Start
-================
 
 {{ site.cp }} Quick Start
 -------------------------

@@ -1,12 +1,9 @@
 ---
 layout: page
-title: Aggregate Streaming Data With KSQL
+title: Aggregate Streaming Data With ksqlDB
 tagline: Build stateful aggregates on streaming data
-description: Learn aggregation functions in KSQL statements 
+description: Learn about aggregation functions in ksqlDB statements 
 ---
-
-Aggregate Streaming Data With KSQL
-==================================
 
 KSQL supports several aggregate functions, like COUNT and SUM. You can
 use these to build stateful aggregates on streaming data. For the full

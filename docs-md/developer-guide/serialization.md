@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Serialization
-tagline:  Serialize and deserialize data with KSQL
-description: Learn how to control serialization and deserialization in KSQL queries
+title: ksqlDB Serialization
+tagline:  Serialize and deserialize data with ksqlDB
+description: Learn how to control serialization and deserialization in ksqlDB queries
 ---
-
-KSQL Serialization
-==================
 
 Controlling serialization
 -------------------------

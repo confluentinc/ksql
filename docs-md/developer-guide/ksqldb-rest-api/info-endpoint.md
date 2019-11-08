@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Get the Status of a KSQL Server
+title: Get the Status of a ksqlDB Server
 tagline: info endpoint
-description: The `/info` resource gives you the status of a KSQL server
-keywords: ksqlDB, terminate
+description: The `/info` resource gives you the status of a ksqlDB server
+keywords: ksqldb, server, status, info, terminate
 ---
-
-Get the Status of a KSQL Server
-===============================
 
 The `/info` resource gives you information about the status of a KSQL
 server, which can be useful for health checks and troubleshooting. You

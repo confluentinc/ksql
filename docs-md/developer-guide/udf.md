@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Custom Function Reference (UDF and UDAF)
-tagline: Convert streaming data from one format to another
-description: Learn how to create streaming transformations 
+title: ksqlDB Custom Function Reference (UDF, UDAF, and UDTF)
+tagline: Program user-defined functions in ksqlDB
+description: Learn how to create customer functions that run in your ksqlDB queries 
 ---
-
-KSQL Custom Function Reference (UDF, UDAF, and UDTF)
-====================================================
 
 KSQL has many built-in functions that help with processing records in
 streaming data, like ABS and SUM. Functions are used within a KSQL query

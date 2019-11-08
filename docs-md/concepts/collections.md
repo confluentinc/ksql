@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Collections
+title: Collections in ksqlDB
 tagline: Streams and tables
 description: Learn about ksqlDB's mutable and immutable collections named tables and streams 
 keywords: ksqldb, stream, table
 ---
-
-Collections
-===========
 
 Collections provide durable storage for sequences of events. ksqlDB offers
 two kinds of collections: streams and tables. Both operate under a simple

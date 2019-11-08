@@ -1,12 +1,10 @@
 ---
 layout: page
-title: Transform a Stream With KSQL
+title: Transform a Stream With ksqlDB
 tagline: Convert streaming data from one format to another
-description: Learn how to create streaming transformations 
+description: Learn how to create streaming transformations
+keywords: ksqldb, transform
 ---
-
-Transform a Stream With KSQL
-============================
 
 KSQL enables *streaming transformations*, which you can use to convert
 streaming data from one format to another in real time. With a streaming

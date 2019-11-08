@@ -1,11 +1,9 @@
 ---
 layout: page
-title: Create a KSQL Table
+title: Create a ksqlDB Table
 tagline: Create a Table from a Kafka topic
 description: Learn how to use the CREATE TABLE statement on a Kafka topic
 ---
-Create a KSQL Table
-===================
 
 In KSQL, you create tables from {{ site.aktm }} topics, and you create
 tables of query results from other tables or streams.

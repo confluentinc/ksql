@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Install KSQL
-tagline: Install KSQL on-premises
-description: Learn how to install KSQL on-premises
-keywords: ksql, install
+title: Install ksqlDB
+tagline: Install ksqlDB on-premises
+description: Learn how to install ksqlDB on-premises
+keywords: ksql, install, on-prem
 ---
-
-Installing KSQL
-===============
 
 KSQL is a component of {{ site.cp }} and the KSQL binaries are located
 at [Confluent Downloads](https://www.confluent.io/download/)

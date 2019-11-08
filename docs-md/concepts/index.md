@@ -6,9 +6,6 @@ description: Learn about ksqlDB under the hood.
 keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
-ksqlDB Concepts
-===============
-
 - [Architecture](ksql-architecture.md)
 - [Collections](collections.md)
 - [Kafka Streams and kslDB](ksql-and-kafka-streams.md)

@@ -296,7 +296,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldStartTheVersionCheckerAgent() {
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     verify(versionChecker).start(eq(KsqlModuleType.SERVER), any());
   }
@@ -317,13 +317,13 @@ public class StandaloneExecutorTest {
         injectorFactory);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(versionChecker).start(eq(KsqlModuleType.SERVER), captor.capture());
     assertThat(captor.getValue().getProperty("confluent.support.metrics.enable"), equalTo("false"));
-    standaloneExecutor.stop();
-    standaloneExecutor.join();
+    standaloneExecutor.triggerShutdown();
+    standaloneExecutor.awaitTerminated();
   }
 
   @Test
@@ -332,7 +332,7 @@ public class StandaloneExecutorTest {
     givenQueryFileContains("This statement");
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).parse("This statement");
@@ -347,13 +347,13 @@ public class StandaloneExecutorTest {
     expectedException.expectMessage("Could not read the query file");
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test
   public void shouldLoadUdfs() {
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(udfLoader).load();
@@ -362,7 +362,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldCreateProcessingLogTopic() {
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then
     verify(kafkaTopicClient).createTopic(eq(PROCESSING_LOG_TOPIC_NAME), anyInt(), anyShort());
@@ -387,7 +387,7 @@ public class StandaloneExecutorTest {
     );
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then
     verify(kafkaTopicClient, times(0))
@@ -416,7 +416,7 @@ public class StandaloneExecutorTest {
         + "UNSET");
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test
@@ -433,7 +433,7 @@ public class StandaloneExecutorTest {
     );
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test
@@ -445,7 +445,7 @@ public class StandaloneExecutorTest {
     givenQueryFileParsesTo(cs);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(cs, emptyMap(), ksqlConfig));
@@ -460,7 +460,7 @@ public class StandaloneExecutorTest {
     givenQueryFileParsesTo(ct);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(ct, emptyMap(), ksqlConfig));
@@ -478,7 +478,7 @@ public class StandaloneExecutorTest {
     givenQueryFileParsesTo(setProp, cs);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(
@@ -501,7 +501,7 @@ public class StandaloneExecutorTest {
     givenQueryFileParsesTo(cs, setProp);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, ConfiguredStatement.of(
@@ -528,7 +528,7 @@ public class StandaloneExecutorTest {
     givenQueryFileParsesTo(setProp, unsetProp, cs);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, configured);
@@ -546,7 +546,7 @@ public class StandaloneExecutorTest {
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, configured);
@@ -565,7 +565,7 @@ public class StandaloneExecutorTest {
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, configured);
@@ -584,7 +584,7 @@ public class StandaloneExecutorTest {
         .thenReturn(ExecuteResult.of(persistentQuery));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(ksqlEngine).execute(serviceContext, configured);
@@ -602,7 +602,7 @@ public class StandaloneExecutorTest {
     expectedException.expectMessage("Could not build the query");
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test
@@ -617,7 +617,7 @@ public class StandaloneExecutorTest {
     expectedException.expectMessage("Could not build the query");
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test(expected = RuntimeException.class)
@@ -626,7 +626,7 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.parse(any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test(expected = RuntimeException.class)
@@ -635,13 +635,13 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.execute(any(), any())).thenThrow(new RuntimeException("Boom!"));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test
   public void shouldCloseEngineOnStop() {
     // When:
-    standaloneExecutor.stop();
+    standaloneExecutor.triggerShutdown();
 
     // Then:
     verify(ksqlEngine).close();
@@ -650,7 +650,7 @@ public class StandaloneExecutorTest {
   @Test
   public void shouldCloseServiceContextOnStop() {
     // When:
-    standaloneExecutor.stop();
+    standaloneExecutor.triggerShutdown();
 
     // Then:
     verify(serviceContext).close();
@@ -662,7 +662,7 @@ public class StandaloneExecutorTest {
     when(ksqlEngine.getPersistentQueries()).thenReturn(ImmutableList.of(persistentQuery));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(persistentQuery).start();
@@ -675,7 +675,7 @@ public class StandaloneExecutorTest {
     when(sandBox.execute(any(), any())).thenReturn(ExecuteResult.of(sandBoxQuery));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(sandBoxQuery, never()).start();
@@ -688,7 +688,7 @@ public class StandaloneExecutorTest {
         ImmutableList.of(PARSED_STMT_0, PARSED_STMT_1));
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     final InOrder inOrder = inOrder(ksqlEngine);
@@ -712,7 +712,7 @@ public class StandaloneExecutorTest {
         "statement does not define the schema and the supplied format does not support schema inference");
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
   }
 
   @Test
@@ -730,7 +730,7 @@ public class StandaloneExecutorTest {
         .thenReturn((ConfiguredStatement) CFG_1_WITH_SCHEMA);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(sandBox).execute(sandBoxServiceContext, CFG_0_WITH_SCHEMA);
@@ -746,7 +746,7 @@ public class StandaloneExecutorTest {
         .thenReturn((ConfiguredStatement) CSAS_CFG_WITH_TOPIC);
 
     // When:
-    standaloneExecutor.start();
+    standaloneExecutor.startAsync();
 
     // Then:
     verify(sandBox).execute(sandBoxServiceContext, CSAS_CFG_WITH_TOPIC);

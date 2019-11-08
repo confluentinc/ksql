@@ -15,13 +15,13 @@ stream converted, but you can configure KSQL so that all previously
 existing records in the stream are converted.
 
 !!! tip
-		Run the following statement to tell KSQL to read from the beginning of the
-    topic:
-    ```sql
-    SET 'auto.offset.reset' = 'earliest';
-    ```
-    You can skip this step if you've already run it within your current
-    KSQL CLI session.
+      Run the following statement to tell KSQL to read from the beginning of the
+      topic:
+      ```sql
+      SET 'auto.offset.reset' = 'earliest';
+      ```
+      You can skip this step if you've already run it within your current
+      KSQL CLI session.
 
 Transform a Stream By Using the WITH Clause
 -------------------------------------------

@@ -21,6 +21,7 @@ import static org.easymock.EasyMock.niceMock;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.query.QueryId;
@@ -43,6 +44,7 @@ import io.confluent.ksql.services.ServiceContextFactory;
 import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
+import io.confluent.rest.ApplicationServer;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -97,7 +99,7 @@ public class TestKsqlRestApp extends ExternalResource {
   private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final List<URL> listeners = new ArrayList<>();
   private final Optional<BasicCredentials> credentials;
-  private KsqlRestApplication restServer;
+  private ExecutableServer<KsqlRestConfig> restServer;
 
   private TestKsqlRestApp(
       final Supplier<String> bootstrapServers,
@@ -235,22 +237,28 @@ public class TestKsqlRestApp extends ExternalResource {
       after();
     }
 
+    final KsqlRestApplication ksqlRestApplication;
+    final KsqlRestConfig config = buildConfig(bootstrapServers, baseConfig);
     try {
-      restServer = KsqlRestApplication.buildApplication(
+      ksqlRestApplication = KsqlRestApplication.buildApplication(
           metricsPrefix,
-          buildConfig(bootstrapServers, baseConfig),
+          config,
           (booleanSupplier) -> niceMock(VersionCheckerAgent.class),
           3,
           serviceContext.get(),
           serviceContextBinderFactory
+      );
+      restServer = new ExecutableServer<>(
+          new ApplicationServer<>(config),
+          ImmutableList.of(ksqlRestApplication)
       );
     } catch (final Exception e) {
       throw new RuntimeException("Failed to initialise", e);
     }
 
     try {
-      restServer.start();
-      listeners.addAll(restServer.getListeners());
+      restServer.startAsync();
+      listeners.addAll(ksqlRestApplication.getListeners());
     } catch (Exception var2) {
       throw new RuntimeException("Failed to start Ksql rest server", var2);
     }
@@ -263,7 +271,11 @@ public class TestKsqlRestApp extends ExternalResource {
     }
 
     listeners.clear();
-    restServer.stop();
+    try {
+      restServer.triggerShutdown();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
     restServer = null;
   }
 

@@ -59,7 +59,7 @@ public class KsqlServerMainTest {
   @Test
   public void shouldStopAppOnJoin() throws Exception {
     // Given:
-    executable.stop();
+    executable.triggerShutdown();
     expectLastCall();
     replay(executable);
 
@@ -73,10 +73,10 @@ public class KsqlServerMainTest {
   @Test
   public void shouldStopAppOnErrorStarting() throws Exception {
     // Given:
-    executable.start();
+    executable.startAsync();
     expectLastCall().andThrow(new RuntimeException("Boom"));
 
-    executable.stop();
+    executable.triggerShutdown();
     expectLastCall();
     replay(executable);
 

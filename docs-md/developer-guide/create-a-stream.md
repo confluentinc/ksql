@@ -16,8 +16,8 @@ streams of query results from other streams.
     from an existing stream.
 
 !!! note
-		Creating tables is similar to creating streams. For more information,
-    see [Create a KSQL Table](create-a-table.md).
+      Creating tables is similar to creating streams. For more information,
+      see [Create a KSQL Table](create-a-table.md).
 
 Create a Stream from a Kafka topic
 ----------------------------------
@@ -194,11 +194,11 @@ persistent, continuous, streaming query, which means that it runs until
 you stop it explicitly.
 
 !!! note
-		A SELECT statement by itself is a *non-persistent* continuous query. The
-    result of a SELECT statement isn't persisted in a Kafka topic and is
-    only printed in the KSQL console. Don't confuse persistent queries
-    created by CREATE STREAM AS SELECT with the streaming query result from
-    a SELECT statement.
+      A SELECT statement by itself is a *non-persistent* continuous query. The
+      result of a SELECT statement isn't persisted in a Kafka topic and is
+      only printed in the KSQL console. Don't confuse persistent queries
+      created by CREATE STREAM AS SELECT with the streaming query result from
+      a SELECT statement.
 
 Use the SHOW QUERIES statement to list the persistent queries that are
 running currently.
@@ -216,9 +216,9 @@ To stream the result of a SELECT query into an *existing* stream and its
 underlying topic, use the INSERT INTO statement.
 
 !!! note
-		The CREATE STREAM AS SELECT statement doesn't support the KEY property.
-    To specify a KEY field, use the PARTITION BY clause. For more
-    information, see [Partition Data to Enable Joins](partition-data.md).
+      The CREATE STREAM AS SELECT statement doesn't support the KEY property.
+      To specify a KEY field, use the PARTITION BY clause. For more
+      information, see [Partition Data to Enable Joins](partition-data.md).
 
 The following KSQL statement creates a `pageviews_intro` stream that
 contains results from a persistent query that matches "introductory"

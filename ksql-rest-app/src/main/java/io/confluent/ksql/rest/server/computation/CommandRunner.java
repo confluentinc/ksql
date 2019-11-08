@@ -39,8 +39,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Handles the logic of reading distributed commands, including pre-existing commands that were
  * issued before being initialized, and then delegating their execution to a
- * {@link StatementExecutor}. Also responsible for taking care of any exceptions that occur in the
- * process.
+ * {@link InteractiveStatementExecutor}. 
+ * Also responsible for taking care of any exceptions that occur in the process.
  */
 public class CommandRunner implements Closeable {
 
@@ -51,7 +51,7 @@ public class CommandRunner implements Closeable {
   private static final Duration NEW_CMDS_TIMEOUT = Duration.ofMillis(MAX_STATEMENT_RETRY_MS);
   private static final int SHUTDOWN_TIMEOUT_MS = 3 * MAX_STATEMENT_RETRY_MS;
 
-  private final StatementExecutor statementExecutor;
+  private final InteractiveStatementExecutor statementExecutor;
   private final CommandQueue commandStore;
   private final ExecutorService executor;
   private volatile boolean closed = false;
@@ -60,7 +60,7 @@ public class CommandRunner implements Closeable {
   private final ServerState serverState;
 
   public CommandRunner(
-      final StatementExecutor statementExecutor,
+      final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,
@@ -78,7 +78,7 @@ public class CommandRunner implements Closeable {
 
   @VisibleForTesting
   CommandRunner(
-      final StatementExecutor statementExecutor,
+      final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,
       final int maxRetries,
       final ClusterTerminator clusterTerminator,

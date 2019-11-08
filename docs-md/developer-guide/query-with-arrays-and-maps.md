@@ -19,11 +19,11 @@ named `users`. To see this example in action, create the `users` topic
 by following the procedure in [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md).
 
 !!! important
-		When you start the ksql-datagen process for the `users` topic, set the
-    `quickstart` parameter to `users_`, to add the array and map fields to
-    the `user` records. Be sure to append the `_` character. The array and
-    map fields are named `interests` and `contactinfo` and have type
-    ARRAY<STRING> and MAP<STRING,STRING>.
+      When you start the ksql-datagen process for the `users` topic, set the
+      `quickstart` parameter to `users_`, to add the array and map fields to
+      the `user` records. Be sure to append the `_` character. The array and
+      map fields are named `interests` and `contactinfo` and have type
+      ARRAY<STRING> and MAP<STRING,STRING>.
 
 Create a Table With Array and Map Fields
 ----------------------------------------

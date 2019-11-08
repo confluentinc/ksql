@@ -29,7 +29,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -60,7 +60,7 @@ public class StatusResourceTest {
   }
 
   private StatusResource getTestStatusResource() {
-    final StatementExecutor mockStatementExecutor = mock(StatementExecutor.class);
+    final InteractiveStatementExecutor mockStatementExecutor = mock(InteractiveStatementExecutor.class);
 
     expect(mockStatementExecutor.getStatuses()).andReturn(mockCommandStatuses);
 

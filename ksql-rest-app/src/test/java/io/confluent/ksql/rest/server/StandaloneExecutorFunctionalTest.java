@@ -131,8 +131,8 @@ public class StandaloneExecutorFunctionalTest {
 
   @After
   public void tearDown() throws Exception {
-    standalone.stop();
-    standalone.join();
+    standalone.triggerShutdown();
+    standalone.awaitTerminated();
   }
 
   @Test
@@ -165,7 +165,7 @@ public class StandaloneExecutorFunctionalTest {
     );
 
     // When:
-    standalone.start();
+    standalone.startAsync();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
@@ -206,7 +206,7 @@ public class StandaloneExecutorFunctionalTest {
     );
 
     // When:
-    standalone.start();
+    standalone.startAsync();
 
     // Then:
     // CSAS and INSERT INTO both input into S1:
@@ -228,7 +228,7 @@ public class StandaloneExecutorFunctionalTest {
         + "CREATE STREAM " + s1 + " AS SELECT * FROM S;");
 
     // When:
-    standalone.start();
+    standalone.startAsync();
 
     // Then:
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, AVRO, DATA_SCHEMA);
@@ -250,7 +250,7 @@ public class StandaloneExecutorFunctionalTest {
         "Schema registry fetch for topic topic-without-schema request failed");
 
     // When:
-    standalone.start();
+    standalone.startAsync();
   }
 
   @Test
@@ -270,7 +270,7 @@ public class StandaloneExecutorFunctionalTest {
     expectedException.expectMessage("schema is incompatible with the current schema version registered for the topic");
 
     // When:
-    standalone.start();
+    standalone.startAsync();
   }
 
   @Test
@@ -291,7 +291,7 @@ public class StandaloneExecutorFunctionalTest {
         + "CREATE STREAM " + s1 + "  AS SELECT * FROM S;");
 
     // When:
-    standalone.start();
+    standalone.startAsync();
 
     // Then:
     TEST_HARNESS.verifyAvailableRows(s1, DATA_SIZE, JSON, DATA_SCHEMA);

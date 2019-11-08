@@ -59,10 +59,10 @@ public class SelectValueMapperIntegrationTest {
 
     // When:
     final GenericRow transformed = selectMapper.apply(
-        genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0F, "blah"));
+        genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0D, "blah"));
 
     // Then:
-    assertThat(transformed, is(genericRow(1L, "bye", 2.0F)));
+    assertThat(transformed, is(genericRow(1L, "bye", 2.0D)));
   }
 
   @Test
@@ -73,10 +73,10 @@ public class SelectValueMapperIntegrationTest {
 
     // When:
     final GenericRow row = selectMapper.apply(
-        genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9F, "boo", "hoo"));
+        genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9D, "boo", "hoo"));
 
     // Then:
-    assertThat(row, is(genericRow(2L, "foo", "whatever", 7.0F)));
+    assertThat(row, is(genericRow(2L, "foo", "whatever", 7.0D)));
   }
 
   private SelectValueMapper givenSelectMapperFor(final String query) {

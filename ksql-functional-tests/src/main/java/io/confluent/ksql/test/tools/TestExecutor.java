@@ -47,6 +47,7 @@ import io.confluent.ksql.test.tools.stubs.StubKafkaService;
 import io.confluent.ksql.test.tools.stubs.StubKafkaTopicClient;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlServerException;
 import java.io.Closeable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -485,7 +486,9 @@ public class TestExecutor implements Closeable {
     final long actualTimestamp = actualProducerRecord.timestamp();
 
     final Object expectedKey = expectedRecord.key();
-    final JsonNode expectedValue = expectedRecord.getJsonValue();
+    final JsonNode expectedValue = expectedRecord.getJsonValue()
+        .orElseThrow(() -> new KsqlServerException(
+            "could not get expected value from test record: " + expectedRecord));
     final long expectedTimestamp = expectedRecord.timestamp().orElse(actualTimestamp);
 
     final AssertionError error = new AssertionError(

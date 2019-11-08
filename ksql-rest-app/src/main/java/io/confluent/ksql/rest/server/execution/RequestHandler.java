@@ -23,7 +23,6 @@ import io.confluent.ksql.parser.tree.RunScript;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
@@ -75,8 +74,7 @@ public class RequestHandler {
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
       final Map<String, Object> propertyOverrides,
-      final String sql,
-      final TransactionalProducer transactionalProducer
+      final String sql
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
@@ -86,8 +84,7 @@ public class RequestHandler {
         final KsqlEntityList result = executeRunScript(
             serviceContext,
             prepared,
-            propertyOverrides,
-            transactionalProducer
+            propertyOverrides
         );
         if (!result.isEmpty()) {
           // This is to maintain backwards compatibility until we deprecate
@@ -104,8 +101,7 @@ public class RequestHandler {
             parsed,
             scopedPropertyOverrides,
             sql,
-            entities,
-            transactionalProducer
+            entities
         ).ifPresent(entities::add);
       }
     }
@@ -119,8 +115,7 @@ public class RequestHandler {
       final ParsedStatement parsed,
       final Map<String, Object> mutableScopedProperties,
       final String sql,
-      final KsqlEntityList entities,
-      final TransactionalProducer transactionalProducer
+      final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
     
@@ -129,7 +124,7 @@ public class RequestHandler {
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, 
             (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, parsed, props, sql, ctx, svcCtx, transactionalProducer));
+                distributor.execute(stmt, parsed, props, sql, ctx, svcCtx));
 
     return executor.execute(
         configured,
@@ -142,8 +137,7 @@ public class RequestHandler {
   private KsqlEntityList executeRunScript(
       final ServiceContext serviceContext,
       final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides,
-      final TransactionalProducer transactionalProducer
+      final Map<String, Object> propertyOverrides
   ) {
     final String sql = (String) propertyOverrides
         .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
@@ -157,8 +151,7 @@ public class RequestHandler {
         serviceContext,
         ksqlEngine.parse(sql),
         propertyOverrides,
-        sql,
-        transactionalProducer
+        sql
     );
   }
 }

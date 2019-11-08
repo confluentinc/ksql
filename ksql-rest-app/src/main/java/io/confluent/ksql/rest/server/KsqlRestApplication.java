@@ -80,7 +80,6 @@ import io.confluent.ksql.version.metrics.collector.KsqlModuleType;
 import io.confluent.rest.RestConfig;
 import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.io.Console;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.net.URL;
@@ -295,6 +294,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     try {
       commandRunner.close();
     } catch (final Exception e) {
+      System.out.println("yikes");
+      System.out.println(e.getStackTrace());
       log.error("Exception while waiting for CommandRunner thread to complete", e);
     }
 
@@ -634,8 +635,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     final TransactionalProducer transactionalProducer =
         commandQueue.createTransactionalProducer();
     try {
-      transactionalProducer.initialize();
-      transactionalProducer.begin();
+      transactionalProducer.initTransactions();
+      transactionalProducer.beginTransaction();
   
       final PreparedStatement<?> statement = ProcessingLogServerUtils
           .processingLogStreamCreateStatement(config, ksqlConfig);
@@ -647,17 +648,12 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           configured.get()
       );
       commandQueue.enqueueCommand(configured.get(), transactionalProducer);
-      transactionalProducer.commit();
+      transactionalProducer.commitTransaction();
     } catch (final Exception e) {
       log.warn("Failed to create processing log stream", e);
-      transactionalProducer.abort();
+      transactionalProducer.abortTransaction();
     } finally {
-      try {
-        transactionalProducer.close();
-      } catch (IOException e) {
-        log.error("Failed to close TransactionProducer for creating process log stream\n"
-            + "Error: " + e.getMessage());
-      }
+      transactionalProducer.close();
     }
   }
 

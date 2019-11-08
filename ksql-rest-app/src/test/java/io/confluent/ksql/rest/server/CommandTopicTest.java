@@ -80,9 +80,6 @@ public class CommandTopicTest {
   @Captor
   private ArgumentCaptor<Collection<TopicPartition>> topicPartitionsCaptor;
 
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
   private final static TopicPartition TOPIC_PARTITION = new TopicPartition(COMMAND_TOPIC_NAME, 0);
 
   @Before

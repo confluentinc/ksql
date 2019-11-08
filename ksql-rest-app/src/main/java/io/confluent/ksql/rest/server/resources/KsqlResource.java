@@ -34,7 +34,6 @@ import io.confluent.ksql.rest.entity.ClusterTerminateRequest;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.rest.server.execution.CustomExecutors;
@@ -54,8 +53,6 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
-
-import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
@@ -184,28 +181,17 @@ public class KsqlResource implements KsqlConfigurable {
     throwIfNotConfigured();
 
     ensureValidPatterns(request.getDeleteTopicList());
-    final TransactionalProducer transactionalProducer =
-        commandQueue.createTransactionalProducer();
     try {
-      transactionalProducer.initialize();
       final KsqlEntityList entities = handler.execute(
           serviceContext,
           TERMINATE_CLUSTER,
           request.getStreamsProperties(),
-          request.toString(),
-          transactionalProducer
+          request.toString()
       );
       return Response.ok(entities).build();
     } catch (final Exception e) {
       return Errors.serverErrorForStatement(
           e, TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT, new KsqlEntityList());
-    } finally {
-      try {
-        transactionalProducer.close();
-      } catch (IOException e) {
-        LOG.error("Failed to close TransactionProducer for request: " + request
-            + "\nError: " + e.getMessage());
-      }
     }
   }
 
@@ -226,7 +212,20 @@ public class KsqlResource implements KsqlConfigurable {
           request,
           distributedCmdResponseTimeout);
 
-      final KsqlEntityList entities = handleTransactionalProduce(serviceContext, request);
+      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
+      validator.validate(
+          SandboxedServiceContext.create(serviceContext),
+          statements,
+          request.getStreamsProperties(),
+          request.getKsql()
+      );
+
+      final KsqlEntityList entities = handler.execute(
+          serviceContext,
+          statements,
+          request.getStreamsProperties(),
+          request.getKsql()
+      );
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {
       throw e;
@@ -238,41 +237,6 @@ public class KsqlResource implements KsqlConfigurable {
     } catch (final Exception e) {
       return ErrorResponseUtil.generateResponse(
           e, Errors.serverErrorForStatement(e, request.getKsql()));
-    }
-  }
-
-  private KsqlEntityList handleTransactionalProduce(
-      final ServiceContext serviceContext,
-      final KsqlRequest request
-  ) {
-    final TransactionalProducer transactionalProducer =
-        commandQueue.createTransactionalProducer();
-
-    try {
-      transactionalProducer.initialize();
-      final List<ParsedStatement> statements = ksqlEngine.parse(request.getKsql());
-
-      validator.validate(
-          SandboxedServiceContext.create(serviceContext),
-          statements,
-          request.getStreamsProperties(),
-          request.getKsql()
-      );
-
-      return handler.execute(
-          serviceContext,
-          statements,
-          request.getStreamsProperties(),
-          request.getKsql(),
-          transactionalProducer
-      );
-    } finally {
-      try {
-        transactionalProducer.close();
-      } catch (IOException e) {
-        LOG.error("Failed to close TransactionProducer for request: " + request
-            + "\nError: " + e.getMessage());
-      }
     }
   }
 

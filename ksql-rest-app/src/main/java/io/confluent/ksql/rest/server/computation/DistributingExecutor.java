@@ -74,8 +74,7 @@ public class DistributingExecutor {
       final Map<String, Object> mutableScopedProperties,
       final String sql,
       final KsqlExecutionContext executionContext,
-      final ServiceContext serviceContext,
-      final TransactionalProducer transactionalProducer
+      final ServiceContext serviceContext
   ) {
     final ConfiguredStatement<?> injected = injectorFactory
         .apply(executionContext, serviceContext)
@@ -83,8 +82,10 @@ public class DistributingExecutor {
 
     checkAuthorization(injected, serviceContext, executionContext);
 
+    final TransactionalProducer transactionalProducer = commandQueue.createTransactionalProducer();
     try {
-      transactionalProducer.begin();
+      transactionalProducer.initTransactions();
+      transactionalProducer.beginTransaction();
       
       // Don't perform validation on Terminate Cluster statements
       if (!parsedStatement.getStatementText()
@@ -100,7 +101,7 @@ public class DistributingExecutor {
       final QueuedCommandStatus queuedCommandStatus =
           commandQueue.enqueueCommand(injected, transactionalProducer);
 
-      transactionalProducer.commit();
+      transactionalProducer.commitTransaction();
       final CommandStatus commandStatus = queuedCommandStatus
           .tryWaitForFinalStatus(distributedCmdResponseTimeout);
 
@@ -111,10 +112,12 @@ public class DistributingExecutor {
           queuedCommandStatus.getCommandSequenceNumber()
       ));
     } catch (final Exception e) {
-      transactionalProducer.abort();
+      transactionalProducer.abortTransaction();
       throw new KsqlServerException(String.format(
           "Could not write the statement '%s' into the command topic: " + e.getMessage(),
           statement.getStatementText()), e);
+    } finally {
+      transactionalProducer.close();
     }
   }
 

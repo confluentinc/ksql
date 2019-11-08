@@ -20,7 +20,6 @@ import com.google.common.collect.Maps;
 import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.server.CommandTopic;
 import io.confluent.ksql.rest.server.TransactionalProducer;
-import io.confluent.ksql.rest.server.TransactionalProducerImpl;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
@@ -140,7 +139,7 @@ public class CommandStore implements CommandQueue, Closeable {
 
   @Override
   public TransactionalProducer createTransactionalProducer() {
-    return new TransactionalProducerImpl(
+    return new TransactionalProducer(
         commandTopicName,
         this,
         commandQueueCatchupTimeout,
@@ -181,7 +180,7 @@ public class CommandStore implements CommandQueue, Closeable {
     );
     try {
       final RecordMetadata recordMetadata =
-          transactionalProducer.send(commandId, command);
+          transactionalProducer.sendRecord(commandId, command);
       return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);

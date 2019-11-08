@@ -76,7 +76,7 @@ public class TransactionalProducerTest {
   @Before
   @SuppressWarnings("unchecked")
   public void setup() throws TimeoutException, InterruptedException {
-    transactionalProducer = new TransactionalProducerImpl(
+    transactionalProducer = new TransactionalProducer(
         COMMAND_TOPIC_NAME,
         commandStore,
         TIMEOUT,
@@ -87,7 +87,7 @@ public class TransactionalProducerTest {
     when(commandConsumer.endOffsets(any()))
         .thenReturn(Collections.singletonMap(TOPIC_PARTITION, COMMAND_TOPIC_OFFSET));
 
-    transactionalProducer.initialize();
+    transactionalProducer.initTransactions();
   }
 
   @Test
@@ -99,7 +99,7 @@ public class TransactionalProducerTest {
 
   @Test
   public void shouldBeginTransactionAndWaitForCommandConsumer() throws TimeoutException, InterruptedException {
-    transactionalProducer.begin();
+    transactionalProducer.beginTransaction();
     
     verify(commandProducer).beginTransaction();
     verify(commandStore).ensureConsumedPast(COMMAND_TOPIC_OFFSET - 1,  TIMEOUT);
@@ -118,7 +118,7 @@ public class TransactionalProducerTest {
   @Test
   public void shouldSendCommandCorrectly() throws Exception {
     // When
-    transactionalProducer.send(commandId1, command1);
+    transactionalProducer.sendRecord(commandId1, command1);
 
     // Then
     verify(commandProducer).send(new ProducerRecord<>(COMMAND_TOPIC_NAME, 0, commandId1, command1));
@@ -134,7 +134,7 @@ public class TransactionalProducerTest {
     expectedException.expectMessage("Send was unsuccessful!");
 
     // When
-    transactionalProducer.send(commandId1, command1);
+    transactionalProducer.sendRecord(commandId1, command1);
   }
 
   @Test
@@ -147,7 +147,7 @@ public class TransactionalProducerTest {
             "java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
 
     // When
-    transactionalProducer.send(commandId1, command1);
+    transactionalProducer.sendRecord(commandId1, command1);
   }
 
   @Test
@@ -158,13 +158,13 @@ public class TransactionalProducerTest {
     expectedException.expectMessage("InterruptedException");
 
     // When
-    transactionalProducer.send(commandId1, command1);
+    transactionalProducer.sendRecord(commandId1, command1);
   }
 
   @Test
   public void shouldCommitTransaction() {
     // When:
-    transactionalProducer.commit();
+    transactionalProducer.commitTransaction();
 
     //Then:
     verify(commandProducer).commitTransaction();

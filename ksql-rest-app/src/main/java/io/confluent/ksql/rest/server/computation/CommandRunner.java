@@ -58,7 +58,7 @@ public class CommandRunner implements Closeable {
   private final int maxRetries;
   private final ClusterTerminator clusterTerminator;
   private final ServerState serverState;
-  
+
   public CommandRunner(
       final InteractiveStatementExecutor statementExecutor,
       final CommandQueue commandStore,

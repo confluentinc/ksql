@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -87,7 +86,7 @@ public class RequestHandlerTest {
     when(ksqlEngine.prepare(any()))
         .thenAnswer(invocation ->
             new DefaultKsqlParser().prepare(invocation.getArgument(0), metaStore));
-    when(distributor.execute(any(), any(), any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
+    when(distributor.execute(any(), any(), any(), any(), any(), any())).thenReturn(Optional.of(entity));
     doNothing().when(sync).waitFor(any(), any());
   }
 
@@ -102,7 +101,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL, transactionalProducer);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
 
     // Then
     assertThat(entities, contains(entity));
@@ -125,7 +124,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL, transactionalProducer);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
 
     // Then
     assertThat(entities, contains(entity));
@@ -138,8 +137,7 @@ public class RequestHandlerTest {
             eq(ImmutableMap.of()),
             eq(SOME_STREAM_SQL),
             eq(ksqlEngine),
-            eq(serviceContext),
-            eq(transactionalProducer)
+            eq(serviceContext)
         );
   }
 
@@ -155,8 +153,7 @@ public class RequestHandlerTest {
         serviceContext,
         statements,
         ImmutableMap.of("x", "y"),
-        SOME_STREAM_SQL,
-        transactionalProducer
+        SOME_STREAM_SQL
     );
 
     // Then
@@ -171,8 +168,7 @@ public class RequestHandlerTest {
             eq(ImmutableMap.of("x", "y")),
             eq(SOME_STREAM_SQL),
             eq(ksqlEngine),
-            eq(serviceContext),
-            eq(transactionalProducer)
+            eq(serviceContext)
         );
   }
 
@@ -197,7 +193,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL, transactionalProducer);
+    handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -221,7 +217,7 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(serviceContext, statements, props, SOME_STREAM_SQL, transactionalProducer);
+    handler.execute(serviceContext, statements, props, SOME_STREAM_SQL);
 
     // Then:
     verify(customExecutor, times(1))
@@ -252,7 +248,7 @@ public class RequestHandlerTest {
         .parse("RUN SCRIPT '/some/script.sql';" );
 
     // When:
-    final KsqlEntityList result = handler.execute(serviceContext, statements, props, SOME_STREAM_SQL, transactionalProducer);
+    final KsqlEntityList result = handler.execute(serviceContext, statements, props, SOME_STREAM_SQL);
 
     // Then:
     assertThat(result, contains(entity2));

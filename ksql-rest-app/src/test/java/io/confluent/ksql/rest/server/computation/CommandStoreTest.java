@@ -113,7 +113,7 @@ public class CommandStoreTest {
         .thenAnswer(invocation -> new CommandId(
             CommandId.Type.STREAM, "foo" + COUNTER.getAndIncrement(), CommandId.Action.CREATE));
 
-    when(transactionalProducer.send(any(), any())).thenReturn(recordMetadata);
+    when(transactionalProducer.sendRecord(any(CommandId.class), any(Command.class))).thenReturn(recordMetadata);
 
     when(commandTopic.getNewCommands(any())).thenReturn(buildRecords(commandId, command));
 
@@ -150,7 +150,7 @@ public class CommandStoreTest {
   @Test
   public void shouldCleanupCommandStatusOnProduceError() {
     // Given:
-    when(transactionalProducer.send(any(), any()))
+    when(transactionalProducer.sendRecord(any(CommandId.class), any(Command.class)))
         .thenThrow(new RuntimeException("oops"))
         .thenReturn(recordMetadata);
     expectedException.expect(KsqlException.class);
@@ -176,7 +176,7 @@ public class CommandStoreTest {
   public void shouldRegisterBeforeDistributeAndReturnStatusOnGetNewCommands() {
     // Given:
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    when(transactionalProducer.send(any(), any())).thenAnswer(
+    when(transactionalProducer.sendRecord(any(CommandId.class), any(Command.class))).thenAnswer(
         invocation -> {
           final QueuedCommand queuedCommand = commandStore.getNewCommands(NEW_CMDS_TIMEOUT).get(0);
           assertThat(queuedCommand.getCommandId(), equalTo(commandId));
@@ -193,7 +193,7 @@ public class CommandStoreTest {
     commandStore.enqueueCommand(configured, transactionalProducer);
 
     // Then:
-    verify(transactionalProducer).send(any(), any());
+    verify(transactionalProducer).sendRecord(any(CommandId.class), any(Command.class));
   }
 
   @Test
@@ -217,13 +217,13 @@ public class CommandStoreTest {
   @Test
   public void shouldDistributeCommand() {
     when(commandIdAssigner.getCommandId(any())).thenReturn(commandId);
-    when(transactionalProducer.send(any(), any())).thenReturn(recordMetadata);
+    when(transactionalProducer.sendRecord(any(CommandId.class), any(Command.class))).thenReturn(recordMetadata);
 
     // When:
     commandStore.enqueueCommand(configured, transactionalProducer);
 
     // Then:
-    verify(transactionalProducer).send(same(commandId), any());
+    verify(transactionalProducer).sendRecord(same(commandId), any());
   }
 
   @Test

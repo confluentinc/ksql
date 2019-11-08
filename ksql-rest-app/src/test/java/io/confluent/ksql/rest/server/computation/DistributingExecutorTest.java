@@ -52,6 +52,8 @@ import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
+
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -114,6 +116,7 @@ public class DistributingExecutorTest {
     when(requestValidator.validate(
         serviceContext, Collections.singletonList(parsedStatement), ImmutableMap.of(), SQL_STRING)).thenReturn(1);
     when(parsedStatement.getStatementText()).thenReturn("statement");
+    when(queue.createTransactionalProducer()).thenReturn(transactionalProducer);
 
     distributor = new DistributingExecutor(
         queue,
@@ -125,18 +128,21 @@ public class DistributingExecutorTest {
   }
 
   @Test
-  public void shouldEnqueueSuccessfulCommand() throws InterruptedException {
+  public void shouldEnqueueSuccessfulCommand() throws InterruptedException, IOException {
     // When:
-    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext, transactionalProducer);
+    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext);
 
     // Then:
+    verify(transactionalProducer, times(1)).beginTransaction();
     verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT), any());
+    verify(transactionalProducer, times(1)).commitTransaction();
+    verify(transactionalProducer, times(1)).close();
   }
 
   @Test
   public void shouldInferSchemas() {
     // When:
-    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext, transactionalProducer);
+    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext);
 
     // Then:
     verify(schemaInjector, times(1)).inject(eq(EMPTY_STATEMENT));
@@ -152,8 +158,7 @@ public class DistributingExecutorTest {
             ImmutableMap.of(),
             "",
             executionContext,
-            serviceContext,
-            transactionalProducer
+            serviceContext
         )
             .orElseThrow(null);
 
@@ -185,7 +190,8 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(),SQL_STRING, executionContext, serviceContext, transactionalProducer);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(),SQL_STRING, executionContext, serviceContext);
+    verify(transactionalProducer, times(1)).abortTransaction();
   }
 
   @Test
@@ -202,7 +208,7 @@ public class DistributingExecutorTest {
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext, transactionalProducer);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext);
   }
 
   @Test
@@ -220,7 +226,7 @@ public class DistributingExecutorTest {
     expectedException.expect(KsqlTopicAuthorizationException.class);
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, userServiceContext, transactionalProducer);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, userServiceContext);
   }
 
   @Test
@@ -239,6 +245,6 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, userServiceContext, transactionalProducer);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, userServiceContext);
   }
 }

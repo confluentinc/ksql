@@ -1686,7 +1686,7 @@ public class KsqlResourceTest {
         (CommandStatusEntity) ((KsqlEntityList) response.getEntity()).get(0);
     assertThat(commandStatusEntity.getCommandStatus().getStatus(),
         equalTo(CommandStatus.Status.QUEUED));
-    verify(transactionalProducer, times(1)).initialize();
+    verify(transactionalProducer, times(1)).initTransactions();
     verify(commandStore).enqueueCommand(
         argThat(is(configured(
             preparedStatementText(TerminateCluster.TERMINATE_CLUSTER_STATEMENT_TEXT),

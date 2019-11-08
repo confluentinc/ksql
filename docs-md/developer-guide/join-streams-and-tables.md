@@ -111,8 +111,8 @@ including INNER, LEFT OUTER, and FULL OUTER. Frequently, LEFT OUTER is
 shortened to LEFT JOIN, and FULL OUTER is shortened to OUTER JOIN.
 
 !!! note
-		RIGHT OUTER JOIN isn't supported. Instead, swap the operands and use
-    LEFT JOIN.
+      RIGHT OUTER JOIN isn't supported. Instead, swap the operands and use
+      LEFT JOIN.
 
 The following table shows the supported combinations.
 
@@ -196,9 +196,9 @@ Stream-table joins cause data re-partitioning of the stream only if the
 stream was marked for re-partitioning.
 
 !!! important
-		KSQL currently provides best-effort on time synchronization, but there
-    are no guarantees, which can cause missing results or leftRecord-NULL
-    results.
+      KSQL currently provides best-effort on time synchronization, but there
+      are no guarantees, which can cause missing results or leftRecord-NULL
+      results.
 
 ### Semantics of Stream-Table Joins
 
@@ -261,9 +261,9 @@ all records in offset order and does not check for out-of-order records.
 Table-table joins are eventually consistent.
 
 !!! important
-		KSQL currently provides best-effort on time synchronization, but there
-    are no guarantees, which can cause missing results or leftRecord-NULL
-    results.
+      KSQL currently provides best-effort on time synchronization, but there
+      are no guarantees, which can cause missing results or leftRecord-NULL
+      results.
 
 Table-table joins can be joined only on the `KEY` field, and one-to-many
 (1:N) joins aren't supported.

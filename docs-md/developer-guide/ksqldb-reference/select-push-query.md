@@ -95,9 +95,9 @@ If no limit is supplied the query runs until terminated, streaming
 back all results to the console.
 
 !!! tip
-		If you want to select older data, you can configure KSQL to
-    query the stream from the beginning. You must run this configuration
-    before running the query:
+      If you want to select older data, you can configure KSQL to
+      query the stream from the beginning. You must run this configuration
+      before running the query:
 
 ```sql
 SET 'auto.offset.reset' = 'earliest';

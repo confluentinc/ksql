@@ -12,9 +12,9 @@ KSQL Examples
 These examples use a `pageviews` stream and a `users` table.
 
 !!! tip
-		The [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
-    contains KSQL recipes that provide in-depth tutorials and recommended
-    deployment scenarios.
+      The [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
+      contains KSQL recipes that provide in-depth tutorials and recommended
+      deployment scenarios.
 
 Creating streams
 ----------------
@@ -331,8 +331,8 @@ string-to-string `map` that represents the following contact information
 for each user: phone, city, state, and zipcode.
 
 !!! tip
-		If you are using `ksql-datagen`, you can use `quickstart=users_` to
-    generate data that include the `interests` and `contactinfo` columns.
+      If you are using `ksql-datagen`, you can use `quickstart=users_` to
+      generate data that include the `interests` and `contactinfo` columns.
 
 The following query will create a new stream from `pageviews_enriched`
 that includes the first interest of each user along with the city and

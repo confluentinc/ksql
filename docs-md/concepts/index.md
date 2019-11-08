@@ -1,20 +1,21 @@
 ---
 layout: page
-title: KSQL Concepts
-tagline: Foundations of KSQL
-description: Learn about KSQL under the hood.
-keywords: ksql, architecture 
+title: ksqlDB Concepts
+tagline: Foundations of ksqlDB
+description: Learn about ksqlDB under the hood.
+keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
-KSQL Concepts
-=============
+ksqlDB Concepts
+===============
 
-These topics describe KSQL concepts in {{ site.cp }}.
-
-- [KSQL Architecture](ksql-architecture.md)
-- [KSQL and Kafka Streams](ksql-and-kafka-streams.md)
-- [Time and Windows in KSQL](time-and-windows-in-ksql-queries.md)
-
-Page last revised on: {{ git_revision_date }}
+- [Architecture](ksql-architecture.md)
+- [Collections](collections.md)
+- [Kafka Streams and kslDB](ksql-and-kafka-streams.md)
+- [Materialized Views](materialized-views.md)
+- [Processing Guarantees](ksqldb-processing-guarantees.md)
+- [Push and Pull Queries](push-and-pull-queries.md)
+- [Schemas](ksqldb-schemas.md)
+- [Time and Windows](time-and-windows-in-ksql-queries.md)
 
 Page last revised on: {{ git_revision_date }}

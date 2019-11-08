@@ -9,6 +9,7 @@ keywords: ksql, query, application, quickstart, tutorial, walkthrough, how to
 KSQL Tutorials and Examples
 ===========================
 
+- [Quickstart](ksqldb-quickstart.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using KSQL (Docker)](basics-docker.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using KSQL (Local)](basics-local.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using KSQL and {{ site.c3 }}](basics-control-center.md)

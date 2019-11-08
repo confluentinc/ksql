@@ -543,9 +543,9 @@ public class CodeGenRunnerTest {
     @Test
     public void testCastNumericArithmeticExpressions() {
         final Map<Integer, Object> inputValues =
-            ImmutableMap.of(0, 1, 3, 3, 4, 4, 5, 5);
+            ImmutableMap.of(0, 1L, 3, 3.0D, 4, 4.0D, 5, 5);
 
-        // INT64 - INT32
+        // INT - BIGINT
         assertThat(executeExpression(
             "SELECT "
                 + "CAST((col5 - col0) AS INTEGER),"
@@ -555,7 +555,7 @@ public class CodeGenRunnerTest {
                 + "FROM codegen_test EMIT CHANGES;",
             inputValues), contains(4, 4L, 4.0, "4"));
 
-        // FLOAT64 - FLOAT64
+        // DOUBLE - DOUBLE
         assertThat(executeExpression(
             "SELECT "
                 + "CAST((col4 - col3) AS INTEGER),"
@@ -565,7 +565,7 @@ public class CodeGenRunnerTest {
                 + "FROM codegen_test EMIT CHANGES;",
             inputValues), contains(1, 1L, 1.0, "1.0"));
 
-        // FLOAT64 - INT64
+        // DOUBLE - INT
         assertThat(executeExpression(
             "SELECT "
                 + "CAST((col4 - col0) AS INTEGER),"
@@ -594,7 +594,7 @@ public class CodeGenRunnerTest {
         final String query =
             "SELECT FLOOR(col3), CEIL(col3*3), ABS(col0+1.34), ROUND(col3*2)+12 FROM codegen_test EMIT CHANGES;";
 
-        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15, 3, 1.5);
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15L, 3, 1.5);
 
         // When:
         final List<Object> columns = executeExpression(query, inputValues);
@@ -607,7 +607,7 @@ public class CodeGenRunnerTest {
     public void shouldHandleRandomUdf() {
         // Given:
         final String query = "SELECT RANDOM()+10, RANDOM()+col0 FROM codegen_test EMIT CHANGES;";
-        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15);
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 15L);
 
         // When:
         final List<Object> columns = executeExpression(query, inputValues);
@@ -825,7 +825,7 @@ public class CodeGenRunnerTest {
         final String query =
             "SELECT test_udf(col0, NULL) FROM codegen_test EMIT CHANGES;";
 
-        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0L);
         final List<Object> columns = executeExpression(query, inputValues);
         // test
         assertThat(columns, equalTo(Collections.singletonList("doStuffLongString")));
@@ -836,7 +836,7 @@ public class CodeGenRunnerTest {
         final String query =
             "SELECT test_udf(col0, col0, col0, col0, col0) FROM codegen_test EMIT CHANGES;";
 
-        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0L);
         final List<Object> columns = executeExpression(query, inputValues);
         // test
         assertThat(columns, equalTo(Collections.singletonList("doStuffLongVarargs")));
@@ -860,7 +860,7 @@ public class CodeGenRunnerTest {
         final String query =
             "SELECT test_udf(col0, col0, NULL) FROM codegen_test EMIT CHANGES;";
 
-        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0);
+        final Map<Integer, Object> inputValues = ImmutableMap.of(0, 0L);
         final List<Object> columns = executeExpression(query, inputValues);
         // test
         assertThat(columns, equalTo(Collections.singletonList("doStuffLongLongString")));

@@ -61,9 +61,9 @@ import org.slf4j.LoggerFactory;
  * Handles the actual execution (or delegation to KSQL core) of all distributed statements, as well
  * as tracking their statuses as things move along.
  */
-public class StatementExecutor implements KsqlConfigurable {
+public class InteractiveStatementExecutor implements KsqlConfigurable {
 
-  private static final Logger log = LoggerFactory.getLogger(StatementExecutor.class);
+  private static final Logger log = LoggerFactory.getLogger(InteractiveStatementExecutor.class);
 
   private final ServiceContext serviceContext;
   private final KsqlEngine ksqlEngine;
@@ -77,7 +77,7 @@ public class StatementExecutor implements KsqlConfigurable {
     EXECUTE
   }
 
-  public StatementExecutor(
+  public InteractiveStatementExecutor(
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final HybridQueryIdGenerator hybridQueryIdGenerator
@@ -91,7 +91,7 @@ public class StatementExecutor implements KsqlConfigurable {
   }
 
   @VisibleForTesting
-  StatementExecutor(
+  InteractiveStatementExecutor(
       final ServiceContext serviceContext,
       final KsqlEngine ksqlEngine,
       final StatementParser statementParser,

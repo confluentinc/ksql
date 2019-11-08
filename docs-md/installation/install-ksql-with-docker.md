@@ -508,8 +508,8 @@ This script pings the KSQL Server at `<ksql-server-ip-address>:8088`
 every five seconds, until it receives an HTTP 200 response.
 
 !!! note
-		The previous script doesn't work with "headless" deployments of KSQL
-    Server, because headless deployments don't have a REST API server.
+      The previous script doesn't work with "headless" deployments of KSQL
+      Server, because headless deployments don't have a REST API server.
 
 To launch the KSQL CLI in a container only after KSQL Server is
 available, use the following Docker Compose command:
@@ -588,9 +588,9 @@ After the `mkdir`, `cd`, `curl`, and `tar` commands run, the
 with the specified settings.
 
 !!! note
-		The literal block scalar, `- |`, enables passing multiple arguments to
-    `command`, by indicating that the following lines are all part of the
-    same entry.
+      The literal block scalar, `- |`, enables passing multiple arguments to
+      `command`, by indicating that the following lines are all part of the
+      same entry.
 
 ### Execute a KSQL script in the KSQL CLI
 

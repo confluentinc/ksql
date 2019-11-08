@@ -47,7 +47,7 @@ import org.mockito.stubbing.Answer;
 public class CommandRunnerTest {
 
   @Mock
-  private StatementExecutor statementExecutor;
+  private InteractiveStatementExecutor statementExecutor;
   @Mock
   private CommandStore commandStore;
   @Mock

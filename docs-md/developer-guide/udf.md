@@ -61,9 +61,9 @@ Follow these steps to create your custom functions:
 3.  Use your function like any other KSQL function in your queries.
 
 !!! tip
-		The SHOW FUNCTIONS statement lists the available functions in your KSQL
-    server, including your custom UDF and UDAF functions. Use the DESCRIBE
-    FUNCTION statement to display details about your custom functions.
+      The SHOW FUNCTIONS statement lists the available functions in your KSQL
+      server, including your custom UDF and UDAF functions. Use the DESCRIBE
+      FUNCTION statement to display details about your custom functions.
 
 For a detailed walkthrough on creating a UDF, see
 [Implement a User-defined Function (UDF and UDAF)](implement-a-udf.md).
@@ -299,9 +299,9 @@ information about the method when, for example, they execute
 | schema      | The KSQL schema for the parameter.                          | For complex types, like STRUCT                                                |
 
 !!! note
-		If `schema` is supplied in the `@UdfParameter` annotation for a `STRUCT`
-    it is considered "strict" - any inputs must match exactly, including
-    order and names of the fields.
+      If `schema` is supplied in the `@UdfParameter` annotation for a `STRUCT`
+      it is considered "strict" - any inputs must match exactly, including
+      order and names of the fields.
 
 ```java
 @Udf
@@ -651,10 +651,10 @@ KSQL. The annotation supports the following fields:
 | returnSchema    | The KSQL schema for the return value.                          | For complex types, like STRUCT |
 
 !!! note
-		If `paramSchema` , `aggregateSchema` or `returnSchema` is supplied in
-    the `@UdfParameter` annotation for a `STRUCT`, it's considered
-    "strict" - any inputs must match exactly, including order and names of
-    the fields.
+      If `paramSchema` , `aggregateSchema` or `returnSchema` is supplied in
+      the `@UdfParameter` annotation for a `STRUCT`, it's considered
+      "strict" - any inputs must match exactly, including order and names of
+      the fields.
 
 You can use this to better describe what a particular version of the UDAF
 does, for example:

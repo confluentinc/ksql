@@ -14,10 +14,10 @@ except those starting with SELECT, can be run on this endpoint. To run
 SELECT statements use the `/query` endpoint.
 
 !!! note
-	If you use the SET or UNSET statements to assign query properties by
-    using the REST API, the assignment is scoped only to the current
-    request. In contrast, SET and UNSET assignments in the KSQL CLI persist
-    throughout the CLI session.
+      If you use the SET or UNSET statements to assign query properties by
+      using the REST API, the assignment is scoped only to the current
+      request. In contrast, SET and UNSET assignments in the KSQL CLI persist
+      throughout the CLI session.
 
 POST /ksql
 

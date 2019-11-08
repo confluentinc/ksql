@@ -63,15 +63,6 @@ You can install this code style into your IDE to make things more automatic:
  * [IntelliJ code style xml file](https://github.com/google/styleguide/blob/gh-pages/intellij-java-google-style.xml)
  * [Eclipse code style xml file](https://github.com/google/styleguide/blob/gh-pages/eclipse-java-google-style.xml)
 
-In addition, the project also uses `final` fields, parameters and local variables for new code submissions.
-IntelliJ's code generation can be configured to do this automatically:
-
-     Preferences -> Code Style -> Java -> Code Generation
-
-     Tick:
-     - Make generated local variables final
-     - Make generated parameters final
-
 #### Static code analysis
 
 The project build runs checkstyle and findbugs as part of the build.

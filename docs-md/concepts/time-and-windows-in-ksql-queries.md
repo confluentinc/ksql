@@ -101,19 +101,18 @@ should parse the field. The field you specify can be an event-time or an
 ingestion-time. This approach implements *payload-time* semantics.
 
 !!! important
-		If you use the WITH(TIMESTAMP=...) clause, this timestamp must be
-expressible as a Unix epoch time in milliseconds, which is the number of
-milliseconds that have elapsed since 1 January 1970 at midnight UTC/GMT.
-Also, you can specify the timestamp as a string when you provide a
-TIMESTAMP_FORMAT. For more information, see
-[KSQL Timestamp Formats](../developer-guide/syntax-reference.md#ksql-timestamp-formats).
+      If you use the WITH(TIMESTAMP=...) clause, this timestamp must be
+      expressible as a Unix epoch time in milliseconds, which is the number of
+      milliseconds that have elapsed since 1 January 1970 at midnight UTC/GMT.
+      Also, you can specify the timestamp as a string when you provide a
+      TIMESTAMP_FORMAT. For more information, see
+      [KSQL Timestamp Formats](../developer-guide/syntax-reference.md#ksql-timestamp-formats).
 
 When working with time you should also make sure that additional aspects
 of time, like time zones and calendars, are correctly synchronized -- or
 at least understood and traced -- throughout your streaming data
 pipelines. It helps to agree on specifying time information in UTC or in
 Unix time, like seconds since the Unix epoch, everywhere in your system.
-:::
 
 ### Timestamps of KSQL Output Streams
 
@@ -183,21 +182,21 @@ A window has a start time and an end time, which you access in your
 queries by using the WINDOWSTART() and WINDOWEND() functions.
 
 !!! important
-		KSQL is based on the Unix epoch time in the UTC timezone, and this can
-    affect time windows. For example, if you define a 24-hour tumbling time
-    window, it will be in the UTC timezone, which may not be appropriate if
-    you want to have daily windows in your timezone.
+      KSQL is based on the Unix epoch time in the UTC timezone, and this can
+      affect time windows. For example, if you define a 24-hour tumbling time
+      window, it will be in the UTC timezone, which may not be appropriate if
+      you want to have daily windows in your timezone.
 
 Windowing lets you control how to group records that have the same key
 for stateful operations, like aggregations or joins, into time spans.
 KSQL tracks windows per record key.
 
 !!! note
-		A related operation is *grouping*, which groups all records that have
-    the same key to ensure that records are properly partitioned, or
-    "keyed", for subsequent operations. When you use the GROUP BY clause in
-    a query, windowing enables you to further sub-group the records of a
-    key.
+      A related operation is *grouping*, which groups all records that have
+      the same key to ensure that records are properly partitioned, or
+      "keyed", for subsequent operations. When you use the GROUP BY clause in
+      a query, windowing enables you to further sub-group the records of a
+      key.
 
 When using windows in your KSQL queries, aggregate functions are applied
 only to the records that occur within a specific time window. Records

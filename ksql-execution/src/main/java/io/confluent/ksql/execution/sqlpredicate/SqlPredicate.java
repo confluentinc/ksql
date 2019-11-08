@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.codegen.CodeGenSpec.ArgumentSpec;
 import io.confluent.ksql.execution.codegen.SqlToJavaVisitor;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
-import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -39,16 +38,17 @@ public final class SqlPredicate {
 
   private final Expression filterExpression;
   private final IExpressionEvaluator ee;
-  private final GenericRowValueTypeEnforcer genericRowValueTypeEnforcer;
   private final ProcessingLogger processingLogger;
   private final CodeGenSpec spec;
 
   public SqlPredicate(
-      Expression filterExpression, LogicalSchema schema, KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry, ProcessingLogger processingLogger
+      Expression filterExpression,
+      LogicalSchema schema,
+      KsqlConfig ksqlConfig,
+      FunctionRegistry functionRegistry,
+      ProcessingLogger processingLogger
   ) {
     this.filterExpression = requireNonNull(filterExpression, "filterExpression");
-    this.genericRowValueTypeEnforcer = new GenericRowValueTypeEnforcer(schema);
     this.processingLogger = requireNonNull(processingLogger);
 
     CodeGenRunner codeGenRunner = new CodeGenRunner(schema, ksqlConfig, functionRegistry);
@@ -86,7 +86,7 @@ public final class SqlPredicate {
 
       try {
         Object[] values = new Object[spec.arguments().size()];
-        spec.resolve(row, genericRowValueTypeEnforcer, values);
+        spec.resolve(row, values);
         return (Boolean) ee.evaluate(values);
       } catch (Exception e) {
         logProcessingError(e, row);

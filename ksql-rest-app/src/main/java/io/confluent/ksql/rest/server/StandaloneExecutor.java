@@ -104,7 +104,7 @@ public class StandaloneExecutor implements Executable {
     this.injectorFactory = requireNonNull(injectorFactory, "injectorFactory");
   }
 
-  public void start() {
+  public void startAsync() {
     try {
       udfLoader.load();
       ProcessingLogServerUtils.maybeCreateProcessingLogTopic(
@@ -122,12 +122,12 @@ public class StandaloneExecutor implements Executable {
       versionChecker.start(KsqlModuleType.SERVER, properties);
     } catch (final Exception e) {
       log.error("Failed to start KSQL Server with query file: " + queriesFile, e);
-      stop();
+      triggerShutdown();
       throw e;
     }
   }
 
-  public void stop() {
+  public void triggerShutdown() {
     try {
       ksqlEngine.close();
     } catch (final Exception e) {
@@ -142,7 +142,7 @@ public class StandaloneExecutor implements Executable {
   }
 
   @Override
-  public void join() throws InterruptedException {
+  public void awaitTerminated() throws InterruptedException {
     shutdownLatch.await();
   }
 

@@ -20,7 +20,6 @@ import com.google.common.collect.ImmutableListMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -71,16 +70,13 @@ public final class CodeGenSpec {
     return names.get(index);
   }
 
-  public void resolve(
-      GenericRow row, GenericRowValueTypeEnforcer typeEnforcer, Object[] parameters
-  ) {
+  public void resolve(GenericRow row, Object[] parameters) {
     for (int paramIdx = 0; paramIdx < arguments.size(); paramIdx++) {
       ArgumentSpec spec = arguments.get(paramIdx);
 
       if (spec.colIndex().isPresent()) {
         int colIndex = spec.colIndex().getAsInt();
-        parameters[paramIdx] = typeEnforcer
-            .enforceColumnType(colIndex, row.getColumns().get(colIndex));
+        parameters[paramIdx] = row.getColumns().get(colIndex);
       } else {
         int copyOfParamIdxForLambda = paramIdx;
         parameters[paramIdx] = spec.kudf()

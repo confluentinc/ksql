@@ -185,7 +185,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCloseServiceContextOnClose() {
     // When:
-    app.stop();
+    app.triggerShutdown();
 
     // Then:
     verify(serviceContext).close();
@@ -194,7 +194,7 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldCloseSecurityExtensionOnClose() {
     // When:
-    app.stop();
+    app.triggerShutdown();
 
     // Then:
     verify(securityExtension).close();

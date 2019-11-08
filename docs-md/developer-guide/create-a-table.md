@@ -15,8 +15,8 @@ tables of query results from other tables or streams.
     query results from an existing table or stream.
 
 !!! note
-		Creating streams is similar to creating tables. For more information,
-    see [Create a KSQL Stream](create-a-stream.md).
+      Creating streams is similar to creating tables. For more information,
+      see [Create a KSQL Stream](create-a-stream.md).
 
 Create a Table from a Kafka Topic
 ---------------------------------
@@ -35,8 +35,8 @@ The following example creates a table that has four columns from the
 the `userid` field is assigned as the table\'s KEY property.
 
 !!! note
-		The KEY field is optional. For more information, see
-    [Key Requirements](syntax-reference.md#key-requirements).
+      The KEY field is optional. For more information, see
+      [Key Requirements](syntax-reference.md#key-requirements).
 
 KSQL can't infer the topic's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
@@ -194,7 +194,6 @@ Press Ctrl+C to stop printing the table.
 
 !!! note
 		The query continues to run after you stop printing the table.
-:::
 
 Use the SHOW QUERIES statement to view the query that KSQL created for
 the `users_female` table:

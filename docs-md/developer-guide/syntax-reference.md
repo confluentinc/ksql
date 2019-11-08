@@ -87,8 +87,8 @@ SELECT address->city, address->zip FROM orders;
 For more info, see [Operators](#operators).
 
 !!! note
-		You can't create new nested `STRUCT` data as the result of a query, but
-    you can copy existing `STRUCT` fields as-is.
+      You can't create new nested `STRUCT` data as the result of a query, but
+      you can copy existing `STRUCT` fields as-is.
 
 ### KSQL Time Units
 
@@ -159,9 +159,9 @@ The KSQL CLI commands can be run after
 the KSQL CLI help by running `<path-to-confluent>/bin/ksql --help`.
 
 !!! tip
-		You can search and browse your command history in the KSQL CLI
-    with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
-    part of the command to show an auto-complete of past commands.
+      You can search and browse your command history in the KSQL CLI
+      with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
+      part of the command to show an auto-complete of past commands.
 
 ```
 NAME
@@ -289,12 +289,11 @@ more information, see [Operators](#operators).
 KSQL statements
 ---------------
 
-!!! tip
-		- KSQL statements must be terminated with a semicolon (`;`).
-    - Statements can be spread over multiple lines.
-    - The hyphen character, `-`, isn't supported in names for streams,
-      tables, topics, and columns.
-    - Don't use quotes around stream names or table names when you CREATE them.
+- KSQL statements must be terminated with a semicolon (`;`).
+- Statements can be spread over multiple lines.
+- The hyphen character, `-`, isn't supported in names for streams,
+  tables, topics, and columns.
+- Don't use quotes around stream names or table names when you CREATE them.
 
 Key Requirements
 ----------------
@@ -318,11 +317,11 @@ determine if repartitioning can be avoided when performing aggregations
 and joins.
 
 !!! important
-		Don't set the KEY property, unless you have validated that your
-    stream doesn't need to be re-partitioned for future joins. If you set
-    the KEY property, you will need to re-partition explicitly if your
-    record key doesn't meet partitioning requirements. For more
-    information, see [Partition Data to Enable Joins](partition-data.md).
+      Don't set the KEY property, unless you have validated that your
+      stream doesn't need to be re-partitioned for future joins. If you set
+      the KEY property, you will need to re-partition explicitly if your
+      record key doesn't meet partitioning requirements. For more
+      information, see [Partition Data to Enable Joins](partition-data.md).
 
 In either case, when setting `KEY` you must be sure that *both* of the
 following conditions are true:

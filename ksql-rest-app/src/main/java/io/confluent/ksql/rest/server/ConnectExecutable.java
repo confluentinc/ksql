@@ -51,7 +51,7 @@ public final class ConnectExecutable implements Executable {
   }
 
   @Override
-  public void start() {
+  public void startAsync() {
     try {
       connect = connectDistributed.startConnect(workerProps);
     } catch (final ConnectException e) {
@@ -64,14 +64,14 @@ public final class ConnectExecutable implements Executable {
   }
 
   @Override
-  public void stop() {
+  public void triggerShutdown() {
     if (connect != null) {
       connect.stop();
     }
   }
 
   @Override
-  public void join() {
+  public void awaitTerminated() {
     if (connect != null) {
       connect.awaitStop();
     }

@@ -93,12 +93,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
-public class StatementExecutorTest extends EasyMockSupport {
+public class InteractiveStatementExecutorTest extends EasyMockSupport {
 
   private static final Map<String, String> PRE_VERSION_5_NULL_ORIGINAL_PROPS = null;
 
   private KsqlEngine ksqlEngine;
-  private StatementExecutor statementExecutor;
+  private InteractiveStatementExecutor statementExecutor;
   private KsqlConfig ksqlConfig;
 
   private final StatementParser mockParser = niceMock(StatementParser.class);
@@ -108,7 +108,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   private final MetaStore mockMetaStore = niceMock(MetaStore.class);
   private final PersistentQueryMetadata mockQueryMetadata
       = niceMock(PersistentQueryMetadata.class);
-  private StatementExecutor statementExecutorWithMocks;
+  private InteractiveStatementExecutor statementExecutorWithMocks;
   private ServiceContext serviceContext;
 
   @Rule
@@ -139,13 +139,13 @@ public class StatementExecutorTest extends EasyMockSupport {
 
     final StatementParser statementParser = new StatementParser(ksqlEngine);
 
-    statementExecutor = new StatementExecutor(
+    statementExecutor = new InteractiveStatementExecutor(
         serviceContext,
         ksqlEngine,
         statementParser,
         hybridQueryIdGenerator
     );
-    statementExecutorWithMocks = new StatementExecutor(
+    statementExecutorWithMocks = new InteractiveStatementExecutor(
         serviceContext,
         mockEngine,
         mockParser,
@@ -181,7 +181,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleStatementIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(
+    statementExecutor = new InteractiveStatementExecutor(
         serviceContext,
         mockEngine,
         mockParser,
@@ -195,7 +195,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   @Test(expected = IllegalStateException.class)
   public void shouldThrowOnHandleRestoreIfNotConfigured() {
     // Given:
-    statementExecutor = new StatementExecutor(
+    statementExecutor = new InteractiveStatementExecutor(
         serviceContext,
         mockEngine,
         mockParser,
@@ -802,8 +802,7 @@ public class StatementExecutorTest extends EasyMockSupport {
         statementExecutor, dropStreamCommand2, dropStreamCommandId2, Optional.empty(), 0);
 
     // DROP statement should fail since the stream is being used.
-    final Optional<CommandStatus> dropStreamCommandStatus2 =
-        statementExecutor.getStatus(dropStreamCommandId2);
+    final Optional<CommandStatus> dropStreamCommandStatus2 = statementExecutor.getStatus(dropStreamCommandId2);
 
     assertThat(dropStreamCommandStatus2.isPresent(), equalTo(true));
     assertThat(dropStreamCommandStatus2.get().getStatus(),
@@ -874,7 +873,7 @@ public class StatementExecutorTest extends EasyMockSupport {
   }
 
   private static void handleStatement(
-      final StatementExecutor statementExecutor,
+      final InteractiveStatementExecutor statementExecutor,
       final Command command,
       final CommandId commandId,
       final Optional<CommandStatusFuture> commandStatus,

@@ -20,7 +20,7 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatuses;
 import io.confluent.ksql.rest.entity.Versions;
-import io.confluent.ksql.rest.server.computation.StatementExecutor;
+import io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor;
 import java.util.Optional;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -33,9 +33,9 @@ import javax.ws.rs.core.Response;
 @Produces({Versions.KSQL_V1_JSON, MediaType.APPLICATION_JSON})
 public class StatusResource {
 
-  private final StatementExecutor statementExecutor;
+  private final InteractiveStatementExecutor statementExecutor;
 
-  public StatusResource(final StatementExecutor statementExecutor) {
+  public StatusResource(final InteractiveStatementExecutor statementExecutor) {
     this.statementExecutor = statementExecutor;
   }
 

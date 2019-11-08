@@ -50,8 +50,8 @@
       "outputs": [
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [0, 1, 2, 3]}},
         {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [-2, -1, 0, 1]}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": []}},
-        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": []}}
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [4, 3]}},
+        {"topic": "OUTPUT", "key": 1, "value": {"KSQL_COL_0": [4, 3, 2, 1, 0]}}
       ]
     },
     {

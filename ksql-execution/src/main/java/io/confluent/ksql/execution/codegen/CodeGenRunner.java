@@ -25,7 +25,6 @@ import io.confluent.ksql.execution.expression.tree.SubscriptExpression;
 import io.confluent.ksql.execution.expression.tree.TraversalExpressionVisitor;
 import io.confluent.ksql.execution.function.udf.structfieldextractor.FetchFieldFromStruct;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
-import io.confluent.ksql.execution.util.GenericRowValueTypeEnforcer;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
@@ -111,7 +110,6 @@ public class CodeGenRunner {
           ee,
           spec,
           expressionType,
-          new GenericRowValueTypeEnforcer(schema),
           expression
       );
     } catch (KsqlException | CompileException e) {

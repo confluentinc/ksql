@@ -38,18 +38,18 @@ public final class MultiExecutable implements Executable  {
   }
 
   @Override
-  public void start() throws Exception {
-    doAction(Executable::start);
+  public void startAsync() throws Exception {
+    doAction(Executable::startAsync);
   }
 
   @Override
-  public void stop() throws Exception {
-    doAction(Executable::stop);
+  public void triggerShutdown() throws Exception {
+    doAction(Executable::triggerShutdown);
   }
 
   @Override
-  public void join() throws InterruptedException {
-    doAction(Executable::join);
+  public void awaitTerminated() throws InterruptedException {
+    doAction(Executable::awaitTerminated);
   }
 
   @SuppressWarnings("unchecked")

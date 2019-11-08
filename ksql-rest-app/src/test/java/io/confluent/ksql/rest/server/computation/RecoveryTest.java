@@ -168,7 +168,7 @@ public class RecoveryTest {
     final KsqlEngine ksqlEngine;
     final KsqlResource ksqlResource;
     final FakeCommandQueue fakeCommandQueue;
-    final StatementExecutor statementExecutor;
+    final InteractiveStatementExecutor statementExecutor;
     final CommandRunner commandRunner;
     final ServerState serverState;
 
@@ -186,7 +186,7 @@ public class RecoveryTest {
           }
       );
 
-      this.statementExecutor = new StatementExecutor(
+      this.statementExecutor = new InteractiveStatementExecutor(
           serviceContext,
           ksqlEngine,
           hybridQueryIdGenerator

@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Architecture
+title: ksqlDB Architecture
 tagline: Internals of KSQL
 description: Quick tour under the hood of the KSQL engine
 ---
-
-KSQL Architecture
-=================
 
 You can use KSQL to build event streaming applications from {{ site.aktm }}
 topics by using only SQL statements and queries. KSQL is built on

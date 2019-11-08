@@ -1,20 +1,18 @@
 ---
 layout: page
-title: KSQL Configuration Parameter Reference
-tagline: Set up KSQL Server
-description: Settings for configuring KSQL Server
-keywords: ksql, confguration, setup, install
+title: ksqlDB Configuration Parameter Reference
+tagline: Set up ksqlDB Server
+description: Settings for configuring ksqlDB Server
+keywords: ksqldb, configure, server, setup, install
 ---
-
-KSQL Configuration Parameter Reference
-======================================
 
 Here are some common configuration properties that you can customize.
 Refer to [Configuring KSQL Server](index.md) and
-[Configure KSQL CLI](../cli-config.md#configure-ksql-cli) for details of how to set properties.
+[Configure KSQL CLI](../cli-config.md#configure-ksql-cli) for details of how
+to set properties.
 
 !!! tip
-	 Each property has a corresponding environment variable in the Docker
+	Each property has a corresponding environment variable in the Docker
     image for [KSQL Server](https://hub.docker.com/r/confluentinc/cp-ksql-server/). The
     environment variable name is constructed from the configuration property
     name by converting to uppercase, replacing periods with underscores, and

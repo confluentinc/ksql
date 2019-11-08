@@ -1,12 +1,10 @@
 ---
 layout: page
-title: Time and Windows in KSQL
-tagline: Event streams and KSQL time boundaries 
-description: Learn how to work with time windows in KSQL statements 
+title: Time and Windows in ksqlDB
+tagline: Event streams and ksqlDB time boundaries 
+description: Learn how to work with time windows in ksqlDB statements
+keywords: ksqldb, timestamp, window 
 ---
-
-Time and Windows in KSQL
-========================
 
 ![Diagram showing records in a KSQL stream](../img/ksql-stream-records.png)
 

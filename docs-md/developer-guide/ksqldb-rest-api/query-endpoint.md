@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Run A Query And Stream Back The Output
+title: Run a query and stream back the output
 tagline: query endpoint
 description: The `/query` resource lets you stream the output records of a `SELECT` statement
 keywords: ksqlDB, query, select
 ---
-
-Run A Query And Stream Back The Output
-======================================
 
 The `/query` resource lets you stream the output records of a `SELECT`
 statement via a chunked transfer encoding. The response is streamed back

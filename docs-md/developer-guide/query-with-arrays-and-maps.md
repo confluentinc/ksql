@@ -1,12 +1,9 @@
 ---
 layout: page
 title: Query With Arrays and Maps
-tagline: KSQL statements for complex data types
-description: Learn how to use complex types, like arrays and maps, in your KSQL queries
+tagline: SQL statements for complex data types in ksqlDB
+description: Learn how to use complex types, like arrays and maps, in your ksqlDB queries
 ---
-
-Query With Arrays and Maps
-==========================
 
 KSQL enables using complex types, like arrays and maps, in your queries.
 You use familiar syntax, like `myarray ARRAY<type>` and `myarray[0]` to

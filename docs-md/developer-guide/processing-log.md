@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Processing Log
-tagline: Debug your KSQL statements
-description: Learn how to debug your KSQL applications by using the processing log
+title: ksqlDB Processing Log
+tagline: Debug your SQL statements in ksqlDB
+description: Learn how to debug your ksqlDB applications by using the processing log
 ---
-
-KSQL Processing Log
-===================
 
 KSQL emits a log of record processing events, named the "processing log",
 to help you with debugging your KSQL queries. As KSQL executes a query,

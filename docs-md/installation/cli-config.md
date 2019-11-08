@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Configure KSQL CLI
-tagline: Connect the KSQL CLI to KSQL Server
-description: Learn how to connect the KSQL CLI to a KSQL Server cluster
-keywords: ksql, cli, console, terminal
+title: Configure ksqlDB CLI
+tagline: Connect the ksqlDB CLI to ksqlDB Server
+description: Learn how to connect the ksqlDB CLI to a ksqlDB Server cluster
+keywords: ksqldb, cli, console, terminal
 ---
-
-Configure KSQL CLI
-==================
 
 You can connect the KSQL CLI to one KSQL server per cluster.
 

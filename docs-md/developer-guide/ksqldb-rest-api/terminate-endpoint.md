@@ -1,14 +1,10 @@
 ---
 layout: page
-title: Terminate a Cluster
+title: Terminate a ksqlDB cluster
 tagline: terminate endpoint
 description: The `/ksql/terminate` resource terminates the cluster and cleans up resources
 keywords: ksqlDB, terminate
 ---
-
-
-Terminate a Cluster
-===================
 
 If you don't need your KSQL cluster anymore, you can terminate the
 cluster and clean up the resources using this endpoint. To terminate a

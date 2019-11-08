@@ -6,9 +6,6 @@ description: Learn how correctly partitioned topics enable join queries
 keywords: ksqldb, join, partition, key, schema 
 ---
 
-Partition Data to Enable Joins
-==============================
-
 When you use KSQL to join streaming data, you must ensure that your
 streams and tables are *co-partitioned*, which means that input records
 on both sides of the join have the same configuration settings for

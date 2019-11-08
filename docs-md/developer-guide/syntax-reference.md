@@ -1,12 +1,10 @@
 ---
 layout: page
-title: KSQL Syntax Reference
-tagline:  Syntax for KSQL queries and statements
-description: KSQL Syntax Reference
+title: ksqlDB Syntax Reference
+tagline:  Syntax for ksqlDB queries and statements
+description: Syntax Reference for statements and queries in ksqlDB
+keywords: ksqldb, syntax, api
 ---
-
-KSQL Syntax Reference
-=====================
 
 KSQL has similar semantics to SQL:
 

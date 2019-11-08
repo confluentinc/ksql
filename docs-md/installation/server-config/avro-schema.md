@@ -1,14 +1,13 @@
 ---
 layout: page
-title: Configure Avro and Schema Registry for KSQL
+title: Configure Avro and Schema Registry for ksqlDB
 tagline: Read and write messages in Avro format
-description: Learn how read and write messages in Avro format by integrating KSQL with Confluent Schema Registry
+description: Learn how read and write messages in Avro format by integrating ksqlDB with Confluent Schema Registry
 keywords: ksql, schema, avro
 ---
 
 Configure Avro and {{ site.sr }} for KSQL
 =========================================
-
 
 KSQL can read and write messages in Avro format by integrating with
 [Confluent Schema Registry](https://docs.confluent.io/current/schema-registry/index.html).

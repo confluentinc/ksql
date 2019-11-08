@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Check the Health of a KSQL Server
-tagline: Make sure that KSQL is up and running  
-description: Tips for ensuring that KSQL Server is well and healthy   
-keywords: ksql, diagnostics, troubleshooting
+title: Check the Health of a ksqlDB Server
+tagline: Make sure that ksqlDB is up and running  
+description: Tips for ensuring that ksqlDB Server is well and healthy   
+keywords: ksqldb, diagnostics, troubleshooting
 ---
-
-Check the Health of a KSQL Server
-=================================
 
 Check a KSQL Server Running in a Native Deployment
 --------------------------------------------------

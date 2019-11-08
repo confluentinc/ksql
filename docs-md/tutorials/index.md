@@ -1,22 +1,19 @@
 ---
 layout: page
-title: KSQL Tutorials and Examples
+title: ksqlDB Tutorials and Examples
 tagline: Walkthroughs and example queries
-description: Learn how to create KSQL applications 
-keywords: ksql, query, application, quickstart, tutorial, walkthrough, how to
+description: Learn how to create ksqlDB applications 
+keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 ---
 
-KSQL Tutorials and Examples
-===========================
-
 - [Quickstart](ksqldb-quickstart.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using KSQL (Docker)](basics-docker.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using KSQL (Local)](basics-local.md)
-- [Write Streaming Queries Against {{ site.aktm }} Using KSQL and {{ site.c3 }}](basics-control-center.md)
-- [Clickstream Data Analysis Pipeline Using KSQL (Docker)](clickstream-docker.md)
+- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Docker)](basics-docker.md)
+- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Local)](basics-local.md)
+- [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB and {{ site.c3 }}](basics-control-center.md)
+- [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](clickstream-docker.md)
 - [Generate Custom Test Data by Using the ksql-datagen Tool](generate-custom-test-data.md)
 - [Integrating with PostgresDB](connect-integration.md)
-- [KSQL Examples](examples.md)
+- [ksqlDB Examples](examples.md)
 
 KSQL Basics
 -----------

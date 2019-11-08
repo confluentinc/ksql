@@ -1,11 +1,10 @@
 ---
 layout: page
-title: Integrate KSQL with Confluent Control Center
-tagline: Set up KSQL Server to communicate with Confluent Control Center  
-description: Settings for configuring KSQL Server to integrate with with Confluent Control Center
-keywords: ksql, confguration, setup, install, control center
+title: Integrate ksqlDB with Confluent Control Center
+tagline: Set up ksqlDB Server to communicate with Confluent Control Center  
+description: Settings for configuring ksqlDB Server to integrate with with Confluent Control Center
+keywords: ksqldb, confguration, setup, install, control center
 ---
-
 
 Integrate KSQL with {{ site.c3 }}
 =================================

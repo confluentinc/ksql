@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Capacity Planning
-tagline: KSQL Capacity Planning
-description: Estimate of the computing resources required to run your KSQL queries
+title: ksqlDB Capacity Planning
+tagline: ksqlDB Capacity Planning
+description: Estimate of the computing resources required to run your ksqlDB queries
 ---
-
-KSQL Capacity Planning
-======================
 
 KSQL is a simple and powerful tool for building streaming applications
 on top of {{ site.aktm }}. This guide helps you plan for provisioning

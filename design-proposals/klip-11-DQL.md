@@ -204,47 +204,61 @@ CREATE TABLE <name> AS <query>   --the query must return a TABLE
 
 Examples and detailed description:
 
-> `CREATE STREAM myStream FROM topicA`
-> -> creates a persistent STREAM
-> -> same a current KSQL
+```sql
+CREATE STREAM myStream FROM topicA
+-- creates a persistent STREAM
+-- same a current KSQL
+```
 
-> `CREATE MATERIALIZED VIEW myTable FROM topicB`
-> -> create a persistent TABLE (that is continuously updated; insert/update/delete statement are not allowed)
-> -> (for backward compatibility, CREATE TABLE would we equivalent, but in deprecation mode until its eventually removed)
+```sql
+CREATE MATERIALIZED VIEW myTable FROM topicB
+-- create a persistent TABLE (that is continuously updated; insert/update/delete statement are not allowed)
+-- (for backward compatibility, CREATE TABLE would we equivalent, but in deprecation mode until its eventually removed)
+```
 
-> `CREATE MATERIALIZED VIEW myTable FROM myStream` // 'myStream' is a registered stream name from the catalog
-> -> create a persistent TABLE (that is continuously updated; insert/update/delete statement are not allowed)
-> -> this is a new type of statement that implicitly "casts" a fact stream into an update stream and upserts it into the result TABLE
-> -> maybe we would need to allow the same with old CREATE TABLE syntax?
+```sql
+CREATE MATERIALIZED VIEW myTable FROM myStream   -- 'myStream' is a registered stream name from the catalog
+-- create a persistent TABLE (that is continuously updated; insert/update/delete statement are not allowed)
+-- this is a new type of statement that implicitly "casts" a fact stream into an update stream and upserts it into the result TABLE
+-- maybe we would need to allow the same with old CREATE TABLE syntax?
+```
 
-> `CREATE MATERIALIZED VIEW myTable AS SELECT * FROM myStream`
-> -> basically the same as previous example; we just upsert a temporary stream into the result table
-> -> it's unclear if we should use `FROM <stream>` in the previous example:
->    the current argument is, that there is no query on the right hand side and thus `FROM` is better than `AS`
->    (one could argue though, that both example are effectively the same as both return a STREAM and there is no need to have `AS <query>`
->    because the grammar could be `FROM <stream>` with `<stream> ::= [<registredStreamName> | <query>]`
->    (we should discuss those grammar details eventually, but it's not important to the core idea of the language design)
+```sql
+CREATE MATERIALIZED VIEW myTable AS SELECT * FROM myStream
+-- basically the same as previous example; we just upsert a temporary stream into the result table
+-- it's unclear if we should use `FROM <stream>` in the previous example:
+--   the current argument is, that there is no query on the right hand side and thus `FROM` is better than `AS`
+--   (one could argue though, that both example are effectively the same as both return a STREAM and there is no need to have `AS <query>`
+--   because the grammar could be `FROM <stream>` with `<stream> ::= [<registredStreamName> | <query>]`
+--   (we should discuss those grammar details eventually, but it's not important to the core idea of the language design)
+```
 
-> `CREATE STREAM myChanglog AS SELECT * FROM STREAM(myTable)` // or should it be `AS` instead of `FROM`
-> -- or shorter
-> `CREATE STREAM myChanglog FROM STREAM(myTable)` // or should it be `AS` instead of `FROM`
-> -> creates a persistent STREAM
-> -> the prefix is not different to the existing CSAS statement in KSQL - the new stuff is the STREAM(...) operator that create a changelog stream from its input table
-> -> The output stream contains one record for each record in the table (ie, full table scan) based on the table generation
->    when the query was deployed plus a record for all future updates (we discuss later how the "start point" of the query can be changed,
-     i.e., start the query from an older table version)
-> -> note: the output is fact stream!
-> -> the first statement above shows the full syntax `CSAS <query>` while the second one is potential syntactic sugar for the same thing -
-     the same grammar question as above (ie, CREATE MV statement) raises (again, not important to the core design we want to discuss here)
+```sql
+CREATE STREAM myChanglog AS SELECT * FROM STREAM(myTable)   -- or should it be `AS` instead of `FROM`
+-- or shorter
+CREATE STREAM myChanglog FROM STREAM(myTable)   -- or should it be `AS` instead of `FROM`
+-- creates a persistent STREAM
+-- the prefix is not different to the existing CSAS statement in KSQL - the new stuff is the STREAM(...) operator that create a changelog stream from its input table
+-- The output stream contains one record for each record in the table (ie, full table scan) based on the table generation
+--   when the query was deployed plus a record for all future updates (we discuss later how the "start point" of the query can be changed,
+--   i.e., start the query from an older table version)
+-- note: the output is fact stream!
+-- the first statement above shows the full syntax `CSAS <query>` while the second one is potential syntactic sugar for the same thing -
+--   the same grammar question as above (ie, CREATE MV statement) raises (again, not important to the core design we want to discuss here)
+```
 
 Maybe in the future:
 
-> `CREATE TABLE rdbmsStyleTable <withSomeSchemaSpec>`
-> -> create an empty persistent TABLE that is only modifies via insert/update/delete statements
-> -> currently not supported by KSQL
+```sql
+CREATE TABLE rdbmsStyleTable <withSomeSchemaSpec>
+-- create an empty persistent TABLE that is only modifies via insert/update/delete statements
+-- currently not supported by KSQL
+```
 
-> `CREATE TABLE rdbmsStyleTable AS SELECT * FROM someTableOrView` // note, it does not make a difference if the input to the right hand side SELECT-query is a "table" or a MV
-> -> create a table with initial state being the result of the query (same as a RDBMS query)
+```sql
+CREATE TABLE rdbmsStyleTable AS SELECT * FROM someTableOrView -- note, it does not make a difference if the input to the right hand side SELECT-query is a "table" or a MV
+-- create a table with initial state being the result of the query (same as a RDBMS query)
+```
 
 
 **Example 100: a stateless stream query**

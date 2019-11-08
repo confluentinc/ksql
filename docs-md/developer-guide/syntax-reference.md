@@ -286,6 +286,22 @@ Access the fields of a struct by using the `->` operator. For example,
 `SOME_STRUCT->ID` retrieves the value of the struct\'s `ID` field. For
 more information, see [Operators](#operators).
 
+### Decimal
+
+`DECIMAL(Precision, Scale)`
+
+KSQL supports fields that are numeric data types with fixed precision and scale:
+
+- **Precision** is the maximum total number of decimal digits to be stored, including values to
+  the left and right of the decimal point. The precision must be greater than 1. There is no
+  default precision.
+- **Scale** is the number of decimal digits to the right of the decimal points. This number must
+  be greater than 0 and less than or equal to the value for `Precision`.
+
+Mathematical operations between `DOUBLE` and `DECIMAL` cause the decimal to be
+converted to a double value automatically. Converting from the decimal data type
+to any floating point type (`DOUBLE`) may cause loss of precision.
+
 KSQL statements
 ---------------
 

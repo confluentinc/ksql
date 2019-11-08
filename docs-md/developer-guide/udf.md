@@ -139,7 +139,8 @@ primitive type. The associated column in the output row will be `null`.
 
 UDFs support dynamic return types that are resolved at runtime. This is
 useful if you want to implement a UDF with a non-deterministic return
-type. A UDF which returns `BigDecimal`, for example, may vary the
+type, like `DECIMAL` or `STRUCT`. For example, a UDF that returns
+`BigDecimal`, which maps to the SQL `DECIMAL` type, may vary the
 precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
@@ -824,20 +825,26 @@ earlier documentation on this for further information.
 
 KSQL supports the following Java types for UDFs, UDAFs, and UDTFs.
 
-| Java Type | KSQL Type |
-|-----------|-----------|
-| int       | INTEGER   |
-| Integer   | INTEGER   |
-| boolean   | BOOLEAN   |
-| Boolean   | BOOLEAN   |
-| long      | BIGINT    |
-| Long      | BIGINT    |
-| double    | DOUBLE    |
-| Double    | DOUBLE    |
-| String    | VARCHAR   |
-| List      | ARRAY     |
-| Map       | MAP       |
-| Struct    | STRUCT    |
+| Java Type  | KSQL Type |
+| ---------- | --------- |
+| int        | INTEGER   |
+| Integer    | INTEGER   |
+| boolean    | BOOLEAN   |
+| Boolean    | BOOLEAN   |
+| long       | BIGINT    |
+| Long       | BIGINT    |
+| double     | DOUBLE    |
+| Double     | DOUBLE    |
+| String     | VARCHAR   |
+| List       | ARRAY     |
+| Map        | MAP       |
+| Struct     | STRUCT    |
+| BigDecimal | DECIMAL   |
+
+!!! note
+    Using `Struct` or `BigDecimal` in your functions requires specifying the
+    schema by using `paramSchema`, `returnSchema`, `aggregateSchema`, or a
+    schema provider.
 
 ### Deploying
 

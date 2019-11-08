@@ -1,6 +1,6 @@
 # KLIP 11 - Redesign KSQL query language
 
-**Author**: Matthias J. Sax, mjsax | 
+**Author**: Matthias J. Sax, @mjsax | 
 **Release Target**: 5.5+ | 
 **Status**: In Discussion | 
 **Discussion**: _link to the design discussion PR_

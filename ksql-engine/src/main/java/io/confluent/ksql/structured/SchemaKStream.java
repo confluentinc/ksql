@@ -275,7 +275,7 @@ public class SchemaKStream<K> {
       final List<SelectExpression> selectExpressions,
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder) {
-    final KeySelection selection = new KeySelection(selectExpressions);
+    final KeyField keyField = findKeyField(selectExpressions);
     final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
         contextStacker,
         sourceStep,
@@ -285,7 +285,7 @@ public class SchemaKStream<K> {
     return new SchemaKStream<>(
         step,
         keyFormat,
-        selection.getKey(),
+        keyField,
         Collections.singletonList(this),
         Type.PROJECT,
         ksqlConfig,
@@ -293,51 +293,39 @@ public class SchemaKStream<K> {
     );
   }
 
-  class KeySelection {
-
-    private final KeyField key;
-
-    KeySelection(final List<SelectExpression> selectExpressions) {
-      this.key = findKeyField(selectExpressions);
+  KeyField findKeyField(final List<SelectExpression> selectExpressions) {
+    if (!getKeyField().ref().isPresent()) {
+      return KeyField.none();
     }
 
-    private KeyField findKeyField(final List<SelectExpression> selectExpressions) {
-      if (!getKeyField().ref().isPresent()) {
-        return KeyField.none();
-      }
+    final ColumnRef reference = getKeyField().ref().get();
+    final Column keyColumn = Column.of(reference, SqlTypes.STRING);
 
-      final ColumnRef reference = getKeyField().ref().get();
-      final Column keyColumn = Column.of(reference, SqlTypes.STRING);
+    Optional<Column> found = Optional.empty();
 
-      Optional<Column> found = Optional.empty();
+    for (int i = 0; i < selectExpressions.size(); i++) {
+      final ColumnName toName = selectExpressions.get(i).getAlias();
+      final Expression toExpression = selectExpressions.get(i).getExpression();
 
-      for (int i = 0; i < selectExpressions.size(); i++) {
-        final ColumnName toName = selectExpressions.get(i).getAlias();
-        final Expression toExpression = selectExpressions.get(i).getExpression();
+      if (toExpression instanceof ColumnReferenceExp) {
+        final ColumnReferenceExp nameRef
+            = (ColumnReferenceExp) toExpression;
 
-        if (toExpression instanceof ColumnReferenceExp) {
-          final ColumnReferenceExp nameRef
-              = (ColumnReferenceExp) toExpression;
-
-          if (keyColumn.ref().equals(nameRef.getReference())) {
-            found = Optional.of(Column.of(toName, keyColumn.type()));
-            break;
-          }
+        if (keyColumn.ref().equals(nameRef.getReference())) {
+          found = Optional.of(Column.of(toName, keyColumn.type()));
+          break;
         }
       }
-
-      final Optional<ColumnRef> filtered = found
-          .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWTIME_NAME.name()))
-          .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()))
-          .map(Column::ref);
-
-      return KeyField.of(filtered);
     }
 
-    public KeyField getKey() {
-      return key;
-    }
+    final Optional<ColumnRef> filtered = found
+        .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWTIME_NAME.name()))
+        .filter(f -> !SchemaUtil.isFieldName(f.name().name(), SchemaUtil.ROWKEY_NAME.name()))
+        .map(Column::ref);
+
+    return KeyField.of(filtered);
   }
+
 
   public SchemaKStream<K> leftJoin(
       final SchemaKTable<K> schemaKTable,

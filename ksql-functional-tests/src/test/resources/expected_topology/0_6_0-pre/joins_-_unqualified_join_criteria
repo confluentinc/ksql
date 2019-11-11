@@ -28,7 +28,6 @@
   "ksql.streams.topology.optimization" : "all",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.metrics.tags.custom" : "",
-  "ksql.query.fields.key.legacy" : "false",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
   "ksql.functions.substring.legacy.args" : "false",
@@ -40,31 +39,45 @@
   "ksql.query.persistent.active.limit" : "2147483647"
 }
 CONFIGS_END
-CSAS_DOWNSTREAM_1.KsqlTopic.source = STRUCT<ALIASED INT, FOO INT> NOT NULL
-CSAS_DOWNSTREAM_1.DOWNSTREAM = STRUCT<ALIASED INT, FOO INT> NOT NULL
+CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Left.source = STRUCT<LEFT_ID BIGINT, NAME VARCHAR> NOT NULL
+CSAS_LEFT_OUTER_JOIN_0.KafkaTopic_Right.source = STRUCT<RIGHT_ID BIGINT, F1 VARCHAR> NOT NULL
+CSAS_LEFT_OUTER_JOIN_0.Join.left = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, LEFT_ID BIGINT, NAME VARCHAR> NOT NULL
+CSAS_LEFT_OUTER_JOIN_0.Join.right = STRUCT<ROWTIME BIGINT, ROWKEY VARCHAR, RIGHT_ID BIGINT, F1 VARCHAR> NOT NULL
+CSAS_LEFT_OUTER_JOIN_0.LEFT_OUTER_JOIN = STRUCT<LEFT_ID BIGINT, NAME VARCHAR, F1 VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
-    Source: KSTREAM-SOURCE-0000000000 (topics: [OUTPUT])
+    Source: KSTREAM-SOURCE-0000000000 (topics: [left_topic])
       --> KSTREAM-TRANSFORMVALUES-0000000001
+    Source: KSTREAM-SOURCE-0000000002 (topics: [right_topic])
+      --> KSTREAM-TRANSFORMVALUES-0000000003
     Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000002
+      --> Join-this-windowed
       <-- KSTREAM-SOURCE-0000000000
-    Processor: KSTREAM-MAPVALUES-0000000002 (stores: [])
-      --> KSTREAM-FILTER-0000000003
+    Processor: KSTREAM-TRANSFORMVALUES-0000000003 (stores: [])
+      --> Join-other-windowed
+      <-- KSTREAM-SOURCE-0000000002
+    Processor: Join-other-windowed (stores: [KSTREAM-OUTEROTHER-0000000007-store])
+      --> Join-outer-other-join
+      <-- KSTREAM-TRANSFORMVALUES-0000000003
+    Processor: Join-this-windowed (stores: [KSTREAM-JOINTHIS-0000000006-store])
+      --> Join-this-join
       <-- KSTREAM-TRANSFORMVALUES-0000000001
-    Processor: KSTREAM-FILTER-0000000003 (stores: [])
-      --> KSTREAM-KEY-SELECT-0000000004
-      <-- KSTREAM-MAPVALUES-0000000002
-    Processor: KSTREAM-KEY-SELECT-0000000004 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000005
-      <-- KSTREAM-FILTER-0000000003
-    Processor: KSTREAM-MAPVALUES-0000000005 (stores: [])
-      --> KSTREAM-MAPVALUES-0000000006
-      <-- KSTREAM-KEY-SELECT-0000000004
-    Processor: KSTREAM-MAPVALUES-0000000006 (stores: [])
-      --> KSTREAM-SINK-0000000007
-      <-- KSTREAM-MAPVALUES-0000000005
-    Sink: KSTREAM-SINK-0000000007 (topic: DOWNSTREAM)
-      <-- KSTREAM-MAPVALUES-0000000006
+    Processor: Join-outer-other-join (stores: [KSTREAM-JOINTHIS-0000000006-store])
+      --> Join-merge
+      <-- Join-other-windowed
+    Processor: Join-this-join (stores: [KSTREAM-OUTEROTHER-0000000007-store])
+      --> Join-merge
+      <-- Join-this-windowed
+    Processor: Join-merge (stores: [])
+      --> KSTREAM-MAPVALUES-0000000009
+      <-- Join-this-join, Join-outer-other-join
+    Processor: KSTREAM-MAPVALUES-0000000009 (stores: [])
+      --> KSTREAM-MAPVALUES-0000000010
+      <-- Join-merge
+    Processor: KSTREAM-MAPVALUES-0000000010 (stores: [])
+      --> KSTREAM-SINK-0000000011
+      <-- KSTREAM-MAPVALUES-0000000009
+    Sink: KSTREAM-SINK-0000000011 (topic: LEFT_OUTER_JOIN)
+      <-- KSTREAM-MAPVALUES-0000000010
 

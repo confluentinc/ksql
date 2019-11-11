@@ -105,14 +105,21 @@ final class EngineExecutor {
     return execute(plan(statement));
   }
 
-  ExecuteResult execute(final KsqlPlan plan) {
-    final Optional<String> ddlResult = plan.getDdlCommand().map(ddl -> executeDdl(plan));
-    final Optional<PersistentQueryMetadata> queryMetadata =
-        plan.getQueryPlan().map(qp -> executePersistentQuery(plan));
-    return queryMetadata.map(ExecuteResult::of).orElseGet(() -> ExecuteResult.of(ddlResult.get()));
+  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
+  private ExecuteResult execute(final KsqlPlan plan) {
+    final Optional<String> ddlResult = plan.getDdlCommand()
+        .map(ddl -> executeDdl(ddl, plan.getStatementText()));
+
+    final Optional<PersistentQueryMetadata> queryMetadata = plan.getQueryPlan()
+        .map(qp -> executePersistentQuery(qp, plan.getStatementText()));
+
+    return queryMetadata
+        .map(ExecuteResult::of)
+        .orElseGet(() -> ExecuteResult.of(ddlResult.get()));
   }
 
-  TransientQueryMetadata executeQuery(final ConfiguredStatement<Query> statement) {
+  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
+  private TransientQueryMetadata executeQuery(final ConfiguredStatement<Query> statement) {
     final ExecutorPlans plans = planQuery(statement, statement.getStatement(), Optional.empty());
     final OutputNode outputNode = plans.logicalPlan.getNode().get();
     final QueryExecutor executor = engineContext.createQueryExecutor(
@@ -131,9 +138,11 @@ final class EngineExecutor {
     );
   }
 
-  KsqlPlan plan(final ConfiguredStatement<?> statement) {
+  @SuppressWarnings("OptionalGetWithoutIsPresent") // Known to be non-empty
+  private KsqlPlan plan(final ConfiguredStatement<?> statement) {
     try {
       throwOnNonExecutableStatement(statement);
+
       if (statement.getStatement() instanceof ExecutableDdlStatement) {
         final DdlCommand ddlCommand = engineContext.createDdlCommand(
             statement.getStatementText(),
@@ -141,34 +150,37 @@ final class EngineExecutor {
             ksqlConfig,
             overriddenProperties
         );
-        return new KsqlPlan(
-            statement.getStatementText(),
-            Optional.of(ddlCommand),
-            Optional.empty()
-        );
+
+        return KsqlPlan.ddlPlan(statement.getStatementText(), ddlCommand);
       }
+
+      final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
       final ExecutorPlans plans = planQuery(
           statement,
-          ((QueryContainer) statement.getStatement()).getQuery(),
-          Optional.of(((QueryContainer) statement.getStatement()).getSink())
+          queryContainer.getQuery(),
+          Optional.of(queryContainer.getSink())
       );
+
       final KsqlStructuredDataOutputNode outputNode =
           (KsqlStructuredDataOutputNode) plans.logicalPlan.getNode().get();
+
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement.getStatementText(),
           outputNode,
           plans.physicalPlan.getKeyField());
+
       validateQuery(outputNode.getNodeOutputType(), statement);
-      return new KsqlPlan(
+
+      final QueryPlan queryPlan = new QueryPlan(
+          getSourceNames(outputNode),
+          outputNode.getIntoSourceName(),
+          plans.physicalPlan
+      );
+
+      return KsqlPlan.queryPlan(
           statement.getStatementText(),
           ddlCommand,
-          Optional.of(
-              new QueryPlan(
-                  getSourceNames(outputNode),
-                  outputNode.getIntoSourceName(),
-                  plans.physicalPlan
-              )
-          )
+          queryPlan
       );
     } catch (final KsqlStatementException e) {
       throw e;
@@ -348,36 +360,39 @@ final class EngineExecutor {
     return visitor.getSourceNames();
   }
 
-  private String executeDdl(final KsqlPlan ksqlPlan) {
-    final DdlCommand ddlCommand = ksqlPlan.getDdlCommand().get();
-    final Optional<KeyField> keyField = ksqlPlan.getQueryPlan()
-        .map(QueryPlan::getPhysicalPlan)
-        .map(PhysicalPlan::getKeyField);
+  private String executeDdl(
+      final DdlCommand ddlCommand,
+      final String statementText
+  ) {
     try {
-      return engineContext.executeDdl(ksqlPlan.getStatementText(), ddlCommand, keyField);
+      return engineContext.executeDdl(statementText, ddlCommand);
     } catch (final KsqlStatementException e) {
       throw e;
     } catch (final Exception e) {
-      throw new KsqlStatementException(e.getMessage(), ksqlPlan.getStatementText(), e);
+      throw new KsqlStatementException(e.getMessage(), statementText, e);
     }
   }
 
-  private PersistentQueryMetadata executePersistentQuery(final KsqlPlan ksqlPlan) {
-    final QueryPlan queryPlan = ksqlPlan.getQueryPlan().get();
+  private PersistentQueryMetadata executePersistentQuery(
+      final QueryPlan queryPlan,
+      final String statementText
+  ) {
     final PhysicalPlan<?> physicalPlan = queryPlan.getPhysicalPlan();
     final QueryExecutor executor = engineContext.createQueryExecutor(
         ksqlConfig,
         overriddenProperties,
         serviceContext
     );
+
     final PersistentQueryMetadata queryMetadata = executor.buildQuery(
-        ksqlPlan.getStatementText(),
+        statementText,
         physicalPlan.getQueryId(),
         engineContext.getMetaStore().getSource(queryPlan.getSink()),
         queryPlan.getSources(),
         physicalPlan.getPhysicalPlan(),
         physicalPlan.getPlanSummary()
     );
+
     engineContext.registerQuery(queryMetadata);
     return queryMetadata;
   }

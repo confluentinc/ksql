@@ -9,6 +9,12 @@ keywords: ksqldb, query, select
 Materialized Views
 ==================
 
+API Reference
+-------------
+
+- [CREATE STREAM AS SELECT](../developer-guide/ksqldb-reference/create-stream-as-select.md)
+- [CREATE TABLE AS SELECT](../developer-guide/ksqldb-reference/create-table-as-select.md)
+
 Materialized views are derived representations of streams or tables.
 They effectively allow you to create new collections over existing ones.
 Materialized views are perpetually kept up to date in real-time as new

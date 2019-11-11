@@ -126,10 +126,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final KsqlQueryBuilder ksqlQueryBuilder
   ) {
-    final KeySelection selection = new KeySelection(
-        selectExpressions
-    );
-
+    final KeyField keyField = findKeyField(selectExpressions);
     final TableMapValues<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
@@ -141,7 +138,7 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
     return new SchemaKTable<>(
         step,
         keyFormat,
-        selection.getKey(),
+        keyField,
         Collections.singletonList(this),
         Type.PROJECT,
         ksqlConfig,

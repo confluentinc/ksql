@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL
-tagline: KSQL
-description: KSQL
+title: ksqlDB
+tagline: ksqlDB
+description: ksqlDB
 ---
-
-KSQL
-====
 
 What Is ksqlDB?
 ---------------

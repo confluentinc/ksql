@@ -1,12 +1,10 @@
 ---
 layout: page
-title: KSQL Developer Guide
+title: ksqlDB API Index
 tagline: Program KSQL 
-description: Learn to create KSQL applications
+description: Learn to program ksqlDB to create streaming applications.
+keywords: ksqldb, api, reference
 ---
-
-ksqlDB API Reference
-====================
 
 Functions and Operators
 -----------------------

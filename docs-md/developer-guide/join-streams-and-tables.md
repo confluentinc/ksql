@@ -1,12 +1,9 @@
 ---
 layout: page
-title: Join Event Streams with KSQL
+title: Join Event Streams with ksqlDB
 tagline: Merge streams of data in real time
-description: Learn how to use KSQL to merge streams of data in real time
+description: Learn how to use ksqlDB to merge streams of data in real time
 ---
-
-Join Event Streams with KSQL
-============================
 
 You can use KSQL to merge streams of data in real time by using the JOIN
 statement, which has a SQL-like *join* syntax. A KSQL join and a relational

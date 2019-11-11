@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL Custom Function Reference (UDF and UDAF)
-tagline: Convert streaming data from one format to another
-description: Learn how to create streaming transformations 
+title: ksqlDB Custom Function Reference (UDF, UDAF, and UDTF)
+tagline: Program user-defined functions in ksqlDB
+description: Learn how to create customer functions that run in your ksqlDB queries 
 ---
-
-KSQL Custom Function Reference (UDF, UDAF, and UDTF)
-====================================================
 
 KSQL has many built-in functions that help with processing records in
 streaming data, like ABS and SUM. Functions are used within a KSQL query
@@ -139,7 +136,8 @@ primitive type. The associated column in the output row will be `null`.
 
 UDFs support dynamic return types that are resolved at runtime. This is
 useful if you want to implement a UDF with a non-deterministic return
-type. A UDF which returns `BigDecimal`, for example, may vary the
+type, like `DECIMAL` or `STRUCT`. For example, a UDF that returns
+`BigDecimal`, which maps to the SQL `DECIMAL` type, may vary the
 precision and scale of the output based on the input schema.
 
 To use this functionality, you need to specify a method with signature
@@ -824,20 +822,26 @@ earlier documentation on this for further information.
 
 KSQL supports the following Java types for UDFs, UDAFs, and UDTFs.
 
-| Java Type | KSQL Type |
-|-----------|-----------|
-| int       | INTEGER   |
-| Integer   | INTEGER   |
-| boolean   | BOOLEAN   |
-| Boolean   | BOOLEAN   |
-| long      | BIGINT    |
-| Long      | BIGINT    |
-| double    | DOUBLE    |
-| Double    | DOUBLE    |
-| String    | VARCHAR   |
-| List      | ARRAY     |
-| Map       | MAP       |
-| Struct    | STRUCT    |
+| Java Type  | KSQL Type |
+| ---------- | --------- |
+| int        | INTEGER   |
+| Integer    | INTEGER   |
+| boolean    | BOOLEAN   |
+| Boolean    | BOOLEAN   |
+| long       | BIGINT    |
+| Long       | BIGINT    |
+| double     | DOUBLE    |
+| Double     | DOUBLE    |
+| String     | VARCHAR   |
+| List       | ARRAY     |
+| Map        | MAP       |
+| Struct     | STRUCT    |
+| BigDecimal | DECIMAL   |
+
+!!! note
+    Using `Struct` or `BigDecimal` in your functions requires specifying the
+    schema by using `paramSchema`, `returnSchema`, `aggregateSchema`, or a
+    schema provider.
 
 ### Deploying
 
@@ -860,7 +864,7 @@ installed. In these cases, the errors will appear in the KSQL server log
 (ksql.log) . The error would look something like:
 
 ```
-[2018-07-04 12:37:28,602] ERROR Failed to handle: Command{statement='create stream pageviews_ts as select tostring(viewtime) from pageviews;', overwriteProperties={}} (io.confluent.ksql.rest.server.computation.StatementExecutor:210)
+[2018-07-04 12:37:28,602] ERROR Failed to handle: Command{statement='create stream pageviews_ts as select tostring(viewtime) from pageviews;', overwriteProperties={}} (io.confluent.ksql.rest.server.computation.InteractiveStatementExecutor:218)
 io.confluent.ksql.util.KsqlException: Can't find any functions with the name 'TOSTRING'
 ```
 

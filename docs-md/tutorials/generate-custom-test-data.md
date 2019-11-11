@@ -3,7 +3,7 @@ layout: page
 title: Generate Custom Test Data by Using the ksql-datagen Tool
 tagline: Configure ksql-datagen with a custom schema
 description: Learn how to produce data according to a schema that you define
-keywords: ksql, confluent control center
+keywords: ksqldb, confluent control center
 ---
 
 Generate Custom Test Data by Using the ksql-datagen Tool

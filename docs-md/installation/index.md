@@ -1,19 +1,19 @@
 ---
 layout: page
-title: Installation and Configuration
-tagline: Install and Configure KSQL
-description: Learn how to configure KSQL 
-keywords: ksql, install, uninstall, upgrade
+title: Install and Configure ksqlDB
+tagline: Installation and configuration details for ksqlDB
+description: Learn how to install and set up ksqlDB
+keywords: ksqldb, install, uninstall, upgrade
 ---
 
 Installation and Configuration
 ==============================
 
-- [Installing KSQL](installing.md)
-- [Install KSQL with Docker](install-ksql-with-docker.md)
-- [Check the Health of a KSQL Server](check-ksql-server-health.md)
-- [Configuring KSQL Server](server-config/index.md)
-- [Configure KSQL CLI](cli-config.md)
-- [Upgrade KSQL](upgrading.md)
+- [Instal ksqlDB](installing.md)
+- [Install ksqlDB with Docker](install-ksql-with-docker.md)
+- [Check the Health of a ksqlDB Server](check-ksql-server-health.md)
+- [Configuring ksqlDB Server](server-config/index.md)
+- [Configure ksqlDB CLI](cli-config.md)
+- [Upgrade ksqlDB](upgrading.md)
 
 Page last revised on: {{ git_revision_date }}

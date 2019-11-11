@@ -1,9 +1,9 @@
 ---
 layout: page
-title: Upgrade KSQL
-tagline: Upgrade on-premises KSQL 
-description: Learn how to upgrade your on-premises KSQL deployments
-keywords: ksql, install, upgrade
+title: Upgrade ksqlDB
+tagline: Upgrade on-premises ksqlDB 
+description: Learn how to upgrade your on-premises ksqlDB deployments
+keywords: ksqldb, install, upgrade
 ---
 
 Upgrade KSQL

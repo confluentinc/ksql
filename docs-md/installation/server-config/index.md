@@ -1,17 +1,14 @@
 ---
 layout: page
-title: Configuring KSQL Server
+title: Configuring ksqlDB Server
 tagline: Detailed settings reference
 description: Learn about the configuration settings you can use to set up KSQL
 ---
 
-Configuring KSQL Server
-=======================
-
-- [Configure Security for KSQL](security.md)
-- [KSQL Configuration Parameter Reference](config-reference.md)
-- [Configure Avro and {{ site.sr }} for KSQL](avro-schema.md)
-- [Integrate KSQL with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
+- [Configure Security for ksqlDB](security.md)
+- [ksqlDB Configuration Parameter Reference](config-reference.md)
+- [Configure Avro and {{ site.sr }} for ksqlDB](avro-schema.md)
+- [Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
 
 KSQL configuration parameters can be set for KSQL server and queries as
 well as for the underlying Kafka Streams and Kafka Clients (producer and

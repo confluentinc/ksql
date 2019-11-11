@@ -1,12 +1,13 @@
 ---
 layout: page
-title: KSQL and Kafka Streams
-tagline: The relationship between KSQL and Kafka Streams 
-description: How KSQL leverages the technology of Kafka Streams
+title: Kafka Streams and ksqlDB
+tagline: The relationship between ksqlDB and Kafka Streams 
+description: How ksqlDB leverages the technology of Kafka Streams
+keywords: ksqldb, kafka streams
 ---
 
-KSQL and Kafka Streams
-======================
+Kafka Streams and ksqlDB
+========================
 
 KSQL is the streaming database for {{ site.aktm }}. With KSQL, you
 can write event streaming applications by using a SQL-like query

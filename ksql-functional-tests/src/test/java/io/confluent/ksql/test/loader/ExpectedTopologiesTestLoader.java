@@ -57,6 +57,7 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
   private static final Pattern TOPOLOGY_VERSION_PATTERN = Pattern.compile("(\\d+)_(\\d+)(_\\d+)?");
   private static final String TOPOLOGY_VERSIONS_DELIMITER = ",";
   private static final String TOPOLOGY_VERSIONS_PROP = "topology.versions";
+  private static final String TOPOLOGY_VERSION_LATEST = "latest-only";
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final KsqlVersion CURRENT_VERSION = KsqlVersion.current();
@@ -127,7 +128,9 @@ public class ExpectedTopologiesTestLoader<T extends VersionedTest> implements Te
 
     final Stream<String> versionStrings = versionProp.isEmpty()
         ? findExpectedTopologyDirectories().stream()
-        : Arrays.stream(versionProp.split(TOPOLOGY_VERSIONS_DELIMITER));
+        : versionProp.equalsIgnoreCase(TOPOLOGY_VERSION_LATEST)
+            ? Stream.of()
+            : Arrays.stream(versionProp.split(TOPOLOGY_VERSIONS_DELIMITER));
 
     return versionStrings
         .map(this::getVersion)

@@ -1,13 +1,10 @@
 ---
 layout: page
-title: KSQL Operations
-tagline: Administer KSQL clusters
-description: Describes KSQL cluster administration
-keywords: ksql, administer, operate
+title: ksqlDB Operations
+tagline: Administer ksqlDB clusters
+description: Learn how to operate ksqlDB clusters.
+keywords: ksqldb, administer, operate
 ---
-
-KSQL Operations
-===============
 
 Watch the [screencast of Taking KSQL to
 Production](https://www.youtube.com/embed/f3wV8W_zjwE) on YouTube.

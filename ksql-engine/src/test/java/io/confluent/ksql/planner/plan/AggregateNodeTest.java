@@ -208,7 +208,7 @@ public class AggregateNodeTest {
 
     // Then:
     final TopologyDescription.Source node = (TopologyDescription.Source) getNodeByName(
-        builder.build(), "KSTREAM-SOURCE-0000000008");
+        builder.build(), "Aggregate-groupby-repartition-source");
     final List<String> successors = node.successors().stream().map(TopologyDescription.Node::name).collect(Collectors.toList());
     assertThat(node.predecessors(), equalTo(Collections.emptySet()));
     assertThat(successors, equalTo(Collections.singletonList("KSTREAM-AGGREGATE-0000000005")));
@@ -273,9 +273,9 @@ public class AggregateNodeTest {
 
     // Then:
     final TopologyDescription.Sink sink = (TopologyDescription.Sink) getNodeByName(builder.build(),
-        "KSTREAM-SINK-0000000006");
+        "Aggregate-groupby-repartition-sink");
     final TopologyDescription.Source source = (TopologyDescription.Source) getNodeByName(
-        builder.build(), "KSTREAM-SOURCE-0000000008");
+        builder.build(), "Aggregate-groupby-repartition-source");
     assertThat(sink.successors(), equalTo(Collections.emptySet()));
     assertThat(source.topicSet(), hasItem(sink.topic()));
   }

@@ -31,7 +31,6 @@ import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.types.SqlType;
-import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -49,21 +48,10 @@ public class DdlCommandExec {
    * execute on metaStore
    */
   public DdlCommandResult execute(final DdlCommand ddlCommand) {
-    return execute(ddlCommand, Optional.empty());
-  }
-
-  public DdlCommandResult execute(
-      final DdlCommand ddlCommand,
-      final Optional<KeyField> keyFieldOverride) {
-    return new Executor(keyFieldOverride).execute(ddlCommand);
+    return new Executor().execute(ddlCommand);
   }
 
   private final class Executor implements io.confluent.ksql.execution.ddl.commands.Executor {
-    final Optional<KeyField> keyFieldOverride;
-
-    private Executor(final Optional<KeyField> keyFieldOverride) {
-      this.keyFieldOverride = Objects.requireNonNull(keyFieldOverride, "keyFieldOverride");
-    }
 
     @Override
     public DdlCommandResult executeCreateStream(final CreateStreamCommand createStream) {
@@ -126,12 +114,11 @@ public class DdlCommandExec {
           ? new DdlCommandResult(true, "Dropped type '" + typeName + "'")
           : new DdlCommandResult(true, "Type '" + typeName + "' does not exist");
     }
+  }
 
-    private KeyField getKeyField(final Optional<ColumnName> keyFieldName) {
-      return keyFieldOverride
-          .orElseGet(() -> keyFieldName
-              .map(columnName -> KeyField.of(ColumnRef.withoutSource(columnName)))
-              .orElseGet(KeyField::none));
-    }
+  private static KeyField getKeyField(final Optional<ColumnName> keyFieldName) {
+    return keyFieldName
+        .map(columnName -> KeyField.of(ColumnRef.withoutSource(columnName)))
+        .orElseGet(KeyField::none);
   }
 }

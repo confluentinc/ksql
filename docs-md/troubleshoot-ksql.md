@@ -1,12 +1,9 @@
 ---
 layout: page
-title: Troubleshoot KSQL issues
+title: Troubleshoot ksqlDB issues
 tagline: When things don't behave as expected
-description: Check this list to troubleshoot KSQL issues
+description: Check this list to troubleshoot ksqlDB issues
 ---
-
-Troubleshoot KSQL issues
-========================
 
 This guide contains troubleshooting information for many KSQL issues.
 

@@ -50,7 +50,7 @@ public class QueryTranslationTest {
 
   private static final Path QUERY_VALIDATION_TEST_DIR = Paths.get("query-validation-tests");
   private static final String TOPOLOGY_CHECKS_DIR = "expected_topology/";
-  private static Set<String> EXCLUDED_TESTS = ImmutableSet
+  private static final Set<String> EXCLUDED_TESTS = ImmutableSet
       .of("query-validation-tests/scratch.json");
 
   @Parameterized.Parameters(name = "{0}")

@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL-Connect Integration
-tagline: Connect your KSQL applications to data
-description: Learn how to integrate your KSQL applications with Kafka connectors
+title: Integrate Kafka Connect with ksqlDB
+tagline: Connect your ksqlDB applications to data
+description: Learn how to integrate your ksqlDB applications with Kafka connectors
 ---
-
-KSQL-Connect Integration
-========================
 
 {{ site.kconnectlong }} is an open source component of {{ site.aktm }} that
 simplifies loading and exporting data between Kafka and external systems.

@@ -28,7 +28,6 @@
   "ksql.streams.topology.optimization" : "all",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.metrics.tags.custom" : "",
-  "ksql.query.fields.key.legacy" : "false",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
   "ksql.functions.substring.legacy.args" : "false",
@@ -59,20 +58,20 @@ Topologies:
       --> Aggregate-groupby
       <-- PRE-AGGREGATE-SELECT-0
     Processor: Aggregate-groupby (stores: [])
-      --> KSTREAM-FILTER-0000000007
+      --> Aggregate-groupby-repartition-filter
       <-- KSTREAM-FILTER-0000000003
-    Processor: KSTREAM-FILTER-0000000007 (stores: [])
-      --> KSTREAM-SINK-0000000006
+    Processor: Aggregate-groupby-repartition-filter (stores: [])
+      --> Aggregate-groupby-repartition-sink
       <-- Aggregate-groupby
-    Sink: KSTREAM-SINK-0000000006 (topic: Aggregate-groupby-repartition)
-      <-- KSTREAM-FILTER-0000000007
+    Sink: Aggregate-groupby-repartition-sink (topic: Aggregate-groupby-repartition)
+      <-- Aggregate-groupby-repartition-filter
 
   Sub-topology: 1
-    Source: KSTREAM-SOURCE-0000000008 (topics: [Aggregate-groupby-repartition])
+    Source: Aggregate-groupby-repartition-source (topics: [Aggregate-groupby-repartition])
       --> KSTREAM-AGGREGATE-0000000005
     Processor: KSTREAM-AGGREGATE-0000000005 (stores: [Aggregate-aggregate])
       --> KTABLE-MAPVALUES-0000000009
-      <-- KSTREAM-SOURCE-0000000008
+      <-- Aggregate-groupby-repartition-source
     Processor: KTABLE-MAPVALUES-0000000009 (stores: [])
       --> KTABLE-FILTER-0000000010
       <-- KSTREAM-AGGREGATE-0000000005

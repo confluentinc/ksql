@@ -1,12 +1,9 @@
 ---
 layout: page
-title: KSQL REST API Reference
+title: ksqlDB REST API Reference
 tagline: Run queries over REST
-description: Learn how to communicate with KSQL by using HTTP
+description: Learn how to communicate with ksqlDB by using HTTP
 ---
-
-KSQL REST API Reference
-=======================
 
 - [Get the Status of a KSQL Server (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
 - [Run a ksqlDB Statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)

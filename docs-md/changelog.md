@@ -1,12 +1,10 @@
 ---
 layout: page
-title: KSQL Changelog
-tagline: Detailed changelog for KSQL
-description: Lists changes to the KSQL codebase
+title: ksqlDB Changelog
+tagline: Detailed changelog for ksqlDB
+description: Lists changes to the ksqlDB codebase
+keywords: ksqldb, changelog
 ---
-
-KSQL Changelog
-==============
 
 Version 5.4.0
 -------------

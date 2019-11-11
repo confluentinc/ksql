@@ -2,12 +2,9 @@
 layout: page
 title: Run a ksqlDB Statement
 tagline: ksql endpoint
-description: Use the `/ksql` resource to run a sequence of KSQL statements
-keywords: ksqlDB
+description: Use the `/ksql` resource to run a sequence of ksqlDB statements
+keywords: ksqldb
 ---
-
-Run a ksqlDB Statement
-======================
 
 The `/ksql` resource runs a sequence of KSQL statements. All statements,
 except those starting with SELECT, can be run on this endpoint. To run

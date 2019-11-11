@@ -1,12 +1,9 @@
 ---
 layout: page
 title: Query With Structured Data
-tagline: KSQL statements for structured data types
-description: Learn how to use structured data (structs) in your KSQL queries
+tagline: SQL statements for structured data types in ksqlDB
+description: Learn how to use structured data (structs) in your ksqlDB queries
 ---
-
-Query With Structured Data
-==========================
 
 KSQL enables querying structured, or nested, data, by using the STRUCT
 data type. You use familiar syntax to declare and access structured

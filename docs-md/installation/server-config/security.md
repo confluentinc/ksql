@@ -1,13 +1,10 @@
 ---
 layout: page
-title: Integrate KSQL with Confluent Control Center
-tagline: Set up KSQL Server to communicate with Confluent Control Center  
-description: Settings for configuring KSQL Server to integrate with with Confluent Control Center
-keywords: ksql, confguration, security, acl, ssl, sasl, keystore, truststore
+title: Configure Security for ksqlDB
+tagline: Set up ksqlDB security  
+description: Settings for security ksqlDB
+keywords: ksqldb, confguration, security, acl, ssl, sasl, keystore, truststore
 ---
-
-Configure Security for KSQL
-===========================
 
 KSQL supports authentication on its HTTP endpoints and also supports
 many of the security features of the other services it communicates

@@ -1,11 +1,9 @@
 ---
 layout: page
-title: Create a KSQL Stream
+title: Create a ksqlDB Stream
 tagline: Create a Stream from a Kafka topic
 description: Learn how to use the CREATE STREAM statement on a Kafka topic
 ---
-Create a KSQL Stream
-====================
 
 In KSQL, you create streams from {{ site.aktm }} topics, and you create
 streams of query results from other streams.

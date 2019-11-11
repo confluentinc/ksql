@@ -28,7 +28,6 @@
   "ksql.streams.topology.optimization" : "all",
   "ksql.streams.num.stream.threads" : "4",
   "ksql.metrics.tags.custom" : "",
-  "ksql.query.fields.key.legacy" : "false",
   "ksql.udfs.enabled" : "true",
   "ksql.udf.enable.security.manager" : "true",
   "ksql.functions.substring.legacy.args" : "false",
@@ -48,11 +47,11 @@ CSAS_JOINED_0.JOINED = STRUCT<field! VARCHAR> NOT NULL
 SCHEMAS_END
 Topologies:
    Sub-topology: 0
-    Source: KSTREAM-SOURCE-0000000011 (topics: [Join-repartition])
+    Source: Join-repartition-source (topics: [Join-repartition])
       --> Join
     Processor: Join (stores: [KafkaTopic_Right-reduce])
       --> SELECT-0
-      <-- KSTREAM-SOURCE-0000000011
+      <-- Join-repartition-source
     Source: KSTREAM-SOURCE-0000000000 (topics: [right_topic])
       --> KSTREAM-TRANSFORMVALUES-0000000001
     Processor: KSTREAM-TRANSFORMVALUES-0000000001 (stores: [])
@@ -86,11 +85,11 @@ Topologies:
       --> KSTREAM-MAPVALUES-0000000008
       <-- KSTREAM-FILTER-0000000006
     Processor: KSTREAM-MAPVALUES-0000000008 (stores: [])
-      --> KSTREAM-FILTER-0000000010
+      --> Join-repartition-filter
       <-- KSTREAM-KEY-SELECT-0000000007
-    Processor: KSTREAM-FILTER-0000000010 (stores: [])
-      --> KSTREAM-SINK-0000000009
+    Processor: Join-repartition-filter (stores: [])
+      --> Join-repartition-sink
       <-- KSTREAM-MAPVALUES-0000000008
-    Sink: KSTREAM-SINK-0000000009 (topic: Join-repartition)
-      <-- KSTREAM-FILTER-0000000010
+    Sink: Join-repartition-sink (topic: Join-repartition)
+      <-- Join-repartition-filter
 

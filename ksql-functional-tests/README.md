@@ -37,18 +37,21 @@ The above commands can execute only a single test (sum.json) or multiple tests (
 
 To run this test against specific previously released versions, set the system property
 "topology.versions" to the desired version(s). The property value should be a comma-delimited list of
-version number(s) found under the `src/test/resources/expected_topology` directory, for example, `"5.0,5.1"`.
+version number(s) found under the `src/test/resources/expected_topology` directory, 
+for example, `"5_0,5_3_0"`, or `latest-only` if only the current version is required.
 
 The are two places system properties may be set:
   * Within Intellij
     1. Click Run/Edit configurations
     1. Select the QueryTranslationTest
     1. Enter `-Dtopology.versions=X` in the "VM options:" form entry
-       where X is a comma-delimited list of the desired previously released version number(s).
+       where X is a comma-delimited list of the desired previously released version number(s),
+       or `latest-only` if only the current version is required.
   * From the command line
     1. run `mvn clean package -DskipTests=true` from the base of the KSQL project
     1. Then run `mvn test -Dtopology.versions=X -Dtest=QueryTranslationTest -pl ksql-functional-tests`.
-       Again X is a list of the versions you want to run the tests against.
+       Again X is a list of the versions you want to run the tests against, 
+       or `latest-only` if only the current version is required.
 
   Note that for both options above the version(s) must exist
   under the `src/test/resources/expected_topology` directory.

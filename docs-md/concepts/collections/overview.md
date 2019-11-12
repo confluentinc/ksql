@@ -1,0 +1,7 @@
+Although an individual event represents vitally important information, in practice they are almost more useful when grouped together with related events. ksqlDB supports durable collections of events that can be replicated across multiple servers. This means that, similar to replicated Postgres, that if there is a recoverable failure of some of the servers, your events remain permanently stored. It is able to do this by storing data in Kafka topics.
+
+Collections are sharded, and can arbitrarily grow in size by adding more Kafka brokers to a ksqlDB cluster. This sharding is more commonly known as “partitioning” in Kafka, and is the term that ksqlDB uses as well. Events with the same key are stored on the same partition.
+
+ksqlDB offers multiple abstractions for storing events. Despite the fact that a single event is immutable, collections of events can either model immutability or mutability to represent change over time. In addition, new collections can be derived from existing ones. Derived collections are kept up to date in real-time, which is the heart of stream processing.
+
+Collections are represented as a series of rows and columns which have a defined schema. Only data that conforms to the schema can be added to the collection.

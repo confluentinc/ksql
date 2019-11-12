@@ -5,31 +5,13 @@ tagline: ksqlDB
 description: ksqlDB
 ---
 
-What Is ksqlDB?
+What is ksqlDB?
 ---------------
 
-ksqlDB is a distributed, eventually consistent event streaming database that
-makes it easy to build streaming apps. There are three core categories that
-are foundational to building an app: collections, materialized views, and
-queries.
+Blah.
 
-KSQL is the streaming SQL engine for {{ site.aktm }}. It provides an
-easy-to-use yet powerful interactive SQL interface for stream processing
-on Kafka, without the need to write code in a programming language such
-as Java or Python. KSQL is scalable, elastic, fault-tolerant, and
-real-time. It supports a wide range of streaming operations, including
-data filtering, transformations, aggregations, joins, windowing, and
-sessionization.
-
-Watch a [screencast of the KSQL demo](https://www.youtube.com/embed/illEpCOcCVg)
-on YouTube.
-
-<div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; height: auto;">
-    <iframe src="https://www.youtube.com/embed/illEpCOcCVg" frameborder="0" allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe>
-</div>
-
-What Can I Do With KSQL?
-------------------------
+What can I do with ksqlDB?
+--------------------------
 
 Streaming ETL
 
@@ -67,8 +49,7 @@ Customer 360-view
     interaction through a variety of channels, where new information is
     continuously incorporated in real-time.
 
-What Are the Components?
-------------------------
+# How does it fit in my architecture?
 
 ![](img/ksql-architecture-and-components.png)
 
@@ -95,17 +76,6 @@ KSQL CLI
 KSQL servers, clients, queries, and applications run outside of Kafka
 brokers, in separate JVM instances, or in separate clusters entirely.
 
-KSQL Resources
---------------
-
--   The [Stream Processing
-    Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
-    contains KSQL recipes that provide in-depth tutorials and
-    recommended deployment scenarios.
--   Check out [KSQL Tutorials and Examples](tutorials/index.md) to learn about stream
-    processing with KSQL.
--   Watch the [screencast of What Can I Do With
-    KSQL?](https://www.youtube.com/embed/euz0isNG1SQ) on YouTube.
 
 Supported Versions and Interoperability
 ---------------------------------------
@@ -118,15 +88,5 @@ versions.
 | Apache Kafka version  | 0.11.0 and later   |
 | {{ site.cp }} version | > 3.3.0 and later  |
 
-KSQL Documentation
-------------------
-
-- [KSQL concepts](concepts/index.md)
-- [Operate KSQL](operations.md)
-- [Developer Guide](developer-guide/index.md)
-- [Install and Configure](installation/index.md)
-- [KSQL Tutorials and Examples](tutorials/index.md)
-- [FAQ](faq.md)
-- [Troubleshoot](troubleshoot-ksql.md)
 
 Page last revised on: {{ git_revision_date }}

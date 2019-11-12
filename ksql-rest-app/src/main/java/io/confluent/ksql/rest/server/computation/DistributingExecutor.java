@@ -36,6 +36,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.OutOfOrderSequenceException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 
 /**
  * A {@code StatementExecutor} that encapsulates a command queue and will
@@ -111,6 +114,15 @@ public class DistributingExecutor {
           commandStatus,
           queuedCommandStatus.getCommandSequenceNumber()
       ));
+    } catch (final ProducerFencedException
+        | OutOfOrderSequenceException
+        | AuthorizationException e
+    ) {
+      // We can't recover from these exceptions, so our only option is close producer and exit.
+      // This catch doesn't abortTransaction() since doing that would throw another exception.
+      throw new KsqlServerException(String.format(
+          "Could not write the statement '%s' into the command topic: " + e.getMessage(),
+          statement.getStatementText()), e);
     } catch (final Exception e) {
       transactionalProducer.abortTransaction();
       throw new KsqlServerException(String.format(

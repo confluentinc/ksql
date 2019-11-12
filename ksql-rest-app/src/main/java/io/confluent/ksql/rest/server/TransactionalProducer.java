@@ -35,6 +35,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import javax.annotation.concurrent.NotThreadSafe;
+
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
@@ -127,11 +129,13 @@ public class TransactionalProducer implements Producer<CommandId, Command> {
 
   /**
    * Initializes the transactional producer. This should be called only once before any other
-   * method. Calling this will 1. Ensure transactions initiated by previous instances of the
+   * method. Calling this will 
+   * 1. Ensure transactions initiated by previous instances of the
    * producer with the same transactional id are completed. If the previous transaction
    * has begun completion, this awaits until it's finished. Otherwise, a previous instance of the
    * transactional producer with the same id will be fenced off and unable to move forward with
-   * its transaction 2. Get the internal producer id and epoch which is used in future transactional
+   * its transaction (begin, send, commit, abort, will throw a ProducerFencedException)
+   * 2. Get the internal producer id and epoch which is used in future transactional
    * messages issued by this producer.
    */
   public void initTransactions() {
@@ -202,14 +206,15 @@ public class TransactionalProducer implements Producer<CommandId, Command> {
     try {
       closer.close();
     } catch (IOException e) {
-      LOG.error("Failed to close TransactionProducer for creating process log stream\n"
+      LOG.error("Failed to close TransactionalProducer\n"
           + "Error: " + e.getMessage());
     }
   }
 
   // Not used currently
   public void close(final Duration duration) {
-    
+    throw new NotImplementedException(
+        "TransactionalProducer.close(Duration duration) not implemented.");
   }
 
   /**

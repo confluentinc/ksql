@@ -245,7 +245,7 @@ public class CommandStore implements CommandQueue, Closeable {
           ));
     }
   }
-  
+
   public boolean isEmpty() {
     return commandTopic.getEndOffset() == 0;
   }

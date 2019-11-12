@@ -107,6 +107,9 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.common.errors.AuthorizationException;
+import org.apache.kafka.common.errors.OutOfOrderSequenceException;
+import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
@@ -271,14 +274,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
+
+    commandRunner.processPriorCommands();
+
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
         ksqlConfigNoPort,
         ksqlEngine,
         commandStore
     );
-
-    commandRunner.processPriorCommands();
 
     serverState.setReady();
   }
@@ -294,8 +298,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
     try {
       commandRunner.close();
     } catch (final Exception e) {
-      System.out.println("yikes");
-      System.out.println(e.getStackTrace());
       log.error("Exception while waiting for CommandRunner thread to complete", e);
     }
 
@@ -628,10 +630,15 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue
   ) {
+    final Set<String> sourceNames = ksqlEngine.getMetaStore().getAllDataSources()
+        .keySet().stream().map(SourceName::name)
+        .collect(Collectors.toSet());
+
     if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
-        || !commandQueue.isEmpty()) {
+        || sourceNames.contains(config.getString(ProcessingLogConfig.STREAM_NAME))) {
       return;
     }
+
     final TransactionalProducer transactionalProducer =
         commandQueue.createTransactionalProducer();
     try {
@@ -647,11 +654,19 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
           ksqlEngine.getServiceContext(),
           configured.get()
       );
+
       commandQueue.enqueueCommand(configured.get(), transactionalProducer);
       transactionalProducer.commitTransaction();
-    } catch (final Exception e) {
+    } catch (final ProducerFencedException
+        | OutOfOrderSequenceException
+        | AuthorizationException e
+    ) {
+      // We can't recover from these exceptions, so our only option is close producer and exit.
+      // This catch doesn't abortTransaction() since doing that would throw another exception.
       log.warn("Failed to create processing log stream", e);
+    } catch (final Exception e) {
       transactionalProducer.abortTransaction();
+      log.warn("Failed to create processing log stream", e);
     } finally {
       transactionalProducer.close();
     }

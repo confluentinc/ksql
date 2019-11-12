@@ -38,14 +38,14 @@ public final class WelcomeMsgUtils {
     final String[] lines = {
         "",
         "===========================================",
-        "=        _  __ _____  ____  _             =",
-        "=       | |/ // ____|/ __ \\| |            =",
-        "=       | ' /| (___ | |  | | |            =",
-        "=       |  <  \\___ \\| |  | | |            =",
-        "=       | . \\ ____) | |__| | |____        =",
-        "=       |_|\\_\\_____/ \\___\\_\\______|       =",
-        "=                                         =",
-        "=  Streaming SQL Engine for Apache Kafka® =",
+        "=       _              _ ____  ____       =",
+        "=      | | _____  __ _| |  _ \\| __ )      =",
+        "=      | |/ / __|/ _` | | | | |  _ \\      =",
+        "=      |   <\\__ \\ (_| | | |_| | |_) |     =",
+        "=      |_|\\_\\___/\\__, |_|____/|____/      =",
+        "=                   |_|                   =",
+        "=  Event Streaming Database purpose-built =",
+        "=        for stream processing apps       =",
         "==========================================="
     };
 
@@ -57,7 +57,7 @@ public final class WelcomeMsgUtils {
 
     // Don't want to display the logo if it'll just end up getting wrapped and looking hideous
     if (consoleWidth < logoWidth) {
-      writer.println("KSQL, " + copyrightMsg);
+      writer.println("ksqlDB, " + copyrightMsg);
     } else {
       final int paddingChars = (consoleWidth - logoWidth) / 2;
       final String leftPadding = IntStream.range(0, paddingChars)

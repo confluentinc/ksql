@@ -51,14 +51,14 @@ public class WelcomeMsgUtilsTest {
     assertThat(stringWriter.toString(), is(
         "                  \n"
         + "                  ===========================================\n"
-        + "                  =        _  __ _____  ____  _             =\n"
-        + "                  =       | |/ // ____|/ __ \\| |            =\n"
-        + "                  =       | ' /| (___ | |  | | |            =\n"
-        + "                  =       |  <  \\___ \\| |  | | |            =\n"
-        + "                  =       | . \\ ____) | |__| | |____        =\n"
-        + "                  =       |_|\\_\\_____/ \\___\\_\\______|       =\n"
-        + "                  =                                         =\n"
-        + "                  =  Streaming SQL Engine for Apache Kafka® =\n"
+        + "                  =       _              _ ____  ____       =\n"
+        + "                  =      | | _____  __ _| |  _ \\| __ )      =\n"
+        + "                  =      | |/ / __|/ _` | | | | |  _ \\      =\n"
+        + "                  =      |   <\\__ \\ (_| | | |_| | |_) |     =\n"
+        + "                  =      |_|\\_\\___/\\__, |_|____/|____/      =\n"
+        + "                  =                   |_|                   =\n"
+        + "                  =  Event Streaming Database purpose-built =\n"
+        + "                  =        for stream processing apps       =\n"
         + "                  ===========================================\n"
         + "\n"
         + "Copyright 2017-2019 Confluent Inc.\n"
@@ -72,7 +72,7 @@ public class WelcomeMsgUtilsTest {
     WelcomeMsgUtils.displayWelcomeMessage(35, realPrintWriter);
 
     // Then:
-    assertThat(stringWriter.toString(), is("KSQL, Copyright 2017-2019 Confluent Inc.\n\n"));
+    assertThat(stringWriter.toString(), is("ksqlDB, Copyright 2017-2019 Confluent Inc.\n\n"));
   }
 
   @Test

@@ -15,13 +15,15 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.cli.console.CliConfig;
 import io.confluent.ksql.cli.console.CliConfig.OnOff;
-import io.confluent.ksql.rest.entity.FieldInfo;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -33,51 +35,51 @@ public class TabularRow {
   private static final int MIN_CELL_WIDTH = 5;
 
   private final int width;
-  private final List<String> value;
-  private final List<String> header;
+  private final List<String> columns;
   private final boolean isHeader;
   private final boolean shouldWrap;
 
-  public static TabularRow createHeader(final int width, final List<FieldInfo> header) {
+  public static TabularRow createHeader(final int width, final LogicalSchema schema) {
+    final List<String> headings = schema.columns().stream()
+        .map(Column::name)
+        .map(ColumnName::name)
+        .collect(Collectors.toList());
+
     return new TabularRow(
         width,
-        header.stream().map(FieldInfo::getName).collect(Collectors.toList()),
-        null,
-        true);
+        headings,
+        true,
+        true
+    );
   }
 
   public static TabularRow createRow(
       final int width,
-      final List<FieldInfo> header,
       final GenericRow value,
       final CliConfig config
   ) {
     return new TabularRow(
         width,
-        header.stream().map(FieldInfo::getName).collect(Collectors.toList()),
         value.getColumns().stream().map(Objects::toString).collect(Collectors.toList()),
+        false,
         config.getString(CliConfig.WRAP_CONFIG).equalsIgnoreCase(OnOff.ON.toString())
     );
   }
 
-  @VisibleForTesting
-  TabularRow(
+  private TabularRow(
       final int width,
-      final List<String> header,
-      final List<String> value,
+      final List<String> columns,
+      final boolean isHeader,
       final boolean shouldWrap
   ) {
-    this.header = Objects.requireNonNull(header, "header");
+    this.columns = ImmutableList.copyOf(Objects.requireNonNull(columns, "columns"));
     this.width = width;
-    this.value = value;
-    this.isHeader = value == null;
+    this.isHeader = isHeader;
     this.shouldWrap = shouldWrap;
   }
 
   @Override
   public String toString() {
-    final List<String> columns = isHeader ? header : value;
-
     if (columns.isEmpty()) {
       return "";
     }

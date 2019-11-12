@@ -19,7 +19,7 @@ import io.confluent.ksql.schema.ksql.LogicalSchema;
 
 /**
  * Flow constructs borrowed from Java 9
- * https://docs.oracle.com/javase/9/docs/api/java/util/concurrent/Flow.Subscription.html
+ * @see <a href="https://docs.oracle.com/javase/9/docs/api/java/util/concurrent/Flow.Subscription.html">Flow Java 9 Docs</a>
  */
 public class Flow {
 

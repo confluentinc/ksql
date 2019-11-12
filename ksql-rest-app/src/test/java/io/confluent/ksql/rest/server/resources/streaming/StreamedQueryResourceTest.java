@@ -15,11 +15,11 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
-import static io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -339,16 +339,29 @@ public class StreamedQueryResourceTest {
         throw new Exception("Response input stream failed to have expected line available");
       }
       final String responseLine = responseScanner.nextLine();
-      if (responseLine.trim().isEmpty()) {
+
+      if (responseLine.isEmpty()) {
         i--;
-      } else {
-        final GenericRow expectedRow;
-        synchronized (writtenRows) {
-          expectedRow = writtenRows.poll();
-        }
-        final GenericRow testRow = objectMapper.readValue(responseLine, StreamedRow.class).getRow();
-        assertEquals(expectedRow, testRow);
+        continue;
       }
+
+      if (i == 0) {
+        // Header:
+        assertThat(responseLine, is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`f1` INTEGER\"}}"));
+        continue;
+      }
+
+      final GenericRow expectedRow;
+      synchronized (writtenRows) {
+        expectedRow = writtenRows.poll();
+      }
+
+      final GenericRow testRow = objectMapper
+          .readValue(responseLine, StreamedRow.class)
+          .getRow()
+          .orElse(null);
+
+      assertEquals(expectedRow, testRow);
     }
 
     responseOutputStream.close();

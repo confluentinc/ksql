@@ -97,10 +97,12 @@ public class ConsoleTest {
 
   private static final String CLI_CMD_NAME = "some command";
   private static final String WHITE_SPACE = " \t ";
-  private static final List<FieldInfo> HEADER =
-          ImmutableList.of(
-              new FieldInfo("foo", new SchemaInfo(SqlBaseType.STRING, null, null)),
-              new FieldInfo("bar", new SchemaInfo(SqlBaseType.STRING, null, null)));
+
+  private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
+      .keyColumn(ColumnName.of("foo"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
+      .build();
 
   private final TestTerminal terminal;
   private final Console console;
@@ -147,12 +149,12 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintGenericStreamedRow() throws IOException {
+  public void testPrintGenericStreamedRow() {
     // Given:
     final StreamedRow row = StreamedRow.row(new GenericRow(ImmutableList.of("col_1", "col_2")));
 
     // When:
-    console.printStreamedRow(row, HEADER);
+    console.printStreamedRow(row);
 
     // Then:
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
@@ -162,9 +164,12 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintHeader() throws IOException {
+  public void shouldPrintHeader() {
+    // Given:
+    final StreamedRow header = StreamedRow.header(new QueryId("id"), SCHEMA);
+
     // When:
-    console.printRowHeader(HEADER);
+    console.printStreamedRow(header);
 
     // Then:
     if (console.getOutputFormat() == OutputFormat.TABULAR) {
@@ -174,22 +179,22 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintErrorStreamedRow() throws IOException {
+  public void testPrintErrorStreamedRow() {
     final FakeException exception = new FakeException();
 
-    console.printStreamedRow(StreamedRow.error(exception, Errors.ERROR_CODE_SERVER_ERROR), HEADER);
+    console.printStreamedRow(StreamedRow.error(exception, Errors.ERROR_CODE_SERVER_ERROR));
 
     assertThat(terminal.getOutputString(), is(exception.getMessage() + "\n"));
   }
 
   @Test
-  public void testPrintFinalMessageStreamedRow() throws IOException {
-    console.printStreamedRow(StreamedRow.finalMessage("Some message"), HEADER);
+  public void testPrintFinalMessageStreamedRow() {
+    console.printStreamedRow(StreamedRow.finalMessage("Some message"));
     assertThat(terminal.getOutputString(), is("Some message\n"));
   }
 
   @Test
-  public void testPrintCommandStatus() throws IOException {
+  public void testPrintCommandStatus() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new CommandStatusEntity(
@@ -226,7 +231,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintPropertyList() throws IOException {
+  public void testPrintPropertyList() {
     // Given:
     final Map<String, Object> properties = new HashMap<>();
     properties.put("k1", 1);
@@ -267,7 +272,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintQueries() throws IOException {
+  public void testPrintQueries() {
     // Given:
     final List<RunningQuery> queries = new ArrayList<>();
     queries.add(
@@ -305,7 +310,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintSourceDescription() throws IOException {
+  public void testPrintSourceDescription() {
     // Given:
     final List<FieldInfo> fields = buildTestSchema(
         SqlTypes.BOOLEAN,
@@ -491,7 +496,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintTopicDescription() throws IOException {
+  public void testPrintTopicDescription() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new TopicDescription("e", "TestTopic", "TestKafkaTopic", "AVRO", "schemaString")
@@ -522,7 +527,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintConnectorDescription() throws IOException {
+  public void testPrintConnectorDescription() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new ConnectorDescription(
@@ -640,7 +645,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintStreamsList() throws IOException {
+  public void testPrintStreamsList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new StreamsList("e",
@@ -674,7 +679,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testSortedPrintStreamsList() throws IOException {
+  public void testSortedPrintStreamsList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
             new StreamsList("e",
@@ -731,7 +736,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintTablesList() throws IOException {
+  public void testPrintTablesList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new TablesList("e",
@@ -766,7 +771,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testSortedPrintTablesList() throws IOException {
+  public void testSortedPrintTablesList() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
             new TablesList("e",
@@ -828,7 +833,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintConnectorsList() throws IOException {
+  public void shouldPrintConnectorsList() {
     // Given:
     final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
         new ConnectorList(
@@ -870,7 +875,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintTypesList() throws IOException {
+  public void shouldPrintTypesList() {
     // Given:
     final KsqlEntityList entities = new KsqlEntityList(ImmutableList.of(
         new TypeList("statement", ImmutableMap.of(
@@ -931,7 +936,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void testPrintExecuptionPlan() throws IOException {
+  public void testPrintExecuptionPlan() {
     // Given:
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new ExecutionPlan("Test Execution Plan")
@@ -959,7 +964,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintTopicDescribeExtended() throws IOException {
+  public void shouldPrintTopicDescribeExtended() {
     // Given:
     final List<RunningQuery> readQueries = ImmutableList.of(
         new RunningQuery("read query", ImmutableSet.of("sink1"), new QueryId("readId"))
@@ -1084,7 +1089,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintWarnings() throws IOException {
+  public void shouldPrintWarnings() {
     // Given:
     final KsqlEntity entity = new SourceDescriptionEntity(
         "e",
@@ -1109,7 +1114,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintDropConnector() throws IOException {
+  public void shouldPrintDropConnector() {
     // Given:
     final KsqlEntity entity = new DropConnectorEntity("statementText", "connectorName");
 
@@ -1140,7 +1145,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintErrorEntityLongNonJson() throws IOException {
+  public void shouldPrintErrorEntityLongNonJson() {
     // Given:
     final KsqlEntity entity = new ErrorEntity(
         "statementText",
@@ -1195,7 +1200,7 @@ public class ConsoleTest {
   }
 
   @Test
-  public void shouldPrintFunctionDescription() throws IOException {
+  public void shouldPrintFunctionDescription() {
     final KsqlEntityList entityList = new KsqlEntityList(ImmutableList.of(
         new FunctionDescriptionList(
             "DESCRIBE FUNCTION foo;",

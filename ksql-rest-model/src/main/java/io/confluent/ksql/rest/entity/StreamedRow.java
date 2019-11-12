@@ -16,7 +16,10 @@
 package io.confluent.ksql.rest.entity;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import io.confluent.ksql.GenericRow;
@@ -25,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(Include.NON_ABSENT)
 @JsonSubTypes({})
 public class StreamedRow {
 
@@ -71,6 +75,7 @@ public class StreamedRow {
     return finalMessage;
   }
 
+  @JsonIgnore
   public boolean isTerminal() {
     return finalMessage != null || errorMessage != null;
   }

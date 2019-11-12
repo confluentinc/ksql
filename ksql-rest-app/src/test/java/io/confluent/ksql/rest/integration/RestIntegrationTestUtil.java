@@ -17,7 +17,9 @@ package io.confluent.ksql.rest.integration;
 
 import static org.junit.Assert.assertEquals;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.UrlEscapers;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.BasicCredentials;
 import io.confluent.ksql.rest.client.KsqlRestClient;
 import io.confluent.ksql.rest.client.RestResponse;
@@ -29,12 +31,14 @@ import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.test.util.secure.Credentials;
+import io.confluent.rest.validation.JacksonMessageBodyProvider;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.ws.rs.client.Client;
+import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -63,7 +67,45 @@ final class RestIntegrationTestUtil {
 
       throwOnError(res);
 
-      return awaitResults(restApp, res.getResponse());
+      return awaitResults(restClient, res.getResponse());
+    }
+  }
+
+  /**
+   * Make a query request using a basic Http client.
+   *
+   * @param restApp the test app instance to issue the request against
+   * @param sql the sql payload
+   * @param cmdSeqNum optional sequence number of previous command
+   * @return the response payload
+   */
+  static String rawRestQueryRequest(
+      final TestKsqlRestApp restApp,
+      final String sql,
+      final Optional<Long> cmdSeqNum
+  ) {
+    final KsqlRequest request = new KsqlRequest(
+        sql,
+        ImmutableMap.of(),
+        cmdSeqNum.orElse(null)
+    );
+
+    final URI listener = restApp.getHttpListener();
+
+    final Client httpClient = ClientBuilder.newBuilder()
+        .register(new JacksonMessageBodyProvider(JsonMapper.INSTANCE.mapper))
+        .build();
+
+    try {
+      final Response response = httpClient
+          .target(listener)
+          .path("/query")
+          .request(MediaType.APPLICATION_JSON_TYPE)
+          .post(Entity.json(request));
+
+      return response.readEntity(String.class);
+    } finally {
+      httpClient.close();
     }
   }
 
@@ -85,19 +127,17 @@ final class RestIntegrationTestUtil {
     }
   }
 
-  static Entity<?> ksqlRequest(final String sql) {
+  private static Entity<?> ksqlRequest(final String sql) {
     return Entity.json(new KsqlRequest(sql, Collections.emptyMap(), null));
   }
 
   private static List<KsqlEntity> awaitResults(
-      final TestKsqlRestApp restApp,
+      final KsqlRestClient ksqlRestClient,
       final List<KsqlEntity> pending
   ) {
-    try (final KsqlRestClient ksqlRestClient = restApp.buildKsqlClient()) {
-      return pending.stream()
-          .map(e -> awaitResult(e, ksqlRestClient))
-          .collect(Collectors.toList());
-    }
+    return pending.stream()
+        .map(e -> awaitResult(e, ksqlRestClient))
+        .collect(Collectors.toList());
   }
 
   private static KsqlEntity awaitResult(
@@ -136,31 +176,34 @@ final class RestIntegrationTestUtil {
     }
   }
 
-  public static WebSocketClient makeWsRequest(
+  static WebSocketClient makeWsRequest(
       final URI baseUri,
       final String sql,
       final Object listener,
       final Optional<MediaType> mediaType,
       final Optional<MediaType> contentType,
       final Optional<Credentials> credentials
-  ) throws Exception {
+  ) {
+    try {
+      final WebSocketClient wsClient = new WebSocketClient();
+      wsClient.start();
 
-    final WebSocketClient wsClient = new WebSocketClient();
-    wsClient.start();
+      final ClientUpgradeRequest request = new ClientUpgradeRequest();
 
-    final ClientUpgradeRequest request = new ClientUpgradeRequest();
+      credentials.ifPresent(creds -> request
+          .setHeader(HttpHeaders.AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
 
-    credentials.ifPresent(creds -> request
-        .setHeader(HttpHeaders.AUTHORIZATION, "Basic " + buildBasicAuthHeader(creds)));
+      mediaType.ifPresent(mt -> request.setHeader(HttpHeaders.ACCEPT, mt.toString()));
+      contentType.ifPresent(ct -> request.setHeader(HttpHeaders.CONTENT_TYPE, ct.toString()));
 
-    mediaType.ifPresent(mt -> request.setHeader(HttpHeaders.ACCEPT, mt.toString()));
-    contentType.ifPresent(ct -> request.setHeader(HttpHeaders.CONTENT_TYPE, ct.toString()));
+      final URI wsUri = baseUri.resolve("/ws/query?request=" + buildStreamingRequest(sql));
 
-    final URI wsUri = baseUri.resolve("/ws/query?request=" + buildStreamingRequest(sql));
+      wsClient.connect(listener, wsUri, request);
 
-    wsClient.connect(listener, wsUri, request);
-
-    return wsClient;
+      return wsClient;
+    } catch (final Exception e) {
+      throw new RuntimeException("failed to create ws client", e);
+    }
   }
 
   private static String buildBasicAuthHeader(final Credentials credentials) {

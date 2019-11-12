@@ -20,7 +20,10 @@ import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_U
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.prefixedResource;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.resource;
+import static junit.framework.TestCase.fail;
 import static org.apache.kafka.common.acl.AclOperation.ALL;
+import static org.apache.kafka.common.acl.AclOperation.CREATE;
+import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
 import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
@@ -29,8 +32,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
 import io.confluent.ksql.integration.IntegrationTestHarness;
+import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.serde.Format;
@@ -41,6 +46,7 @@ import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -54,6 +60,7 @@ import org.eclipse.jetty.websocket.api.annotations.OnWebSocketError;
 import org.eclipse.jetty.websocket.api.annotations.OnWebSocketMessage;
 import org.eclipse.jetty.websocket.api.annotations.WebSocket;
 import org.eclipse.jetty.websocket.client.WebSocketClient;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -64,6 +71,7 @@ import org.junit.rules.RuleChain;
 public class RestApiTest {
 
   private static final int HEADER = 1;  // <-- some responses include a header as the first message.
+  private static final int FOOTER = 1;  // <-- some responses include a footer as the last message.
   private static final int LIMIT = 2;
   private static final String PAGE_VIEW_TOPIC = "pageviews";
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
@@ -79,7 +87,7 @@ public class RestApiTest {
               .withAcl(
                   NORMAL_USER,
                   resource(CLUSTER, "kafka-cluster"),
-                  ops(DESCRIBE_CONFIGS)
+                  ops(DESCRIBE_CONFIGS, CREATE)
               )
               .withAcl(
                   NORMAL_USER,
@@ -106,6 +114,11 @@ public class RestApiTest {
                   resource(TOPIC, "X"),
                   ops(ALL)
               )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "__consumer_offsets"),
+                  ops(DESCRIBE)
+              )
       )
       .build();
 
@@ -120,6 +133,8 @@ public class RestApiTest {
   @ClassRule
   public static final RuleChain CHAIN = RuleChain.outerRule(TEST_HARNESS).around(REST_APP);
 
+  private ServiceContext serviceContext;
+
   @BeforeClass
   public static void setUpClass() {
     TEST_HARNESS.ensureTopics(PAGE_VIEW_TOPIC);
@@ -129,68 +144,123 @@ public class RestApiTest {
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
   }
 
+  @After
+  public void tearDown() {
+    if (serviceContext != null) {
+      serviceContext.close();
+    }
+  }
+
   @Test
-  public void shouldExecuteStreamingQueryWithV1ContentType() throws Exception {
+  public void shouldExecutePushQueryOverWebSocketWithV1ContentType() {
     // When:
-    final List<String> messages = makeStreamingRequest(
+    final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         Versions.KSQL_V1_JSON_TYPE,
         Versions.KSQL_V1_JSON_TYPE
     );
 
     // Then:
-    assertThat(messages, hasSize(is(HEADER + LIMIT)));
+    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertValidJsonMessages(messages);
   }
 
   @Test
-  public void shouldExecuteStreamingQueryWithJsonContentType() throws Exception {
+  public void shouldExecutePushQueryOverWebSocketWithJsonContentType() {
     // When:
-    final List<String> messages = makeStreamingRequest(
+    final List<String> messages = makeWebSocketRequest(
         "SELECT * from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );
 
     // Then:
-    assertThat(messages, hasSize(is(HEADER + LIMIT)));
+    assertThat(messages, hasSize(HEADER + LIMIT));
+    assertValidJsonMessages(messages);
   }
 
   @Test
-  public void shouldPrintTopic() throws Exception {
+  public void shouldExecutePushQueryOverRest() {
     // When:
-    final List<String> messages = makeStreamingRequest(
+    final String response = rawRestQueryRequest(
+        "SELECT USERID, PAGEID, VIEWTIME, ROWKEY from " + PAGE_VIEW_STREAM + " EMIT CHANGES LIMIT "
+            + LIMIT + ";"
+    );
+
+    // Then:
+    assertThat(parseRawRestQueryResponse(response), hasSize(LIMIT + FOOTER));
+    final String[] messages = response.split(System.lineSeparator());
+    assertThat(messages[0],
+        is("[{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}},"));
+    assertThat(messages[1],
+        is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}},"));
+    assertThat(messages[2],
+        is("{\"finalMessage\":\"Limit Reached\"}]"));
+  }
+
+  @Test
+  public void shouldPrintTopicOverWebSocket() {
+    // When:
+    final List<String> messages = makeWebSocketRequest(
         "PRINT '" + PAGE_VIEW_TOPIC + "' FROM BEGINNING LIMIT " + LIMIT + ";",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE);
 
     // Then:
-    assertThat(messages, hasSize(is(LIMIT)));
+    assertThat(messages, hasSize(LIMIT));
   }
 
   @Test
   public void shouldDeleteTopic() {
-    try (final ServiceContext serviceContext = REST_APP.getServiceContext()) {
-      // Given:
-      RestIntegrationTestUtil.makeKsqlRequest(
-          REST_APP,
-          "CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-      assertThat("Expected topic X to be created", serviceContext.getTopicClient().isTopicExists("X"));
+    // Given:
+    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+    makeKsqlRequest("TERMINATE QUERY CSAS_X_1;");
 
-      // When:
-      RestIntegrationTestUtil.makeKsqlRequest(
-          REST_APP,
-          "TERMINATE QUERY CSAS_X_1; DROP STREAM X DELETE TOPIC;");
+    assertThat("Expected topic X to be created", topicExists("X"));
 
-      // Then:
-      assertThat("Expected topic X to be deleted", !serviceContext.getTopicClient().isTopicExists("X"));
+    // When:
+    makeKsqlRequest("DROP STREAM X DELETE TOPIC;");
+
+    // Then:
+    assertThat("Expected topic X to be deleted", !topicExists("X"));
+  }
+
+  private boolean topicExists(final String topicName) {
+    return getServiceContext().getTopicClient().isTopicExists(topicName);
+  }
+
+  private ServiceContext getServiceContext() {
+    if (serviceContext == null) {
+      serviceContext = REST_APP.getServiceContext();
+    }
+    return serviceContext;
+  }
+
+  private static void makeKsqlRequest(final String sql) {
+    RestIntegrationTestUtil.makeKsqlRequest(REST_APP, sql);
+  }
+
+  private static String rawRestQueryRequest(final String sql) {
+    return RestIntegrationTestUtil.rawRestQueryRequest(REST_APP, sql, Optional.empty());
+  }
+
+  private static List<Map<String, Object>> parseRawRestQueryResponse(final String response) {
+    try {
+      return JsonMapper.INSTANCE.mapper.readValue(
+          response,
+          new TypeReference<List<Map<String, Object>>>() {
+          }
+      );
+    } catch (final Exception e) {
+      throw new AssertionError("Invalid JSON received: " + response);
     }
   }
 
-  private static List<String> makeStreamingRequest(
+  private static List<String> makeWebSocketRequest(
       final String sql,
       final MediaType mediaType,
       final MediaType contentType
-  ) throws Exception {
+  ) {
     final WebSocketListener listener = new WebSocketListener();
 
     final WebSocketClient wsClient = RestIntegrationTestUtil.makeWsRequest(
@@ -205,7 +275,21 @@ public class RestApiTest {
     try {
       return listener.awaitMessages();
     } finally {
-      wsClient.stop();
+      try {
+        wsClient.stop();
+      } catch (final Exception e) {
+        fail("Failed to close ws");
+      }
+    }
+  }
+
+  private static void assertValidJsonMessages(final Iterable<String> messages) {
+    for (final String msg : messages) {
+      try {
+        JsonMapper.INSTANCE.mapper.readValue(msg, Object.class);
+      } catch (final Exception e) {
+        throw new AssertionError("Invalid JSON message received: " + msg, e);
+      }
     }
   }
 

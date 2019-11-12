@@ -60,6 +60,8 @@ class QueryStreamWriter implements StreamingOutput {
   @Override
   public void write(final OutputStream out) {
     try {
+      out.write("[".getBytes(StandardCharsets.UTF_8));
+
       while (queryMetadata.isRunning() && !limitReached) {
         final KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
             disconnectCheckInterval,
@@ -80,7 +82,7 @@ class QueryStreamWriter implements StreamingOutput {
 
       if (limitReached) {
         objectMapper.writeValue(out, StreamedRow.finalMessage("Limit Reached"));
-        out.write("\n".getBytes(StandardCharsets.UTF_8));
+        out.write("]\n".getBytes(StandardCharsets.UTF_8));
         out.flush();
       }
     } catch (final EOFException exception) {
@@ -100,7 +102,7 @@ class QueryStreamWriter implements StreamingOutput {
 
   private void write(final OutputStream output, final GenericRow row) throws IOException {
     objectMapper.writeValue(output, StreamedRow.row(row));
-    output.write("\n".getBytes(StandardCharsets.UTF_8));
+    output.write(",\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
   }
 
@@ -114,7 +116,7 @@ class QueryStreamWriter implements StreamingOutput {
         objectMapper.writeValue(out, StreamedRow
             .error(exception, Errors.ERROR_CODE_SERVER_ERROR));
       }
-      out.write("\n".getBytes(StandardCharsets.UTF_8));
+      out.write(",\n".getBytes(StandardCharsets.UTF_8));
       out.flush();
     } catch (final IOException e) {
       log.debug("Client disconnected while attempting to write an error message");

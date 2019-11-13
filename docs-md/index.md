@@ -1,21 +1,97 @@
 ---
 layout: page
 title: ksqlDB
-tagline: ksqlDB
-description: ksqlDB
+tagline: What is ksqlDB?
+description: Learn about ksqlDB, the event streaming database for creating stream processing applications with Apache Kafka®.
+keywords: ksqldb
 ---
 
 What is ksqlDB?
 ---------------
 
-Blah.
+ksqlDB is an event streaming database purpose-built to help developers create
+stream processing applications on top of {{ site.aktm }}.
 
-What can I do with ksqlDB?
---------------------------
+
+Why use ksqlDB to build stream processing applications?
+-------------------------------------------------------
+
+In today’s world, applications that leverage stream processing need a
+heavyweight architecture that requires integrating several distributed
+systems together. These architectures often include a fleet of connectors
+or agents for acquiring events from the outside world, durable storage to house
+these events, a stream processing framework for processing the events, and a
+database to serve aggregations of events to applications. 
+
+Unfortunately, the parts don't fit together as well as you'd hope; all of these
+systems are complex, and each integration is a small project to figure out.
+It's like trying to build a car out of parts, but the parts come from different
+manufacturers who don't talk to each other.
+
+It shouldn't be this difficult to build stream processing applications.
+
+ksqlDB greatly reduces the operational complexity required to build stream
+processing applications, which enables you to build real-time systems without
+requiring significant time and overhead. It combines the power of real-time
+stream processing with the approachable feel of a database, through
+a familiar, lightweight SQL syntax. And because ksqlDB is natively powered by
+{{ site.aktm }}, it seamlessly leverages the underlying, battle-tested event
+streaming platform.
+
+What are the components of ksqlDB?
+----------------------------------
+
+These are the core categories that are foundational to building an app:
+collections, materialized views, and queries.
+
+### Collections
+
+Collections provide durable storage for sequences of events. ksqlDB offers
+two kinds of collections: streams and tables. Both operate under a simple
+key/value model. 
+
+- **Streams** are immutable, append-only collections. They're useful for
+  representing a series of historical facts. Adding multiple events with the
+  same key means that they are simply appended to the end of the stream.
+- **Tables** are mutable collections. They let you represent the latest version
+  of each value per key. They're helpful for modeling change over time, and
+  they're often used to represent aggregations.
+
+Because ksqlDB leverages {{ site.ak }} for its storage layer, creating a new
+collection equates to defining a stream or a table over a {{ site.aktm }}
+topic. You can declare a collection over an existing topic, or ksqlDB can
+create a new topic for the collection at declaration time. For more information,
+see [Collections](concepts/collections/overview.md).
+
+### Materialized Views
+
+Materialized views are derived representations of streams or tables. They
+enable you to create new collections over existing streams or tables.
+Materialized views are perpetually kept up to date as new events arrive. This
+means that you can chain materialized views together to create many
+representations of the same data. Materialized views are especially useful for
+maintaining aggregated tables of data. For more information,
+see [Materialized Views](concepts/materialized-views.md).
+
+### Queries
+
+While materialized views allow you to maintain state, queries enable you to
+access these materializations from applications or microservices. Applications
+can query materialized views with *pull queries* and *push queries*.
+
+- **Pull queries** enable you to fetch the current state of a materialized view.
+  Because materialized views are updated incrementally as new events arrive,
+  pull queries run with predictably low latency. They're a good fit for
+  request/response flows.
+- **Push queries** enable you to subscribe to materialized view updates and
+  stream changes. When new events arrive, push queries emit refinements, so
+  your event streaming applications can react to new information in real-time.
+  They’re a good fit for asynchronous application flows.
+
+### What Can I Do With ksqlDB?
 
 Streaming ETL
-
-:   Apache Kafka is a popular choice for powering data pipelines. KSQL
+:   Apache Kafka is a popular choice for powering data pipelines. ksqlDB
     makes it simple to transform data within the pipeline, readying
     messages to cleanly land in another system.
 
@@ -27,13 +103,13 @@ Real-time Monitoring and Analytics
 
 Data exploration and discovery
 
-:   Navigate and browse through your data in Kafka.
+:   Navigate and browse through your data in {{ site.ak }}.
 
 Anomaly detection
 
 :   Identify patterns and spot anomalies in real-time data with
-    millisecond latency, allowing you to properly surface out of the
-    ordinary events and to handle fraudulent activities separately.
+    millisecond latency, enabling you to properly surface out-of-the-ordinary
+    events and to handle fraudulent activities separately.
 
 Personalization
 
@@ -53,34 +129,33 @@ Customer 360-view
 
 ![](img/ksql-architecture-and-components.png)
 
-KSQL Server
+ksqlDB Server
 
-:   The KSQL server runs the engine that executes KSQL queries. This
+:   The ksqlDB server runs the engine that executes SQL queries. This
     includes processing, reading, and writing data to and from the
-    target Kafka cluster.
+    target {{ site.ak }} cluster.
 
-    KSQL servers form KSQL clusters and can run in containers, virtual
+    ksqlDB servers form ksqlDB clusters and can run in containers, virtual
     machines, and bare-metal machines. You can add and remove servers
-    to/from the same KSQL cluster during live operations to elastically
-    scale KSQL's processing capacity as desired. You can deploy
-    different KSQL clusters to achieve workload isolation.
+    to/from the same ksqlDB cluster during live operations to scale ksqlDB's
+    processing capacity as desired. You can deploy different ksqlDB clusters
+    to achieve workload isolation.
 
-KSQL CLI
+ksqlDB CLI
 
-:   You can interactively write KSQL queries by using the KSQL command
-    line interface (CLI). The KSQL CLI acts as a client to the KSQL
-    server. For production scenarios you may also configure KSQL servers
-    to run in non-interactive "headless" configuration, thereby
-    preventing KSQL CLI access.
+:   You can write SQL queries interactively by using the ksqlDB command
+    line interface (CLI). The ksqlDB CLI acts as a client to ksqlDB
+    Server. For production scenarios, you may also configure ksqlDB clusters
+    to run in non-interactive "headless" configuration, which prevents access
+    from ksqlDB CLI.
 
-KSQL servers, clients, queries, and applications run outside of Kafka
+ksqlDB servers, clients, queries, and applications run outside of {{ site.ak }}
 brokers, in separate JVM instances, or in separate clusters entirely.
-
 
 Supported Versions and Interoperability
 ---------------------------------------
 
-You can use KSQL with compatible {{ site.cp }} and {{ site.aktm }}
+You can use {{ site.ak }} with compatible {{ site.cp }} and {{ site.aktm }}
 versions.
 
 | KSQL version          | {{ site.version }} |

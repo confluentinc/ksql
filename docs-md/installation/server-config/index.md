@@ -2,7 +2,7 @@
 layout: page
 title: Configuring ksqlDB Server
 tagline: Detailed settings reference
-description: Learn about the configuration settings you can use to set up KSQL
+description: Learn about the configuration settings you can use to set up ksqlDB
 ---
 
 - [Configure Security for ksqlDB](security.md)
@@ -10,38 +10,38 @@ description: Learn about the configuration settings you can use to set up KSQL
 - [Configure Avro and {{ site.sr }} for ksqlDB](avro-schema.md)
 - [Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md)
 
-KSQL configuration parameters can be set for KSQL server and queries as
-well as for the underlying Kafka Streams and Kafka Clients (producer and
-consumer).
+ksqlDB configuration parameters can be set for ksqlDB Server and for queries,
+as well as for the underlying {{ site.kstreams }} and {{ site.ak }} Clients
+(producer and consumer).
 
 !!! tip
 	These instructions assume you are installing {{ site.cp }} by using ZIP
-    or TAR archives. For more information, see [On-Premises
-    Deployments](https://docs.confluent.io/current/installation/installing_cp/index.html).
+    or TAR archives. For more information, see
+    [On-Premises Deployments](https://docs.confluent.io/current/installation/installing_cp/index.html).
 
-Setting KSQL Server Parameters
-------------------------------
+Setting ksqlDB Server Parameters
+--------------------------------
 
-You can specify KSQL server configuration parameters by using the server
+You can specify ksqlDB Server configuration parameters by using the server
 configuration file (`ksql-server.properties`) or the `KSQL_OPTS`
 environment variable. Properties set with `KSQL_OPTS` take precedence
-over those specified in the KSQL configuration file. A recommended
-approach is to configure a common set of properties using the KSQL
+over those specified in the ksqlDB configuration file. A recommended
+approach is to configure a common set of properties using the ksqlDB
 configuration file and override specific properties as needed, using the
 `KSQL_OPTS` environment variable.
 
 !!! tip
 	If you deploy {{ site.cp }} by using Docker containers, you can specify
-    configuration parameters as environment variables to the [KSQL Server
-    image](https://hub.docker.com/r/confluentinc/cp-ksql-server/). For more
-    information, see [Install KSQL with Docker](../install-ksql-with-docker.md).
+    configuration parameters as environment variables to the
+    [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/). For more
+    information, see [Install ksqlDB with Docker](../install-ksql-with-docker.md).
 
-### KSQL Server Configuration File
+### ksqlDB Server Configuration File
 
-By default the KSQL server configuration file is located at
+By default, the ksqlDB server configuration file is located at
 `<path-to-confluent>/etc/ksql/ksql-server.properties`. The file follows
-the syntax conventions of [Java properties
-files](https://docs.oracle.com/javase/tutorial/essential/environment/properties.html).
+the syntax conventions of
+[Java properties files](https://docs.oracle.com/javase/tutorial/essential/environment/properties.html).
 
 ```properties
 <property-name>=<property-value>
@@ -55,17 +55,17 @@ listeners=http://localhost:8088
 ```
 
 After you have updated the server configuration file, you can start the
-KSQL server with the configuration file specified.
+ksqlDB Server with the configuration file specified.
 
 ```bash
 <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
 ```
 
-For more information, see [KSQL Configuration Parameter Reference](config-reference.md).
+For more information, see [ksqlDB Configuration Parameter Reference](config-reference.md).
 
 ### KSQL_OPTS Environment Variable
 
-You can override KSQL server configuration parameters by using the
+You can override ksqlDB Server configuration parameters by using the
 `KSQL_OPTS` environment variable. The properties are standard Java
 system properties. For example, to set
 `ksql.streams.num.streams.threads` to `1`:
@@ -84,18 +84,18 @@ KSQL_OPTS="-Dksql.streams.auto.offset.reset=earliest -Dksql.streams.num.stream.t
 <path-to-confluent>/etc/ksql/ksql-server.properties
 ```
 
-### KSQL Server Runtime Environment Variables
+### ksqlDB Server Runtime Environment Variables
 
-When KSQL Server starts, it checks for shell environment variables that
+When ksqlDB Server starts, it checks for shell environment variables that
 control the host Java Virtual Machine (JVM). Set the following
 environment variables to control options like heap size and Log4j
 configuration. These settings are applied by the
 [ksql-run-class](https://github.com/confluentinc/ksql/blob/master/bin/ksql-run-class)
-shell script when KSQL Server starts.
+shell script when ksqlDB Server starts.
 
 KSQL_CLASSPATH
 
-:   Path to the Java deployment of KSQL Server and related Java classes.
+:   Path to the Java deployment of ksqlDB Server and related Java classes.
     The following command shows an example KSQL_CLASSPATH setting.
 
     ```bash
@@ -105,7 +105,7 @@ KSQL_CLASSPATH
 
 KSQL_LOG4J_OPTS
 
-:   Specifies KSQL Server logging options by using the Log4j
+:   Specifies ksqlDB Server logging options by using the Log4j
     configuration settings. The following example command sets the
     default Log4j configuration.
 
@@ -113,38 +113,37 @@ KSQL_LOG4J_OPTS
     export KSQL_LOG4J_OPTS="-Dlog4j.configuration=file:$KSQL_CONFIG_DIR/log4j-rolling.properties"
     ```
 
-    For more information, see [Log4j
-    Configuration](https://logging.apache.org/log4j/2.x/manual/configuration.html).
+    For more information, see
+    [Log4j Configuration](https://logging.apache.org/log4j/2.x/manual/configuration.html).
 
 KSQL_JMX_OPTS
 
-:   Specifies KSQL metrics options by using Java Management Extensions
-    (JMX). The following example command sets the default JMX
-    configuration.
+:   Specifies ksqlDB metrics options by using Java Management Extensions
+    (JMX). The following example command sets the default JMX configuration.
 
     ```bash
     export KSQL_JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false "
     ```
 
-    For more information, see [Monitoring and Management Using JMX
-    Technology](https://docs.oracle.com/en/java/javase/11/management/monitoring-and-management-using-jmx-technology.html).
+    For more information, see
+    [Monitoring and Management Using JMX Technology](https://docs.oracle.com/en/java/javase/11/management/monitoring-and-management-using-jmx-technology.html).
 
 KSQL_HEAP_OPTS
 
 :   Specifies the initial size and maximum size of the JVM heap for the
-    KSQL Server process. The following example command sets the initial
+    ksqlDB Server process. The following example command sets the initial
     size and maximum size to 15GB.
 
     ```bash
     export KSQL_HEAP_OPTS="-Xms15G -Xmx15G"
     ```
 
-    For more information, see [JRockit JVM Heap Size
-    Options](https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM161).
+    For more information, see
+    [JRockit JVM Heap Size Options](https://docs.oracle.com/cd/E15523_01/web.1111/e13814/jvm_tuning.htm#PERFM161).
 
 KSQL_JVM_PERFORMANCE_OPTS
 
-:   Specifies performance tuning options for the JVM that runs KSQL
+:   Specifies performance tuning options for the JVM that runs ksqlDB
     Server. The following example command sets the default JVM
     configuration.
 
@@ -152,8 +151,8 @@ KSQL_JVM_PERFORMANCE_OPTS
     export KSQL_JVM_PERFORMANCE_OPTS="-server -XX:+UseConcMarkSweepGC -XX:+CMSClassUnload ingEnabled -XX:+CMSScavengeBeforeRemark -XX:+ExplicitGCInvokesConcurrent -XX:New Ratio=1 -Djava.awt.headless=true"
     ```
 
-    For more information, see [D Command-Line
-    Options](https://docs.oracle.com/en/java/javase/11/troubleshoot/command-line-options1.html).
+    For more information, see
+    [D Command-Line Options](https://docs.oracle.com/en/java/javase/11/troubleshoot/command-line-options1.html).
 
 JMX_PORT
 
@@ -174,7 +173,7 @@ JAVA_HOME
 JMX Metrics
 -----------
 
-To enable JMX metrics, set `JMX_PORT` before starting the KSQL server:
+To enable JMX metrics, set `JMX_PORT` before starting the ksqlDB server:
 
 ```bash
 export JMX_PORT=1099 && \
@@ -182,7 +181,7 @@ export JMX_PORT=1099 && \
 ```
 
 Run the `ksql-print-metrics` tool to see the available JMX metrics for
-KSQL.
+ksqlDB.
 
 ```bash
 <path-to-confluent>/bin/ksql-print-metrics 
@@ -227,63 +226,68 @@ The following table describes the available KSQL metrics.
 | num-idle-queries          | Number of queries with no messages available to process.                                           |
 
 
-Non-interactive (Headless) KSQL Usage
--------------------------------------
+Non-interactive (Headless) ksqlDB Usage
+---------------------------------------
 
-KSQL supports locked-down, "headless" deployment scenarios where
-interactive use of the KSQL cluster is disabled. For example, the CLI
+ksqlDB supports locked-down, "headless" deployment scenarios where
+interactive use of the ksqlDB cluster is disabled. For example, the CLI
 enables a team of users to develop and verify their queries
-interactively on a shared testing KSQL cluster. But when you deploy
+interactively on a shared testing ksqlDB cluster. But when you deploy
 these queries in your production environment, you want to lock down
-access to KSQL servers, version-control the exact queries, and store
+access to ksqlDB servers, version-control the exact queries, and store
 them in a .sql file. This prevents users from interacting directly with
-the production KSQL cluster. For more information, see
+the production ksqlDB cluster. For more information, see
 [Headless Deployment](../../concepts/ksql-architecture.md#headless-deployment).
 
 You can configure servers to exclusively run a predefined script (`.sql`
 file) via the `--queries-file` command line argument, or the
 `ksql.queries.file` setting in the
-[KSQL configuration file](config-reference.md). If a
+[ksqlDB configuration file](config-reference.md). If a
 server is running a predefined script, it will automatically disable its
 REST endpoint and interactive use.
 
 !!! tip
 	When both the `ksql.queries.file` property and the `--queries-file`
-    argument are present, the `--queries-file` argument will take
+    argument are present, the `--queries-file` argument takes
     precedence.
 
-To start the KSQL Server in headless, non-interactive configuration via the
+### Start headless ksqlDB Server from the command line
+
+To start the ksqlDB Server in headless, non-interactive configuration via the
 `--queries-file` command line argument:
 
-1.  Create a predefined script and save as an `.sql` file.
-2.  Start the KSQL with the predefined script specified via the
-    `--queries-file` argument.
+Create a predefined script and save as an `.sql` file.
 
-    ```bash
-    <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties \
-    --queries-file /path/to/queries.sql
-    ```
+Start the ksqlDB Server with the predefined script specified by using the
+`--queries-file` argument.
 
-To start the KSQL Server in headless, non-interactive configuration via the
+```bash
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties \
+--queries-file /path/to/queries.sql
+```
+
+### Start headless ksqlDB Server by using the configuration file
+
+To start the ksqlDB Server in headless, non-interactive configuration via the
 `ksql.queries.file` in the server configuration file:
 
-1.  Configure the `ksql-server.properties` file. The
-    `bootstrap.servers` and `ksql.queries.file` are required. For
-    more information about configuration, see
-    [KSQL configuration file](config-reference.md).
+Configure the `ksql-server.properties` file. The
+`bootstrap.servers` and `ksql.queries.file` are required. For
+more information about configuration, see
+[KSQL configuration file](config-reference.md).
 
-    ```
-    # Inform the KSQL server where the Kafka cluster can be found:
-    bootstrap.servers=localhost:9092
+```properties
+# Inform the ksqlDB server where the Kafka cluster can be found:
+bootstrap.servers=localhost:9092
 
-    # Define the location of the queries file to execute
-    ksql.queries.file=/path/to/queries.sql
-    ```
+# Define the location of the queries file to execute
+ksql.queries.file=/path/to/queries.sql
+```
 
-2.  Start the KSQL server with the configuration file specified.
+Start the ksqlDB server with the configuration file specified.
 
-    ```bash
-    <path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
-    ```
+```bash
+<path-to-confluent>/bin/ksql-server-start <path-to-confluent>/etc/ksql/ksql-server.properties
+```
 
 Page last revised on: {{ git_revision_date }}

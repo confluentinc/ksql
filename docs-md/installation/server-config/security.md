@@ -449,7 +449,7 @@ would not be allowed to write to topics such as
 #### Required ACLs
 
 The ACLs required are the same for both
-[Interactive and non-interactive (headless) KSQL clusters](index.md#non-interactive-headless-ksql-usage).
+[Interactive and non-interactive (headless) ksqlDB clusters](index.md#non-interactive-headless-ksqldb-usage).
 
 KSQL always requires the following ACLs for its internal operations and
 data management:
@@ -497,7 +497,7 @@ mode.
 
 #### Non-Interactive (headless) KSQL clusters
 
-[Non-interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage)
+[Non-interactive ksqlDB clusters](index.md#non-interactive-headless-ksqldb-usage)
 run a known set of SQL statements, meaning the set of input and output
 topics is well defined. Add the ACLs required to allow KSQL access to
 these topics.
@@ -537,7 +537,7 @@ bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --
 
 #### Interactive KSQL clusters
 
-[Interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage)
+[Interactive ksqlDB clusters](../../concepts/ksql-architecture.md#interactive-deployment)
 accept SQL statements from users and hence may require access to a wide
 variety of input and output topics. Add ACLs to appropriate literal and
 prefixed resource patterns to allow KSQL access to the input and output
@@ -547,7 +547,7 @@ topics, as required.
 	To simplify ACL management, you should configure a default custom topic
     name prefix such as `ksql-interactive-` for your KSQL cluster via the
     `ksql.output.topic.name.prefix`
-    [server configuration setting](index.md#setting-ksql-server-parameters).
+    [server configuration setting](index.md#setting-ksqldb-server-parameters).
     Unless a user defines an explicit topic name in a KSQL statement, KSQL
     will then always prefix the name of any automatically created output
     topics. Then add an ACL to allow `ALL` operations on `TOPICs` that are
@@ -687,7 +687,7 @@ user.
 
 #### Interactive KSQL clusters pre Kafka 2.0
 
-[Interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage),
+[Interactive ksqlDB clusters](../../concepts/ksql-architecture.md#interactive-deployment),
 (which is the default configuration), require that the authenticated
 KSQL user has open access to create, read, write, delete topics, and use
 any consumer group:
@@ -725,7 +725,7 @@ bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --
 #### Non-Interactive (headless) KSQL clusters pre Kafka 2.0
 
 Because the list of queries are known ahead of time, you can run
-[Non-interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage)
+[Non-interactive ksqlDB clusters](index.md#non-interactive-headless-ksqldb-usage)
 with more restrictive ACLs. Determining the list of ACLs currently
 requires a bit of effort.
 
@@ -806,7 +806,7 @@ Consumer groups
 
 !!! tip
 	For more information about interactive and non-interactive queries, see
-    [Non-interactive (Headless) KSQL Usage](index.md#non-interactive-headless-ksql-usage).
+    [Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
 
 #### Configure Control Center Monitoring Interceptors
 

@@ -176,7 +176,7 @@ Notable changes in 4.1:
         See [KSQL configuration file](server-config/config-reference.md) for details.
 
 -   Executing `.sql` files: To run pre-defined KSQL queries stored in a
-    `.sql` file, see [Non-interactive (Headless) KSQL Usage](server-config/index.md#non-interactive-headless-ksql-usage).
+    `.sql` file, see [Non-interactive (Headless) ksqlDB Usage](server-config/index.md#non-interactive-headless-ksqldb-usage).
 -   Configuration: Advanced KSQL users can configure the Kafka Streams
     and Kafka producer/consumer client settings used by KSQL. This is
     achieved by using prefixes for the respective configuration

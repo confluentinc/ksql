@@ -337,7 +337,7 @@ and quick iterative development and testing of your KSQL queries via the
 KSQL CLI.
 
 You can also
-[configure the servers for headless, non-interactive operation](installation/server-config/index.md#non-interactive-headless-ksql-usage),
+[configure the servers for headless, non-interactive operation](installation/server-config/index.md#non-interactive-headless-ksqldb-usage),
 where servers collaboratively run only a predefined list of queries. The
 result is essentially an elastic, fault-tolerant, and distributed stream
 processing application that communicates to the outside world by reading

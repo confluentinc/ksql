@@ -28,7 +28,7 @@ to {{ site.ak }} and consuming it as KSQL stream.
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the KSQL
     Server config file. For more information, see
-    [KSQL Server Log Settings](../installation/server-config/config-reference.md#ksql-server-log-settings).
+    [ksqlDB Server Log Settings](../installation/server-config/config-reference.md#ksqldb-server-log-settings).
 
 Logger Names
 ------------

@@ -117,7 +117,7 @@ Start a server node by using the following command:
 	You can view the KSQL server help text by running
     `<path-to-confluent>/bin/ksql-server-start --help`.
 
-Have a look at [this page](server-config/index.md#non-interactive-headless-ksql-usage)
+Have a look at [this page](server-config/index.md#non-interactive-headless-ksqldb-usage)
 for instructions on running KSQL in non-interactive (aka headless)
 mode.
 

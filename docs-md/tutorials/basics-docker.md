@@ -1,20 +1,18 @@
 ---
 layout: page
-title: Write Streaming Queries Against Apache Kafka® Using KSQL and Confluent Control Center (Docker)
-tagline: Use KSQL for event streaming applications
-description: Learn how to use KSQL to create event streaming applications on Kafka topics
+title: ksqlDB Quick Start
+tagline: Use ksqlDB for event streaming applications
+description: Write streaming queries against Apache Kafka® by using ksqlDB
 keywords: ksql, docker
 ---
 
-Write Streaming Queries Against {{ site.aktm }} Using KSQL (Docker)
-===================================================================
+This tutorial demonstrates a simple workflow using ksqlDB to write
+streaming queries against messages in {{ site.aktm }} in a Docker
+environment.
 
-This tutorial demonstrates a simple workflow using KSQL to write
-streaming queries against messages in Kafka in a Docker environment.
-
-To get started, you must start a Kafka cluster, including {{ site.zk }},
-and a Kafka broker. KSQL queries messages from this Kafka cluster. KSQL
-is installed in {{ site.cp }} by default.
+To get started, you must start a {{ site.ak }} cluster, including
+{{ site.zk }}, and a {{ site.ak }} broker. ksqlDB queries messages
+from this {{ site.ak }} cluster.
 
 Prerequisites:
 
@@ -36,97 +34,107 @@ Prerequisites:
 -   [wget](https://www.gnu.org/software/wget/) to get the connector
     configuration file.
 
-Download the Tutorial and Start KSQL
-====================================
+Download the Tutorial and Start ksqlDB
+--------------------------------------
 
-1.  Clone the Confluent KSQL repository.
+### 1. Clone the ksqlDB repository.
 
-    ```bash
-    git clone https://github.com/confluentinc/ksql.git
-    cd ksql
-    ```
+```bash
+git clone https://github.com/confluentinc/ksql.git
+cd ksql
+```
 
-2.  Switch to the correct {{ site.cp }} release branch:
+### 2. Switch to the correct branch
 
-    ```bash
-    git checkout {{ site.releasepostbranch }}
-    ```
+Switch to the correct ksqlDB release branch.
 
-3.  Navigate to the KSQL repository `docs/tutorials/` directory and
-    launch the tutorial in Docker. Depending on your network speed, this
-    may take up to 5-10 minutes.
+```bash
+git checkout {{ site.releasepostbranch }}
+```
 
-    ```bash
-    cd docs/tutorials/
-    docker-compose up -d
-    ```
+### 3. Launch the tutorial in Docker
 
-4.  From two separate terminal windows, run the data generator tool to
-    simulate "user" and "pageview" data:
+Navigate to the KSQL repository `docs/tutorials/` directory and
+launch the tutorial in Docker. Depending on your network speed, this
+may take up to 5-10 minutes.
 
-    ```bash
-    docker run --network tutorials_default --rm --name datagen-pageviews \
-      confluentinc/ksql-examples:{{ site.release }} \
-      ksql-datagen \
-          bootstrap-server=kafka:39092 \
-          quickstart=pageviews \
-          format=delimited \
-          topic=pageviews \
-          maxInterval=500 
-    ```
+```bash
+cd docs/tutorials/
+docker-compose up -d
+```
 
-    ```bash
-    docker run --network tutorials_default --rm --name datagen-users \
-      confluentinc/ksql-examples:{{ site.release }} \
-      ksql-datagen \
-          bootstrap-server=kafka:39092 \
-          quickstart=users \
-          format=json \
-          topic=users \
-          maxInterval=100 
-    ```
+### 4. Run the data generator tool
 
-5.  From the host machine, start KSQL CLI
+From two separate terminal windows, run the data generator tool to
+simulate "user" and "pageview" data:
 
-    ```bash
-    docker run --network tutorials_default --rm --interactive --tty \
-       confluentinc/cp-ksql-cli:{{ site.release }} \
-       http://ksql-server:8088
-    ```
+```bash
+docker run --network tutorials_default --rm --name datagen-pageviews \
+    confluentinc/ksql-examples:{{ site.release }} \
+    ksql-datagen \
+        bootstrap-server=kafka:39092 \
+        quickstart=pageviews \
+        format=delimited \
+        topic=pageviews \
+        maxInterval=500 
+```
 
-    ```
-    ===========================================
-    =        _  __ _____  ____  _             =
-    =       | |/ // ____|/ __ \| |            =
-    =       | ' /| (___ | |  | | |            =
-    =       |  <  \___ \| |  | | |            =
-    =       | . \ ____) | |__| | |____        =
-    =       |_|\_\_____/ \___\_\______|       =
-    =                                         =
-    =  Streaming SQL Engine for Apache Kafka® =
-    ===========================================
-    
-    Copyright 2019 Confluent Inc.
-    
-    CLI v{{ site.release }}, Server v{{ site.release }} located at
-    <http://localhost:8088>
-    
-    Having trouble? Type 'help' (case-insensitive) for a rundown of
-    how things work!
-    
-    ksql>
-    ```
+```bash
+docker run --network tutorials_default --rm --name datagen-users \
+    confluentinc/ksql-examples:{{ site.release }} \
+    ksql-datagen \
+        bootstrap-server=kafka:39092 \
+        quickstart=users \
+        format=json \
+        topic=users \
+        maxInterval=100 
+```
+
+### 5. Start the ksqlDB CLI
+
+From the host machine, start KSQL CLI:
+
+```bash
+docker run --network tutorials_default --rm --interactive --tty \
+    confluentinc/cp-ksql-cli:{{ site.release }} \
+    http://ksql-server:8088
+```
+
+Your output should resemble:
+
+```
+===========================================
+=        _  __ _____  ____  _             =
+=       | |/ // ____|/ __ \| |            =
+=       | ' /| (___ | |  | | |            =
+=       |  <  \___ \| |  | | |            =
+=       | . \ ____) | |__| | |____        =
+=       |_|\_\_____/ \___\_\______|       =
+=                                         =
+=  Streaming SQL Engine for Apache Kafka® =
+===========================================
+
+Copyright 2019 Confluent Inc.
+
+CLI v{{ site.release }}, Server v{{ site.release }} located at
+<http://localhost:8088>
+
+Having trouble? Type 'help' (case-insensitive) for a rundown of
+how things work!
+
+ksql>
+```
 
 Inspect Kafka Topics By Using SHOW and PRINT Statements
-=======================================================
+-------------------------------------------------------
 
-KSQL enables inspecting Kafka topics and messages in real time.
+ksqlDB enables inspecting {{ site.ak }} topics and messages in real time.
 
--   Use the SHOW TOPICS statement to list the available topics in the
-    Kafka cluster.
--   Use the PRINT statement to see a topic\'s messages as they arrive.
+- Use the SHOW TOPICS statement to list the available topics in the
+  {{ site.ak }} cluster.
+- Use the PRINT statement to see a topic's messages as they arrive.
 
-In the KSQL CLI, run the following statement:
+In the ksqlDB CLI, run the following statement:
 
 ```sql
 SHOW TOPICS;
@@ -183,305 +191,329 @@ Your output should resemble:
 
 Press Ctrl+C to stop printing messages.
 
-For more information, see [KSQL Syntax Reference](../developer-guide/syntax-reference.md).
+For more information, see [ksqlDB Syntax Reference](../developer-guide/syntax-reference.md).
 
 Create a Stream and Table
-=========================
+-------------------------
 
 These examples query messages from Kafka topics called `pageviews` and
 `users` using the following schemas:
 
 ![image](../img/ksql-quickstart-schemas.jpg)
 
-1.  Create a stream, named `pageviews_original`, from the `pageviews`
-    Kafka topic, specifying the `value_format` of `DELIMITED`.
+### 1. Create a ksqlDB stream
 
-    ```sql
-    CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH
-    (kafka_topic='pageviews', value_format='DELIMITED');
-    ```
+Create a stream, named `pageviews_original`, from the `pageviews`
+{{ site.ak }} topic, specifying the `value_format` of `DELIMITED`.
 
-    Your output should resemble:
+```sql
+CREATE STREAM pageviews_original (viewtime bigint, userid varchar, pageid varchar) WITH
+(kafka_topic='pageviews', value_format='DELIMITED');
+```
 
-    ```
-    Message
-    ---------------
-    Stream created
-    ---------------
-    ```
+Your output should resemble:
 
-    !!! tip
-		You can run `DESCRIBE pageviews_original;` to see the schema for the
-        stream. Notice that KSQL created two additional columns, named
-        `ROWTIME`, which corresponds with the Kafka message timestamp, and
-        `ROWKEY`, which corresponds with the Kafka message key.
+```
+ Message
+---------------
+ Stream created
+---------------
+```
 
-2.  Create a table, named `users_original`, from the `users` Kafka
-    topic, specifying the `value_format` of `JSON`.
+!!! tip
+    You can run `DESCRIBE pageviews_original;` to see the schema for the
+    stream. Notice that ksqlDB created two additional columns, named
+    `ROWTIME`, which corresponds with the {{ site.ak }} message timestamp, and
+    `ROWKEY`, which corresponds with the {{ site.ak }} message key.
 
-    ```sql
-    CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH
-    (kafka_topic='users', value_format='JSON', key = 'userid');
-    ```
+### 2. Create a ksqlDB table
 
-    Your output should resemble:
+Create a table, named `users_original`, from the `users` topic, specifying
+the `value_format` of `JSON`.
 
-    ```
-     Message
-    ---------------
-     Table created
-    ---------------
-    ```
+```sql
+CREATE TABLE users_original (registertime BIGINT, gender VARCHAR, regionid VARCHAR, userid VARCHAR) WITH
+(kafka_topic='users', value_format='JSON', key = 'userid');
+```
 
-    !!! tip
-		You can run `DESCRIBE users_original;` to see the schema for the
-        Table.
+Your output should resemble:
 
-3.  Optional: Show all streams and tables.
-    ```
-    ksql> SHOW STREAMS;
+```
+  Message
+---------------
+  Table created
+---------------
+```
 
-    Stream Name              | Kafka Topic              | Format
-    -----------------------------------------------------------------
-    PAGEVIEWS_ORIGINAL       | pageviews                | DELIMITED
+!!! tip
+    You can run `DESCRIBE users_original;` to see the schema for the
+    Table.
 
-    ksql> SHOW TABLES;
+Optional: Show all streams and tables.
 
-    Table Name        | Kafka Topic       | Format    | Windowed
-    --------------------------------------------------------------
-    USERS_ORIGINAL    | users             | JSON      | false
-    ```
+```
+ksql> SHOW STREAMS;
+
+Stream Name              | Kafka Topic              | Format
+-----------------------------------------------------------------
+PAGEVIEWS_ORIGINAL       | pageviews                | DELIMITED
+
+ksql> SHOW TABLES;
+
+Table Name        | Kafka Topic       | Format    | Windowed
+--------------------------------------------------------------
+USERS_ORIGINAL    | users             | JSON      | false
+```
+
 Write Queries
-=============
+-------------
 
-These examples write queries using KSQL.
+These examples write queries using ksqlDB.
 
 !!! note
-	By default KSQL reads the topics for streams and tables from
+	By default ksqlDB reads the topics for streams and tables from
     the latest offset.
 
-1.  Use `SELECT` to create a query that returns data from a STREAM. This
-    query includes the `LIMIT` keyword to limit the number of rows
-    returned in the query result. Note that exact data output may vary
-    because of the randomness of the data generation.
+### 1. Create a query that returns data from a ksqlDB stream
 
-    ```sql
-    SELECT pageid FROM pageviews_original LIMIT 3;
-    ```
+Use `SELECT` to create a query that returns data from a STREAM. This
+query includes the `LIMIT` keyword to limit the number of rows
+returned in the query result. Note that exact data output may vary
+because of the randomness of the data generation.
 
-    Your output should resemble:
+```sql
+SELECT pageid FROM pageviews_original LIMIT 3;
+```
 
-    ```
-    Page_24
-    Page_73
-    Page_78
-    LIMIT reached
-    Query terminated
-    ```
+Your output should resemble:
 
-2.  Create a persistent query by using the `CREATE STREAM` keywords to
-    precede the `SELECT` statement. The results from this query are
-    written to the `PAGEVIEWS_ENRICHED` Kafka topic. The following query
-    enriches the `pageviews_original` STREAM by doing a `LEFT JOIN` with
-    the `users_original` TABLE on the user ID.
+```
+Page_24
+Page_73
+Page_78
+LIMIT reached
+Query terminated
+```
 
-    ```sql
-    CREATE STREAM pageviews_enriched AS
-      SELECT users_original.userid AS userid, pageid, regionid, gender
-      FROM pageviews_original
-      LEFT JOIN users_original
-        ON pageviews_original.userid = users_original.userid;
-    ```
+### 2. Create a persistent query
 
-    Your output should resemble:
+Create a persistent query by using the `CREATE STREAM` keywords to
+precede the `SELECT` statement. The results from this query are
+written to the `PAGEVIEWS_ENRICHED` Kafka topic. The following query
+enriches the `pageviews_original` STREAM by doing a `LEFT JOIN` with
+the `users_original` TABLE on the user ID.
 
-    ```
-     Message
-    ----------------------------
-     Stream created and running
-    ----------------------------
-    ```
+```sql
+CREATE STREAM pageviews_enriched AS
+    SELECT users_original.userid AS userid, pageid, regionid, gender
+    FROM pageviews_original
+    LEFT JOIN users_original
+    ON pageviews_original.userid = users_original.userid;
+```
 
-    !!! tip
-		You can run `DESCRIBE pageviews_enriched;` to describe the stream.
+Your output should resemble:
 
-3.  Use `SELECT` to view query results as they come in. To stop viewing
-    the query results, press Ctrl-C. This stops printing to the
-    console but it does not terminate the actual query. The query
-    continues to run in the underlying KSQL application.
+```
+  Message
+----------------------------
+  Stream created and running
+----------------------------
+```
 
-    ```sql
-    SELECT * FROM pageviews_enriched;
-    ```
+!!! tip
+    You can run `DESCRIBE pageviews_enriched;` to describe the stream.
 
-    Your output should resemble:
+### 3. View query results
 
-    ```
-    1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
-    1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
-    1519746862164 | User_1 | User_1 | Page_90 | Region_7 | FEMALE
-    ^CQuery terminated
-    ```
+Use `SELECT` to view query results as they come in. To stop viewing
+the query results, press Ctrl-C. This stops printing to the
+console but it does not terminate the actual query. The query
+continues to run in the underlying ksqlDB application.
 
-4.  Create a new persistent query where a condition limits the streams
-    content, using `WHERE`. Results from this query are written to a
-    Kafka topic called `PAGEVIEWS_FEMALE`.
+```sql
+SELECT * FROM pageviews_enriched;
+```
 
-    ```sql
-    CREATE STREAM pageviews_female AS
-      SELECT * FROM pageviews_enriched
-      WHERE gender = 'FEMALE';
-    ```
+Your output should resemble:
 
-    Your output should resemble:
+```
+1519746861328 | User_4 | User_4 | Page_58 | Region_5 | OTHER
+1519746861794 | User_9 | User_9 | Page_94 | Region_9 | MALE
+1519746862164 | User_1 | User_1 | Page_90 | Region_7 | FEMALE
+^CQuery terminated
+```
 
-    ```
-     Message
-    ----------------------------
-     Stream created and running
-    ----------------------------
-    ```
+### 4. Create a filter query
 
-    !!! tip
-		You can run `DESCRIBE pageviews_female;` to describe the stream.
+Create a new persistent query where a condition limits the streams
+content, using `WHERE`. Results from this query are written to a
+Kafka topic called `PAGEVIEWS_FEMALE`.
 
-5.  Create a new persistent query where another condition is met, using
-    `LIKE`. Results from this query are written to the
-    `pageviews_enriched_r8_r9` Kafka topic.
+```sql
+CREATE STREAM pageviews_female AS
+    SELECT * FROM pageviews_enriched
+    WHERE gender = 'FEMALE';
+```
 
-    ```sql
-    CREATE STREAM pageviews_female_like_89
-      WITH (kafka_topic='pageviews_enriched_r8_r9') AS
-    SELECT * FROM pageviews_female
-    WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
-    ```
+Your output should resemble:
 
-    Your output should resemble:
+```
+  Message
+----------------------------
+  Stream created and running
+----------------------------
+```
 
-    ```
-     Message
-    ----------------------------
-     Stream created and running
-    ----------------------------
-    ```
-        
+!!! tip
+    You can run `DESCRIBE pageviews_female;` to describe the stream.
 
-6.  Create a new persistent query that counts the pageviews for each
-    region and gender combination in a [tumbling
-    window](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#tumbling-time-windows)
-    of 30 seconds when the count is greater than one. Results from this
-    query are written to the `PAGEVIEWS_REGIONS` Kafka topic in the Avro
-    format. KSQL will register the Avro schema with the configured 
-    {{ site.sr }} when it writes the first message to the
-    `PAGEVIEWS_REGIONS` topic.
+### 5. Create a LIKE query
 
-    ```sql
-    CREATE TABLE pageviews_regions
-      WITH (VALUE_FORMAT='avro') AS
-    SELECT gender, regionid , COUNT(*) AS numusers
-    FROM pageviews_enriched
-      WINDOW TUMBLING (size 30 second)
-    GROUP BY gender, regionid
-    HAVING COUNT(*) > 1;
-    ```
+Create a new persistent query where another condition is met, using
+`LIKE`. Results from this query are written to the
+`pageviews_enriched_r8_r9` Kafka topic.
 
-    Your output should resemble:
+```sql
+CREATE STREAM pageviews_female_like_89
+    WITH (kafka_topic='pageviews_enriched_r8_r9') AS
+SELECT * FROM pageviews_female
+WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+```
 
-    ```
-     Message
-    ---------------------------
-     Table created and running
-    ---------------------------
-    ```
+Your output should resemble:
 
-    !!! tip
-		You can run `DESCRIBE pageviews_regions;` to describe the table.
+```
+  Message
+----------------------------
+  Stream created and running
+----------------------------
+```
 
-7.  Optional: View results from the above queries using `SELECT`.
+### 6. Count and group pageview events
 
-    ```sql
-    SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
-    ```
+Create a new persistent query that counts the pageviews for each
+region and gender combination in a [tumbling
+window](https://docs.confluent.io/current/streams/developer-guide/dsl-api.html#tumbling-time-windows)
+of 30 seconds when the count is greater than one. Results from this
+query are written to the `PAGEVIEWS_REGIONS` Kafka topic in the Avro
+format. ksqlDB registers the Avro schema with the configured 
+{{ site.sr }} when it writes the first message to the
+`PAGEVIEWS_REGIONS` topic.
 
-    Your output should resemble:
+```sql
+CREATE TABLE pageviews_regions
+    WITH (VALUE_FORMAT='avro') AS
+SELECT gender, regionid , COUNT(*) AS numusers
+FROM pageviews_enriched
+    WINDOW TUMBLING (size 30 second)
+GROUP BY gender, regionid
+HAVING COUNT(*) > 1;
+```
 
-    ```
-    FEMALE | Region_6 | 3
-    FEMALE | Region_1 | 4
-    FEMALE | Region_9 | 6
-    MALE | Region_8 | 2
-    OTHER | Region_5 | 4
-    LIMIT reached
-    Query terminated
-    ksql>
-    ```
+Your output should resemble:
 
-8.  Optional: Show all persistent queries.
+```
+  Message
+---------------------------
+  Table created and running
+---------------------------
+```
 
-    ```sql
-    SHOW QUERIES;
-    ```
+!!! tip
+    You can run `DESCRIBE pageviews_regions;` to describe the table.
 
-    Your output should resemble:
+### 7. View query results
 
-    ```
-    Query ID                        | Kafka Topic              | Query String
-    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    CSAS_PAGEVIEWS_FEMALE_1         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS       SELECT * FROM pageviews_enriched       WHERE gender = 'FEMALE';
-    CTAS_PAGEVIEWS_REGIONS_3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions         WITH (VALUE_FORMAT='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
-    CSAS_PAGEVIEWS_FEMALE_LIKE_89_2 | PAGEVIEWS_FEMALE_LIKE_89 | CREATE STREAM pageviews_female_like_89         WITH (kafka_topic='pageviews_enriched_r8_r9') AS       SELECT * FROM pageviews_female       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
-    CSAS_PAGEVIEWS_ENRICHED_0       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS       SELECT users_original.userid AS userid, pageid, regionid, gender       FROM pageviews_original       LEFT JOIN users_original         ON pageviews_original.userid = users_original.userid;
-    --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-    For detailed information on a Query run: EXPLAIN <Query ID>;
-    ```
+View results from the previous queries by using the `SELECT` statement.
 
-9.  Optional: Examine query run-time metrics and details. Observe that
-    information including the target Kafka topic is available, as well
-    as throughput figures for the messages being processed.
+```sql
+SELECT gender, regionid, numusers FROM pageviews_regions LIMIT 5;
+```
 
-    ```sql
-    DESCRIBE EXTENDED PAGEVIEWS_REGIONS;
-    ```
+Your output should resemble:
 
-    Your output should resemble:
+```
+FEMALE | Region_6 | 3
+FEMALE | Region_1 | 4
+FEMALE | Region_9 | 6
+MALE | Region_8 | 2
+OTHER | Region_5 | 4
+LIMIT reached
+Query terminated
+ksql>
+```
 
-    ```
-    Name                 : PAGEVIEWS_REGIONS
-    Type                 : TABLE
-    Key field            : KSQL_INTERNAL_COL_0|+|KSQL_INTERNAL_COL_1
-    Key format           : STRING
-    Timestamp field      : Not set - using <ROWTIME>
-    Value format         : AVRO
-    Kafka topic          : PAGEVIEWS_REGIONS (partitions: 4, replication: 1)
+### 8. View persistent queries
 
-    Field    | Type
-    --------------------------------------
-    ROWTIME  | BIGINT           (system)
-    ROWKEY   | VARCHAR(STRING)  (system)
-    GENDER   | VARCHAR(STRING)
-    REGIONID | VARCHAR(STRING)
-    NUMUSERS | BIGINT
-    --------------------------------------
+Show the running persistent queries:
 
-    Queries that write into this TABLE
-    -----------------------------------
-    CTAS_PAGEVIEWS_REGIONS_3 : CREATE TABLE pageviews_regions         WITH (value_format='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
+```sql
+SHOW QUERIES;
+```
 
-    For query topology and execution plan please run: EXPLAIN <QueryId>
+Your output should resemble:
 
-    Local runtime statistics
-    ------------------------
-    messages-per-sec:      3.06   total-messages:      1827     last-message: 7/19/18 4:17:55 PM UTC
-    failed-messages:         0 failed-messages-per-sec:         0      last-failed:       n/a
-    (Statistics of the local KSQL server interaction with the Kafka topic PAGEVIEWS_REGIONS)
-    ksql>
-    ```
+```
+Query ID                        | Kafka Topic              | Query String
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CSAS_PAGEVIEWS_FEMALE_1         | PAGEVIEWS_FEMALE         | CREATE STREAM pageviews_female AS       SELECT * FROM pageviews_enriched       WHERE gender = 'FEMALE';
+CTAS_PAGEVIEWS_REGIONS_3        | PAGEVIEWS_REGIONS        | CREATE TABLE pageviews_regions         WITH (VALUE_FORMAT='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
+CSAS_PAGEVIEWS_FEMALE_LIKE_89_2 | PAGEVIEWS_FEMALE_LIKE_89 | CREATE STREAM pageviews_female_like_89         WITH (kafka_topic='pageviews_enriched_r8_r9') AS       SELECT * FROM pageviews_female       WHERE regionid LIKE '%_8' OR regionid LIKE '%_9';
+CSAS_PAGEVIEWS_ENRICHED_0       | PAGEVIEWS_ENRICHED       | CREATE STREAM pageviews_enriched AS       SELECT users_original.userid AS userid, pageid, regionid, gender       FROM pageviews_original       LEFT JOIN users_original         ON pageviews_original.userid = users_original.userid;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+For detailed information on a Query run: EXPLAIN <Query ID>;
+```
 
-Using Nested Schemas (STRUCT) in KSQL
+### 9. Examine query run-time metrics and details
+
+Observe that information including the target {{ site.ak }} topic is
+available, as well as throughput figures for the messages being processed.
+
+```sql
+DESCRIBE EXTENDED PAGEVIEWS_REGIONS;
+```
+
+Your output should resemble:
+
+```
+Name                 : PAGEVIEWS_REGIONS
+Type                 : TABLE
+Key field            : KSQL_INTERNAL_COL_0|+|KSQL_INTERNAL_COL_1
+Key format           : STRING
+Timestamp field      : Not set - using <ROWTIME>
+Value format         : AVRO
+Kafka topic          : PAGEVIEWS_REGIONS (partitions: 4, replication: 1)
+
+Field    | Type
+--------------------------------------
+ROWTIME  | BIGINT           (system)
+ROWKEY   | VARCHAR(STRING)  (system)
+GENDER   | VARCHAR(STRING)
+REGIONID | VARCHAR(STRING)
+NUMUSERS | BIGINT
+--------------------------------------
+
+Queries that write into this TABLE
+-----------------------------------
+CTAS_PAGEVIEWS_REGIONS_3 : CREATE TABLE pageviews_regions         WITH (value_format='avro') AS       SELECT gender, regionid , COUNT(*) AS numusers       FROM pageviews_enriched         WINDOW TUMBLING (size 30 second)       GROUP BY gender, regionid       HAVING COUNT(*) > 1;
+
+For query topology and execution plan please run: EXPLAIN <QueryId>
+
+Local runtime statistics
+------------------------
+messages-per-sec:      3.06   total-messages:      1827     last-message: 7/19/18 4:17:55 PM UTC
+failed-messages:         0 failed-messages-per-sec:         0      last-failed:       n/a
+(Statistics of the local KSQL server interaction with the Kafka topic PAGEVIEWS_REGIONS)
+ksql>
+```
+
+Use Nested Schemas (STRUCT) in ksqlDB
 -------------------------------------
 
-Struct support enables the modeling and access of nested data in Kafka
+Struct support enables the modeling and access of nested data in {{ site.ak }}
 topics, from both JSON and Avro.
+
+### 1. Generate data
 
 In this section, you use the `ksql-datagen` tool to create some sample data
 that includes a nested `address` field. Run this in a new window, and leave
@@ -498,7 +530,9 @@ docker run --network tutorials_default --rm  \
       schemaRegistryUrl=http://schema-registry:8081
 ```
 
-From the KSQL command prompt, register the topic in KSQL:
+### 2. Register a stream
+
+From the ksqlDB command prompt, register the a stream on the `orders` topic:
 
 ```sql
 CREATE STREAM ORDERS WITH (KAFKA_TOPIC='orders', VALUE_FORMAT='AVRO');
@@ -512,6 +546,8 @@ Your output should resemble:
  Stream created
 ----------------
 ```
+
+### 3. Observe the stream's schema
 
 Use the `DESCRIBE` function to observe the schema, which includes a
 `STRUCT`:
@@ -538,7 +574,9 @@ For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 ksql>
 ```
 
-Query the data, using `->` notation to access the Struct contents:
+### 4. Access the struct data
+
+Query the data by using the `->` notation to access the struct contents:
 
 ```sql
 SELECT ORDERID, ADDRESS->CITY FROM ORDERS;
@@ -559,10 +597,12 @@ Press Ctrl+C to cancel the `SELECT` query.
 Stream-Stream join
 ------------------
 
-Using a stream-stream join, you can join two *event streams* on a
+Using a stream-stream join, you can join two event streams on a
 common key. An example of this could be a stream of order events and
 a stream of shipment events. By joining these on the order key, you can
 see shipment information alongside the order.
+
+### 1. Populate two source topics
 
 In a separate console window, populate the `orders` and `shipments`
 topics by using the `kafkacat` utility:
@@ -592,7 +632,9 @@ docker run --interactive --rm --network tutorials_default \
 EOF
 ```
 
-In the KSQL CLI, register both topics as KSQL streams:
+### 2. Register two streams
+
+In the ksqlDB CLI, register both topics as ksqlDB streams:
 
 ```sql
 CREATE STREAM NEW_ORDERS (ORDER_ID INT, TOTAL_AMOUNT DOUBLE, CUSTOMER_NAME VARCHAR)
@@ -611,18 +653,24 @@ After both `CREATE STREAM` statements, your output should resemble:
 ----------------
 ```
 
-Query the data to confirm that it's present in the topics.
+### 3. Set the auto.offset.reset property
+
+Run the following statement to tell ksqlDB to read from the beginning of all
+topics:
+
+```sql
+SET 'auto.offset.reset' = 'earliest';
+```
 
 !!! tip
-	Run the following to tell KSQL to read from the beginning of the topic: 
->
->```sql
->SET 'auto.offset.reset' = 'earliest';
->```
-> You can skip this if you have already run it within your current
-> KSQL CLI session.
+    You can skip this step if you've already run it within your current
+    ksqlDB CLI session.
 
-For the `NEW_ORDERS` topic, run:
+### 4. Examine streams for events 
+
+Query the streams to confirm that events are present in the topics.
+
+For the `NEW_ORDERS` stream, run:
 
 ```sql
 SELECT ORDER_ID, TOTAL_AMOUNT, CUSTOMER_NAME FROM NEW_ORDERS LIMIT 3;
@@ -636,7 +684,7 @@ Your output should resemble:
 3 | 21.0 | Emma Turner
 ```
 
-For the `SHIPMENTS` topic, run:
+For the `SHIPMENTS` stream, run:
 
 ```sql
 SELECT ORDER_ID, SHIPMENT_ID, WAREHOUSE FROM SHIPMENTS LIMIT 2;
@@ -648,6 +696,8 @@ Your output should resemble:
 1 | 42 | Nashville
 3 | 43 | Palo Alto
 ```
+
+### 5. Join the streams
 
 Run the following query, which will show orders with associated
 shipments, based on a join window of 1 hour.
@@ -668,22 +718,24 @@ Your output should resemble:
 3 | 21.0 | Emma Turner | 43 | Palo Alto
 ```
 
-Note that message with `ORDER_ID=2` has no corresponding `SHIPMENT_ID`
-or `WAREHOUSE` - this is because there is no corresponding row on the
-shipments stream within the time window specified.
+Messages with `ORDER_ID=2` have no corresponding `SHIPMENT_ID` or
+`WAREHOUSE`. This is because there's no corresponding row on the
+`SHIPMENTS` stream within the time window specified.
 
-Press Ctrl+C to cancel the `SELECT` query and return to the KSQL prompt.
+Press Ctrl+C to cancel the `SELECT` query and return to the prompt.
 
 Table-Table join
 ----------------
 
-Using a table-table join, it is possible to join two *tables* of on a
-common key. KSQL tables provide the latest *value* for a given *key*.
+Using a table-table join, it's possible to join two tables of on a
+common key. ksqlDB tables provide the latest *value* for a given *key*.
 They can only be joined on the *key*, and one-to-many (1:N) joins are
 not supported in the current semantic model.
 
-In this example we have location data about a warehouse from one system,
-being enriched with data about the size of the warehouse from another.
+In this example, location data about a warehouse from one system is
+enriched with data about the size of the warehouse from another.
+
+### 1. Populate two source topics
 
 In a separate console window, populate the two topics by using the
 `kafkacat` utility:
@@ -714,7 +766,9 @@ docker run --interactive --rm --network tutorials_default \
 EOF
 ```
 
-In the KSQL CLI, register both topics as KSQL tables:
+### 2. Register two tables
+
+In the ksqlDB CLI, register both topics as ksqlDB tables:
 
 ```sql
 CREATE TABLE WAREHOUSE_LOCATION (WAREHOUSE_ID INT, CITY VARCHAR, COUNTRY VARCHAR)
@@ -737,18 +791,11 @@ After both `CREATE TABLE` statements, your output should resemble:
 ---------------
 ```
 
-Check both tables that the message key (`ROWKEY`) matches the declared
-key (`WAREHOUSE_ID`) - the output should show that they are equal. If
-they are not, the join will not succeed or behave as expected.
+### 3. Examine tables for keys
 
-!!! tip
-		Run the following to tell KSQL to read from the beginning of the topic: 
->
->```sql
->SET 'auto.offset.reset' = 'earliest';
->```
-> You can skip this if you have already run it within your current
-> KSQL CLI session.
+Check both tables that the message key (`ROWKEY`) matches the declared
+key (`WAREHOUSE_ID`). The output should show that they are equal. If
+they aren't, the join won't succeed or behave as expected.
 
 Inspect the WAREHOUSE_LOCATION table:
 
@@ -782,6 +829,8 @@ Limit Reached
 Query terminated
 ```
 
+### 4. Join the tables
+
 Now join the two tables:
 
 ```sql
@@ -809,6 +858,8 @@ The `INSERT INTO` syntax can be used to merge the contents of multiple
 streams. An example of this could be where the same event type is coming
 from different sources.
 
+### 1. Generate data
+
 Run two datagen processes, each writing to a different topic, simulating
 order data arriving from a local installation vs from a third-party:
 
@@ -834,6 +885,8 @@ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
       schemaRegistryUrl=http://schema-registry:8081
 ```
 
+### 2. Register streams
+
 In KSQL, register the source topic for each:
 
 ```sql
@@ -853,6 +906,8 @@ After each `CREATE STREAM` statement you should get the message:
 ----------------
 ```
 
+### 3. Create a persistent query
+
 Create the output stream, using the standard `CREATE STREAM … AS`
 syntax. Because multiple sources of data are being joined into a common
 target, it is useful to add in lineage information. This can be done by
@@ -870,6 +925,8 @@ Your output should resemble:
  Stream created and running
 ----------------------------
 ```
+
+### 4. Examine the stream's schema
 
 Use the `DESCRIBE` command to observe the schema of the target stream.
 
@@ -895,7 +952,9 @@ Name                 : ALL_ORDERS
 For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 ```
 
-Add stream of 3rd party orders into the existing output stream:
+### 5. Insert another stream 
+
+Add a stream of 3rd-party orders into the existing output stream:
 
 ```sql
 INSERT INTO ALL_ORDERS SELECT '3RD PARTY' AS SRC, * FROM ORDERS_SRC_3RDPARTY;
@@ -910,6 +969,8 @@ Your output should resemble:
 -------------------------------
 ```
 
+### 6. Query the output stream
+
 Query the output stream to verify that data from each source is being
 written to it:
 
@@ -917,9 +978,7 @@ written to it:
 SELECT * FROM ALL_ORDERS;
 ```
 
-Your output should resemble the following. Note that there are messages
-from both source topics (denoted by `LOCAL` and `3RD PARTY`
-respectively).
+Your output should resemble:
 
 ```
 1531736084879 | 1802 | 3RD PARTY | 1508543844870 | 1802 | Item_427 | 5.003326679575532 | {CITY=City_27, STATE=State_63, ZIPCODE=12589}
@@ -931,7 +990,11 @@ respectively).
 …
 ```
 
+Events from both source topics are present, denoted by `LOCAL` and `3RD PARTY` respectively.
+
 Press Ctrl+C to cancel the `SELECT` query and return to the KSQL prompt.
+
+### 7. View the queries
 
 You can view the two queries that are running using `SHOW QUERIES`:
 
@@ -950,45 +1013,43 @@ Your output should resemble:
 ```
 
 Terminate and Exit
-==================
+------------------
 
-KSQL
-----
+### ksqlDB
 
 !!! important
-	Persisted queries will continuously run as KSQL
-    applications until they are manually terminated. Exiting KSQL CLI does
-    not terminate persistent queries.
+	Persisted queries run continuously as ksqlDB applications until they're
+    terminated manually. Exiting the ksqlDB CLI doesn't terminate persistent
+    queries.
 
-1.  From the output of `SHOW QUERIES;` identify a query ID you would
-    like to terminate. For example, if you wish to terminate query ID
-    `CTAS_PAGEVIEWS_REGIONS`:
+From the output of `SHOW QUERIES;` identify a query ID you would
+like to terminate. For example, if you wish to terminate query ID
+`CTAS_PAGEVIEWS_REGIONS`:
 
-    ```sql
-    TERMINATE CTAS_PAGEVIEWS_REGIONS;
-    ```
+```sql
+TERMINATE CTAS_PAGEVIEWS_REGIONS;
+```
 
-    !!! tip
-		The actual name of the query running may vary; refer to the output
-        of `SHOW QUERIES;`.
+!!! tip
+    The actual name of the query running may vary; refer to the output
+    of `SHOW QUERIES;`.
 
-2.  Run the `exit` command to leave the KSQL CLI.
+Run the `exit` command to leave the ksqlDB CLI.
 
-    ```
-    ksql> exit
-    Exiting KSQL.
-    ```
+```
+ksql> exit
+Exiting KSQL.
+```
 
-Docker
-------
+### Docker
 
-To stop all Data Generator containers, run the following:
+To stop all data generator containers, run the following:
 
 ```bash
 docker ps|grep ksql-datagen|awk '{print $1}'|xargs -Ifoo docker stop foo
 ```
 
-If you are running {{ site.cp }} using Docker Compose, you can stop it
+If you're running {{ site.ak }} using Docker Compose, you can stop it
 and remove the containers and their data with this command.
 
 ```bash
@@ -996,8 +1057,8 @@ cd docs/tutorials/
 docker-compose down
 ```
 
-Optional: produce extra topic data and verify your environment
---------------------------------------------------------------
+Produce extra topic data and verify your environment
+----------------------------------------------------
 
 The following instructions aren't required to run the quick start. They're
 optional steps to produce extra topic data and verify the environment.
@@ -1005,137 +1066,139 @@ optional steps to produce extra topic data and verify the environment.
 ### Produce more topic data
 
 The Compose file automatically runs a data generator that continuously
-produces data to two Kafka topics `pageviews` and `users`. No further
+produces data to two {{ site.ak }} topics, `pageviews` and `users`. No further
 action is required if you want to use just the data available. You can
-return to the [main KSQL quick start](#create-a-stream-and-table) to start
+return to the [main ksqlDB quick start](#create-a-stream-and-table) to start
 querying the data in these two topics.
 
-However, if you want to produce additional data, you can use any of the
+However, if you want to produce additional data, you can use the
 following methods.
 
--   Produce Kafka data with the Kafka command line
-    `kafka-console-producer`. The following example generates data with
-    a value in DELIMITED format.
+Produce {{ site.ak }} data with the {{ site.ak }} command line
+`kafka-console-producer`. The following example generates data with
+a value in DELIMITED format.
 
-    ```bash
-    docker-compose exec kafka kafka-console-producer \
-                              --topic t1 \
-                              --broker-list kafka:39092  \
-                              --property parse.key=true \
-                              --property key.separator=:
-    ```
+```bash
+docker-compose exec kafka kafka-console-producer \
+                            --topic t1 \
+                            --broker-list kafka:39092  \
+                            --property parse.key=true \
+                            --property key.separator=:
+```
 
-    Your data input should resemble:
+Your data input should resemble:
 
-    ```
-    key1:v1,v2,v3
-    key2:v4,v5,v6
-    key3:v7,v8,v9
-    key1:v10,v11,v12
-    ```
+```
+key1:v1,v2,v3
+key2:v4,v5,v6
+key3:v7,v8,v9
+key1:v10,v11,v12
+```
 
--   Produce Kafka data with the Kafka command line
-    `kafka-console-producer`. The following example generates data with
-    a value in JSON format.
+Produce {{ site.ak }} data with the {{ site.ak }} command line
+`kafka-console-producer`. The following example generates data with
+a value in JSON format.
 
-    ```bash
-    docker-compose exec kafka kafka-console-producer \
-                              --topic t2 \
-                              --broker-list kafka:39092  \
-                              --property parse.key=true \
-                              --property key.separator=:
-    ```
+```bash
+docker-compose exec kafka kafka-console-producer \
+                            --topic t2 \
+                            --broker-list kafka:39092  \
+                            --property parse.key=true \
+                            --property key.separator=:
+```
 
-    Your data input should resemble:
+Your data input should resemble:
 
-    ```
-    key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
-    key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
-    key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
-    key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
-    ```
+```
+key1:{"id":"key1","col1":"v1","col2":"v2","col3":"v3"}
+key2:{"id":"key2","col1":"v4","col2":"v5","col3":"v6"}
+key3:{"id":"key3","col1":"v7","col2":"v8","col3":"v9"}
+key1:{"id":"key1","col1":"v10","col2":"v11","col3":"v12"}
+```
 
-You can also use `kafkacat` from Docker, as demonstrated in the earlier
+You can also use `kafkacat` from Docker, as demonstrated in the previous
 examples.
 
 ### Verify your environment
 
-The next three steps are optional verification steps to ensure your
+The following steps are optional verification steps to ensure your
 environment is properly setup.
 
-1.  Verify that six Docker containers were created.
+Verify that six Docker containers were created.
 
-    ```bash
-    docker-compose ps
-    ```
+```bash
+docker-compose ps
+```
 
-    Your output should resemble this. Take note of the `Up` state.
+Your output should resemble:
 
-    ```
-            Name                        Command            State                 Ports
-    ----------------------------------------------------------------------------------------------------
-    tutorials_kafka_1             /etc/confluent/docker/run   Up      0.0.0.0:39092->39092/tcp, 9092/tcp
-    tutorials_ksql-server_1       /etc/confluent/docker/run   Up      8088/tcp
-    tutorials_schema-registry_1   /etc/confluent/docker/run   Up      8081/tcp
-    tutorials_zookeeper_1         /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
-    ```
+```
+        Name                        Command            State                 Ports
+----------------------------------------------------------------------------------------------------
+tutorials_kafka_1             /etc/confluent/docker/run   Up      0.0.0.0:39092->39092/tcp, 9092/tcp
+tutorials_ksql-server_1       /etc/confluent/docker/run   Up      8088/tcp
+tutorials_schema-registry_1   /etc/confluent/docker/run   Up      8081/tcp
+tutorials_zookeeper_1         /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
+```
 
-2.  Earlier steps in this quickstart started two data generators that
-    pre-populate two Kafka topics `pageviews` and `users` with mock
-    data. Verify that the data generator created two Kafka topics,
-    including `pageviews` and `users`.
+Take note of the `Up` state.
 
-    ```bash
-    docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
-    ```
+Earlier steps in this quickstart started two data generators that
+pre-populate two topics, named `pageviews` and `users`, with mock
+data. Verify that the data generator created these topics, including
+`pageviews` and `users`.
 
-    Your output should resemble this.
+```bash
+docker-compose exec kafka kafka-topics --zookeeper zookeeper:32181 --list
+```
 
-    ```
-    _confluent-metrics
-    _schemas
-    pageviews
-    users
-    ```
+Your output should resemble this.
 
-3.  Use the `kafka-console-consumer` to view a few messages from each
-    topic. The topic `pageviews` has a key that is a mock time stamp and
-    a value that is in `DELIMITED` format. The topic `users` has a key
-    that is the user ID and a value that is in `Json` format.
+```
+_confluent-metrics
+_schemas
+pageviews
+users
+```
 
-    ```bash
-    docker-compose exec kafka kafka-console-consumer \
-                              --topic pageviews \
-                              --bootstrap-server kafka:39092 \
-                              --from-beginning \
-                              --max-messages 3 \
-                              --property print.key=true
-    ```
+Use the `kafka-console-consumer` to view a few messages from each
+topic. The topic `pageviews` has a key that is a mock time stamp and
+a value that is in `DELIMITED` format. The topic `users` has a key
+that is the user ID and a value that is in `Json` format.
 
-    Your output should resemble:
+```bash
+docker-compose exec kafka kafka-console-consumer \
+                            --topic pageviews \
+                            --bootstrap-server kafka:39092 \
+                            --from-beginning \
+                            --max-messages 3 \
+                            --property print.key=true
+```
 
-    ```
-    1491040409254    1491040409254,User_5,Page_70
-    1488611895904    1488611895904,User_8,Page_76
-    1504052725192    1504052725192,User_8,Page_92
-    ```
+Your output should resemble:
 
-    ```bash
-    docker-compose exec kafka kafka-console-consumer \
-                              --topic users \
-                              --bootstrap-server kafka:39092 \
-                              --from-beginning \
-                              --max-messages 3 \
-                              --property print.key=true
-    ```
+```
+1491040409254    1491040409254,User_5,Page_70
+1488611895904    1488611895904,User_8,Page_76
+1504052725192    1504052725192,User_8,Page_92
+```
 
-    Your output should resemble:
+```bash
+docker-compose exec kafka kafka-console-consumer \
+                            --topic users \
+                            --bootstrap-server kafka:39092 \
+                            --from-beginning \
+                            --max-messages 3 \
+                            --property print.key=true
+```
 
-    ```
-    User_2   {"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
-    User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}
-    User_8   {"registertime":1494834474504,"gender":"MALE","regionid":"Region_5","userid":"User_8"}
-    ```
+Your output should resemble:
+
+```
+User_2   {"registertime":1509789307038,"gender":"FEMALE","regionid":"Region_1","userid":"User_2"}
+User_6   {"registertime":1498248577697,"gender":"OTHER","regionid":"Region_8","userid":"User_6"}
+User_8   {"registertime":1494834474504,"gender":"MALE","regionid":"Region_5","userid":"User_8"}
+```
 
 Next Steps
 ==========

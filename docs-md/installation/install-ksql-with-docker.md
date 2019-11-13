@@ -84,7 +84,7 @@ setting in your `docker run` command, specify:
 
 Properties set with `KSQL_OPTS` take precedence over values specified in
 the KSQL configuration file. For more information, see
-[Setting KSQL Server Parameters](server-config/index.md#setting-ksql-server-parameters).
+[Setting ksqlDB Server Parameters](server-config/index.md#setting-ksqldb-server-parameters).
 
 KSQL Server
 -----------
@@ -97,7 +97,7 @@ You can deploy KSQL Server into production in a non-interactive, or
 *headless*, mode. In headless mode, interactive use of the KSQL cluster
 is disabled, and you configure KSQL Server with a predefined `.sql` file
 and the `KSQL_KSQL_QUERIES_FILE` setting. For more information, see
-[Non-interactive (Headless) KSQL Usage](server-config/index.md#non-interactive-headless-ksql-usage).
+[Non-interactive (Headless) ksqlDB Usage](server-config/index.md#non-interactive-headless-ksqldb-usage).
 
 Use the following command to run a headless, standalone KSQL Server
 instance in a container:

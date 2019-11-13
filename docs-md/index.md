@@ -20,7 +20,7 @@ In today’s world, applications that leverage stream processing need a
 heavyweight architecture that requires integrating several distributed
 systems together. These architectures often include a fleet of connectors
 or agents for acquiring events from the outside world, durable storage to house
-these events, a map/reduce-like framework for processing the events, and a
+these events, a stream processing framework for processing the events, and a
 database to serve aggregations of events to applications. 
 
 Unfortunately, the parts don't fit together as well as you'd hope; all of these
@@ -33,7 +33,7 @@ It shouldn't be this difficult to build stream processing applications.
 ksqlDB greatly reduces the operational complexity required to build stream
 processing applications, which enables you to build real-time systems without
 requiring significant time and overhead. It combines the power of real-time
-stream processing with the approachable feel of a relational database, through
+stream processing with the approachable feel of a database, through
 a familiar, lightweight SQL syntax. And because ksqlDB is natively powered by
 {{ site.aktm }}, it seamlessly leverages the underlying, battle-tested event
 streaming platform.

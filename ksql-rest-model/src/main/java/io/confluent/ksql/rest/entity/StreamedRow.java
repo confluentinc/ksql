@@ -35,7 +35,7 @@ import java.util.Optional;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(Include.NON_ABSENT)
 @JsonSubTypes({})
-public class StreamedRow {
+public final class StreamedRow {
 
   private final Optional<Header> header;
   private final Optional<GenericRow> row;

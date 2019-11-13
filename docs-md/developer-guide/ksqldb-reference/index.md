@@ -1,7 +1,7 @@
 ---
 layout: page
 title: ksqlDB API Index
-tagline: Program KSQL 
+tagline: Program ksqlDB 
 description: Learn to program ksqlDB to create streaming applications.
 keywords: ksqldb, api, reference
 ---

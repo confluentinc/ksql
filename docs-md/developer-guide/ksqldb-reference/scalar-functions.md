@@ -393,22 +393,6 @@ the string.
 For example, `SUBSTRING("stream", 1, 4)`
 returns "stre".
 
-!!! note
-    Before version 5.1 of KSQL the syntax was:
-    `SUBSTRING(str, start, [end])`, where `start`
-    and `end` positions where base-zero indexes
-    (first character at position 0) to start
-    (inclusive) and end (exclusive) the substring,
-    respectively.
-    For example, `SUBSTRING("stream", 1, 4)` would
-    return "tre".    
-    It is possible to switch back to this legacy mode 
-    by setting
-    `ksql.functions.substring.legacy.args` to
-    `true`. We recommend against enabling this
-    setting. Instead, update your queries
-    accordingly.
-
 TRIM
 ----
 
@@ -432,7 +416,7 @@ UNIX_DAT
 `UNIX_DATE()`
  
 Gets an integer representing days since epoch. The returned timestamp
-may differ depending on the local time of different KSQL Server instances.
+may differ depending on the local time of different ksqlDB Server instances.
 
 UNIX_TIMESTAMP
 --------------
@@ -440,7 +424,7 @@ UNIX_TIMESTAMP
 `UNIX_TIMESTAMP()`
 
 Gets the Unix timestamp in milliseconds, represented as a BIGINT. The returned
-timestamp may differ depending on the local time of different KSQL Server instances.
+timestamp may differ depending on the local time of different ksqlDB Server instances.
 
 DATETOSTRING
 ------------
@@ -624,7 +608,7 @@ present or `url` is not a valid URI.
 
 
 !!! note
-    All KSQL URL functions assume URI syntax defined in
+    All ksqlDB URL functions assume URI syntax defined in
     [RFC 39386](https://tools.ietf.org/html/rfc3986). For more information on the
     structure of a URI, including definitions of the various components, see
     Section 3 of the RFC. For encoding/decoding, the

@@ -5,13 +5,13 @@ tagline: Merge streams of data in real time
 description: Learn how to use ksqlDB to merge streams of data in real time
 ---
 
-You can use KSQL to merge streams of data in real time by using the JOIN
-statement, which has a SQL-like *join* syntax. A KSQL join and a relational
+You can use ksqlDB to merge streams of data in real time by using the JOIN
+statement, which has a SQL-like *join* syntax. A ksqlDB join and a relational
 database join are similar in that they both combine data from two sources
-based on common values. The result of a KSQL join is a new stream or table
+based on common values. The result of a ksqlDB join is a new stream or table
 that's populated with the column values that you specify in a SELECT statement.
 
-With KSQL, you don't need to write the low-level logic around joining
+With ksqlDB, you don't need to write the low-level logic around joining
 streams and tables, so you can focus on the business logic for combining
 your streaming data.
 
@@ -24,7 +24,7 @@ You can join streams and tables in these ways:
 JOIN Clause
 -----------
 
-The KSQL JOIN clause has the familiar syntax of a SQL JOIN clause. The
+The ksqlDB JOIN clause has the familiar syntax of a SQL JOIN clause. The
 following example creates a `pageviews_enriched` stream, which is a
 combination of a `pageviews` stream and a `users` table:
 
@@ -35,11 +35,11 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
-For the full code example, see [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md).
+For the full code example, see [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
 
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
-units, see [KSQL Time Units](syntax-reference.md#ksql-time-units).
+units, see [ksqlDB Time Units](syntax-reference.md#ksqldb-time-units).
 
 Here's an example stream-stream join that combines a `shipments` stream
 with an `orders` stream. The resulting ``shipped_orders`` stream contains all
@@ -56,27 +56,27 @@ orders shipped within two hours of when the order was placed.
 Joins and Windows
 -----------------
 
-KSQL enables grouping records that have the same key for stateful
+ksqlDB enables grouping records that have the same key for stateful
 operations, like joins, into *windows*. You specify a retention period
-for the window, and this retention period controls how long KSQL waits
+for the window, and this retention period controls how long ksqlDB waits
 for out-of-order and late-arriving records. If a record arrives after
 the window's retention period has passed, the record is discarded and
 isn't processed in that window.
 
 >Note: Only stream-stream joins are windowed.
 
-Windows are tracked per record key. In join operations, KSQL uses a
+Windows are tracked per record key. In join operations, ksqlDB uses a
 windowing *state store* to store all of the records received so far
 within the defined window boundary. Old records in the state store are
 purged after the specified window retention period.
 
 For more information on windows, see
-[Windows in KSQL Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-ksql-queries).
+[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
 
 Join Requirements
 -----------------
 
-Your KSQL applications must meet specific requirements for joins to be
+Your ksqlDB applications must meet specific requirements for joins to be
 successful.
 
 ### Co-partitioned data
@@ -103,7 +103,7 @@ For more information, see [Key Requirements](syntax-reference.md#key-requirement
 Join Capabilities
 -----------------
 
-KSQL supports a large set of join operations for streams and tables,
+ksqlDB supports a large set of join operations for streams and tables,
 including INNER, LEFT OUTER, and FULL OUTER. Frequently, LEFT OUTER is
 shortened to LEFT JOIN, and FULL OUTER is shortened to OUTER JOIN.
 
@@ -122,7 +122,7 @@ The following table shows the supported combinations.
 Stream-Stream Joins
 -------------------
 
-KSQL supports INNER, LEFT OUTER, and FULL OUTER joins between streams.
+ksqlDB supports INNER, LEFT OUTER, and FULL OUTER joins between streams.
 
 All of these operations support out-of-order records.
 
@@ -178,7 +178,7 @@ ignored and don't trigger the join.
 Stream-Table Joins
 ------------------
 
-KSQL only supports INNER and LEFT joins between a stream and a table.
+ksqlDB only supports INNER and LEFT joins between a stream and a table.
 
 Stream-table joins are always non-windowed joins. You can perform table
 lookups against a table when a new record arrives on the stream. Only
@@ -186,14 +186,14 @@ events arriving on the stream side trigger downstream updates and
 produce join output. Updates on the table side don't produce updated
 join output.
 
-Out-of-order records aren't supported, which means that KSQL processes
+Out-of-order records aren't supported, which means that ksqlDB processes
 all records in offset order and doesn't check for out-of-order records.
 
 Stream-table joins cause data re-partitioning of the stream only if the
 stream was marked for re-partitioning.
 
 !!! important
-      KSQL currently provides best-effort on time synchronization, but there
+      ksqlDB currently provides best-effort on time synchronization, but there
       are no guarantees, which can cause missing results or leftRecord-NULL
       results.
 
@@ -235,7 +235,7 @@ the key from the table. Tombstones don't trigger the join.
 | 14        |             | d                |            |           |
 | 15        | D           |                  | [D, d]     | [D, d]    |
 
-For stream-table joins, KSQL assumes that the joining stream and table
+For stream-table joins, ksqlDB assumes that the joining stream and table
 follow the event-time ordering exactly. Follow these steps to ensure
 that joins are synchronized:
 
@@ -247,18 +247,18 @@ that joins are synchronized:
 Table-Table Joins
 -----------------
 
-KSQL supports INNER, LEFT OUTER, and FULL OUTER joins between tables.
+ksqlDB supports INNER, LEFT OUTER, and FULL OUTER joins between tables.
 Joins matching multiple records (one-to-many) aren't supported.
 
 Table-table joins are always non-windowed joins.
 
-Out-of-order records are not supported, which means that KSQL processes
+Out-of-order records are not supported, which means that ksqlDB processes
 all records in offset order and does not check for out-of-order records.
 
 Table-table joins are eventually consistent.
 
 !!! important
-      KSQL currently provides best-effort on time synchronization, but there
+      ksqlDB currently provides best-effort on time synchronization, but there
       are no guarantees, which can cause missing results or leftRecord-NULL
       results.
 

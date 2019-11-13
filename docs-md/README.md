@@ -3,7 +3,7 @@
 Source content for ksqlDB documentation
 =======================================
 
-The `docs-md` directory in the [KSQL repo](https://github.com/confluentinc/ksql)
+The `docs-md` directory in the [ksqlDB repo](https://github.com/confluentinc/ksql)
 contains the markdown files and other source content for the
 [ksqlDB docs](https://docs.ksqldb.io).
 

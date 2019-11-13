@@ -6,23 +6,23 @@ description: Use the `/ksql` resource to run a sequence of ksqlDB statements
 keywords: ksqldb
 ---
 
-The `/ksql` resource runs a sequence of KSQL statements. All statements,
+The `/ksql` resource runs a sequence of SQL statements. All statements,
 except those starting with SELECT, can be run on this endpoint. To run
 SELECT statements use the `/query` endpoint.
 
 !!! note
       If you use the SET or UNSET statements to assign query properties by
       using the REST API, the assignment is scoped only to the current
-      request. In contrast, SET and UNSET assignments in the KSQL CLI persist
+      request. In contrast, SET and UNSET assignments in the ksqlDB CLI persist
       throughout the CLI session.
 
 POST /ksql
 
-:   Run a sequence of KSQL statements.
+:   Run a sequence of SQL statements.
 
 JSON Parameters:
 
-- **ksql** (string): A semicolon-delimited sequence of KSQL statements to run.
+- **ksql** (string): A semicolon-delimited sequence of SQL statements to run.
 - **streamsProperties** (map): Property overrides to run the statements with.
   Refer to the :ref:`Config Reference <ksql-param-reference>` for details on
   properties that can be set.
@@ -45,7 +45,7 @@ The following fields are common to all responses.
 
 Response JSON Object:
 
-- **statementText** (string): The KSQL statement whose result is being returned.
+- **statementText** (string): The SQL statement whose result is being returned.
 - **warnings** (array): A list of warnings about conditions that may be unexpected
   by the user, but don't result in failure to execute the statement.
 - **warnings[i].message** (string): A message detailing the condition being warned on.
@@ -96,7 +96,7 @@ Response JSON Object:
 
 Response JSON Object:
 
-- **properties** (map): The KSQL server query properties.
+- **properties** (map): The ksqlDB server query properties.
 - **properties[``property-name``]** (string): The value of the property named by
   ``property-name``.
 
@@ -145,7 +145,7 @@ Response JSON Object:
 
 Response JSON Object:
 
-- **queryDescription.statementText** (string): The KSQL statement for which the query being explained is running.
+- **queryDescription.statementText** (string): The ksqlDB statement for which the query being explained is running.
 - **queryDescription.fields** (array): A list of field objects that describes each field in the query output.
 - **queryDescription.fields[i].name** (string): The name of the field.
 - **queryDescription.fields[i].schema** (object): A schema object that describes the schema of the field.
@@ -162,7 +162,7 @@ Response JSON Object:
 
 **Errors**
 
-If KSQL fails to execute a statement, it returns a response with an error
+If ksqlDB fails to execute a statement, it returns a response with an error
 status code (4xx/5xx). Even if an error is returned, the server may have been
 able to successfully execute some statements in the request. In this case, the
 response includes the ``error_code`` and ``message`` fields, a ``statementText``
@@ -171,12 +171,12 @@ contains an array of result objects:
 
 Response JSON Object:
 
-- **statementText** (string): The text of the KSQL statement where the error occurred.
+- **statementText** (string): The text of the SQL statement where the error occurred.
 - **entities** (array): Result objects for statements that were successfully executed by the server.
 
 The ``/ksql`` endpoint may return the following error codes in the ``error_code`` field:
 
-- 40001 (BAD_STATEMENT): The request contained an invalid KSQL statement.
+- 40001 (BAD_STATEMENT): The request contained an invalid SQL statement.
 - 40002 (QUERY_ENDPOINT): The request contained a statement that should be issued to the ``/query`` endpoint.
 
 **Example request**

@@ -6,8 +6,8 @@ description: The `/info` resource gives you the status of a ksqlDB server
 keywords: ksqldb, server, status, info, terminate
 ---
 
-The `/info` resource gives you information about the status of a KSQL
-server, which can be useful for health checks and troubleshooting. You
+The `/info` resource gives you information about the status of a ksqlDB
+Server, which can be useful for health checks and troubleshooting. You
 can use the `curl` command to query the `/info` endpoint:
 
 ```bash
@@ -26,7 +26,7 @@ Your output should resemble:
 }
 ```
 
-You can also check the health of your KSQL server by using the
+You can also check the health of your ksqlDB server by using the
 ``/healthcheck`` resource:
 
 ```bash

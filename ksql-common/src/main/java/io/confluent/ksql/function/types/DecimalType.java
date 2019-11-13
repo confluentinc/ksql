@@ -17,6 +17,11 @@ package io.confluent.ksql.function.types;
 
 public final class DecimalType extends ObjectType {
 
+  public static final DecimalType INSTANCE = new DecimalType();
+
+  private DecimalType() {
+  }
+
   @Override
   public int hashCode() {
     return 2;

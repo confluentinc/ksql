@@ -20,10 +20,11 @@ public final class ParamTypes {
   private ParamTypes() {
   }
 
-  public static final BooleanType BOOLEAN = new BooleanType();
-  public static final IntegerType INTEGER = new IntegerType();
-  public static final DoubleType DOUBLE = new DoubleType();
-  public static final StringType STRING = new StringType();
-  public static final LongType LONG = new LongType();
-  public static final ParamType DECIMAL = new DecimalType();
+  public static final BooleanType BOOLEAN = BooleanType.INSTANCE;
+  public static final IntegerType INTEGER = IntegerType.INSTANCE;
+  public static final DoubleType DOUBLE = DoubleType.INSTANCE;
+  public static final StringType STRING = StringType.INSTANCE;
+  public static final LongType LONG = LongType.INSTANCE;
+  public static final ParamType DECIMAL = DecimalType.INSTANCE;
+
 }

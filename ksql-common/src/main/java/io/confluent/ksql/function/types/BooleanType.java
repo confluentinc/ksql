@@ -17,6 +17,11 @@ package io.confluent.ksql.function.types;
 
 public final class BooleanType extends ObjectType {
 
+  public static final BooleanType INSTANCE = new BooleanType();
+
+  private BooleanType() {
+  }
+
   @Override
   public int hashCode() {
     return 1;

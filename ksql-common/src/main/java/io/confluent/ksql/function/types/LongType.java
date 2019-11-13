@@ -17,6 +17,11 @@ package io.confluent.ksql.function.types;
 
 public final class LongType extends ObjectType {
 
+  public static final LongType INSTANCE = new LongType();
+
+  private LongType() {
+  }
+
   @Override
   public int hashCode() {
     return 5;

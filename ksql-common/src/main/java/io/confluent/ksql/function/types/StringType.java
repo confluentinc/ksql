@@ -17,6 +17,11 @@ package io.confluent.ksql.function.types;
 
 public final class StringType extends ObjectType {
 
+  public static final StringType INSTANCE = new StringType();
+
+  private StringType() {
+  }
+
   @Override
   public int hashCode() {
     return 6;

@@ -17,6 +17,12 @@ package io.confluent.ksql.function.types;
 
 public final class IntegerType extends ObjectType {
 
+  public static final IntegerType INSTANCE = new IntegerType();
+
+  private IntegerType() {
+  }
+
+
   @Override
   public int hashCode() {
     return 4;

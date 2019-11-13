@@ -17,6 +17,11 @@ package io.confluent.ksql.function.types;
 
 public final class DoubleType extends ObjectType {
 
+  public static final DoubleType INSTANCE = new DoubleType();
+
+  private DoubleType() {
+  }
+
   @Override
   public int hashCode() {
     return 3;

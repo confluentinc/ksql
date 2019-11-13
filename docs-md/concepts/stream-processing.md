@@ -2,7 +2,7 @@
 layout: page
 title: Stream Processing
 tagline: Process events by using ksqlDB collections
-description: Learn how to process events by using ksqlDB collections. 
+description: Learn about processing events by using ksqlDB collections. 
 keywords: ksqldb, collection, query
 ---
 

@@ -10,7 +10,7 @@ Aggregate Functions
 ===================
 
 For more information, see
-[Aggregate Streaming Data With KSQL](../aggregate-streaming-data.md).
+[Aggregate Streaming Data With ksqlDB](../aggregate-streaming-data.md).
 
   - [AVG](#average)
   - [COLLECT_LIST](#collectlist)

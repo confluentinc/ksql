@@ -5,7 +5,7 @@ tagline: Create a Stream from a Kafka topic
 description: Learn how to use the CREATE STREAM statement on a Kafka topic
 ---
 
-In KSQL, you create streams from {{ site.aktm }} topics, and you create
+In ksqlDB, you create streams from {{ site.aktm }} topics, and you create
 streams of query results from other streams.
 
 -   Use the CREATE STREAM statement to create a stream from a Kafka
@@ -15,7 +15,7 @@ streams of query results from other streams.
 
 !!! note
       Creating tables is similar to creating streams. For more information,
-      see [Create a KSQL Table](create-a-table.md).
+      see [Create a ksqlDB Table](create-a-table.md).
 
 Create a Stream from a Kafka topic
 ----------------------------------
@@ -26,19 +26,19 @@ Kafka topic. The Kafka topic must exist already in your Kafka cluster.
 The following examples show how to create streams from a Kafka topic,
 named `pageviews`. To see these examples in action, create the
 `pageviews` topic by following the procedure in
-[Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md).
+[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
 
 ### Create a Stream with Selected Columns
 
 The following example creates a stream that has three columns from the
 `pageviews` topic: `viewtime`, `userid`, and `pageid`.
 
-KSQL can't infer the topic's data format, so you must provide the
+ksqlDB can't infer the topic's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
 data format is `DELIMITED`. Other options are `Avro`, `JSON` and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more details.
 
-In the KSQL CLI, paste the following CREATE STREAM statement:
+In the ksqlDB CLI, paste the following CREATE STREAM statement:
 
 ```sql
 CREATE STREAM pageviews
@@ -97,7 +97,7 @@ For runtime statistics and query details run: DESCRIBE EXTENDED <Stream,Table>;
 
 ### Create a Stream with a Specified Key
 
-The previous KSQL statement makes no assumptions about the Kafka message
+The previous SQL statement makes no assumptions about the Kafka message
 key in the underlying Kafka topic. If the value of the message key in
 the topic is the same as one of the columns defined in the stream, you
 can specify the key in the WITH clause of the CREATE STREAM statement.
@@ -137,7 +137,7 @@ Kafka topic          : pageviews (partitions: 1, replication: 1)
 
 ### Create a Stream with Timestamps
 
-In KSQL, message timestamps are used for window-based operations, like
+In ksqlDB, message timestamps are used for window-based operations, like
 windowed aggregations, and to support event-time processing.
 
 If you want to use the value of one of the topic's columns as the Kafka
@@ -186,7 +186,7 @@ Use the CREATE STREAM AS SELECT statement to create a persistent query
 stream from an existing stream.
 
 CREATE STREAM AS SELECT creates a stream that contains the results from
-a SELECT query. KSQL persists the SELECT query results into a
+a SELECT query. ksqlDB persists the SELECT query results into a
 corresponding new topic. A stream created this way represents a
 persistent, continuous, streaming query, which means that it runs until
 you stop it explicitly.
@@ -194,7 +194,7 @@ you stop it explicitly.
 !!! note
       A SELECT statement by itself is a *non-persistent* continuous query. The
       result of a SELECT statement isn't persisted in a Kafka topic and is
-      only printed in the KSQL console. Don't confuse persistent queries
+      only printed in the ksqlDB console. Don't confuse persistent queries
       created by CREATE STREAM AS SELECT with the streaming query result from
       a SELECT statement.
 
@@ -202,11 +202,11 @@ Use the SHOW QUERIES statement to list the persistent queries that are
 running currently.
 
 Use the PRINT statement to view the results of a persistent query in the
-KSQL CLI. Press CTRL+C to stop printing records. When you stop printing,
+ksqlDB CLI. Press CTRL+C to stop printing records. When you stop printing,
 the query continues to run.
 
-Use the TERMINATE statement to stop a persistent query. Exiting the KSQL
-CLI *does not stop* persistent queries. Your KSQL servers continue to
+Use the TERMINATE statement to stop a persistent query. Exiting the ksqlDB
+CLI *does not stop* persistent queries. Your ksqlDB servers continue to
 process the queries, and queries run continuously until you terminate
 them explicitly.
 
@@ -218,7 +218,7 @@ underlying topic, use the INSERT INTO statement.
       To specify a KEY field, use the PARTITION BY clause. For more
       information, see [Partition Data to Enable Joins](partition-data.md).
 
-The following KSQL statement creates a `pageviews_intro` stream that
+The following SQL statement creates a `pageviews_intro` stream that
 contains results from a persistent query that matches "introductory"
 pages that have a `pageid` value that's less than `Page_20`:
 
@@ -263,7 +263,7 @@ Press Ctrl+C to stop printing the stream.
 !!! note
 		The query continues to run after you stop printing the stream.
 
-Use the SHOW QUERIES statement to view the query that KSQL created for
+Use the SHOW QUERIES statement to view the query that ksqlDB created for
 the `pageviews_intro` stream:
 
 ```sql
@@ -284,7 +284,7 @@ A persistent query that's created by the CREATE STREAM AS SELECT
 statement has the string `CSAS` in its ID, for example,
 `CSAS_PAGEVIEWS_INTRO_0`.
 
-Delete a KSQL Stream
+Delete a ksqlDB Stream
 --------------------
 
 Use the DROP STREAM statement to delete a stream. If you created the
@@ -325,7 +325,7 @@ Your output should resemble:
 Next Steps
 ----------
 
--   [Join Event Streams with KSQL](join-streams-and-tables.md)
--   [Clickstream Data Analysis Pipeline Using KSQL (Docker)](../tutorials/clickstream-docker.md)
+-   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 
 Page last revised on: {{ git_revision_date }}

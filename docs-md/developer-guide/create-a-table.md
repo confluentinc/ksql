@@ -5,7 +5,7 @@ tagline: Create a Table from a Kafka topic
 description: Learn how to use the CREATE TABLE statement on a Kafka topic
 ---
 
-In KSQL, you create tables from {{ site.aktm }} topics, and you create
+In ksqlDB, you create tables from {{ site.aktm }} topics, and you create
 tables of query results from other tables or streams.
 
 -   Use the CREATE TABLE statement to create a table from a Kafka topic.
@@ -14,7 +14,7 @@ tables of query results from other tables or streams.
 
 !!! note
       Creating streams is similar to creating tables. For more information,
-      see [Create a KSQL Stream](create-a-stream.md).
+      see [Create a ksqlDB Stream](create-a-stream.md).
 
 Create a Table from a Kafka Topic
 ---------------------------------
@@ -24,7 +24,7 @@ Kafka topic. The Kafka topic must exist already in your Kafka cluster.
 
 The following examples show how to create tables from a Kafka topic,
 named `users`. To see these examples in action, create the `users` topic
-by following the procedure in [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md).
+by following the procedure in [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
 
 ### Create a Table with Selected Columns
 
@@ -36,12 +36,12 @@ the `userid` field is assigned as the table\'s KEY property.
       The KEY field is optional. For more information, see
       [Key Requirements](syntax-reference.md#key-requirements).
 
-KSQL can't infer the topic's data format, so you must provide the
+ksqlDB can't infer the topic's data format, so you must provide the
 format of the values that are stored in the topic. In this example, the
 data format is `JSON`. Other options are `Avro`, `DELIMITED` and `KAFKA`.
 See [Serialization Formats](serialization.md#serialization-formats) for more details.
 
-In the KSQL CLI, paste the following CREATE TABLE statement:
+In the ksqlDB CLI, paste the following CREATE TABLE statement:
 
 ```sql
 CREATE TABLE users
@@ -122,21 +122,21 @@ Press Ctrl+C to stop printing the query results.
 The table values update continuously with the most recent records,
 because the underlying `users` topic receives new messages continuously.
 
-Create a KSQL Table with Streaming Query Results
-------------------------------------------------
+Create a ksqlDB Table with Streaming Query Results
+--------------------------------------------------
 
-Use the CREATE TABLE AS SELECT statement to create a KSQL table that
+Use the CREATE TABLE AS SELECT statement to create a ksqlDB table that
 contains the results of a SELECT query from another table or stream.
 
-CREATE TABLE AS SELECT creates a new KSQL table with a corresponding
+CREATE TABLE AS SELECT creates a new ksqlDB table with a corresponding
 Kafka topic and streams the result of the SELECT query as a changelog
-into the topic. KSQL creates a persistent query that runs continuously
+into the topic. ksqlDB creates a persistent query that runs continuously
 until you terminate it explicitly.
 
 To stream the result of a SELECT query into an *existing* table and its
 underlying topic, use the INSERT INTO statement.
 
-The following KSQL statement creates a `users_female` table that
+The following SQL statement creates a `users_female` table that
 contains results from a persistent query for users that have `gender`
 set to `FEMALE`:
 
@@ -193,7 +193,7 @@ Press Ctrl+C to stop printing the table.
 !!! note
 		The query continues to run after you stop printing the table.
 
-Use the SHOW QUERIES statement to view the query that KSQL created for
+Use the SHOW QUERIES statement to view the query that ksqlDB created for
 the `users_female` table:
 
 ```sql
@@ -214,7 +214,7 @@ A persistent query that's created by the CREATE TABLE AS SELECT
 statement has the string `CTAS` in its ID, for example,
 `CTAS_USERS_FEMALE_0`.
 
-Create a KSQL Table from a KSQL Stream
+Create a ksqlDB Table from a ksqlDB Stream
 --------------------------------------
 
 Use the CREATE TABLE AS SELECT statement to create a table from a
@@ -275,8 +275,8 @@ Your output should resemble:
 ```
 
 
-Delete a KSQL Table
--------------------
+Delete a ksqlDB Table
+---------------------
 
 Use the DROP TABLE statement to delete a table. If you created the table
 by using CREATE TABLE AS SELECT, you must first terminate the
@@ -315,7 +315,7 @@ Your output should resemble:
 Next Steps
 ----------
 
--   [Join Event Streams with KSQL](join-streams-and-tables.md)
--   [Clickstream Data Analysis Pipeline Using KSQL (Docker)](../tutorials/clickstream-docker.md)
+-   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 
 Page last revised on: {{ git_revision_date }}

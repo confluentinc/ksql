@@ -5,7 +5,7 @@ tagline: Run queries over REST
 description: Learn how to communicate with ksqlDB by using HTTP
 ---
 
-- [Get the Status of a KSQL Server (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
+- [Get the Status of a ksqlDB Server (/info endpoint)](ksqldb-rest-api/info-endpoint.md)
 - [Run a ksqlDB Statement (/ksql endpoint)](ksqldb-rest-api/ksql-endpoint.md)
 - [Run A Query And Stream Back The Output (/query endpoint)](ksqldb-rest-api/query-endpoint.md)
 - [Get the Status of a CREATE, DROP, or TERMINATE statement (/status endpoint)](ksqldb-rest-api/status-endpoint.md)
@@ -17,15 +17,15 @@ REST Endpoint
 The default REST API endpoint is `http://0.0.0.0:8088/`.
 
 Change the server configuration that controls the REST API endpoint by
-setting the `listeners` parameter in the KSQL server config file. For
+setting the `listeners` parameter in the ksqlDB server config file. For
 more info, see [listeners](../installation/server-config/config-reference.md#listeners).
 To configure the endpoint to use HTTPS, see
-[Configure KSQL for HTTPS](../installation/server-config/security.md#configure-ksql-for-https).
+[Configure ksqlDB for HTTPS](../installation/server-config/security.md#configure-ksqldb-for-https).
 
 Content Types
 -------------
 
-The KSQL REST API uses content types for requests and responses to
+The ksqlDB REST API uses content types for requests and responses to
 indicate the serialization format of the data and the API version.
 Currently, the only serialization format supported is JSON. The only
 version supported is v1. Your request should specify this serialization

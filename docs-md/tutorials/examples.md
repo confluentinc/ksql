@@ -10,7 +10,7 @@ These examples use a `pageviews` stream and a `users` table.
 
 !!! tip
       The [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
-      contains KSQL recipes that provide in-depth tutorials and recommended
+      contains ksqlDB recipes that provide in-depth tutorials and recommended
       deployment scenarios.
 
 Creating streams
@@ -24,7 +24,7 @@ Prerequisite:
 Create a stream with three columns on the Kafka topic that is named
 `pageviews`.
 
-KSQL can't infer the topic's data format, so you must provide the format
+ksqlDB can't infer the topic's data format, so you must provide the format
 of the values that are stored in the topic. In this example, the values
 format is `DELIMITED`.
 
@@ -40,10 +40,10 @@ CREATE STREAM pageviews
 ### Associate Kafka message keys
 
 The previous statement doesn't make any assumptions about the Kafka message
-key in the underlying Kafka topic. But if the value of the message key in
-Kafka is the same as one of the columns defined in the stream in KSQL, you
-can provide this information in the WITH clause. For example, if the Kafka
-message key has the same value as the `pageid` column, you can write the
+key in the underlying {{ site.ak }} topic. But if the value of the message key
+in {{ site.aktm }} is the same as one of the columns defined in the stream in
+ksqlDB, you can provide this information in the WITH clause. For example, if
+the {{ site.aktm }} message key has the same value as the `pageid` column, you can write the
 CREATE STREAM statement like this:
 
 ```sql
@@ -56,14 +56,14 @@ CREATE STREAM pageviews
        KEY='pageid');
 ```
 
-### Associate Kafka message timestamps
+### Associate {{ site.aktm }} message timestamps
 
-If you want to use the value of one of the columns as the Kafka message
-timestamp, you can provide this information to KSQL by using the WITH clause.
-The message timestamp is used in window-based operations in KSQL (such as
-windowed aggregations) and to support event-time based processing in KSQL. For
-example, if you want to use the value of the `viewtime` column as the message
-timestamp, you can rewrite the above statement like this:
+If you want to use the value of one of the columns as the {{ site.aktm }}
+message timestamp, you can provide this information to ksqlDB by using the
+WITH clause. The message timestamp is used in window-based operations in ksqlDB
+(such as windowed aggregations) and to support event-time based processing in
+ksqlDB. For example, if you want to use the value of the `viewtime` column as
+the message timestamp, you can rewrite the above statement like this:
 
 ```sql
 CREATE STREAM pageviews
@@ -81,7 +81,8 @@ Create tables
 
 Prerequisite:
 
-- The corresponding Kafka topics must already exist in your Kafka cluster.
+- The corresponding {{ site.aktm }} topics must already exist in your
+  {{ site.aktm }} cluster.
 
 Create a table with several columns. In this example, the table has
 columns with primitive data types, a column of `array` type, and a
@@ -107,20 +108,20 @@ Working with streams and tables
 -------------------------------
 
 Now that you have the `pageviews` stream and `users` table, take a look
-at some example queries that you can write in KSQL. The focus is on two
-types of KSQL statements: CREATE STREAM AS SELECT (CSAS) and
-CREATE TABLE AS SELECT (CTAS). For these statements, KSQL persists
+at some example queries that you can write in ksqlDB. The focus is on two
+types of ksqlDB statements: CREATE STREAM AS SELECT (CSAS) and
+CREATE TABLE AS SELECT (CTAS). For these statements, ksqlDB persists
 the results of the query in a new stream or table, which is backed by a
-Kafka topic.
+{{ site.aktm }} topic.
 
 ### Transforming
 
 For this example, imagine you want to create a new stream by
 transforming `pageviews` in the following way:
 
--   The `viewtime` column value is used as the Kafka message timestamp
-    in the new stream's underlying Kafka topic.
--   The new stream's Kafka topic has 5 partitions.
+-   The `viewtime` column value is used as the {{ site.aktm }} message timestamp
+    in the new stream's underlying {{ site.aktm }} topic.
+-   The new stream's {{ site.aktm }} topic has 5 partitions.
 -   The data in the new stream is in JSON format.
 -   Add a new column that shows the message timestamp in human-readable
     string format.
@@ -145,8 +146,8 @@ CREATE STREAM pageviews_transformed
 
 Use a `[ WHERE condition ]` clause to select a subset of data. If you
 want to route streams with different criteria to different streams
-backed by different underlying Kafka topics, e.g. content-based routing,
-write multiple KSQL statements as follows:
+backed by different underlying topics, e.g. content-based routing,
+write multiple ksqlDB statements as follows:
 
 ```sql
 CREATE STREAM pageviews_transformed_priority_1
@@ -181,7 +182,7 @@ CREATE STREAM pageviews_transformed_priority_2
 ### Joining
 
 When joining objects the number of partitions in each must be the same.
-You can use KSQL itself to create re-partitioned streams/tables as
+You can use ksqlDB itself to create re-partitioned streams/tables as
 required. In this example, you join `users` to the
 `pageviews_transformed` topic, which has 5 partitions.
 
@@ -213,14 +214,14 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
-Note that by default all of the Kafka topics are read from the current
-offset (the latest available data). But in a stream-table join,
+Note that by default all of the {{ site.aktm }} topics are read from the
+current offset (the latest available data). But in a stream-table join,
 the table topic is read from the beginning.
 
 ### Aggregating, windowing, and sessionization
 
-Watch the [screencast of Aggregations in
-KSQL](https://www.youtube.com/embed/db5SsmNvej4) on YouTube.
+Watch the
+[screencast on aggregation](https://www.youtube.com/embed/db5SsmNvej4).
 
 Now assume that you want to count the number of pageviews per region.
 Here is the query that would perform this count:
@@ -236,12 +237,12 @@ CREATE TABLE pageviews_per_region AS
 
 The above query counts the pageviews from the time you start the query
 until you terminate the query. Note that we used CREATE TABLE AS SELECT
-statement here since the result of the query is a KSQL *table*. The
-results of aggregate queries in KSQL are always a table, because KSQL
+statement here since the result of the query is a ksqlDB table. The
+results of aggregate queries in ksqlDB are always a table, because ksqlDB
 computes the aggregate for each key (and possibly for each window per
-key) and *updates* these results as it processes new input data.
+key) and updates these results as it processes new input data.
 
-KSQL supports aggregation over WINDOW too. Here's the previous query
+ksqlDB supports aggregation over WINDOW too. Here's the previous query
 changed to compute the pageview count per region every 1 minute:
 
 ```sql
@@ -268,12 +269,12 @@ CREATE TABLE pageviews_per_region_per_30secs AS
   EMIT CHANGES;
 ```
 
-UCASE and LCASE functions in KSQL are used to convert the values of
+UCASE and LCASE functions in ksqlDB are used to convert the values of
 gender and regionid columns to upper and lower case, so that you can
-match them correctly. KSQL also supports LIKE operator for prefix,
+match them correctly. ksqlDB also supports LIKE operator for prefix,
 suffix and substring matching.
 
-KSQL supports HOPPING windows and SESSION windows too. The following
+ksqlDB supports HOPPING windows and SESSION windows too. The following
 query is the same query as above that computes the count for hopping
 window of 30 seconds that advances by 10 seconds:
 
@@ -331,7 +332,7 @@ for each user: phone, city, state, and zipcode.
       If you are using `ksql-datagen`, you can use `quickstart=users_` to
       generate data that include the `interests` and `contactinfo` columns.
 
-The following query will create a new stream from `pageviews_enriched`
+The following query creates a new stream from `pageviews_enriched`
 that includes the first interest of each user along with the city and
 zipcode for each user:
 
@@ -350,22 +351,22 @@ CREATE STREAM pageviews_interest_contact AS
   EMIT CHANGES;
 ```
 
-Running KSQL Statements From the Command Line
----------------------------------------------
+Run ksqlDB Statements From the Command Line
+-------------------------------------------
 
-In addition to using the KSQL CLI or launching KSQL servers with the
-`--queries-file` configuration, you can also execute KSQL statements
+In addition to using the ksqlDB CLI or launching ksqlDB servers with the
+`--queries-file` configuration, you can also execute ksqlDB statements
 directly from your terminal. This can be useful for scripting. The
 following examples show common usage.
 
-Use pipelines (`|`) to run KSQL CLI commands:
+Use pipelines (`|`) to run ksqlDB CLI commands:
 
 ```bash
 echo -e "SHOW TOPICS;\nexit" | ksql
 ```
 
 Use the Bash [here document](http://tldp.org/LDP/abs/html/here-docs.html)
-(`<<`) to run KSQL CLI commands:
+(`<<`) to run ksqlDB CLI commands:
 
 ```bash
 ksql <<EOF
@@ -376,7 +377,7 @@ EOF
 ```
 
 Uses a Bash [here string](http://tldp.org/LDP/abs/html/x17837.html)
-(`<<<`) to run KSQL CLI commands on an explicitly defined KSQL server
+(`<<<`) to run ksqlDB CLI commands on an explicitly defined ksqlDB Server
 endpoint:
 
 ```bash
@@ -403,7 +404,7 @@ EOF
 ```
 
 !!! note
-    The `RUN SCRIPT` command supports a subset of KSQL CLI commands, including
+    The `RUN SCRIPT` command supports a subset of ksqlDB CLI commands, including
     running DDL statements (CREATE STREAM, CREATE TABLE), persistent queries
     (CREATE STREAM AS SELECT, CREATE TABLE AS SELECT), and setting configuration
     options (SET statement). Other statements and commands such as `SHOW TOPICS`

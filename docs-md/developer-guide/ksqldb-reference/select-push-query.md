@@ -27,7 +27,7 @@ SELECT select_expr [, ...]
 Description
 -----------
 
-Push a continuous stream of updates to the KSQL stream or table. The result of
+Push a continuous stream of updates to the ksqlDB stream or table. The result of
 this statement isn't persisted in a Kafka topic and is printed out only in
 the console. To stop the continuous query in the CLI press Ctrl+C.
 Note that the WINDOW clause can only be used if the `from_item` is a
@@ -95,7 +95,7 @@ If no limit is supplied the query runs until terminated, streaming
 back all results to the console.
 
 !!! tip
-      If you want to select older data, you can configure KSQL to
+      If you want to select older data, you can configure ksqlDB to
       query the stream from the beginning. You must run this configuration
       before running the query:
 
@@ -107,7 +107,7 @@ SET 'auto.offset.reset' = 'earliest';
 
 The WINDOW clause lets you control how to group input records *that have
 the same key* into so-called *windows* for operations like aggregations
-or joins. Windows are tracked per record key. KSQL supports the following
+or joins. Windows are tracked per record key. ksqlDB supports the following
 WINDOW types.
 
 **TUMBLING**: Tumbling windows group input records into fixed-sized,
@@ -164,13 +164,13 @@ SELECT item_id, SUM(quantity)
 
 Every output column of an expression in the SELECT list has an output
 name. To specify the output name of a column, use `AS OUTPUT_NAME` after
-the expression definition. If it is omitted, KSQL will assign a system
+the expression definition. If it is omitted, ksqlDB will assign a system
 generated name `KSQL_COL_i` where `i` is the ordinal number of the
 expression in the SELECT list. If the expression references a column of
 a `from_item`, then the output name is the name of that column.
 
 
-KSQL throws an error for duplicate output names. For example:
+ksqlDB throws an error for duplicate output names. For example:
 
 ```sql
 SELECT 1, KSQL_COL_0
@@ -215,13 +215,13 @@ CASE
 END
 ```
 
-KSQL supports a `searched` form of CASE expression. In this form, CASE
+ksqlDB supports a `searched` form of CASE expression. In this form, CASE
 evaluates each boolean `condition` in WHEN clauses, from left to right.
 If a condition is true, CASE returns the corresponding result. If none of
 the conditions is true, CASE returns the result from the ELSE clause. If
 none of the conditions is true and there is no ELSE clause, CASE returns null.
 
-The schema for all results must be the same, otherwise KSQL rejects the
+The schema for all results must be the same, otherwise ksqlDB rejects the
 statement.
 
 The following push query uses a a CASE expression.
@@ -245,7 +245,7 @@ EMIT CHANGES;
 column_name LIKE pattern;
 ```
 
-The LIKE operator is used for prefix or suffix matching. KSQL supports
+The LIKE operator is used for prefix or suffix matching. ksqlDB supports
 the `%` wildcard, which represents zero or more characters.
 
 The following push query uses the `%` wildcard to match any `user_id` that
@@ -267,7 +267,7 @@ WHERE expression [NOT] BETWEEN start_expression AND end_expression;
 ```
 
 The BETWEEN operator is used to indicate that a certain value must lie
-within a specified range, inclusive of boundaries. KSQL supports any
+within a specified range, inclusive of boundaries. ksqlDB supports any
 expression that resolves to a numeric or string value for comparison.
 
 The following push query uses the between clause to select only records

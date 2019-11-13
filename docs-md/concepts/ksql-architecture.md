@@ -1,8 +1,8 @@
 ---
 layout: page
 title: ksqlDB Architecture
-tagline: Internals of KSQL
-description: Quick tour under the hood of the KSQL engine
+tagline: Internals of ksqlDB
+description: Quick tour under the hood of the ksqlDB engine.
 ---
 
 You can use ksqlDB to build event streaming applications from {{ site.aktm }}
@@ -34,16 +34,16 @@ parses your SQL statements and builds corresponding Kafka Streams
 topologies. The ksqlDB engine is implemented in the
 [KsqlEngine.java](https://github.com/confluentinc/ksql/blob/master/ksql-engine/src/main/java/io/confluent/ksql/engine/KsqlEngine.java)
 class.
-- KSQL CLI: The KSQL CLI provides a console with a command-line interface for
-the KSQL engine. Use the KSQL CLI to interact with KSQL Server
-instances and develop your streaming applications. The KSQL CLI is
+- ksqlDB CLI: The ksqlDB CLI provides a console with a command-line interface for
+the ksqlDB engine. Use the ksqlDB CLI to interact with ksqlDB Server
+instances and develop your streaming applications. The ksqlDB CLI is
 designed to be familiar to users of MySQL, Postgres, and similar
-applications. The KSQL CLI is implemented in the
+applications. The ksqlDB CLI is implemented in the
 [io.confluent.ksql.cli](https://github.com/confluentinc/ksql/tree/master/ksql-cli/src/main/java/io/confluent/ksql/cli)
 package.
-- REST Interface: The REST server interface enables communicating with the KSQL engine
+- REST Interface: The REST server interface enables communicating with the ksqlDB engine
 from the CLI, {{ site.c3 }}, or from any other REST client. For more
-information, see [KSQL REST API Reference](../developer-guide/api.md). The KSQL REST server is implemented in the
+information, see [ksqlDB REST API Reference](../developer-guide/api.md). The ksqlDB REST server is implemented in the
 [KsqlRestApplication.java](https://github.com/confluentinc/ksql/blob/master/ksql-rest-app/src/main/java/io/confluent/ksql/rest/server/KsqlRestApplication.java)
 class.
 
@@ -52,7 +52,7 @@ that are independent of one another, are fault-tolerant, and can be scaled
 with load. For more information, see
 [ksqlDB Deployment Modes](#ksqldb-deployment-modes).
 
-![Diagram showing architecture of KSQL](../img/ksql-server-scale-out.gif)
+![Diagram showing architecture of ksqlDB](../img/ksql-server-scale-out.gif)
 
 ksqlDB and Kafka Streams
 ------------------------
@@ -199,23 +199,23 @@ where `<service id>` is the value in the `ksql.service.id` property.
 The following table shows which SQL operations are supported in
 headless and interactive deployments.
 
-|                                    SQL Operation                                    |     Interactive ksqlDB      |   Headless ksqlDB   |
-| ----------------------------------------------------------------------------------- | --------------------------- | ------------------- |
-| Describe a stream or table, including runtime stats (DESCRIBE, DESCRIBE EXTENDED)   | Supported                   | Not Supported       |
-| Explain a query, including runtime stats (EXPLAIN)                                  | Supported                   | Not Supported       |
-| CREATE a stream or table                                                            | Supported                   | Supported           |
-| DROP a stream or table                                                              | Supported                   | Not Supported       |
-| List existing streams and tables (SHOW STREAMS, SHOW TABLES)                        | Supported                   | Not Supported       |
-| List running queries (SHOW QUERIES)                                                 | Supported                   | Not Supported       |
-| Run a script (RUN SCRIPT)                                                           | Supported                   | Not Supported       |
-| Set query properties (SET)                                                          | Supported                   | Supported           |
-| Show contents of a Kafka topic (PRINT)                                              | Supported                   | Not Supported       |
-| Show contents of a stream or table (SELECT)                                         | Supported                   | Not Supported       |
-| Show properties of a query (SHOW PROPERTIES)                                        | Supported                   | Not Supported       |
-| Show results of a query (SELECT)                                                    | Supported                   | Not Supported       |
-| TERMINATE a query                                                                   | Supported                   | Not Supported       |
-| Start and stop a KSQL Server instance                                               | Not with ksqlDB API         | Not with ksqlDB API |
-| Cleanup and delete internal data (internal topics) of a KSQL cluster or application | Supported (ksqlDB REST API) | Not with ksqlDB API |
+|                                     SQL Operation                                     |     Interactive ksqlDB      |   Headless ksqlDB   |
+| ------------------------------------------------------------------------------------- | --------------------------- | ------------------- |
+| Describe a stream or table, including runtime stats (DESCRIBE, DESCRIBE EXTENDED)     | Supported                   | Not Supported       |
+| Explain a query, including runtime stats (EXPLAIN)                                    | Supported                   | Not Supported       |
+| CREATE a stream or table                                                              | Supported                   | Supported           |
+| DROP a stream or table                                                                | Supported                   | Not Supported       |
+| List existing streams and tables (SHOW STREAMS, SHOW TABLES)                          | Supported                   | Not Supported       |
+| List running queries (SHOW QUERIES)                                                   | Supported                   | Not Supported       |
+| Run a script (RUN SCRIPT)                                                             | Supported                   | Not Supported       |
+| Set query properties (SET)                                                            | Supported                   | Supported           |
+| Show contents of a Kafka topic (PRINT)                                                | Supported                   | Not Supported       |
+| Show contents of a stream or table (SELECT)                                           | Supported                   | Not Supported       |
+| Show properties of a query (SHOW PROPERTIES)                                          | Supported                   | Not Supported       |
+| Show results of a query (SELECT)                                                      | Supported                   | Not Supported       |
+| TERMINATE a query                                                                     | Supported                   | Not Supported       |
+| Start and stop a ksqlDB Server instance                                               | Not with ksqlDB API         | Not with ksqlDB API |
+| Cleanup and delete internal data (internal topics) of a ksqlDB cluster or application | Supported (ksqlDB REST API) | Not with ksqlDB API |
 
 !!! note
 	You can perform operations listed as "Not with ksqlDB API" manually.
@@ -359,7 +359,7 @@ following steps:
 From the logical plan, the ksqlDB engine creates the physical plan, which
 is a {{ site.kstreams }} DSL application with a schema.
 
-The generated code is based on the KSQL classes, `SchemaKStream` and
+The generated code is based on the ksqlDB classes, `SchemaKStream` and
 `SchemaKTable`:
 
 -   A ksqlDB stream is rendered as a
@@ -386,7 +386,7 @@ corresponding {{ site.kstreams }} API calls:
 2.  Filter -- produces another `SchemaKStream`
 3.  Project -- `select()` method
 4.  Apply aggregation -- Multiple steps: `rekey()`, `groupby()`, and
-    `aggregate()` methods. KSQL may re-partition data if it's not keyed
+    `aggregate()` methods. ksqlDB may re-partition data if it's not keyed
     with a GROUP BY phrase.
 5.  Filter -- `filter()` method
 6.  Project -- `select()` method for the result

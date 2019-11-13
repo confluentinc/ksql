@@ -54,7 +54,7 @@ git checkout {{ site.releasepostbranch }}
 
 ### 3. Launch the tutorial in Docker
 
-Navigate to the KSQL repository `docs/tutorials/` directory and
+Navigate to the ksqlDB repository `docs/tutorials/` directory and
 launch the tutorial in Docker. Depending on your network speed, this
 may take up to 5-10 minutes.
 
@@ -92,7 +92,7 @@ docker run --network tutorials_default --rm --name datagen-users \
 
 ### 5. Start the ksqlDB CLI
 
-From the host machine, start KSQL CLI:
+From the host machine, start ksqlDB CLI:
 
 ```bash
 docker run --network tutorials_default --rm --interactive --tty \
@@ -887,7 +887,7 @@ docker run --network tutorials_default --rm --name datagen-orders_3rdparty \
 
 ### 2. Register streams
 
-In KSQL, register the source topic for each:
+In ksqlDB, register the source topic for each:
 
 ```sql
 CREATE STREAM ORDERS_SRC_LOCAL
@@ -992,7 +992,7 @@ Your output should resemble:
 
 Events from both source topics are present, denoted by `LOCAL` and `3RD PARTY` respectively.
 
-Press Ctrl+C to cancel the `SELECT` query and return to the KSQL prompt.
+Press Ctrl+C to cancel the `SELECT` query and return to the ksqlDB prompt.
 
 ### 7. View the queries
 

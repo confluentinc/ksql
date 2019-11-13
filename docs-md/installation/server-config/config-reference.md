@@ -9,7 +9,7 @@ keywords: ksqldb, configure, server, setup, install
 Here are some common configuration properties that you can customize.
 For more information on setting properties, see
 [Configure ksqlDB Server](index.md) and
-[Configure ksqlDB CLI](../cli-config.md#configure-ksql-cli).
+[Configure ksqlDB CLI](../cli-config.md).
 
 !!! tip
 	Each property has a corresponding environment variable in the Docker
@@ -125,7 +125,7 @@ value of `ksql.output.topic.name.prefix` to the names of automatically
 created output topics. For example, you might use "ksql-interactive-"
 to name output topics in a ksqlDB Server cluster that's deployed in
 interactive mode. For more information, see
-[Interactive ksqlDB clusters](security.md#interactive-ksql-clusters).
+[Interactive ksqlDB clusters](security.md#interactive-ksqldb-clusters).
 
 The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_OUTPUT_TOPIC_NAME_PREFIX`.
@@ -179,7 +179,7 @@ is `KSQL_KSQL_FAIL_ON_DESERIALIZATION_ERROR`.
 
 The {{ site.sr }} URL path to connect ksqlDB to. To communicate with {{ site.sr }}
 over a secure connection, see
-[Configure ksqlDB for Secured {{ site.srlong }}](security.md#configure-ksql-for-https).
+[Configure ksqlDB for Secured {{ site.srlong }}](security.md#configure-ksqldb-for-https).
 
 The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_SCHEMA_REGISTRY_URL`.
@@ -221,8 +221,7 @@ For more info see the WITH clause properties in
 [CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
 [CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
-The corresponding environment variable in the [KSQL Server
-image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
+The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
 `KSQL_KSQL_SINK_PARTITIONS`.
 
 ### ksql.sink.replicas (Deprecated)
@@ -312,7 +311,7 @@ These configurations can only be specified via the
 !!! important
 	ksqlDB Server configuration settings take precedence over those set in the
     ksqlDB CLI. For example, if a value for `ksql.streams.replication.factor`
-    is set in both ksqlDB Server and KSQL CLI, the KSQL Server value is
+    is set in both ksqlDB Server and ksqlDB CLI, the ksqlDB Server value is
     used.
 
 ### ksql.query.persistent.active.limit
@@ -362,11 +361,11 @@ listeners=http://[::]:8088
 listeners=http://localhost:8088
 ```
 
-You can configure KSQL Server to use HTTPS. For more information, see
-[Configure ksqlDB for HTTPS](security.md#configure-ksql-for-https).
+You can configure ksqlDB Server to use HTTPS. For more information, see
+[Configure ksqlDB for HTTPS](security.md#configure-ksqldb-for-https).
 
 The corresponding environment variable in the
-[KSQL Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
+[ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_LISTENERS`.
 
 ### ksql.metrics.tags.custom
@@ -503,7 +502,7 @@ recommended in your `/etc/ksql/ksql-server.properties` file:
 ksql.streams.producer.delivery.timeout.ms=2147483647
 
 # Set the maximum allowable time for the producer to block to
-# Long.MAX_VALUE. This allows KSQL to pause processing if the underlying
+# Long.MAX_VALUE. This allows ksqlDB to pause processing if the underlying
 # Kafka cluster is unavailable.
 ksql.streams.producer.max.block.ms=9223372036854775807
 

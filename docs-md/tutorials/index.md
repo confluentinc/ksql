@@ -15,13 +15,13 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 - [Integrating with PostgresDB](connect-integration.md)
 - [ksqlDB Examples](examples.md)
 
-KSQL Basics
------------
+ksqlDB Basics
+-------------
 
-This tutorial demonstrates a simple workflow using KSQL to write
+This tutorial demonstrates a simple workflow using ksqlDB to write
 streaming queries against messages in {{ site.aktm }}.
 
-### Write Streaming Queries with the KSQL CLI
+### Write Streaming Queries with the ksqlDB CLI
 
 ```
 ===========================================
@@ -46,17 +46,17 @@ things work!
 ksql>
 ```
 
-Get started with the KSQL CLI:
+Get started with the ksqlDB CLI:
 
 - [Write Streaming Queries Against {{ site.aktm }} Using KSQL (Docker)](basics-docker.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using KSQL (Local)](basics-local.md)
 
-Write Streaming Queries with KSQL and Confluent Control Center
---------------------------------------------------------------
+Write Streaming Queries with ksqlDB and Confluent Control Center
+----------------------------------------------------------------
 
 ![image](../img/ksql-interface-create-stream.png){width="600px"}
 
-Get started with KSQL and {{ site.c3 }}:
+Get started with ksqlDB and {{ site.c3 }}:
 
 -   {{ site.c3short }}
     [deployed with Docker](https://docs.confluent.io/current/quickstart/ce-docker-quickstart.html)
@@ -67,7 +67,7 @@ Stream Processing Cookbook
 --------------------------
 
 The [Stream Processing Cookbook](https://www.confluent.io/product/ksql/stream-processing-cookbook)
-contains KSQL recipes that provide in-depth tutorials and recommended
+contains ksqlDB recipes that provide in-depth tutorials and recommended
 deployment scenarios.
 
 Clickstream Data Analysis Pipeline
@@ -104,21 +104,21 @@ installs. Running the Clickstream demo locally without Docker requires
 that you have {{ site.cp }} installed locally, along with
 Elasticsearch and Grafana.
 
-KSQL Examples
--------------
+ksqlDB Examples
+---------------
 
-[These examples](examples.md) provide common KSQL usage operations.
+[These examples](examples.md) provide common ksqlDB usage operations.
 
 You can configure Java streams applications to deserialize and ingest
 data in multiple ways, including {{ site.ak }} console producers, JDBC
 source connectors, and Java client producers. For full code examples,
 
-KSQL in a Kafka Streaming ETL
------------------------------
+ksqlDB in a Kafka Streaming ETL
+-------------------------------
 
-To learn how to deploy a Kafka streaming ETL using KSQL for stream
-processing, you can run the [Confluent Platform
-demo](https://docs.confluent.io/current/tutorials/cp-demo/docs/index.html).
+To learn how to deploy a Kafka streaming ETL using ksqlDB for stream
+processing, you can run the
+[Confluent Platform demo](https://docs.confluent.io/current/tutorials/cp-demo/docs/index.html).
 All components in the {{ site.cp }} demo have encryption,
 authentication, and authorization configured end-to-end.
 

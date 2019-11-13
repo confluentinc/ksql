@@ -122,8 +122,8 @@ To get started with {{ site.kstreams }}, try the
 Next Steps
 ----------
 
--   [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md)
--   [KSQL Developer Guide](../developer-guide/index.md)
+-   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
+-   [ksqlDB Developer Guide](../developer-guide/index.md)
 -   [Streams Developer Guide](https://docs.confluent.io/current/streams/developer-guide/index.html)
 
 Page last revised on: {{ git_revision_date }}

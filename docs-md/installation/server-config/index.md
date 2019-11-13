@@ -209,7 +209,7 @@ Your output should resemble:
     _confluent-ksql-default_messages-consumed-max: 100.1243737430132
 ```
 
-The following table describes the available KSQL metrics.
+The following table describes the available ksqlDB metrics.
 
 |        JMX Metric         |                                            Description                                             |
 | ------------------------- | -------------------------------------------------------------------------------------------------- |
@@ -274,7 +274,7 @@ To start the ksqlDB Server in headless, non-interactive configuration via the
 Configure the `ksql-server.properties` file. The
 `bootstrap.servers` and `ksql.queries.file` are required. For
 more information about configuration, see
-[KSQL configuration file](config-reference.md).
+[ksqlDB configuration file](config-reference.md).
 
 ```properties
 # Inform the ksqlDB server where the Kafka cluster can be found:

@@ -27,7 +27,7 @@ Configure Per-session Properties
 You can set the properties by using the ksqlDB CLI startup script argument
 `/bin/ksql <server> --config-file <path/to/file>` or by using the SET
 statement from within the ksqlDB CLI session. For more information, see
-[Start the ksqlDB CLI](installing.md#start-the-ksql-cli).
+[Start the ksqlDB CLI](installing.md#start-the-ksqldb-cli).
 
 Here are some common ksqlDB CLI properties that you can customize:
 

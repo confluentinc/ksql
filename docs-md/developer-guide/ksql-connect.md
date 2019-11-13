@@ -7,24 +7,24 @@ description: Learn how to integrate your ksqlDB applications with Kafka connecto
 
 {{ site.kconnectlong }} is an open source component of {{ site.aktm }} that
 simplifies loading and exporting data between Kafka and external systems.
-KSQL provides functionality to manage and integrate with {{ site.kconnect }}:
+ksqlDB provides functionality to manage and integrate with {{ site.kconnect }}:
 
 -   Create Connectors
 -   Describe Connectors
--   Import topics created by {{ site.kconnect }} to KSQL
+-   Import topics created by {{ site.kconnect }} to ksqlDB
 
-Setup KSQL-Connect Integration
+Setup ksqlDB-Connect Integration
 ------------------------------
 
-There are two ways to deploy the KSQL-Connect integration:
+There are two ways to deploy the ksqlDB-Connect integration:
 
 1.  **External**: If a {{ site.kconnect }} cluster is available, set the
-    `ksql.connect.url` property in your KSQL server configuration file.
+    `ksql.connect.url` property in your ksqlDB Server configuration file.
     The default value for this is `localhost:8083`.
-2.  **Embedded**: KSQL can double as a {{ site.kconnect }} server and
+2.  **Embedded**: ksqlDB can double as a {{ site.kconnect }} server and
     will run a [Distributed
     Mode](https://docs.confluent.io/current/connect/userguide.html#distributed-mode)
-    cluster co-located on the KSQL server instance. To do this, supply a
+    cluster co-located on the ksqlDB server instance. To do this, supply a
     connect properties configuration file to the server and specify this
     file in the `ksql.connect.worker.config` property.
 
@@ -35,7 +35,7 @@ There are two ways to deploy the KSQL-Connect integration:
 
 ### Plugins
 
-KSQL doesn't ship with connectors pre-installed, so you must download and
+ksqlDB doesn't ship with connectors pre-installed, so you must download and
 install connectors. A good way to install connectors is by using
 [Confluent Hub](https://www.confluent.io/hub/).
 
@@ -43,14 +43,13 @@ Natively Supported Connectors
 -----------------------------
 
 While it is possible to create, describe and list connectors of all
-types, KSQL supports a few connectors natively. KSQL provides templates
+types, ksqlDB supports a few connectors natively. ksqlDB provides templates
 to ease creation of connectors and custom code to explore topics created by
-these connectors into KSQL:
+these connectors into ksqlDB:
 
--   [Kafka Connect JDBC Connector (Source and
-    Sink)](https://docs.confluent.io/current/connect/kafka-connect-jdbc/index.html):
+-   [Kafka Connect JDBC Connector (Source and Sink)](https://docs.confluent.io/current/connect/kafka-connect-jdbc/index.html):
     because the JDBC connector doesn't populate the key automatically for
-    the Kafka messages that it produces, KSQL supplies the ability to
+    the Kafka messages that it produces, ksqlDB supplies the ability to
     pass in `"key"='<column_name>'` in the `WITH` clause to extract a
     column from the value and make it the key.
 
@@ -67,7 +66,7 @@ CREATE SOURCE | SINK CONNECTOR connector_name WITH( property_name = expression [
 **Description**
 
 Create a new Connector in the {{ site.kconnectlong }} cluster with the
-configuration passed in the WITH clause. Some connectors have KSQL templates
+configuration passed in the WITH clause. Some connectors have ksqlDB templates
 that simplify the configuration. For more information, see
 [Natively Supported Connectors](#natively-supported-connectors).
 
@@ -106,7 +105,7 @@ DESCRIBE CONNECTOR connector_name;
 
 Describe a connector. If the connector is one of the supported
 connectors, this statement also lists the tables and streams that were
-automatically imported to KSQL.
+automatically imported to ksqlDB.
 
 Example:
 
@@ -128,7 +127,7 @@ WorkerId             : 10.200.7.69:8083
  0       | RUNNING |
 ---------------------------------
 
- KSQL Source Name     | Kafka Topic | Type
+ ksqlDB Source Name     | Kafka Topic | Type
 --------------------------------------------
  JDBC_CONNECTOR_USERS | jdbc-users  | TABLE
 --------------------------------------------
@@ -153,7 +152,7 @@ List all connectors in the {{ site.kconnect }} cluster.
 
 !!! note
 	The SHOW and LIST statements don't distinguish connectors that are created by
-    using the KSQL from connectors that are created independently bu using the
+    using the ksqlDB from connectors that are created independently bu using the
     {{ site.kconnect }} API.
 
 Page last revised on: {{ git_revision_date }}

@@ -15,19 +15,17 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.Format;
 import io.confluent.ksql.serde.FormatInfo;
 import io.confluent.ksql.serde.KeyFormat;
@@ -39,12 +37,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
 
 public class SchemaKGroupedStream {
 
-  final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep;
+  final ExecutionStep<KGroupedStreamHolder> sourceStep;
   final KeyFormat keyFormat;
   final KeyField keyField;
   final List<SchemaKStream> sourceSchemaKStreams;
@@ -52,7 +48,7 @@ public class SchemaKGroupedStream {
   final FunctionRegistry functionRegistry;
 
   SchemaKGroupedStream(
-      final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
+      final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final KeyFormat keyFormat,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -71,23 +67,18 @@ public class SchemaKGroupedStream {
     return keyField;
   }
 
-  public ExecutionStep<KGroupedStream<Struct, GenericRow>> getSourceStep() {
+  public ExecutionStep<KGroupedStreamHolder> getSourceStep() {
     return sourceStep;
   }
 
   @SuppressWarnings("unchecked")
   public SchemaKTable<?> aggregate(
-      final LogicalSchema aggregateSchema,
-      final LogicalSchema outputSchema,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
-      final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder queryBuilder
+      final QueryContext.Stacker contextStacker
   ) {
-    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggregations);
-
     final ExecutionStep<? extends KTableHolder<?>> step;
     final KeyFormat keyFormat;
 
@@ -96,23 +87,21 @@ public class SchemaKGroupedStream {
       step = ExecutionStepFactory.streamWindowedAggregate(
           contextStacker,
           sourceStep,
-          outputSchema,
           Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonFuncColumnCount,
           aggregations,
-          aggregateSchema,
-          windowExpression.get().getKsqlWindowExpression()
+          windowExpression.get().getKsqlWindowExpression(),
+          functionRegistry
       );
     } else {
       keyFormat = this.keyFormat;
       step = ExecutionStepFactory.streamAggregate(
           contextStacker,
           sourceStep,
-          outputSchema,
           Formats.of(keyFormat, valueFormat, SerdeOption.none()),
           nonFuncColumnCount,
           aggregations,
-          aggregateSchema
+          functionRegistry
       );
     }
 
@@ -141,23 +130,5 @@ public class SchemaKGroupedStream {
         FormatInfo.of(Format.KAFKA),
         windowExpression.getKsqlWindowExpression().getWindowInfo()
     );
-  }
-
-  static void throwOnValueFieldCountMismatch(
-      final LogicalSchema aggregateSchema,
-      final int nonFuncColumnCount,
-      final List<FunctionCall> aggregateFunctions
-  ) {
-    final int totalColumnCount = aggregateFunctions.size() + nonFuncColumnCount;
-
-    final int valueColumnCount = aggregateSchema.value().size();
-    if (valueColumnCount != totalColumnCount) {
-      throw new IllegalArgumentException(
-          "Aggregate schema value field count does not match expected."
-          + " expected: " + totalColumnCount
-          + ", actual: " + valueColumnCount
-          + ", schema: " + aggregateSchema
-      );
-    }
   }
 }

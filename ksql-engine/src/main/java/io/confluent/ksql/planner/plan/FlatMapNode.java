@@ -26,14 +26,12 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.execution.streams.StreamFlatMapBuilder;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
 import java.util.ArrayList;
@@ -66,7 +64,11 @@ public class FlatMapNode extends PlanNode {
     this.analysis = Objects.requireNonNull(analysis);
     this.functionRegistry = functionRegistry;
     this.finalSelectExpressions = buildFinalSelectExpressions();
-    outputSchema = buildLogicalSchema(source.getSchema());
+    outputSchema = StreamFlatMapBuilder.buildSchema(
+        source.getSchema(),
+        analysis.getTableFunctions(),
+        functionRegistry
+    );
   }
 
   @Override
@@ -113,30 +115,6 @@ public class FlatMapNode extends PlanNode {
         analysis.getTableFunctions(),
         contextStacker
     );
-  }
-
-  private LogicalSchema buildLogicalSchema(final LogicalSchema inputSchema) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Column> cols = inputSchema.value();
-
-    // We copy all the original columns to the output schema
-    schemaBuilder.keyColumns(inputSchema.key());
-    for (Column col : cols) {
-      schemaBuilder.valueColumn(col);
-    }
-
-    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
-        inputSchema, functionRegistry);
-
-    // And add new columns representing the exploded values at the end
-    for (int i = 0; i < analysis.getTableFunctions().size(); i++) {
-      final FunctionCall functionCall = analysis.getTableFunctions().get(i);
-      final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
-      final SqlType fieldType = expressionTypeManager.getExpressionSqlType(functionCall);
-      schemaBuilder.valueColumn(colName, fieldType);
-    }
-
-    return schemaBuilder.build();
   }
 
   private List<SelectExpression> buildFinalSelectExpressions() {

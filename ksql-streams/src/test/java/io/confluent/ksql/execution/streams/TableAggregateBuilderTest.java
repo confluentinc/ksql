@@ -41,6 +41,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo.Aggregate
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.TableAggregate;
@@ -58,6 +59,7 @@ import io.confluent.ksql.serde.KeySerde;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.utils.Bytes;
 import org.apache.kafka.connect.data.Struct;
@@ -117,7 +119,7 @@ public class TableAggregateBuilderTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private AggregateParams.Factory aggregateParamsFactory;
+  private AggregateParamsFactory aggregateParamsFactory;
   @Mock
   private AggregateParams aggregateParams;
   @Mock
@@ -137,7 +139,7 @@ public class TableAggregateBuilderTest {
   @Mock
   private Materialized<Struct, GenericRow, KeyValueStore<Bytes, byte[]>> materialized;
   @Mock
-  private ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceStep;
+  private ExecutionStep<KGroupedTableHolder> sourceStep;
 
   private PlanBuilder planBuilder;
   private TableAggregate aggregate;
@@ -145,14 +147,16 @@ public class TableAggregateBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(sourceStep.getSchema()).thenReturn(INPUT_SCHEMA);
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.create(any(), anyInt(), any(), any())).thenReturn(aggregateParams);
+    when(aggregateParamsFactory.createUndoable(any(), anyInt(), any(), any()))
+        .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn(aggregator);
-    when(aggregateParams.getUndoAggregator()).thenReturn(undoAggregator);
+    when(aggregateParams.getUndoAggregator()).thenReturn(Optional.of(undoAggregator));
     when(aggregateParams.getInitializer()).thenReturn(initializer);
+    when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
+    when(aggregateParams.getSchema()).thenReturn(AGGREGATE_SCHEMA);
     when(aggregator.getResultMapper()).thenReturn(resultMapper);
     when(materializedFactory.<Struct, KeyValueStore<Bytes, byte[]>>create(any(), any(), any()))
         .thenReturn(materialized);
@@ -160,14 +164,13 @@ public class TableAggregateBuilderTest {
         aggregated);
     when(aggregated.mapValues(any(ValueMapper.class))).thenReturn(aggregatedWithResults);
     aggregate = new TableAggregate(
-        new DefaultExecutionStepProperties(INPUT_SCHEMA, CTX),
+        new DefaultExecutionStepProperties(AGGREGATE_SCHEMA, CTX),
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
-        FUNCTIONS,
-        AGGREGATE_SCHEMA
+        FUNCTIONS
     );
-    when(sourceStep.build(any())).thenReturn(groupedTable);
+    when(sourceStep.build(any())).thenReturn(KGroupedTableHolder.of(groupedTable, INPUT_SCHEMA));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
@@ -192,6 +195,15 @@ public class TableAggregateBuilderTest {
     inOrder.verify(groupedTable).aggregate(initializer, aggregator, undoAggregator, materialized);
     inOrder.verify(aggregated).mapValues(resultMapper);
     inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(AGGREGATE_SCHEMA));
   }
 
   @Test
@@ -240,7 +252,7 @@ public class TableAggregateBuilderTest {
     aggregate.build(planBuilder);
 
     // Then:
-    verify(aggregateParamsFactory).create(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);
+    verify(aggregateParamsFactory).createUndoable(INPUT_SCHEMA, 2, functionRegistry, FUNCTIONS);
   }
 
   @Test
@@ -252,7 +264,7 @@ public class TableAggregateBuilderTest {
     assertThat(result.getMaterializationBuilder().isPresent(), is(true));
     final MaterializationInfo info = result.getMaterializationBuilder().get().build();
     assertThat(info.stateStoreName(), equalTo("agg-regate"));
-    assertThat(info.getSchema(), equalTo(INPUT_SCHEMA));
+    assertThat(info.getSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getTransforms(), hasSize(1));
     final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);

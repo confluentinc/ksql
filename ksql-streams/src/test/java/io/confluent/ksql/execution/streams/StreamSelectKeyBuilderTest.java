@@ -98,7 +98,7 @@ public class StreamSelectKeyBuilderTest {
   );
 
   private PlanBuilder planBuilder;
-  private StreamSelectKey selectKey;
+  private StreamSelectKey<?> selectKey;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -112,11 +112,11 @@ public class StreamSelectKeyBuilderTest {
     when(filteredKStream.selectKey(any(KeyValueMapper.class))).thenReturn(rekeyedKstream);
     when(rekeyedKstream.mapValues(any(ValueMapperWithKey.class))).thenReturn(updatedKeyKStream);
     when(sourceStep.build(any())).thenReturn(
-        new KStreamHolder<>(kstream, mock(KeySerdeFactory.class)));
+        new KStreamHolder<>(kstream, SCHEMA, mock(KeySerdeFactory.class)));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
     givenUpdateRowkey();
@@ -264,6 +264,15 @@ public class StreamSelectKeyBuilderTest {
         mapper.apply(asStructKey("bob"), new GenericRow(0, "dre", 3000, "bob")),
         equalTo(new GenericRow(0, "dre", 3000, "bob"))
     );
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final KStreamHolder<Struct> result = selectKey.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(SCHEMA));
   }
 
   private KeyValueMapper<Struct, GenericRow, Struct> getKeyMapper() {

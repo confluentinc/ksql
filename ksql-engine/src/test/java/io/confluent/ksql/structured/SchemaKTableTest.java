@@ -51,7 +51,7 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
-import io.confluent.ksql.execution.streams.AggregateParams;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
@@ -191,7 +191,7 @@ public class SchemaKTableTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
@@ -205,8 +205,8 @@ public class SchemaKTableTest {
     final ExecutionStep sourceStep = Mockito.mock(ExecutionStep.class);
     when(sourceStep.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(schema, queryContext.getQueryContext()));
-    when(sourceStep.getSchema()).thenReturn(schema);
-    when(sourceStep.build(any())).thenReturn(KTableHolder.unmaterialized(kTable, keySerdeFactory));
+    when(sourceStep.build(any())).thenReturn(
+        KTableHolder.unmaterialized(kTable, schema, keySerdeFactory));
     return sourceStep;
   }
 
@@ -254,7 +254,9 @@ public class SchemaKTableTest {
 
   private SchemaKTable buildSchemaKTableForJoin(final KsqlTable ksqlTable, final KTable kTable) {
     return buildSchemaKTable(
-        ksqlTable.getSchema(), ksqlTable.getKeyField(), kTable
+        ksqlTable.getSchema().withAlias(ksqlTable.getName()),
+        ksqlTable.getKeyField().withAlias(ksqlTable.getName()),
+        kTable
     );
   }
 

@@ -44,7 +44,7 @@ public final class StreamTableJoinBuilder {
     final Formats leftFormats = join.getFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
-    final LogicalSchema leftSchema = join.getLeft().getProperties().getSchema();
+    final LogicalSchema leftSchema = left.getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
         leftSchema.withoutAlias(),
         leftFormats.getOptions()
@@ -65,19 +65,19 @@ public final class StreamTableJoinBuilder {
         null,
         StreamsUtil.buildOpName(queryContext)
     );
-    final LogicalSchema rightSchema = join.getRight().getProperties().getSchema();
-    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final LogicalSchema rightSchema = right.getSchema();
+    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getStream().leftJoin(right.getTable(), joiner, joined);
+        result = left.getStream().leftJoin(right.getTable(), joinParams.getJoiner(), joined);
         break;
       case INNER:
-        result = left.getStream().join(right.getTable(), joiner, joined);
+        result = left.getStream().join(right.getTable(), joinParams.getJoiner(), joined);
         break;
       default:
         throw new IllegalStateException("invalid join type");
     }
-    return left.withStream(result);
+    return left.withStream(result, joinParams.getSchema());
   }
 }

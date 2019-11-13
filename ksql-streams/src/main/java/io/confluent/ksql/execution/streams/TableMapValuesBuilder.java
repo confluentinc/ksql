@@ -35,7 +35,7 @@ public final class TableMapValuesBuilder {
 
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
 
-    final SelectValueMapper<K> mapper = Selection.<K>of(
+    final Selection<K> selection = Selection.of(
         queryBuilder.getQueryId(),
         queryContext,
         sourceSchema,
@@ -43,15 +43,18 @@ public final class TableMapValuesBuilder {
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext()
-    ).getMapper();
+    );
+    final SelectValueMapper<K> mapper = selection.getMapper();
 
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 
     return table
-        .withTable(table.getTable().transformValues(() -> mapper, selectName))
+        .withTable(
+            table.getTable().transformValues(() -> mapper, selectName),
+            selection.getSchema())
         .withMaterialization(
             table.getMaterializationBuilder().map(
-                b -> b.project(step.getSelectExpressions(), step.getSchema())
+                b -> b.project(step.getSelectExpressions(), selection.getSchema())
             )
         );
   }

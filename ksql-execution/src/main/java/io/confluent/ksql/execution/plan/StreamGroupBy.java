@@ -15,16 +15,13 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
 
 @Immutable
-public class StreamGroupBy<K> implements ExecutionStep<KGroupedStream<Struct, GenericRow>> {
+public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   private final ExecutionStepProperties properties;
   private final ExecutionStep<KStreamHolder<K>> source;
   private final Formats formats;
@@ -64,7 +61,7 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStream<Struct, Ge
   }
 
   @Override
-  public KGroupedStream<Struct, GenericRow> build(final PlanBuilder planVisitor) {
+  public KGroupedStreamHolder build(final PlanBuilder planVisitor) {
     return planVisitor.visitStreamGroupBy(this);
   }
 

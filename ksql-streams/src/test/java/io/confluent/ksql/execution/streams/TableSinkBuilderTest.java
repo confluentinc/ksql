@@ -110,7 +110,7 @@ public class TableSinkBuilderTest {
         new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
     );
     when(source.build(any())).thenReturn(
-        KTableHolder.unmaterialized(kTable, keySerdeFactory));
+        KTableHolder.unmaterialized(kTable, SCHEMA, keySerdeFactory));
     sink = new TableSink<>(
         new DefaultExecutionStepProperties(SCHEMA, queryContext),
         source,
@@ -120,7 +120,7 @@ public class TableSinkBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
   }

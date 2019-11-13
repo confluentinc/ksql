@@ -15,8 +15,9 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -43,8 +44,6 @@ import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -54,14 +53,14 @@ import org.apache.kafka.streams.kstream.Windowed;
 public final class KSPlanBuilder implements PlanBuilder {
   private final KsqlQueryBuilder queryBuilder;
   private final SqlPredicateFactory sqlPredicateFactory;
-  private final AggregateParams.Factory aggregateParamFactory;
+  private final AggregateParamsFactory aggregateParamFactory;
   private final StreamsFactories streamsFactories;
 
   public KSPlanBuilder(final KsqlQueryBuilder queryBuilder) {
     this(
         queryBuilder,
         SqlPredicate::new,
-        AggregateParams::new,
+        new AggregateParamsFactory(),
         StreamsFactories.create(queryBuilder.getKsqlConfig())
     );
   }
@@ -69,7 +68,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   public KSPlanBuilder(
       final KsqlQueryBuilder queryBuilder,
       final SqlPredicateFactory sqlPredicateFactory,
-      final AggregateParams.Factory aggregateParamFactory,
+      final AggregateParamsFactory aggregateParamFactory,
       final StreamsFactories streamsFactories) {
     this.queryBuilder = Objects.requireNonNull(queryBuilder, "queryBuilder");
     this.sqlPredicateFactory = Objects.requireNonNull(sqlPredicateFactory, "sqlPredicateFactory");
@@ -84,11 +83,11 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KGroupedStream<Struct, GenericRow> visitStreamGroupBy(
+  public <K> KGroupedStreamHolder visitStreamGroupBy(
       final StreamGroupBy<K> streamGroupBy) {
     final KStreamHolder<K> source = streamGroupBy.getSource().build(this);
     return StreamGroupByBuilder.build(
-        source.getStream(),
+        source,
         streamGroupBy,
         queryBuilder,
         streamsFactories.getGroupedFactory()
@@ -96,11 +95,11 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public KGroupedStream<Struct, GenericRow> visitStreamGroupByKey(
+  public KGroupedStreamHolder visitStreamGroupByKey(
       final StreamGroupByKey streamGroupByKey) {
     final KStreamHolder<Struct> source = streamGroupByKey.getSource().build(this);
     return StreamGroupByBuilder.build(
-        source.getStream(),
+        source,
         streamGroupByKey,
         queryBuilder,
         streamsFactories.getGroupedFactory()
@@ -110,7 +109,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public KTableHolder<Struct> visitStreamAggregate(
       final StreamAggregate streamAggregate) {
-    final KGroupedStream<Struct, GenericRow> source = streamAggregate.getSource().build(this);
+    final KGroupedStreamHolder source = streamAggregate.getSource().build(this);
     return StreamAggregateBuilder.build(
         source,
         streamAggregate,
@@ -198,7 +197,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   @Override
   public KTableHolder<Windowed<Struct>> visitStreamWindowedAggregate(
       final StreamWindowedAggregate aggregate) {
-    final KGroupedStream<Struct, GenericRow> source = aggregate.getSource().build(this);
+    final KGroupedStreamHolder source = aggregate.getSource().build(this);
     return StreamAggregateBuilder.build(
         source,
         aggregate,
@@ -210,7 +209,7 @@ public final class KSPlanBuilder implements PlanBuilder {
 
   @Override
   public KTableHolder<Struct> visitTableAggregate(final TableAggregate aggregate) {
-    final KGroupedTable<Struct, GenericRow> source = aggregate.getSource().build(this);
+    final KGroupedTableHolder source = aggregate.getSource().build(this);
     return TableAggregateBuilder.build(
         source,
         aggregate,
@@ -227,7 +226,7 @@ public final class KSPlanBuilder implements PlanBuilder {
   }
 
   @Override
-  public <K> KGroupedTable<Struct, GenericRow> visitTableGroupBy(
+  public <K> KGroupedTableHolder visitTableGroupBy(
       final TableGroupBy<K> tableGroupBy) {
     final KTableHolder<K> source = tableGroupBy.getSource().build(this);
     return TableGroupByBuilder.build(

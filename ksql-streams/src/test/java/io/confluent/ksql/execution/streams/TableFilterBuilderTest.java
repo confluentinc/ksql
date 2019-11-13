@@ -104,12 +104,12 @@ public class TableFilterBuilderTest {
     );
     step = new TableFilter<>(properties, sourceStep, filterExpression);
     when(sourceStep.build(any())).thenReturn(
-        KTableHolder.materialized(sourceKTable, keySerdeFactory, materializationBuilder))
+        KTableHolder.materialized(sourceKTable, schema, keySerdeFactory, materializationBuilder))
     ;
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
   }
@@ -124,6 +124,15 @@ public class TableFilterBuilderTest {
     assertThat(result.getTable(), is(filteredKTable));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
     verify(sourceKTable).filter(predicate);
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final KTableHolder<Struct> result = step.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(schema));
   }
 
   @Test

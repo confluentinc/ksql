@@ -18,7 +18,7 @@ import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
-import io.confluent.ksql.execution.streams.AggregateParams.KudafAggregatorFactory;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory.KudafAggregatorFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
@@ -27,6 +27,7 @@ import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.List;
+import java.util.Optional;
 import org.apache.kafka.streams.kstream.Windowed;
 import org.apache.kafka.streams.kstream.internals.TimeWindow;
 import org.junit.Before;
@@ -36,7 +37,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class AggregateParamsTest {
+public class AggregateParamsFactoryTest {
   private static final LogicalSchema INPUT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
       .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
@@ -86,35 +87,39 @@ public class AggregateParamsTest {
     when(functionRegistry.getAggregateFunction(same(AGG0.getName().name()), any(), any())).thenReturn(agg0);
     when(agg0.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(agg0.name()).thenReturn(AGG0.getName());
+    when(agg0.returnType()).thenReturn(SqlTypes.INTEGER);
+    when(agg0.getAggregateType()).thenReturn(SqlTypes.BIGINT);
     when(functionRegistry.getAggregateFunction(same(AGG1.getName().name()), any(), any())).thenReturn(agg1);
     when(agg1.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE1);
     when(agg1.name()).thenReturn(AGG1.getName());
+    when(agg1.returnType()).thenReturn(SqlTypes.STRING);
+    when(agg1.getAggregateType()).thenReturn(SqlTypes.DOUBLE);
     when(functionRegistry.getAggregateFunction(same(TABLE_AGG.getName().name()), any(), any()))
         .thenReturn(tableAgg);
     when(tableAgg.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
+    when(tableAgg.returnType()).thenReturn(SqlTypes.INTEGER);
+    when(tableAgg.getAggregateType()).thenReturn(SqlTypes.BIGINT);
+    when(tableAgg.name()).thenReturn(TABLE_AGG.getName());
     when(functionRegistry.getAggregateFunction(same(WINDOW_START.getName().name()), any(), any()))
         .thenReturn(windowStart);
     when(windowStart.getInitialValueSupplier()).thenReturn(() -> INITIAL_VALUE0);
     when(windowStart.name()).thenReturn(WINDOW_START.getName());
+    when(windowStart.returnType()).thenReturn(SqlTypes.BIGINT);
+    when(windowStart.getAggregateType()).thenReturn(SqlTypes.BIGINT);
 
     when(udafFactory.create(anyInt(), any())).thenReturn(aggregator);
 
-    aggregateParams = new AggregateParams(
+    aggregateParams = new AggregateParamsFactory(udafFactory).create(
         INPUT_SCHEMA,
         2,
         functionRegistry,
-        FUNCTIONS,
-        udafFactory
+        FUNCTIONS
     );
   }
 
   @SuppressWarnings("unchecked")
   @Test
   public void shouldCreateAggregatorWithCorrectParams() {
-    // When:
-    aggregateParams.getAggregator();
-
-    // Then:
     verify(udafFactory).create(
         2,
          ImmutableList.of(agg0, agg1)
@@ -143,13 +148,22 @@ public class AggregateParamsTest {
   }
 
   @Test
+  public void shouldReturnEmptyUndoAggregator() {
+    // When:
+    final Optional<KudafUndoAggregator> undoAggregator = aggregateParams.getUndoAggregator();
+
+    // Then:
+    assertThat(undoAggregator.isPresent(), is(false));
+  }
+
+  @Test
   public void shouldReturnUndoAggregator() {
     // Given:
-    aggregateParams =
-        new AggregateParams(INPUT_SCHEMA, 2, functionRegistry, ImmutableList.of(TABLE_AGG));
+    aggregateParams = new AggregateParamsFactory(udafFactory)
+        .createUndoable(INPUT_SCHEMA, 2, functionRegistry, ImmutableList.of(TABLE_AGG));
 
     // When:
-    final KudafUndoAggregator undoAggregator = aggregateParams.getUndoAggregator();
+    final KudafUndoAggregator undoAggregator = aggregateParams.getUndoAggregator().get();
 
     // Then:
     assertThat(undoAggregator.getInitialUdafIndex(), equalTo(2));
@@ -171,7 +185,7 @@ public class AggregateParamsTest {
   @Test
   public void shouldReturnCorrectWindowSelectMapperForWindowSelections() {
     // Given:
-    aggregateParams = new AggregateParams(
+    aggregateParams = new AggregateParamsFactory(udafFactory).create(
         INPUT_SCHEMA,
         2,
         functionRegistry,
@@ -186,6 +200,46 @@ public class AggregateParamsTest {
     assertThat(
         windowSelectMapper.apply(window, new GenericRow("fiz", "baz", null)),
         equalTo(new GenericRow("fiz", "baz", 10))
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectAggregateSchema() {
+    // When:
+    final LogicalSchema schema = aggregateParams.getAggregateSchema();
+
+    // Then:
+    assertThat(
+        schema,
+        equalTo(
+            LogicalSchema.builder()
+                .keyColumns(INPUT_SCHEMA.key())
+                .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
+                .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
+                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.BIGINT)
+                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.DOUBLE)
+                .build()
+        )
+    );
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final LogicalSchema schema = aggregateParams.getSchema();
+
+    // Then:
+    assertThat(
+        schema,
+        equalTo(
+            LogicalSchema.builder()
+                .keyColumns(INPUT_SCHEMA.key())
+                .valueColumn(ColumnName.of("REQUIRED0"), SqlTypes.BIGINT)
+                .valueColumn(ColumnName.of("REQUIRED1"), SqlTypes.STRING)
+                .valueColumn(ColumnName.aggregateColumn(0), SqlTypes.INTEGER)
+                .valueColumn(ColumnName.aggregateColumn(1), SqlTypes.STRING)
+                .build()
+        )
     );
   }
 }

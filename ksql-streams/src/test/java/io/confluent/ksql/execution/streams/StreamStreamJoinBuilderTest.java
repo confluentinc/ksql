@@ -122,8 +122,6 @@ public class StreamStreamJoinBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(left.getSchema()).thenReturn(LEFT_SCHEMA);
-    when(right.getSchema()).thenReturn(RIGHT_SCHEMA);
     when(keySerdeFactory.buildKeySerde(any(KeyFormat.class), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
         .thenReturn(leftSerde);
@@ -131,13 +129,13 @@ public class StreamStreamJoinBuilderTest {
         .thenReturn(rightSerde);
     when(streamJoinedFactory.create(any(Serde.class), any(Serde.class), any(Serde.class), anyString(), anyString())).thenReturn(joined);
     when(left.build(any())).thenReturn(
-        new KStreamHolder<>(leftKStream, keySerdeFactory));
+        new KStreamHolder<>(leftKStream, LEFT_SCHEMA, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        new KStreamHolder<>(rightKStream, keySerdeFactory));
+        new KStreamHolder<>(rightKStream, RIGHT_SCHEMA, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
@@ -250,6 +248,21 @@ public class StreamStreamJoinBuilderTest {
     verifyNoMoreInteractions(leftKStream, rightKStream, resultKStream);
     assertThat(result.getStream(), is(resultKStream));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // Given:
+    givenInnerJoin();
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
   }
 
   @Test

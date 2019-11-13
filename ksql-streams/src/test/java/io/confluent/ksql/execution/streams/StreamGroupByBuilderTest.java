@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -137,7 +138,7 @@ public class StreamGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
     when(sourceStep.build(any())).thenReturn(
-        new KStreamHolder<>(sourceStream, mock(KeySerdeFactory.class)));
+        new KStreamHolder<>(sourceStream, SCHEMA, mock(KeySerdeFactory.class)));
     streamGroupBy = new StreamGroupBy<>(
         PROPERTIES,
         sourceStep,
@@ -147,7 +148,7 @@ public class StreamGroupByBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
@@ -161,10 +162,10 @@ public class StreamGroupByBuilderTest {
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedStream result = streamGroupBy.build(planBuilder);
+    final KGroupedStreamHolder result = streamGroupBy.build(planBuilder);
 
     // Then:
-    assertThat(result, is(groupedStream));
+    assertThat(result.getGroupedStream(), is(groupedStream));
     verify(sourceStream).filter(any());
     verify(filteredStream).groupBy(mapperCaptor.capture(), same(grouped));
     verifyNoMoreInteractions(filteredStream, sourceStream);
@@ -202,6 +203,15 @@ public class StreamGroupByBuilderTest {
   }
 
   @Test
+  public void shouldReturnCorrectSchemaForGroupBy() {
+    // When:
+    final KGroupedStreamHolder result = streamGroupBy.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(SCHEMA));
+  }
+
+  @Test
   public void shouldBuildKeySerdeCorrectlyForGroupBy() {
     // When:
     streamGroupBy.build(planBuilder);
@@ -228,12 +238,21 @@ public class StreamGroupByBuilderTest {
   }
 
   @Test
-  public void shouldPerformGroupByKeyCorrectly() {
+  public void shouldReturnCorrectSchemaForGroupByKey() {
     // When:
-    final KGroupedStream result = streamGroupByKey.build(planBuilder);
+    final KGroupedStreamHolder result = streamGroupByKey.build(planBuilder);
 
     // Then:
-    assertThat(result, is(groupedStream));
+    assertThat(result.getSchema(), is(SCHEMA));
+  }
+
+  @Test
+  public void shouldPerformGroupByKeyCorrectly() {
+    // When:
+    final KGroupedStreamHolder result = streamGroupByKey.build(planBuilder);
+
+    // Then:
+    assertThat(result.getGroupedStream(), is(groupedStream));
     verify(sourceStream).groupByKey(grouped);
     verifyNoMoreInteractions(sourceStream);
   }

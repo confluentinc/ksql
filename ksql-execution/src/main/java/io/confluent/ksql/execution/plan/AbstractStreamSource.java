@@ -33,6 +33,7 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
   private final int timestampIndex;
   private final Optional<AutoOffsetReset> offsetReset;
   private final LogicalSchema sourceSchema;
+  private final SourceName alias;
 
   public static LogicalSchemaWithMetaAndKeyFields getSchemaWithMetaAndKeyFields(
       final SourceName alias,
@@ -48,7 +49,8 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
       final TimestampExtractionPolicy timestampPolicy,
       final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
-      final LogicalSchema sourceSchema) {
+      final LogicalSchema sourceSchema,
+      final SourceName alias) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.topicName = Objects.requireNonNull(topicName, "topicName");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -56,6 +58,7 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
     this.timestampIndex = timestampIndex;
     this.offsetReset = Objects.requireNonNull(offsetReset, "offsetReset");
     this.sourceSchema = Objects.requireNonNull(sourceSchema, "sourceSchema");
+    this.alias = Objects.requireNonNull(alias, "alias");
   }
 
   @Override
@@ -90,6 +93,10 @@ public abstract class AbstractStreamSource<K> implements ExecutionStep<K> {
 
   public String getTopicName() {
     return topicName;
+  }
+
+  public SourceName getAlias() {
+    return alias;
   }
 
   @Override

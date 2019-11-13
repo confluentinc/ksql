@@ -43,7 +43,7 @@ public final class TableFilterBuilder {
     );
     final SqlPredicate predicate = sqlPredicateFactory.create(
         step.getFilterExpression(),
-        step.getSource().getProperties().getSchema(),
+        table.getSchema(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext().getLoggerFactory().getLogger(
@@ -53,7 +53,7 @@ public final class TableFilterBuilder {
         )
     );
     return table
-        .withTable(table.getTable().filter(predicate.getPredicate()))
+        .withTable(table.getTable().filter(predicate.getPredicate()), table.getSchema())
         .withMaterialization(
             table.getMaterializationBuilder().map(
                 b -> b.filter(step.getFilterExpression())

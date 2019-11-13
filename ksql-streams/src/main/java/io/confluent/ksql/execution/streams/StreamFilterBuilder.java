@@ -43,7 +43,7 @@ public final class StreamFilterBuilder {
     );
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
-        step.getSource().getProperties().getSchema(),
+        stream.getSchema(),
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext().getLoggerFactory().getLogger(
@@ -53,7 +53,8 @@ public final class StreamFilterBuilder {
         )
     );
     return stream.withStream(
-        stream.getStream().filter(predicate.getPredicate())
+        stream.getStream().filter(predicate.getPredicate()),
+        stream.getSchema()
     );
   }
 }

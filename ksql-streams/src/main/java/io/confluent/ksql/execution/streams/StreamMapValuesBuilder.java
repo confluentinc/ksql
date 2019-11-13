@@ -35,7 +35,7 @@ public final class StreamMapValuesBuilder {
 
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
 
-    final SelectValueMapper<K> mapper = Selection.<K>of(
+    final Selection<K> selection = Selection.of(
         queryBuilder.getQueryId(),
         queryContext,
         sourceSchema,
@@ -43,12 +43,14 @@ public final class StreamMapValuesBuilder {
         queryBuilder.getKsqlConfig(),
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext()
-    ).getMapper();
+    );
+    final SelectValueMapper<K> mapper = selection.getMapper();
 
     final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
 
     return stream.withStream(
-        stream.getStream().transformValues(() -> mapper, selectName)
+        stream.getStream().transformValues(() -> mapper, selectName),
+        selection.getSchema()
     );
   }
 }

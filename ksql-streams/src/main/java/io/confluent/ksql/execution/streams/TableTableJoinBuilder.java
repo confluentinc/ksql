@@ -29,23 +29,23 @@ public final class TableTableJoinBuilder {
       final KTableHolder<K> left,
       final KTableHolder<K> right,
       final TableTableJoin join) {
-    final LogicalSchema leftSchema = join.getLeft().getProperties().getSchema();
-    final LogicalSchema rightSchema = join.getRight().getProperties().getSchema();
-    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final LogicalSchema leftSchema = left.getSchema();
+    final LogicalSchema rightSchema = right.getSchema();
+    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
     final KTable<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getTable().leftJoin(right.getTable(), joiner);
+        result = left.getTable().leftJoin(right.getTable(), joinParams.getJoiner());
         break;
       case INNER:
-        result = left.getTable().join(right.getTable(), joiner);
+        result = left.getTable().join(right.getTable(), joinParams.getJoiner());
         break;
       case OUTER:
-        result = left.getTable().outerJoin(right.getTable(), joiner);
+        result = left.getTable().outerJoin(right.getTable(), joinParams.getJoiner());
         break;
       default:
         throw new IllegalStateException("invalid join type");
     }
-    return left.withTable(result);
+    return left.withTable(result, joinParams.getSchema());
   }
 }

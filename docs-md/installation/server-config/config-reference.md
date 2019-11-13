@@ -502,11 +502,6 @@ an external `ksql.connect.url`.
 Toggles whether or not to poll connect for new connectors and
 automatically register them in KSQL.
 
-### ksql.connect.configs.topic
-
-The {{ site.kconnect }} configuration topic. This setting corresponds to
-`config.storage.topic` in the {{ site.kconnect }} worker configuration.
-
 Recommended KSQL Production Settings
 ------------------------------------
 

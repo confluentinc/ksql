@@ -6,12 +6,12 @@ description: Learn about events and stream processing in ksqlDB.
 keywords: ksqldb, event, stream
 ---
 
+What is an event?
+-----------------
+
 ksqlDB is an event streaming database that's purpose-built for stream
 processing applications. The main focus of stream processing is modeling
 computation over unbounded streams of events.
-
-What is an event?
------------------
 
 An event is anything that occurred and was recorded. It could be something
 high-level that happened in a business, like the sale of an item or the
@@ -22,7 +22,7 @@ a point in time is an event.
 Because events are so fundamental to stream processing, they are ksqlDB's core
 unit of data. All of ksqlDB's features are oriented around making it easy to
 solve problems using events. Although it's easy to think about individual
-events, figuring out how to group related events together is a bit more
+events, figuring out how to store related events together is a bit more
 challenging. Fortunately, the idea of storing related events is well-explored
 territory. {{ site.aktm }} leads the way, which is why ksqlDB is built directly
 on top of it.
@@ -30,7 +30,7 @@ on top of it.
 {{ site.ak }} is a distributed streaming platform for working with events. It’s
 horizontally scalable, fault-tolerant, and extremely fast. Although working
 with it directly can be low-level, it has a strong and opinionated approach for
-modeling both individual events and groups of events. For this reason, ksqlDB
+modeling both individual events and stored events. For this reason, ksqlDB
 borrows heavily from some of {{ site.ak }}'s abstractions. It doesn’t aim to
 make you learn all of {{ site.ak }}, but it also doesn't reinvent the wheel
 where there's already something really good to use.
@@ -38,7 +38,7 @@ where there's already something really good to use.
 ksqlDB represents events by using a simple key/value model, which is very
 similar to {{ site.ak }}'s notion of a record. The key represents some form of
 identity about the event. The value represents information about the event that
-occurred. This combination of key and value makes it easy to model groups of
+occurred. This combination of key and value makes it easy to model stored
 events, since multiple events with the same key represent the same identity,
 irrespective of their values.
 

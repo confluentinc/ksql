@@ -49,7 +49,7 @@ CREATE TABLE movies (title VARCHAR, release_year INT)
 ```
 
 In this example, a new table named `movies` is created with two columns:
-`title` and `release_yar`. ksqlDB automatically creates an underlying `movies`
+`title` and `release_year`. ksqlDB automatically creates an underlying `movies`
 topic that you can access freely. The topic has 5 partitions, and any new
 events that are integrated into the table are hashed according to the value
 of the `title` column. Because {{ site.ak }} can store data in a variety of

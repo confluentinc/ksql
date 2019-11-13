@@ -6,7 +6,8 @@ def config = {
     cp_version = "5.5.0-beta191113214629"
     packaging_build_number = "1"
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
-    dockerRepos = ['confluentinc/ksql-cli', 'confluentinc/ksql-rest-app']
+    dockerArtifacts = ['confluentinc/ksql-cli', 'confluentinc/ksql-rest-app']
+    dockerRepos = ['confluentinc/ksqldb-cli', 'confluentinc/ksqldb-server']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
     dockerScan = true
     cron = '@daily'
@@ -162,6 +163,7 @@ def job = {
                             }
 
                             // Set the project versions in the pom files
+                            sh "set -x"
                             sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_version} -DgenerateBackupPoms=false"
 
                             // Set the version of the parent project to use.
@@ -193,6 +195,17 @@ def job = {
                 }
         }
     }
+
+    if (!config.isPrJob) {
+            stage('Rename Maven Docker Images') {
+                withDockerServer([uri: dockerHost()]) {
+                    config.dockerRepos.eachWithIndex { dockerRepo, index ->
+                        dockerArtifact = config.dockerArtifacts[index]
+                        sh "docker tag ${config.dockerRegistry}${dockerArtifact}:${config.docker_tag} ${config.dockerRegistry}${dockerRepo}:${config.docker_tag}"
+                    }
+                }
+            }
+        }
 
     if(config.dockerScan){
         stage('Twistloc scan') {
@@ -256,7 +269,8 @@ def job = {
 
 def post = {
     withDockerServer([uri: dockerHost()]) {
-        config.dockerRepos.reverse().each { dockerRepo ->
+        repos = config.dockerArtifacts + config.dockerRepos
+        repos.reverse().each { dockerRepo ->
             if (params.PROMOTE_TO_PRODUCTION) {
                 sh """#!/usr/bin/env bash \n
                 images=\$(docker images -q ${dockerRepo})

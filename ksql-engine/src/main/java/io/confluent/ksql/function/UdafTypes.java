@@ -17,10 +17,10 @@ package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.execution.function.UdfUtil;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
-import io.confluent.ksql.util.SchemaUtil;
 import java.lang.reflect.AnnotatedParameterizedType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 
 class UdafTypes {
@@ -82,23 +81,23 @@ class UdafTypes {
     validateTypes(outputType);
   }
 
-  Schema getInputSchema(final String inSchema) {
+  ParameterInfo getInputSchema(final String inSchema) {
     validateStructAnnotation(inputType, inSchema, "paramSchema");
-    final Schema inputSchema = getSchemaFromType(inputType, inSchema);
+    final ParamType inputSchema = getSchemaFromType(inputType, inSchema);
     //Currently, aggregate functions cannot have reified types as input parameters.
     if (!GenericsUtil.constituentGenerics(inputSchema).isEmpty()) {
       throw new KsqlException("Generic type parameters containing reified types are not currently"
           + " supported. " + functionInfo);
     }
-    return inputSchema;
+    return new ParameterInfo("val", inputSchema, "", false);
   }
 
-  Schema getAggregateSchema(final String aggSchema) {
+  ParamType getAggregateSchema(final String aggSchema) {
     validateStructAnnotation(aggregateType, aggSchema, "aggregateSchema");
     return getSchemaFromType(aggregateType, aggSchema);
   }
 
-  Schema getOutputSchema(final String outSchema) {
+  ParamType getOutputSchema(final String outSchema) {
     validateStructAnnotation(outputType, outSchema, "returnSchema");
     return getSchemaFromType(outputType, outSchema);
   }
@@ -115,11 +114,11 @@ class UdafTypes {
     }
   }
 
-  private Schema getSchemaFromType(final Type type, final String schema) {
+  private ParamType getSchemaFromType(final Type type, final String schema) {
     return schema.isEmpty()
-        ? SchemaUtil.ensureOptional(UdfUtil.getSchemaFromType(type))
-        : SchemaConverters.sqlToConnectConverter()
-            .toConnectSchema(sqlTypeParser.parse(schema).getSqlType());
+        ? UdfUtil.getSchemaFromType(type)
+        : SchemaConverters.sqlToFunctionConverter().toFunctionType(
+            sqlTypeParser.parse(schema).getSqlType());
   }
 
   private Type getRawType(final Type type) {

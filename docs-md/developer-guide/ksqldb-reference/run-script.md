@@ -22,7 +22,7 @@ Description
 You can run a list of predefined queries and commands from in a file by
 using the RUN SCRIPT command.
 
-The RUN SCRIPT command supports a subset of KSQL statements:
+The RUN SCRIPT command supports a subset of ksqlDB statements:
 
 -   Persistent queries: [CREATE STREAM](create-stream.md),
     [CREATE TABLE](create-table.md), [CREATE STREAM AS SELECT](create-stream-as-select.md),
@@ -39,7 +39,7 @@ The RUN SCRIPT doesn't support statements such as:
 
 RUN SCRIPT can also be used from the command line, for instance when
 writing shell scripts. For more information, see
-[Running KSQL Statements From the Command Line](../../tutorials/examples.md#running-ksql-statements-from-the-command-line).
+[Running ksqlDB Statements From the Command Line](../../tutorials/examples.md#running-ksqldb-statements-from-the-command-line).
 
 Example
 -------

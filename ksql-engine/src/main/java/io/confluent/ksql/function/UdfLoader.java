@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.Udf;
@@ -32,7 +33,6 @@ import java.util.function.Function;
 import org.apache.kafka.common.Configurable;
 import org.apache.kafka.common.metrics.Metrics;
 import org.apache.kafka.common.utils.Time;
-import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,18 +142,19 @@ public class UdfLoader {
 
     LOGGER.info("Adding function " + functionName + " for method " + method);
 
-    final List<Schema> parameters = FunctionLoaderUtils
+    final List<ParameterInfo> parameters = FunctionLoaderUtils
         .createParameters(method, functionName, typeParser);
 
-    final Schema javaReturnSchema = FunctionLoaderUtils
+    final ParamType javaReturnSchema = FunctionLoaderUtils
         .getReturnType(method, udfAnnotation.schema(), typeParser);
 
-    final Function<List<Schema>, Schema> schemaProviderFunction = FunctionLoaderUtils
+    final SchemaProvider schemaProviderFunction = FunctionLoaderUtils
         .handleUdfReturnSchema(
             theClass,
             javaReturnSchema,
             udfAnnotation.schemaProvider(),
-            udfDescriptionAnnotation.name()
+            udfDescriptionAnnotation.name(),
+            method.isVarArgs()
         );
 
     return KsqlScalarFunction.create(

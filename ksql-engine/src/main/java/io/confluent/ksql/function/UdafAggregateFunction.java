@@ -16,6 +16,7 @@
 package io.confluent.ksql.function;
 
 import io.confluent.ksql.function.udaf.Udaf;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,6 @@ import org.apache.kafka.common.metrics.stats.Max;
 import org.apache.kafka.common.metrics.stats.Rate;
 import org.apache.kafka.common.metrics.stats.WindowedCount;
 import org.apache.kafka.common.utils.Time;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -43,9 +43,9 @@ public class UdafAggregateFunction<I, A, O> extends BaseAggregateFunction<I, A, 
       final String functionName,
       final int udafIndex,
       final Udaf<I, A, O> udaf,
-      final Schema aggregateType,
-      final Schema outputType,
-      final List<Schema> arguments,
+      final SqlType aggregateType,
+      final SqlType outputType,
+      final List<ParameterInfo> arguments,
       final String description,
       final Optional<Metrics> metrics,
       final String method) {

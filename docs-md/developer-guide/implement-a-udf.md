@@ -17,26 +17,26 @@ Prerequisites
 Create a user-defined function (UDF), a user-defined aggregation function
 (UDAF), or a user-defined table function (UDTF) by following these steps:
 
-1.  [Create the KSQL extensions directory](#create-the-ksql-extensions-directory)
+1.  [Create the ksql extensions directory](#create-the-ksql-extensions-directory)
     that contains your packages.
 2.  [Create Java source and project files](#create-the-source-and-project-files)
     for your implementation.
 3.  [Build the package](#build-the-udf-package) for your function.
 4.  [Use your custom function](#use-your-custom-udf-in-a-ksql-query) in
-    a KSQL query or statement.
+    a SQL query or statement.
 
 For more information on custom functions, see
-[KSQL Custom Function Reference (UDF and UDAF)](udf.md).
+[ksqlDB Custom Function Reference (UDF and UDAF)](udf.md).
 
-Create the KSQL Extensions Directory
+Create the ksql Extensions Directory
 ------------------------------------
 
 When you create a custom user-defined function (UDF), you implement it
-in Java and deploy it as a JAR to the KSQL extensions directory. By
+in Java and deploy it as a JAR to the `ksql` extensions directory. By
 default, this directory doesn't exist, so you need to create it and
-assign it in the KSQL Server configuration properties.
+assign it in the ksqlDB Server configuration properties.
 
-Create the KSQL extensions directory,
+Create the `ksql` extensions directory,
 `<path-to-confluent>/etc/ksql/ext`:
 
 ```bash
@@ -53,7 +53,7 @@ ksql.extension.dir=/home/my-home-dir/confluent-{{ site.release }}/etc/ksql/ext
 
 !!! note
 	Use the fully qualified path or the relative path from
-    `<path-to-confluent>/bin`, which is `../etc/ksql/ext`. KSQL Server
+    `<path-to-confluent>/bin`, which is `../etc/ksql/ext`. ksqlDB Server
     won't load extensions if the path begins with `~`.
 
 Create the Source and Project Files
@@ -91,10 +91,10 @@ mkdir -p src/main/java/my/company/ksql/udfdemo
 ### Create the Java Source Code File
 
 The following Java code defines four overloads for a `multiply`
-function. The `UdfDescription` and `Udf` annotations tell KSQL Server to
+function. The `UdfDescription` and `Udf` annotations tell ksqlDB Server to
 load the `Multiply` class and look for methods to add to its list of
 available functions. For more information, see
-[KSQL Custom Function Reference (UDF and UDAF)](udf.md).
+[ksqlDB Custom Function Reference (UDF, UDAF, and UDTF)](udf.md).
 
 Copy the following code into a new file, named `Multiply.java`:
 
@@ -172,7 +172,7 @@ Project Object Model (POM) file for the Maven build, and name it
 
     <!-- Specify the ksql-udf dependency -->
     <dependencies>
-        <!-- KSQL dependency is needed to write your own UDF -->
+        <!-- ksql dependency is needed to write your own UDF -->
         <dependency>
             <groupId>io.confluent.ksql</groupId>
             <artifactId>ksql-udf</artifactId>
@@ -232,7 +232,7 @@ Build the UDF Package
 ---------------------
 
 Use Maven to build the package and create a JAR. Copy the JAR to the
-KSQL extensions directory.
+`ksql` extensions directory.
 
 In the root folder for your UDF, run Maven to build the package:
 
@@ -258,7 +258,7 @@ After a great deal of build info, your output should resemble:
 The Maven build creates a directory named `target` and saves the build
 output there. Copy the JAR file,
 `ksql-udf-demo-1.0-jar-with-dependencies.jar`, from the `target`
-directory to the `ext` directory of your KSQL installation. For example,
+directory to the `ext` directory of your ksqlDB installation. For example,
 if your {{ site.cp }} installation is at
 `/home/my-home-dir/confluent-{{ site.release }}`,
 copy the JAR to
@@ -270,31 +270,31 @@ cp target/ksql-udf-demo-1.0-jar-with-dependencies.jar <path-to-confluent>/etc/ks
 
 The custom UDF is deployed and ready to run.
 
-Use Your Custom UDF in a KSQL Query
+Use Your Custom UDF in a SQL Query
 -----------------------------------
 
-When your custom UDF is deployed in the KSQL extensions directory, it\'s
-loaded automatically when you start KSQL Server, and you can use it like
-you use the other KSQL functions.
+When your custom UDF is deployed in the `ksql` extensions directory, it's
+loaded automatically when you start ksqlDB Server, and you can use it like
+you use the other ksqlDB functions.
 
 !!! note
-	KSQL loads UDFs and UDAFs only on startup, so when you make changes to
-    your UDF code and re-deploy the JAR, you must restart KSQL Server to get
-    the latest version of your UDF.
+	ksqlDB loads user defined functions only on startup, so when you make
+    changes to your UDF code and re-deploy the JAR, you must restart ksqlDB
+    Server to get the latest version of your UDF.
 
-Start {{ site.cp }} and KSQL Server:
+Start {{ site.cp }} and ksqlDB Server:
 
 ```bash
 <path-to-confluent>/bin/confluent start ksql-server
 ```
 
-Start the KSQL CLI:
+Start the ksqlDB CLI:
 
 ```bash
 LOG_DIR=./ksql_logs <path-to-confluent>/bin/ksql
 ```
 
-In the KSQL CLI, list the available functions to ensure that KSQL Server
+In the ksqlDB CLI, list the available functions to ensure that ksqlDB Server
 loaded the MULTIPLY user-defined function:
 
 ```sql
@@ -347,7 +347,7 @@ Variations  :
 ```
 
 Use the MULTIPLY function in a query. If you follow the steps in
-[Write Streaming Queries Against {{ site.aktm }} Using KSQL (Local)](../tutorials/basics-local.md),
+[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Local)](../tutorials/basics-local.md),
 you can multiply the two BIGINT fields in the `pageviews_original` stream:
 
 ```sql
@@ -375,7 +375,7 @@ User Defined Aggregation Function (UDAF)
 Implementing a user-defined aggregation function (UDAF) is similar to
 the way that you implement a UDF. You use the `UdafDescription` and
 `UdafFactory` annotations in your Java code, and you deploy a JAR to the
-KSQL extensions directory. For more information, see
+`ksql` extensions directory. For more information, see
 [UDAFs](udf.md#udafs).
 
 User Defined Table Function (UDTF)
@@ -383,14 +383,14 @@ User Defined Table Function (UDTF)
 
 Implementing a user-defined table function (UDTF) is similar to the way
 that you implement a UDF. You use the `UdtfDescription` and `Udtf`
-annotations in your Java code, and you deploy a JAR to the KSQL extensions
+annotations in your Java code, and you deploy a JAR to the `ksql` extensions
 directory. For more information, see [UDTFs](udf.md#udtfs).
 
 Next Steps
 ----------
 
 -   [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
--   [Aggregate Streaming Data With KSQL](aggregate-streaming-data.md)
--   [Join Event Streams with KSQL](join-streams-and-tables.md)
+-   [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
+-   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
 
 Page last revised on: {{ git_revision_date }}

@@ -15,9 +15,9 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.name.FunctionName;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * Describes something that has a function signature and can be indexed in a {@link UdfIndex}.
@@ -27,16 +27,27 @@ public interface FunctionSignature {
   /**
    * @return the function name
    */
-  FunctionName getFunctionName();
+  FunctionName name();
+
+  /**
+   * @return the unresolved return type - this could be something like {@code STRUCT}, which
+   *         without any fields even if the resolved return type may have fields
+   */
+  ParamType declaredReturnType();
 
   /**
    * @return the schemas for the parameters
    */
-  List<Schema> getArguments();
+  List<ParamType> parameters();
+
+  /**
+   * @return the {@link ParameterInfo} for the parameters
+   */
+  List<ParameterInfo> parameterInfo();
 
   /**
    * @return whether or not to consider the final argument in
-   *         {@link #getArguments()} as variadic
+   *         {@link #parameters()} as variadic
    */
   default boolean isVariadic() {
     return false;

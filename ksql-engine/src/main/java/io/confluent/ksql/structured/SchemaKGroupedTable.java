@@ -92,7 +92,7 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
         .map(call -> UdafUtil.resolveAggregateFunction(
             queryBuilder.getFunctionRegistry(), call, sourceTableStep.getSchema())
         ).filter(function -> !(function instanceof TableAggregationFunction))
-        .map(KsqlAggregateFunction::getFunctionName)
+        .map(KsqlAggregateFunction::name)
         .map(FunctionName::name)
         .collect(Collectors.toList());
     if (!unsupportedFunctionNames.isEmpty()) {

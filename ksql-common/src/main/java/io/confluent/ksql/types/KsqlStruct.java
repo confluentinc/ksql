@@ -113,6 +113,10 @@ public final class KsqlStruct {
       schema.fields().forEach(f -> values.add(Optional.empty()));
     }
 
+    public Builder set(final String field, final Object value) {
+      return set(field, Optional.of(value));
+    }
+
     public Builder set(final String field, final Optional<?> value) {
       final FieldInfo info = getField(field, schema);
       info.field.type().validateValue(value.orElse(null));

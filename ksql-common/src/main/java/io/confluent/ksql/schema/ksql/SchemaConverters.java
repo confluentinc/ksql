@@ -18,10 +18,17 @@ package io.confluent.ksql.schema.ksql;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMap;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.types.StructType;
+import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import io.confluent.ksql.schema.ksql.types.SqlMap;
 import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlStruct.Builder;
 import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
@@ -77,6 +84,10 @@ public final class SchemaConverters {
 
   private static final SqlToJavaTypeConverter SQL_TO_JAVA_CONVERTER =
       new SqlToJavaConverter();
+
+  private static final SqlToFunctionConverter SQL_TO_FUNCTION_CONVERTER = new SqlToFunction();
+
+  private static final FunctionToSqlConverter FUNCTION_TO_SQL_CONVERTER = new FunctionToSql();
 
   private SchemaConverters() {
   }
@@ -137,6 +148,17 @@ public final class SchemaConverters {
     }
   }
 
+  public interface SqlToFunctionConverter {
+    /**
+     * Convert the supplied {@code SqlType} to its corresponding Function type.
+     */
+    ParamType toFunctionType(SqlType sqlType);
+  }
+
+  public interface FunctionToSqlConverter {
+    SqlType toSqlType(ParamType paramType);
+  }
+
   public static ConnectToSqlTypeConverter connectToSqlConverter() {
     return CONNECT_TO_SQL_CONVERTER;
   }
@@ -151,6 +173,14 @@ public final class SchemaConverters {
 
   public static SqlToJavaTypeConverter sqlToJavaConverter() {
     return SQL_TO_JAVA_CONVERTER;
+  }
+
+  public static SqlToFunctionConverter sqlToFunctionConverter() {
+    return SQL_TO_FUNCTION_CONVERTER;
+  }
+
+  public static FunctionToSqlConverter functionToSqlConverter() {
+    return FUNCTION_TO_SQL_CONVERTER;
   }
 
   private static final class ConnectToSqlConverter implements ConnectToSqlTypeConverter {
@@ -309,4 +339,75 @@ public final class SchemaConverters {
       return javaType;
     }
   }
+
+  private static class FunctionToSql implements FunctionToSqlConverter {
+
+    private static final BiMap<ParamType, SqlType> FUNCTION_TO_SQL =
+        ImmutableBiMap.<ParamType, SqlType>builder()
+            .put(ParamTypes.STRING, SqlTypes.STRING)
+            .put(ParamTypes.BOOLEAN, SqlTypes.BOOLEAN)
+            .put(ParamTypes.INTEGER, SqlTypes.INTEGER)
+            .put(ParamTypes.LONG, SqlTypes.BIGINT)
+            .put(ParamTypes.DOUBLE, SqlTypes.DOUBLE)
+            .build();
+
+    @Override
+    public SqlType toSqlType(ParamType paramType) {
+      final SqlType sqlType = FUNCTION_TO_SQL.get(paramType);
+      if (sqlType != null) {
+        return sqlType;
+      }
+
+      if (paramType instanceof MapType) {
+        return SqlTypes.map(toSqlType(((MapType) paramType).value()));
+      }
+
+      if (paramType instanceof ArrayType) {
+        return SqlTypes.array(toSqlType(((ArrayType) paramType).element()));
+      }
+
+      if (paramType instanceof StructType) {
+        final Builder struct = SqlTypes.struct();
+        ((StructType) paramType).getSchema()
+            .forEach((name, type) -> struct.field(name, toSqlType(type)));
+        return struct.build();
+      }
+
+      throw new KsqlException("Cannot convert param type to sql type: " + paramType);
+    }
+  }
+
+  private static class SqlToFunction implements SqlToFunctionConverter {
+
+    @Override
+    public ParamType toFunctionType(SqlType sqlType) {
+      final ParamType paramType = FunctionToSql.FUNCTION_TO_SQL.inverse().get(sqlType);
+      if (paramType != null) {
+        return paramType;
+      }
+
+      if (sqlType.baseType() == SqlBaseType.DECIMAL) {
+        return ParamTypes.DECIMAL;
+      }
+
+      if (sqlType.baseType() == SqlBaseType.ARRAY) {
+        return ArrayType.of(toFunctionType(((SqlArray) sqlType).getItemType()));
+      }
+
+      if (sqlType.baseType() == SqlBaseType.MAP) {
+        return MapType.of(toFunctionType(((SqlMap) sqlType).getValueType()));
+      }
+
+      if (sqlType.baseType() == SqlBaseType.STRUCT) {
+        final StructType.Builder builder = StructType.builder();
+        for (Field field : ((SqlStruct) sqlType).fields()) {
+          builder.field(field.name(), toFunctionType(field.type()));
+        }
+        return builder.build();
+      }
+
+      throw new KsqlException("Cannot convert sql type to param type: " + sqlType);
+    }
+  }
+
 }

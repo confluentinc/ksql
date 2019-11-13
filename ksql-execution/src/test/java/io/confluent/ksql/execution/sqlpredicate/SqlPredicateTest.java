@@ -34,6 +34,7 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlScalarFunction;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogMessageSchema;
@@ -48,7 +49,6 @@ import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Collections;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaAndValue;
 import org.apache.kafka.connect.data.Struct;
 import org.junit.Before;
@@ -81,8 +81,8 @@ public class SqlPredicateTest {
       new ColumnReferenceExp(ColumnRef.of(TEST1, ColumnName.of("COL2")));
 
   private static final KsqlScalarFunction LEN_FUNCTION = KsqlScalarFunction.createLegacyBuiltIn(
-      Schema.OPTIONAL_INT32_SCHEMA,
-      ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA),
+      SqlTypes.INTEGER,
+      ImmutableList.of(ParamTypes.STRING),
       FunctionName.of("LEN"),
       LenDummy.class
   );

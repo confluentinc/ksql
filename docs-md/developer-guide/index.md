@@ -5,7 +5,7 @@ tagline: Program ksqlDB
 description: Learn to create ksqlDB applications
 ---
 
-These topics show how to develop KSQL applications for {{ site.cp }}.
+These topics show how to develop ksqlDB applications.
 
 - [Configure ksqlDB CLI](../installation/cli-config) 
 - [Create a ksqlDB Stream](create-a-stream.md)

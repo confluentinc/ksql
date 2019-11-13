@@ -20,6 +20,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +36,7 @@ public class IntTopkDistinctKudafTest {
   private final List<Integer> valuesArray =
       ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 60, 80, 35, 25, 60, 80);
   private final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-      TopKDistinctTestUtils.getTopKDistinctKudaf(3, Schema.OPTIONAL_INT32_SCHEMA);
+      TopKDistinctTestUtils.getTopKDistinctKudaf(3, SqlTypes.INTEGER);
 
   @Test
   public void shouldAggregateTopK() {
@@ -92,7 +94,6 @@ public class IntTopkDistinctKudafTest {
                 new ArrayList<>(ImmutableList.of(60))));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldAggregateAndProducedOrderedTopK() {
     final List<Integer> aggregate = intTopkDistinctKudaf.aggregate(1, new ArrayList<>());
@@ -101,12 +102,11 @@ public class IntTopkDistinctKudafTest {
     assertThat(agg2, equalTo(ImmutableList.of(100, 1)));
   }
 
-  @SuppressWarnings("unchecked")
   @Test
   public void shouldBeThreadSafe() {
     // Given:
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        TopKDistinctTestUtils.getTopKDistinctKudaf(12, Schema.OPTIONAL_INT32_SCHEMA);
+        TopKDistinctTestUtils.getTopKDistinctKudaf(12, SqlTypes.INTEGER);
 
     final List<Integer> values = ImmutableList.of(10, 30, 45, 10, 50, 60, 20, 70, 80, 35, 25);
 
@@ -137,7 +137,8 @@ public class IntTopkDistinctKudafTest {
         new TopkDistinctKudaf("TopkDistinctKudaf",
                               0,
                               topX,
-                              Schema.OPTIONAL_INT32_SCHEMA,
+                              SqlTypes.INTEGER,
+                              ParamTypes.INTEGER,
                               Integer.class);
     final List<Integer> aggregate = new ArrayList<>();
     final long start = System.currentTimeMillis();
@@ -150,13 +151,12 @@ public class IntTopkDistinctKudafTest {
     System.out.println(took + "ms, " + ((double)took)/iterations);
   }
 
-  @SuppressWarnings("unchecked")
   //@Test
   public void testMergePerformance() {
     final int iterations = 1_000_000_000;
     final int topX = 10;
     final TopkDistinctKudaf<Integer> intTopkDistinctKudaf =
-        TopKDistinctTestUtils.getTopKDistinctKudaf(topX, Schema.OPTIONAL_INT32_SCHEMA);
+        TopKDistinctTestUtils.getTopKDistinctKudaf(topX, SqlTypes.INTEGER);
 
     final List<Integer> aggregate1 = IntStream.range(0, topX)
         .mapToObj(v -> v % 2 == 0 ? v + 1 : v)

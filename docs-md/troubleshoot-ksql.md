@@ -5,13 +5,13 @@ tagline: When things don't behave as expected
 description: Check this list to troubleshoot ksqlDB issues
 ---
 
-This guide contains troubleshooting information for many KSQL issues.
+This guide contains troubleshooting information for many ksqlDB issues.
 
 SELECT query does not stop
 --------------------------
 
-KSQL queries streams continuously and must be stopped explicitly. In the
-CLI, use Ctrl-C to stop non-persistent queries, like
+ksqlDB queries streams continuously and must be stopped explicitly. In the
+ksqlDB CLI, use Ctrl+C to stop non-persistent queries, like
 `SELECT * FROM myTable EMIT CHANGES`. To stop a persistent query created by
 CREATE STREAM AS SELECT or CREATE TABLE AS SELECT, use the TERMINATE statement:
 `TERMINATE query_id;`. For more information, see
@@ -20,7 +20,7 @@ CREATE STREAM AS SELECT or CREATE TABLE AS SELECT, use the TERMINATE statement:
 SELECT query returns no results
 -------------------------------
 
-If a KSQL query returns no results and the CLI hangs, use Ctrl+C to
+If a ksqlDB query returns no results and the CLI hangs, use Ctrl+C to
 stop the query and then review the following topics to diagnose the
 issue.
 
@@ -66,11 +66,11 @@ Example output showing an empty source topic:
 ### Verify that new messages are arriving at the source topic
 
 The topic is populated if the {{ site.kcat }} prints messages. However,
-it may not be receiving *new* messages. By default, KSQL reads from the
+it may not be receiving *new* messages. By default, ksqlDB reads from the
 end of a topic. A query does not return results if no new messages are
 being written to the topic.
 
-To check your query, you can set KSQL to read from the beginning of a
+To check your query, you can set ksqlDB to read from the beginning of a
 topic by assigning the `auto.offset.reset` property to `earliest` using
 following statement:
 
@@ -97,7 +97,7 @@ Remove `WHERE` and `HAVING` clauses and run your query again.
 
 ### Verify that there are no deserialization errors
 
-KSQL doesn't write query results if it's not able to deserialize
+ksqlDB doesn't write query results if it's not able to deserialize
 message data. Use the `DESCRIBE EXTENDED` statement to check that the
 `VALUE_FORMAT` of the stream matches the format of the records that {{
 site.kcat }} prints for your topic. Enter the following statement in the
@@ -133,7 +133,7 @@ Example output from {{ site.kcat }} for a DELIMITED topic:
 [Check for message processing failures](#check-for-message-processing-failures)
 for serialization errors. For example, if your query specifies JSON for the
 `VALUE_FORMAT`, and the underlying topic is not formatted as JSON, you'll see
-`JsonParseException` warnings in the KSQL server log. For example:
+`JsonParseException` warnings in the ksqlDB Server log. For example:
 
 ```
 [2018-09-17 12:29:09,929] WARN task [0_10] Skipping record due to deserialization error. topic=[_confluent-metrics] partition=[10] offset=[70] (org.apache.kafka.streams.processor.internals.RecordDeserializer:86)
@@ -141,7 +141,7 @@ for serialization errors. For example, if your query specifies JSON for the
  Caused by: com.fasterxml.jackson.core.JsonParseException: Unexpected character ((CTRL-CHAR, code 127)): expected a valid value (number, String, array, object, 'true', 'false' or 'null')
 ```
 
-KSQL CLI doesn't connect to KSQL server
+ksqlDB CLI doesn't connect to ksqlDB Server
 ---------------------------------------
 
 The following warning may occur when you start the CLI.
@@ -156,7 +156,7 @@ Caused by: Connection reset
 *******************************************
 ```
 
-A similar error may display when you create a KSQL query using the CLI.
+A similar error may display when you create a SQL query using the CLI.
 
 ```
 Error issuing POST to KSQL server
@@ -164,18 +164,18 @@ Caused by: java.net.SocketException: Connection reset
 Caused by: Connection reset
 ```
 
-In both cases, the CLI can't connect to the KSQL server. The following topics
+In both cases, the CLI can't connect to the ksqlDB Server. The following topics
 may help to diagnose the issue.
 
-### Verify that the KSQL CLI is using the correct port
+### Verify that the ksqlDB CLI is using the correct port
 
 By default, the server listens on port `8088`. See
-[Starting the KSQL CLI](installation/installing.md#start-the-ksql-cli) for more
+[Starting the ksqlDB CLI](installation/installing.md#start-the-ksqldb-cli) for more
 information.
 
-### Verify that the KSQL server configuration is correct
+### Verify that the ksqlDB Server configuration is correct
 
-In the KSQL server configuration file, check that the list of listeners
+In the ksqlDB Server configuration file, check that the list of listeners
 has the host address and port configured correctly. Search for the
 `listeners` setting in the file and verify it is set correctly.
 
@@ -189,14 +189,14 @@ Or if you're running over IPv6:
 listeners=http://[::]:8088
 ```
 
-See [Start the KSQL Server](installation/installing.md#start-the-ksql-server) for more
+See [Start the ksqlDB Server](installation/installing.md#start-the-ksqldb-server) for more
 information.
 
 ### Verify that there are no port conflicts
 
-There may be another process running on the port that the KSQL server
+There may be another process running on the port that the ksqlDB Server
 listens on. Use the following command to get the Process ID (PID) for
-the process running on the port assigned to the KSQL server. The command
+the process running on the port assigned to the ksqlDB Server. The command
 below checks the default `8088` port.
 
 ```bash
@@ -225,21 +225,21 @@ io.confluent.ksql.rest.server.KsqlServerMain ./config/ksql-server.properties
 
 If the `KsqlServerMain` process is not shown, a different process has
 taken the port that `KsqlServerMain` would normally use. Search for the
-`listeners` setting in the KSQL server configuration file and get the
+`listeners` setting in the ksqlDB Server configuration file and get the
 correct port. Start the CLI using the correct port.
 
-See [Start the KSQL Server](installation/installing.md#start-the-ksql-server) and
-[Starting the KSQL CLI](installation/installing.md#start-the-ksql-cli) for more
+See [Start the ksqlDB Server](installation/installing.md#start-the-ksqldb-server) and
+[Starting the ksqlDB CLI](installation/installing.md#start-the-ksqldb-cli) for more
 information.
 
 Cannot create a stream from the output of a windowed aggregate
 --------------------------------------------------------------
 
-KSQL doesn't support structured keys, so you can't create a stream
+ksqlDB doesn't support structured keys, so you can't create a stream
 from a windowed aggregate.
 
-KSQL does not clean up internal topics
---------------------------------------
+ksqlDB doesn't clean up internal topics
+---------------------------------------
 
 Make sure that your Kafka cluster is configured with
 `delete.topic.enable=true`. See
@@ -254,7 +254,7 @@ associated Avro schemas, they are not automatically matched with the
 renamed topics after replication completes.
 
 Using the PRINT statement for a replicated topic shows that the Avro
-schema ID exists in the Schema Registry. KSQL can deserialize the Avro
+schema ID exists in the Schema Registry. ksqlDB can deserialize the Avro
 message, however the CREATE STREAM statement fails with a
 deserialization error. For example:
 
@@ -295,7 +295,7 @@ you have write access to:
 Check for message processing failures
 -------------------------------------
 
-You can check the health of a KSQL query by viewing the number of
+You can check the health of a SQL query by viewing the number of
 messages that it has processed and counting how many processing failures
 have occurred.
 
@@ -323,26 +323,26 @@ your query. See
 [deserialization errors](#verify-that-there-are-no-deserialization-errors)
 for typical sources of processing failures.
 
-Check the KSQL server logs
+Check the ksqlDB Server logs
 --------------------------
 
-Check the KSQL server logs for errors using the command:
+Check the ksqlDB Server logs for errors using the command:
 
 ```bash
 confluent log ksql-server
 ```
 
-KSQL writes most of its log messages to `stdout` by default.
+ksqlDB writes most of its log messages to `stdout` by default.
 
 Look for logs in the default directory at `/usr/local/logs` or in the
 `LOG_DIR` that you assigned when starting the CLI. See
-[Starting the KSQL CLI](installation/installing.md#start-the-ksql-cli) for more
+[Starting the ksqlDB CLI](installation/installing.md#start-the-ksqldb-cli) for more
 information.
 
 If you installed the {{ site.cp }} using RPM or Debian packages,
 the logs are in the `/var/log/confluent/` directory.
 
-If you're running KSQL using Docker, the output is in the container
+If you're running ksqlDB using Docker, the output is in the container
 logs, for example:
 
 ```bash

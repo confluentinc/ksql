@@ -22,6 +22,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
@@ -33,16 +36,16 @@ import org.junit.rules.ExpectedException;
 
 public class ComparisonUtilTest {
 
-  private static final List<Schema> typesTable = ImmutableList.of(
-      Schema.OPTIONAL_BOOLEAN_SCHEMA,
-      Schema.OPTIONAL_INT32_SCHEMA,
-      Schema.OPTIONAL_INT64_SCHEMA,
-      Schema.OPTIONAL_FLOAT64_SCHEMA,
-      DecimalUtil.builder(4, 2).build(),
-      Schema.OPTIONAL_STRING_SCHEMA,
-      SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).build(),
-      SchemaBuilder.map(Schema.OPTIONAL_STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA).build(),
-      SchemaBuilder.struct().field("foo", Schema.OPTIONAL_INT64_SCHEMA).build()
+  private static final List<SqlType> typesTable = ImmutableList.of(
+      SqlTypes.BOOLEAN,
+      SqlTypes.INTEGER,
+      SqlTypes.BIGINT,
+      SqlTypes.DOUBLE,
+      SqlDecimal.of(4, 2),
+      SqlTypes.STRING,
+      SqlTypes.array(SqlTypes.STRING),
+      SqlTypes.map(SqlTypes.STRING),
+      SqlTypes.struct().field("foo", SqlTypes.BIGINT).build()
   );
 
   private static final SqlBaseType[] SCHEMA_TO_SQL_NAME = new SqlBaseType[] {
@@ -70,8 +73,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (Schema leftType: typesTable) {
-      for (Schema rightType: typesTable) {
+    for (SqlType leftType: typesTable) {
+      for (SqlType rightType: typesTable) {
         if (expectedResults.get(i).get(j)) {
           assertThat(
               ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType)
@@ -90,8 +93,8 @@ public class ComparisonUtilTest {
     // When:
     int i = 0;
     int j = 0;
-    for (Schema leftType: typesTable) {
-      for (Schema rightType: typesTable) {
+    for (SqlType leftType: typesTable) {
+      for (SqlType rightType: typesTable) {
         if (!expectedResults.get(i).get(j)) {
           try {
             ComparisonUtil.isValidComparison(leftType, ComparisonExpression.Type.EQUAL, rightType);

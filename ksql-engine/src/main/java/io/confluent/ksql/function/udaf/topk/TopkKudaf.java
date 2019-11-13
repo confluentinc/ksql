@@ -16,12 +16,15 @@
 package io.confluent.ksql.function.udaf.topk;
 
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.ParameterInfo;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
+import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -30,16 +33,15 @@ public class TopkKudaf<T extends Comparable<? super T>>
 
   private final int topKSize;
   private final Class<T> clazz;
-  private final Schema outputSchema;
-  private final List<Schema> argumentTypes;
+  private final SqlType outputSchema;
+  private final List<ParamType> argumentTypes;
 
-  @SuppressWarnings("unchecked")
   TopkKudaf(
       final String functionName,
       final int argIndexInValue,
       final int topKSize,
-      final Schema outputSchema,
-      final List<Schema> argumentTypes,
+      final SqlType outputSchema,
+      final List<ParamType> argumentTypes,
       final Class<T> clazz
   ) {
     super(
@@ -48,7 +50,10 @@ public class TopkKudaf<T extends Comparable<? super T>>
         ArrayList::new,
         outputSchema,
         outputSchema,
-        argumentTypes,
+        argumentTypes
+            .stream()
+            .map(arg -> new ParameterInfo("val", arg, "", false))
+            .collect(Collectors.toList()),
         "Calculates the TopK value for a column, per key."
     );
     this.topKSize = topKSize;
@@ -57,7 +62,6 @@ public class TopkKudaf<T extends Comparable<? super T>>
     this.clazz = clazz;
   }
 
-  @SuppressWarnings("unchecked")
   @Override
   public List<T> aggregate(final T currentValue, final List<T> aggregateValue) {
     if (currentValue == null) {

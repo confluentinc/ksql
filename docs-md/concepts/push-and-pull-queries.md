@@ -36,7 +36,7 @@ the API responds with a single response.
 Push Query
 ----------
 
-Push a continuous stream of updates to the KSQL stream or table. The result of
+Push a continuous stream of updates to the ksqlDB stream or table. The result of
 this statement isn't persisted in a Kafka topic and is printed out only in
 the console. To stop the continuous query in the CLI press Ctrl+C.
 Note that the WINDOW clause can only be used if the `from_item` is a

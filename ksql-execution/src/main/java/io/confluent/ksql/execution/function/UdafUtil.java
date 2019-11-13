@@ -26,18 +26,17 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
 public final class UdafUtil {
 
   private UdafUtil() {
   }
 
-  @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
   public static KsqlAggregateFunction<?, ?, ?> resolveAggregateFunction(
       FunctionRegistry functionRegistry, FunctionCall functionCall, LogicalSchema schema
   ) {
@@ -45,8 +44,8 @@ public final class UdafUtil {
       ExpressionTypeManager expressionTypeManager =
           new ExpressionTypeManager(schema, functionRegistry);
 
-      Schema argumentType =
-          expressionTypeManager.getExpressionSchema(functionCall.getArguments().get(0));
+      SqlType argumentType =
+          expressionTypeManager.getExpressionSqlType(functionCall.getArguments().get(0));
 
       // UDAFs only support one non-constant argument, and that argument must be a column reference
       Expression arg = functionCall.getArguments().get(0);

@@ -16,6 +16,7 @@
 package io.confluent.ksql.util;
 
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -165,17 +166,14 @@ public final class DecimalUtil {
    * @return the sql decimal
    * @throws KsqlException if the schema cannot safely be converted to decimal
    */
-  public static SqlDecimal toSqlDecimal(final Schema schema) {
-    switch (schema.type()) {
-      case BYTES:
-        requireDecimal(schema);
-        return SqlDecimal.of(precision(schema), scale(schema));
-      case INT32:
-        return SqlTypes.INT_UPCAST_TO_DECIMAL;
-      case INT64:
-        return SqlTypes.BIGINT_UPCAST_TO_DECIMAL;
+  public static SqlDecimal toSqlDecimal(final SqlType schema) {
+    switch (schema.baseType()) {
+      case DECIMAL: return (SqlDecimal) schema;
+      case INTEGER: return SqlTypes.INT_UPCAST_TO_DECIMAL;
+      case BIGINT:  return SqlTypes.BIGINT_UPCAST_TO_DECIMAL;
       default:
-        throw new KsqlException("Cannot convert schema of type " + schema.type() + " to decimal.");
+        throw new KsqlException(
+            "Cannot convert schema of type " + schema.baseType() + " to decimal.");
     }
   }
 

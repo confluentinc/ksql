@@ -8,7 +8,7 @@ def config = {
     dockerRepos = ['confluentinc/ksql-cli', 'confluentinc/ksql-rest-app']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
     dockerScan = true
-    cron = '@nightly'
+    cron = '@daily'
 }
 
 def defaultParams = [

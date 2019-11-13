@@ -15,13 +15,14 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 
 public interface FunctionRegistry {
 
-  Schema DEFAULT_FUNCTION_ARG_SCHEMA = Schema.OPTIONAL_INT64_SCHEMA;
+  SqlType DEFAULT_FUNCTION_ARG_SCHEMA = SqlTypes.BIGINT;
 
   /**
    * Test if the supplied {@code functionName} is an aggregate function.
@@ -90,7 +91,7 @@ public interface FunctionRegistry {
    */
   KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
       String functionName,
-      Schema argumentType,
+      SqlType argumentType,
       AggregateFunctionInitArguments initArgs
   );
 
@@ -102,7 +103,7 @@ public interface FunctionRegistry {
    * @return the function instance.
    * @throws KsqlException on unknown table function, or on unsupported {@code argumentType}.
    */
-  KsqlTableFunction getTableFunction(String functionName, List<Schema> argumentTypes);
+  KsqlTableFunction getTableFunction(String functionName, List<SqlType> argumentTypes);
 
   /**
    * @return all UDF factories.

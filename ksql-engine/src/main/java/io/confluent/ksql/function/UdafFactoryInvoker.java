@@ -15,9 +15,11 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udaf.TableUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Method;
@@ -26,16 +28,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.connect.data.Schema;
 
 class UdafFactoryInvoker implements FunctionSignature {
 
   private final FunctionName functionName;
-  private final Schema aggregateArgType;
-  private final Schema aggregateReturnType;
+  private final ParamType aggregateArgType;
+  private final ParamType aggregateReturnType;
   private final Optional<Metrics> metrics;
-  private final List<Schema> argTypes;
+  private final List<ParamType> paramTypes;
+  private final List<ParameterInfo> params;
   private final Method method;
   private final String description;
 
@@ -65,8 +68,9 @@ class UdafFactoryInvoker implements FunctionSignature {
     this.aggregateArgType = Objects.requireNonNull(types.getAggregateSchema(aggregateSchema));
     this.aggregateReturnType = Objects.requireNonNull(types.getOutputSchema(outputSchema));
     this.metrics = Objects.requireNonNull(metrics);
-    this.argTypes =
+    this.params =
         Collections.singletonList(types.getInputSchema(Objects.requireNonNull(inputSchema)));
+    this.paramTypes = params.stream().map(ParameterInfo::type).collect(Collectors.toList());
     this.method = Objects.requireNonNull(method);
     this.description = Objects.requireNonNull(description);
   }
@@ -78,12 +82,26 @@ class UdafFactoryInvoker implements FunctionSignature {
       final Udaf udaf = (Udaf)method.invoke(null, factoryArgs);
       final KsqlAggregateFunction function;
       if (TableUdaf.class.isAssignableFrom(method.getReturnType())) {
-        function = new UdafTableAggregateFunction(functionName.name(), initArgs.udafIndex(),
-            udaf, aggregateArgType, aggregateReturnType, argTypes, description, metrics,
+        function = new UdafTableAggregateFunction(
+            functionName.name(),
+            initArgs.udafIndex(),
+            udaf,
+            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
+            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            params,
+            description,
+            metrics,
             method.getName());
       } else {
-        function = new UdafAggregateFunction(functionName.name(), initArgs.udafIndex(),
-            udaf, aggregateArgType, aggregateReturnType, argTypes, description, metrics,
+        function = new UdafAggregateFunction(
+            functionName.name(),
+            initArgs.udafIndex(),
+            udaf,
+            SchemaConverters.functionToSqlConverter().toSqlType(aggregateArgType),
+            SchemaConverters.functionToSqlConverter().toSqlType(aggregateReturnType),
+            params,
+            description,
+            metrics,
             method.getName());
       }
       return function;
@@ -93,13 +111,23 @@ class UdafFactoryInvoker implements FunctionSignature {
   }
 
   @Override
-  public FunctionName getFunctionName() {
+  public FunctionName name() {
     return functionName;
   }
 
   @Override
-  public List<Schema> getArguments() {
-    return argTypes;
+  public ParamType declaredReturnType() {
+    return aggregateReturnType;
+  }
+
+  @Override
+  public List<ParamType> parameters() {
+    return paramTypes;
+  }
+
+  @Override
+  public List<ParameterInfo> parameterInfo() {
+    return params;
   }
 
   @Override

@@ -18,12 +18,12 @@ package io.confluent.ksql.function;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 import org.junit.Rule;
@@ -43,30 +43,13 @@ public class BaseAggregateFunctionTest {
   private Supplier<Integer> initialValueSupplier;
 
   @Test
-  public void shouldThrowOnNonOptionalReturnType() {
-    // Then:
-    expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("KSQL only supports optional field types");
-
-    // When:
-    new TestAggFunc(
-        "funcName",
-        0,
-        initialValueSupplier,
-        Schema.INT32_SCHEMA, // <-- non-optional return type.
-        Collections.emptyList(),
-        "the description"
-    );
-  }
-
-  @Test
   public void shouldReturnSqlReturnType() {
     // When:
     final TestAggFunc aggFunc = new TestAggFunc(
         "funcName",
         0,
         initialValueSupplier,
-        Schema.OPTIONAL_INT64_SCHEMA,
+        SqlTypes.BIGINT,
         Collections.emptyList(),
         "the description"
     );
@@ -81,8 +64,8 @@ public class BaseAggregateFunctionTest {
         final String functionName,
         final int argIndexInValue,
         final Supplier<Integer> initialValueSupplier,
-        final Schema returnType,
-        final List<Schema> arguments,
+        final SqlType returnType,
+        final List<ParameterInfo> arguments,
         final String description
     ) {
       super(functionName, argIndexInValue, initialValueSupplier, returnType, returnType,

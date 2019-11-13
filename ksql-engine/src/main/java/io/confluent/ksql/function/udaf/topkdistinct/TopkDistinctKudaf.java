@@ -16,14 +16,16 @@
 package io.confluent.ksql.function.udaf.topkdistinct;
 
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.ParameterInfo;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -32,23 +34,23 @@ public class TopkDistinctKudaf<T extends Comparable<? super T>>
 
   private final int tkVal;
   private final Class<T> ttClass;
-  private final Schema outputSchema;
+  private final SqlType outputSchema;
 
-  @SuppressWarnings("unchecked")
   TopkDistinctKudaf(
       final String functionName,
       final int argIndexInValue,
       final int tkVal,
-      final Schema outputSchema,
+      final SqlType outputSchema,
+      final ParamType paramType,
       final Class<T> ttClass
   ) {
     super(
         functionName,
         argIndexInValue,
         ArrayList::new,
-        SchemaBuilder.array(outputSchema).optional().build(),
-        SchemaBuilder.array(outputSchema).optional().build(),
-        Collections.singletonList(outputSchema),
+        SqlTypes.array(outputSchema),
+        SqlTypes.array(outputSchema),
+        Collections.singletonList(new ParameterInfo("val", paramType, "", false)),
         "Calculates the Topk distinct values for a column, per key."
     );
 

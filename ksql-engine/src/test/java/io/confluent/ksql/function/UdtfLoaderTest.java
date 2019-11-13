@@ -24,7 +24,8 @@ import io.confluent.ksql.function.udtf.Udtf;
 import io.confluent.ksql.function.udtf.UdtfDescription;
 import io.confluent.ksql.metastore.TypeRegistry;
 import io.confluent.ksql.schema.ksql.SqlTypeParser;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.io.File;
 import java.math.BigDecimal;
@@ -33,8 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -53,12 +52,12 @@ public class UdtfLoaderTest {
   public void shouldLoadSimpleParams() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(
-        Schema.INT32_SCHEMA,
-        Schema.INT64_SCHEMA,
-        Schema.FLOAT64_SCHEMA,
-        Schema.BOOLEAN_SCHEMA,
-        Schema.STRING_SCHEMA,
+    final List<SqlType> args = ImmutableList.of(
+        SqlTypes.INTEGER,
+        SqlTypes.BIGINT,
+        SqlTypes.DOUBLE,
+        SqlTypes.BOOLEAN,
+        SqlTypes.STRING,
         DECIMAL_SCHEMA,
         STRUCT_SCHEMA
     );
@@ -67,137 +66,134 @@ public class UdtfLoaderTest {
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
   }
 
   @Test
   public void shouldLoadParameterizedListParams() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(
-        SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-        SchemaBuilder.array(Schema.INT64_SCHEMA).build(),
-        SchemaBuilder.array(Schema.FLOAT64_SCHEMA).build(),
-        SchemaBuilder.array(Schema.BOOLEAN_SCHEMA).build(),
-        SchemaBuilder.array(Schema.STRING_SCHEMA).build(),
-        SchemaBuilder.array(DECIMAL_SCHEMA).build(),
-        SchemaBuilder.array(STRUCT_SCHEMA).build()
+    final List<SqlType> args = ImmutableList.of(
+        SqlTypes.INTEGER,
+        SqlTypes.BIGINT,
+        SqlTypes.DOUBLE,
+        SqlTypes.BOOLEAN,
+        SqlTypes.STRING,
+        DECIMAL_SCHEMA,
+        STRUCT_SCHEMA
     );
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
   }
 
   @Test
   public void shouldLoadParameterizedMapParams() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(
-        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA).build(),
-        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.INT64_SCHEMA).build(),
-        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.FLOAT64_SCHEMA).build(),
-        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.BOOLEAN_SCHEMA).build(),
-        SchemaBuilder.map(Schema.STRING_SCHEMA, Schema.STRING_SCHEMA).build(),
-        SchemaBuilder.map(Schema.STRING_SCHEMA, DECIMAL_SCHEMA).build(),
-        SchemaBuilder.map(
-            Schema.STRING_SCHEMA,
-            STRUCT_SCHEMA
-        ).build()
+    final List<SqlType> args = ImmutableList.of(
+        SqlTypes.map(SqlTypes.INTEGER),
+        SqlTypes.map(SqlTypes.BIGINT),
+        SqlTypes.map(SqlTypes.DOUBLE),
+        SqlTypes.map(SqlTypes.BOOLEAN),
+        SqlTypes.map(SqlTypes.STRING),
+        SqlTypes.map(DECIMAL_SCHEMA),
+        SqlTypes.map(STRUCT_SCHEMA)
     );
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
   }
 
   @Test
   public void shouldLoadListIntReturn() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(Schema.INT32_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(SqlTypes.INTEGER);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.INTEGER));
   }
 
   @Test
   public void shouldLoadListLongReturn() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(Schema.INT64_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(SqlTypes.BIGINT);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_INT64_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.BIGINT));
   }
 
   @Test
   public void shouldLoadListDoubleReturn() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(Schema.FLOAT64_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(SqlTypes.DOUBLE);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.DOUBLE));
   }
 
   @Test
   public void shouldLoadListBooleanReturn() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(Schema.BOOLEAN_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(SqlTypes.BOOLEAN);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.BOOLEAN));
   }
 
   @Test
   public void shouldLoadListStringReturn() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(Schema.STRING_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(SqlTypes.STRING);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.STRING));
   }
 
   @Test
   public void shouldLoadListBigDecimalReturnWithSchemaProvider() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(DECIMAL_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(DECIMAL_SCHEMA);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
 
     // Then:
-    assertThat(function.getReturnType(args), equalTo(DecimalUtil.builder(30, 10).build()));
+    assertThat(function.getReturnType(args), equalTo(SqlTypes.decimal(30, 10)));
   }
 
   @Test
   public void shouldLoadListStructReturnWithSchemaAnnotation() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(STRUCT_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(STRUCT_SCHEMA);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
@@ -210,7 +206,7 @@ public class UdtfLoaderTest {
   public void shouldLoadVarArgsMethod() {
 
     // Given:
-    final List<Schema> args = ImmutableList.of(STRUCT_SCHEMA);
+    final List<SqlType> args = ImmutableList.of(STRUCT_SCHEMA);
 
     // When:
     final KsqlTableFunction function = FUNC_REG.getTableFunction("test_udtf", args);
@@ -304,12 +300,8 @@ public class UdtfLoaderTest {
     }
   }
 
-  private static final Schema STRUCT_SCHEMA =
-      SchemaBuilder.struct().field("A", Schema.OPTIONAL_STRING_SCHEMA).optional()
-          .build();
-
-  private static final Schema DECIMAL_SCHEMA =
-      DecimalUtil.builder(2, 1).build();
+  private static final SqlType STRUCT_SCHEMA = SqlTypes.struct().field("A", SqlTypes.STRING).build();
+  private static final SqlType DECIMAL_SCHEMA = SqlTypes.decimal(2, 1);
 
   private static FunctionRegistry initializeFunctionRegistry() {
     final MutableFunctionRegistry functionRegistry = new InternalFunctionRegistry();

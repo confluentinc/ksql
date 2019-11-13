@@ -17,12 +17,13 @@ package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.BaseAggregateFunction;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.function.ParameterInfo;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -35,7 +36,7 @@ public class DecimalSumKudaf
   DecimalSumKudaf(
       final String functionName,
       final int argIndexInValue,
-      final Schema outputSchema
+      final SqlDecimal outputSchema
   ) {
     super(
         functionName,
@@ -43,10 +44,10 @@ public class DecimalSumKudaf
         DecimalSumKudaf::initialValue,
         outputSchema,
         outputSchema,
-        Collections.singletonList(outputSchema),
+        Collections.singletonList(new ParameterInfo("val", ParamTypes.DECIMAL, "", false)),
         "Computes the sum of decimal values for a key, resulting in a decimal with the same "
             + "precision and scale.");
-    context = new MathContext(DecimalUtil.precision(outputSchema));
+    context = new MathContext(outputSchema.getPrecision());
   }
 
   @Override

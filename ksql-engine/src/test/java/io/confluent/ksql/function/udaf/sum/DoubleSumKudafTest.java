@@ -20,8 +20,8 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
 
 public class DoubleSumKudafTest extends BaseSumKudafTest<Double, DoubleSumKudaf> {
   protected TGenerator<Double> getNumberGenerator() {
@@ -30,7 +30,7 @@ public class DoubleSumKudafTest extends BaseSumKudafTest<Double, DoubleSumKudaf>
 
   protected DoubleSumKudaf getSumKudaf() {
     final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        .createAggregateFunction(Collections.singletonList(SqlTypes.DOUBLE),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DoubleSumKudaf.class));
     return  (DoubleSumKudaf) aggregateFunction;

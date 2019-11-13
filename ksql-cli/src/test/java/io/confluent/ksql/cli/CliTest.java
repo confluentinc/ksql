@@ -863,7 +863,7 @@ public class CliTest {
             "Variations  : \n";
 
     final String expectedVariant =
-        "\tVariation   : TOPK(INT)\n"
+        "\tVariation   : TOPK(val INT)\n"
         + "\tReturns     : ARRAY<INT>\n"
         + "\tDescription : Calculates the TopK value for a column, per key.";
 
@@ -890,13 +890,13 @@ public class CliTest {
 
     // variations for Udfs are loaded non-deterministically. Don't assume which variation is first
     String expectedVariation =
-        "\tVariation   : EXPLODE(list ARRAY<BYTES>)\n"
-            + "\tReturns     : BYTES\n"
+        "\tVariation   : EXPLODE(list ARRAY<T>)\n"
+            + "\tReturns     : T\n"
             + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
     assertThat(outputString, containsString(expectedVariation));
 
-    expectedVariation = "\tVariation   : EXPLODE(input ARRAY<DECIMAL(1, 0)>)\n"
-            + "\tReturns     : DECIMAL(1, 0)\n"
+    expectedVariation = "\tVariation   : EXPLODE(input ARRAY<DECIMAL>)\n"
+            + "\tReturns     : DECIMAL\n"
         + "\tDescription : Explodes an array. This function outputs one value for each element of the array.";
     assertThat(outputString, containsString(expectedVariation));
   }

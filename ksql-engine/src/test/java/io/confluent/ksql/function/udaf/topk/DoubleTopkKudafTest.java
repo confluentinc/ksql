@@ -21,10 +21,11 @@ import static org.junit.Assert.assertThat;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ public class DoubleTopkKudafTest {
   private final List<Double> valuesArray = ImmutableList.of(10.0, 30.0, 45.0, 10.0, 50.0, 60.0, 20.0, 60.0, 80.0, 35.0,
       25.0);
   private TopKAggregateFunctionFactory topKFactory;
-  private List<Schema> argumentType;
+  private List<SqlType> argumentType;
 
   private final AggregateFunctionInitArguments args =
       new AggregateFunctionInitArguments(0, 3);
@@ -41,7 +42,7 @@ public class DoubleTopkKudafTest {
   @Before
   public void setup() {
     topKFactory = new TopKAggregateFunctionFactory();
-    argumentType = Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA);
+    argumentType = Collections.singletonList(SqlTypes.DOUBLE);
   }
 
   @Test

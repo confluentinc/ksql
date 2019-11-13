@@ -48,9 +48,9 @@ public class WindowSelectMapperTest {
 
   @Before
   public void setUp() {
-    EasyMock.expect(windowStartFunc.getFunctionName()).andReturn(FunctionName.of("WinDowStarT")).anyTimes();
-    EasyMock.expect(windowEndFunc.getFunctionName()).andReturn(FunctionName.of("WinDowEnD")).anyTimes();
-    EasyMock.expect(otherFunc.getFunctionName()).andReturn(
+    EasyMock.expect(windowStartFunc.name()).andReturn(FunctionName.of("WinDowStarT")).anyTimes();
+    EasyMock.expect(windowEndFunc.name()).andReturn(FunctionName.of("WinDowEnD")).anyTimes();
+    EasyMock.expect(otherFunc.name()).andReturn(
         FunctionName.of("NotWindowStartOrWindowEnd")).anyTimes();
     EasyMock.replay(windowStartFunc, windowEndFunc, otherFunc);
   }

@@ -16,14 +16,14 @@
 package io.confluent.ksql.function.udaf.min;
 
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
 public class IntegerMinKudaf extends BaseNumberKudaf<Integer> {
 
   IntegerMinKudaf(final String functionName, final int argIndexInValue) {
     super(functionName,
           argIndexInValue,
-          Schema.OPTIONAL_INT32_SCHEMA,
+          SqlTypes.INTEGER,
           Integer::min,
           "Computes the minimum integer value for a key.");
   }

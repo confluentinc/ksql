@@ -100,7 +100,6 @@ public class RequestHandler {
             configured,
             parsed,
             scopedPropertyOverrides,
-            sql,
             entities
         ).ifPresent(entities::add);
       }
@@ -114,7 +113,6 @@ public class RequestHandler {
       final ConfiguredStatement<T> configured,
       final ParsedStatement parsed,
       final Map<String, Object> mutableScopedProperties,
-      final String sql,
       final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
@@ -124,7 +122,7 @@ public class RequestHandler {
     final StatementExecutor<T> executor = (StatementExecutor<T>)
         customExecutors.getOrDefault(statementClass, 
             (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, parsed, props, sql, ctx, svcCtx));
+                distributor.execute(stmt, parsed, props, ctx, svcCtx));
 
     return executor.execute(
         configured,

@@ -75,7 +75,6 @@ public class DistributingExecutor {
       final ConfiguredStatement<Statement> statement,
       final ParsedStatement parsedStatement,
       final Map<String, Object> mutableScopedProperties,
-      final String sql,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -97,7 +96,7 @@ public class DistributingExecutor {
             SandboxedServiceContext.create(serviceContext),
             Collections.singletonList(parsedStatement),
             mutableScopedProperties,
-            sql
+            parsedStatement.getStatementText()
         );
       }
 

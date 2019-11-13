@@ -36,8 +36,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.logging.processing.ProcessingLogConfig;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
-import io.confluent.ksql.metastore.model.DataSource;
-import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
@@ -61,7 +59,6 @@ import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.version.metrics.VersionCheckerAgent;
 import io.confluent.rest.RestConfig;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.Queue;
@@ -154,6 +151,7 @@ public class KsqlRestApplicationTest {
     when(ksqlEngine.parse(any())).thenReturn(ImmutableList.of(parsedStatement));
     when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement)preparedStatement);
 
+    when(commandQueue.isEmpty()).thenReturn(true);
     when(commandQueue.enqueueCommand(any(), any(TransactionalProducer.class)))
         .thenReturn(queuedCommandStatus);
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
@@ -163,8 +161,6 @@ public class KsqlRestApplicationTest {
     when(precondition2.checkPrecondition(any(), any())).thenReturn(Optional.empty());
     when(commandQueue.createTransactionalProducer()).
         thenReturn(transactionalProducer);
-    when(metaStore.getAllDataSources()).thenReturn(Collections.emptyMap());
-    when(ksqlEngine.getMetaStore()).thenReturn(metaStore);
 
     logCreateStatement = ProcessingLogServerUtils.processingLogStreamCreateStatement(
         processingLogConfig,
@@ -268,12 +264,8 @@ public class KsqlRestApplicationTest {
   @Test
   public void shouldOnlyCreateLogStreamIfSourceNotInMetaStore() {
     // Given:
-    final MetaStore mockMetaStore = mock(MetaStore.class);
-    when(mockMetaStore.getAllDataSources()).thenReturn(new HashMap<SourceName, DataSource<?>>() {{
-      put(SourceName.of(LOG_STREAM_NAME), mock(DataSource.class));
-    }});
-    when(ksqlEngine.getMetaStore()).thenReturn(mockMetaStore);
-
+    when(commandQueue.isEmpty()).thenReturn(false);
+    
     // When:
     app.startKsql();
 

@@ -275,14 +275,14 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         ksqlConfigNoPort
     );
 
-    commandRunner.processPriorCommands();
-
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
         ksqlConfigNoPort,
         ksqlEngine,
         commandStore
     );
+
+    commandRunner.processPriorCommands();
 
     serverState.setReady();
   }
@@ -630,12 +630,8 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue
   ) {
-    final Set<String> sourceNames = ksqlEngine.getMetaStore().getAllDataSources()
-        .keySet().stream().map(SourceName::name)
-        .collect(Collectors.toSet());
-
     if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
-        || sourceNames.contains(config.getString(ProcessingLogConfig.STREAM_NAME))) {
+        || !commandQueue.isEmpty()) {
       return;
     }
 

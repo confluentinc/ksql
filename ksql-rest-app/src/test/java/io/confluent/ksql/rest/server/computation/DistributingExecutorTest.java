@@ -64,7 +64,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
@@ -115,7 +117,7 @@ public class DistributingExecutorTest {
     when(executionContext.getServiceContext()).thenReturn(serviceContext);
     when(requestValidator.validate(
         serviceContext, Collections.singletonList(parsedStatement), ImmutableMap.of(), SQL_STRING)).thenReturn(1);
-    when(parsedStatement.getStatementText()).thenReturn("statement");
+    when(parsedStatement.getStatementText()).thenReturn(SQL_STRING);
     when(queue.createTransactionalProducer()).thenReturn(transactionalProducer);
 
     distributor = new DistributingExecutor(
@@ -130,7 +132,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldEnqueueSuccessfulCommand() throws InterruptedException, IOException {
     // When:
-    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext);
+    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), executionContext, serviceContext);
 
     // Then:
     verify(transactionalProducer, times(1)).beginTransaction();
@@ -142,7 +144,7 @@ public class DistributingExecutorTest {
   @Test
   public void shouldInferSchemas() {
     // When:
-    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext);
+    distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(),  executionContext, serviceContext);
 
     // Then:
     verify(schemaInjector, times(1)).inject(eq(EMPTY_STATEMENT));
@@ -156,7 +158,6 @@ public class DistributingExecutorTest {
             EMPTY_STATEMENT,
             parsedStatement,
             ImmutableMap.of(),
-            "",
             executionContext,
             serviceContext
         )
@@ -166,6 +167,16 @@ public class DistributingExecutorTest {
     assertThat(commandStatusEntity,
         equalTo(new CommandStatusEntity("", CS_COMMAND, SUCCESS_STATUS, 1L)));
 
+    InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, requestValidator);
+    inOrder.verify(transactionalProducer).initTransactions();
+    inOrder.verify(transactionalProducer).beginTransaction();
+    inOrder.verify(requestValidator).validate(
+        serviceContext,
+        Collections.singletonList(parsedStatement),
+        ImmutableMap.of(),
+        SQL_STRING);
+    inOrder.verify(queue).enqueueCommand(EMPTY_STATEMENT, transactionalProducer);
+    inOrder.verify(transactionalProducer).commitTransaction();
   }
 
   @Test
@@ -190,7 +201,7 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(cause));
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(),SQL_STRING, executionContext, serviceContext);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), executionContext, serviceContext);
     verify(transactionalProducer, times(1)).abortTransaction();
   }
 
@@ -208,7 +219,7 @@ public class DistributingExecutorTest {
     expectedException.expectMessage("Could not infer!");
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, serviceContext);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), executionContext, serviceContext);
   }
 
   @Test
@@ -226,7 +237,7 @@ public class DistributingExecutorTest {
     expectedException.expect(KsqlTopicAuthorizationException.class);
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, userServiceContext);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), executionContext, userServiceContext);
   }
 
   @Test
@@ -245,6 +256,6 @@ public class DistributingExecutorTest {
     expectedException.expectCause(is(instanceOf(KsqlTopicAuthorizationException.class)));
 
     // When:
-    distributor.execute(configured, parsedStatement, ImmutableMap.of(), "", executionContext, userServiceContext);
+    distributor.execute(configured, parsedStatement, ImmutableMap.of(), executionContext, userServiceContext);
   }
 }

@@ -83,6 +83,7 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
+import org.codehaus.plexus.util.StringUtils;
 import org.eclipse.jetty.http.HttpStatus;
 import org.eclipse.jetty.http.HttpStatus.Code;
 import org.hamcrest.Matchers;
@@ -340,14 +341,18 @@ public class StreamedQueryResourceTest {
       }
       final String responseLine = responseScanner.nextLine();
 
-      if (responseLine.isEmpty()) {
+      String jsonLine = StringUtils.stripStart(responseLine, "[");
+      jsonLine = StringUtils.stripEnd(jsonLine, ",");
+      jsonLine = StringUtils.stripEnd(jsonLine, "]");
+
+      if (jsonLine.isEmpty()) {
         i--;
         continue;
       }
 
       if (i == 0) {
         // Header:
-        assertThat(responseLine, is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`f1` INTEGER\"}}"));
+        assertThat(jsonLine, is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`f1` INTEGER\"}}"));
         continue;
       }
 
@@ -357,9 +362,9 @@ public class StreamedQueryResourceTest {
       }
 
       final GenericRow testRow = objectMapper
-          .readValue(responseLine, StreamedRow.class)
+          .readValue(jsonLine, StreamedRow.class)
           .getRow()
-          .orElse(null);
+          .get();
 
       assertEquals(expectedRow, testRow);
     }

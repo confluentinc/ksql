@@ -30,6 +30,7 @@ import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.Response;
 import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 public final class QueryStream implements Closeable, Iterator<StreamedRow> {
 
@@ -112,17 +113,22 @@ public final class QueryStream implements Closeable, Iterator<StreamedRow> {
     try {
       while (responseScanner.hasNextLine()) {
         final String responseLine = responseScanner.nextLine().trim();
-        if (!responseLine.isEmpty()) {
-          try {
-            bufferedRow = objectMapper.readValue(responseLine, StreamedRow.class);
-          } catch (final IOException exception) {
-            if (closed) {
-              return false;
-            }
-            throw new RuntimeException(exception);
-          }
-          return true;
+
+        final String jsonMsg = toJsonMsg(responseLine);
+
+        if (jsonMsg.isEmpty()) {
+          continue;
         }
+
+        try {
+          bufferedRow = objectMapper.readValue(jsonMsg, StreamedRow.class);
+        } catch (final IOException exception) {
+          if (closed) {
+            return false;
+          }
+          throw new RuntimeException(exception);
+        }
+        return true;
       }
 
       return false;
@@ -134,5 +140,28 @@ public final class QueryStream implements Closeable, Iterator<StreamedRow> {
 
       throw e;
     }
+  }
+
+  /**
+   * Convert the single line within the full response into a valid JSON object.
+   *
+   * <p>The entire response is an array of JSON objects, e.g. in the form:
+   *
+   * <pre>
+   *   {@code
+   *   [{...stuff...},
+   *    {...stuff...},
+   *    ...more rows....
+   *    {...stuff...}],
+   *   }
+   * </pre>
+   *
+   * <p>This method trims any leading {@code [} or trailing {@code ,} or {@code ]}
+   */
+  private static String toJsonMsg(final String responseLine) {
+    String result = StringUtils.removeStart(responseLine, "[");
+    result = StringUtils.removeEnd(result, "]");
+    result = StringUtils.removeEnd(result, ",");
+    return result.trim();
   }
 }

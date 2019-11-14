@@ -3,12 +3,14 @@ def config = {
     owner = 'ksql'
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.6.0-SNAPSHOT"
-    cp_version = "5.5.0-SNAPSHOT" //After done testing this needs to be a beta version.
+    cp_version = "5.5.0-beta191107162904"
+    packaging_build_number = "1"
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerRepos = ['confluentinc/ksql-cli', 'confluentinc/ksql-rest-app']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
     dockerScan = true
     cron = '@daily'
+    maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
 }
 
 def defaultParams = [
@@ -39,6 +41,16 @@ def updateConfig = { c ->
 def finalConfig = jobConfig(config, [:], updateConfig)
 
 def job = {
+    if (config.isPrJob && params.PROMOTE_TO_PRODUCTION) {
+        currentBuild.result = 'ABORTED'
+        error('PROMOTE_TO_PRODUCTION can not be used with PR builds.')
+    }
+
+    if (config.isPrJob && params.RELEASE_BUILD) {
+        currentBuild.result = 'ABORTED'
+        error('RELEASE_BUILD can not be used with PR builds.')
+    }
+
     if (params.RELEASE_BUILD && params.PROMOTE_TO_PRODUCTION) {
         currentBuild.result = 'ABORTED'
         error("You can not do a release build and promote to production at the same time.")
@@ -70,6 +82,16 @@ def job = {
         config.docker_tag = config.ksql_db_version.tokenize("-")[0] + '-' + env.BUILD_NUMBER
         config.revision = 'refs/heads/master'
     }
+
+    // Configure the maven repo settings so we can download from the beta artifacts repo
+    def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
+    def maven_packages_url = "${config.maven_packages_url}/${config.cp_version}/${config.packaging_build_number}/maven"
+    def settings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
+    writeFile file: settingsFile, text: settings
+    mavenOptions = [artifactsPublisher(disabled: true),
+        junitPublisher(disabled: true),
+        openTasksPublisher(disabled: true)
+    ]
 
     if (params.PROMOTE_TO_PRODUCTION) {
         withDockerServer([uri: dockerHost()]) {
@@ -108,10 +130,7 @@ def job = {
                 usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
                 usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
                     withDockerServer([uri: dockerHost()]) {
-                        withMaven(globalMavenSettingsConfig: 'jenkins-maven-global-settings', options: [findbugsPublisher(disabled: true)]) {
-                            // findbugs publishing is skipped in both steps because multi-module projects cause
-                            // extra copies to be reported. Instead, use commonPost to collect once at the end
-                            // of the build.
+                        withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
                             sh '''
                                 bash extract-iam-credential.sh
@@ -153,6 +172,8 @@ def job = {
 
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "
+                            cmd += "-Dspotbugs.skip "
+                            cmd += "-Dcheckstyle.skip "
                             cmd += "-Ddocker.tag=${config.docker_tag} "
                             cmd += "-Ddocker.registry=${config.dockerRegistry} "
                             cmd += "-Ddocker.upstream-tag=${config.cp_version} "

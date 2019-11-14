@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 public class IntTopkDistinctKudafTest {

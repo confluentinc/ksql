@@ -33,7 +33,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

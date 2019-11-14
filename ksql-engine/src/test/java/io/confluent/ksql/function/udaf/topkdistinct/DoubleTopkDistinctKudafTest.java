@@ -22,7 +22,6 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 public class DoubleTopkDistinctKudafTest {

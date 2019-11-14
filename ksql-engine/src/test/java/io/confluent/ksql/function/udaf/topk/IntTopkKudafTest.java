@@ -30,7 +30,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 

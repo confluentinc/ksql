@@ -23,7 +23,6 @@ import static org.junit.Assert.assertThat;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.types.SqlDecimal;
-import io.confluent.ksql.util.DecimalUtil;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Collections;

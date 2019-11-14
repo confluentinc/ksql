@@ -111,6 +111,16 @@ def job = {
             ]
     }
 
+    // Configure the maven repo settings so we can download from the beta artifacts repo
+    def settingsFile = 'maven-settings.xml'
+    maven_packages_url = "${config.maven_packages_url}/${params.CONFLUENT_VERSION}/${params.PACKAGING_BUILD_NUMBER}/maven"
+    def setttings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
+    writeFile file: settingsFile, text: settings
+    mavenOptions = [artifactsPublisher(disabled: true),
+        junitPublisher(disabled: true),
+        openTasksPublisher(disabled: true)
+    ]
+
     stage('Build KSQL-DB') {
         dir('ksql-db') {
             archiveArtifacts artifacts: 'pom.xml'
@@ -119,14 +129,6 @@ def job = {
                 usernamePassword(credentialsId: 'JenkinsArtifactoryAccessToken', passwordVariable: 'ARTIFACTORY_PASSWORD', usernameVariable: 'ARTIFACTORY_USERNAME'),
                 usernameColonPassword(credentialsId: 'Jenkins GitHub Account', variable: 'GIT_CREDENTIAL')]) {
                     withDockerServer([uri: dockerHost()]) {
-                        def settingsFile = 'maven-settings.xml'
-                        maven_packages_url = "${config.maven_packages_url}/${params.CONFLUENT_VERSION}/${params.PACKAGING_BUILD_NUMBER}/maven"
-                        def setttings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
-                        writeFile file: settingsFile, text: settings
-                        mavenOptions = [artifactsPublisher(disabled: true),
-                            junitPublisher(disabled: true),
-                            openTasksPublisher(disabled: true)
-                        ]
                         withMaven(globalMavenSettingsFilePath: settingsFile, options: mavenOptions) {
                             writeFile file:'extract-iam-credential.sh', text:libraryResource('scripts/extract-iam-credential.sh')
                             sh '''

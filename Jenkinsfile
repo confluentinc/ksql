@@ -159,7 +159,7 @@ def job = {
                             '''
 
                             config.dockerPullDeps.each { dockerRepo ->
-                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
+                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}"
                             }
 
                             // Set the project versions in the pom files

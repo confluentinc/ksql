@@ -373,7 +373,7 @@ public class AstBuilder {
           visit(context.selectItem(), SelectItem.class)
       );
 
-      final boolean staticQuery = context.EMIT() == null && !buildingPersistentQuery;
+      final boolean pullQuery = context.EMIT() == null && !buildingPersistentQuery;
 
       final ResultMaterialization resultMaterialization = Optional
           .ofNullable(context.resultMaterialization())
@@ -397,7 +397,7 @@ public class AstBuilder {
           visitIfPresent(context.groupBy(), GroupBy.class),
           visitIfPresent(context.having, Expression.class),
           resultMaterialization,
-          staticQuery,
+          pullQuery,
           limit
       );
     }

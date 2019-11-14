@@ -1,6 +1,6 @@
 {
   "comments": [
-    "Tests covering static queries of (materialized) aggregate tables"
+    "Tests covering pull queries of (materialized) aggregate tables"
   ],
   "tests": [
     {
@@ -398,7 +398,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support ROWTIME in select columns.",
+        "message": "Pull queries don't support ROWTIME in select columns.",
         "status": 400
       }
     },
@@ -411,7 +411,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support ROWTIME in select columns.",
+        "message": "Pull queries don't support ROWTIME in select columns.",
         "status": 400
       }
     },
@@ -635,7 +635,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support JOIN clauses.",
+        "message": "Pull queries don't support JOIN clauses.",
         "status": 400
       }
     },
@@ -648,7 +648,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support WINDOW clauses.",
+        "message": "Pull queries don't support WINDOW clauses.",
         "status": 400
       }
     },
@@ -661,7 +661,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Static queries don't support GROUP BY clauses",
+        "message": "Pull queries don't support GROUP BY clauses",
         "status": 400
       }
     },
@@ -743,7 +743,7 @@
       }
     },
     {
-      "name": "fail if WINDOWSTART used in non-windowed static query",
+      "name": "fail if WINDOWSTART used in non-windowed pull query",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",

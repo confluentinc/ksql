@@ -69,7 +69,7 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldPreThenPostValidateContinuousQueries() {
     // Given:
-    when(query.isStatic()).thenReturn(false);
+    when(query.isPullQuery()).thenReturn(false);
 
     // When:
     queryAnalyzer.analyze(query, Optional.of(sink));
@@ -82,7 +82,7 @@ public class QueryAnalyzerTest {
   @Test
   public void shouldPreValidateStaticQueries() {
     // Given:
-    when(query.isStatic()).thenReturn(true);
+    when(query.isPullQuery()).thenReturn(true);
 
     // When:
     queryAnalyzer.analyze(query, Optional.of(sink));

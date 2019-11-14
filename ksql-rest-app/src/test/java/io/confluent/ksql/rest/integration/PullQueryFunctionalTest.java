@@ -59,13 +59,13 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Test to ensure static queries route across multiple KSQL nodes correctly.
+ * Test to ensure pull queries route across multiple KSQL nodes correctly.
  *
  * <p>For tests on general syntax and handled see RestQueryTranslationTest's
  * materialized-aggregate-static-queries.json
  */
 @Category({IntegrationTest.class})
-public class StaticQueryFunctionalTest {
+public class PullQueryFunctionalTest {
 
   private static final TemporaryFolder TMP = new TemporaryFolder();
 
@@ -190,8 +190,8 @@ public class StaticQueryFunctionalTest {
 
     // When:
 
-    final List<List<?>> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<List<?>> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<List<?>> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+    final List<List<?>> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
     assertThat(rows_0, hasSize(1));
@@ -219,8 +219,8 @@ public class StaticQueryFunctionalTest {
         + " AND WINDOWSTART = " + BASE_TIME + ";";
 
     // When:
-    final List<List<?>> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<List<?>> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<List<?>> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+    final List<List<?>> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
     assertThat(rows_0, hasSize(1));
@@ -228,7 +228,7 @@ public class StaticQueryFunctionalTest {
     assertThat(rows_1, is(rows_0));
   }
 
-  private static List<List<?>> makeStaticQueryRequest(
+  private static List<List<?>> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql
   ) {

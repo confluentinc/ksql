@@ -17,7 +17,6 @@ package io.confluent.ksql.parser;
 
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasLeft;
 import static io.confluent.ksql.parser.tree.JoinMatchers.hasRight;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.instanceOf;
@@ -34,22 +33,18 @@ import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.tree.AliasedRelation;
 import io.confluent.ksql.parser.tree.AllColumns;
-import io.confluent.ksql.parser.tree.AstNode;
-import io.confluent.ksql.parser.tree.CreateStreamAsSelect;
 import io.confluent.ksql.parser.tree.Join;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.parser.tree.QueryContainer;
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 import io.confluent.ksql.parser.tree.Select;
 import io.confluent.ksql.parser.tree.SingleColumn;
-import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.parser.tree.Table;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.MetaStoreFixture;
 import java.util.List;
 import java.util.Optional;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -389,7 +384,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.build(stmt);
 
     // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
+    assertThat("Should be pull", result.isPullQuery(), is(true));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
   }
 
@@ -403,7 +398,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.build(stmt);
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -418,7 +413,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -432,7 +427,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -446,7 +441,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -460,7 +455,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -474,7 +469,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
   @Test
@@ -487,7 +482,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 

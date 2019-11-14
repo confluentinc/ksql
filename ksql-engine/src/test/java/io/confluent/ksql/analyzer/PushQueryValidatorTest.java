@@ -27,7 +27,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class ContinuousQueryValidatorTest {
+public class PushQueryValidatorTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
@@ -39,7 +39,7 @@ public class ContinuousQueryValidatorTest {
 
   @Before
   public void setUp() {
-    validator = new ContinuousQueryValidator();
+    validator = new PushQueryValidator();
   }
 
   @Test
@@ -49,7 +49,7 @@ public class ContinuousQueryValidatorTest {
 
     // Then:
     expectedException.expect(IllegalArgumentException.class);
-    expectedException.expectMessage("Continuous queries don't support `EMIT FINAL`.");
+    expectedException.expectMessage("Push queries don't support `EMIT FINAL`.");
 
     // When:
     validator.validate(analysis);

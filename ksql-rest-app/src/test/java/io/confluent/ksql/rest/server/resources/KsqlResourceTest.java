@@ -647,7 +647,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldAllowBareStaticQuery() {
+  public void shouldAllowBarePullQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));

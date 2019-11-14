@@ -378,7 +378,7 @@ public class RestTestExecutor implements Closeable {
       final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(staticStatement);
       if (resp.isErroneous()) {
         Thread.yield();
-        LOG.info("Server responded with an error code to a static query. "
+        LOG.info("Server responded with an error code to a pull query. "
             + "This could be because the materialized store is not yet warm.");
         continue;
       }
@@ -390,7 +390,7 @@ public class RestTestExecutor implements Closeable {
         return;
       } catch (final AssertionError e) {
         // Potentially, state stores not warm yet
-        LOG.info("Server responded with incorrect result to a static query. "
+        LOG.info("Server responded with incorrect result to a pull query. "
             + "This could be because the materialized store is not yet warm.", e);
         Thread.yield();
       }

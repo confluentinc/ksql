@@ -17,12 +17,12 @@ package io.confluent.ksql.analyzer;
 
 import io.confluent.ksql.parser.tree.ResultMaterialization;
 
-public class ContinuousQueryValidator implements QueryValidator {
+public class PushQueryValidator implements QueryValidator {
 
   @Override
   public void validate(final Analysis analysis) {
     if (analysis.getResultMaterialization() != ResultMaterialization.CHANGES) {
-      throw new IllegalArgumentException("Continuous queries don't support `EMIT FINAL`.");
+      throw new IllegalArgumentException("Push queries don't support `EMIT FINAL`.");
     }
   }
 }

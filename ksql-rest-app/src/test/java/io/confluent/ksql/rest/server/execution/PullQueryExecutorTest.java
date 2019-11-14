@@ -39,7 +39,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 
 @RunWith(Enclosed.class)
-public class StaticQueryExecutorTest {
+public class PullQueryExecutorTest {
 
   public static class Disabled {
     @Rule

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class StaticQueryValidator implements QueryValidator {
+public class PullQueryValidator implements QueryValidator {
 
   private static final String NEW_QUERY_SYNTAX_HELP = " "
       + "Did you mean to execute a push query? Add an 'EMIT CHANGES' clause to do so."
@@ -62,41 +62,41 @@ public class StaticQueryValidator implements QueryValidator {
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
           analysis -> analysis.getResultMaterialization() == ResultMaterialization.FINAL,
-          "Static queries don't support `EMIT CHANGES`."
+          "Pull queries don't support `EMIT CHANGES`."
       ),
       Rule.of(
           analysis -> !analysis.getInto().isPresent(),
-          "Static queries don't support output to sinks."
+          "Pull queries don't support output to sinks."
       ),
       Rule.of(
           analysis -> !analysis.isJoin(),
-          "Static queries don't support JOIN clauses."
+          "Pull queries don't support JOIN clauses."
       ),
       Rule.of(
           analysis -> !analysis.getWindowExpression().isPresent(),
-          "Static queries don't support WINDOW clauses."
+          "Pull queries don't support WINDOW clauses."
       ),
       Rule.of(
           analysis -> analysis.getGroupByExpressions().isEmpty(),
-          "Static queries don't support GROUP BY clauses."
+          "Pull queries don't support GROUP BY clauses."
       ),
       Rule.of(
           analysis -> !analysis.getPartitionBy().isPresent(),
-          "Static queries don't support PARTITION BY clauses."
+          "Pull queries don't support PARTITION BY clauses."
       ),
       Rule.of(
           analysis -> !analysis.getHavingExpression().isPresent(),
-          "Static queries don't support HAVING clauses."
+          "Pull queries don't support HAVING clauses."
       ),
       Rule.of(
           analysis -> !analysis.getLimitClause().isPresent(),
-          "Static queries don't support LIMIT clauses."
+          "Pull queries don't support LIMIT clauses."
       ),
       Rule.of(
           analysis -> analysis.getSelectColumnRefs().stream()
                   .map(ColumnRef::name)
                   .noneMatch(n -> n.equals(SchemaUtil.ROWTIME_NAME)),
-          "Static queries don't support ROWTIME in select columns."
+          "Pull queries don't support ROWTIME in select columns."
       )
   );
 

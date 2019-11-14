@@ -93,7 +93,7 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class StaticQueryExecutor {
+public final class PullQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Duration OWNERSHIP_TIMEOUT = Duration.ofSeconds(30);
@@ -108,7 +108,7 @@ public final class StaticQueryExecutor {
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
       VALID_WINDOW_BOUNDS_TYPES.toString();
 
-  private StaticQueryExecutor() {
+  private PullQueryExecutor() {
   }
 
   public static void validate(
@@ -129,7 +129,7 @@ public final class StaticQueryExecutor {
               statement.getStatementText()));
     }
 
-    if (!queryStmt.isStatic()) {
+    if (!queryStmt.isPullQuery()) {
       throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
     }
 
@@ -315,11 +315,11 @@ public final class StaticQueryExecutor {
     final Expression other = getNonColumnRefSide(comparison);
 
     if (!(other instanceof StringLiteral)) {
-      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal.", false);
+      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal", false);
     }
 
     if (comparison.getType() != Type.EQUAL) {
-      throw invalidWhereClauseException("ROWKEY bound must currently be '='.", false);
+      throw invalidWhereClauseException("ROWKEY bound must currently be '='", false);
     }
 
     final Literal right = (Literal) other;
@@ -336,7 +336,7 @@ public final class StaticQueryExecutor {
     final List<ComparisonExpression> comparisons = maybeComparisons.get();
 
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
-        .collect(Collectors.groupingBy(StaticQueryExecutor::getSimplifiedBoundType));
+        .collect(Collectors.groupingBy(PullQueryExecutor::getSimplifiedBoundType));
 
     final SetView<Type> unsupported = Sets.difference(byType.keySet(), VALID_WINDOW_BOUNDS_TYPES);
     if (!unsupported.isEmpty()) {
@@ -692,13 +692,14 @@ public final class StaticQueryExecutor {
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
     return new KsqlException("Pull query: "
         + "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
+        + System.lineSeparator()
+        + "Did you mean to execute a push query? "
+        + "If so, add `EMIT CHANGES` to the end of your query."
+        + "Push queries were the only queries supported before v5.4.0. "
+        + System.lineSeparator()
         + " KSQL currently only supports pull queries on materialized aggregate tables."
         + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
         + "FROM <sources> GROUP BY <key>' style statement."
-        + System.lineSeparator()
-        + "Did you mean to execute a push query? "
-        + "Push queries were the only queries supported before v5.4.0. "
-        + "If so, add `EMIT CHANGES` to the end of your query."
     );
   }
 
@@ -721,9 +722,13 @@ public final class StaticQueryExecutor {
             + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
             + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
-    return new KsqlException(msg
+    return new KsqlException(msg + "."
         + System.lineSeparator()
-        + "Static queries currently require a WHERE clause that:"
+        + "Did you mean to execute a push query? "
+        + "If so, add `EMIT CHANGES` to the end of your query."
+        + "Push queries were the only queries supported before v5.4.0. "
+        + System.lineSeparator()
+        + "Pull queries currently require a WHERE clause that:"
         + System.lineSeparator()
         + " - limits the query to a single ROWKEY, e.g. `SELECT * FROM X WHERE ROWKEY=Y;`."
         + additional

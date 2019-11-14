@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class TabularRow {
+public final class TabularRow {
 
   private static final String CLIPPED = "...";
   private static final int MIN_CELL_WIDTH = 5;

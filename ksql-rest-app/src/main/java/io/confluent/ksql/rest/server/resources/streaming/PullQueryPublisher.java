@@ -72,7 +72,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     subscriber.onSubscribe(subscription);
   }
 
-  private static class PullQuerySubscription implements Flow.Subscription {
+  private static final class PullQuerySubscription implements Flow.Subscription {
 
     private final Subscriber<Collection<StreamedRow>> subscriber;
     private final Callable<TableRowsEntity> executor;

@@ -121,7 +121,7 @@ def job = {
                     withDockerServer([uri: dockerHost()]) {
                         def settingsFile = 'maven-settings.xml'
                         maven_packages_url = "${config.maven_packages_url}/${params.CONFLUENT_VERSION}/${params.PACKAGING_BUILD_NUMBER}/maven"
-                        def setttings = readFile(libraryResource('maven-settings-template.xml')).replace('PACKAGES_MAVEN_URL', maven_packages_url)
+                        def setttings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
                         writeFile file: settingsFile, text: settings
                         mavenOptions = [artifactsPublisher(disabled: true),
                             junitPublisher(disabled: true),

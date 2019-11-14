@@ -172,6 +172,8 @@ def job = {
 
                             cmd = "mvn --batch-mode -Pjenkins clean package dependency:analyze site validate -U "
                             cmd += "-DskipTests "
+                            cmd += "-Dspotbugs.skip "
+                            cmd += "-Dcheckstyle.skip "
                             cmd += "-Ddocker.tag=${config.docker_tag} "
                             cmd += "-Ddocker.registry=${config.dockerRegistry} "
                             cmd += "-Ddocker.upstream-tag=${config.cp_version} "

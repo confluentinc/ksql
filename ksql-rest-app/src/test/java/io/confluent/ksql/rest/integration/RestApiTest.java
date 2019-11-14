@@ -31,10 +31,10 @@ import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
@@ -290,20 +290,19 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
-          "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';"
+          "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';"
       );
       return Arrays.asList(response.split(System.lineSeparator()));
     };
 
     // Then:
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
-    final List<Map<String, Object>> parsed = parseRawRestQueryResponse(String.join("", messages));
-    assertThat(parsed, hasSize(HEADER + 1));
-    assertThat(parsed.get(0).get("header"), instanceOf(Map.class));
-    assertThat(((Map) parsed.get(0).get("header")).get("queryId"), is(notNullValue()));
-    assertThat(((Map) parsed.get(0).get("header")).get("schema"),
-        is("`ROWKEY` STRING KEY, `COUNT` BIGINT"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[[\"USER_1\",1]]}}]"));
+    assertThat(messages, hasSize(HEADER + 1));
+
+    assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),
+        endsWith("\",\"schema\":\"`COUNT` BIGINT, `ROWKEY` STRING KEY\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
   @Test

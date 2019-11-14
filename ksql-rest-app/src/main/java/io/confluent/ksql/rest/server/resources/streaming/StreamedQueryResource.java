@@ -230,7 +230,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 
     final List<StreamedRow> rows = entity.getRows().stream()
-        .map(GenericRow::new)
+        .map(StreamedQueryResource::toGenericRow)
         .map(StreamedRow::row)
         .collect(Collectors.toList());
 
@@ -332,6 +332,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return serviceContext.getTopicClient().listTopicNames().stream()
         .filter(name -> name.equalsIgnoreCase(topicName))
         .collect(Collectors.toSet());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static GenericRow toGenericRow(final List<?> values) {
+    return new GenericRow((List)values);
   }
 }
 

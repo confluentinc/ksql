@@ -482,7 +482,7 @@ public class CliTest {
   @Test
   public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName(),
+        "SELECT * FROM " + orderDataProvider.kstreamName() + ";",
         orderDataProvider.schema(),
         orderDataProvider.data()
     );
@@ -548,7 +548,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName(),
+        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName() + ";",
         resultSchema,
         expectedResults
     );
@@ -572,7 +572,7 @@ public class CliTest {
             mapField)));
 
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'",
+        "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
         orderDataProvider.schema(),
         expectedResults
     );

@@ -11,6 +11,7 @@ def config = {
     dockerScan = true
     cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
+    dockerPullDeps = ['confluentinc/cp-base-new']
 }
 
 def defaultParams = [
@@ -156,6 +157,10 @@ def job = {
                                 bash set-global-user.sh
                             '''
 
+                            config.dockerPullDeps.each { dockerRepo ->
+                                sh "docker pull ${config.dockerRegistry}${dockerRepo}:${config.cp_version}-latest"
+                            }
+
                             // Set the project versions in the pom files
                             sh "mvn --batch-mode versions:set -DnewVersion=${config.ksql_db_version} -DgenerateBackupPoms=false"
 
@@ -176,7 +181,7 @@ def job = {
                             cmd += "-Dcheckstyle.skip "
                             cmd += "-Ddocker.tag=${config.docker_tag} "
                             cmd += "-Ddocker.registry=${config.dockerRegistry} "
-                            cmd += "-Ddocker.upstream-tag=${config.cp_version} "
+                            cmd += "-Ddocker.upstream-tag=${config.cp_version}-latest "
                             cmd += "-Dskip.docker.build=false "
 
                             withEnv(['MAVEN_OPTS=-XX:MaxPermSize=128M']) {

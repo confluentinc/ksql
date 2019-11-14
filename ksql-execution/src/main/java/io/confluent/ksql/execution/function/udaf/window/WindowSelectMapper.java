@@ -45,7 +45,7 @@ public final class WindowSelectMapper
   public WindowSelectMapper(int initialUdafIndex, List<KsqlAggregateFunction<?, ?, ?>> functions) {
     Builder<Integer, Type> selectsBuilder = new Builder<>();
     for (int i = 0; i < functions.size(); i++) {
-      String name = functions.get(i).getFunctionName().name().toUpperCase();
+      String name = functions.get(i).name().name().toUpperCase();
       if (WINDOW_FUNCTION_NAMES.containsKey(name)) {
         selectsBuilder.put(initialUdafIndex + i, WINDOW_FUNCTION_NAMES.get(name));
       }

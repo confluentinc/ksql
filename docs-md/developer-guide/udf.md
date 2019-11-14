@@ -5,15 +5,15 @@ tagline: Program user-defined functions in ksqlDB
 description: Learn how to create customer functions that run in your ksqlDB queries 
 ---
 
-KSQL has many built-in functions that help with processing records in
-streaming data, like ABS and SUM. Functions are used within a KSQL query
+ksqlDB has many built-in functions that help with processing records in
+streaming data, like ABS and SUM. Functions are used within a SQL query
 to filter, transform, or aggregate data.
 
-With the KSQL API, you can implement custom functions that go beyond the
+With the ksqlDB API, you can implement custom functions that go beyond the
 built-in functions. For example, you can create a custom function that
 applies a pre-trained machine learning model to a stream.
 
-KSQL supports these kinds of functions:
+ksqlDB supports these kinds of functions:
 
 TODO: what style to use here? 
 
@@ -53,13 +53,13 @@ Follow these steps to create your custom functions:
     For more information, see [Example UDF class](#example-udf-class) and
     [Example UDAF class](#example-udaf-class).
 
-2.  Deploy the JAR file to the KSQL extensions directory. For more
+2.  Deploy the JAR file to the `ksql` extensions directory. For more
     information, see [Deploying](#deploying).
-3.  Use your function like any other KSQL function in your queries.
+3.  Use your function like any other ksqlDB function in your queries.
 
 !!! tip
-      The SHOW FUNCTIONS statement lists the available functions in your KSQL
-      server, including your custom UDF and UDAF functions. Use the DESCRIBE
+      The SHOW FUNCTIONS statement lists the available functions in your ksqlDB
+      Server, including your custom UDF and UDAF functions. Use the DESCRIBE
       FUNCTION statement to display details about your custom functions.
 
 For a detailed walkthrough on creating a UDF, see
@@ -67,10 +67,10 @@ For a detailed walkthrough on creating a UDF, see
 
 ### Creating UDFs, UDAFs, and UDTFs
 
-KSQL supports creating User Defined Scalar Functions (UDFs), User Defined
+ksqlDB supports creating User Defined Scalar Functions (UDFs), User Defined
 Aggregate Functions (UDAFs), and User Defined Table Functions (UDTFs)
-by using custom jars that are uploaded to the `ext/` directory of the KSQL
-installation. At start up time, KSQL scans the jars in the directory looking
+by using custom jars that are uploaded to the `ext/` directory of the ksqlDB
+installation. At start up time, ksqlDB scans the jars in the directory looking
 for any classes that annotated with `@UdfDescription` (UDF), `@UdafDescription`
 (UDAF), or `@UdtfDescription` (UDTF).
 
@@ -81,14 +81,14 @@ for any classes that annotated with `@UdfDescription` (UDF), `@UdafDescription`
 - Classes annotated with ``@UdtfDescription`` are scanned for any public
   methods that are annotated with ``@Udtf``.
   
-Each function that is found is parsed and, if successful, loaded into KSQL.
+Each function that is found is parsed and, if successful, loaded into ksqlDB.
 
 Each function instance has its own child-first `ClassLoader` that is
 isolated from other functions. If you need to use any third-party
 libraries with your functions, they should also be part of your jar,
 which means that you should create an "uber-jar". The classes in your
-uber-jar are loaded in preference to any classes on the KSQL classpath,
-excluding anything vital to the running of KSQL, i.e., classes that are
+uber-jar are loaded in preference to any classes on the ksqlDB classpath,
+excluding anything vital to the running of ksqlDB, i.e., classes that are
 part of `org.apache.kafka` and `io.confluent`. Further, the
 `ClassLoader` can restrict access to other classes via a blacklist. The
 blacklist file is `resource-blacklist.txt`. You can add any classes or
@@ -106,7 +106,7 @@ arguments and return types.
 
 `@UdfParameter` annotations can be added to method parameters to provide
 users with richer information, including the parameter schema. This
-annotation is required if the KSQL type can't be inferred from the Java
+annotation is required if the SQL type can't be inferred from the Java
 type, for example, `STRUCT`.
 
 ##### Null Handling
@@ -128,7 +128,7 @@ The return type of a UDF can also be a primitive or boxed type. A
 primitive return type indicates the function will never return `null`,
 whereas a boxed type indicates that it may return `null`.
 
-The KSQL server checks the value that's passed to each parameter and
+The ksqlDB Server checks the value that's passed to each parameter and
 reports an error to the server log for any `null` values being passed to a
 primitive type. The associated column in the output row will be `null`.
 
@@ -264,12 +264,12 @@ commands.
 
 The `@Udf` annotation is applied to public methods of a class annotated
 with `@UdfDescription`. Each annotated method will become an invocable function
-in KSQL. This annotation supports the following fields:
+in SQL. This annotation supports the following fields:
 
 | Field         | Description                  | Required               |
 |---------------|------------------------------|------------------------|
 | description   | A string describing generally what a particular version of the UDF does (see the following example). | No |
-| schema        | The KSQL schema for the return type of this UDF.  | For complex types such as STRUCT if `schemaProvider` is not passed in.   |
+| schema        | The ksqlDB schema for the return type of this UDF.  | For complex types such as STRUCT if `schemaProvider` is not passed in.   |
 | schemaProvider| A reference to a method that computes the return schema of this UDF. For more info, see [Dynamic return type](#dynamic-return-type). | For complex types,  like STRUCT, if `schema` is not provided.  |
 
 ```java
@@ -284,7 +284,7 @@ public String substring(final String str, final int pos, final int len)
 ##### UdfParameter Annotation
 
 The `@UdfParameter` annotation is applied to parameters of methods
-annotated with `@Udf`. KSQL uses the additional information in the
+annotated with `@Udf`. ksqlDB uses the additional information in the
 `@UdfParameter` annotation to specify the parameter schema (if it can't
 be inferred from the Java type) or to provide users with richer
 information about the method when, for example, they execute
@@ -294,7 +294,7 @@ information about the method when, for example, they execute
 |-------------|-------------------------------------------------------------|---------------------------------------------------------------------------------|
 | value       | The case-insensitive name of the parameter                  | Required if the UDF JAR was not compiled with the `-parameters` javac argument. |
 | description | A string describing generally what the parameter represents | No                                                                              |
-| schema      | The KSQL schema for the parameter.                          | For complex types, like STRUCT                                                |
+| schema      | The ksqlDB schema for the parameter.                          | For complex types, like STRUCT                                                |
 
 !!! note
       If `schema` is supplied in the `@UdfParameter` annotation for a `STRUCT`
@@ -318,7 +318,7 @@ the name of the parameter will be inferred from the method declaration.
 
 ##### Configurable UDF
 
-If the UDF class needs access to the KSQL server configuration it can
+If the UDF class needs access to the ksqlDB Server configuration it can
 implement `org.apache.kafka.common.Configurable`, for example:
 
 ```java
@@ -639,14 +639,14 @@ The `@UdafFactory` annotation is applied to public static methods of a
 class annotated with `@UdafDescription`. The method must return either
 `Udaf`, or, if it supports table aggregations, `TableUdaf`. Each
 annotated method is a factory for an invocable aggregate function in
-KSQL. The annotation supports the following fields:
+SQL. The annotation supports the following fields:
 
 | Field           | Description                                                    | Required                       |
 |-----------------|----------------------------------------------------------------|--------------------------------|
 | description     | A string describing generally what the function(s) in this class do. | Yes                            |
-| paramSchema     | The KSQL schema for the input parameter.                       | For complex types, like STRUCT |
-| aggregateSchema | The KSQL schema for the intermediate state.                    | For complex types, like STRUCT |
-| returnSchema    | The KSQL schema for the return value.                          | For complex types, like STRUCT |
+| paramSchema     | The ksqlDB schema for the input parameter.                       | For complex types, like STRUCT |
+| aggregateSchema | The ksqlDB schema for the intermediate state.                    | For complex types, like STRUCT |
+| returnSchema    | The ksqlDB schema for the return value.                          | For complex types, like STRUCT |
 
 !!! note
       If `paramSchema` , `aggregateSchema` or `returnSchema` is supplied in
@@ -677,7 +677,7 @@ types.
 
 `@UdfParameter` annotations can be added to method parameters to provide users
 with richer information, including the parameter schema. This annotation is
-required if the KSQL type can't be inferred from the Java type, like `STRUCT`.
+required if the SQL type can't be inferred from the Java type, like `STRUCT`.
 
 ##### Null Handling
 
@@ -698,7 +698,7 @@ The return type of a UDTF can also be a primitive or boxed type. A primitive
 return type indicates that the function never returns `null`, and a boxed type
 indicates that it may return `null`.
 
-KSQL server checks the value being passed to each parameter and reports an
+ksqlDB server checks the value being passed to each parameter and reports an
 error to the server log for any `null` values being passed to a primitive type.
 The associated column in the output row will be `null`.
 
@@ -725,7 +725,7 @@ is provided in the `name` parameter of the `UdtfDescription` annotation. This
 name is case-insensitive, and you can use it to call the UDTF.
 
 UDTF methods must return a value of type `List<T>`, where `T` is any of the
-supported KSQL Java types.
+supported SQL Java types.
 
 You can invoke this UDTF in two different ways:
 
@@ -804,12 +804,12 @@ the `SHOW FUNCTIONS` and `DESCRIBE FUNCTION <function>` commands.
 
 The `@Udtf` annotation is applied to public methods of a class annotated with
 `@UdtfDescription`. Each annotated method becomes an invocable function in
-KSQL. This annotation supports the following fields:
+SQL. This annotation supports the following fields:
 
 |     Field      |                                                   Description                                                   |                                Required                                 |
 | -------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | description    | A string describing generally what a particular version of the UDTF does (see example).                         | No                                                                      |
-| schema         | The KSQL schema for the return type of this UDTF.                                                               | For complex types such as STRUCT if `schemaProvider` is  not passed in. |
+| schema         | The ksqlDB schema for the return type of this UDTF.                                                               | For complex types such as STRUCT if `schemaProvider` is  not passed in. |
 | schemaProvider | A reference to a method that computes the return schema of this UDTF. (See Dynamic Return Types for more info). | For complex types such as STRUCT if ``schema`` is not passed in.        |
 
 ##### Annotating UDTF Parameters
@@ -820,9 +820,9 @@ earlier documentation on this for further information.
 
 ### Supported Types
 
-KSQL supports the following Java types for UDFs, UDAFs, and UDTFs.
+ksqlDB supports the following Java types for UDFs, UDAFs, and UDTFs.
 
-| Java Type  | KSQL Type |
+| Java Type  | SQL Type  |
 | ---------- | --------- |
 | int        | INTEGER   |
 | Integer    | INTEGER   |
@@ -848,19 +848,19 @@ KSQL supports the following Java types for UDFs, UDAFs, and UDTFs.
 To deploy your user defined functions, you create a jar containing all of the
 classes required by the functions. If you depend on third-party libraries,
 this should be an uber-jar containing these libraries. Once the jar
-is created, deploy it to each KSQL server instance. Copy the jar
-to the `ext/` directory that's part of the KSQL distribution. The `ext/`
+is created, deploy it to each ksqlDB server instance. Copy the jar
+to the `ext/` directory that's part of the ksqlDB distribution. The `ext/`
  directory can be configured via the `ksql.extension.dir`.
 
 The jars in the `ext/` directory are scanned only at start-up, so you
-must restart your KSQL server instances to pick up new and updated UD(A)Fs.
+must restart your ksqlDB Server instances to pick up new and updated UD(A)Fs.
 
 It s important to ensure that you deploy the custom jars to each server
 instance. Failure to do so results in errors when processing any
 statements that try to use these functions. The errors may go unnoticed
-in the KSQL CLI if the KSQL server instance it is connected to has the
-jar installed, but one or more other KSQL servers don't have it
-installed. In these cases, the errors will appear in the KSQL server log
+in the ksqlDB CLI if the ksqlDB Server instance it is connected to has the
+jar installed, but one or more other ksqlDB servers don't have it
+installed. In these cases, the errors will appear in the ksqlDB Server log
 (ksql.log) . The error would look something like:
 
 ```
@@ -875,7 +875,7 @@ to only the servers with the correct jars installed.
 ### Usage
 
 Once your functions are deployed, you can call them in the same way you
-would invoke any of the KSQL built-in functions. The function names are
+would invoke any of the ksqlDB built-in functions. The function names are
 case-insensitive. For example, using the `multiply` example:
 
 ```sql
@@ -885,13 +885,13 @@ CREATE STREAM number_stream (int1 INT, int2 INT, long1 BIGINT, long2 BIGINT)
 SELECT multiply(int1, int2), MULTIPLY(long1, long2) FROM number_stream EMIT CHANGES;
 ```
 
-### KSQL Custom Functions and Security
+### ksqlDB Custom Functions and Security
 
 #### Blacklisting
 
 In some deployment environments, it may be necessary to restrict the
 classes that UD(A)Fs have access to, as they may represent a security
-risk. To reduce the attack surface of KSQL UD(A)Fs you can optionally
+risk. To reduce the attack surface of ksqlDB user defined functions you can optionally
 blacklist classes and packages so that they can't be used from a
 UD(A)F. An example blacklist is in a file named `resource-blacklist.txt`
 in the `ext/` directory. All of the entries in the default version of the
@@ -921,15 +921,15 @@ not present, or is empty, then no classes are blacklisted.
 
 #### Security Manager
 
-By default, KSQL installs a simple Java security manager for executing
+By default, ksqlDB installs a simple Java security manager for executing
 user defined functions. The security manager blocks attempts by any functions
-to fork processes from the KSQL server. It also prevents them from calling
+to fork processes from the ksqlDB Server. It also prevents them from calling
 `System.exit(..)`.
 
 You can disable the security manager by setting
 `ksql.udf.enable.security.manager` to `false`.
 
-#### Disabling KSQL Custom Functions
+#### Disabling ksqlDB Custom Functions
 
 You can disable the loading of all UDFs in the `ext/` directory by
 setting `ksql.udfs.enabled` to `false`. By default, they are enabled.

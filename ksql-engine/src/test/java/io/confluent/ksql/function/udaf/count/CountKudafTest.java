@@ -21,8 +21,8 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Test;
 
 public class CountKudafTest {
@@ -89,7 +89,7 @@ public class CountKudafTest {
 
   private CountKudaf getDoubleCountKudaf() {
     final KsqlAggregateFunction aggregateFunction = new CountAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+        .createAggregateFunction(Collections.singletonList(SqlTypes.DOUBLE),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(CountKudaf.class));
     return  (CountKudaf) aggregateFunction;

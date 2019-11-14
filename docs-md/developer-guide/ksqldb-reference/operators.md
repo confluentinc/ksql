@@ -9,7 +9,7 @@ keywords: ksqlDB, operator
 Operators
 =========
 
-KSQL supports the following operators in value expressions.
+ksqlDB supports the following operators in value expressions.
 
   - [Arithmetic](#arithmetic)
   - [Concatenation](#concatenation)

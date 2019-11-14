@@ -33,7 +33,6 @@ import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -91,7 +90,7 @@ public class UdafUtilTest {
     UdafUtil.resolveAggregateFunction(functionRegistry, FUNCTION_CALL, SCHEMA);
 
     // Then:
-    verify(functionRegistry).getAggregateFunction(any(), eq(Schema.OPTIONAL_INT64_SCHEMA), any());
+    verify(functionRegistry).getAggregateFunction(any(), eq(SqlTypes.BIGINT), any());
   }
 
 }

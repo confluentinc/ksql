@@ -16,15 +16,15 @@
 package io.confluent.ksql.function.udaf.min;
 
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.math.BigDecimal;
-import org.apache.kafka.connect.data.Schema;
 
 public class DecimalMinKudaf extends BaseNumberKudaf<BigDecimal> {
 
   DecimalMinKudaf(
       final String functionName,
       final Integer argIndexInValue,
-      final Schema returnSchema
+      final SqlType returnSchema
   ) {
     super(functionName,
           argIndexInValue,

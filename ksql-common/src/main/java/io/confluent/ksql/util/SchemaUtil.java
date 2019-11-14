@@ -15,17 +15,27 @@
 
 package io.confluent.ksql.util;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.confluent.ksql.function.GenericsUtil;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.BooleanType;
+import io.confluent.ksql.function.types.DecimalType;
+import io.confluent.ksql.function.types.DoubleType;
+import io.confluent.ksql.function.types.IntegerType;
+import io.confluent.ksql.function.types.LongType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.StringType;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.SchemaConverters;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import io.confluent.ksql.schema.ksql.SqlBaseType;
+import io.confluent.ksql.schema.ksql.types.SqlArray;
+import io.confluent.ksql.schema.ksql.types.SqlMap;
+import io.confluent.ksql.schema.ksql.types.SqlStruct;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiPredicate;
-import org.apache.kafka.connect.data.Field;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Schema.Type;
 import org.apache.kafka.connect.data.SchemaBuilder;
@@ -48,15 +58,6 @@ public final class SchemaUtil {
   );
 
   private static final char FIELD_NAME_DELIMITER = '.';
-
-  private static final Map<Type, BiPredicate<Schema, Schema>> CUSTOM_SCHEMA_EQ =
-      ImmutableMap.<Type, BiPredicate<Schema, Schema>>builder()
-          .put(Type.MAP, SchemaUtil::mapCompatible)
-          .put(Type.ARRAY, SchemaUtil::arrayCompatible)
-          .put(Type.STRUCT, SchemaUtil::structCompatible)
-          .put(Type.BYTES, SchemaUtil::bytesEquals)
-          .build();
-
 
   private SchemaUtil() {
   }
@@ -140,73 +141,53 @@ public final class SchemaUtil {
         .build();
   }
 
-
-  public static boolean areCompatible(final Schema arg1, final Schema arg2) {
-    if (arg2 == null) {
-      return arg1.isOptional();
+  public static boolean areCompatible(SqlType actual, ParamType declared) {
+    if (actual.baseType() == SqlBaseType.ARRAY && declared instanceof ArrayType) {
+      return areCompatible(((SqlArray) actual).getItemType(), ((ArrayType) declared).element());
     }
 
-    // we require a custom equals method that ignores certain values (e.g.
-    // whether or not the schema is optional, and the documentation)
-    return Objects.equals(arg1.type(), arg2.type())
-        && CUSTOM_SCHEMA_EQ.getOrDefault(arg1.type(), (a, b) -> true).test(arg1, arg2)
-        && Objects.equals(arg1.version(), arg2.version())
-        && Objects.deepEquals(arg1.defaultValue(), arg2.defaultValue());
-  }
-
-  private static boolean mapCompatible(final Schema mapA, final Schema mapB) {
-    return areCompatible(mapA.keySchema(), mapB.keySchema())
-        && areCompatible(mapA.valueSchema(), mapB.valueSchema());
-  }
-
-  private static boolean arrayCompatible(final Schema arrayA, final Schema arrayB) {
-    return areCompatible(arrayA.valueSchema(), arrayB.valueSchema());
-  }
-
-  private static boolean structCompatible(final Schema structA, final Schema structB) {
-    return structA.fields().isEmpty()
-        || structB.fields().isEmpty()
-        || compareFieldsOfStructs(structA, structB);
-  }
-
-
-  private static boolean compareFieldsOfStructs(final Schema structA, final Schema structB) {
-
-    final List<Field> fieldsA = structA.fields();
-    final List<Field> fieldsB = structB.fields();
-    final int sizeA = fieldsA.size();
-    final int sizeB = fieldsB.size();
-
-    if (sizeA != sizeB) {
-      return false;
+    if (actual.baseType() == SqlBaseType.MAP && declared instanceof MapType) {
+      return areCompatible(
+          ((SqlMap) actual).getValueType(),
+          ((MapType) declared).value()
+      );
     }
 
-    // Custom field comparison to support comparison of structs with decimals and generics
-    for (int i = 0; i < sizeA; i++) {
-      final Field fieldA = fieldsA.get(i);
-      final Field fieldB = fieldsB.get(i);
-      if (!fieldA.name().equals(fieldB.name())
-          || fieldA.index() != fieldB.index()
-          || ! areCompatible(fieldsA.get(i).schema(), fieldsB.get(i).schema())) {
+    if (actual.baseType() == SqlBaseType.STRUCT && declared instanceof StructType) {
+      return isStructCompatible(actual, declared);
+    }
+
+    return isPrimitiveMatch(actual, declared);
+  }
+
+  private static boolean isStructCompatible(SqlType actual, ParamType declared) {
+    final SqlStruct actualStruct = (SqlStruct) actual;
+
+    // consider a struct that is empty to match any other struct
+    if (actualStruct.fields().isEmpty() || ((StructType) declared).getSchema().isEmpty()) {
+      return true;
+    }
+
+    for (Entry<String, ParamType> entry : ((StructType) declared).getSchema().entrySet()) {
+      String k = entry.getKey();
+      final Optional<io.confluent.ksql.schema.ksql.types.Field> field = actualStruct.field(k);
+      if (!field.isPresent() || !areCompatible(field.get().type(), entry.getValue())) {
         return false;
       }
     }
-    return true;
+    return actualStruct.fields().size() == ((StructType) declared).getSchema().size();
   }
 
-  private static boolean bytesEquals(final Schema bytesA, final Schema bytesB) {
-    // two datatypes are currently represented as bytes: generics and decimals
-
-    if (GenericsUtil.isGeneric(bytesA)) {
-      if (GenericsUtil.isGeneric(bytesB)) {
-        return bytesA.name().equals(bytesB.name());
-      }
-      return false;
-    }
-
-    // from a Java schema perspective, all decimals are the same
-    // since they can all be cast to BigDecimal
-    return DecimalUtil.isDecimal(bytesA) && DecimalUtil.isDecimal(bytesB);
+  // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
+  private static boolean isPrimitiveMatch(SqlType actual, ParamType declared) {
+    // CHECKSTYLE_RULES.ON: CyclomaticComplexity
+    // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
+    return actual.baseType() == SqlBaseType.STRING  && declared instanceof StringType
+        || actual.baseType() == SqlBaseType.INTEGER && declared instanceof IntegerType
+        || actual.baseType() == SqlBaseType.BIGINT  && declared instanceof LongType
+        || actual.baseType() == SqlBaseType.BOOLEAN && declared instanceof BooleanType
+        || actual.baseType() == SqlBaseType.DOUBLE  && declared instanceof DoubleType
+        || actual.baseType() == SqlBaseType.DECIMAL && declared instanceof DecimalType;
+    // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
   }
-
 }

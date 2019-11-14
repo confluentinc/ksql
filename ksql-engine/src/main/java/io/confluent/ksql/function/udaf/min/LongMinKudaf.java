@@ -16,14 +16,14 @@
 package io.confluent.ksql.function.udaf.min;
 
 import io.confluent.ksql.function.udaf.BaseNumberKudaf;
-import org.apache.kafka.connect.data.Schema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 
 public class LongMinKudaf extends BaseNumberKudaf<Long> {
 
   LongMinKudaf(final String functionName, final int argIndexInValue) {
     super(functionName,
           argIndexInValue,
-          Schema.OPTIONAL_INT64_SCHEMA,
+          SqlTypes.BIGINT,
           Long::min,
           "Computes the minimum long value for a key.");
   }

@@ -39,7 +39,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.concurrent.ThreadSafe;
-import org.apache.kafka.connect.data.Schema;
 
 @ThreadSafe
 public final class MetaStoreImpl implements MutableMetaStore {
@@ -218,7 +217,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   public KsqlAggregateFunction<?, ?, ?> getAggregateFunction(
       final String functionName,
-      final Schema argumentType,
+      final SqlType argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
     return functionRegistry.getAggregateFunction(functionName, argumentType, initArgs);
@@ -226,7 +225,7 @@ public final class MetaStoreImpl implements MutableMetaStore {
 
   public KsqlTableFunction getTableFunction(
       final String functionName,
-      final List<Schema> argumentTypes
+      final List<SqlType> argumentTypes
   ) {
     return functionRegistry.getTableFunction(functionName, argumentTypes);
   }

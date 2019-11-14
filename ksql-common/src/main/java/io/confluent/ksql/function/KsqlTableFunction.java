@@ -16,12 +16,11 @@
 package io.confluent.ksql.function;
 
 import com.google.errorprone.annotations.Immutable;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
 
 /**
  * A wrapper around the actual table function which provides methods to get return type and
@@ -33,14 +32,14 @@ public class KsqlTableFunction extends KsqlFunction {
   private final Kudf udtf;
 
   public KsqlTableFunction(
-      final Function<List<Schema>, Schema> returnSchemaProvider,
+      final SchemaProvider returnSchemaProvider,
       final FunctionName functionName,
-      final Schema outputType,
-      final List<Schema> arguments,
+      final ParamType outputType,
+      final List<ParameterInfo> parameters,
       final String description,
       final Kudf udtf
   ) {
-    super(returnSchemaProvider, outputType, arguments, functionName, description,
+    super(returnSchemaProvider, outputType, parameters, functionName, description,
         "", false
     );
     this.udtf = Objects.requireNonNull(udtf, "udtf");

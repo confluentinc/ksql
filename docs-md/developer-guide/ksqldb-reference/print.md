@@ -19,7 +19,7 @@ PRINT qualifiedName [FROM BEGINNING] [INTERVAL interval] [LIMIT limit]
 Description
 -----------
 
-Print the contents of Kafka topics to the KSQL CLI.
+Print the contents of Kafka topics to the ksqlDB CLI.
 
 !!! important
 	SQL grammar defaults to uppercase formatting. You can use quotations

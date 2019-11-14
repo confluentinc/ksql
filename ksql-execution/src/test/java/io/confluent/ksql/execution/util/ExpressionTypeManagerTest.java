@@ -70,7 +70,6 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -240,7 +239,7 @@ public class ExpressionTypeManagerTest {
   @Test
   public void shouldEvaluateTypeForUDF() {
     // Given:
-    givenUdfWithNameAndReturnType("FLOOR", Schema.OPTIONAL_FLOAT64_SCHEMA);
+    givenUdfWithNameAndReturnType("FLOOR", SqlTypes.DOUBLE);
     Expression expression =
         new FunctionCall(FunctionName.of("FLOOR"), ImmutableList.of(COL3));
 
@@ -249,14 +248,14 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.DOUBLE));
-    verify(udfFactory).getFunction(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA));
-    verify(function).getReturnType(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.DOUBLE));
+    verify(function).getReturnType(ImmutableList.of(SqlTypes.DOUBLE));
   }
 
   @Test
   public void shouldEvaluateTypeForStringUDF() {
     // Given:
-    givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA);
+    givenUdfWithNameAndReturnType("LCASE", SqlTypes.STRING);
     Expression expression =
         new FunctionCall(FunctionName.of("LCASE"), ImmutableList.of(COL2));
 
@@ -265,17 +264,17 @@ public class ExpressionTypeManagerTest {
 
     // Then:
     assertThat(exprType, is(SqlTypes.STRING));
-    verify(udfFactory).getFunction(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA));
-    verify(function).getReturnType(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA));
+    verify(udfFactory).getFunction(ImmutableList.of(SqlTypes.STRING));
+    verify(function).getReturnType(ImmutableList.of(SqlTypes.STRING));
   }
 
   @Test
   public void shouldHandleNestedUdfs() {
     // Given:
-    givenUdfWithNameAndReturnType("EXTRACTJSONFIELD", Schema.OPTIONAL_STRING_SCHEMA);
+    givenUdfWithNameAndReturnType("EXTRACTJSONFIELD", SqlTypes.STRING);
     UdfFactory outerFactory = mock(UdfFactory.class);
     KsqlScalarFunction function = mock(KsqlScalarFunction.class);
-    givenUdfWithNameAndReturnType("LCASE", Schema.OPTIONAL_STRING_SCHEMA, outerFactory, function);
+    givenUdfWithNameAndReturnType("LCASE", SqlTypes.STRING, outerFactory, function);
     Expression inner = new FunctionCall(
         FunctionName.of("EXTRACTJSONFIELD"),
         ImmutableList.of(COL1, new StringLiteral("$.name)"))
@@ -564,12 +563,12 @@ public class ExpressionTypeManagerTest {
     expressionTypeManager.getExpressionSqlType(expression);
   }
 
-  private void givenUdfWithNameAndReturnType(String name, Schema returnType) {
+  private void givenUdfWithNameAndReturnType(String name, SqlType returnType) {
     givenUdfWithNameAndReturnType(name, returnType, udfFactory, function);
   }
 
   private void givenUdfWithNameAndReturnType(
-      String name, Schema returnType, UdfFactory factory, KsqlScalarFunction function
+      String name, SqlType returnType, UdfFactory factory, KsqlScalarFunction function
   ) {
     when(functionRegistry.isAggregate(name)).thenReturn(false);
     when(functionRegistry.getUdfFactory(name)).thenReturn(factory);

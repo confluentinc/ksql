@@ -17,8 +17,11 @@ package io.confluent.ksql.function;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.confluent.ksql.schema.connect.SqlSchemaFormatter;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.schema.ksql.FormatOptions;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.SchemaUtil;
 import java.util.ArrayList;
@@ -31,14 +34,13 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * An index of all method signatures associated with a UDF. This index
  * supports lookups based on method signatures, defined by a list of
- * nullable {@link Schema}.
+ * nullable {@link ParamType}.
  *
  * <p>Resolving a method signature takes the following precedence rules:
  * <ul>
@@ -85,12 +87,10 @@ public class UdfIndex<T extends FunctionSignature> {
   // the best candidate (e.g. foo(null, int) matches B, C and E).
 
   private static final Logger LOG = LoggerFactory.getLogger(UdfIndex.class);
-  private static final SqlSchemaFormatter FORMATTER =
-      new UdfSchemaFormatter(word -> false);
 
   private final String udfName;
   private final Node root = new Node();
-  private final Map<List<Schema>, T> allFunctions;
+  private final Map<List<ParamType>, T> allFunctions;
 
   UdfIndex(final String udfName) {
     this.udfName = Objects.requireNonNull(udfName, "udfName");
@@ -98,8 +98,8 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   void addFunction(final T function) {
-    final List<Schema> parameters = function.getArguments();
-    if (allFunctions.put(function.getArguments(), function) != null) {
+    final List<ParamType> parameters = function.parameters();
+    if (allFunctions.put(function.parameters(), function) != null) {
       throw new KsqlException(
           "Can't add function "
               + function
@@ -112,7 +112,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     Node curr = root;
     Node parent = curr;
-    for (final Schema parameter : parameters) {
+    for (final ParamType parameter : parameters) {
       final Parameter param = new Parameter(parameter, false);
       parent = curr;
       curr = curr.children.computeIfAbsent(param, ignored -> new Node());
@@ -125,7 +125,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
       // then add a new child node with the parameter value type
       // and add this function to that node
-      final Schema varargSchema = Iterables.getLast(function.getArguments());
+      final ParamType varargSchema = Iterables.getLast(function.parameters());
       final Parameter vararg = new Parameter(varargSchema, true);
       final Node leaf = parent.children.computeIfAbsent(vararg, ignored -> new Node());
       leaf.update(function, order);
@@ -139,7 +139,7 @@ public class UdfIndex<T extends FunctionSignature> {
     curr.update(function, order);
   }
 
-  T getFunction(final List<Schema> arguments) {
+  T getFunction(final List<SqlType> arguments) {
     final List<Node> candidates = new ArrayList<>();
     getCandidates(arguments, 0, root, candidates, new HashMap<>());
 
@@ -151,11 +151,11 @@ public class UdfIndex<T extends FunctionSignature> {
   }
 
   private void getCandidates(
-      final List<Schema> arguments,
+      final List<SqlType> arguments,
       final int argIndex,
       final Node current,
       final List<Node> candidates,
-      final Map<Schema, Schema> reservedGenerics
+      final Map<GenericType, SqlType> reservedGenerics
   ) {
     if (argIndex == arguments.size()) {
       if (current.value != null) {
@@ -164,9 +164,9 @@ public class UdfIndex<T extends FunctionSignature> {
       return;
     }
 
-    final Schema arg = arguments.get(argIndex);
+    final SqlType arg = arguments.get(argIndex);
     for (final Entry<Parameter, Node> candidate : current.children.entrySet()) {
-      final Map<Schema, Schema> reservedCopy = new HashMap<>(reservedGenerics);
+      final Map<GenericType, SqlType> reservedCopy = new HashMap<>(reservedGenerics);
       if (candidate.getKey().accepts(arg, reservedCopy)) {
         final Node node = candidate.getValue();
         getCandidates(arguments, argIndex + 1, node, candidates, reservedCopy);
@@ -174,13 +174,11 @@ public class UdfIndex<T extends FunctionSignature> {
     }
   }
 
-  private KsqlException createNoMatchingFunctionException(final List<Schema> paramTypes) {
+  private KsqlException createNoMatchingFunctionException(final List<SqlType> paramTypes) {
     LOG.debug("Current UdfIndex:\n{}", describe());
 
     final String sqlParamTypes = paramTypes.stream()
-        .map(schema -> schema == null
-            ? null
-            : FORMATTER.format(schema))
+        .map(type -> type == null ? "null" : type.toString(FormatOptions.noEscape()))
         .collect(Collectors.joining(", ", "[", "]"));
 
     return new KsqlException("Function '" + udfName
@@ -205,7 +203,7 @@ public class UdfIndex<T extends FunctionSignature> {
         Comparator.nullsFirst(
             Comparator
                 .<T, Integer>comparing(fun -> fun.isVariadic() ? 0 : 1)
-                .thenComparing(fun -> fun.getArguments().size())
+                .thenComparing(fun -> fun.parameters().size())
         );
 
     private final Map<Parameter, Node> children;
@@ -240,7 +238,7 @@ public class UdfIndex<T extends FunctionSignature> {
 
     @Override
     public String toString() {
-      return value != null ? value.getFunctionName().name() : "EMPTY";
+      return value != null ? value.name().name() : "EMPTY";
     }
 
     int compare(final Node other) {
@@ -254,14 +252,14 @@ public class UdfIndex<T extends FunctionSignature> {
    * A class that represents a parameter, with a schema and whether
    * or not it is part of a variable argument declaration.
    */
-  static final class Parameter {
+  private static final class Parameter {
 
-    private final Schema schema;
+    private final ParamType type;
     private final boolean isVararg;
 
-    private Parameter(final Schema schema, final boolean isVararg) {
+    private Parameter(final ParamType type, final boolean isVararg) {
       this.isVararg = isVararg;
-      this.schema = Objects.requireNonNull(isVararg ? schema.valueSchema() : schema, "schema");
+      this.type = isVararg ? ((ArrayType) type).element() : type;
     }
 
     @Override
@@ -274,12 +272,12 @@ public class UdfIndex<T extends FunctionSignature> {
       }
       final Parameter parameter = (Parameter) o;
       return isVararg == parameter.isVararg
-          && Objects.equals(schema, parameter.schema);
+          && Objects.equals(type, parameter.type);
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(schema, isVararg);
+      return Objects.hash(type, isVararg);
     }
 
     /**
@@ -292,31 +290,31 @@ public class UdfIndex<T extends FunctionSignature> {
      *         this parameter
      */
     // CHECKSTYLE_RULES.OFF: BooleanExpressionComplexity
-    boolean accepts(final Schema argument, final Map<Schema, Schema> reservedGenerics) {
+    boolean accepts(final SqlType argument, final Map<GenericType, SqlType> reservedGenerics) {
       if (argument == null) {
-        return schema.isOptional();
+        return true;
       }
 
-      if (GenericsUtil.hasGenerics(schema)) {
-        return reserveGenerics(schema, argument, reservedGenerics);
+      if (GenericsUtil.hasGenerics(type)) {
+        return reserveGenerics(type, argument, reservedGenerics);
       }
 
-      return SchemaUtil.areCompatible(schema, argument);
+      return SchemaUtil.areCompatible(argument, type);
     }
     // CHECKSTYLE_RULES.ON: BooleanExpressionComplexity
 
     private static boolean reserveGenerics(
-        final Schema schema,
-        final Schema argument,
-        final Map<Schema, Schema> reservedGenerics
+        final ParamType schema,
+        final SqlType argument,
+        final Map<GenericType, SqlType> reservedGenerics
     ) {
       if (!GenericsUtil.instanceOf(schema, argument)) {
         return false;
       }
 
-      final Map<Schema, Schema> genericMapping = GenericsUtil.resolveGenerics(schema, argument);
-      for (final Entry<Schema, Schema> entry : genericMapping.entrySet()) {
-        final Schema old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
+      Map<GenericType, SqlType> genericMapping = GenericsUtil.resolveGenerics(schema, argument);
+      for (final Entry<GenericType, SqlType> entry : genericMapping.entrySet()) {
+        final SqlType old = reservedGenerics.putIfAbsent(entry.getKey(), entry.getValue());
         if (old != null && !old.equals(entry.getValue())) {
           return false;
         }
@@ -325,31 +323,9 @@ public class UdfIndex<T extends FunctionSignature> {
       return true;
     }
 
-    private static boolean mapEquals(final Schema mapA, final Schema mapB) {
-      return Objects.equals(mapA.keySchema(), mapB.keySchema())
-          && Objects.equals(mapA.valueSchema(), mapB.valueSchema());
-    }
-
-    private static boolean arrayEquals(final Schema arrayA, final Schema arrayB) {
-      return Objects.equals(arrayA.valueSchema(), arrayB.valueSchema());
-    }
-
-    private static boolean structEquals(final Schema structA, final Schema structB) {
-      return structA.fields().isEmpty()
-          || structB.fields().isEmpty()
-          || Objects.equals(structA.fields(), structB.fields());
-    }
-
-    private static boolean bytesEquals(final Schema bytesA, final Schema bytesB) {
-      // from a UDF parameter perspective, all decimals are the same
-      // since they can all be cast to BigDecimal - other bytes types
-      // are not supported in UDFs
-      return DecimalUtil.isDecimal(bytesA) && DecimalUtil.isDecimal(bytesB);
-    }
-
     @Override
     public String toString() {
-      return FORMATTER.format(schema) + (isVararg ? "(VARARG)" : "");
+      return type + (isVararg ? "(VARARG)" : "");
     }
   }
 

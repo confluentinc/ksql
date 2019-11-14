@@ -16,10 +16,14 @@
 package io.confluent.ksql.execution.function;
 
 import com.google.common.collect.ImmutableMap;
-import io.confluent.ksql.function.GenericsUtil;
 import io.confluent.ksql.function.KsqlFunctionException;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.types.StringType;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.ParameterizedType;
@@ -28,27 +32,21 @@ import java.lang.reflect.TypeVariable;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public final class UdfUtil {
 
-  private static final Map<Type, Supplier<SchemaBuilder>> typeToSchema
-      = ImmutableMap.<Type, Supplier<SchemaBuilder>>builder()
-      .put(String.class, () -> SchemaBuilder.string().optional())
-      .put(boolean.class, SchemaBuilder::bool)
-      .put(Boolean.class, () -> SchemaBuilder.bool().optional())
-      .put(Integer.class, () -> SchemaBuilder.int32().optional())
-      .put(int.class, SchemaBuilder::int32)
-      .put(Long.class, () -> SchemaBuilder.int64().optional())
-      .put(long.class, SchemaBuilder::int64)
-      .put(Double.class, () -> SchemaBuilder.float64().optional())
-      .put(double.class, SchemaBuilder::float64)
-      // from the UDF perspective, all Decimal schemas are the same (BigDecimal) in Java
-      // so we arbitrarily choose DECIMAL(1,0). if we migrate to use a type system dedicated
-      // for UDFs, we can update this to be a "generic decimal"
-      .put(BigDecimal.class, () -> DecimalUtil.builder(1, 0).optional())
+  private static final Map<Type, ParamType> JAVA_TO_ARG_TYPE
+      = ImmutableMap.<Type, ParamType>builder()
+      .put(String.class, ParamTypes.STRING)
+      .put(boolean.class, ParamTypes.BOOLEAN)
+      .put(Boolean.class, ParamTypes.BOOLEAN)
+      .put(Integer.class, ParamTypes.INTEGER)
+      .put(int.class, ParamTypes.INTEGER)
+      .put(Long.class, ParamTypes.LONG)
+      .put(long.class, ParamTypes.LONG)
+      .put(Double.class, ParamTypes.DOUBLE)
+      .put(double.class, ParamTypes.DOUBLE)
+      .put(BigDecimal.class, ParamTypes.DECIMAL)
       .build();
 
   private UdfUtil() {
@@ -92,52 +90,49 @@ public final class UdfUtil {
     }
   }
 
-  public static Schema getSchemaFromType(Type type) {
-    return getSchemaFromType(type, null, null);
-  }
-
-  public static Schema getSchemaFromType(Type type, String name, String doc) {
-    SchemaBuilder schema;
+  public static ParamType getSchemaFromType(Type type) {
+    ParamType schema;
     if (type instanceof TypeVariable) {
-      schema = GenericsUtil.generic(((TypeVariable) type).getName());
+      schema = GenericType.of(((TypeVariable) type).getName());
     } else {
-      schema = typeToSchema.getOrDefault(type, () -> handleParameterizedType(type)).get();
-      if (schema.name() == null) {
-        schema.name(name);
+      schema = JAVA_TO_ARG_TYPE.get(type);
+      if (schema == null) {
+        schema = handleParameterizedType(type);
       }
     }
 
-    schema.doc(doc);
-    return schema.build();
+    return schema;
   }
 
-  private static SchemaBuilder handleParameterizedType(Type type) {
+  private static ParamType handleParameterizedType(Type type) {
     if (type instanceof ParameterizedType) {
       ParameterizedType parameterizedType = (ParameterizedType) type;
       if (parameterizedType.getRawType() == Map.class) {
-        Schema keySchema = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
+        ParamType keyType = getSchemaFromType(parameterizedType.getActualTypeArguments()[0]);
+        if (!(keyType instanceof StringType)) {
+          throw new KsqlException("Maps only support STRING keys, got: " + keyType);
+        }
         Type valueType = ((ParameterizedType) type).getActualTypeArguments()[1];
         if (valueType instanceof TypeVariable) {
-          return GenericsUtil.map(keySchema, ((TypeVariable) valueType).getName());
+          return MapType.of(GenericType.of(((TypeVariable) valueType).getName()));
         }
 
-        return SchemaBuilder.map(keySchema, getSchemaFromType(valueType));
+        return MapType.of(getSchemaFromType(valueType));
       } else if (parameterizedType.getRawType() == List.class) {
         Type valueType = ((ParameterizedType) type).getActualTypeArguments()[0];
         if (valueType instanceof TypeVariable) {
-          return GenericsUtil.array(((TypeVariable) valueType).getName());
+          return ArrayType.of(GenericType.of(((TypeVariable) valueType).getName()));
         }
 
-        return SchemaBuilder.array(getSchemaFromType(valueType));
+        return ArrayType.of(getSchemaFromType(valueType));
       }
     } else if (type instanceof Class<?> && ((Class<?>) type).isArray()) {
       // handle var args
-      return SchemaBuilder.array(getSchemaFromType(((Class<?>) type).getComponentType()));
+      return ArrayType.of(getSchemaFromType(((Class<?>) type).getComponentType()));
     } else if (type instanceof GenericArrayType) {
-      return SchemaBuilder.array(
-          GenericsUtil.generic(
-              ((GenericArrayType) type).getGenericComponentType().getTypeName()
-          ).build());
+      return ArrayType.of(
+          GenericType.of(
+              ((GenericArrayType) type).getGenericComponentType().getTypeName()));
     }
 
     throw new KsqlException("Type inference is not supported for: " + type);

@@ -239,7 +239,7 @@ public class DecimalUtilTest {
   @Test
   public void shouldConvertIntegerToSqlDecimal() {
     // When:
-    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(Schema.OPTIONAL_INT32_SCHEMA);
+    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(SqlTypes.INTEGER);
 
     // Then:
     assertThat(decimal, is(SqlTypes.decimal(10, 0)));
@@ -248,7 +248,7 @@ public class DecimalUtilTest {
   @Test
   public void shouldConvertLongToSqlDecimal() {
     // When:
-    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(Schema.OPTIONAL_INT64_SCHEMA);
+    final SqlDecimal decimal = DecimalUtil.toSqlDecimal(SqlTypes.BIGINT);
 
     // Then:
     assertThat(decimal, is(SqlTypes.decimal(19, 0)));
@@ -257,7 +257,7 @@ public class DecimalUtilTest {
   @Test
   public void shouldConvertDecimalToSqlDecimal() {
     // Given:
-    final Schema given = DecimalUtil.builder(2, 2);
+    final SqlDecimal given = SqlTypes.decimal(2, 2);
 
     // When:
     final SqlDecimal decimal = DecimalUtil.toSqlDecimal(given);

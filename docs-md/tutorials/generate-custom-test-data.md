@@ -2,15 +2,12 @@
 layout: page
 title: Generate Custom Test Data by Using the ksql-datagen Tool
 tagline: Configure ksql-datagen with a custom schema
-description: Learn how to produce data according to a schema that you define
-keywords: ksqldb, confluent control center
+description: Learn how to produce data according to a schema that you define.
+keywords: ksqldb, generate, data, event
 ---
 
-Generate Custom Test Data by Using the ksql-datagen Tool
-========================================================
-
-You can use the `ksql-datagen` command-line tool to generate test data
-that complies with a custom schema that you define.
+Use the `ksql-datagen` command-line tool to generate test data that complies
+with a custom schema that you define.
 
 To generate test data, create an Apache Avro schema and pass it to
 `ksql-datagen`. This generates random data according to the schema you
@@ -20,22 +17,21 @@ Also, you can generate data from a few simple, predefined schemas.
 
 Prerequisites:
 
--   [Confluent
-    Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
-    is installed and running. This installation includes an {{
-    site.aktm }} broker, KSQL, {{ site.c3short }}, {{ site.zk }}, {{
-    site.sr }}, REST Proxy, and Kafka Connect.
+-   [Confluent Platform](https://docs.confluent.io/current/installation/installing_cp/index.html)
+    is installed and running. This installation includes an {{ site.aktm }}
+    broker, ksqlDB, {{ site.c3short }}, {{ site.zk }}, {{ site.sr }},
+    {{ site.crest }}, and {{ site.kconnect }}.
 -   If you installed {{ site.cp }} via TAR or ZIP, navigate to the
     installation directory. The paths and commands used throughout this
-    tutorial assume that you\'re in this installation directory.
+    tutorial assume that you're in this installation directory.
 -   Java: Minimum version 1.8. Install Oracle Java JRE or JDK \>= 1.8 on
     your local machine.
 
 The `ksql-datagen` tool is installed with {{ site.cp }} by default.
 
 !!! note
-	KSQL Server doesn't need to be running for `ksql-datagen` to generate
-    records to a topic. The `ksql-datagen` tool isn't just for KSQL. You
+	ksqlDB Server doesn't need to be running for `ksql-datagen` to generate
+    records to a topic. The `ksql-datagen` tool isn't just for ksqlDB. You
     can use it to produce data to any Kafka topic that you have write access
     to.
 
@@ -107,7 +103,7 @@ named `orders_topic`:
 <path-to-confluent>/ksql-datagen quickstart=orders topic=orders_topic
 ```
 
-In the KSQL CLI or in {{ site.c3short }}, register a stream on `orders_topic`:
+In the ksqlDB CLI or in {{ site.c3short }}, register a stream on `orders_topic`:
 
 ```sql
 CREATE STREAM orders_raw (
@@ -164,7 +160,7 @@ The following command generates example user records:
 In this example, no topic name is specified, so `ksql-datagen` creates a
 topic named `users_kafka_topic_json`.
 
-In the KSQL CLI or in {{ site.c3short }}, register a table on
+In the ksqlDB CLI or in {{ site.c3short }}, register a table on
 `users_kafka_topic_json`:
 
 ```sql
@@ -218,7 +214,7 @@ data:
 <path-to-confluent>/bin/ksql-datagen quickstart=users_ topic=users_extended
 ```
 
-In the KSQL CLI or in {{ site.c3short }}, register a table on
+In the ksqlDB CLI or in {{ site.c3short }}, register a table on
 `users_extended`:
 
 ```sql
@@ -276,7 +272,7 @@ topic named `pageviews`:
 <path-to-confluent>/bin/ksql-datagen quickstart=pageviews topic=pageviews
 ```
 
-In the KSQL CLI or in {{ site.c3short }}, register a stream on
+In the ksqlDB CLI or in {{ site.c3short }}, register a stream on
 `pageviews`:
 
 ```sql
@@ -355,7 +351,7 @@ impression_399 --> ([ 1528756318146 | 'impression_399' | 'user_32' | 'ad_78' ])
 
 ### Consume the Test Data Stream
 
-In the KSQL CLI or in {{ site.c3short }}, register the `impressions`
+In the ksqlDB CLI or in {{ site.c3short }}, register the `impressions`
 stream:
 
 ```sql

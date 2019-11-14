@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.PluggableUdf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.function.udtf.Udtf;
@@ -27,9 +28,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import org.apache.kafka.common.metrics.Metrics;
-import org.apache.kafka.connect.data.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,9 +99,9 @@ public class UdtfLoader {
                 ));
           }
           final Type typeArg = ((ParameterizedType) ret).getActualTypeArguments()[0];
-          final Schema returnType = FunctionLoaderUtils
+          final ParamType returnType = FunctionLoaderUtils
               .getReturnType(method, typeArg, annotation.schema(), typeParser);
-          final List<Schema> parameters = FunctionLoaderUtils
+          final List<ParameterInfo> parameters = FunctionLoaderUtils
               .createParameters(method, functionName, typeParser);
           final KsqlTableFunction tableFunction =
               createTableFunction(method, FunctionName.of(functionName), returnType,
@@ -132,24 +131,24 @@ public class UdtfLoader {
   private KsqlTableFunction createTableFunction(
       final Method method,
       final FunctionName functionName,
-      final Schema outputType,
-      final List<Schema> arguments,
+      final ParamType outputType,
+      final List<ParameterInfo> parameters,
       final String description,
       final Udtf udtfAnnotation
   ) {
     final FunctionInvoker invoker = FunctionLoaderUtils.createFunctionInvoker(method);
     final Object instance = FunctionLoaderUtils
         .instantiateFunctionInstance(method.getDeclaringClass(), description);
-    final Function<List<Schema>, Schema> schemaProviderFunction = FunctionLoaderUtils
+    final SchemaProvider schemaProviderFunction = FunctionLoaderUtils
         .handleUdfReturnSchema(
             method.getDeclaringClass(),
             outputType,
             udtfAnnotation.schemaProvider(),
-            functionName.name()
-        );
+            functionName.name(),
+            method.isVarArgs());
     return new KsqlTableFunction(
         schemaProviderFunction,
-        functionName, outputType, arguments, description,
+        functionName, outputType, parameters, description,
         new PluggableUdf(invoker, instance)
     );
   }

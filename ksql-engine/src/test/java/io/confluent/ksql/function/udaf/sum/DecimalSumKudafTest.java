@@ -20,7 +20,7 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
-import io.confluent.ksql.util.DecimalUtil;
+import io.confluent.ksql.schema.ksql.types.SqlDecimal;
 import java.math.BigDecimal;
 import java.util.Collections;
 
@@ -32,7 +32,7 @@ public class DecimalSumKudafTest extends BaseSumKudafTest<BigDecimal, DecimalSum
 
   protected DecimalSumKudaf getSumKudaf() {
     final KsqlAggregateFunction aggregateFunction = new SumAggFunctionFactory()
-        .createAggregateFunction(Collections.singletonList(DecimalUtil.builder(4, 2)),
+        .createAggregateFunction(Collections.singletonList(SqlDecimal.of(4, 2)),
             AggregateFunctionInitArguments.EMPTY_ARGS);
     assertThat(aggregateFunction, instanceOf(DecimalSumKudaf.class));
     return (DecimalSumKudaf) aggregateFunction;

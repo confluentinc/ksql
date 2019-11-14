@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.integration;
 
+import static io.confluent.ksql.test.util.AssertEventually.assertThatEventually;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER1;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.VALID_USER2;
 import static io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster.ops;
@@ -29,8 +30,11 @@ import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
@@ -45,6 +49,7 @@ import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
 import io.confluent.ksql.util.PageViewDataProvider;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -52,6 +57,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import javax.websocket.CloseReason.CloseCodes;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.jetty.websocket.api.Session;
@@ -75,8 +81,10 @@ public class RestApiTest {
   private static final int LIMIT = 2;
   private static final String PAGE_VIEW_TOPIC = "pageviews";
   private static final String PAGE_VIEW_STREAM = "pageviews_original";
+  private static final String AGG_TABLE = "AGG_TABLE";
   private static final Credentials SUPER_USER = VALID_USER1;
   private static final Credentials NORMAL_USER = VALID_USER2;
+  private static final String AN_AGG_KEY = "USER_1";
 
   private static final IntegrationTestHarness TEST_HARNESS = IntegrationTestHarness.builder()
       .withKafkaCluster(
@@ -91,7 +99,7 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
-                  resource(TOPIC, "_confluent-ksql-default__command_topic"),
+                  prefixedResource(TOPIC, "_confluent-ksql-default_"),
                   ops(ALL)
               )
               .withAcl(
@@ -112,6 +120,11 @@ public class RestApiTest {
               .withAcl(
                   NORMAL_USER,
                   resource(TOPIC, "X"),
+                  ops(ALL)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "AGG_TABLE"),
                   ops(ALL)
               )
               .withAcl(
@@ -142,6 +155,9 @@ public class RestApiTest {
     TEST_HARNESS.produceRows(PAGE_VIEW_TOPIC, new PageViewDataProvider(), Format.JSON);
 
     RestIntegrationTestUtil.createStreams(REST_APP, PAGE_VIEW_STREAM, PAGE_VIEW_TOPIC);
+
+    makeKsqlRequest("CREATE TABLE " + AGG_TABLE + " AS "
+        + "SELECT COUNT(1) AS COUNT FROM " + PAGE_VIEW_STREAM + " GROUP BY USERID;");
   }
 
   @After
@@ -188,14 +204,117 @@ public class RestApiTest {
     );
 
     // Then:
-    assertThat(parseRawRestQueryResponse(response), hasSize(LIMIT + FOOTER));
+    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
     final String[] messages = response.split(System.lineSeparator());
     assertThat(messages[0],
-        is("[{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}},"));
-    assertThat(messages[1],
-        is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}},"));
-    assertThat(messages[2],
-        is("{\"finalMessage\":\"Limit Reached\"}]"));
+        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` STRING\"}},"));
+    assertThat(messages[1], is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}},"));
+    assertThat(messages[2], is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}},"));
+    assertThat(messages[3], is("{\"finalMessage\":\"Limit Reached\"}]"));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverWebSocketWithV1ContentType() {
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        Versions.KSQL_V1_JSON_TYPE,
+        Versions.KSQL_V1_JSON_TYPE
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(0),
+        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+    assertThat(messages.get(1),
+        is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverWebSocketWithJsonContentType() {
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON_TYPE,
+        MediaType.APPLICATION_JSON_TYPE
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(0),
+        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+    assertThat(messages.get(1),
+        is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaForPullQueryWithOnlyKeyInSelect() {
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON_TYPE,
+        MediaType.APPLICATION_JSON_TYPE
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(0),
+        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+    assertThat(messages.get(1),
+        is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchemaForPullQueryWithOnlyValueColumnInSelect() {
+    // When:
+    final Supplier<List<String>> call = () -> makeWebSocketRequest(
+        "SELECT COUNT from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        MediaType.APPLICATION_JSON_TYPE,
+        MediaType.APPLICATION_JSON_TYPE
+    );
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    assertValidJsonMessages(messages);
+    assertThat(messages.get(0),
+        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+    assertThat(messages.get(1),
+        is("{\"row\":{\"columns\":[1]}}"));
+  }
+
+  @Test
+  public void shouldExecutePullQueryOverRest() {
+    // When:
+    final Supplier<List<String>> call = () -> {
+      final String response = rawRestQueryRequest(
+          "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';"
+      );
+      return Arrays.asList(response.split(System.lineSeparator()));
+    };
+
+    // Then:
+    final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
+    final List<Map<String, Object>> parsed = parseRawRestQueryResponse(String.join("", messages));
+    assertThat(parsed, hasSize(HEADER + 1));
+    assertThat(parsed.get(0).get("header"), instanceOf(Map.class));
+    assertThat(((Map) parsed.get(0).get("header")).get("queryId"), is(notNullValue()));
+    assertThat(((Map) parsed.get(0).get("header")).get("schema"),
+        is("`ROWKEY` STRING KEY, `COUNT` BIGINT"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[[\"USER_1\",1]]}}]"));
+  }
+
+  @Test
+  public void shouldReportErrorOnInvalidPullQueryOverRest() {
+    // When:
+    final String response = rawRestQueryRequest(
+        "SELECT * from " + AGG_TABLE + ";"
+    );
+
+    // Then:
+    assertThat(response, containsString("Missing WHERE clause"));
   }
 
   @Test
@@ -213,8 +332,8 @@ public class RestApiTest {
   @Test
   public void shouldDeleteTopic() {
     // Given:
-    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
-    makeKsqlRequest("TERMINATE QUERY CSAS_X_1;");
+    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
+        + "TERMINATE QUERY CSAS_X_2; ");
 
     assertThat("Expected topic X to be created", topicExists("X"));
 

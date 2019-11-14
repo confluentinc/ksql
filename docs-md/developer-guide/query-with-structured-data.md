@@ -2,32 +2,32 @@
 layout: page
 title: Query With Structured Data
 tagline: SQL statements for structured data types in ksqlDB
-description: Learn how to use structured data (structs) in your ksqlDB queries
+description: Learn how to use structured data (structs) in your SQL queries.
 ---
 
-KSQL enables querying structured, or nested, data, by using the STRUCT
+ksqlDB enables querying structured, or nested, data, by using the STRUCT
 data type. You use familiar syntax to declare and access structured
 data, like `mystruct STRUCT<fieldName1 type1, fieldName2 type2>` and
 `mystruct->fieldName1`.
 
-The following example shows how to create a KSQL stream from an
+The following example shows how to create a ksqlDB stream from an
 {{ site.aktm }} topic that has structured data. Also, it shows how to run
 queries to access the structured data.
 
 TODO: Internal links
 
-1.  Set up the KSQL environment.
+1.  Set up the ksqlDB environment.
 2.  Use the {{ site.kcat }} utility to create and populate a new topic,
     named `raw-topic`.
 3.  Create a stream on the topic that models the topic's data.
 4.  Inspect the stream to ensure that the data model matches the topic.
 5.  Query the stream to access the structured data.
 
-Set up the KSQL Environment
----------------------------
+Set up the ksqlDB Environment
+-----------------------------
 
-To set up KSQL, follow the first three steps in
-[Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md),
+To set up ksqlDB, follow the first three steps in
+[Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md),
 or if you have git and Docker installed already, run the following commands:
 
 ```bash
@@ -43,7 +43,7 @@ cd docs/tutorials/
 docker-compose up -d
 ```
 
-After all of the Docker images are pulled, confirm that the KSQL and
+After all of the Docker images are pulled, confirm that the ksqlDB and
 Kafka containers are running:
 
 ```bash
@@ -61,7 +61,7 @@ tutorials_schema-registry_1   /etc/confluent/docker/run   Up      8081/tcp
 tutorials_zookeeper_1         /etc/confluent/docker/run   Up      2181/tcp, 2888/tcp, 3888/tcp
 ```
 
-The KSQL environment is ready for you to develop event streaming
+The ksqlDB environment is ready for you to develop event streaming
 applications.
 
 Create and Populate a New Topic With Structured Data
@@ -94,7 +94,7 @@ The nested structure is named `data` and has five fields:
 -   `field-c`, an integer
 -   `field-d`, a string
 
-In the following KSQL queries, the `data` structure is modeled by using
+In the following ksqlDB queries, the `data` structure is modeled by using
 the STRUCT type:
 
 ```sql
@@ -110,7 +110,7 @@ character.
 Create a Stream With Structured Data
 ------------------------------------
 
-Start the KSQL CLI:
+Start the ksqlDB CLI:
 
 ```bash
 docker run --network tutorials_default --rm --interactive --tty \
@@ -118,7 +118,7 @@ docker run --network tutorials_default --rm --interactive --tty \
     http://ksql-server:8088
 ```
 
-In the KSQL CLI, ensure that `raw-topic` is available:
+In the ksqlDB CLI, ensure that `raw-topic` is available:
 
 ```sql
     SHOW TOPICS;
@@ -155,7 +155,7 @@ Your output should resemble:
 Press Ctrl+C to stop printing the topic.
 
 Run the following CREATE STREAM statement to register the topic with
-KSQL:
+ksqlDB:
 
 ```sql
 CREATE STREAM T (TYPE VARCHAR,
@@ -178,10 +178,10 @@ Your output should resemble:
 ----------------
 ```
 
-Run KSQL Queries to Access the Structured Data
-----------------------------------------------
+Run SQL Queries to Access the Structured Data
+---------------------------------------------
 
-Run the following command to tell KSQL to read from the beginning of the
+Run the following command to tell ksqlDB to read from the beginning of the
 topic:
 
 ```sql
@@ -207,7 +207,7 @@ Your output should resemble:
 Press Ctrl+C to cancel the SELECT query.
 
 !!! note
-	KSQL assigns `null` to the fields that were omitted when {{ site.kcat }}
+	ksqlDB assigns `null` to the fields that were omitted when {{ site.kcat }}
     populated `raw-topic`, like `field-c` and `field-d` in record `key1`.
 
 Query `field-a` and `field-b` by using the `->` operator to access the
@@ -307,7 +307,7 @@ Next Steps
 ----------
 
 -   [STRUCT](syntax-reference.md#struct)
--   [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md)
+-   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
 -   [Query With Arrays and Maps](query-with-arrays-and-maps.md)
 
 Page last revised on: {{ git_revision_date }}

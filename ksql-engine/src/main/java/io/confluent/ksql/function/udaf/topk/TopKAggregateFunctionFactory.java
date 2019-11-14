@@ -19,22 +19,24 @@ import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.function.AggregateFunctionFactory;
 import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.types.SqlType;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.List;
-import org.apache.kafka.connect.data.Schema;
-import org.apache.kafka.connect.data.SchemaBuilder;
 
 public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
 
   private static final String NAME = "TOPK";
 
-  private static final List<List<Schema>> SUPPORTED_TYPES = ImmutableList
-      .<List<Schema>>builder()
-      .add(ImmutableList.of(Schema.OPTIONAL_INT32_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_INT64_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_FLOAT64_SCHEMA))
-      .add(ImmutableList.of(Schema.OPTIONAL_STRING_SCHEMA))
+  private static final List<List<ParamType>> SUPPORTED_TYPES = ImmutableList
+      .<List<ParamType>>builder()
+      .add(ImmutableList.of(ParamTypes.INTEGER))
+      .add(ImmutableList.of(ParamTypes.LONG))
+      .add(ImmutableList.of(ParamTypes.DOUBLE))
+      .add(ImmutableList.of(ParamTypes.STRING))
       .build();
 
   public TopKAggregateFunctionFactory() {
@@ -46,46 +48,46 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public KsqlAggregateFunction createAggregateFunction(
-      final List<Schema> argumentType,
+      final List<SqlType> argumentType,
       final AggregateFunctionInitArguments initArgs
   ) {
     if (argumentType.isEmpty()) {
       throw new KsqlException("TOPK function should have two arguments.");
     }
     final int tkValFromArg = (Integer)(initArgs.arg(0));
-    final Schema argSchema = argumentType.get(0);
-    switch (argSchema.type()) {
-      case INT32:
+    final SqlType argSchema = argumentType.get(0);
+    switch (argSchema.baseType()) {
+      case INTEGER:
         return new TopkKudaf<>(
             NAME,
             initArgs.udafIndex(),
             tkValFromArg,
-            SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_INT32_SCHEMA),
+            SqlTypes.array(SqlTypes.INTEGER),
+            Collections.singletonList(ParamTypes.INTEGER),
             Integer.class);
-      case INT64:
+      case BIGINT:
         return new TopkKudaf<>(
             NAME,
             initArgs.udafIndex(),
             tkValFromArg,
-            SchemaBuilder.array(Schema.OPTIONAL_INT64_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
+            SqlTypes.array(SqlTypes.BIGINT),
+            Collections.singletonList(ParamTypes.LONG),
             Long.class);
-      case FLOAT64:
+      case DOUBLE:
         return new TopkKudaf<>(
             NAME,
             initArgs.udafIndex(),
             tkValFromArg,
-            SchemaBuilder.array(Schema.OPTIONAL_FLOAT64_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_FLOAT64_SCHEMA),
+            SqlTypes.array(SqlTypes.DOUBLE),
+            Collections.singletonList(ParamTypes.DOUBLE),
             Double.class);
       case STRING:
         return new TopkKudaf<>(
             NAME,
             initArgs.udafIndex(),
             tkValFromArg,
-            SchemaBuilder.array(Schema.OPTIONAL_STRING_SCHEMA).optional().build(),
-            Collections.singletonList(Schema.OPTIONAL_STRING_SCHEMA),
+            SqlTypes.array(SqlTypes.STRING),
+            Collections.singletonList(ParamTypes.STRING),
             String.class);
       default:
         throw new KsqlException("No TOPK aggregate function with " + argumentType.get(0)
@@ -94,7 +96,7 @@ public class TopKAggregateFunctionFactory extends AggregateFunctionFactory {
   }
 
   @Override
-  public List<List<Schema>> supportedArgs() {
+  public List<List<ParamType>> supportedArgs() {
     return SUPPORTED_TYPES;
   }
 

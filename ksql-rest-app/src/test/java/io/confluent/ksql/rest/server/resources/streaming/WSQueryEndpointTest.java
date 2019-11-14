@@ -130,7 +130,9 @@ public class WSQueryEndpointTest {
   @Mock
   private CommandQueue commandQueue;
   @Mock
-  private QueryPublisher queryPublisher;
+  private QueryPublisher pushQueryPublisher;
+  @Mock
+  private QueryPublisher pullQueryPublisher;
   @Mock
   private PrintTopicPublisher topicPublisher;
   @Mock
@@ -158,9 +160,7 @@ public class WSQueryEndpointTest {
 
   @Before
   public void setUp() {
-    query = new Query(Optional.empty(), mock(Select.class), mock(Relation.class), Optional.empty(),
-        Optional.empty(), Optional.empty(), Optional.empty(), ResultMaterialization.CHANGES, false,
-        OptionalInt.empty());
+    givenQueryIs(QueryType.PUSH);
     when(session.getId()).thenReturn("session-id");
     when(session.getUserPrincipal()).thenReturn(principal);
     when(statementParser.parseSingleStatement(anyString()))
@@ -179,10 +179,23 @@ public class WSQueryEndpointTest {
     givenRequest(VALID_REQUEST);
 
     wsQueryEndpoint = new WSQueryEndpoint(
-        ksqlConfig, OBJECT_MAPPER, statementParser, ksqlEngine, commandQueue, exec,
-        queryPublisher, topicPublisher, activenessRegistrar, COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        authorizationValidator, securityExtension, serviceContextFactory,
-        defaultServiceContextProvider, serverState);
+        ksqlConfig,
+        OBJECT_MAPPER,
+        statementParser,
+        ksqlEngine,
+        commandQueue,
+        exec,
+        pushQueryPublisher,
+        pullQueryPublisher,
+        topicPublisher,
+        activenessRegistrar,
+        COMMAND_QUEUE_CATCHUP_TIMEOUT,
+        authorizationValidator,
+        securityExtension,
+        serviceContextFactory,
+        defaultServiceContextProvider,
+        serverState
+    );
   }
 
   @Test
@@ -348,7 +361,7 @@ public class WSQueryEndpointTest {
   }
 
   @Test
-  public void shouldHandleQuery() {
+  public void shouldHandlePushQuery() {
     // Given:
     givenRequestIs(query);
 
@@ -361,7 +374,30 @@ public class WSQueryEndpointTest {
         VALID_REQUEST.getStreamsProperties(),
         ksqlConfig);
 
-    verify(queryPublisher).start(
+    verify(pushQueryPublisher).start(
+        eq(ksqlEngine),
+        eq(serviceContext),
+        eq(exec),
+        eq(configuredStatement),
+        any());
+  }
+
+  @Test
+  public void shouldHandlePullQuery() {
+    // Given:
+    givenQueryIs(QueryType.PULL);
+    givenRequestIs(query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    final ConfiguredStatement<Query> configuredStatement = ConfiguredStatement.of(
+        PreparedStatement.of(VALID_REQUEST.getKsql(), query),
+        VALID_REQUEST.getStreamsProperties(),
+        ksqlConfig);
+
+    verify(pullQueryPublisher).start(
         eq(ksqlEngine),
         eq(serviceContext),
         eq(exec),
@@ -514,6 +550,15 @@ public class WSQueryEndpointTest {
     verifyClosedWithReason("ahh scary", CloseCodes.UNEXPECTED_CONDITION);
   }
 
+  @Test
+  public void shouldUpdateTheLastRequestTime() {
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verify(activenessRegistrar).updateLastRequestTime();
+  }
+
   private void givenVersions(final String... versions) {
 
     givenRequestAndVersions(
@@ -578,15 +623,20 @@ public class WSQueryEndpointTest {
     assertThat(closeReason.getCloseCode(), is(code));
   }
 
-  @Test
-  public void shouldUpdateTheLastRequestTime() {
-    // Given:
+  private enum QueryType {PUSH, PULL};
 
-    // When:
-    wsQueryEndpoint.onOpen(session, null);
-
-    // Then:
-    verify(activenessRegistrar).updateLastRequestTime();
+  private void givenQueryIs(final QueryType type) {
+    query = new Query(
+        Optional.empty(),
+        mock(Select.class),
+        mock(Relation.class),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        ResultMaterialization.CHANGES,
+        type == QueryType.PULL,
+        OptionalInt.empty()
+    );
   }
-
 }

@@ -16,19 +16,21 @@
 package io.confluent.ksql.execution.function;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.function.GenericsUtil;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamType;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.name.FunctionName;
-import io.confluent.ksql.util.DecimalUtil;
 import io.confluent.ksql.util.KsqlException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import org.apache.kafka.connect.data.Schema;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.MatcherAssert;
 import org.junit.Test;
@@ -77,7 +79,7 @@ public class UdfUtilTest {
   public void shouldGetBooleanSchemaForBooleanClass() {
     assertThat(
         UdfUtil.getSchemaFromType(Boolean.class),
-        equalTo(Schema.OPTIONAL_BOOLEAN_SCHEMA)
+        equalTo(ParamTypes.BOOLEAN)
     );
   }
 
@@ -85,7 +87,7 @@ public class UdfUtilTest {
   public void shouldGetBooleanSchemaForBooleanPrimitiveClass() {
     assertThat(
         UdfUtil.getSchemaFromType(boolean.class),
-        equalTo(Schema.BOOLEAN_SCHEMA)
+        equalTo(ParamTypes.BOOLEAN)
     );
   }
 
@@ -93,7 +95,7 @@ public class UdfUtilTest {
   public void shouldGetIntSchemaForIntegerClass() {
     assertThat(
         UdfUtil.getSchemaFromType(Integer.class),
-        equalTo(Schema.OPTIONAL_INT32_SCHEMA)
+        equalTo(ParamTypes.INTEGER)
     );
   }
 
@@ -101,7 +103,7 @@ public class UdfUtilTest {
   public void shouldGetIntegerSchemaForIntPrimitiveClass() {
     assertThat(
         UdfUtil.getSchemaFromType(int.class),
-        equalTo(Schema.INT32_SCHEMA)
+        equalTo(ParamTypes.INTEGER)
     );
   }
 
@@ -109,7 +111,7 @@ public class UdfUtilTest {
   public void shouldGetLongSchemaForLongClass() {
     assertThat(
         UdfUtil.getSchemaFromType(Long.class),
-        equalTo(Schema.OPTIONAL_INT64_SCHEMA)
+        equalTo(ParamTypes.LONG)
     );
   }
 
@@ -117,7 +119,7 @@ public class UdfUtilTest {
   public void shouldGetLongSchemaForLongPrimitiveClass() {
     assertThat(
         UdfUtil.getSchemaFromType(long.class),
-        equalTo(Schema.INT64_SCHEMA)
+        equalTo(ParamTypes.LONG)
     );
   }
 
@@ -125,7 +127,7 @@ public class UdfUtilTest {
   public void shouldGetFloatSchemaForDoubleClass() {
     assertThat(
         UdfUtil.getSchemaFromType(Double.class),
-        equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA)
+        equalTo(ParamTypes.DOUBLE)
     );
   }
 
@@ -133,15 +135,15 @@ public class UdfUtilTest {
   public void shouldGetFloatSchemaForDoublePrimitiveClass() {
     assertThat(
         UdfUtil.getSchemaFromType(double.class),
-        equalTo(Schema.FLOAT64_SCHEMA)
+        equalTo(ParamTypes.DOUBLE)
     );
   }
 
   @Test
   public void shouldGetDecimalSchemaForBigDecimalClass() {
     assertThat(
-        UdfUtil.getSchemaFromType(BigDecimal.class).name(),
-        is(DecimalUtil.builder(2, 1).name())
+        UdfUtil.getSchemaFromType(BigDecimal.class),
+        is(ParamTypes.DECIMAL)
     );
   }
 
@@ -149,26 +151,25 @@ public class UdfUtilTest {
   public void shouldGetMapSchemaFromMapClass() throws NoSuchMethodException {
     Type type = getClass().getDeclaredMethod("mapType", Map.class)
         .getGenericParameterTypes()[0];
-    Schema schema = UdfUtil.getSchemaFromType(type);
-    assertThat(schema.type(), equalTo(Schema.Type.MAP));
-    assertThat(schema.keySchema(), equalTo(Schema.OPTIONAL_STRING_SCHEMA));
-    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_INT32_SCHEMA));
+    ParamType schema = UdfUtil.getSchemaFromType(type);
+    assertThat(schema, instanceOf(MapType.class));
+    assertThat(((MapType) schema).value(), equalTo(ParamTypes.INTEGER));
   }
 
   @Test
   public void shouldGetArraySchemaFromListClass() throws NoSuchMethodException {
     Type type = getClass().getDeclaredMethod("listType", List.class)
         .getGenericParameterTypes()[0];
-    Schema schema = UdfUtil.getSchemaFromType(type);
-    assertThat(schema.type(), equalTo(Schema.Type.ARRAY));
-    assertThat(schema.valueSchema(), equalTo(Schema.OPTIONAL_FLOAT64_SCHEMA));
+    ParamType schema = UdfUtil.getSchemaFromType(type);
+    assertThat(schema, instanceOf(ArrayType.class));
+    assertThat(((ArrayType) schema).element(), equalTo(ParamTypes.DOUBLE));
   }
 
   @Test
   public void shouldGetStringSchemaFromStringClass() {
     assertThat(
         UdfUtil.getSchemaFromType(String.class),
-        equalTo(Schema.OPTIONAL_STRING_SCHEMA)
+        equalTo(ParamTypes.STRING)
     );
   }
 
@@ -178,35 +179,15 @@ public class UdfUtilTest {
   }
 
   @Test
-  public void shouldDefaultToNoNameOnGetSchemaFromType() {
-    assertThat(UdfUtil.getSchemaFromType(Double.class).name(), is(nullValue()));
-  }
-
-  @Test
-  public void shouldDefaultToNoDocOnGetSchemaFromType() {
-    assertThat(UdfUtil.getSchemaFromType(Double.class).doc(), is(nullValue()));
-  }
-
-  @Test
-  public void shouldSetNameOnGetSchemaFromType() {
-    assertThat(UdfUtil.getSchemaFromType(Double.class, "name", "").name(), is("name"));
-  }
-
-  @Test
-  public void shouldSetDocOnGetSchemaFromType() {
-    assertThat(UdfUtil.getSchemaFromType(Double.class, "", "doc").doc(), is("doc"));
-  }
-
-  @Test
   public void shouldGetGenericSchemaFromType() throws NoSuchMethodException {
     // Given:
     Type genericType = getClass().getMethod("genericType").getGenericReturnType();
 
     // When:
-    Schema returnType = UdfUtil.getSchemaFromType(genericType);
+    ParamType returnType = UdfUtil.getSchemaFromType(genericType);
 
     // Then:
-    MatcherAssert.assertThat(returnType, CoreMatchers.is(GenericsUtil.generic("T").build()));
+    MatcherAssert.assertThat(returnType, CoreMatchers.is(GenericType.of("T")));
   }
 
   @Test
@@ -215,10 +196,10 @@ public class UdfUtilTest {
     Type genericType = getClass().getMethod("genericMapType").getGenericReturnType();
 
     // When:
-    Schema returnType = UdfUtil.getSchemaFromType(genericType);
+    ParamType returnType = UdfUtil.getSchemaFromType(genericType);
 
     // Then:
-    assertThat(returnType, is(GenericsUtil.map(Schema.OPTIONAL_STRING_SCHEMA, "T").build()));
+    assertThat(returnType, is(MapType.of(GenericType.of("T"))));
   }
 
   // following methods not invoked but used to test conversion from type -> schema

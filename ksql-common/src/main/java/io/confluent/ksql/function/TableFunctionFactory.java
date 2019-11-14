@@ -15,12 +15,13 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
 public class TableFunctionFactory {
 
@@ -45,14 +46,14 @@ public class TableFunctionFactory {
     udtfIndex.values().forEach(consumer);
   }
 
-  public synchronized KsqlTableFunction createTableFunction(final List<Schema> argTypeList) {
-    return udtfIndex.getFunction(argTypeList);
+  public synchronized KsqlTableFunction createTableFunction(final List<SqlType> argTypes) {
+    return udtfIndex.getFunction(argTypes);
   }
 
-  protected synchronized List<List<Schema>> supportedArgs() {
+  protected synchronized List<List<ParamType>> supportedParams() {
     return udtfIndex.values()
         .stream()
-        .map(KsqlTableFunction::getArguments)
+        .map(KsqlTableFunction::parameters)
         .collect(Collectors.toList());
   }
 

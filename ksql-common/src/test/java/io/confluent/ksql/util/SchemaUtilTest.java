@@ -19,8 +19,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
-import io.confluent.ksql.function.GenericsUtil;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.GenericType;
+import io.confluent.ksql.function.types.MapType;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.function.types.StructType;
 import io.confluent.ksql.schema.ksql.PersistenceSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
@@ -260,82 +265,43 @@ public class SchemaUtilTest {
 
   @Test
   public void shouldFailINonCompatibleSchemas() {
-    assertThat(SchemaUtil.areCompatible(Schema.STRING_SCHEMA, Schema.INT32_SCHEMA), is(false));
+    assertThat(SchemaUtil.areCompatible(SqlTypes.STRING, ParamTypes.INTEGER), is(false));
 
-    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(1, 1).build(),
-                                        Schema.BYTES_SCHEMA), is(false));
+    assertThat(SchemaUtil.areCompatible(SqlTypes.STRING, GenericType.of("T")), is(false));
 
-    assertThat(SchemaUtil.areCompatible(GenericsUtil.generic("a").build(),
-                                        GenericsUtil.generic("b").build()), is(false));
-
-    assertThat(SchemaUtil.areCompatible(GenericsUtil.array("a").build(),
-                                        GenericsUtil.array("b").build()), is(false));
-
-    assertThat(SchemaUtil.areCompatible(SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-                                        SchemaBuilder.array(Schema.STRING_SCHEMA).build()),
-               is(false));
+    assertThat(
+        SchemaUtil.areCompatible(SqlTypes.array(SqlTypes.INTEGER), ArrayType.of(ParamTypes.STRING)),
+        is(false));
 
     assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.struct().field("a", DecimalUtil.builder(1,1)).build(),
-        SchemaBuilder.struct().field("a", Schema.FLOAT64_SCHEMA).build()),
-               is(false));
+        SqlTypes.struct().field("a", SqlTypes.decimal(1, 1)).build(),
+        StructType.builder().field("a", ParamTypes.DOUBLE).build()),
+        is(false));
 
     assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.struct().field("a", GenericsUtil.generic("a").build()),
-        SchemaBuilder.struct().field("a", GenericsUtil.generic("b").build())),
-               is(false));
-
-    assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.map(DecimalUtil.builder(1, 1).build(),
-                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build())),
-        SchemaBuilder.map(Schema.FLOAT64_SCHEMA,
-                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build()))),
-               is(false));
-
-    assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.map(DecimalUtil.builder(1, 1).build(),
-                          SchemaBuilder.array(Schema.FLOAT64_SCHEMA)),
-        SchemaBuilder.map(DecimalUtil.builder(1, 1).build(),
-                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build()))),
-               is(false));
-
+        SqlTypes.map(SqlTypes.decimal(1, 1)),
+        MapType.of(ParamTypes.INTEGER)),
+        is(false));
   }
 
   @Test
   public void shouldPassCompatibleSchemas() {
-    assertThat(SchemaUtil.areCompatible(Schema.STRING_SCHEMA, Schema.OPTIONAL_STRING_SCHEMA),
-               is(true));
+    assertThat(SchemaUtil.areCompatible(SqlTypes.STRING, ParamTypes.STRING),
+        is(true));
 
-    assertThat(SchemaUtil.areCompatible(DecimalUtil.builder(2, 2),
-                                        DecimalUtil.builder(1, 1)), is(true));
-
-    assertThat(SchemaUtil.areCompatible(GenericsUtil.array("a").build(),
-                                        GenericsUtil.array("a").build()), is(true));
-
-    assertThat(SchemaUtil.areCompatible(SchemaBuilder.array(DecimalUtil.builder(2, 2)).build(),
-                                        SchemaBuilder.array(DecimalUtil.builder(2, 2)).build()),
-               is(true));
-
-    assertThat(SchemaUtil.areCompatible(SchemaBuilder.array(Schema.INT32_SCHEMA).build(),
-                                        SchemaBuilder.array(Schema.OPTIONAL_INT32_SCHEMA).build()),
-               is(true));
+    assertThat(
+        SchemaUtil.areCompatible(SqlTypes.array(SqlTypes.INTEGER), ArrayType.of(ParamTypes.INTEGER)),
+        is(true));
 
     assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.struct().field("a", DecimalUtil.builder(2, 2)).build(),
-        SchemaBuilder.struct().field("a", DecimalUtil.builder(2, 2)).build()),
-               is(true));
+        SqlTypes.struct().field("a", SqlTypes.decimal(1, 1)).build(),
+        StructType.builder().field("a", ParamTypes.DECIMAL).build()),
+        is(true));
 
     assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.struct().field("a", GenericsUtil.generic("a").build()),
-        SchemaBuilder.struct().field("a", GenericsUtil.generic("a").build())),
-               is(true));
-
-    assertThat(SchemaUtil.areCompatible(
-        SchemaBuilder.map(DecimalUtil.builder(2, 2).build(),
-                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build())),
-        SchemaBuilder.map(DecimalUtil.builder(2, 2).build(),
-                          SchemaBuilder.array(DecimalUtil.builder(2, 2).build()))),
-               is(true));
+        SqlTypes.map(SqlTypes.decimal(1, 1)),
+        MapType.of(ParamTypes.DECIMAL)),
+        is(true));
 
   }
 

@@ -6,28 +6,24 @@ description: Settings for security ksqlDB
 keywords: ksqldb, confguration, security, acl, ssl, sasl, keystore, truststore
 ---
 
-KSQL supports authentication on its HTTP endpoints and also supports
+ksqlDB supports authentication on its HTTP endpoints and also supports
 many of the security features of the other services it communicates
 with, like {{ site.aktm }} and {{ site.sr }}.
 
--   KSQL supports Basic HTTP authentication on its RESTful and WebSocket
-    endpoints, which means that the endpoints can be protected by a
-    username and password.
--   KSQL supports Apache Kafka security features such as [SSL for
-    encryption](https://docs.confluent.io/current/kafka/encryption.html),
-    [SASL for
-    authentication](https://docs.confluent.io/current/kafka/authentication_sasl/index.html),
-    and [authorization with
-    ACLs](https://docs.confluent.io/current/kafka/authorization.html).
--   KSQL supports [Schema Registry security
-    features](https://docs.confluent.io/current/schema-registry/security/index.html)
-    such SSL for encryption and mutual authentication for authorization.
--   Starting in {{ site.cp }} 5.2, KSQL supports SSL on all network
-    traffic.
+- ksqlDB supports Basic HTTP authentication on its RESTful and WebSocket
+  endpoints, which means that the endpoints can be protected by a
+  username and password.
+- ksqlDB supports {{ site.aktm }} security features such as
+  [SSL for encryption](https://docs.confluent.io/current/kafka/encryption.html),
+  [SASL for authentication](https://docs.confluent.io/current/kafka/authentication_sasl/index.html),
+  and [authorization with ACLs](https://docs.confluent.io/current/kafka/authorization.html).
+- ksqlDB supports [Schema Registry security features](https://docs.confluent.io/current/schema-registry/security/index.html)
+  such SSL for encryption and mutual authentication for authorization.
+- ksqlDB supports SSL on all network traffic.
 
-To configure security for KSQL, add your configuration settings to the
+To configure security for ksqlDB, add your configuration settings to the
 `<path-to-confluent>/etc/ksql/ksql-server.properties` file and then
-[start the KSQL server](../installing.md#start-the-ksql-server) with your
+[start the ksqlDB Server](../installing.md#start-the-ksqldb-server) with your
 configuration file specified.
 
 ```bash
@@ -39,18 +35,18 @@ configuration file specified.
     or TAR archives. For more information, see
     [On-Premises Deployments](https://docs.confluent.io/current/installation/installing_cp/index.html).
 
-Configure KSQL for HTTPS
-------------------------
+Configure ksqlDB for HTTPS
+--------------------------
 
-KSQL can be configured to use HTTPS rather than the default HTTP for all
+ksqlDB can be configured to use HTTPS rather than the default HTTP for all
 communication.
 
-If you haven't already, you will need to [create SSL key and trust
-stores](https://docs.confluent.io/current/security/security_tutorial.html#creating-ssl-keys-and-certificates).
+If you haven't already, you will need to
+[create SSL key and trust stores](https://docs.confluent.io/current/security/security_tutorial.html#creating-ssl-keys-and-certificates).
 
-Use the following settings to configure the KSQL server to use HTTPS:
+Use the following settings to configure the ksqlDB server to use HTTPS:
 
-```
+```properties
 listeners=https://hostname:port
 ssl.keystore.location=/var/private/ssl/ksql.server.keystore.jks
 ssl.keystore.password=xxxx
@@ -62,34 +58,33 @@ Note the use of the HTTPS protocol in the `listeners` config.
 To enable the server to authenticate clients (2-way authentication), use
 the following additional settings:
 
-```
+```properties
 ssl.client.auth=true
 ssl.truststore.location=/var/private/ssl/ksql.server.truststore.jks
 ssl.truststore.password=zzzz
 ```
 
-Additional settings are available for configuring KSQL for HTTPS. For
+Additional settings are available for configuring ksqlDB for HTTPS. For
 example, if you need to restrict the default configuration for
 [Jetty](https://www.eclipse.org/jetty/), there are settings like
-`ssl.enabled.protocols`. For more information, see [Configuration
-Options for
-HTTPS](https://docs.confluent.io/current/kafka-rest/config.html#configuration-options-for-https).
+`ssl.enabled.protocols`. For more information, see
+[Configuration Options for HTTPS](https://docs.confluent.io/current/kafka-rest/config.html#configuration-options-for-https).
 
 ### Configure the CLI for HTTPS
 
-If the KSQL server is configured to use HTTPS, CLI instances may need to
+If the ksqlDB server is configured to use HTTPS, CLI instances may need to
 be configured with suitable key and trust stores.
 
 If the server's SSL certificate is not signed by a recognized public
 Certificate Authority, you must configure the CLI with a trust
 store that trusts the server's SSL certificate.
 
-If you haven't already, [create SSL key and trust
-stores](https://docs.confluent.io/current/security/security_tutorial.html#creating-ssl-keys-and-certificates).
+If you haven't already,
+[create SSL key and trust stores](https://docs.confluent.io/current/security/security_tutorial.html#creating-ssl-keys-and-certificates).
 
 Use the following settings to configure the CLI server:
 
-```
+```properties
 ssl.truststore.location=/var/private/ssl/ksql.client.truststore.jks
 ssl.truststore.password=<secure-password>
 ```
@@ -97,7 +92,7 @@ ssl.truststore.password=<secure-password>
 If the server is performing client authentication (2-way
 authentication), use the following additional settings:
 
-```
+```properties
 ssl.keystore.location=/var/private/ssl/ksql.client.keystore.jks
 ssl.keystore.password=xxxx
 ssl.key.password=<another-secure-password>
@@ -110,34 +105,34 @@ CLI by using the `--config-file` command-line arguments, for example:
 <ksql-install>bin/ksql --config-file ./config/ksql-cli.properties https://localhost:8088
 ```
 
-Configure KSQL for Basic HTTP Authentication
---------------------------------------------
+Configure ksqlDB for Basic HTTP Authentication
+----------------------------------------------
 
-KSQL can be configured to require users to authenticate using a username
+ksqlDB can be configured to require users to authenticate using a username
 and password via the Basic HTTP authentication mechanism.
 
 !!! note
 	If you're using Basic authentication, we recommended that you
-    [configure KSQL to use HTTPS for secure communication](#configure-ksql-for-https),
+    [configure ksqlDB to use HTTPS for secure communication](#configure-ksqldb-for-https),
     because the Basic protocol passes credentials in plain text.
 
-Use the following settings to configure the KSQL server to require
+Use the following settings to configure the ksqlDB server to require
 authentication:
 
-```
+```properties
 authentication.method=BASIC
 authentication.roles=<user-role1>,<user-role2>,...
 authentication.realm=<KsqlServer-Props-in-jaas_config.file>
 ```
 
 The `authentication.roles` config defines a comma-separated list of user
-roles. To be authorized to use the KSQL server, an authenticated user
+roles. To be authorized to use the ksqlDB Server, an authenticated user
 must belong to at least one of these roles.
 
 For example, if you define `admin`, `developer`, `user`, and `ksq-user`
 roles, the following configuration assigns them for authentication.
 
-```
+```properties
 authentication.roles=admin,developer,user,ksq-user
 ```
 
@@ -167,7 +162,7 @@ for their credentials in a password file.
 Assign the `KsqlServer-Props` section to the `authentication.realm`
 config setting:
 
-```
+```properties
 authentication.realm=KsqlServer-Props
 ```
 
@@ -177,7 +172,7 @@ credentials from a database or the `LdapLoginModule`.
 
 The file parameter is the location of the password file. The format is:
 
-```
+```properties
 <username>: <password-hash>[,<rolename> ...]
 ```
 
@@ -211,7 +206,7 @@ mechanisms, starting with plain text.
 
 ### Configure the CLI for Basic HTTP Authentication
 
-If the KSQL server is configured to use Basic authentication, you must
+If the ksqlDB Server is configured to use Basic authentication, you must
 configure CLI instances with suitable valid credentials. You can provide
 credentials when starting the CLI by using the `--user` and
 `--password` command-line arguments, for example:
@@ -220,24 +215,24 @@ credentials when starting the CLI by using the `--user` and
 <ksql-install>bin/ksql --user fred --password letmein http://localhost:8088
 ```
 
-Configure KSQL for Confluent Cloud
-----------------------------------
+Configure ksqlDB for Confluent Cloud
+------------------------------------
 
-You can use KSQL with a Kafka cluster in {{ site.ccloud }}. For more
-information, see [Connecting KSQL to Confluent
-Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
+You can use ksqlDB with a {{ site.ak }} cluster in {{ site.ccloud }}. For more
+information, see
+[Connecting ksqlDB to Confluent Cloud](https://docs.confluent.io/current/cloud/connect/ksql-cloud-config.html).
 
-Configure KSQL for Confluent Control Center
+Configure ksqlDB for Confluent Control Center
 -------------------------------------------
 
-You can use KSQL with a Kafka cluster in {{ site.c3 }}. For more
+You can use ksqlDB with a Kafka cluster in {{ site.c3 }}. For more
 information, see
-[Integrate KSQL with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md).
+[Integrate ksqlDB with {{ site.c3 }}](integrate-ksql-with-confluent-control-center.md).
 
-Configure KSQL for Secured Confluent Schema Registry
-----------------------------------------------------
+Configure ksqlDB for Secured Confluent Schema Registry
+------------------------------------------------------
 
-You can configure KSQL to connect to {{ site.sr }} over HTTP by setting
+You can configure ksqlDB to connect to {{ site.sr }} over HTTP by setting
 the `ksql.schema.registry.url` to the HTTPS endpoint of {{ site.sr }}.
 Depending on your security setup, you might also need to supply
 additional SSL configuration. For example, a trustStore is required if
@@ -254,20 +249,20 @@ with both Kafka and {{ site.sr }}. Prefixed names affect communication
 with {{ site.sr }} only and override any non-prefixed settings of the same
 name.
 
-Use the following to configure KSQL for communication with {{ site.sr }}
+Use the following to configure ksqlDB for communication with {{ site.sr }}
 over HTTPS, where mutual authentication isn't required and {{ site.sr }}
 SSL certificates are trusted by the JVM:
 
-```
+```properties
 ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 ```
 
-Use the following settings to configure KSQL for communication with
+Use the following settings to configure ksqlDB for communication with
 {{ site.sr }} over HTTPS, with mutual authentication, with an explicit
 trustStore, and where the SSL configuration is shared between Kafka and
 {{ site.sr }}:
 
-```
+```properties
 ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/ksql.truststore.jks
 ksql.schema.registry.ssl.truststore.password=<your-secure-password>
@@ -276,12 +271,12 @@ ksql.schema.registry.ssl.keystore.password=<your-secure-password>
 ksql.schema.registry.ssl.key.password=<your-secure-password>
 ```
 
-Use the following settings to configure KSQL for communication with
+Use the following settings to configure ksqlDB for communication with
 {{ site.sr }} over HTTP, without mutual authentication and with an explicit
-trustStore. These settings explicitly configure only KSQL to {{ site.sr }}
+trustStore. These settings explicitly configure only ksqlDB to {{ site.sr }}
 SSL communication.
 
-```
+```properties
 ksql.schema.registry.url=https://<host-name-of-schema-registry>:<ssl-port>
 ksql.schema.registry.ssl.truststore.location=/etc/kafka/secrets/sr.truststore.jks
 ksql.schema.registry.ssl.truststore.password=<your-secure-password>
@@ -292,41 +287,41 @@ authentication mechanisms {{ site.sr }} is using, and how your SSL
 certificates are signed.
 
 You can pass authentication settings to the {{ site.sr }} client used by
-KSQL by adding the following to your KSQL server config.
+ksqlDB by adding the following to your ksqlDB Server config.
 
-```
+```properties
 ksql.schema.registry.basic.auth.credentials.source=USER_INFO
 ksql.schema.registry.basic.auth.user.info=username:password
 ```
 
-For more information, see [Schema Registry Security
-Overview](https://docs.confluent.io/current/schema-registry/security/index.html).
+For more information, see
+[Schema Registry Security Overview](https://docs.confluent.io/current/schema-registry/security/index.html).
 
-Configure KSQL for Secured Apache Kafka clusters
-------------------------------------------------
+Configure ksqlDB for Secured Apache Kafka clusters
+--------------------------------------------------
 
 The following are common configuration examples.
 
 ### Configuring Kafka Encrypted Communication
 
-This configuration enables KSQL to connect to a Kafka cluster over SSL,
+This configuration enables ksqlDB to connect to a Kafka cluster over SSL,
 with a user supplied trust store:
 
-```
-    security.protocol=SSL
-    ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
-    ssl.truststore.password=confluent
+```properties
+security.protocol=SSL
+ssl.truststore.location=/etc/kafka/secrets/kafka.client.truststore.jks
+ssl.truststore.password=confluent
 ```
 
 The exact settings will vary depending on the security settings of the
 Kafka brokers, and how your SSL certificates are signed. For full
 details, and instructions on how to create suitable trust stores, please
-refer to the [Security
-Guide](https://docs.confluent.io/current/security/index.html).
+refer to the
+[Security Guide](https://docs.confluent.io/current/security/index.html).
 
 ### Configure Kafka Authentication
 
-This configuration enables KSQL to connect to a secure Kafka cluster
+This configuration enables ksqlDB to connect to a secure Kafka cluster
 using PLAIN SASL, where the SSL certificates have been signed by a CA
 trusted by the default JVM trust store.
 
@@ -341,36 +336,34 @@ sasl.jaas.config=\
 
 The exact settings will vary depending on what SASL mechanism your Kafka
 cluster is using and how your SSL certificates are signed. For more
-information, see the [Security
-Guide](https://docs.confluent.io/current/security/index.html).
+information, see the
+[Security Guide](https://docs.confluent.io/current/security/index.html).
 
-### Configure Authorization of KSQL with Kafka ACLs
+### Configure Authorization of ksqlDB with Kafka ACLs
 
 Kafka clusters can use ACLs to control access to resources. Such
 clusters require each client to authenticate as a particular user. To
-work with such clusters, KSQL must be configured to
+work with such clusters, ksqlDB must be configured to
 [authenticate with the Kafka cluster](#configure-kafka-authentication),
 and certain ACLs must be defined in the Kafka cluster to allow the user
-KSQL is authenticating as access to resources. The list of ACLs that
+ksqlDB is authenticating as access to resources. The list of ACLs that
 must be defined depends on the version of the Kafka cluster.
 
 #### Confluent Platform v5.0 (Apache Kafka v2.0) and above
 
-{{ site.cp }} 5.0 simplifies the ACLs required to run KSQL against a
+{{ site.cp }} 5.0 simplifies the ACLs required to run ksqlDB against a
 Kafka cluster secured with ACLs, (see
 [KIP-277](https://cwiki.apache.org/confluence/display/KAFKA/KIP-277+-+Fine+Grained+ACL+for+CreateTopics+API)
 and
 [KIP-290](https://cwiki.apache.org/confluence/display/KAFKA/KIP-290%3A+Support+for+Prefixed+ACLs)
 for details). We strongly recommend using {{ site.cp }} 5.0 or above
-for deploying secure installations of Kafka and KSQL.
+for deploying secure installations of Kafka and ksqlDB.
 
 #### ACL definition
 
 Kafka ACLs are defined in the general format of "Principal P is
 Allowed/Denied Operation O From Host H on any Resource R matching
 ResourcePattern RP".
-
-TODO: format these
 
 Principal
 
@@ -416,9 +409,9 @@ ResourcePattern
 
 The ACLs described below list a `RESOURCE_TYPE`, resource name,
 `PATTERN_TYPE`, and `OPERATION`. All ACLs described are `ALLOW` ACLs,
-where the principal is the user the KSQL server has authenticated as,
+where the principal is the user the ksqlDB Server has authenticated as,
 with the Apache Kafka cluster, or an appropriate group that includes the
-authenticated KSQL user.
+authenticated ksqlDB user.
 
 !!! tip
 	For more information about ACLs, see [Authorization using
@@ -449,9 +442,9 @@ would not be allowed to write to topics such as
 #### Required ACLs
 
 The ACLs required are the same for both
-[Interactive and non-interactive (headless) KSQL clusters](index.md#non-interactive-headless-ksql-usage).
+[Interactive and non-interactive (headless) ksqlDB clusters](index.md#non-interactive-headless-ksqldb-usage).
 
-KSQL always requires the following ACLs for its internal operations and
+ksqlDB always requires the following ACLs for its internal operations and
 data management:
 
 -   The `DESCRIBE_CONFIGS` operation on the `CLUSTER` resource type.
@@ -460,22 +453,22 @@ data management:
 -   The `ALL` operation on all internal `GROUPS` that are `PREFIXED`
     with `_confluent-ksql-<ksql.service.id>`.
 
-Where `ksql.service.id` can be configured in the KSQL configuration and
+Where `ksql.service.id` can be configured in the ksqlDB configuration and
 defaults to `default_`.
 
-If KSQL is configured to create a topic for the
-[record processing log](../../developer-guide/processing-log.md) which is
-the default configuration since KSQL version 5.2, the following ACLs are
+If ksqlDB is configured to create a topic for the
+[record processing log](../../developer-guide/processing-log.md), which is
+the default configuration, the following ACLs are
 also needed:
 
 -   The `ALL` operation on the `TOPIC` with `LITERAL` name
     `<ksql.logging.processing.topic.name>`.
 
-Where `ksql.logging.processing.topic.name` can be configured in the KSQL
+Where `ksql.logging.processing.topic.name` can be configured in the ksqlDB
 configuration and defaults to `<ksql.service.id>ksql_processing_log`.
 
-In addition to the general permissions above, KSQL also needs
-permissions to perform the actual processing of your data. Here, KSQL
+In addition to the general permissions above, ksqlDB also needs
+permissions to perform the actual processing of your data. Here, ksqlDB
 needs permissions to read data from your desired input topics and/or
 permissions to write data to your desired output topics:
 
@@ -484,27 +477,27 @@ permissions to write data to your desired output topics:
 -   The `CREATE` operation on any output topics that do not already
     exist.
 
-Often output topics from one query form the inputs to others. KSQL will
+Often output topics from one query form the inputs to others. ksqlDB will
 require `READ` and `WRITE` permissions for such topics.
 
-The set of input and output topics that a KSQL cluster requires access
-to will depend on your use case and whether the KSQL cluster is
+The set of input and output topics that a ksqlDB cluster requires access
+to will depend on your use case and whether the ksqlDB cluster is
 configured in
 [interactive](#interactive-ksql-clusters)
 or
 [non-interactive](#non-interactive-headless-ksql-clusters)
 mode.
 
-#### Non-Interactive (headless) KSQL clusters
+#### Non-Interactive (headless) ksqlDB clusters
 
-[Non-interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage)
+[Non-interactive ksqlDB clusters](index.md#non-interactive-headless-ksqldb-usage)
 run a known set of SQL statements, meaning the set of input and output
-topics is well defined. Add the ACLs required to allow KSQL access to
+topics is well defined. Add the ACLs required to allow ksqlDB access to
 these topics.
 
 For example, given the following setup:
 
--   A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0,
+-   A 3-node ksqlDB cluster with ksqlDB servers running on IPs 198.51.100.0,
     198.51.100.1, 198.51.100.2
 -   Authenticating with the Kafka cluster as a `KSQL1` user.
 -   With `ksql.service.id` set to `production_`.
@@ -514,41 +507,41 @@ For example, given the following setup:
 -   Where `output-topic1` is also used as an input for another query.
 
 Then the following commands would create the necessary ACLs in the Kafka
-cluster to allow KSQL to operate:
+cluster to allow ksqlDB to operate:
 
 ```bash
-# Allow KSQL to discover the cluster:
+# Allow ksqlDB to discover the cluster:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
 
-# Allow KSQL to read the input topics (including output-topic1):
+# Allow ksqlDB to read the input topics (including output-topic1):
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --topic input-topic1 --topic input-topic2 --topic output-topic1
 
-# Allow KSQL to write to the output topics:
+# Allow ksqlDB to write to the output topics:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Write --topic output-topic1 --topic output-topic2
 # Or, if the output topics do not already exist, the 'create' operation is also required:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Create --operation Write --topic output-topic1 --topic output-topic2
 
-# Allow KSQL to manage its own internal topics and consumer groups:
+# Allow ksqlDB to manage its own internal topics and consumer groups:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-production_ --group _confluent-ksql-production_
 
-# Allow KSQL to manage its record processing log topic, if configured:
+# Allow ksqlDB to manage its record processing log topic, if configured:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic production_ksql_processing_log
 ```
 
-#### Interactive KSQL clusters
+#### Interactive ksqlDB clusters
 
-[Interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage)
+[Interactive ksqlDB clusters](../../concepts/ksql-architecture.md#interactive-deployment)
 accept SQL statements from users and hence may require access to a wide
 variety of input and output topics. Add ACLs to appropriate literal and
-prefixed resource patterns to allow KSQL access to the input and output
+prefixed resource patterns to allow ksqlDB access to the input and output
 topics, as required.
 
 !!! tip
 	To simplify ACL management, you should configure a default custom topic
-    name prefix such as `ksql-interactive-` for your KSQL cluster via the
+    name prefix such as `ksql-interactive-` for your ksqlDB cluster via the
     `ksql.output.topic.name.prefix`
-    [server configuration setting](index.md#setting-ksql-server-parameters).
-    Unless a user defines an explicit topic name in a KSQL statement, KSQL
+    [server configuration setting](index.md#setting-ksqldb-server-parameters).
+    Unless a user defines an explicit topic name in a SQL statement, ksqlDB
     will then always prefix the name of any automatically created output
     topics. Then add an ACL to allow `ALL` operations on `TOPICs` that are
     `PREFIXED` with the configured custom name prefix (in the example above:
@@ -556,7 +549,7 @@ topics, as required.
 
 For example, given the following setup:
 
--   A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0,
+-   A 3-node ksqlDB cluster with ksqlDB servers running on IPs 198.51.100.0,
     198.51.100.1, 198.51.100.2
 -   Authenticating with the Kafka cluster as a `KSQL1` user.
 -   With `ksql.service.id` set to `fraud_`.
@@ -564,33 +557,33 @@ For example, given the following setup:
     prefixed with `accounts-`, `orders-` and `payments-`.
 -   Where `ksql.output.topic.name.prefix` is set to `ksql-fraud-`
 -   And users won't use explicit topic names, i.e. users will rely on
-    KSQL auto-creating any required topics with auto-generated names.
+    ksqlDB auto-creating any required topics with auto-generated names.
     (Note: If users want to use explicit topic names, then you must
     provide the necessary ACLs for these in addition to what's shown in
     the example below.)
 
 Then the following commands would create the necessary ACLs in the Kafka
-cluster to allow KSQL to operate:
+cluster to allow ksqlDB to operate:
 
 ```bash
-# Allow KSQL to discover the cluster:
+# Allow ksqlDB to discover the cluster:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --cluster
 
-# Allow KSQL to read the input topics:
+# Allow ksqlDB to read the input topics:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation Read --resource-pattern-type prefixed --topic accounts- --topic orders- --topic payments-
 
-# Allow KSQL to manage output topics:
+# Allow ksqlDB to manage output topics:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic ksql-fraud-
 
-# Allow KSQL to manage its own internal topics and consumer groups:
+# Allow ksqlDB to manage its own internal topics and consumer groups:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --resource-pattern-type prefixed --topic _confluent-ksql-fraud_ --group _confluent-ksql-fraud_
 
-# Allow KSQL to manage its record processing log topic, if configured:
+# Allow ksqlDB to manage its record processing log topic, if configured:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic fraud_ksql_processing_log
 ```
 
 The following table shows the necessary ACLs in the Kafka cluster to
-allow KSQL to operate in interactive mode.
+allow ksqlDB to operate in interactive mode.
 
 | Permission  | Operation          | Resource  | Name                                  | Type
 |-------------|--------------------|-----------|---------------------------------------|----------
@@ -629,13 +622,13 @@ allow KSQL to operate in interactive mode.
 
 Versions of the {{ site.cp }} below v5.0, (which use Apache Kafka
 versions below v2.0), do not benefit from the enhancements found in
-later versions of Kafka, which simplify the ACLs required to run KSQL
+later versions of Kafka, which simplify the ACLs required to run ksqlDB
 against a Kafka cluster secured with ACLs. This means a much larger, or
 wider range, set of ACLs must be defined. The set of ACLs that must be
-defined depends on whether the KSQL cluster is configured for
-[interactive](#interactive-ksql-clusters-pre-kafka-2-0)
+defined depends on whether the ksqlDB cluster is configured for
+[interactive](#interactive-ksqldb-clusters-pre-kafka-2-0)
 or
-[non-interactive (headless)](#non-interactive-headless-ksql-clusters-pre-kafka-2-0).
+[non-interactive (headless)](#non-interactive-headless-ksqldb-clusters-pre-kafka-2-0).
 
 #### ACL definition
 
@@ -677,22 +670,22 @@ Jane would not be allowed to read from similarly named topics such as
 
 The ACLs described below list a `RESOURCE_TYPE`, resource name, and
 `OPERATION`. All ACLs described are `ALLOW` ACLs, where the principal is
-the user the KSQL server has authenticated as, with the Apache Kafka
-cluster, or an appropriate group that includes the authenticated KSQL
+the user the ksqlDB server has authenticated as, with the Apache Kafka
+cluster, or an appropriate group that includes the authenticated ksqlDB
 user.
 
 !!! tip
 	For more information about ACLs, see
     [Authorization using ACLs](https://docs.confluent.io/current/kafka/authorization.html).
 
-#### Interactive KSQL clusters pre Kafka 2.0
+#### Interactive ksqlDB clusters pre Kafka 2.0
 
-[Interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage),
+[Interactive ksqlDB clusters](../../concepts/ksql-architecture.md#interactive-deployment),
 (which is the default configuration), require that the authenticated
-KSQL user has open access to create, read, write, delete topics, and use
+ksqlDB user has open access to create, read, write, delete topics, and use
 any consumer group:
 
-Interactive KSQL clusters require these ACLs:
+Interactive ksqlDB clusters require these ACLs:
 
 -   The `DESCRIBE_CONFIGS` operation on the `CLUSTER` resource type.
 -   The `CREATE` operation on the `CLUSTER` resource type.
@@ -700,83 +693,83 @@ Interactive KSQL clusters require these ACLs:
     `TOPIC` resource types.
 -   The `DESCRIBE` and `READ` operations on all `GROUP` resource types.
 
-It's still possible to restrict the authenticated KSQL user from
+It's still possible to restrict the authenticated ksqlDB user from
 accessing specific resources using `DENY` ACLs. For example, you can add
-a `DENY` ACL to stop KSQL queries from accessing a topic that contains
+a `DENY` ACL to stop SQL queries from accessing a topic that contains
 sensitive data.
 
 For example, given the following setup:
 
--   A 3-node KSQL cluster with KSQL servers running on IPs 198.51.100.0,
+-   A 3-node ksqlDB cluster with ksqlDB servers running on IPs 198.51.100.0,
     198.51.100.1, 198.51.100.2
 -   Authenticating with the Kafka cluster as a 'KSQL1' user.
 
 Then the following commands would create the necessary ACLs in the Kafka
-cluster to allow KSQL to operate:
+cluster to allow ksqlDB to operate:
 
 ```bash
-# Allow KSQL to discover the cluster and create topics:
+# Allow ksqlDB to discover the cluster and create topics:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation DescribeConfigs --operation Create --cluster
 
-# Allow KSQL access to topics and consumer groups:
+# Allow ksqlDB access to topics and consumer groups:
 bin/kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add --allow-principal User:KSQL1 --allow-host 198.51.100.0 --allow-host 198.51.100.1 --allow-host 198.51.100.2 --operation All --topic '*' --group '*'
 ```
 
-#### Non-Interactive (headless) KSQL clusters pre Kafka 2.0
+#### Non-Interactive (headless) ksqlDB clusters pre Kafka 2.0
 
 Because the list of queries are known ahead of time, you can run
-[Non-interactive KSQL clusters](index.md#non-interactive-headless-ksql-usage)
+[Non-interactive ksqlDB clusters](index.md#non-interactive-headless-ksqldb-usage)
 with more restrictive ACLs. Determining the list of ACLs currently
 requires a bit of effort.
 
 Standard ACLs
 
-:   The authenticated KSQL user always requires:
+:   The authenticated ksqlDB user always requires:
 
     -   `DESCRIBE_CONFIGS` permission on the `CLUSTER` resource type.
 
 Input topics
 
-:   An input topic is one that has been imported into KSQL using a
+:   An input topic is one that has been imported into ksqlDB using a
     `CREATE STREAM` or `CREATE TABLE` statement. The topic should
-    already exist when KSQL is started.
+    already exist when ksqlDB is started.
 
-    The authenticated KSQL user requires `DESCRIBE` and `READ`
+    The authenticated ksqlDB user requires `DESCRIBE` and `READ`
     permissions for each input topic.
 
 Output topics
 
-:   KSQL creates output topics when you run persistent
+:   ksqlDB creates output topics when you run persistent
     `CREATE STREAM AS SELECT` or `CREATE TABLE AS SELECT` queries.
 
-    The authenticated KSQL user requires `DESCRIBE` and `WRITE`
+    The authenticated ksqlDB user requires `DESCRIBE` and `WRITE`
     permissions on each output topic.
 
-    By default, KSQL will attempt to create any output topics that do
-    not exist. To allow this, the authenticated KSQL user requires
+    By default, ksqlDB will attempt to create any output topics that do
+    not exist. To allow this, the authenticated ksqlDB user requires
     `CREATE` permissions on the `CLUSTER` resource type. Alternatively,
-    topics can be created manually before running KSQL. To determine the
+    topics can be created manually before running ksqlDB. To determine the
     list of output topics and their required configuration, like partition
     count, replication factor, and retention policy, you can
-    initially run KSQL on a Kafka cluster with none or open ACLs first.
+    initially run ksqlDB on a Kafka cluster with none or open ACLs first.
 
 Change-log and repartition topics
 
-:   Internally, KSQL uses repartition and changelog topics for selected
-    operations. KSQL requires repartition topics when using either
+:   Internally, ksqlDB uses repartition and changelog topics for selected
+    operations. ksqlDB requires repartition topics when using either
     `PARTITION BY`, or using `GROUP BY` on non-key values, and requires
     changelog topics for any `CREATE TABLE x AS` statements.
 
-    The authenticated KSQL user requires `DESCRIBE`, `READ`, and `WRITE`
+    The authenticated ksqlDB user requires `DESCRIBE`, `READ`, and `WRITE`
     permissions for each changelog and repartition `TOPIC`.
 
-    By default, KSQL will attempt to create any repartition or changelog
-    topics that do not exist. To allow this, the authenticated KSQL user
+    By default, ksqlDB will attempt to create any repartition or changelog
+    topics that do not exist. To allow this, the authenticated ksqlDB user
     requires `CREATE` permissions on the `CLUSTER` resource type.
-    Alternatively, you can create topics manually before running KSQL.
+    Alternatively, you can create topics manually before running ksqlDB.
     To determine the list of output topics and their required
     configuration, (partition count, replication factor, retention
-    policy, etc), you can run initially run KSQL on a Kafka cluster with
+    policy, etc), you can run initially run ksqlDB on a Kafka cluster with
     none or open ACLs first.
 
     All changelog and repartition topics are prefixed with
@@ -787,11 +780,11 @@ Change-log and repartition topics
 
 Consumer groups
 
-:   KSQL uses Kafka consumer groups when consuming input, change-log and
-    repartition topics. The set of consumer groups that KSQL requires
+:   ksqlDB uses Kafka consumer groups when consuming input, change-log and
+    repartition topics. The set of consumer groups that ksqlDB requires
     depends on the queries that are being executed.
 
-    The authenticated KSQL user requires `DESCRIBE` and `READ`
+    The authenticated ksqlDB user requires `DESCRIBE` and `READ`
     permissions for each consumer `GROUP`.
 
     The easiest way to determine the list of consumer groups is to
@@ -806,15 +799,15 @@ Consumer groups
 
 !!! tip
 	For more information about interactive and non-interactive queries, see
-    [Non-interactive (Headless) KSQL Usage](index.md#non-interactive-headless-ksql-usage).
+    [Non-interactive (Headless) ksqlDB Usage](index.md#non-interactive-headless-ksqldb-usage).
 
 #### Configure Control Center Monitoring Interceptors
 
 This configuration enables SASL and SSL for the [monitoring
 interceptors](https://docs.confluent.io/current/control-center/installation/clients.html)
-that integrate KSQL with {{ site.c3short }}.
+that integrate ksqlDB with {{ site.c3short }}.
 
-```
+```properties
 # Confluent Monitoring Interceptors for Control Center streams monitoring
 producer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
 consumer.interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
@@ -831,9 +824,9 @@ confluent.monitoring.interceptor.sasl.mechanism=PLAIN
 ```
 
 Next Steps
+----------
 
 - See the blog post [Secure Stream Processing with Apache Kafka, Confluent Platform and KSQL](https://www.confluent.io/blog/secure-stream-processing-apache-kafka-ksql/)
-- Try out the [Kafka Event Streaming Application](https://docs.confluent.io/current/tutorials/cp-demo/docs/index.html)
-tutorial.
+- Try out the [Kafka Event Streaming Application](https://docs.confluent.io/current/tutorials/cp-demo/docs/index.html) tutorial.
 
 Page last revised on: {{ git_revision_date }}

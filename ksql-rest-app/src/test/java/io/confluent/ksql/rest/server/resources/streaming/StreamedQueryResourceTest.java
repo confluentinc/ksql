@@ -19,6 +19,7 @@ import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorCode;
 import static io.confluent.ksql.rest.entity.KsqlErrorMessageMatchers.errorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionErrorMessage;
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
@@ -349,6 +350,12 @@ public class StreamedQueryResourceTest {
         continue;
       }
 
+      if (i == 0) {
+        // Header:
+        assertThat(jsonLine, is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`f1` INTEGER\"}}"));
+        continue;
+      }
+
       final GenericRow expectedRow;
       synchronized (writtenRows) {
         expectedRow = writtenRows.poll();
@@ -356,7 +363,8 @@ public class StreamedQueryResourceTest {
 
       final GenericRow testRow = objectMapper
           .readValue(jsonLine, StreamedRow.class)
-          .getRow();
+          .getRow()
+          .get();
 
       assertEquals(expectedRow, testRow);
     }

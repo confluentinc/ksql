@@ -4,6 +4,7 @@ def config = {
     slackChannel = '#ksql-alerts'
     ksql_db_version = "0.6.0-SNAPSHOT"
     cp_version = "5.5.0-beta191107162904"
+    packaging_build_number = "1"
     dockerRegistry = '368821881613.dkr.ecr.us-west-2.amazonaws.com/'
     dockerRepos = ['confluentinc/ksql-cli', 'confluentinc/ksql-rest-app']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
@@ -84,7 +85,7 @@ def job = {
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = "${env.WORKSPACE}/maven-settings.xml"
-    def maven_packages_url = "${config.maven_packages_url}/${params.CONFLUENT_VERSION}/${params.PACKAGING_BUILD_NUMBER}/maven"
+    def maven_packages_url = "${config.maven_packages_url}/${config.cp_version}/${config.packaging_build_number}/maven"
     def settings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
     writeFile file: settingsFile, text: settings
     mavenOptions = [artifactsPublisher(disabled: true),

@@ -136,7 +136,6 @@ public class PersistentQueryMetadata extends QueryMetadata {
   }
 
   public Optional<Materialization> getMaterialization() {
-
     return materializationSupplier.get();
   }
 

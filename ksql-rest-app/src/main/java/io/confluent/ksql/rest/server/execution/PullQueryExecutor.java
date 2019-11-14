@@ -132,25 +132,19 @@ public final class PullQueryExecutor {
     if (!queryStmt.isPullQuery()) {
       throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
     }
-
-    try {
-      final Analysis analysis = analyze(statement, executionContext);
-
-      final PersistentQueryMetadata query = findMaterializingQuery(executionContext, analysis);
-
-      extractWhereInfo(analysis, query);
-    } catch (final Exception e) {
-      throw new KsqlStatementException(
-          e.getMessage(),
-          statement.getStatementText(),
-          e
-      );
-    }
   }
 
   public static Optional<KsqlEntity> execute(
       final ConfiguredStatement<Query> statement,
       final Map<String, ?> sessionProperties,
+      final KsqlExecutionContext executionContext,
+      final ServiceContext serviceContext
+  ) {
+    return Optional.of(execute(statement, executionContext, serviceContext));
+  }
+
+  public static TableRowsEntity execute(
+      final ConfiguredStatement<Query> statement,
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
@@ -172,7 +166,7 @@ public final class PullQueryExecutor {
 
       final KsqlNode owner = getOwner(rowKey, mat);
       if (!owner.isLocal()) {
-        return Optional.of(proxyTo(owner, statement, serviceContext));
+        return proxyTo(owner, statement, serviceContext);
       }
 
       final Result result;
@@ -206,14 +200,12 @@ public final class PullQueryExecutor {
         rows = handleSelects(result, statement, executionContext, analysis, outputSchema);
       }
 
-      final TableRowsEntity entity = new TableRowsEntity(
+      return new TableRowsEntity(
           statement.getStatementText(),
           queryId,
           outputSchema,
           rows
       );
-
-      return Optional.of(entity);
     } catch (final Exception e) {
       throw new KsqlStatementException(
           e.getMessage() == null ? "Server Error" : e.getMessage(),
@@ -637,7 +629,7 @@ public final class PullQueryExecutor {
     }
     if (queries.size() > 1) {
       throw new KsqlException("Multiple queries currently materialize '" + sourceName + "'."
-          + " KSQL currently only supports static queries when the table has only been"
+          + " KSQL currently only supports pull queries when the table has only been"
           + " materialized once.");
     }
 
@@ -668,7 +660,7 @@ public final class PullQueryExecutor {
     );
   }
 
-  private static KsqlEntity proxyTo(
+  private static TableRowsEntity proxyTo(
       final KsqlNode owner,
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
@@ -686,7 +678,7 @@ public final class PullQueryExecutor {
       throw new RuntimeException("Boom - expected 1 entity, got: " + entities.size());
     }
 
-    return entities.get(0);
+    return (TableRowsEntity) entities.get(0);
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {

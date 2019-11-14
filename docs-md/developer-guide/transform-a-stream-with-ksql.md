@@ -6,20 +6,21 @@ description: Learn how to create streaming transformations
 keywords: ksqldb, transform
 ---
 
-KSQL enables *streaming transformations*, which you can use to convert
+ksqlDB enables *streaming transformations*, which you can use to convert
 streaming data from one format to another in real time. With a streaming
 transformation, not only is every record that arrives on the source
-stream converted, but you can configure KSQL so that all previously
+stream converted, but you can configure ksqlDB so that all previously
 existing records in the stream are converted.
 
-!!! tip
-      Run the following statement to tell KSQL to read from the beginning of the
-      topic:
-      ```sql
-      SET 'auto.offset.reset' = 'earliest';
-      ```
-      You can skip this step if you've already run it within your current
-      KSQL CLI session.
+Run the following statement to tell ksqlDB to read from the beginning of the
+topic:
+
+```sql
+SET 'auto.offset.reset' = 'earliest';
+```
+
+You can skip this step if you've already run it within your current
+ksqlDB CLI session.
 
 Transform a Stream By Using the WITH Clause
 -------------------------------------------
@@ -70,7 +71,7 @@ destination streams, based on conditions in the data. This is
 
 Use the WHERE clause to select a subset of data. To route streams with
 different criteria to other streams that are backed by different
-underlying Kafka topics, write multiple KSQL queries with different
+underlying Kafka topics, write multiple SQL queries with different
 WHERE clauses.
 
 In this example, two streams are derived from a `pageviews` stream, both

@@ -2,18 +2,18 @@
 layout: page
 title: Query With Arrays and Maps
 tagline: SQL statements for complex data types in ksqlDB
-description: Learn how to use complex types, like arrays and maps, in your ksqlDB queries
+description: Learn how to use complex types, like arrays and maps, in your ksqlDB queries.
 ---
 
-KSQL enables using complex types, like arrays and maps, in your queries.
+ksqlDB enables using complex types, like arrays and maps, in your queries.
 You use familiar syntax, like `myarray ARRAY<type>` and `myarray[0]` to
 declare and access these types.
 
-The following example shows how to create a KSQL table from an {{ site.aktm }}
+The following example shows how to create a ksqlDB table from an {{ site.aktm }}
 topic that has array and map fields. Also, it shows how to
 run queries to access the array and map data. It assumes a Kafka topic,
 named `users`. To see this example in action, create the `users` topic
-by following the procedure in [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md).
+by following the procedure in [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
 
 !!! important
       When you start the ksql-datagen process for the `users` topic, set the
@@ -25,7 +25,7 @@ by following the procedure in [Write Streaming Queries Against {{ site.aktm }} U
 Create a Table With Array and Map Fields
 ----------------------------------------
 
-Run the following query to create a KSQL table on the `users` topic. The
+Run the following query to create a ksqlDB table on the `users` topic. The
 array and map fields are defined in the `interests ARRAY<STRING>` and
 `contactinfo MAP<STRING,STRING>` declarations.
 
@@ -140,8 +140,8 @@ Press Ctrl+C to terminate the query.
 Next Steps
 ----------
 
--   [Create a KSQL Table](create-a-table.md)
--   [Create a KSQL Stream](create-a-stream.md)
--   [Join Event Streams with KSQL](join-streams-and-tables.md)
+-   [Create a ksqlDB Table](create-a-table.md)
+-   [Create a ksqlDB Stream](create-a-stream.md)
+-   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
 
 Page last revised on: {{ git_revision_date }}

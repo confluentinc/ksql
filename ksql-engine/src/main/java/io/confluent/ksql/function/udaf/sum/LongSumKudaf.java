@@ -17,9 +17,11 @@ package io.confluent.ksql.function.udaf.sum;
 
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.ParameterInfo;
+import io.confluent.ksql.function.types.ParamTypes;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -29,11 +31,12 @@ public class LongSumKudaf
 
   LongSumKudaf(final String functionName, final int argIndexInValue) {
     super(functionName,
-          argIndexInValue, () -> 0L,
-          Schema.OPTIONAL_INT64_SCHEMA,
-          Schema.OPTIONAL_INT64_SCHEMA,
-          Collections.singletonList(Schema.OPTIONAL_INT64_SCHEMA),
-          "Computes the sum for a key.");
+        argIndexInValue,
+        () -> 0L,
+        SqlTypes.BIGINT,
+        SqlTypes.BIGINT,
+        Collections.singletonList(new ParameterInfo("val", ParamTypes.LONG, "", false)),
+        "Computes the sum for a key.");
   }
 
   @Override

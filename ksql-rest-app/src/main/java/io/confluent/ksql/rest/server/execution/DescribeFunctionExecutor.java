@@ -18,8 +18,11 @@ package io.confluent.ksql.rest.server.execution;
 import com.google.common.collect.ImmutableList;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.function.AggregateFunctionFactory;
+import io.confluent.ksql.function.ParameterInfo;
 import io.confluent.ksql.function.TableFunctionFactory;
 import io.confluent.ksql.function.UdfFactory;
+import io.confluent.ksql.function.types.ArrayType;
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.parser.tree.DescribeFunction;
 import io.confluent.ksql.rest.entity.ArgumentInfo;
@@ -35,7 +38,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.kafka.connect.data.Schema;
 
 public final class DescribeFunctionExecutor {
 
@@ -78,7 +80,8 @@ public final class DescribeFunctionExecutor {
     final ImmutableList.Builder<FunctionInfo> listBuilder = ImmutableList.builder();
 
     aggregateFactory.eachFunction(func -> listBuilder.add(
-        getFunctionInfo(func.getArguments(), func.getReturnType(), func.getDescription(), false)));
+        getFunctionInfo(
+            func.parameterInfo(), func.declaredReturnType(), func.getDescription(), false)));
 
     return createFunctionDescriptionList(
         statementText, aggregateFactory.getMetadata(), listBuilder.build(), FunctionType.AGGREGATE);
@@ -96,8 +99,10 @@ public final class DescribeFunctionExecutor {
 
     tableFunctionFactory.eachFunction(func -> listBuilder.add(
         getFunctionInfo(
-            func.getArguments(),
-            func.getReturnType(func.getArguments()), func.getDescription(), func.isVariadic()
+            func.parameterInfo(),
+            func.declaredReturnType(),
+            func.getDescription(),
+            func.isVariadic()
         )));
 
     return createFunctionDescriptionList(
@@ -119,8 +124,11 @@ public final class DescribeFunctionExecutor {
 
     udfFactory.eachFunction(func -> listBuilder.add(
         getFunctionInfo(
-            func.getArguments(),
-            func.getReturnType(func.getArguments()), func.getDescription(), func.isVariadic())));
+            func.parameterInfo(),
+            func.declaredReturnType(),
+            func.getDescription(),
+            func.isVariadic()
+        )));
 
     return createFunctionDescriptionList(
         statementText,
@@ -131,21 +139,22 @@ public final class DescribeFunctionExecutor {
   }
 
   private static FunctionInfo getFunctionInfo(
-      final List<Schema> argTypes,
-      final Schema returnTypeSchema,
+      final List<ParameterInfo> argTypes,
+      final ParamType returnTypeSchema,
       final String description,
-      final boolean variadic) {
+      final boolean variadic
+  ) {
     final List<ArgumentInfo> args = new ArrayList<>();
     for (int i = 0; i < argTypes.size(); i++) {
-      final Schema s = argTypes.get(i);
+      final ParameterInfo param = argTypes.get(i);
       final boolean isVariadic = variadic && i == (argTypes.size() - 1);
-      final String sqlType = FORMATTER.format(isVariadic ? s.valueSchema() : s);
-      args.add(new ArgumentInfo(s.name(), sqlType, s.doc(), isVariadic));
+      final String type = isVariadic
+          ? ((ArrayType) param.type()).element().toString()
+          : param.type().toString();
+      args.add(new ArgumentInfo(param.name(), type, param.description(), isVariadic));
     }
 
-    final String returnType = FORMATTER.format(returnTypeSchema);
-
-    return new FunctionInfo(args, returnType, description);
+    return new FunctionInfo(args, returnTypeSchema.toString(), description);
   }
 
   private static FunctionDescriptionList createFunctionDescriptionList(

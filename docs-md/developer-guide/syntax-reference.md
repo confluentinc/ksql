@@ -6,9 +6,9 @@ description: Syntax Reference for statements and queries in ksqlDB
 keywords: ksqldb, syntax, api
 ---
 
-KSQL has similar semantics to SQL:
+ksqlDB SQL has similar semantics to ANSI SQL:
 
--   Terminate KSQL statements with a semicolon `;`.
+-   Terminate SQL statements with a semicolon `;`.
 -   Escape single-quote characters (`'`) inside string literals by using
     two successive single quotes (`''`). For example, to escape `'T'`,
     write `''T''`.
@@ -16,7 +16,7 @@ KSQL has similar semantics to SQL:
 Terminology
 -----------
 
-When using KSQL, the following terminology is used.
+When using ksqlDB, the following terminology is used.
 
 ### Stream
 
@@ -44,9 +44,9 @@ topic on the Kafka brokers.
 
 ### STRUCT
 
-In KSQL 5.0 and higher, you can read nested data, in Avro and JSON
+You can read nested data, in Avro and JSON
 formats, by using the `STRUCT` type in CREATE STREAM and CREATE TABLE
-statements. You can use the `STRUCT` type in these KSQL statements:
+statements. You can use the `STRUCT` type in these SQL statements:
 
 -   CREATE STREAM/TABLE (from a topic)
 -   CREATE STREAM/TABLE AS SELECT (from existing streams/tables)
@@ -60,7 +60,7 @@ STRUCT<FieldName FieldType, ...>
 
 The `STRUCT` type requires you to specify a list of fields. For each
 field, you specify the field name and field type. The field type can be
-any of the supported KSQL types, including the complex types `MAP`,
+any of the supported ksqlDB types, including the complex types `MAP`,
 `ARRAY`, and `STRUCT`.
 
 !!! note
@@ -88,7 +88,7 @@ For more info, see [Operators](#operators).
       You can't create new nested `STRUCT` data as the result of a query, but
       you can copy existing `STRUCT` fields as-is.
 
-### KSQL Time Units
+### ksqlDB Time Units
 
 The following list shows valid time units for the SIZE, ADVANCE BY,
 SESSION, and WITHIN clauses.
@@ -100,9 +100,9 @@ SESSION, and WITHIN clauses.
 -   MILLISECOND, MILLISECONDS
 
 For more information, see
-[Windows in KSQL Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-ksql-queries).
+[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
 
-### KSQL Timestamp Formats
+### ksqlDB Timestamp Formats
 
 Time-based operations, like windowing, process records according to the
 timestamp in `ROWTIME`. By default, the implicit `ROWTIME` column is the
@@ -113,7 +113,7 @@ Use the TIMESTAMP property to override `ROWTIME` with the contents of
 the specified column. Define the format of a record's timestamp by
 using the TIMESTAMP_FORMAT property.
 
-If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, KSQL
+If you use the TIMESTAMP property but don't set TIMESTAMP_FORMAT, ksqlDB
 assumes that the timestamp field is a `bigint`. If you set
 TIMESTAMP_FORMAT, the TIMESTAMP field must be of type `varchar` and
 have a format that the `DateTimeFormatter` Java class can parse.
@@ -121,7 +121,7 @@ have a format that the `DateTimeFormatter` Java class can parse.
 If your timestamp format has embedded single quotes, you can escape them
 by using two successive single quotes, `''`. For example, to escape
 `'T'`, write `''T''`. The following examples show how to escape the `'`
-character in KSQL statements.
+character in SQL statements.
 
 ```sql
 -- Example timestamp format: yyyy-MM-dd'T'HH:mm:ssX
@@ -149,15 +149,15 @@ CREATE STREAM TEST (ID bigint, event_timestamp VARCHAR)
 For more information on timestamp formats, see
 [DateTimeFormatter](https://cnfl.io/java-dtf).
 
-KSQL CLI Commands
+ksqlDB CLI Commands
 -----------------
 
-The KSQL CLI commands can be run after
-[starting the KSQL CLI](../installation/installing.md#start-the-ksql-cli). You can view
-the KSQL CLI help by running `<path-to-confluent>/bin/ksql --help`.
+The ksqlDB CLI commands can be run after
+[starting the ksqlDB CLI](../installation/installing.md#start-the-ksqldb-cli). You can view
+the ksqlDB CLI help by running `<path-to-confluent>/bin/ksql --help`.
 
 !!! tip
-      You can search and browse your command history in the KSQL CLI
+      You can search and browse your command history in the ksqlDB CLI
       with `Ctrl-R`. After pressing `Ctrl-R`, start typing the command or any
       part of the command to show an auto-complete of past commands.
 
@@ -208,14 +208,14 @@ OPTIONS
             This option may occur a maximum of 1 times
 ```
 
-KSQL data types
+ksqlDB data types
 ---------------
 
-KSQL supports the following data types:
+ksqlDB supports the following data types.
 
 ### Primitive Types
 
-KSQL supports the following primitive data types:
+ksqlDB supports the following primitive data types:
 
 -   `BOOLEAN`
 -   `INTEGER` or [`INT`]
@@ -230,9 +230,9 @@ KSQL supports the following primitive data types:
 !!! note
 		The `DELIMITED` format doesn't support arrays.
 
-KSQL supports fields that are arrays of another type. All the elements
+ksqlDB supports fields that are arrays of another type. All the elements
 in the array must be of the same type. The element type can be any valid
-KSQL type.
+SQL type.
 
 You can define arrays within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `ARRAY<ElementType>`. For example,
@@ -250,10 +250,10 @@ retrieves the first element from the array. For more information, see
 !!! note
 		The `DELIMITED` format doesn't support maps.
 
-KSQL supports fields that are maps. A map has a key and value type. All
+ksqlDB supports fields that are maps. A map has a key and value type. All
 of the keys must be of the same type, and all of the values must be also
 be of the same type. Currently only `STRING` keys are supported. The
-value type can be any valid KSQL type.
+value type can be any valid SQL type.
 
 You can define maps within a `CREATE TABLE` or `CREATE STREAM` statement
 by using the syntax `MAP<KeyType, ValueType>`. For example,
@@ -271,9 +271,9 @@ with key `cost`, or `null` For more information, see
 !!! note
 		The `DELIMITED` format doesn't support structs.
 
-KSQL supports fields that are structs. A struct represents strongly
+ksqlDB supports fields that are structs. A struct represents strongly
 typed structured data. A struct is an ordered collection of named fields
-that have a specific type. The field types can be any valid KSQL type.
+that have a specific type. The field types can be any valid SQL type.
 
 You can define a structs within a `CREATE TABLE` or `CREATE STREAM`
 statement by using the syntax `STRUCT<FieldName FieldType, ...>`. For
@@ -288,7 +288,7 @@ more information, see [Operators](#operators).
 
 `DECIMAL(Precision, Scale)`
 
-KSQL supports fields that are numeric data types with fixed precision and scale:
+ksqlDB supports fields that are numeric data types with fixed precision and scale:
 
 - **Precision** is the maximum total number of decimal digits to be stored, including values to
   the left and right of the decimal point. The precision must be greater than 1. There is no
@@ -300,14 +300,14 @@ Mathematical operations between `DOUBLE` and `DECIMAL` cause the decimal to be
 converted to a double value automatically. Converting from the decimal data type
 to any floating point type (`DOUBLE`) may cause loss of precision.
 
-KSQL statements
----------------
+SQL statements
+--------------
 
-- KSQL statements must be terminated with a semicolon (`;`).
+- SQL statements must be terminated with a semicolon (`;`).
 - Statements can be spread over multiple lines.
 - The hyphen character, `-`, isn't supported in names for streams,
   tables, topics, and columns.
-- Don't use quotes around stream names or table names when you CREATE them.
+- Don't use quotes around stream names or table names when you CREATE them. TODO: update this
 
 Key Requirements
 ----------------
@@ -326,7 +326,7 @@ CREATE TABLE users (registertime BIGINT, gender VARCHAR, regionid VARCHAR, useri
   WITH (KAFKA_TOPIC='users', VALUE_FORMAT='JSON', KEY = 'userid');
 ```
 
-The `KEY` property is optional. KSQL uses it as an optimization hint to
+The `KEY` property is optional. ksqlDB uses it as an optimization hint to
 determine if repartitioning can be avoided when performing aggregations
 and joins.
 
@@ -347,7 +347,7 @@ following conditions are true:
 
 If these conditions aren't met, then the results of aggregations and
 joins may be incorrect. However, if your data doesn't meet these
-requirements, you can still use KSQL with a few extra steps. The
+requirements, you can still use ksqlDB with a few extra steps. The
 following section explains how.
 
 Table-table joins can be joined only on the `KEY` field, and one-to-many
@@ -358,13 +358,13 @@ Table-table joins can be joined only on the `KEY` field, and one-to-many
 ### Streams
 
 For streams, just leave out the `KEY` property from the `WITH` clause.
-KSQL will take care of repartitioning the stream for you using the
+ksqlDB will take care of repartitioning the stream for you using the
 value(s) from the `GROUP BY` columns for aggregates, and the join
 predicate for joins.
 
 ### Tables
 
-For tables, you can still use KSQL if the message key is not also
+For tables, you can still use ksqlDB if the message key is not also
 present in the Kafka message value or if it is not in the required
 format as long as *one* of the following statements is true:
 
@@ -374,7 +374,7 @@ format as long as *one* of the following statements is true:
 -   It is ok for the messages in the topic to be re-ordered before being
     inserted into the table.
 
-First create a stream to have KSQL write the message key, and then
+First create a stream to have ksqlDB write the message key, and then
 declare the table on the output topic of this stream:
 
 Example:

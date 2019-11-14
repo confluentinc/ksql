@@ -57,7 +57,6 @@ import io.confluent.ksql.function.UdfFactory;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.SchemaConverters;
 import io.confluent.ksql.schema.ksql.SqlBaseType;
 import io.confluent.ksql.schema.ksql.types.Field;
 import io.confluent.ksql.schema.ksql.types.SqlArray;
@@ -72,7 +71,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
 @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
 public class ExpressionTypeManager {
@@ -83,17 +81,6 @@ public class ExpressionTypeManager {
   public ExpressionTypeManager(LogicalSchema schema, FunctionRegistry functionRegistry) {
     this.schema = Objects.requireNonNull(schema, "schema");
     this.functionRegistry = Objects.requireNonNull(functionRegistry, "functionRegistry");
-  }
-
-  /**
-   * @deprecated use getExpressionSqlType in new code.
-   */
-  @SuppressWarnings("DeprecatedIsStillUsed")
-  @Deprecated
-  public Schema getExpressionSchema(Expression expression) {
-    ExpressionTypeContext expressionTypeContext = new ExpressionTypeContext();
-    new Visitor().process(expression, expressionTypeContext);
-    return expressionTypeContext.getSchema();
   }
 
   public SqlType getExpressionSqlType(Expression expression) {
@@ -110,18 +97,8 @@ public class ExpressionTypeManager {
       return sqlType;
     }
 
-    Schema getSchema() {
-      return sqlType == null
-          ? null
-          : SchemaConverters.sqlToConnectConverter().toConnectSchema(sqlType);
-    }
-
     void setSqlType(SqlType sqlType) {
       this.sqlType = sqlType;
-    }
-
-    void setSchema(Schema schema) {
-      this.sqlType = SchemaConverters.connectToSqlConverter().toSqlType(schema);
     }
   }
 
@@ -176,9 +153,9 @@ public class ExpressionTypeManager {
         ComparisonExpression node, ExpressionTypeContext expressionTypeContext
     ) {
       process(node.getLeft(), expressionTypeContext);
-      Schema leftSchema = expressionTypeContext.getSchema();
+      SqlType leftSchema = expressionTypeContext.getSqlType();
       process(node.getRight(), expressionTypeContext);
-      Schema rightSchema = expressionTypeContext.getSchema();
+      SqlType rightSchema = expressionTypeContext.getSqlType();
       ComparisonUtil.isValidComparison(leftSchema, node.getType(), rightSchema);
       expressionTypeContext.setSqlType(SqlTypes.BOOLEAN);
       return null;
@@ -347,9 +324,9 @@ public class ExpressionTypeManager {
     @Override
     public Void visitFunctionCall(FunctionCall node, ExpressionTypeContext expressionTypeContext) {
       if (functionRegistry.isAggregate(node.getName().name())) {
-        Schema schema = node.getArguments().isEmpty()
+        SqlType schema = node.getArguments().isEmpty()
             ? FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA
-            : getExpressionSchema(node.getArguments().get(0));
+            : getExpressionSqlType(node.getArguments().get(0));
 
         AggregateFunctionInitArguments args =
             UdafUtil.createAggregateFunctionInitArgs(0, node);
@@ -357,20 +334,20 @@ public class ExpressionTypeManager {
         KsqlAggregateFunction aggFunc = functionRegistry
             .getAggregateFunction(node.getName().name(), schema, args);
 
-        expressionTypeContext.setSchema(aggFunc.getReturnType());
+        expressionTypeContext.setSqlType(aggFunc.returnType());
         return null;
       }
 
       if (functionRegistry.isTableFunction(node.getName().name())) {
-        List<Schema> argumentTypes = node.getArguments().isEmpty()
+        List<SqlType> argumentTypes = node.getArguments().isEmpty()
             ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-            : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSchema)
+            : node.getArguments().stream().map(ExpressionTypeManager.this::getExpressionSqlType)
                 .collect(Collectors.toList());
 
         KsqlTableFunction tableFunction = functionRegistry
             .getTableFunction(node.getName().name(), argumentTypes);
 
-        expressionTypeContext.setSchema(tableFunction.getReturnType(argumentTypes));
+        expressionTypeContext.setSqlType(tableFunction.getReturnType(argumentTypes));
         return null;
       }
 
@@ -382,14 +359,14 @@ public class ExpressionTypeManager {
             "Can't find any functions with the name '" + node.getName().name() + "'");
       }
 
-      List<Schema> argTypes = new ArrayList<>();
+      List<SqlType> argTypes = new ArrayList<>();
       for (Expression expression : node.getArguments()) {
         process(expression, expressionTypeContext);
-        argTypes.add(expressionTypeContext.getSchema());
+        argTypes.add(expressionTypeContext.getSqlType());
       }
 
-      Schema returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
-      expressionTypeContext.setSchema(returnSchema);
+      SqlType returnSchema = udfFactory.getFunction(argTypes).getReturnType(argTypes);
+      expressionTypeContext.setSqlType(returnSchema);
       return null;
     }
 

@@ -33,16 +33,17 @@ import org.apache.kafka.streams.KeyValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
+@SuppressWarnings("UnstableApiUsage")
+class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
 
-  private static final Logger log = LoggerFactory.getLogger(StreamPublisher.class);
+  private static final Logger log = LoggerFactory.getLogger(PushQueryPublisher.class);
 
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
   private final ListeningScheduledExecutorService exec;
 
-  StreamPublisher(
+  PushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
@@ -54,7 +55,7 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     this.query = Objects.requireNonNull(query, "query");
   }
 
-  @SuppressWarnings("ConstantConditions")
+  @SuppressWarnings("OptionalGetWithoutIsPresent")
   @Override
   public synchronized void subscribe(final Flow.Subscriber<Collection<StreamedRow>> subscriber) {
     final TransientQueryMetadata queryMetadata =
@@ -62,7 +63,7 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
             .getQuery()
             .get();
 
-    final StreamSubscription subscription = new StreamSubscription(subscriber, queryMetadata);
+    final PushQuerySubscription subscription = new PushQuerySubscription(subscriber, queryMetadata);
 
     log.info("Running query {}", queryMetadata.getQueryApplicationId());
     queryMetadata.start();
@@ -70,12 +71,12 @@ class StreamPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     subscriber.onSubscribe(subscription);
   }
 
-  class StreamSubscription extends PollingSubscription<Collection<StreamedRow>> {
+  class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
 
     private final TransientQueryMetadata queryMetadata;
     private boolean closed = false;
 
-    StreamSubscription(
+    PushQuerySubscription(
         final Subscriber<Collection<StreamedRow>> subscriber,
         final TransientQueryMetadata queryMetadata
     ) {

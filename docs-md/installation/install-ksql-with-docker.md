@@ -6,53 +6,35 @@ description: Learn how to install ksqlDB in various configurations by using Dock
 keywords: ksqldb, docker, install
 ---
 
-You can deploy KSQL by using Docker containers. Starting with {{ site.cp }}
+You can deploy ksqlDB by using Docker containers. Starting with {{ site.cp }}
 4.1.2, Confluent maintains images at [Docker Hub](https://hub.docker.com/u/confluentinc)
-for [KSQL Server](https://hub.docker.com/r/confluentinc/cp-ksql-server/) and the
-[KSQL command-line interface
-(CLI)](https://hub.docker.com/r/confluentinc/cp-ksql-cli/).
+for [ksqlDB Server](https://hub.docker.com/r/confluentinc/cp-ksql-server/) and the
+[ksqlDB command-line interface (CLI)](https://hub.docker.com/r/confluentinc/cp-ksql-cli/).
 
-KSQL runs separately from your {{ site.aktm }} cluster, so you specify
+ksqlDB runs separately from your {{ site.aktm }} cluster, so you specify
 the IP addresses of the cluster's bootstrap servers when you start a
-container for KSQL Server. To set up {{ site.cp }} by using containers, see
+container for ksqlDB Server. To set up {{ site.cp }} by using containers, see
 [Confluent Platform Quick Start (Docker)](https://docs.confluent.io/current/quickstart/ce-docker-quickstart.html).
 
-Use the following settings to start containers that run KSQL in various
+Use the following settings to start containers that run ksqlDB in various
 configurations.
 
-- [Connect KSQL Server to a Secure Kafka Cluster, Like Confluent Cloud](#connect-ksql-server-to-a-secure-kafka-cluster-like-confluent-cloud)
-    - [Configure a KSQL Server by Using Java System Properties](#configure-a-ksql-server-by-using-java-system-properties)
-    - [View KSQL Server Logs](#view-ksql-server-logs)
-    - [Enable the KSQL Processing Log](#enable-the-ksql-processing-log)
-  - [KSQL Command-line Interface (CLI)](#ksql-command-line-interface-cli)
-    - [Connect KSQL CLI to a Dockerized KSQL Server](#connect-ksql-cli-to-a-dockerized-ksql-server)
-    - [Start KSQL CLI With a Provided Configuration File](#start-ksql-cli-with-a-provided-configuration-file)
-    - [Connect KSQL CLI to a KSQL Server Running on Another Host (Cloud)](#connect-ksql-cli-to-a-ksql-server-running-on-another-host-cloud)
-  - [Interact With KSQL Running in a Docker Container](#interact-with-ksql-running-in-a-docker-container)
-    - [Wait for an HTTP Endpoint to Be Available](#wait-for-an-http-endpoint-to-be-available)
-    - [Wait for a Particular Phrase in a Container's Log](#wait-for-a-particular-phrase-in-a-containers-log)
-    - [Run Custom Code Before Launching a Container's Program](#run-custom-code-before-launching-a-containers-program)
-      - [Get the Container's Default Command](#get-the-containers-default-command)
-      - [Run Custom Commands Before the KSQL Process Starts](#run-custom-commands-before-the-ksql-process-starts)
-    - [Execute a KSQL script in the KSQL CLI](#execute-a-ksql-script-in-the-ksql-cli)
-  - [Next Steps](#next-steps)
-
-When your KSQL processes are running in containers, you can
-[interact](#interact-with-ksql-running-in-a-docker-container) with
+When your ksqlDB processes are running in containers, you can
+[interact](#interact-with-ksqldb-running-in-a-docker-container) with
 them by using shell scripts and Docker Compose files.
 
--   [Wait for an HTTP Endpoint to Be Available](#ksql-wait-for-http-endpoint)
--   [Wait for a Particular Phrase in a Container's Log](#ksql-wait-for-message-in-container-log)
--   [Run Custom Code Before Launching a Container's Program](#ksql-run-custom-code-before-launch)
--   [Execute a KSQL script in the KSQL CLI](#ksql-execute-script-in-cli)
+-   [Wait for an HTTP Endpoint to Be Available](#ksqldb-wait-for-http-endpoint)
+-   [Wait for a Particular Phrase in a Container's Log](#ksqldb-wait-for-message-in-container-log)
+-   [Run Custom Code Before Launching a Container's Program](#ksqldb-run-custom-code-before-launch)
+-   [Execute a SQL script in the ksqlDB CLI](#ksqldb-execute-script-in-cli)
 
-Scale Your KSQL Server Deployment
+Scale Your ksqlDB Server Deployment
 ---------------------------------
 
-You can scale KSQL by adding more capacity per server (vertically) or by
-adding more servers (horizontally). Also, you can scale KSQL clusters
+You can scale ksqlDB by adding more capacity per server (vertically) or by
+adding more servers (horizontally). Also, you can scale ksqlDB clusters
 during live operations without loss of data. For more information, see
-[Scaling KSQL](../capacity-planning.md#scaling-ksql).
+[Scaling ksqlDB](../capacity-planning.md#scaling-ksqldb).
 
 Assign Configuration Settings in the Docker Run Command
 -------------------------------------------------------
@@ -62,10 +44,10 @@ environment variables. When you start a container, set up the
 configuration with the `-e` or `--env` flags in the `docker run`
 command.
 
-For a complete list of KSQL parameters, see
-[KSQL Configuration Parameter Reference](server-config/config-reference.md).
+For a complete list of ksqlDB parameters, see
+[ksqlDB Configuration Parameter Reference](server-config/config-reference.md).
 
-In most cases, to assign a KSQL configuration parameter in a container,
+In most cases, to assign a ksqlDB configuration parameter in a container,
 you prepend the parameter name with `KSQL_` and substitute the
 underscore character for periods. For example, to assign the
 `ksql.queries.file` setting in your `docker run` command, specify:
@@ -83,23 +65,23 @@ setting in your `docker run` command, specify:
 ```
 
 Properties set with `KSQL_OPTS` take precedence over values specified in
-the KSQL configuration file. For more information, see
-[Setting KSQL Server Parameters](server-config/index.md#setting-ksql-server-parameters).
+the ksqlDB configuration file. For more information, see
+[Setting ksqlDB Server Parameters](server-config/index.md#setting-ksqldb-server-parameters).
 
-KSQL Server
------------
+ksqlDB Server
+-------------
 
-The following commands show how to run KSQL Server in a container.
+The following commands show how to run ksqlDB Server in a container.
 
-### KSQL Headless Server Settings (Production)
+### ksqlDB Headless Server Settings (Production)
 
-You can deploy KSQL Server into production in a non-interactive, or
-*headless*, mode. In headless mode, interactive use of the KSQL cluster
-is disabled, and you configure KSQL Server with a predefined `.sql` file
+You can deploy ksqlDB Server into production in a non-interactive, or
+*headless*, mode. In headless mode, interactive use of the ksqlDB cluster
+is disabled, and you configure ksqlDB Server with a predefined `.sql` file
 and the `KSQL_KSQL_QUERIES_FILE` setting. For more information, see
-[Non-interactive (Headless) KSQL Usage](server-config/index.md#non-interactive-headless-ksql-usage).
+[Non-interactive (Headless) ksqlDB Usage](server-config/index.md#non-interactive-headless-ksqldb-usage).
 
-Use the following command to run a headless, standalone KSQL Server
+Use the following command to run a headless, standalone ksqlDB Server
 instance in a container:
 
 ```bash
@@ -119,14 +101,14 @@ TODO: Figure out how to style these
 
 `KSQL_KSQL_SERVICE_ID`
 
-:   The service ID of the KSQL server, which is used as the prefix for
-    the internal topics created by KSQL.
+:   The service ID of the ksqlDB server, which is used as the prefix for
+    the internal topics created by ksqlDB.
 
 `KSQL_KSQL_QUERIES_FILE`
 
-:   A file that specifies predefined KSQL queries.
+:   A file that specifies predefined SQL queries.
 
-### KSQL Headless Server with Interceptors Settings (Production)
+### ksqlDB Headless Server with Interceptors Settings (Production)
 
 {{ site.cp }} supports pluggable *interceptors* to examine and modify
 incoming and outgoing records. Specify interceptor classes by assigning
@@ -134,7 +116,7 @@ the `KSQL_PRODUCER_INTERCEPTOR_CLASSES` and `KSQL_CONSUMER_INTERCEPTOR_CLASSES`
 settings. For more info on interceptor classes, see [Confluent Monitoring
 Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
 
-Use the following command to run a headless, standalone KSQL Server with
+Use the following command to run a headless, standalone ksqlDB Server with
 the specified interceptor classes in a container:
 
 ```bash
@@ -155,12 +137,12 @@ docker run -d \
 
 `KSQL_KSQL_SERVICE_ID`
 
-:   The service ID of the KSQL server, which is used as the prefix for
-    the internal topics created by KSQL.
+:   The service ID of the ksqlDB server, which is used as the prefix for
+    the internal topics created by ksqlDB.
 
 `KSQL_KSQL_QUERIES_FILE`
 
-:   A file that specifies predefined KSQL queries.
+:   A file that specifies predefined SQL queries.
 
 `KSQL_PRODUCER_INTERCEPTOR_CLASSES`
 
@@ -170,12 +152,12 @@ docker run -d \
 
 :   A list of fully qualified class names for consumer interceptors.
 
-### KSQL Interactive Server Settings (Development)
+### ksqlDB Interactive Server Settings (Development)
 
-Develop your KSQL applications by using the KSQL command-line interface
+Develop your ksqlDB applications by using the ksqlDB command-line interface
 (CLI), or the graphical interface in {{ site.c3 }}, or both together.
 
-Run a KSQL Server that enables manual interaction by using the KSQL CLI:
+Run a ksqlDB Server that enables manual interaction by using the ksqlDB CLI:
 
 ```bash
 docker run -d \
@@ -193,21 +175,21 @@ docker run -d \
 
 `KSQL_KSQL_SERVICE_ID`
 
-:   The service ID of the KSQL server, which is used as the prefix for
-    the internal topics created by KSQL.
+:   The service ID of the ksqlDB Server, which is used as the prefix for
+    the internal topics created by ksqlDB.
 
 `KSQL_LISTENERS`
 
 :   A list of URIs, including the protocol, that the broker listens on.
     If you are using IPv6, set to `http://[::]:8088`.
 
-In interactive mode, a KSQL CLI instance running outside of Docker can
-connect to the KSQL server running in Docker.
+In interactive mode, a ksqlDB CLI instance running outside of Docker can
+connect to the ksqlDB server running in Docker.
 
-### KSQL Interactive Server with Interceptors Settings (Development)
+### ksqlDB Interactive Server with Interceptors Settings (Development)
 
-Run a KSQL Server with interceptors that enables manual interaction by
-using the KSQL CLI:
+Run a ksqlDB Server with interceptors that enables manual interaction by
+using the ksqlDB CLI:
 
 ```bash
 docker run -d \
@@ -227,8 +209,8 @@ docker run -d \
 
 `KSQL_KSQL_SERVICE_ID`
 
-:   The service ID of the KSQL server, which is used as the prefix for
-    the internal topics created by KSQL.
+:   The service ID of the ksqlDB server, which is used as the prefix for
+    the internal topics created by ksqlDB.
 
 `KSQL_LISTENERS`
 
@@ -249,13 +231,13 @@ Interceptors](https://docs.confluent.io/current/control-center/installation/clie
 In interactive mode, a CLI instance running outside of Docker can
 connect to the server running in Docker.
 
-Connect KSQL Server to a Secure Kafka Cluster, Like Confluent Cloud
+Connect ksqlDB Server to a Secure Kafka Cluster, Like Confluent Cloud
 ===================================================================
 
-KSQL Server runs outside of your Kafka clusters, so you need specify in
-the container environment how KSQL Server connects with a Kafka cluster.
+ksqlDB Server runs outside of your Kafka clusters, so you need specify in
+the container environment how ksqlDB Server connects with a Kafka cluster.
 
-Run a KSQL Server that uses a secure connection to a Kafka cluster:
+Run a ksqlDB Server that uses a secure connection to a Kafka cluster:
 
 ```bash
 docker run -d \
@@ -278,8 +260,8 @@ docker run -d \
 
 `KSQL_KSQL_SERVICE_ID`
 
-:   The service ID of the KSQL server, which is used as the prefix for
-    the internal topics created by KSQL.
+:   The service ID of the ksqlDB Server, which is used as the prefix for
+    the internal topics created by ksqlDB.
 
 `KSQL_LISTENERS`
 
@@ -288,7 +270,7 @@ docker run -d \
 
 `KSQL_KSQL_SINK_REPLICAS`
 
-:   The default number of replicas for the topics created by KSQL. The
+:   The default number of replicas for the topics created by ksqlDB. The
     default is one.
 
 `KSQL_KSQL_STREAMS_REPLICATION_FACTOR`
@@ -309,20 +291,20 @@ docker run -d \
 :   The Java Authentication and Authorization Service (JAAS)
     configuration.
 
-Learn how to [Configure Security for KSQL](server-config/security.md).
+Learn how to [Configure Security for ksqlDB](server-config/security.md).
 
-### Configure a KSQL Server by Using Java System Properties
+### Configure a ksqlDB Server by Using Java System Properties
 
 Use the `KSQL_OPTS` environment variable to assign configuration
-settings by using Java system properties. Prepend the KSQL setting name
-with `-D`. For example, to set the KSQL service identifier in the
+settings by using Java system properties. Prepend the ksqlDB setting name
+with `-D`. For example, to set the ksqlDB service identifier in the
 `docker run` command, use:
 
 ```
 -e KSQL_OPTS="-Dksql.service.id=<your-service-id>"
 ```
 
-Run a KSQL Server with a configuration that\'s defined by Java
+Run a ksqlDB Server with a configuration that\'s defined by Java
 properties:
 
 ```bash
@@ -347,9 +329,9 @@ The previous example assigns two settings, `ksql.service.id` and
 in the `KSQL_OPTS` line. Remember to prepend each setting name with
 `-D`.
 
-### View KSQL Server Logs
+### View ksqlDB Server Logs
 
-Use the `docker logs` command to view KSQL logs that are generated from
+Use the `docker logs` command to view ksqlDB logs that are generated from
 within the container:
 
 ```bash
@@ -363,11 +345,11 @@ Your output should resemble:
 ...
 ```
 
-### Enable the KSQL Processing Log
+### Enable the ksqlDB Processing Log
 
-KSQL emits a log of record processing events, called the processing log,
-to help you debug KSQL queries. For more information, see
-[KSQL Processing Log](../developer-guide/processing-log.md).
+ksqlDB emits a log of record processing events, called the processing log,
+to help you debug SQL queries. For more information, see
+[ksqlDB Processing Log](../developer-guide/processing-log.md).
 
 Assign the following configuration settings to enable the processing
 log.
@@ -381,32 +363,32 @@ KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
 KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
 ```
 
-KSQL Command-line Interface (CLI)
+ksqlDB Command-line Interface (CLI)
 ---------------------------------
 
-Develop the KSQL queries and statements for your real-time streaming
-applications by using the KSQL CLI, or the graphical interface in
-{{ site.c3 }}, or both together. The KSQL CLI connects to a running KSQL
-Server instance to enable inspecting Kafka topics and creating KSQL
+Develop the SQL queries and statements for your real-time streaming
+applications by using the ksqlDB CLI, or the graphical interface in
+{{ site.c3 }}, or both together. The ksqlDB CLI connects to a running ksqlDB
+Server instance to enable inspecting Kafka topics and creating ksqlDB
 streams and tables. For more information, see
-[Configure KSQL CLI](cli-config.md#configure-ksql-cli).
+[Configure ksqlDB CLI](cli-config.md).
 
-The following commands show how to run the KSQL CLI in a container and
-connect to a KSQL Server.
+The following commands show how to run the ksqlDB CLI in a container and
+connect to a ksqlDB Server.
 
-### Connect KSQL CLI to a Dockerized KSQL Server
+### Connect ksqlDB CLI to a Dockerized ksqlDB Server
 
-Run a KSQL CLI instance in a container and connect to a KSQL Server
+Run a ksqlDB CLI instance in a container and connect to a ksqlDB Server
 that\'s running in a different container.
 
 ```bash
-# Run KSQL Server.
+# Run ksqlDB Server.
 docker run -d -p 10.0.0.11:8088:8088 \
   -e KSQL_BOOTSTRAP_SERVERS=localhost:9092 \
   -e KSQL_OPTS="-Dksql.service.id=ksql_service_3_  -Dlisteners=http://0.0.0.0:8088/" \  
   confluentinc/cp-ksql-server:{{ site.release }}
 
-# Connect the KSQL CLI to the server.
+# Connect the ksqlDB CLI to the server.
 docker run -it confluentinc/cp-ksql-cli http://10.0.0.11:8088 
 ```
 
@@ -420,16 +402,16 @@ docker run -it confluentinc/cp-ksql-cli http://10.0.0.11:8088
 :   A space-separated list of Java options. If you are using IPv6, set
     `listeners` to `http://[::]:8088`.
 
-The Docker network created by KSQL Server enables you to connect with a
-dockerized KSQL CLI.
+The Docker network created by ksqlDB Server enables you to connect with a
+dockerized ksqlDB CLI.
 
-### Start KSQL CLI With a Provided Configuration File
+### Start ksqlDB CLI With a Provided Configuration File
 
-Set up a a KSQL CLI instance by using a configuration file, and run it
+Set up a a ksqlDB CLI instance by using a configuration file, and run it
 in a container:
 
 ```bash
-# Assume KSQL Server is running.
+# Assume ksqlDB Server is running.
 # Ensure that the configuration file exists.
 ls /path/on/host/ksql-cli.properties
 
@@ -439,9 +421,9 @@ docker run -it \
   --config-file /path/in/container/ksql-cli.properties
 ```
 
-### Connect KSQL CLI to a KSQL Server Running on Another Host (Cloud)
+### Connect ksqlDB CLI to a ksqlDB Server Running on Another Host (Cloud)
 
-Run a KSQL CLI instance in a container and connect to a remote KSQL
+Run a ksqlDB CLI instance in a container and connect to a remote ksqlDB
 Server host:
 
 ```bash
@@ -462,50 +444,50 @@ Having trouble? Type 'help' (case-insensitive) for a rundown of how things work!
 ksql>
 ```
 
-Interact With KSQL Running in a Docker Container
+Interact With ksqlDB Running in a Docker Container
 ------------------------------------------------
 
-You can communicate with KSQL Server and the KSQL CLI when they run in
-Docker containers. The following examples show common tasks with KSQL
+You can communicate with ksqlDB Server and the ksqlDB CLI when they run in
+Docker containers. The following examples show common tasks with ksqlDB
 processes that run in containers.
 
--   [Wait for an HTTP Endpoint to Be Available](#ksql-wait-for-http-endpoint)
--   [Wait for a Particular Phrase in a Container's Log](#ksql-wait-for-message-in-container-log)
--   [Run Custom Code Before Launching a Container's Program](#ksql-run-custom-code-before-launch)
--   [Execute a KSQL script in the KSQL CLI](#ksql-execute-script-in-cli)
+-   [Wait for an HTTP Endpoint to Be Available](#wait-for-an-http-endpoint-to-be-available)
+-   [Wait for a Particular Phrase in a Container's Log](#wait-for-a-particular-phrase-in-a-containers-log)
+-   [Run Custom Code Before Launching a Container's Program](#run-custom-code-before-launching-a-containers-program)
+-   [Execute a ksqlDB script in the ksqlDB CLI](#execute-a-ksql-script-in-the-ksql-cli)
 
 ### Wait for an HTTP Endpoint to Be Available
 
 Sometimes, a container reports its state as `up` before it's actually
 running. In this case, the docker-compose `depends_on` dependencies
 aren't sufficient. For a service that exposes an HTTP endpoint, like
-KSQL Server, you can force a script to wait before running a client that
+ksqlDB Server, you can force a script to wait before running a client that
 requires the service to be ready and available.
 
-Use the following bash commands to wait for KSQL Server to be available:
+Use the following bash commands to wait for ksqlDB Server to be available:
 
 ```bash
-echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
+echo -e "\n\n⏳ Waiting for ksqlDB to be available before launching CLI\n"
 while [ $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) -eq 000 ]
 do 
-  echo -e $(date) "KSQL Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)"
+  echo -e $(date) "ksqlDB Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)"
   sleep 5
 done
 ```
 
-This script pings the KSQL Server at `<ksql-server-ip-address>:8088`
+This script pings the ksqlDB Server at `<ksql-server-ip-address>:8088`
 every five seconds, until it receives an HTTP 200 response.
 
 !!! note
-      The previous script doesn't work with "headless" deployments of KSQL
+      The previous script doesn't work with "headless" deployments of ksqlDB
       Server, because headless deployments don't have a REST API server.
 
-To launch the KSQL CLI in a container only after KSQL Server is
+To launch the ksqlDB CLI in a container only after ksqlDB Server is
 available, use the following Docker Compose command:
 
 ```bash
 docker-compose exec ksql-cli bash -c \
-'echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"; while [ $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) -eq 000 ] ; do echo -e $(date) "KSQL Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)" ; sleep 5 ; done; ksql http://<ksql-server-ip-address>:8088'
+'echo -e "\n\n⏳ Waiting for ksqlDB to be available before launching CLI\n"; while [ $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) -eq 000 ] ; do echo -e $(date) "ksqlDB Server HTTP state: " $(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip-address>:8088/) " (waiting for 200)" ; sleep 5 ; done; ksql http://<ksql-server-ip-address>:8088'
 ```
 
 ### Wait for a Particular Phrase in a Container's Log
@@ -523,7 +505,7 @@ grep -q "Kafka Connect started" <(docker-compose logs -f $CONNECT_HOST)
 ### Run Custom Code Before Launching a Container's Program
 
 You can run custom code, like downloading a dependency or moving a file,
-before a KSQL process starts in a container. Use Docker Compose to
+before a ksqlDB process starts in a container. Use Docker Compose to
 overlay a change on an existing image.
 
 #### Get the Container's Default Command
@@ -547,7 +529,7 @@ Your output should resemble:
 
 In this example, the default command is `/etc/confluent/docker/run`.
 
-#### Run Custom Commands Before the KSQL Process Starts
+#### Run Custom Commands Before the ksqlDB Process Starts
 
 In a Docker Compose file, add the commands that you want to run before
 the main process starts. Use the `command` option to override the
@@ -581,12 +563,12 @@ with the specified settings.
       `command`, by indicating that the following lines are all part of the
       same entry.
 
-### Execute a KSQL script in the KSQL CLI
+### Execute a ksqlDB script in the ksqlDB CLI
 
-The following Docker Compose YAML runs KSQL CLI and passes it a KSQL
+The following Docker Compose YAML runs ksqlDB CLI and passes it a SQL
 script for execution. The manual EXIT is required. The advantage of this
-approach, compared with running KSQL Server headless with a queries
-file, is that you can still interact with KSQL, and you can pre-build
+approach, compared with running ksqlDB Server headless with a queries
+file, is that you can still interact with ksqlDB, and you can pre-build
 the environment to a desired state.
 
 ```yaml
@@ -600,13 +582,13 @@ ksql-cli:
     - /bin/bash
     - -c
     - |
-      echo -e "\n\n⏳ Waiting for KSQL to be available before launching CLI\n"
+      echo -e "\n\n⏳ Waiting for ksqlDB to be available before launching CLI\n"
       while [ $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) -eq 000 ]
       do 
-        echo -e $$(date) "KSQL Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) " (waiting for 200)"
+        echo -e $$(date) "ksqlDB Server HTTP state: " $$(curl -s -o /dev/null -w %{http_code} http://<ksql-server-ip>:8088/) " (waiting for 200)"
         sleep 5
       done
-      echo -e "\n\n-> Running KSQL commands\n"
+      echo -e "\n\n-> Running SQL commands\n"
       cat /data/scripts/my-ksql-script.sql <(echo 'EXIT')| ksql http://<ksql-server-ip>:8088
       echo -e "\n\n-> Sleeping…\n"
       sleep infinity
@@ -615,7 +597,7 @@ ksql-cli:
 Next Steps
 ----------
 
--   [Write Streaming Queries Against {{ site.aktm }} Using KSQL](../tutorials/basics-docker.md)
--   [Clickstream Data Analysis Pipeline Using KSQL (Docker)](../tutorials/clickstream-docker.md)
+-   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
+-   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 
 Page last revised on: {{ git_revision_date }}

@@ -28,7 +28,7 @@ Description
 Extended descriptions provide the following metrics for the topic
 backing the source being described.
 
-|         KSQL Metric          |                                                   Description                                                   |
+|         ksqlDB Metric        |                                                   Description                                                   |
 | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | consumer-failed-messages     | Total number of failures during message consumption on the server.                                              |
 | consumer-messages-per-sec    | The number of messages consumed per second from the topic by the server.                                        |
@@ -98,7 +98,7 @@ Local runtime statistics
 ------------------------
 messages-per-sec:      4.41   total-messages:       486     last-message: 12/14/17 4:32:23 PM GMT
   failed-messages:         0      last-failed:       n/a
-(Statistics of the local KSQL server interaction with the Kafka topic IP_SUM)
+(Statistics of the local ksqlDB server interaction with the Kafka topic IP_SUM)
 ```
 
 Page last revised on: {{ git_revision_date }}

@@ -15,15 +15,18 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.annotation.concurrent.Immutable;
-import org.apache.kafka.connect.data.Schema;
 
 @Immutable
 public final class KsqlScalarFunction extends KsqlFunction {
@@ -34,9 +37,9 @@ public final class KsqlScalarFunction extends KsqlFunction {
   private final Function<KsqlConfig, Kudf> udfFactory;
 
   private KsqlScalarFunction(
-      final Function<List<Schema>, Schema> returnSchemaProvider,
-      final Schema javaReturnType,
-      final List<Schema> arguments,
+      final SchemaProvider returnSchemaProvider,
+      final ParamType javaReturnType,
+      final List<ParameterInfo> arguments,
       final FunctionName functionName,
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,
@@ -54,24 +57,34 @@ public final class KsqlScalarFunction extends KsqlFunction {
   /**
    * Create built in / legacy function.
    */
-  @SuppressWarnings("deprecation")  // Solution only available in Java9.
   public static KsqlScalarFunction createLegacyBuiltIn(
-      final Schema returnType,
-      final List<Schema> arguments,
+      final SqlType returnType,
+      final List<ParamType> arguments,
       final FunctionName functionName,
       final Class<? extends Kudf> kudfClass
   ) {
-    final Function<KsqlConfig, Kudf> udfFactory = ksqlConfig -> {
-      try {
-        return kudfClass.newInstance();
-      } catch (final Exception e) {
-        throw new KsqlException("Failed to create instance of kudfClass "
-            + kudfClass + " for function " + functionName, e);
-      }
-    };
+    ParamType javaReturnType = SchemaConverters.sqlToFunctionConverter().toFunctionType(returnType);
+    List<ParameterInfo> paramInfos = arguments
+        .stream()
+        .map(type -> new ParameterInfo("", type, "", false))
+        .collect(Collectors.toList());
 
     return create(
-        ignored -> returnType, returnType, arguments, functionName, kudfClass, udfFactory, "",
+        (i1, i2) -> returnType,
+        javaReturnType,
+        paramInfos,
+        functionName,
+        kudfClass,
+        // findbugs was complaining about a dead store so I inlined this
+        ksqlConfig -> {
+          try {
+            return kudfClass.newInstance();
+          } catch (final Exception e) {
+            throw new KsqlException("Failed to create instance of kudfClass "
+                + kudfClass + " for function " + functionName, e);
+          }
+        },
+        "",
         INTERNAL_PATH, false
     );
   }
@@ -86,9 +99,9 @@ public final class KsqlScalarFunction extends KsqlFunction {
    * <p>Can be either built-in UDF or true user-supplied.
    */
   static KsqlScalarFunction create(
-      final Function<List<Schema>, Schema> schemaProvider,
-      final Schema javaReturnType,
-      final List<Schema> arguments,
+      final SchemaProvider schemaProvider,
+      final ParamType javaReturnType,
+      final List<ParameterInfo> arguments,
       final FunctionName functionName,
       final Class<? extends Kudf> kudfClass,
       final Function<KsqlConfig, Kudf> udfFactory,

@@ -84,7 +84,8 @@ public class WSQueryEndpoint {
   private final CommandQueue commandQueue;
   private final ListeningScheduledExecutorService exec;
   private final ActivenessRegistrar activenessRegistrar;
-  private final QueryPublisher queryPublisher;
+  private final QueryPublisher pushQueryPublisher;
+  private final QueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
   private final KsqlAuthorizationValidator authorizationValidator;
@@ -117,7 +118,8 @@ public class WSQueryEndpoint {
         ksqlEngine,
         commandQueue,
         exec,
-        WSQueryEndpoint::startQueryPublisher,
+        WSQueryEndpoint::startPushQueryPublisher,
+        WSQueryEndpoint::startPullQueryPublisher,
         WSQueryEndpoint::startPrintPublisher,
         activenessRegistrar,
         commandQueueCatchupTimeout,
@@ -137,7 +139,8 @@ public class WSQueryEndpoint {
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue,
       final ListeningScheduledExecutorService exec,
-      final QueryPublisher queryPublisher,
+      final QueryPublisher pushQueryPublisher,
+      final QueryPublisher pullQueryPublisher,
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
@@ -154,7 +157,8 @@ public class WSQueryEndpoint {
     this.commandQueue =
         Objects.requireNonNull(commandQueue, "commandQueue");
     this.exec = Objects.requireNonNull(exec, "exec");
-    this.queryPublisher = Objects.requireNonNull(queryPublisher, "queryPublisher");
+    this.pushQueryPublisher = Objects.requireNonNull(pushQueryPublisher, "pushQueryPublisher");
+    this.pullQueryPublisher = Objects.requireNonNull(pullQueryPublisher, "pullQueryPublisher");
     this.topicPublisher = Objects.requireNonNull(topicPublisher, "topicPublisher");
     this.activenessRegistrar =
         Objects.requireNonNull(activenessRegistrar, "activenessRegistrar");
@@ -352,10 +356,21 @@ public class WSQueryEndpoint {
 
     final PreparedStatement<Query> statement =
         PreparedStatement.of(info.request.getKsql(), query);
+
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    queryPublisher.start(ksqlEngine, info.serviceContext, exec, configured, streamSubscriber);
+    final QueryPublisher queryPublisher = query.isStatic()
+        ? pullQueryPublisher
+        : pushQueryPublisher;
+
+    queryPublisher.start(
+        ksqlEngine,
+        info.serviceContext,
+        exec,
+        configured,
+        streamSubscriber
+    );
   }
 
   private void handlePrintTopic(final RequestContext info, final PrintTopic printTopic) {
@@ -390,14 +405,25 @@ public class WSQueryEndpoint {
     ));
   }
 
-  private static void startQueryPublisher(
+  private static void startPushQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ListeningScheduledExecutorService exec,
       final ConfiguredStatement<Query> query,
       final WebSocketSubscriber<StreamedRow> streamSubscriber
   ) {
-    new StreamPublisher(ksqlEngine, serviceContext, exec, query)
+    new PushQueryPublisher(ksqlEngine, serviceContext, exec, query)
+        .subscribe(streamSubscriber);
+  }
+
+  private static void startPullQueryPublisher(
+      final KsqlEngine ksqlEngine,
+      final ServiceContext serviceContext,
+      final ListeningScheduledExecutorService ignored,
+      final ConfiguredStatement<Query> query,
+      final WebSocketSubscriber<StreamedRow> streamSubscriber
+  ) {
+    new PullQueryPublisher(ksqlEngine, serviceContext, query)
         .subscribe(streamSubscriber);
   }
 
@@ -413,6 +439,7 @@ public class WSQueryEndpoint {
   }
 
   interface QueryPublisher {
+
     void start(
         KsqlEngine ksqlEngine,
         ServiceContext serviceContext,

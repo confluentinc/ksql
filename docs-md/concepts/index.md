@@ -7,7 +7,7 @@ keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
 - [Architecture](ksql-architecture.md)
-- [Collections](collections.md)
+- [Collections](./collections/overview.md)
 - [Kafka Streams and kslDB](ksql-and-kafka-streams.md)
 - [Materialized Views](materialized-views.md)
 - [Processing Guarantees](ksqldb-processing-guarantees.md)

@@ -16,11 +16,13 @@
 package io.confluent.ksql.function.udaf;
 
 import io.confluent.ksql.function.BaseAggregateFunction;
+import io.confluent.ksql.function.ParameterInfo;
+import io.confluent.ksql.schema.ksql.SchemaConverters;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Merger;
 
@@ -31,7 +33,7 @@ public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFun
   public BaseNumberKudaf(
       final String functionName,
       final Integer argIndexInValue,
-      final Schema outputSchema,
+      final SqlType outputSchema,
       final BiFunction<T, T, T> aggregatePrimitive,
       final String description
   ) {
@@ -40,7 +42,13 @@ public abstract class BaseNumberKudaf<T extends Number> extends BaseAggregateFun
         () -> null,
         outputSchema,
         outputSchema,
-        Collections.singletonList(outputSchema),
+        Collections.singletonList(
+            new ParameterInfo(
+                "number",
+                SchemaConverters.sqlToFunctionConverter().toFunctionType(outputSchema),
+                "the value to aggregate",
+                false)
+            ),
         description);
     this.aggregatePrimitive = Objects.requireNonNull(aggregatePrimitive, "aggregatePrimitive");
   }

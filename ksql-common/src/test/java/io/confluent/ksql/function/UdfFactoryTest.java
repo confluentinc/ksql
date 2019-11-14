@@ -16,12 +16,13 @@
 package io.confluent.ksql.function;
 
 import com.google.common.collect.ImmutableList;
+import io.confluent.ksql.function.types.ParamTypes;
 import io.confluent.ksql.function.udf.Kudf;
 import io.confluent.ksql.function.udf.UdfMetadata;
 import io.confluent.ksql.name.FunctionName;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
 import org.apache.kafka.common.KafkaException;
-import org.apache.kafka.connect.data.Schema;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -38,9 +39,9 @@ public class UdfFactoryTest {
   @Test
   public void shouldThrowIfNoVariantFoundThatAcceptsSuppliedParamTypes() {
     expectedException.expect(KafkaException.class);
-    expectedException.expectMessage("Function 'TestFunc' does not accept parameters of types:[VARCHAR, BIGINT]");
+    expectedException.expectMessage("Function 'TestFunc' does not accept parameters of types:[STRING, BIGINT]");
 
-    factory.getFunction(ImmutableList.of(Schema.STRING_SCHEMA, Schema.INT64_SCHEMA));
+    factory.getFunction(ImmutableList.of(SqlTypes.STRING, SqlTypes.BIGINT));
   }
 
   @Test
@@ -48,9 +49,9 @@ public class UdfFactoryTest {
     expectedException.expect(KafkaException.class);
     expectedException.expectMessage("as a function with the same name has been loaded from a different jar");
     factory.addFunction(KsqlScalarFunction.create(
-        ignored -> Schema.OPTIONAL_STRING_SCHEMA,
-        Schema.OPTIONAL_STRING_SCHEMA,
-        Collections.<Schema>emptyList(),
+        (params, args) -> SqlTypes.STRING,
+        ParamTypes.STRING,
+        Collections.emptyList(),
         FunctionName.of("TestFunc"),
         TestFunc.class,
         ksqlConfig -> null,

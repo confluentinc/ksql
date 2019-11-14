@@ -15,11 +15,13 @@
 
 package io.confluent.ksql.function;
 
+import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udf.UdfMetadata;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.util.KsqlException;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
 public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
 
@@ -36,24 +38,26 @@ public class UdafAggregateFunctionFactory extends AggregateFunctionFactory {
 
   @Override
   public synchronized KsqlAggregateFunction<?, ?, ?> createAggregateFunction(
-      final List<Schema> argTypeList,
+      final List<SqlType> argTypeList,
       final AggregateFunctionInitArguments initArgs
   ) {
     final UdafFactoryInvoker creator = udfIndex.getFunction(argTypeList);
     if (creator == null) {
       throw new KsqlException("There is no aggregate function with name='" + getName()
           + "' that has arguments of type="
-          + argTypeList.stream().map(schema -> schema.type().getName())
+          + argTypeList.stream()
+          .map(SqlType::baseType)
+          .map(Objects::toString)
           .collect(Collectors.joining(",")));
     }
     return creator.createFunction(initArgs);
   }
 
   @Override
-  public synchronized List<List<Schema>> supportedArgs() {
+  public synchronized List<List<ParamType>> supportedArgs() {
     return udfIndex.values()
         .stream()
-        .map(UdafFactoryInvoker::getArguments)
+        .map(UdafFactoryInvoker::parameters)
         .collect(Collectors.toList());
   }
 }

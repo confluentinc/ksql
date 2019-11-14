@@ -1,9 +1,41 @@
-One fundamental operation for working with collections is populating them with events. There are several ways that you can do this: you can use the Kafka clients to write data to the underlying topics, or you can use connectors to source data from external systems. But the simplest option is to use ksqlDB’s insert into values syntax.
+---
+layout: page
+title: Insert events into ksqlDB
+tagline: Populate ksqlDB collections with event.
+description: Learn how to use the INSERT INTO VALUES statement to add events to a stream or table. 
+keywords: ksqldb, collection, event
+---
 
-insert into values inserts an event into an existing stream or table. This works similarly to what you would find in Postgres. You specify the collection to insert into, the sequence of columns for which you have values, and finally the values. The column names and the values are zipped up to form a new event, which is serialized in the same format that the collection is. Here is a quick example that inserts an event with two columns:
+One fundamental operation for working with collections is populating them
+with events. There are a number of ways to do this:
+
+- Use ksqlDB’s [INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md)
+  syntax. This is the simplest approach.
+- Use the {{ site.aktm }} clients to write data to the underlying topics. 
+- Use connectors to source data from external systems.
+
+The INSERT INTO VALUES statement inserts an event into an existing stream
+or table. This statement is similar to what you would find in
+[Postgres](https://www.postgresql.org/). You specify:
+
+- the collection to insert values into;
+- the sequence of columns that you have values for;
+- the values.
+ 
+The column names and values are zipped up to form a new event, which is
+serialized in the same format as the collection. The following example
+statement inserts an event that has two columns into a collection named
+`all_publications`:
 
 ```sql
 INSERT INTO all_publications (author, title) VALUES ('C.S. Lewis', 'The Silver Chair');
 ```
 
-Any column not explicitly given a value is set to null. If no columns are specified, a value for every column is expected in the same order as the schema with `ROWKEY` as the first column. If columns are specified, the order doesn’t matter. `ROWTIME` may be specified as an explicit column, but it’s not required when omitting the column specifications.
+Any column that doesn't get a value explicitly is set to `null`. If no columns
+are specified, a value for every column is expected in the same order as the
+schema, with `ROWKEY` as the first column. If columns are specified, the order
+doesn’t matter. You can specify `ROWTIME` as an explicit column, but it’s not
+required when you omit the column specifications.
+
+For more information, see
+[INSERT INTO VALUES](../../developer-guide/ksqldb-reference/insert-values.md).

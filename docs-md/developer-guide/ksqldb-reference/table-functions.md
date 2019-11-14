@@ -20,7 +20,7 @@ Table functions are used in the SELECT clause of a query. They cause the query
 to output potentially more than one row for each input value.
 
 The current implementation of table functions only allows a single column
-to be returned. This column can be any valid KSQL type.
+to be returned. This column can be any valid SQL type.
 
 Here's an example of the `EXPLODE` built-in table function, which takes an
 ARRAY and outputs one value for each element of the array:

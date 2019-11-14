@@ -22,25 +22,24 @@ import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Schema;
 
 public final class UdtfUtil {
 
   private UdtfUtil() {
   }
 
-  @SuppressWarnings("deprecation") // Need to migrate away from Connect Schema use.
   public static KsqlTableFunction resolveTableFunction(
       FunctionRegistry functionRegistry, FunctionCall functionCall, LogicalSchema schema
   ) {
     ExpressionTypeManager expressionTypeManager =
         new ExpressionTypeManager(schema, functionRegistry);
     List<Expression> functionArgs = functionCall.getArguments();
-    List<Schema> argTypes = functionArgs.isEmpty()
+    List<SqlType> argTypes = functionArgs.isEmpty()
         ? ImmutableList.of(FunctionRegistry.DEFAULT_FUNCTION_ARG_SCHEMA)
-        : functionArgs.stream().map(expressionTypeManager::getExpressionSchema)
+        : functionArgs.stream().map(expressionTypeManager::getExpressionSqlType)
             .collect(Collectors.toList());
     return functionRegistry.getTableFunction(
         functionCall.getName().name(),

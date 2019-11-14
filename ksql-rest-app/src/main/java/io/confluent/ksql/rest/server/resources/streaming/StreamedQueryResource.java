@@ -31,7 +31,7 @@ import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
-import io.confluent.ksql.rest.server.execution.StaticQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -183,7 +183,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
 
-        if (queryStmt.getStatement().isStatic()) {
+        if (queryStmt.getStatement().isPullQuery()) {
           return handlePullQuery(
               serviceContext,
               queryStmt,
@@ -224,7 +224,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
 
-    final TableRowsEntity entity = StaticQueryExecutor
+    final TableRowsEntity entity = PullQueryExecutor
         .execute(configured, ksqlEngine, serviceContext);
 
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());

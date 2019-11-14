@@ -30,7 +30,7 @@ import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscription;
-import io.confluent.ksql.rest.server.resources.streaming.PullQueryPublisher.PullQueryExecutor;
+import io.confluent.ksql.rest.server.resources.streaming.PullQueryPublisher.TheQueryExecutor;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.services.ServiceContext;
@@ -62,7 +62,7 @@ public class PullQueryPublisherTest {
   @Mock
   private Subscriber<Collection<StreamedRow>> subscriber;
   @Mock
-  private PullQueryExecutor pullQueryExecutor;
+  private TheQueryExecutor pullQueryExecutor;
   @Mock
   private TableRowsEntity entity;
   @Captor

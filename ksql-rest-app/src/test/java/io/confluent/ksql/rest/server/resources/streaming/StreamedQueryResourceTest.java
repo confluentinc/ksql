@@ -110,6 +110,7 @@ public class StreamedQueryResourceTest {
 
   private static final String TOPIC_NAME = "test_stream";
   private static final String PUSH_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " EMIT CHANGES;";
+  private static final String PULL_QUERY_STRING = "SELECT * FROM " + TOPIC_NAME + " WHERE ROWKEY='null';";
   private static final String PRINT_TOPIC = "Print TEST_TOPIC;";
 
   @Rule
@@ -132,11 +133,6 @@ public class StreamedQueryResourceTest {
   @Mock
   private KsqlAuthorizationValidator authorizationValidator;
   private StreamedQueryResource testResource;
-
-
-  private final static String queryString = "SELECT * FROM test_stream EMIT CHANGES;";
-  private final static String printString = "Print TEST_TOPIC;";
-  private final static String topicName = "test_stream";
   private PreparedStatement<Statement> statement;
 
   @Before
@@ -144,6 +140,7 @@ public class StreamedQueryResourceTest {
     when(serviceContext.getTopicClient()).thenReturn(mockKafkaTopicClient);
     statement = PreparedStatement.of("s", mock(Statement.class));
     when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING)).thenReturn(statement);
+    when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(statement);
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -258,6 +255,55 @@ public class StreamedQueryResourceTest {
         new KsqlRequest(PUSH_QUERY_STRING, Collections.emptyMap(), 3L)
     );
   }
+
+  @Test
+  public void shouldNotCreateAdminClientForPullQuery() throws Exception {
+    // When:
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
+    );
+
+    // Then:
+    verify(serviceContext, never()).getAdminClient();
+  }
+
+  @Test
+  public void shouldNotCreateConnectClientForPullQuery() throws Exception {
+    // When:
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
+    );
+
+    // Then:
+    verify(serviceContext, never()).getConnectClient();
+  }
+
+  @Test
+  public void shouldNotCreateSRClientForPullQuery() throws Exception {
+    // When:
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
+    );
+
+    // Then:
+    verify(serviceContext, never()).getSchemaRegistryClient();
+  }
+
+  @Test
+  public void shouldNotCreateTopicClientForPullQuery() throws Exception {
+    // When:
+    testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
+    );
+
+    // Then:
+    verify(serviceContext, never()).getTopicClient();
+  }
+
 
   @Test
   public void shouldStreamRowsCorrectly() throws Throwable {

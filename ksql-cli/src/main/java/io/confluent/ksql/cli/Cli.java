@@ -309,26 +309,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     }
   }
 
-  @SuppressWarnings({"try", "unused"})
-  private void handleStreamedQuery(
-      final String query,
-      final SqlBaseParser.QueryStatementContext ignored
-  ) {
-    final RestResponse<QueryStream> queryResponse =
-        makeKsqlRequest(query, restClient::makeQueryRequest);
-
-    LOGGER.debug("Handling streamed query");
-
-    if (!queryResponse.isSuccessful()) {
-      terminal.printErrorMessage(queryResponse.getErrorMessage());
-    } else {
-      try (QueryStream queryStream = queryResponse.getResponse();
-          StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
-        streamResults(queryStream);
-      }
-    }
-  }
-
   private void streamResults(final QueryStream queryStream) {
     final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
       for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); ) {
@@ -377,14 +357,21 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     return streamedQueryRowLimit == null || rowsRead < streamedQueryRowLimit;
   }
 
+  @SuppressWarnings({"try", "unused"}) // ignored param is required to compile.
   private void handleQuery(
       final String statement,
       final SqlBaseParser.QueryStatementContext query
   ) {
-    if (query.query().EMIT() == null) {
-      makeKsqlRequest(statement);
+    final RestResponse<QueryStream> queryResponse =
+        makeKsqlRequest(statement, restClient::makeQueryRequest);
+
+    if (!queryResponse.isSuccessful()) {
+      terminal.printErrorMessage(queryResponse.getErrorMessage());
     } else {
-      handleStreamedQuery(statement, query);
+      try (QueryStream queryStream = queryResponse.getResponse();
+          StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
+        streamResults(queryStream);
+      }
     }
   }
 

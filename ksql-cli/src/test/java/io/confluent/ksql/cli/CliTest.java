@@ -643,8 +643,8 @@ public class CliTest {
       return terminal.getOutputString();
     };
 
-    assertThatEventually(runner, containsString("ROWKEY STRING KEY"));
-    assertThatEventually(runner, containsString("COUNT BIGINT"));
+    assertThatEventually(runner, containsString("ROWKEY"));
+    assertThatEventually(runner, containsString("COUNT"));
   }
 
   @Test

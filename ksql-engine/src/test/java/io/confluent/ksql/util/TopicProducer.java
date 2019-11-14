@@ -26,10 +26,8 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -52,20 +50,17 @@ public class TopicProducer {
   }
 
   /**
-   * Topic topicName will be automatically created if it doesn't exist.
-   * @param topicName
-   * @param recordsToPublish
-   * @param schema
-   * @return
-   * @throws InterruptedException
-   * @throws TimeoutException
-   * @throws ExecutionException
+   * Produce data to a topic
+   * @param topicName the name of the topic, (it will be automatically created if it doesn't exist)
+   * @param recordsToPublish map of key -> value to publish.
+   * @param schema the physical schema of the data.
+   * @return the map of key -> produced record metadata.
    */
   public Map<String, RecordMetadata> produceInputData(
       final String topicName,
       final Map<String, GenericRow> recordsToPublish,
       final PhysicalSchema schema
-  ) throws InterruptedException, TimeoutException, ExecutionException {
+  )  {
 
     final Serializer<GenericRow> serializer = GenericRowSerDe.from(
         FormatInfo.of(Format.JSON, Optional.empty(), Optional.empty()),
@@ -76,25 +71,29 @@ public class TopicProducer {
         NoopProcessingLogContext.INSTANCE
     ).serializer();
 
-    final KafkaProducer<String, GenericRow> producer =
-        new KafkaProducer<>(producerConfig, new StringSerializer(), serializer);
+    try (KafkaProducer<String, GenericRow> producer =
+        new KafkaProducer<>(producerConfig, new StringSerializer(), serializer)) {
 
-    final Map<String, RecordMetadata> result = new HashMap<>();
-    for (final Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
-      final String key = recordEntry.getKey();
-      final ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(topicName, key, recordEntry.getValue());
-      final Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
-      result.put(key, recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+      final Map<String, RecordMetadata> result = new HashMap<>();
+      for (final Map.Entry<String, GenericRow> recordEntry : recordsToPublish.entrySet()) {
+        final String key = recordEntry.getKey();
+        final ProducerRecord<String, GenericRow> producerRecord = new ProducerRecord<>(topicName,
+            key, recordEntry.getValue());
+        final Future<RecordMetadata> recordMetadataFuture = producer.send(producerRecord);
+        result.put(key,
+            recordMetadataFuture.get(TEST_RECORD_FUTURE_TIMEOUT_MS, TimeUnit.MILLISECONDS));
+      }
+
+      return result;
+    } catch (final Exception e) {
+      throw new RuntimeException("Failed to produce data", e);
     }
-    producer.close();
-
-    return result;
   }
 
   /**
    * Produce input data to the topic named dataProvider.topicName()
    */
-  public Map<String, RecordMetadata> produceInputData(final TestDataProvider dataProvider) throws Exception {
+  public Map<String, RecordMetadata> produceInputData(final TestDataProvider dataProvider) {
     return produceInputData(dataProvider.topicName(), dataProvider.data(), dataProvider.schema());
   }
 

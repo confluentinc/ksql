@@ -267,9 +267,6 @@ public class CliTest {
       final PhysicalSchema resultSchema,
       final Map<String, GenericRow> expectedResults
   ) {
-    if (!selectQuery.endsWith(";")) {
-      selectQuery += ";";
-    }
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
     /* Start Stream Query */

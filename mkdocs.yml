@@ -10,8 +10,9 @@ edit_uri: ""
 docs_dir: docs-md
 
 theme:
-    # name: mkdocs
-    name: readthedocs
+    name: material
+    feature: 
+      tabs: true
     highlightjs: true
     hljs_languages:
         - yaml
@@ -24,19 +25,17 @@ theme:
         - sql
         - scala
 
-# extra_css:
-#   - stylesheets/extra.css
+extra_css:
+  - stylesheets/extra.css
 
 nav:
   - Overview: index.md
   - Getting started: tutorials/ksqldb-quickstart.md
+  #- Install: # Link to Derek's quickstart at ksqldb.io
   - Concepts:
     - Concepts: concepts/index.md
     - Architecture: concepts/ksql-architecture.md
     - Events: concepts/events.md
-    - Processing Guarantees (TODO): concepts/ksqldb-processing-guarantees.md
-    - Push and Pull Queries (TODO): concepts/push-and-pull-queries.md
-    - Schemas (TODO): concepts/ksqldb-schemas.md
     - Collections:
       - Overview: concepts/collections/overview.md
       - Streams: concepts/collections/streams.md
@@ -44,9 +43,13 @@ nav:
       - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
-    # - Queries: # Suggest combining into one topic
-    #   - Push queries: concepts/queries/push.md
-    #   - Pull queries: concepts/queries/pull.md
+    - Queries:
+      - Overview: concepts/queries/index.md
+      - Push queries: concepts/queries/push.md
+      - Pull queries: concepts/queries/pull.md
+    # - Processing Guarantees (TODO): concepts/ksqldb-processing-guarantees.md # future
+    #- Push and Pull Queries (TODO): concepts/push-and-pull-queries.md
+    # - Schemas (TODO): concepts/ksqldb-schemas.md # remove
     - Connectors (TODO): concepts/connectors.md
     #- Functions: # Suggest flattening
     - Functions: concepts/functions/udfs.md # Unless there's more abstraction to discuss, move from dev guide node and add a bit more on intrinsic functions, with links
@@ -71,7 +74,7 @@ nav:
     - Query With Structured Data: developer-guide/query-with-structured-data.md
     - Transform a Stream: developer-guide/transform-a-stream-with-ksql.md
     - Example Queries: tutorials/examples.md
-    # - Custom Function Reference (UDF and UDAF): developer-guide/udf.md # Possibly move to Concepts
+    # - Functions - Custom Function Reference (UDF and UDAF): developer-guide/udf.md # Possibly move to Concepts
     - Connect Integration: developer-guide/ksql-connect.md
     - Test and Debug: # Suggest moving to Developer Guide
       - Test and Debug Index: developer-guide/index.md # New index topic TODO

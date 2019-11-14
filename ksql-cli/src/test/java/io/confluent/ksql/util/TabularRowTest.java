@@ -18,20 +18,36 @@ package io.confluent.ksql.util;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyString;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableList;
-import java.util.List;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.cli.console.CliConfig;
+import io.confluent.ksql.cli.console.CliConfig.OnOff;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnitRunner;
 
+@RunWith(MockitoJUnitRunner.class)
 public class TabularRowTest {
+
+  @Mock
+  private CliConfig config;
 
   @Test
   public void shouldFormatHeader() {
     // Given:
-    final List<String> header = ImmutableList.of("foo", "bar");
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
+        .build();
 
     // When:
-    final String formatted = new TabularRow(20, header, null, true).toString();
+    final String formatted = TabularRow.createHeader(20, schema).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -43,10 +59,14 @@ public class TabularRowTest {
   @Test
   public void shouldMultilineFormatHeader() {
     // Given:
-    final List<String> header = ImmutableList.of("foo", "bar is a long string");
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("bar is a long string"), SqlTypes.STRING)
+        .build();
 
     // When:
-    final String formatted = new TabularRow(20, header, null, true).toString();
+    final String formatted = TabularRow.createHeader(20, schema).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -60,10 +80,12 @@ public class TabularRowTest {
   @Test
   public void shouldFormatRow() {
     // Given:
-    final List<String> header = ImmutableList.of("foo", "bar");
+    givenWrappingEnabled();
+
+    final GenericRow value = new GenericRow("foo", "bar");
 
     // When:
-    final String formatted = new TabularRow(20, header, header, true).toString();
+    final String formatted = TabularRow.createRow(20, value, config).toString();
 
     // Then:
     assertThat(formatted, is("|foo     |bar     |"));
@@ -72,10 +94,12 @@ public class TabularRowTest {
   @Test
   public void shouldMultilineFormatRow() {
     // Given:
-    final List<String> header = ImmutableList.of("foo", "bar is a long string");
+    givenWrappingEnabled();
+
+    final GenericRow value = new GenericRow("foo", "bar is a long string");
 
     // When:
-    final String formatted = new TabularRow(20, header, header, true).toString();
+    final String formatted = TabularRow.createRow(20, value, config).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -87,10 +111,12 @@ public class TabularRowTest {
   @Test
   public void shouldClipMultilineFormatRow() {
     // Given:
-    final List<String> header = ImmutableList.of("foo", "bar is a long string");
+    givenWrappingDisabled();
+
+    final GenericRow value = new GenericRow("foo", "bar is a long string");
 
     // When:
-    final String formatted = new TabularRow(20, header, header, false).toString();
+    final String formatted = TabularRow.createRow(20, value, config).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -100,12 +126,15 @@ public class TabularRowTest {
   @Test
   public void shouldClipMultilineFormatRowWithLotsOfWhitespace() {
     // Given:
-    final List<String> header = ImmutableList.of(
+    givenWrappingDisabled();
+
+    final GenericRow value = new GenericRow(
         "foo",
-        "bar                                                                               foo");
+        "bar                                                                               foo"
+    );
 
     // When:
-    final String formatted = new TabularRow(20, header, header, false).toString();
+    final String formatted = TabularRow.createRow(20, value, config).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -115,12 +144,15 @@ public class TabularRowTest {
   @Test
   public void shouldNotAddEllipsesMultilineFormatRowWithLotsOfWhitespace() {
     // Given:
-    final List<String> header = ImmutableList.of(
+    givenWrappingDisabled();
+
+    final GenericRow value = new GenericRow(
         "foo",
-        "bar                                                                                  ");
+        "bar                                                                                  "
+    );
 
     // When:
-    final String formatted = new TabularRow(20, header, header, false).toString();
+    final String formatted = TabularRow.createRow(20, value, config).toString();
 
     // Then:
     assertThat(formatted, is(""
@@ -129,12 +161,14 @@ public class TabularRowTest {
 
 
   @Test
-  public void shouldFormatNoColumns() {
+  public void shouldFormatNoColumnsHeader() {
     // Given:
-    final List<String> header = ImmutableList.of();
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .build();
 
     // When:
-    final String formatted = new TabularRow(20, header, null, true).toString();
+    final String formatted = TabularRow.createHeader(20, schema).toString();
 
     // Then:
     assertThat(formatted, isEmptyString());
@@ -143,10 +177,15 @@ public class TabularRowTest {
   @Test
   public void shouldFormatMoreColumnsThanWidth() {
     // Given:
-    final List<String> header = ImmutableList.of("foo", "bar", "baz");
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("foo"), SqlTypes.BIGINT)
+        .valueColumn(ColumnName.of("bar"), SqlTypes.STRING)
+        .valueColumn(ColumnName.of("baz"), SqlTypes.DOUBLE)
+        .build();
 
     // When:
-    final String formatted = new TabularRow(3, header, null, true).toString();
+    final String formatted = TabularRow.createHeader(3, schema).toString();
 
     // Then:
     assertThat(formatted,
@@ -156,4 +195,11 @@ public class TabularRowTest {
             + "+-----+-----+-----+"));
   }
 
+  private void givenWrappingEnabled() {
+    when(config.getString(CliConfig.WRAP_CONFIG)).thenReturn(OnOff.ON.toString());
+  }
+
+  private void givenWrappingDisabled() {
+    when(config.getString(CliConfig.WRAP_CONFIG)).thenReturn("Not ON");
+  }
 }

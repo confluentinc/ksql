@@ -78,6 +78,7 @@ import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TablesList;
 import io.confluent.ksql.rest.entity.TopicDescription;
 import io.confluent.ksql.rest.entity.TypeList;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.CmdLineUtil;
 import io.confluent.ksql.util.HandlerMaps;
 import io.confluent.ksql.util.HandlerMaps.ClassHandlerMap1;
@@ -324,32 +325,27 @@ public class Console implements Closeable {
     writer().println(shortMsg);
   }
 
-  public void printStreamedRow(
-      final StreamedRow row,
-      final List<FieldInfo> fields
-  ) {
-    if (row.getErrorMessage() != null) {
-      printErrorMessage(row.getErrorMessage());
-      return;
-    }
+  public void printStreamedRow(final StreamedRow row) {
+    row.getErrorMessage().ifPresent(this::printErrorMessage);
 
-    if (row.getFinalMessage() != null) {
-      writer().println(row.getFinalMessage());
-      return;
-    }
+    row.getFinalMessage().ifPresent(finalMsg -> writer().println(finalMsg));
 
-    switch (outputFormat) {
-      case JSON:
-        printAsJson(row.getRow().getColumns());
-        break;
-      case TABULAR:
-        printAsTable(row.getRow(), fields);
-        break;
-      default:
-        throw new RuntimeException(String.format(
-            "Unexpected output format: '%s'",
-            outputFormat.name()
-        ));
+    row.getHeader().ifPresent(header -> printRowHeader(header.getSchema()));
+
+    if (row.getRow().isPresent()) {
+      switch (outputFormat) {
+        case JSON:
+          printAsJson(row.getRow().get().getColumns());
+          break;
+        case TABULAR:
+          printAsTable(row.getRow().get());
+          break;
+        default:
+          throw new RuntimeException(String.format(
+              "Unexpected output format: '%s'",
+              outputFormat.name()
+          ));
+      }
     }
   }
 
@@ -376,12 +372,12 @@ public class Console implements Closeable {
     }
   }
 
-  public void printRowHeader(final List<FieldInfo> fields) {
+  private void printRowHeader(final LogicalSchema schema) {
     switch (outputFormat) {
       case JSON:
         break;
       case TABULAR:
-        writer().println(TabularRow.createHeader(getWidth(), fields));
+        writer().println(TabularRow.createHeader(getWidth(), schema));
         break;
       default:
         throw new RuntimeException(String.format(
@@ -426,12 +422,9 @@ public class Console implements Closeable {
         .findFirst();
   }
 
-  private void printAsTable(
-      final GenericRow row,
-      final List<FieldInfo> fields
-  ) {
+  private void printAsTable(final GenericRow row) {
     rowCaptor.addRow(row);
-    writer().println(TabularRow.createRow(getWidth(), fields, row, config));
+    writer().println(TabularRow.createRow(getWidth(), row, config));
     flush();
   }
 

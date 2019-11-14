@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
+import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -24,9 +26,12 @@ import io.confluent.ksql.parser.tree.PrintTopic;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.Versions;
 import io.confluent.ksql.rest.server.StatementParser;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
+import io.confluent.ksql.rest.server.execution.StaticQueryExecutor;
 import io.confluent.ksql.rest.server.resources.KsqlConfigurable;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
 import io.confluent.ksql.rest.util.CommandStoreUtil;
@@ -42,6 +47,7 @@ import io.confluent.ksql.version.metrics.ActivenessRegistrar;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -175,9 +181,19 @@ public class StreamedQueryResource implements KsqlConfigurable {
       );
 
       if (statement.getStatement() instanceof Query) {
-        return handleQuery(
+        final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
+
+        if (queryStmt.getStatement().isStatic()) {
+          return handlePullQuery(
+              serviceContext,
+              queryStmt,
+              request.getStreamsProperties()
+          );
+        }
+
+        return handlePushQuery(
             serviceContext,
-            (PreparedStatement<Query>) statement,
+            queryStmt,
             request.getStreamsProperties()
         );
       }
@@ -200,7 +216,34 @@ public class StreamedQueryResource implements KsqlConfigurable {
     }
   }
 
-  private Response handleQuery(
+  private Response handlePullQuery(
+      final ServiceContext serviceContext,
+      final PreparedStatement<Query> statement,
+      final Map<String, Object> streamsProperties
+  ) {
+    final ConfiguredStatement<Query> configured =
+        ConfiguredStatement.of(statement, streamsProperties, ksqlConfig);
+
+    final TableRowsEntity entity = StaticQueryExecutor
+        .execute(configured, ksqlEngine, serviceContext);
+
+    final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
+
+    final List<StreamedRow> rows = entity.getRows().stream()
+        .map(GenericRow::new)
+        .map(StreamedRow::row)
+        .collect(Collectors.toList());
+
+    rows.add(0, header);
+
+    final String data = rows.stream()
+        .map(this::writeValueAsString)
+        .collect(Collectors.joining("," + System.lineSeparator(), "[", "]"));
+
+    return Response.ok().entity(data).build();
+  }
+
+  private Response handlePushQuery(
       final ServiceContext serviceContext,
       final PreparedStatement<Query> statement,
       final Map<String, Object> streamsProperties
@@ -226,6 +269,14 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
     log.info("Streaming query '{}'", statement.getStatementText());
     return Response.ok().entity(queryStreamWriter).build();
+  }
+
+  private String writeValueAsString(final Object object) {
+    try {
+      return objectMapper.writeValueAsString(object);
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private Response handlePrintTopic(

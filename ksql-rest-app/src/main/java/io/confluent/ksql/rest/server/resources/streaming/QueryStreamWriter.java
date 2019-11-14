@@ -18,8 +18,11 @@ package io.confluent.ksql.rest.server.resources.streaming;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Lists;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import java.io.EOFException;
@@ -37,6 +40,7 @@ import org.slf4j.LoggerFactory;
 class QueryStreamWriter implements StreamingOutput {
 
   private static final Logger log = LoggerFactory.getLogger(QueryStreamWriter.class);
+  private static final QueryId NO_QUERY_ID = new QueryId("none");
 
   private final TransientQueryMetadata queryMetadata;
   private final long disconnectCheckInterval;
@@ -60,13 +64,15 @@ class QueryStreamWriter implements StreamingOutput {
   @Override
   public void write(final OutputStream out) {
     try {
+      write(out, buildHeader());
+
       while (queryMetadata.isRunning() && !limitReached) {
         final KeyValue<String, GenericRow> value = queryMetadata.getRowQueue().poll(
             disconnectCheckInterval,
             TimeUnit.MILLISECONDS
         );
         if (value != null) {
-          write(out, value.value);
+          write(out, StreamedRow.row(value.value));
         } else {
           // If no new rows have been written, the user may have terminated the connection without
           // us knowing. Check by trying to write a single newline.
@@ -98,10 +104,22 @@ class QueryStreamWriter implements StreamingOutput {
     }
   }
 
-  private void write(final OutputStream output, final GenericRow row) throws IOException {
-    objectMapper.writeValue(output, StreamedRow.row(row));
+  private void write(final OutputStream output, final StreamedRow row) throws IOException {
+    objectMapper.writeValue(output, row);
     output.write("\n".getBytes(StandardCharsets.UTF_8));
     output.flush();
+  }
+
+  private StreamedRow buildHeader() {
+    // Push queries only return value columns, but query metadata schema includes key and meta:
+    final LogicalSchema storedSchema = queryMetadata.getLogicalSchema();
+
+    final Builder actualSchemaBuilder = LogicalSchema.builder()
+        .noImplicitColumns();
+
+    storedSchema.value().forEach(actualSchemaBuilder::valueColumn);
+
+    return StreamedRow.header(NO_QUERY_ID, actualSchemaBuilder.build());
   }
 
   private void outputException(final OutputStream out, final Throwable exception) {
@@ -133,7 +151,7 @@ class QueryStreamWriter implements StreamingOutput {
     queryMetadata.getRowQueue().drainTo(rows);
 
     for (final KeyValue<String, GenericRow> row : rows) {
-      write(out, row.value);
+      write(out, StreamedRow.row(row.value));
     }
   }
 

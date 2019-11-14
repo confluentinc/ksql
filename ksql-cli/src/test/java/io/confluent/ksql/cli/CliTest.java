@@ -22,7 +22,6 @@ import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -603,7 +602,7 @@ public class CliTest {
   }
 
   @Test
-  public void testTransientStaticSelectStar() {
+  public void shouldHandlePullQuery() {
     // Given:
     run("CREATE TABLE X AS SELECT COUNT(1) AS COUNT "
             + "FROM " + orderDataProvider.kstreamName()
@@ -611,14 +610,25 @@ public class CliTest {
         localCli
     );
 
+    // When:
+    final Supplier<String> runner = () -> {
+      // It's possible that the state store is not warm on the first invocation, hence the retry
+      run("SELECT * FROM X WHERE ROWKEY='ITEM_1';", localCli);
+      return terminal.getOutputString();
+    };
+
+    // Wait for warm store:
+    assertThatEventually(runner, containsString("ROWKEY"));
     assertRunCommand(
-        "SELECT * FROM X WHERE ROWKEY='unknowwn';",
-        is(emptyIterable())
+        "SELECT * FROM X WHERE ROWKEY='ITEM_1';",
+        containsRows(
+            row("ITEM_1", "1")
+        )
     );
   }
 
   @Test
-  public void testTransientStaticHeader() {
+  public void shouldOutputPullQueryHeader() {
     // Given:
     run("CREATE TABLE Y AS SELECT COUNT(1) AS COUNT "
             + "FROM " + orderDataProvider.kstreamName()
@@ -655,7 +665,7 @@ public class CliTest {
   }
 
   @Test
-  public void testTransientContinuousHeader() {
+  public void shouldOutputPushQueryHeader() {
     // When:
     run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1", localCli);
 

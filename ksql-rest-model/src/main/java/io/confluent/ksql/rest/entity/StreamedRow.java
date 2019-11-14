@@ -15,64 +15,103 @@
 
 package io.confluent.ksql.rest.entity;
 
+import static java.util.Objects.requireNonNull;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.query.QueryId;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+@JsonInclude(Include.NON_ABSENT)
 @JsonSubTypes({})
-public class StreamedRow {
+public final class StreamedRow {
 
-  private final GenericRow row;
-  private final KsqlErrorMessage errorMessage;
-  private final String finalMessage;
+  private final Optional<Header> header;
+  private final Optional<GenericRow> row;
+  private final Optional<KsqlErrorMessage> errorMessage;
+  private final Optional<String> finalMessage;
+
+  public static StreamedRow header(final QueryId queryId, final LogicalSchema schema) {
+    return new StreamedRow(
+        Optional.of(Header.of(queryId, schema)),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty()
+    );
+  }
 
   public static StreamedRow row(final GenericRow row) {
-    return new StreamedRow(row, null, null);
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.of(row),
+        Optional.empty(),
+        Optional.empty()
+    );
   }
 
   public static StreamedRow error(final Throwable exception, final int errorCode) {
     return new StreamedRow(
-        null,
-        new KsqlErrorMessage(errorCode, exception),
-        null);
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(new KsqlErrorMessage(errorCode, exception)),
+        Optional.empty()
+    );
   }
 
   public static StreamedRow finalMessage(final String finalMessage) {
-    return new StreamedRow(null, null, finalMessage);
+    return new StreamedRow(
+        Optional.empty(),
+        Optional.empty(),
+        Optional.empty(),
+        Optional.of(finalMessage)
+    );
   }
 
   @JsonCreator
-  public StreamedRow(
-      @JsonProperty("row") final GenericRow row,
-      @JsonProperty("errorMessage") final KsqlErrorMessage errorMessage,
-      @JsonProperty("finalMessage") final String finalMessage
+  private StreamedRow(
+      @JsonProperty("header") final Optional<Header> header,
+      @JsonProperty("row") final Optional<GenericRow> row,
+      @JsonProperty("errorMessage") final Optional<KsqlErrorMessage> errorMessage,
+      @JsonProperty("finalMessage") final Optional<String> finalMessage
   ) {
-    checkUnion(row, errorMessage, finalMessage);
-    this.row = row;
-    this.errorMessage = errorMessage;
-    this.finalMessage = finalMessage;
+    this.header = requireNonNull(header, "header");
+    this.row = requireNonNull(row, "row");
+    this.errorMessage = requireNonNull(errorMessage, "errorMessage");
+    this.finalMessage = requireNonNull(finalMessage, "finalMessage");
+
+    checkUnion(header, row, errorMessage, finalMessage);
   }
 
-  public GenericRow getRow() {
+  public Optional<Header> getHeader() {
+    return header;
+  }
+
+  public Optional<GenericRow> getRow() {
     return row;
   }
 
-  public KsqlErrorMessage getErrorMessage() {
+  public Optional<KsqlErrorMessage> getErrorMessage() {
     return errorMessage;
   }
 
-  public String getFinalMessage() {
+  public Optional<String> getFinalMessage() {
     return finalMessage;
   }
 
+  @JsonIgnore
   public boolean isTerminal() {
-    return finalMessage != null || errorMessage != null;
+    return finalMessage.isPresent() || errorMessage.isPresent();
   }
 
   @Override
@@ -84,24 +123,53 @@ public class StreamedRow {
       return false;
     }
     final StreamedRow that = (StreamedRow) o;
-    return Objects.equals(row, that.row)
-           && Objects.equals(errorMessage, that.errorMessage)
-           && Objects.equals(finalMessage, that.finalMessage);
+    return Objects.equals(header, that.header)
+        && Objects.equals(row, that.row)
+        && Objects.equals(errorMessage, that.errorMessage)
+        && Objects.equals(finalMessage, that.finalMessage);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(row, errorMessage, finalMessage);
+    return Objects.hash(header, row, errorMessage, finalMessage);
   }
 
-  private static void checkUnion(final Object... fields) {
-    final List<Object> fs = Arrays.asList(fields);
-    final long count = fs.stream()
-        .filter(Objects::nonNull)
+  private static void checkUnion(final Optional<?>... fs) {
+    final long count = Arrays.stream(fs)
+        .filter(Optional::isPresent)
         .count();
 
     if (count != 1) {
-      throw new IllegalArgumentException("Exactly one parameter should be non-null. got: " + fs);
+      throw new IllegalArgumentException("Exactly one parameter should be non-null. got: " + count);
+    }
+  }
+
+  @Immutable
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public static final class Header {
+
+    private final QueryId queryId;
+    private final LogicalSchema schema;
+
+    @JsonCreator
+    public static Header of(
+        @JsonProperty(value = "queryId", required = true) final QueryId queryId,
+        @JsonProperty(value = "schema", required = true) final LogicalSchema schema
+    ) {
+      return new Header(queryId, schema);
+    }
+
+    public QueryId getQueryId() {
+      return queryId;
+    }
+
+    public LogicalSchema getSchema() {
+      return schema;
+    }
+
+    private Header(final QueryId queryId, final LogicalSchema schema) {
+      this.queryId = requireNonNull(queryId, "queryId");
+      this.schema = requireNonNull(schema, "schema");
     }
   }
 }

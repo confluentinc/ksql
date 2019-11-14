@@ -37,10 +37,8 @@ import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.entity.FieldInfo;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.entity.QueryDescriptionEntity;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.util.ErrorMessageUtil;
 import io.confluent.ksql.util.HandlerMaps;
@@ -316,18 +314,6 @@ public class Cli implements KsqlRequestExecutor, Closeable {
       final String query,
       final SqlBaseParser.QueryStatementContext ignored
   ) {
-    final RestResponse<KsqlEntityList> explainResponse = restClient
-        .makeKsqlRequest("EXPLAIN " + query);
-    if (!explainResponse.isSuccessful()) {
-      terminal.printErrorMessage(explainResponse.getErrorMessage());
-      return;
-    }
-
-    final QueryDescriptionEntity description =
-        (QueryDescriptionEntity) explainResponse.getResponse().get(0);
-    final List<FieldInfo> fields = description.getQueryDescription().getFields();
-    terminal.printRowHeader(fields);
-
     final RestResponse<QueryStream> queryResponse =
         makeKsqlRequest(query, restClient::makeQueryRequest);
 
@@ -338,21 +324,23 @@ public class Cli implements KsqlRequestExecutor, Closeable {
     } else {
       try (QueryStream queryStream = queryResponse.getResponse();
           StatusClosable toClose = terminal.setStatusMessage("Press CTRL-C to interrupt")) {
-        streamResults(queryStream, fields);
+        streamResults(queryStream);
       }
     }
   }
 
-  private void streamResults(
-      final QueryStream queryStream,
-      final List<FieldInfo> fields
-  ) {
+  private void streamResults(final QueryStream queryStream) {
     final Future<?> queryStreamFuture = queryStreamExecutorService.submit(() -> {
-      for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); rowsRead++) {
+      for (long rowsRead = 0; limitNotReached(rowsRead) && queryStream.hasNext(); ) {
         final StreamedRow row = queryStream.next();
-        terminal.printStreamedRow(row, fields);
+
+        terminal.printStreamedRow(row);
         if (row.isTerminal()) {
           break;
+        }
+
+        if (row.getRow().isPresent()) {
+          rowsRead++;
         }
       }
     });

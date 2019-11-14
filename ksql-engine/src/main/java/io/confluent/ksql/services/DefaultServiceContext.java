@@ -145,7 +145,8 @@ public class DefaultServiceContext implements ServiceContext {
     }
   }
 
-  private static final class MemoizedSupplier<T> implements Supplier<T> {
+
+  static final class MemoizedSupplier<T> implements Supplier<T> {
 
     private final Supplier<T> supplier;
     private volatile boolean initialized = false;

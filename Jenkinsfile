@@ -8,7 +8,7 @@ def config = {
     dockerRepos = ['confluentinc/ksql-cli', 'confluentinc/ksql-rest-app']
     nodeLabel = 'docker-oraclejdk8-compose-swarm'
     dockerScan = true
-    cron = '@nightly'
+    cron = '@daily'
     maven_packages_url = "https://jenkins-confluent-packages-beta-maven.s3-us-west-2.amazonaws.com"
 }
 

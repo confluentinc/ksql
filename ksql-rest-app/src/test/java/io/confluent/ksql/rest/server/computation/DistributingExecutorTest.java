@@ -40,7 +40,6 @@ import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.CommandStatus;
 import io.confluent.ksql.rest.entity.CommandStatus.Status;
 import io.confluent.ksql.rest.entity.CommandStatusEntity;
-import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.validation.RequestValidator;
 import io.confluent.ksql.security.KsqlAuthorizationValidator;
 import io.confluent.ksql.services.SandboxedServiceContext;
@@ -59,6 +58,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -98,7 +99,7 @@ public class DistributingExecutorTest {
   @Mock RequestValidator requestValidator;
   @Mock ParsedStatement parsedStatement;
   @Mock
-  TransactionalProducer transactionalProducer;
+  Producer<CommandId, Command> transactionalProducer;
 
   private DistributingExecutor distributor;
   private AtomicLong scnCounter;
@@ -108,7 +109,7 @@ public class DistributingExecutorTest {
     scnCounter = new AtomicLong();
     when(schemaInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
     when(topicInjector.inject(any())).thenAnswer(inv -> inv.getArgument(0));
-    when(queue.enqueueCommand(any(), any(TransactionalProducer.class))).thenReturn(status);
+    when(queue.enqueueCommand(EMPTY_STATEMENT, transactionalProducer)).thenReturn(status);
     when(status.tryWaitForFinalStatus(any())).thenReturn(SUCCESS_STATUS);
     when(status.getCommandId()).thenReturn(CS_COMMAND);
     when(status.getCommandSequenceNumber()).thenAnswer(inv -> scnCounter.incrementAndGet());
@@ -130,15 +131,23 @@ public class DistributingExecutorTest {
   }
 
   @Test
-  public void shouldEnqueueSuccessfulCommand() throws InterruptedException, IOException {
+  public void shouldEnqueueSuccessfulCommandTransactionally() {
     // When:
     distributor.execute(EMPTY_STATEMENT, parsedStatement, ImmutableMap.of(), executionContext, serviceContext);
 
     // Then:
-    verify(transactionalProducer, times(1)).beginTransaction();
-    verify(queue, times(1)).enqueueCommand(eq(EMPTY_STATEMENT), any());
-    verify(transactionalProducer, times(1)).commitTransaction();
-    verify(transactionalProducer, times(1)).close();
+    InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, requestValidator);
+    inOrder.verify(transactionalProducer, times(1)).initTransactions();
+    inOrder.verify(transactionalProducer, times(1)).beginTransaction();
+    inOrder.verify(queue, times(1)).waitForCommandConsumer();
+    inOrder.verify(requestValidator).validate(
+        serviceContext,
+        Collections.singletonList(parsedStatement),
+        ImmutableMap.of(),
+        SQL_STRING);
+    inOrder.verify(queue, times(1)).enqueueCommand(EMPTY_STATEMENT, transactionalProducer);
+    inOrder.verify(transactionalProducer, times(1)).commitTransaction();
+    inOrder.verify(transactionalProducer, times(1)).close();
   }
 
   @Test
@@ -166,24 +175,12 @@ public class DistributingExecutorTest {
     // Then:
     assertThat(commandStatusEntity,
         equalTo(new CommandStatusEntity("", CS_COMMAND, SUCCESS_STATUS, 1L)));
-
-    InOrder inOrder = Mockito.inOrder(transactionalProducer, queue, requestValidator);
-    inOrder.verify(transactionalProducer).initTransactions();
-    inOrder.verify(transactionalProducer).beginTransaction();
-    inOrder.verify(requestValidator).validate(
-        serviceContext,
-        Collections.singletonList(parsedStatement),
-        ImmutableMap.of(),
-        SQL_STRING);
-    inOrder.verify(queue).enqueueCommand(EMPTY_STATEMENT, transactionalProducer);
-    inOrder.verify(transactionalProducer).commitTransaction();
   }
 
   @Test
   public void shouldThrowExceptionOnFailureToEnqueue() {
     // Given:
     final KsqlException cause = new KsqlException("fail");
-    when(queue.enqueueCommand(any(), any(TransactionalProducer.class))).thenThrow(cause);
 
     final PreparedStatement<Statement> preparedStatement =
         PreparedStatement.of("x", new ListProperties(Optional.empty()));
@@ -194,6 +191,7 @@ public class DistributingExecutorTest {
             ImmutableMap.of(),
             KSQL_CONFIG);
 
+    when(queue.enqueueCommand(configured, transactionalProducer)).thenThrow(cause);
     // Expect:
     expectedException.expect(KsqlServerException.class);
     expectedException.expectMessage(

@@ -73,8 +73,7 @@ public class RequestHandler {
   public KsqlEntityList execute(
       final ServiceContext serviceContext,
       final List<ParsedStatement> statements,
-      final Map<String, Object> propertyOverrides,
-      final String sql
+      final Map<String, Object> propertyOverrides
   ) {
     final Map<String, Object> scopedPropertyOverrides = new HashMap<>(propertyOverrides);
     final KsqlEntityList entities = new KsqlEntityList();
@@ -148,8 +147,7 @@ public class RequestHandler {
     return execute(
         serviceContext,
         ksqlEngine.parse(sql),
-        propertyOverrides,
-        sql
+        propertyOverrides
     );
   }
 }

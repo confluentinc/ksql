@@ -15,14 +15,13 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.rest.server.TransactionalProducer;
-
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.statement.ConfiguredStatement;
-
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
+import org.apache.kafka.clients.producer.Producer;
 
 /**
  * Represents a queue of {@link Command}s that must be distributed to all
@@ -44,7 +43,7 @@ public interface CommandQueue extends Closeable {
    */
   QueuedCommandStatus enqueueCommand(
       ConfiguredStatement<?> statement,
-      TransactionalProducer transactionalProducer
+      Producer<CommandId, Command> transactionalProducer
   );
   
   /**
@@ -81,11 +80,18 @@ public interface CommandQueue extends Closeable {
       throws InterruptedException, TimeoutException;
 
   /**
-   * Creates a transactional producer for producing to the command topic
+   * Creates a transactional producer for producing to the command topic.
    *
    * @return a TransactionalProducer
    */
-  TransactionalProducer createTransactionalProducer();
+  Producer<CommandId, Command> createTransactionalProducer();
+
+  /**
+   * Blocks until the command topic consumer has processed all records up to
+   * the current offset when this method is called.
+   *
+   */
+  void waitForCommandConsumer();
 
   /**
    * @return whether or not there are any enqueued commands

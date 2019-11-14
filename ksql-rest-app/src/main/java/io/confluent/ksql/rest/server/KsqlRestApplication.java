@@ -39,7 +39,9 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.HybridQueryIdGenerator;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -107,6 +109,7 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.errors.AuthorizationException;
 import org.apache.kafka.common.errors.OutOfOrderSequenceException;
 import org.apache.kafka.common.errors.ProducerFencedException;
@@ -274,7 +277,6 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         processingLogContext.getConfig(),
         ksqlConfigNoPort
     );
-
     maybeCreateProcessingLogStream(
         processingLogContext.getConfig(),
         ksqlConfigNoPort,
@@ -630,17 +632,22 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue
   ) {
-    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
-        || !commandQueue.isEmpty()) {
+    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
       return;
     }
 
-    final TransactionalProducer transactionalProducer =
+    final Producer<CommandId, Command> transactionalProducer =
         commandQueue.createTransactionalProducer();
     try {
       transactionalProducer.initTransactions();
       transactionalProducer.beginTransaction();
-  
+
+      if (!commandQueue.isEmpty()) {
+        return;
+      }
+
+      // We don't wait for the commandRunner in this case since it hasn't been started yet.
+
       final PreparedStatement<?> statement = ProcessingLogServerUtils
           .processingLogStreamCreateStatement(config, ksqlConfig);
       final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(

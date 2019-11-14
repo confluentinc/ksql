@@ -351,9 +351,9 @@ public class RestApiTest {
   @Test
   public void shouldDeleteTopic() {
     // Given:
+    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
     final String query = REST_APP.getPersistentQueries().iterator().next();
-    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
-        +  "TERMINATE QUERY " +  query + ";");
+    makeKsqlRequest("TERMINATE QUERY " +  query + ";");
 
     assertThat("Expected topic X to be created", topicExists("X"));
 

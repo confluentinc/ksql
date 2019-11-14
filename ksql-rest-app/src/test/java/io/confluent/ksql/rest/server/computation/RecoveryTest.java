@@ -41,7 +41,6 @@ import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.CommandId.Action;
 import io.confluent.ksql.rest.entity.CommandId.Type;
 import io.confluent.ksql.rest.entity.KsqlRequest;
-import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.rest.server.state.ServerState;
 import io.confluent.ksql.rest.util.ClusterTerminator;
@@ -66,6 +65,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
+
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -87,9 +88,10 @@ public class RecoveryTest {
   private final HybridQueryIdGenerator hybridQueryIdGenerator =
       new HybridQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
+
   @Mock
-  private final TransactionalProducer transactionalProducer =
-      mock(TransactionalProducer.class);
+  @SuppressWarnings("unchecked")
+  private Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
 
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
@@ -118,16 +120,16 @@ public class RecoveryTest {
     private final List<QueuedCommand> commandLog;
     private final CommandIdAssigner commandIdAssigner;
     private int offset;
-    private TransactionalProducer transactionalProducer;
+    private Producer<CommandId, Command> transactionalProducer;
 
-    FakeCommandQueue(final List<QueuedCommand> commandLog, final TransactionalProducer transactionalProducer) {
+    FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
       this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
       this.transactionalProducer = transactionalProducer;
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement, final TransactionalProducer transactionalProducer) {
+    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement, final Producer<CommandId, Command> transactionalProducer) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
@@ -162,7 +164,7 @@ public class RecoveryTest {
     }
 
     @Override
-    public TransactionalProducer createTransactionalProducer() {
+    public Producer<CommandId, Command> createTransactionalProducer() {
       return transactionalProducer;
     }
     
@@ -173,6 +175,10 @@ public class RecoveryTest {
 
     @Override
     public void wakeup() {
+    }
+
+    @Override
+    public void waitForCommandConsumer() {
     }
 
     @Override

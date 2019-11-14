@@ -38,7 +38,9 @@ import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
+import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
+import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
 import io.confluent.ksql.rest.server.computation.QueuedCommandStatus;
@@ -64,6 +66,8 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
+
+import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -130,7 +134,7 @@ public class KsqlRestApplicationTest {
   @Mock
   private Consumer<KsqlConfig> rocksDBConfigSetterHandler;
   @Mock
-  private TransactionalProducer transactionalProducer;
+  private Producer<CommandId, Command> transactionalProducer;
   private PreparedStatement<?> logCreateStatement;
   private KsqlRestApplication app;
 
@@ -152,7 +156,7 @@ public class KsqlRestApplicationTest {
     when(ksqlEngine.prepare(any())).thenReturn((PreparedStatement)preparedStatement);
 
     when(commandQueue.isEmpty()).thenReturn(true);
-    when(commandQueue.enqueueCommand(any(), any(TransactionalProducer.class)))
+    when(commandQueue.enqueueCommand(any(), any(Producer.class)))
         .thenReturn(queuedCommandStatus);
     when(commandQueue.getCommandTopicName()).thenReturn(CMD_TOPIC_NAME);
     when(serviceContext.getTopicClient()).thenReturn(topicClient);
@@ -234,18 +238,23 @@ public class KsqlRestApplicationTest {
   }
 
   @Test
-  public void shouldCreateLogStream() {
+  public void shouldCreateLogStreamTransactionally() {
     // When:
     app.startKsql();
 
     // Then:
-    verify(sandBox).execute(
+    final InOrder inOrder = Mockito.inOrder(sandBox, commandQueue, transactionalProducer);
+    inOrder.verify(transactionalProducer, times(1)).initTransactions();
+    inOrder.verify(transactionalProducer, times(1)).beginTransaction();
+    inOrder.verify(sandBox).execute(
         argThat(equalTo(ksqlEngine.getServiceContext())),
         argThat(configured(equalTo(logCreateStatement)))
     );
-    verify(commandQueue).enqueueCommand(
+    inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement), Collections.emptyMap(), ksqlConfig)),
-        any(TransactionalProducer.class));
+        any());
+    inOrder.verify(transactionalProducer, times(1)).commitTransaction();
+    inOrder.verify(transactionalProducer, times(1)).close();
   }
 
   @Test
@@ -258,11 +267,11 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(TransactionalProducer.class));
+    verify(commandQueue, never()).enqueueCommand(any(), any());
   }
 
   @Test
-  public void shouldOnlyCreateLogStreamIfSourceNotInMetaStore() {
+  public void shouldOnlyCreateLogStreamIfCommandQueueEmpty() {
     // Given:
     when(commandQueue.isEmpty()).thenReturn(false);
     
@@ -270,7 +279,7 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(TransactionalProducer.class));
+    verify(commandQueue, never()).enqueueCommand(any(), any());
   }
 
   @Test
@@ -282,7 +291,7 @@ public class KsqlRestApplicationTest {
     app.startKsql();
 
     // Then:
-    verify(commandQueue, never()).enqueueCommand(any(), any(TransactionalProducer.class));
+    verify(commandQueue, never()).enqueueCommand(any(), any());
   }
 
   @Test
@@ -295,7 +304,7 @@ public class KsqlRestApplicationTest {
     inOrder.verify(commandQueue).start();
     inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement))),
-        any(TransactionalProducer.class));
+        any());
   }
 
   @Test
@@ -308,7 +317,7 @@ public class KsqlRestApplicationTest {
     inOrder.verify(topicClient).createTopic(eq(LOG_TOPIC_NAME), anyInt(), anyShort());
     inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement))),
-        any(TransactionalProducer.class));
+        any());
   }
 
   @Test
@@ -343,7 +352,7 @@ public class KsqlRestApplicationTest {
     final InOrder inOrder = Mockito.inOrder(commandQueue, serverState);
     inOrder.verify(commandQueue).enqueueCommand(
         argThat(configured(equalTo(logCreateStatement))),
-        any(TransactionalProducer.class));
+        any());
     inOrder.verify(serverState).setReady();
   }
 

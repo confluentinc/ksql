@@ -17,13 +17,17 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
+import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.rest.server.TransactionalProducer;
+import io.confluent.ksql.rest.server.resources.KsqlRestException;
+import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -33,18 +37,26 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.IsolationLevel;
+import org.apache.kafka.common.TopicPartition;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
  * the beginning until now, or any new messages since then), and writing to it.
  */
+// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements CommandQueue, Closeable {
 
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
+  private static final int COMMAND_TOPIC_PARTITION = 0;
 
   private final CommandTopic commandTopic;
   private final CommandIdAssigner commandIdAssigner;
@@ -130,7 +142,7 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   /**
-   * Close the store, rendering it unable to read or write commands
+   * Close the store, rendering it unable to read commands
    */
   @Override
   public void close() {
@@ -138,20 +150,9 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public TransactionalProducer createTransactionalProducer() {
-    return new TransactionalProducer(
-        commandTopicName,
-        this,
-        commandQueueCatchupTimeout,
-        kafkaConsumerProperties,
-        kafkaProducerProperties
-    );
-  }
-
-  @Override
   public QueuedCommandStatus enqueueCommand(
       final ConfiguredStatement<?> statement,
-      final TransactionalProducer transactionalProducer
+      final Producer<CommandId, Command> transactionalProducer
   ) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
 
@@ -179,8 +180,13 @@ public class CommandStore implements CommandQueue, Closeable {
         }
     );
     try {
+      final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
+          commandTopicName,
+          COMMAND_TOPIC_PARTITION,
+          commandId,
+          command);
       final RecordMetadata recordMetadata =
-          transactionalProducer.sendRecord(commandId, command);
+          transactionalProducer.send(producerRecord).get();
       return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
@@ -243,6 +249,51 @@ public class CommandStore implements CommandQueue, Closeable {
               e.getMessage(),
               timeout.toMillis()
           ));
+    }
+  }
+
+  @Override
+  public Producer<CommandId, Command> createTransactionalProducer() {
+    return new KafkaProducer<>(
+        kafkaProducerProperties,
+        InternalTopicJsonSerdeUtil.getJsonSerializer(true),
+        InternalTopicJsonSerdeUtil.getJsonSerializer(false)
+    );
+  }
+
+  @Override
+  public void waitForCommandConsumer() {
+    try {
+      final long endOffset = getCommandTopicOffset();
+      ensureConsumedPast(endOffset - 1, commandQueueCatchupTimeout);
+    } catch (final InterruptedException e) {
+      final String errorMsg =
+          "Interrupted while waiting for command topic consumer to process command topic";
+      throw new KsqlRestException(
+          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
+    } catch (final TimeoutException e) {
+      final String errorMsg =
+          "Timeout while waiting for command topic consumer to process command topic";
+      throw new KsqlRestException(
+          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
+    }
+  }
+
+  // Must create a new consumer because consumers are not threadsafe
+  private long getCommandTopicOffset() {
+    final TopicPartition commandTopicPartition = new TopicPartition(
+        commandTopicName,
+        COMMAND_TOPIC_PARTITION
+    );
+
+    try (Consumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
+        kafkaConsumerProperties,
+        InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
+        InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
+    )) {
+      commandConsumer.assign(Collections.singleton(commandTopicPartition));
+      return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))
+          .get(commandTopicPartition);
     }
   }
 

@@ -42,7 +42,6 @@ import io.confluent.ksql.parser.tree.CreateStream;
 import io.confluent.ksql.parser.tree.Statement;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
-import io.confluent.ksql.rest.server.TransactionalProducer;
 import io.confluent.ksql.rest.server.computation.DistributingExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.util.KsqlConfig;
@@ -99,7 +98,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -122,7 +121,7 @@ public class RequestHandlerTest {
     // When
     final List<ParsedStatement> statements =
         new DefaultKsqlParser().parse(SOME_STREAM_SQL);
-    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
+    final KsqlEntityList entities = handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     assertThat(entities, contains(entity));
@@ -149,8 +148,7 @@ public class RequestHandlerTest {
     final KsqlEntityList entities = handler.execute(
         serviceContext,
         statements,
-        ImmutableMap.of("x", "y"),
-        SOME_STREAM_SQL
+        ImmutableMap.of("x", "y")
     );
 
     // Then
@@ -189,7 +187,7 @@ public class RequestHandlerTest {
         );
 
     // When
-    handler.execute(serviceContext, statements, ImmutableMap.of(), SOME_STREAM_SQL);
+    handler.execute(serviceContext, statements, ImmutableMap.of());
 
     // Then
     verify(sync).waitFor(argThat(hasItems(entity1, entity2)), any());
@@ -213,7 +211,7 @@ public class RequestHandlerTest {
     // When:
     final List<ParsedStatement> statements = new DefaultKsqlParser()
         .parse("RUN SCRIPT '/some/script.sql';" );
-    handler.execute(serviceContext, statements, props, SOME_STREAM_SQL);
+    handler.execute(serviceContext, statements, props);
 
     // Then:
     verify(customExecutor, times(1))
@@ -244,7 +242,7 @@ public class RequestHandlerTest {
         .parse("RUN SCRIPT '/some/script.sql';" );
 
     // When:
-    final KsqlEntityList result = handler.execute(serviceContext, statements, props, SOME_STREAM_SQL);
+    final KsqlEntityList result = handler.execute(serviceContext, statements, props);
 
     // Then:
     assertThat(result, contains(entity2));

@@ -185,8 +185,7 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlEntityList entities = handler.execute(
           serviceContext,
           TERMINATE_CLUSTER,
-          request.getStreamsProperties(),
-          request.toString()
+          request.getStreamsProperties()
       );
       return Response.ok(entities).build();
     } catch (final Exception e) {
@@ -223,8 +222,7 @@ public class KsqlResource implements KsqlConfigurable {
       final KsqlEntityList entities = handler.execute(
           serviceContext,
           statements,
-          request.getStreamsProperties(),
-          request.getKsql()
+          request.getStreamsProperties()
       );
       return Response.ok(entities).build();
     } catch (final KsqlRestException e) {

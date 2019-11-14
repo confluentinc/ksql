@@ -72,7 +72,8 @@ public final class RestServiceContextFactory {
         ksqlConfig,
         kafkaClientSupplier,
         srClientFactory,
-        new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY), authHeader),
+        () -> new DefaultConnectClient(ksqlConfig.getString(KsqlConfig.CONNECT_URL_PROPERTY),
+                                       authHeader),
         () -> new DefaultKsqlClient(authHeader)
     );
   }

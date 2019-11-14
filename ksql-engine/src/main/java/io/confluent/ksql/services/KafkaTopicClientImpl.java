@@ -75,11 +75,13 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
   /**
    * Construct a topic client from an existing admin client.
+   * Note, the admin client is shared between all methods of this class, i.e the admin client
+   * is created only once and then reused.
    *
-   * @param adminClient the admin client.
+   * @param sharedAdminClient the admin client .
    */
-  public KafkaTopicClientImpl(final Supplier<Admin> adminClient) {
-    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
+  public KafkaTopicClientImpl(final Supplier<Admin> sharedAdminClient) {
+    this.adminClient = Objects.requireNonNull(sharedAdminClient, "sharedAdminClient");
   }
 
   @Override

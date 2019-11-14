@@ -133,6 +133,10 @@ public class StreamedQueryResourceTest {
   private KsqlAuthorizationValidator authorizationValidator;
   private StreamedQueryResource testResource;
 
+
+  private final static String queryString = "SELECT * FROM test_stream EMIT CHANGES;";
+  private final static String printString = "Print TEST_TOPIC;";
+  private final static String topicName = "test_stream";
   private PreparedStatement<Statement> statement;
 
   @Before

@@ -113,8 +113,8 @@ def job = {
 
     // Configure the maven repo settings so we can download from the beta artifacts repo
     def settingsFile = 'maven-settings.xml'
-    maven_packages_url = "${config.maven_packages_url}/${params.CONFLUENT_VERSION}/${params.PACKAGING_BUILD_NUMBER}/maven"
-    def setttings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
+    def maven_packages_url = "${config.maven_packages_url}/${params.CONFLUENT_VERSION}/${params.PACKAGING_BUILD_NUMBER}/maven"
+    def settings = readFile('maven-settings-template.xml').replace('PACKAGES_MAVEN_URL', maven_packages_url)
     writeFile file: settingsFile, text: settings
     mavenOptions = [artifactsPublisher(disabled: true),
         junitPublisher(disabled: true),

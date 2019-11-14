@@ -58,23 +58,21 @@ public final class ExpressionFormatter {
   private ExpressionFormatter() {
   }
 
-  public static String formatExpression(Expression expression) {
-    return formatExpression(expression, true, FormatOptions.of(s -> false));
+  public static String formatExpression(final Expression expression) {
+    return formatExpression(expression, FormatOptions.of(s -> false));
   }
 
   public static String formatExpression(
-      Expression expression, boolean unmangleNames, FormatOptions formatOptions
+      final Expression expression, final FormatOptions formatOptions
   ) {
-    return new Formatter().process(expression, new Context(unmangleNames, formatOptions));
+    return new Formatter().process(expression, new Context(formatOptions));
   }
 
   private static final class Context {
 
-    final boolean unmangleNames;
     final FormatOptions formatOptions;
 
-    private Context(boolean unmangleNames, FormatOptions formatOptions) {
-      this.unmangleNames = unmangleNames;
+    private Context(final FormatOptions formatOptions) {
       this.formatOptions = formatOptions;
     }
   }

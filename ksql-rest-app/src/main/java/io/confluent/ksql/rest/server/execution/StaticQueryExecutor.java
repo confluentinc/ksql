@@ -28,8 +28,6 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
 import io.confluent.ksql.analyzer.StaticQueryValidator;
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -157,11 +155,11 @@ public final class StaticQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
-      final QueryId queryId = uniqueQueryId();
-      final QueryContext.Stacker contextStacker = new Stacker();
+      final QueryId queryId = PersistentQueryMetadata.getPullQueryId(
+          getSourceName(analysis).name());
 
       final Materialization mat = query
-          .getMaterialization(queryId, contextStacker)
+          .getMaterialization()
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
@@ -215,10 +213,6 @@ public final class StaticQueryExecutor {
           e
       );
     }
-  }
-
-  private static QueryId uniqueQueryId() {
-    return new QueryId("query_" + System.currentTimeMillis());
   }
 
   private static Analysis analyze(

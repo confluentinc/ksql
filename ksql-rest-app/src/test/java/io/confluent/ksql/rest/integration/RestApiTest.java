@@ -226,7 +226,10 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
   }
@@ -244,7 +247,10 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
   }
@@ -262,7 +268,10 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
   }
@@ -280,7 +289,9 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1]}}"));
   }

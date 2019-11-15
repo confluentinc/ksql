@@ -123,7 +123,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(getCreateTopicsResult());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic("test", 1, (short) 1);
     verify(adminClient);
   }
@@ -135,7 +135,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(getCreateTopicsResult());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.validateCreateTopic("test", 1, (short) 1);
     verify(adminClient);
   }
@@ -147,7 +147,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
@@ -165,7 +165,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
     verify(adminClient);
   }
@@ -185,7 +185,7 @@ public class KafkaTopicClientImplTest {
         String.format("Authorization denied to Create on topic(s): [%s]", topicName1));
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 2);
     verify(adminClient);
   }
@@ -196,7 +196,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) -1);
     verify(adminClient);
   }
@@ -209,7 +209,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
@@ -225,7 +225,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.describeTopics(anyObject(), anyObject()))
         .andReturn(getDescribeTopicsResult()).once();
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1, 1, (short) 1);
     verify(adminClient);
   }
@@ -240,7 +240,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(describeTopicReturningUnknownPartitionException())
         .andReturn(describeTopicReturningUnknownPartitionException());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
     verify(adminClient);
   }
@@ -260,7 +260,7 @@ public class KafkaTopicClientImplTest {
         String.format("Authorization denied to Describe on topic(s): [%s]", topicName1));
 
     // When:
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.describeTopics(Collections.singleton(topicName1));
     verify(adminClient);
   }
@@ -270,7 +270,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.listTopics()).andReturn(listTopicResultWithNotControllerException()).once();
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Set<String> names = kafkaTopicClient.listTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
@@ -280,7 +280,7 @@ public class KafkaTopicClientImplTest {
   public void shouldFilterInternalTopics() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResultWithInternalTopics());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Set<String> names = kafkaTopicClient.listNonInternalTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
@@ -290,7 +290,7 @@ public class KafkaTopicClientImplTest {
   public void shouldListTopicNames() {
     expect(adminClient.listTopics()).andReturn(getListTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Set<String> names = kafkaTopicClient.listTopicNames();
     assertThat(names, equalTo(Utils.mkSet(topicName1, topicName2, topicName3)));
     verify(adminClient);
@@ -300,7 +300,7 @@ public class KafkaTopicClientImplTest {
   public void shouldDeleteTopics() {
     expect(adminClient.deleteTopics(anyObject())).andReturn(getDeleteTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final List<String> topics = Collections.singletonList(topicName2);
     kafkaTopicClient.deleteTopics(topics);
     verify(adminClient);
@@ -310,7 +310,7 @@ public class KafkaTopicClientImplTest {
   public void shouldReturnIfDeleteTopicsIsEmpty() {
     // Given:
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
     kafkaTopicClient.deleteTopics(Collections.emptyList());
@@ -324,7 +324,7 @@ public class KafkaTopicClientImplTest {
     expect(adminClient.deleteTopics(Arrays.asList(internalTopic2, internalTopic1)))
         .andReturn(getDeleteInternalTopicsResult());
     replay(adminClient);
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final String applicationId = String.format("%s%s",
         KsqlConstants.KSQL_INTERNAL_TOPIC_PREFIX,
         "default_query_CTAS_USERS_BY_CITY");
@@ -340,7 +340,7 @@ public class KafkaTopicClientImplTest {
         deleteTopicException(new TopicDeletionDisabledException("error")));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
     kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
@@ -354,7 +354,7 @@ public class KafkaTopicClientImplTest {
         (deleteTopicException(new TopicAuthorizationException("error"))));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // Expect:
     expectedException.expect(KsqlTopicAuthorizationException.class);
@@ -373,7 +373,7 @@ public class KafkaTopicClientImplTest {
         (deleteTopicException(new Exception("error"))));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
     kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
@@ -387,7 +387,7 @@ public class KafkaTopicClientImplTest {
         (deleteTopicException(new UnknownTopicOrPartitionException("error"))));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     // When:
     kafkaTopicClient.deleteTopics(Collections.singletonList(topicName1));
@@ -403,7 +403,7 @@ public class KafkaTopicClientImplTest {
         ));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
@@ -416,7 +416,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(topicConfigResponse(new RuntimeException()));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
@@ -434,7 +434,7 @@ public class KafkaTopicClientImplTest {
         ));
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     final Map<String, String> config = kafkaTopicClient.getTopicConfig("fred");
 
     assertThat(config.get(TopicConfig.RETENTION_MS_CONFIG), is("12345"));
@@ -452,7 +452,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(getCreateTopicsResult());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.createTopic(topicName1,
         1,
         (short) 1,
@@ -482,7 +482,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);
@@ -515,7 +515,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);
@@ -536,7 +536,7 @@ public class KafkaTopicClientImplTest {
 
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);
@@ -560,7 +560,7 @@ public class KafkaTopicClientImplTest {
         .andReturn(alterTopicConfigResponse());
     replay(adminClient);
 
-    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(adminClient);
+    final KafkaTopicClient kafkaTopicClient = new KafkaTopicClientImpl(() -> adminClient);
     kafkaTopicClient.addTopicConfig("peter", overrides);
 
     verify(adminClient);

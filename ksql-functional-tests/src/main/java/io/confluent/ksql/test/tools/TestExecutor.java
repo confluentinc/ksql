@@ -430,13 +430,14 @@ public class TestExecutor implements Closeable {
 
   static ServiceContext getServiceContext() {
     final SchemaRegistryClient schemaRegistryClient = new MockSchemaRegistryClient();
+
     return new DefaultServiceContext(
         new StubKafkaClientSupplier(),
-        new StubKafkaClientSupplier().getAdmin(Collections.emptyMap()),
+        () -> new StubKafkaClientSupplier().getAdmin(Collections.emptyMap()),
         new StubKafkaTopicClient(),
         () -> schemaRegistryClient,
-        new DefaultConnectClient("http://localhost:8083", Optional.empty()),
-        DisabledKsqlClient.instance()
+        () -> new DefaultConnectClient("http://localhost:8083", Optional.empty()),
+        DisabledKsqlClient::instance
     );
   }
 

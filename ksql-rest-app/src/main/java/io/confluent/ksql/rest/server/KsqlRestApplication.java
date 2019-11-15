@@ -136,7 +136,7 @@ public final class KsqlRestApplication extends Application<KsqlRestConfig> imple
   private final KsqlResource ksqlResource;
   private final VersionCheckerAgent versionCheckerAgent;
   private final ServiceContext serviceContext;
-  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder>  serviceContextBinderFactory;
+  private final BiFunction<KsqlConfig, KsqlSecurityExtension, Binder> serviceContextBinderFactory;
   private final KsqlSecurityExtension securityExtension;
   private final ServerState serverState;
   private final ProcessingLogContext processingLogContext;

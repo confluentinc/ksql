@@ -17,8 +17,11 @@ package io.confluent.ksql.services;
 
 import static java.util.Objects.requireNonNull;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Suppliers;
 import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.ksql.util.KsqlConfig;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.streams.KafkaClientSupplier;
@@ -29,38 +32,85 @@ import org.apache.kafka.streams.KafkaClientSupplier;
 public class DefaultServiceContext implements ServiceContext {
 
   private final KafkaClientSupplier kafkaClientSupplier;
-  private final Admin adminClient;
-  private final KafkaTopicClient topicClient;
-  private final Supplier<SchemaRegistryClient> srClientFactory;
-  private final SchemaRegistryClient srClient;
-  private final ConnectClient connectClient;
-  private final SimpleKsqlClient ksqlClient;
+  private final MemoizedSupplier<Admin> adminClientSupplier;
+  private final MemoizedSupplier<KafkaTopicClient>  topicClientSupplier;
+  private final Supplier<SchemaRegistryClient> srClientFactorySupplier;
+  private final MemoizedSupplier<SchemaRegistryClient> srClient;
+  private final MemoizedSupplier<ConnectClient> connectClientSupplier;
+  private final MemoizedSupplier<SimpleKsqlClient> ksqlClientSupplier;
 
   public DefaultServiceContext(
       final KafkaClientSupplier kafkaClientSupplier,
-      final Admin adminClient,
-      final KafkaTopicClient topicClient,
-      final Supplier<SchemaRegistryClient> srClientFactory,
-      final ConnectClient connectClient,
-      final SimpleKsqlClient ksqlClient
+      final Supplier<Admin> adminClientSupplier,
+      final Supplier<SchemaRegistryClient> srClientSupplier,
+      final Supplier<ConnectClient> connectClientSupplier,
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
   ) {
+    this(
+        kafkaClientSupplier,
+        adminClientSupplier,
+        KafkaTopicClientImpl::new,
+        srClientSupplier,
+        connectClientSupplier,
+        ksqlClientSupplier
+    );
+  }
+
+  @VisibleForTesting
+  public DefaultServiceContext(
+      final KafkaClientSupplier kafkaClientSupplier,
+      final Supplier<Admin> adminClientSupplier,
+      final KafkaTopicClient topicClient,
+      final Supplier<SchemaRegistryClient> srClientSupplier,
+      final Supplier<ConnectClient> connectClientSupplier,
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+  ) {
+    this(
+        kafkaClientSupplier,
+        adminClientSupplier,
+        adminSupplier -> topicClient,
+        srClientSupplier,
+        connectClientSupplier,
+        ksqlClientSupplier
+    );
+  }
+
+  private DefaultServiceContext(
+      final KafkaClientSupplier kafkaClientSupplier,
+      final Supplier<Admin> adminClientSupplier,
+      final Function<Supplier<Admin>, KafkaTopicClient> topicClientSupplier,
+      final Supplier<SchemaRegistryClient> srClientSupplier,
+      final Supplier<ConnectClient> connectClientSupplier,
+      final Supplier<SimpleKsqlClient> ksqlClientSupplier
+  ) {
+    requireNonNull(adminClientSupplier, "adminClientSupplier");
+    this.adminClientSupplier = new MemoizedSupplier<>(adminClientSupplier);
+
+    this.srClientFactorySupplier = requireNonNull(srClientSupplier, "srClientSupplier");
+
+    requireNonNull(connectClientSupplier, "connectClientSupplier");
+    this.connectClientSupplier = new MemoizedSupplier<>(
+        connectClientSupplier);
+
+    requireNonNull(ksqlClientSupplier, "ksqlClientSupplier");
+    this.ksqlClientSupplier = new MemoizedSupplier<>(ksqlClientSupplier);
+
+    this.srClient = new MemoizedSupplier<>(srClientSupplier);
+
     this.kafkaClientSupplier = requireNonNull(kafkaClientSupplier, "kafkaClientSupplier");
-    this.adminClient = requireNonNull(adminClient, "adminClient");
-    this.topicClient = requireNonNull(topicClient, "topicClient");
-    this.srClientFactory = requireNonNull(srClientFactory, "srClientFactory");
-    this.srClient = requireNonNull(srClientFactory.get(), "srClient");
-    this.connectClient = requireNonNull(connectClient, "connectClient");
-    this.ksqlClient = requireNonNull(ksqlClient, "ksqlClient");
+
+    this.topicClientSupplier = new MemoizedSupplier<>(
+        () -> topicClientSupplier.apply(this.adminClientSupplier));
   }
 
   @Override
   public Admin getAdminClient() {
-    return adminClient;
+    return adminClientSupplier.get();
   }
 
   @Override
   public KafkaTopicClient getTopicClient() {
-    return topicClient;
+    return topicClientSupplier.get();
   }
 
   @Override
@@ -70,26 +120,49 @@ public class DefaultServiceContext implements ServiceContext {
 
   @Override
   public SchemaRegistryClient getSchemaRegistryClient() {
-    return srClient;
+    return srClient.get();
   }
 
   @Override
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
-    return srClientFactory;
+    return srClientFactorySupplier;
   }
 
   @Override
   public ConnectClient getConnectClient() {
-    return connectClient;
+    return connectClientSupplier.get();
   }
 
   @Override
   public SimpleKsqlClient getKsqlClient() {
-    return ksqlClient;
+    return ksqlClientSupplier.get();
   }
 
   @Override
   public void close() {
-    adminClient.close();
+    if (adminClientSupplier.isInitialized()) {
+      adminClientSupplier.get().close();
+    }
+  }
+
+
+  static final class MemoizedSupplier<T> implements Supplier<T> {
+
+    private final Supplier<T> supplier;
+    private volatile boolean initialized = false;
+
+    MemoizedSupplier(final Supplier<T> supplier) {
+      this.supplier = Suppliers.memoize(supplier::get);
+    }
+
+    @Override
+    public T get() {
+      initialized = true;
+      return supplier.get();
+    }
+
+    boolean isInitialized() {
+      return initialized;
+    }
   }
 }

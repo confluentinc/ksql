@@ -69,6 +69,7 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import kafka.security.auth.Acl;
 import kafka.zookeeper.ZooKeeperClientException;
+import org.apache.kafka.clients.admin.Admin;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.acl.AclOperation;
@@ -114,7 +115,7 @@ public class SecureIntegrationTest {
   private final TopicProducer topicProducer = new TopicProducer(SECURE_CLUSTER);
   private KafkaTopicClient topicClient;
   private String outputTopic;
-  private AdminClient adminClient;
+  private Admin adminClient;
   private ServiceContext serviceContext;
 
   @Before
@@ -122,10 +123,9 @@ public class SecureIntegrationTest {
     SECURE_CLUSTER.clearAcls();
     outputTopic = "TEST_" + COUNTER.incrementAndGet();
 
-    adminClient = AdminClient
-        .create(new KsqlConfig(getKsqlConfig(SUPER_USER)).getKsqlAdminClientConfigProps());
-    topicClient = new KafkaTopicClientImpl(
-        adminClient);
+    adminClient =  AdminClient.create(new KsqlConfig(getKsqlConfig(SUPER_USER))
+                                          .getKsqlAdminClientConfigProps());
+    topicClient = new KafkaTopicClientImpl(() -> adminClient);
 
     produceInitData();
   }
@@ -266,7 +266,7 @@ public class SecureIntegrationTest {
 
   private void givenTestSetupWithConfig(final Map<String, Object> ksqlConfigs) {
     ksqlConfig = new KsqlConfig(ksqlConfigs);
-    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
+    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
     ksqlEngine = new KsqlEngine(
         serviceContext,
         ProcessingLogContext.create(),

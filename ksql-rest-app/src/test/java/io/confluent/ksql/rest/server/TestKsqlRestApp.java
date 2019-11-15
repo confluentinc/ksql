@@ -402,7 +402,7 @@ public class TestKsqlRestApp extends ExternalResource {
     final KsqlConfig config =
         new KsqlConfig(buildConfig(bootstrapServers, baseConfig).getKsqlConfigProperties());
 
-    return ServiceContextFactory.create(config, DisabledKsqlClient.instance());
+    return ServiceContextFactory.create(config, DisabledKsqlClient::instance);
   }
 
   public static final class Builder {

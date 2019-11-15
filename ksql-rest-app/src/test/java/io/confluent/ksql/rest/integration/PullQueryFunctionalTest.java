@@ -18,8 +18,8 @@ package io.confluent.ksql.rest.integration;
 import static io.confluent.ksql.util.KsqlConfig.KSQL_STREAMS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -28,8 +28,7 @@ import io.confluent.ksql.integration.IntegrationTestHarness;
 import io.confluent.ksql.integration.Retry;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.rest.client.BasicCredentials;
-import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.TableRowsEntity;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.TestKsqlRestApp;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.PhysicalSchema;
@@ -64,8 +63,9 @@ import org.junit.rules.TemporaryFolder;
  * <p>For tests on general syntax and handled see RestQueryTranslationTest's
  * materialized-aggregate-static-queries.json
  */
+@SuppressWarnings("OptionalGetWithoutIsPresent")
 @Category({IntegrationTest.class})
-public class StaticQueryFunctionalTest {
+public class PullQueryFunctionalTest {
 
   private static final TemporaryFolder TMP = new TemporaryFolder();
 
@@ -87,6 +87,7 @@ public class StaticQueryFunctionalTest {
 
   private static final TestDataProvider USER_PROVIDER = new UserDataProvider();
   private static final Format VALUE_FORMAT = Format.JSON;
+  private static final int HEADER = 1;
 
   private static final TestBasicJaasConfig JASS_CONFIG = TestBasicJaasConfig
       .builder(PROPS_JAAS_REALM)
@@ -149,8 +150,7 @@ public class StaticQueryFunctionalTest {
         timestampSupplier::getAndIncrement
     );
 
-    makeKsqlRequest(
-        REST_APP_0,
+    makeAdminRequest(
         "CREATE STREAM " + USERS_STREAM
             + " " + USER_PROVIDER.ksqlSchemaString()
             + " WITH ("
@@ -177,8 +177,7 @@ public class StaticQueryFunctionalTest {
     // Given:
     final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
 
-    makeKsqlRequest(
-        REST_APP_0,
+    makeAdminRequest(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " GROUP BY " + USER_PROVIDER.key() + ";"
@@ -190,13 +189,14 @@ public class StaticQueryFunctionalTest {
 
     // When:
 
-    final List<List<?>> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<List<?>> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+    final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0), is(ImmutableList.of(key, 1)));
+    assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(rows_0));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
   }
 
   @Test
@@ -204,8 +204,7 @@ public class StaticQueryFunctionalTest {
     // Given:
     final String key = Iterables.get(USER_PROVIDER.data().keySet(), 0);
 
-    makeKsqlRequest(
-        REST_APP_0,
+    makeAdminRequest(
         "CREATE TABLE " + output + " AS"
             + " SELECT COUNT(1) AS COUNT FROM " + USERS_STREAM
             + " WINDOW TUMBLING (SIZE 1 SECOND)"
@@ -219,32 +218,25 @@ public class StaticQueryFunctionalTest {
         + " AND WINDOWSTART = " + BASE_TIME + ";";
 
     // When:
-    final List<List<?>> rows_0 = makeStaticQueryRequest(REST_APP_0, sql);
-    final List<List<?>> rows_1 = makeStaticQueryRequest(REST_APP_1, sql);
+    final List<StreamedRow> rows_0 = makePullQueryRequest(REST_APP_0, sql);
+    final List<StreamedRow> rows_1 = makePullQueryRequest(REST_APP_1, sql);
 
     // Then:
-    assertThat(rows_0, hasSize(1));
-    assertThat(rows_0.get(0), is(ImmutableList.of(key, BASE_TIME, 1)));
+    assertThat(rows_0, hasSize(HEADER + 1));
     assertThat(rows_1, is(rows_0));
+    assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
+    assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
   }
 
-  private static List<List<?>> makeStaticQueryRequest(
+  private static List<StreamedRow> makePullQueryRequest(
       final TestKsqlRestApp target,
       final String sql
   ) {
-    final List<KsqlEntity> entities = makeKsqlRequest(target, sql);
-    assertThat(entities, hasSize(1));
-
-    final KsqlEntity entity = entities.get(0);
-    assertThat(entity, instanceOf(TableRowsEntity.class));
-    return ((TableRowsEntity)entity).getRows();
+    return RestIntegrationTestUtil.makeQueryRequest(target, sql, validCreds());
   }
 
-  private static List<KsqlEntity> makeKsqlRequest(
-      final TestKsqlRestApp target,
-      final String sql
-  ) {
-    return RestIntegrationTestUtil.makeKsqlRequest(target, sql, validCreds());
+  private static void makeAdminRequest(final String sql) {
+    RestIntegrationTestUtil.makeKsqlRequest(REST_APP_0, sql, validCreds());
   }
 
   private void waitForTableRows() {

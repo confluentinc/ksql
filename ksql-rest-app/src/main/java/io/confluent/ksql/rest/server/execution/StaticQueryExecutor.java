@@ -57,7 +57,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -659,20 +660,47 @@ public final class StaticQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
   ) {
-    final RestResponse<KsqlEntityList> response = serviceContext
+    final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeKsqlRequest(owner.location(), statement.getStatementText());
+        .makeQueryRequest(owner.location(), statement.getStatementText());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
     }
 
-    final KsqlEntityList entities = response.getResponse();
-    if (entities.size() != 1) {
-      throw new RuntimeException("Boom - expected 1 entity, got: " + entities.size());
+    final List<StreamedRow> streamedRows = response.getResponse();
+    if (streamedRows.isEmpty()) {
+      throw new KsqlServerException("Invalid empty response from proxy call");
     }
 
-    return (TableRowsEntity) entities.get(0);
+    // Temporary code to convert from QueryStream to TableRowsEntity
+    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
+    final Header header = streamedRows.get(0).getHeader()
+        .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
+
+    final ImmutableList.Builder<List<?>> rows = ImmutableList.builder();
+
+    for (final StreamedRow row : streamedRows.subList(1, streamedRows.size())) {
+      if (row.getErrorMessage().isPresent()) {
+        throw new KsqlStatementException(
+            row.getErrorMessage().get().getMessage(),
+            statement.getStatementText()
+        );
+      }
+
+      if (!row.getRow().isPresent()) {
+        throw new KsqlServerException("Unexpected proxy response");
+      }
+
+      rows.add(row.getRow().get().getColumns());
+    }
+
+    return new TableRowsEntity(
+        statement.getStatementText(),
+        header.getQueryId(),
+        header.getSchema(),
+        rows.build()
+    );
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {

@@ -41,6 +41,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -210,6 +211,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           statement.getClass().getName()));
     } catch (final TopicAuthorizationException e) {
       return Errors.accessDeniedFromKafka(e);
+    } catch (final KsqlStatementException e) {
+      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return ErrorResponseUtil.generateResponse(
           e, Errors.badRequest(e));

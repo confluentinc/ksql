@@ -58,5 +58,4 @@ public final class IdentifierUtil {
   private static boolean upperCase(final String identifier) {
     return identifier.toUpperCase().equals(identifier);
   }
-
 }

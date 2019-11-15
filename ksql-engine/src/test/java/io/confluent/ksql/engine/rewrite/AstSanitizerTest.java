@@ -296,7 +296,7 @@ public class AstSanitizerTest {
   private static Statement givenQuery(final String sql) {
     final List<ParsedStatement> statements = new DefaultKsqlParser().parse(sql);
     assertThat(statements, hasSize(1));
-    return new AstBuilder(META_STORE).build(statements.get(0).getStatement());
+    return new AstBuilder(META_STORE).buildStatement(statements.get(0).getStatement());
   }
 
   private static ColumnReferenceExp column(final SourceName source, final String fieldName) {

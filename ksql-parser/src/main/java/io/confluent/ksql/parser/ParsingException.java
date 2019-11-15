@@ -35,7 +35,7 @@ public class ParsingException
     );
   }
 
-  ParsingException(
+  public ParsingException(
       final String message,
       final RecognitionException cause,
       final int line,

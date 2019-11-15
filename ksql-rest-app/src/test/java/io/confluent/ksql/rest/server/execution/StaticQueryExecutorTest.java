@@ -37,6 +37,7 @@ import org.junit.Test;
 import org.junit.experimental.runners.Enclosed;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
 public class StaticQueryExecutorTest {
@@ -51,16 +52,35 @@ public class StaticQueryExecutorTest {
 
     @Test
     public void shouldThrowExceptionIfConfigDisabled() {
+      // Given:
+      final ConfiguredStatement<Query> query = ConfiguredStatement.of(
+          PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+          ImmutableMap.of(),
+          engine.getKsqlConfig()
+      );
 
-      testForFailure(
-          engine,
-          expectedException,
+      // Then:
+      expectedException.expect(KsqlRestException.class);
+      expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+      expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
           "Pull queries are disabled on this KSQL server"
+      ))));
+      expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
+          "SELECT * FROM test_table"))));
+
+      // When:
+      StaticQueryExecutor.execute(
+          query,
+          ImmutableMap.of(),
+          engine.getEngine(),
+          engine.getServiceContext()
       );
     }
   }
 
+  @RunWith(MockitoJUnitRunner.class)
   public static class Enabled {
+
     @Rule
     public final TemporaryEngine engine = new TemporaryEngine();
 
@@ -68,40 +88,30 @@ public class StaticQueryExecutorTest {
     public final ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void shouldThrowExceptionOnQueryEndpoint() {
-      testForFailure(
-          engine,
-          expectedException,
+    public void shouldRedirectQueriesToQueryEndPoint() {
+      // Given:
+      final ConfiguredStatement<Query> query = ConfiguredStatement.of(
+          PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+          ImmutableMap.of(),
+          engine.getKsqlConfig()
+      );
+
+      // Then:
+      expectedException.expect(KsqlRestException.class);
+      expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
+      expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
           "The following statement types should be issued to the websocket endpoint '/query'"
+      ))));
+      expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
+          "SELECT * FROM test_table;"))));
+
+      // When:
+      CustomValidators.QUERY_ENDPOINT.validate(
+          query,
+          ImmutableMap.of(),
+          engine.getEngine(),
+          engine.getServiceContext()
       );
     }
-  }
-
-  private static void testForFailure(
-      TemporaryEngine engine, ExpectedException expectedException, String errorMessage
-  ) {
-    // Given:
-    final ConfiguredStatement<Query> query = ConfiguredStatement.of(
-        PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
-        ImmutableMap.of(),
-        engine.getKsqlConfig()
-    );
-
-    // Then:
-    expectedException.expect(KsqlRestException.class);
-    expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-        errorMessage
-    ))));
-    expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
-        "SELECT * FROM test_table"))));
-
-    // When:
-    CustomValidators.QUERY_ENDPOINT.validate(
-        query,
-        ImmutableMap.of(),
-        engine.getEngine(),
-        engine.getServiceContext()
-    );
   }
 }

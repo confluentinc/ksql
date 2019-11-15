@@ -22,6 +22,7 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
@@ -53,8 +54,10 @@ public class StaticQueryExecutorTest {
     @Test
     public void shouldThrowExceptionIfConfigDisabled() {
       // Given:
+      final Query theQuery = mock(Query.class);
+      when(theQuery.isStatic()).thenReturn(true);
       final ConfiguredStatement<Query> query = ConfiguredStatement.of(
-          PreparedStatement.of("SELECT * FROM test_table;", mock(Query.class)),
+          PreparedStatement.of("SELECT * FROM test_table;", theQuery),
           ImmutableMap.of(),
           engine.getKsqlConfig()
       );
@@ -63,7 +66,7 @@ public class StaticQueryExecutorTest {
       expectedException.expect(KsqlRestException.class);
       expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
       expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-          "Pull queries are disabled on this KSQL server"
+          "Pull queries are disabled"
       ))));
       expectedException.expect(exceptionStatementErrorMessage(statement(containsString(
           "SELECT * FROM test_table"))));

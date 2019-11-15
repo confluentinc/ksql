@@ -50,6 +50,13 @@ import org.mockito.stubbing.Answer;
 public class PullQueryPublisherTest {
 
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
+      .keyColumn(ColumnName.of("id"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
+      .build();
+
+  private static final LogicalSchema CORRECTED_SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
+      .keyColumn(ColumnName.of("id"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("bob"), SqlTypes.BIGINT)
       .build();
 
@@ -126,9 +133,21 @@ public class PullQueryPublisherTest {
 
     // Then:
     final InOrder inOrder = inOrder(subscriber);
-    inOrder.verify(subscriber).onSchema(SCHEMA);
-    inOrder.verify(subscriber).onNext(ImmutableList.of());
+    inOrder.verify(subscriber).onSchema(any());
+    inOrder.verify(subscriber).onNext(any());
     inOrder.verify(subscriber).onComplete();
+  }
+
+  @Test
+  public void shouldPassCorrectedSchema() {
+    // Given:
+    givenSubscribed();
+
+    // When:
+    subscription.request(1);
+
+    // Then:
+    verify(subscriber).onSchema(CORRECTED_SCHEMA);
   }
 
   @Test

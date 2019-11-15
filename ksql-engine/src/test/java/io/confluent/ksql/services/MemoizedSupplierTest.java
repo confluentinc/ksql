@@ -16,8 +16,8 @@
 package io.confluent.ksql.services;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.sameInstance;
 
 import io.confluent.ksql.services.DefaultServiceContext.MemoizedSupplier;
 import org.junit.Test;

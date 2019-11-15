@@ -629,7 +629,7 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldFailBareContinuousQuery() {
+  public void shouldFailBarePushQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
@@ -647,12 +647,16 @@ public class KsqlResourceTest {
   }
 
   @Test
-  public void shouldAllowBareStaticQuery() {
+  public void shouldFailBarePullQuery() {
     // Then:
     expectedException.expect(KsqlRestException.class);
     expectedException.expect(exceptionStatusCode(is(Code.BAD_REQUEST)));
-    expectedException.expect(exceptionStatementErrorMessage(errorMessage(containsString(
-        "Table 'TEST_TABLE' is not materialized"))));
+    expectedException.expect(exceptionStatementErrorMessage(errorMessage(is(
+        "The following statement types should be issued to the websocket endpoint '/query':"
+            + System.lineSeparator()
+            + "\t* PRINT"
+            + System.lineSeparator()
+            + "\t* SELECT"))));
     expectedException.expect(exceptionStatementErrorMessage(statement(is(
         "SELECT * FROM test_table;"))));
 

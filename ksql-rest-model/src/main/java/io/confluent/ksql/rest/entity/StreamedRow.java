@@ -171,5 +171,23 @@ public final class StreamedRow {
       this.queryId = requireNonNull(queryId, "queryId");
       this.schema = requireNonNull(schema, "schema");
     }
+
+    @Override
+    public boolean equals(final Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      final Header header = (Header) o;
+      return Objects.equals(queryId, header.queryId)
+          && Objects.equals(schema, header.schema);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(queryId, schema);
+    }
   }
 }

@@ -58,7 +58,7 @@ final class GrammarParseUtil {
     sqlBaseParser.addErrorListener(ERROR_LISTENER);
 
     try {
-      // first, try parsing with potentially faster SLL mode
+      // first, try parsing w/ potentially faster SLL mode
       sqlBaseParser.getInterpreter().setPredictionMode(PredictionMode.SLL);
       return castContext(parseFunction.apply(sqlBaseParser));
     } catch (final ParseCancellationException ex) {

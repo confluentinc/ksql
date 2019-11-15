@@ -34,7 +34,7 @@ public class DefaultServiceContext implements ServiceContext {
   private final KafkaClientSupplier kafkaClientSupplier;
   private final MemoizedSupplier<Admin> adminClientSupplier;
   private final MemoizedSupplier<KafkaTopicClient>  topicClientSupplier;
-  private final Supplier<SchemaRegistryClient> srClientFactory;
+  private final Supplier<SchemaRegistryClient> srClientFactorySupplier;
   private final MemoizedSupplier<SchemaRegistryClient> srClient;
   private final MemoizedSupplier<ConnectClient> connectClientSupplier;
   private final MemoizedSupplier<SimpleKsqlClient> ksqlClientSupplier;
@@ -86,7 +86,7 @@ public class DefaultServiceContext implements ServiceContext {
     requireNonNull(adminClientSupplier, "adminClientSupplier");
     this.adminClientSupplier = new MemoizedSupplier<>(adminClientSupplier);
 
-    this.srClientFactory = requireNonNull(srClientSupplier, "srClientSupplier");
+    this.srClientFactorySupplier = requireNonNull(srClientSupplier, "srClientSupplier");
 
     requireNonNull(connectClientSupplier, "connectClientSupplier");
     this.connectClientSupplier = new MemoizedSupplier<>(
@@ -125,7 +125,7 @@ public class DefaultServiceContext implements ServiceContext {
 
   @Override
   public Supplier<SchemaRegistryClient> getSchemaRegistryClientFactory() {
-    return srClientFactory;
+    return srClientFactorySupplier;
   }
 
   @Override

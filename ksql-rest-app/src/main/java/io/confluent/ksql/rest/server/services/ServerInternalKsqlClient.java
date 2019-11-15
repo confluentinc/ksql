@@ -21,11 +21,13 @@ import io.confluent.ksql.rest.client.KsqlClientUtil;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlRequest;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.KsqlResource;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import javax.ws.rs.core.Response;
 
 /**
@@ -60,5 +62,13 @@ public class ServerInternalKsqlClient implements SimpleKsqlClient {
         KSQL_PATH,
         r -> (KsqlEntityList) r.getEntity()
     );
+  }
+
+  @Override
+  public RestResponse<List<StreamedRow>> makeQueryRequest(
+      final URI serverEndpoint,
+      final String sql
+  ) {
+    throw new UnsupportedOperationException();
   }
 }

@@ -18,14 +18,19 @@ package io.confluent.ksql.rest.server.services;
 import static java.util.Objects.requireNonNull;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.properties.LocalProperties;
 import io.confluent.ksql.rest.client.KsqlClient;
 import io.confluent.ksql.rest.client.KsqlTarget;
+import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.SimpleKsqlClient;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 final class DefaultKsqlClient implements SimpleKsqlClient {
@@ -65,5 +70,32 @@ final class DefaultKsqlClient implements SimpleKsqlClient {
         .map(target::authorizationHeader)
         .orElse(target)
         .postKsqlRequest(sql, Optional.empty());
+  }
+
+  @Override
+  public RestResponse<List<StreamedRow>> makeQueryRequest(
+      final URI serverEndPoint,
+      final String sql
+  ) {
+    final KsqlTarget target = sharedClient
+        .target(serverEndPoint);
+
+    final RestResponse<QueryStream> resp = authHeader
+        .map(target::authorizationHeader)
+        .orElse(target)
+        .postQueryRequest(sql, Optional.empty());
+
+    if (resp.isErroneous()) {
+      return RestResponse.erroneous(resp.getStatusCode(), resp.getErrorMessage());
+    }
+
+    final QueryStream stream = resp.getResponse();
+
+    final Builder<StreamedRow> rows = ImmutableList.builder();
+    while (stream.hasNext()) {
+      rows.add(stream.next());
+    }
+
+    return RestResponse.successful(resp.getStatusCode(), rows.build());
   }
 }

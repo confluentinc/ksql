@@ -27,6 +27,7 @@ import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.analyzer.StaticQueryValidator;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
@@ -59,7 +60,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -117,21 +119,7 @@ public final class StaticQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final Query queryStmt = statement.getStatement();
-
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
-      throw new KsqlRestException(
-          Errors.badStatement(
-              "Pull queries are disabled on this KSQL server - please set "
-                  + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable this feature. "
-                  + "If you intended to issue a push query, resubmit the query with the "
-                  + "EMIT CHANGES clause.",
-              statement.getStatementText()));
-    }
-
-    if (!queryStmt.isStatic()) {
-      throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
-    }
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
   public static Optional<KsqlEntity> execute(
@@ -148,6 +136,21 @@ public final class StaticQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    if (!statement.getStatement().isStatic()) {
+      throw new IllegalArgumentException("Executor can only handle pull queries");
+    }
+
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+      throw new KsqlRestException(
+          Errors.badStatement(
+              "Pull queries are disabled. "
+                  + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+                  + System.lineSeparator()
+                  + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
+                  + "this feature.",
+              statement.getStatementText()));
+    }
+
     try {
       final Analysis analysis = analyze(statement, executionContext);
 
@@ -665,32 +668,59 @@ public final class StaticQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
   ) {
-    final RestResponse<KsqlEntityList> response = serviceContext
+    final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeKsqlRequest(owner.location(), statement.getStatementText());
+        .makeQueryRequest(owner.location(), statement.getStatementText());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
     }
 
-    final KsqlEntityList entities = response.getResponse();
-    if (entities.size() != 1) {
-      throw new RuntimeException("Boom - expected 1 entity, got: " + entities.size());
+    final List<StreamedRow> streamedRows = response.getResponse();
+    if (streamedRows.isEmpty()) {
+      throw new KsqlServerException("Invalid empty response from proxy call");
     }
 
-    return (TableRowsEntity) entities.get(0);
+    // Temporary code to convert from QueryStream to TableRowsEntity
+    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
+    final Header header = streamedRows.get(0).getHeader()
+        .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
+
+    final ImmutableList.Builder<List<?>> rows = ImmutableList.builder();
+
+    for (final StreamedRow row : streamedRows.subList(1, streamedRows.size())) {
+      if (row.getErrorMessage().isPresent()) {
+        throw new KsqlStatementException(
+            row.getErrorMessage().get().getMessage(),
+            statement.getStatementText()
+        );
+      }
+
+      if (!row.getRow().isPresent()) {
+        throw new KsqlServerException("Unexpected proxy response");
+      }
+
+      rows.add(row.getRow().get().getColumns());
+    }
+
+    return new TableRowsEntity(
+        statement.getStatementText(),
+        header.getQueryId(),
+        header.getSchema(),
+        rows.build()
+    );
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
-    return new KsqlException("Pull query: "
-        + "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
+    return new KsqlException("Table '"
+        + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
+        + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+        + System.lineSeparator()
         + " KSQL currently only supports pull queries on materialized aggregate tables."
         + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
         + "FROM <sources> GROUP BY <key>' style statement."
         + System.lineSeparator()
-        + "Did you mean to execute a push query? "
-        + "Push queries were the only queries supported before v5.4.0. "
-        + "If so, add `EMIT CHANGES` to the end of your query."
+        + StaticQueryValidator.NEW_QUERY_SYNTAX_ADDITIONAL_HELP
     );
   }
 
@@ -714,8 +744,9 @@ public final class StaticQueryExecutor {
             + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
     return new KsqlException(msg
+        + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()
-        + "Static queries currently require a WHERE clause that:"
+        + "Pull queries require a WHERE clause that:"
         + System.lineSeparator()
         + " - limits the query to a single ROWKEY, e.g. `SELECT * FROM X WHERE ROWKEY=Y;`."
         + additional

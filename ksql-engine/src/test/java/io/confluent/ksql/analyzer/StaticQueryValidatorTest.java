@@ -63,20 +63,20 @@ public class StaticQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatIsNotFinal() {
+  public void shouldThrowOnPullQueryThatIsNotFinal() {
     // Given:
     when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.CHANGES);
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support `EMIT CHANGES`");
+    expectedException.expectMessage("Pull queries don't support `EMIT CHANGES`");
 
     // When:
     validator.validate(analysis);
   }
 
   @Test(expected = KsqlException.class)
-  public void shouldThrowOnStaticQueryIfSinkSupplied() {
+  public void shouldThrowOnPullQueryIfSinkSupplied() {
     // Given:
     when(analysis.getInto()).thenReturn(Optional.of(into));
 
@@ -85,27 +85,27 @@ public class StaticQueryValidatorTest {
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatIsJoin() {
+  public void shouldThrowOnPullQueryThatIsJoin() {
     // Given:
     when(analysis.isJoin()).thenReturn(true);
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support JOIN clauses.");
+    expectedException.expectMessage("Pull queries don't support JOIN clauses.");
 
     // When:
     validator.validate(analysis);
   }
 
   @Test
-  public void shouldThrowOnStaticQueryThatIsWindowed() {
+  public void shouldThrowOnPullQueryThatIsWindowed() {
     // Given:
 
     when(analysis.getWindowExpression()).thenReturn(Optional.of(windowExpression));
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support WINDOW clauses.");
+    expectedException.expectMessage("Pull queries don't support WINDOW clauses.");
 
     // When:
     validator.validate(analysis);
@@ -118,7 +118,7 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support GROUP BY clauses.");
+    expectedException.expectMessage("Pull queries don't support GROUP BY clauses.");
 
     // When:
     validator.validate(analysis);
@@ -131,7 +131,7 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support PARTITION BY clauses.");
+    expectedException.expectMessage("Pull queries don't support PARTITION BY clauses.");
 
     // When:
     validator.validate(analysis);
@@ -144,7 +144,7 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support HAVING clauses.");
+    expectedException.expectMessage("Pull queries don't support HAVING clauses.");
 
     // When:
     validator.validate(analysis);
@@ -157,7 +157,7 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support LIMIT clauses.");
+    expectedException.expectMessage("Pull queries don't support LIMIT clauses.");
 
     // When:
     validator.validate(analysis);
@@ -171,7 +171,7 @@ public class StaticQueryValidatorTest {
 
     // Then:
     expectedException.expect(KsqlException.class);
-    expectedException.expectMessage("Static queries don't support ROWTIME in select columns.");
+    expectedException.expectMessage("Pull queries don't support ROWTIME in select columns.");
 
     // When:
     validator.validate(analysis);

@@ -5,6 +5,8 @@
   "tests": [
     {
       "name": "non-windowed single key lookup",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -28,6 +30,8 @@
     },
     {
       "name": "tumbling windowed single key lookup with exact window start",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -52,6 +56,8 @@
     },
     {
       "name": "hopping windowed single key lookup with exact window start",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW HOPPING(SIZE 10 SECOND, ADVANCE BY 1 SECONDS) GROUP BY ROWKEY;",
@@ -82,6 +88,8 @@
     },
     {
       "name": "session windowed single key lookup with exact window start",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(10 SECOND) GROUP BY ROWKEY;",
@@ -108,6 +116,8 @@
     },
     {
       "name": "tumbling windowed single key lookup with window start range",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -154,6 +164,8 @@
     },
     {
       "name": "hopping windowed single key lookup with window start range",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW HOPPING(SIZE 5 SECOND, ADVANCE BY 1 SECONDS) GROUP BY ROWKEY;",
@@ -192,6 +204,8 @@
     },
     {
       "name": "session windowed single key lookup with window start range",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(5 SECOND) GROUP BY ROWKEY;",
@@ -231,6 +245,8 @@
     },
     {
       "name": "tumbling windowed single key lookup with unbounded window start",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -255,6 +271,8 @@
     },
     {
       "name": "hopping windowed single key lookup with unbounded window start",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW HOPPING(SIZE 4 SECOND, ADVANCE BY 1 SECONDS) GROUP BY ROWKEY;",
@@ -284,6 +302,8 @@
     },
     {
       "name": "session windowed single key lookup with unbounded window start",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW SESSION(10 SECOND) GROUP BY ROWKEY;",
@@ -305,6 +325,8 @@
     },
     {
       "name": "non-windowed with projection",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -326,6 +348,8 @@
     },
     {
       "name": "windowed with projection",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT ROWKEY AS ID, COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -348,6 +372,8 @@
     },
     {
       "name": "non-windowed projection WITH ROWKEY",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -369,6 +395,8 @@
     },
     {
       "name": "windowed with projection with ROWKEY",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -391,6 +419,8 @@
     },
     {
       "name": "non-windowed projection WITH ROWTIME",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -404,6 +434,8 @@
     },
     {
       "name": "windowed with projection with ROWTIME",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -417,6 +449,8 @@
     },
     {
       "name": "non-windowed projection with ROWMEY and more columns in aggregate",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT, SUM(VAL) AS SUM, MIN(VAL) AS MIN FROM INPUT GROUP BY ROWKEY;",
@@ -438,6 +472,8 @@
     },
     {
       "name": "non-windowed projection with ROWMEY and more columns in lookup",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -461,6 +497,8 @@
     {
       "name": "text datetime window bounds",
       "comment": "Note: this test must specify a timezone in the exact lookup so that it works when run from any TZ.",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -480,6 +518,8 @@
     },
     {
       "name": "text datetime + timezone window bounds",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -500,6 +540,8 @@
     {
       "name": "partial text datetime window bounds",
       "comment": "Note: this test has side enough range on dates to ensure running in different timezones do not cause it to fail",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -524,6 +566,8 @@
     },
     {
       "name": "aliased table",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -544,6 +588,8 @@
     },
     {
       "name": "multiple aggregate columns",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT, SUM(CAST(ROWKEY AS INT)) AS SUM FROM INPUT GROUP BY ROWKEY;",
@@ -564,6 +610,8 @@
     },
     {
       "name": "having clause on aggregate",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (X INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT SUM(X) AS SUM FROM INPUT GROUP BY ROWKEY HAVING SUM(X) < 10;",
@@ -583,6 +631,8 @@
     },
     {
       "name": "non-windowed with UDAF with different intermediate type",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT, AVG(VAL) AS AVG FROM INPUT GROUP BY ROWKEY;",
@@ -605,6 +655,8 @@
     },
     {
       "name": "windowed with UDAF with different intermediate type",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (VAL INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT, AVG(VAL) AS AVG FROM INPUT WINDOW TUMBLING(SIZE 1 SECOND) GROUP BY ROWKEY;",
@@ -628,6 +680,8 @@
     },
     {
       "name": "fail on unsupported query feature: join",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -641,6 +695,8 @@
     },
     {
       "name": "fail on unsupported query feature: window",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -654,6 +710,8 @@
     },
     {
       "name": "fail on unsupported query feature: group by",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -667,6 +725,8 @@
     },
     {
       "name": "fail on unsupported query feature: where multiple rowkeys",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -680,6 +740,8 @@
     },
     {
       "name": "fail on unsupported query feature: where rowkey range",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -693,6 +755,8 @@
     },
     {
       "name": "fail on unsupported query feature: where rowkey not equals",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -706,6 +770,8 @@
     },
     {
       "name": "fail on unsupported query feature: where rowkey not string",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -719,6 +785,8 @@
     },
     {
       "name": "fail on unsupported query feature: where not on rowkey",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",
@@ -732,6 +800,8 @@
     },
     {
       "name": "fail on unsupported query feature: not materialized aggregate",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE TABLE X (ID INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "SELECT * FROM X WHERE ROWKEY = '100';"
@@ -744,6 +814,8 @@
     },
     {
       "name": "fail if WINDOWSTART used in non-windowed static query",
+      "enabled": false,
+      "comment": "disabled until RQTT can handle /query endpoint",
       "statements": [
         "CREATE STREAM INPUT (IGNORED INT) WITH (kafka_topic='test_topic', value_format='JSON');",
         "CREATE TABLE AGGREGATE AS SELECT COUNT(1) AS COUNT FROM INPUT GROUP BY ROWKEY;",

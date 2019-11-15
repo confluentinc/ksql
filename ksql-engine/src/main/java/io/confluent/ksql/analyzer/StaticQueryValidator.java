@@ -26,17 +26,19 @@ import java.util.function.Predicate;
 
 public class StaticQueryValidator implements QueryValidator {
 
-  private static final String NEW_QUERY_SYNTAX_HELP = " "
-      + "Did you mean to execute a push query? Add an 'EMIT CHANGES' clause to do so."
-      + System.lineSeparator()
-      + System.lineSeparator()
+  private static final String PUSH_PULL_QUERY_DOC_LINK = "https://cnfl.io/queries";
+
+  public static final String NEW_QUERY_SYNTAX_SHORT_HELP = ""
+      + "Refer to " + PUSH_PULL_QUERY_DOC_LINK + " for info on query types. "
+      + "If you intended to issue a push query, resubmit with the EMIT CHANGES clause";
+
+  public static final String NEW_QUERY_SYNTAX_ADDITIONAL_HELP = ""
       + "Query syntax in KSQL has changed. There are now two broad categories of queries:"
       + System.lineSeparator()
-      + "- Pull queries: query the current state of the system, return a result, and terminate "
-      + "the query."
+      + "- Pull queries: query the current state of the system, return a result, and terminate. "
       + System.lineSeparator()
       + "- Push queries: query the state of the system in motion and continue to output "
-      + "results until they meet a LIMIT clause condition or the user terminates the query."
+      + "results until they meet a LIMIT condition or are terminated by the user."
       + System.lineSeparator()
       + System.lineSeparator()
       + "'EMIT CHANGES' is used to to indicate a query is a push query. "
@@ -59,44 +61,50 @@ public class StaticQueryValidator implements QueryValidator {
       + "Note: Persistent queries, e.g. `CREATE TABLE AS ...`, have an implicit "
       + "`EMIT CHANGES`, but we recommend adding `EMIT CHANGES` to these statements.";
 
+  private static final String NEW_QUERY_SYNTAX_LONG_HELP = ""
+      + NEW_QUERY_SYNTAX_SHORT_HELP
+      + System.lineSeparator()
+      + System.lineSeparator()
+      + NEW_QUERY_SYNTAX_ADDITIONAL_HELP;
+
   private static final List<Rule> RULES = ImmutableList.of(
       Rule.of(
           analysis -> analysis.getResultMaterialization() == ResultMaterialization.FINAL,
-          "Static queries don't support `EMIT CHANGES`."
+          "Pull queries don't support `EMIT CHANGES`."
       ),
       Rule.of(
           analysis -> !analysis.getInto().isPresent(),
-          "Static queries don't support output to sinks."
+          "Pull queries don't support output to sinks."
       ),
       Rule.of(
           analysis -> !analysis.isJoin(),
-          "Static queries don't support JOIN clauses."
+          "Pull queries don't support JOIN clauses."
       ),
       Rule.of(
           analysis -> !analysis.getWindowExpression().isPresent(),
-          "Static queries don't support WINDOW clauses."
+          "Pull queries don't support WINDOW clauses."
       ),
       Rule.of(
           analysis -> analysis.getGroupByExpressions().isEmpty(),
-          "Static queries don't support GROUP BY clauses."
+          "Pull queries don't support GROUP BY clauses."
       ),
       Rule.of(
           analysis -> !analysis.getPartitionBy().isPresent(),
-          "Static queries don't support PARTITION BY clauses."
+          "Pull queries don't support PARTITION BY clauses."
       ),
       Rule.of(
           analysis -> !analysis.getHavingExpression().isPresent(),
-          "Static queries don't support HAVING clauses."
+          "Pull queries don't support HAVING clauses."
       ),
       Rule.of(
           analysis -> !analysis.getLimitClause().isPresent(),
-          "Static queries don't support LIMIT clauses."
+          "Pull queries don't support LIMIT clauses."
       ),
       Rule.of(
           analysis -> analysis.getSelectColumnRefs().stream()
                   .map(ColumnRef::name)
                   .noneMatch(n -> n.equals(SchemaUtil.ROWTIME_NAME)),
-          "Static queries don't support ROWTIME in select columns."
+          "Pull queries don't support ROWTIME in select columns."
       )
   );
 
@@ -105,7 +113,7 @@ public class StaticQueryValidator implements QueryValidator {
     try {
       RULES.forEach(rule -> rule.check(analysis));
     } catch (final KsqlException e) {
-      throw new KsqlException(e.getMessage() + NEW_QUERY_SYNTAX_HELP, e);
+      throw new KsqlException(e.getMessage() + " " + NEW_QUERY_SYNTAX_LONG_HELP, e);
     }
   }
 

@@ -17,13 +17,20 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import java.net.URI;
+import java.util.List;
 import javax.annotation.concurrent.ThreadSafe;
 
 @ThreadSafe
 public interface SimpleKsqlClient {
 
   RestResponse<KsqlEntityList> makeKsqlRequest(
+      URI serverEndPoint,
+      String sql
+  );
+
+  RestResponse<List<StreamedRow>> makeQueryRequest(
       URI serverEndPoint,
       String sql
   );

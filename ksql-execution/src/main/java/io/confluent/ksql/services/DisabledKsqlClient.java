@@ -17,7 +17,9 @@ package io.confluent.ksql.services;
 
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import java.net.URI;
+import java.util.List;
 
 /**
  * A KSQL client implementation for use when communication with other nodes is not supported.
@@ -36,6 +38,11 @@ public final class DisabledKsqlClient implements SimpleKsqlClient {
       final URI serverEndPoint,
       final String sql
   ) {
+    throw new UnsupportedOperationException("KSQL client is disabled");
+  }
+
+  @Override
+  public RestResponse<List<StreamedRow>> makeQueryRequest(URI serverEndPoint, String sql) {
     throw new UnsupportedOperationException("KSQL client is disabled");
   }
 }

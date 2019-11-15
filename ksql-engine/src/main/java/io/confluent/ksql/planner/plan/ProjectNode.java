@@ -34,6 +34,8 @@ import javax.annotation.concurrent.Immutable;
 @Immutable
 public class ProjectNode extends PlanNode {
 
+  static final String SELECT_NODE_NAME = "SELECT";
+
   private final PlanNode source;
   private final LogicalSchema schema;
   private final List<SelectExpression> projectExpressions;
@@ -100,6 +102,7 @@ public class ProjectNode extends PlanNode {
     return getSource().buildStream(builder)
         .select(
             getSelectExpressions(),
+            SELECT_NODE_NAME,
             builder.buildNodeContext(getId().toString()),
             builder
         );

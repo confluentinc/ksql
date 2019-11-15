@@ -70,6 +70,8 @@ public class AggregateNode extends PlanNode {
   private static final String FILTER_OP_NAME = "filter";
   private static final String PROJECT_OP_NAME = "project";
 
+  private static final String PRE_AGGR_SELECT_NODE_NAME = "PRE-AGGREGATE-SELECT";
+
   private final PlanNode source;
   private final LogicalSchema schema;
   private final KeyField keyField;
@@ -192,11 +194,12 @@ public class AggregateNode extends PlanNode {
     final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
         getAggregateFunctionArguments());
 
-    final SchemaKStream<?> aggregateArgExpanded =
-        sourceSchemaKStream.select(
-            internalSchema.getAggArgExpansionList(),
-            contextStacker.push(PREPARE_OP_NAME),
-            builder);
+    final SchemaKStream<?> aggregateArgExpanded = sourceSchemaKStream.select(
+        internalSchema.getAggArgExpansionList(),
+        PRE_AGGR_SELECT_NODE_NAME,
+        contextStacker.push(PREPARE_OP_NAME),
+        builder
+    );
 
     // This is the schema used in any repartition topic
     // It contains only the fields from the source that are needed by the aggregation
@@ -275,8 +278,10 @@ public class AggregateNode extends PlanNode {
 
     return aggregated.select(
         finalSelects,
+        ProjectNode.SELECT_NODE_NAME,
         contextStacker.push(PROJECT_OP_NAME),
-        builder);
+        builder
+    );
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {

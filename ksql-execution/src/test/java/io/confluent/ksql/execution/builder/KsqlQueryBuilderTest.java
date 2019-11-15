@@ -259,4 +259,11 @@ public class KsqlQueryBuilderTest {
     // Then:
     assertThat(ksqlQueryBuilder.getSchemas().toString(), is("fred.context = BOOLEAN"));
   }
+
+  @Test
+  public void shouldGenerateUnqiueNodeNames() {
+    assertThat(ksqlQueryBuilder.buildUniqueNodeName("NodeName"), is("NodeName-0"));
+    assertThat(ksqlQueryBuilder.buildUniqueNodeName("NodeName"), is("NodeName-1"));
+    assertThat(ksqlQueryBuilder.buildUniqueNodeName("Other"), is("Other-2"));
+  }
 }

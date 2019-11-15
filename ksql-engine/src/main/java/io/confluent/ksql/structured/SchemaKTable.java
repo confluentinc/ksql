@@ -122,15 +122,19 @@ public class SchemaKTable<K> extends SchemaKStream<K> {
   @Override
   public SchemaKTable<K> select(
       final List<SelectExpression> selectExpressions,
+      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder ksqlQueryBuilder) {
+      final KsqlQueryBuilder ksqlQueryBuilder
+  ) {
     final KeyField keyField = findKeyField(selectExpressions);
     final TableMapValues<K> step = ExecutionStepFactory.tableMapValues(
         contextStacker,
         sourceTableStep,
         selectExpressions,
+        selectNodeName,
         ksqlQueryBuilder
     );
+
     return new SchemaKTable<>(
         step,
         keyFormat,

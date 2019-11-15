@@ -52,7 +52,9 @@ import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.Named;
+import org.apache.kafka.streams.kstream.NamedTestAccessor;
+import org.apache.kafka.streams.kstream.ValueTransformerWithKeySupplier;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,7 +64,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+@SuppressWarnings("unchecked")
 public class StreamMapValuesBuilderTest {
+
   private static final LogicalSchema SCHEMA = new LogicalSchema.Builder()
       .valueColumn(ColumnName.of("foo"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("bar"), SqlTypes.BIGINT)
@@ -74,9 +78,11 @@ public class StreamMapValuesBuilderTest {
   private static final Expression EXPRESSION2 = new IntegerLiteral(123);
 
   private static final List<SelectExpression> SELECT_EXPRESSIONS = ImmutableList.of(
-    SelectExpression.of(ColumnName.of("expr1"), EXPRESSION1),
-    SelectExpression.of(ColumnName.of("expr2"), EXPRESSION2)
+      SelectExpression.of(ColumnName.of("expr1"), EXPRESSION1),
+      SelectExpression.of(ColumnName.of("expr2"), EXPRESSION2)
   );
+
+  private static final String SELECT_STEP_NAME = "StepName";
 
   @Mock
   private ExecutionStep<KStreamHolder<Struct>> sourceStep;
@@ -99,7 +105,9 @@ public class StreamMapValuesBuilderTest {
   @Mock
   private KeySerdeFactory<Struct> keySerdeFactory;
   @Captor
-  private ArgumentCaptor<ValueMapper<GenericRow, GenericRow>> captor;
+  private ArgumentCaptor<ValueTransformerWithKeySupplier<Struct, GenericRow, GenericRow>> mapperCaptor;
+  @Captor
+  private ArgumentCaptor<Named> nameCaptor;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -111,7 +119,6 @@ public class StreamMapValuesBuilderTest {
   private StreamMapValues<Struct> step;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void setup() {
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(SCHEMA);
@@ -122,14 +129,18 @@ public class StreamMapValuesBuilderTest {
     when(queryBuilder.getFunctionRegistry()).thenReturn(mock(FunctionRegistry.class));
     when(queryBuilder.getProcessingLogContext()).thenReturn(processingLogContext);
     when(queryBuilder.getKsqlConfig()).thenReturn(ksqlConfig);
-    when(sourceKStream.mapValues(any(ValueMapper.class))).thenReturn(resultKStream);
+    when(queryBuilder.buildUniqueNodeName(any())).thenAnswer(inv -> inv.getArgument(0) + "-unique");
+    when(
+        sourceKStream.transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
+        .thenReturn(resultKStream);
     final KStreamHolder<Struct> sourceStream
         = new KStreamHolder<>(sourceKStream, keySerdeFactory);
     when(sourceStep.build(any())).thenReturn(sourceStream);
     step = new StreamMapValues<>(
         properties,
         sourceStep,
-        SELECT_EXPRESSIONS
+        SELECT_EXPRESSIONS,
+        SELECT_STEP_NAME
     );
     planBuilder = new KSPlanBuilder(
         queryBuilder,
@@ -145,9 +156,9 @@ public class StreamMapValuesBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(sourceKStream).mapValues(captor.capture());
-    assertThat(captor.getValue(), instanceOf(SelectValueMapper.class));
-    final SelectValueMapper mapper = (SelectValueMapper) captor.getValue();
+    verify(sourceKStream).transformValues(mapperCaptor.capture(), any(Named.class));
+    assertThat(mapperCaptor.getValue().get(), instanceOf(SelectValueMapper.class));
+    final SelectValueMapper<?> mapper = (SelectValueMapper) mapperCaptor.getValue().get();
     assertThat(mapper.getSelects(), hasSize(2));
     assertThat(mapper.getSelects().get(0).fieldName, equalTo(ColumnName.of("expr1")));
     assertThat(mapper.getSelects().get(0).evaluator.getExpression(), equalTo(EXPRESSION1));
@@ -163,5 +174,19 @@ public class StreamMapValuesBuilderTest {
     // Then:
     assertThat(result.getStream(), is(resultKStream));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldBuildKsNodeWithRightName() {
+    // When:
+    step.build(planBuilder);
+
+    // Then:
+    verify(sourceKStream).transformValues(
+        any(ValueTransformerWithKeySupplier.class),
+        nameCaptor.capture()
+    );
+
+    assertThat(NamedTestAccessor.getName(nameCaptor.getValue()), is(SELECT_STEP_NAME + "-unique"));
   }
 }

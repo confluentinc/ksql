@@ -18,7 +18,6 @@ package io.confluent.ksql.planner.plan;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
@@ -80,7 +79,7 @@ public class ProjectNodeTest {
     when(source.getNodeOutputType()).thenReturn(DataSourceType.KSTREAM);
     when(source.getSelectExpressions()).thenReturn(ImmutableList.of(SELECT_0, SELECT_1));
     when(ksqlStreamBuilder.buildNodeContext(NODE_ID.toString())).thenReturn(stacker);
-    when(stream.select(anyList(), any(), any())).thenReturn((SchemaKStream) stream);
+    when(stream.select(any(), any(), any(), any())).thenReturn((SchemaKStream) stream);
 
     projectNode = new ProjectNode(
         NODE_ID,
@@ -130,6 +129,7 @@ public class ProjectNodeTest {
     // Then:
     verify(stream).select(
         eq(ImmutableList.of(SELECT_0, SELECT_1)),
+        eq("SELECT"),
         eq(stacker),
         same(ksqlStreamBuilder)
     );

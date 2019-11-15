@@ -26,6 +26,7 @@ import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
+import static org.apache.kafka.common.acl.AclOperation.WRITE;
 import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
@@ -130,16 +131,21 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
-                  prefixedResource(TRANSACTIONAL_ID, "default_"),
-                  ops(ALL)
+                  resource(TRANSACTIONAL_ID, "default_"),
+                  ops(WRITE)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TRANSACTIONAL_ID, "default_"),
+                  ops(DESCRIBE)
               ).withAcl(
                   NORMAL_USER,
                   resource(TOPIC, "__consumer_offsets"),
                   ops(DESCRIBE)
               ).withAcl(
                   NORMAL_USER,
-                  prefixedResource(TOPIC, "__transaction_state"),
-                  ops(ALL)
+                  resource(TOPIC, "__transaction_state"),
+                  ops(DESCRIBE)
               )
       )
       .build();

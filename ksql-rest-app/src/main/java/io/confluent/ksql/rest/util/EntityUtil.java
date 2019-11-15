@@ -47,14 +47,14 @@ public final class EntityUtil {
     }
     allFields.addAll(getFields(schema.value(), "value"));
 
+    if (allFields.isEmpty()) {
+      throw new IllegalArgumentException("Root schema should contain columns: " + schema);
+    }
+
     return allFields;
   }
 
   private static List<FieldInfo> getFields(final List<Column> columns, final String type) {
-    if (columns.isEmpty()) {
-      throw new IllegalArgumentException("Root schema should contain columns." + " type: " + type);
-    }
-
     return columns.stream()
         .map(col -> SqlTypeWalker.visit(
             Field.of(col.ref().aliasedFieldName(), col.type()), new Converter()))

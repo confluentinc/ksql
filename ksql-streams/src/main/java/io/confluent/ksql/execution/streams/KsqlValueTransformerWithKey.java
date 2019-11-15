@@ -34,7 +34,7 @@ public abstract class KsqlValueTransformerWithKey<K>
     return transform(value);
   }
 
-  protected abstract GenericRow transform(final GenericRow value);
+  protected abstract GenericRow transform(GenericRow value);
 
   @Override
   public void close() {

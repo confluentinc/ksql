@@ -196,10 +196,22 @@ public class KsqlConfig extends AbstractConfig {
           + "whether the Kafka cluster supports the required API, and enables the validator if "
           + "it does.";
 
-  public static final String KSQL_PULL_QUERIES_ENABLE_CONFIG = "ksql.pull.queries.enable";
-  public static final String KSQL_PULL_QUERIES_ENABLE_DOC =
+  public static final String KSQL_QUERY_PULL_ENABLE_CONFIG = "ksql.query.pull.enable";
+  public static final String KSQL_QUERY_PULL_ENABLE_DOC =
       "Config to enable or disable transient pull queries on a specific KSQL server.";
-  public static final boolean KSQL_PULL_QUERIES_ENABLE_DEFAULT = true;
+  public static final boolean KSQL_QUERY_PULL_ENABLE_DEFAULT = true;
+
+  public static final String KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG =
+      "ksql.query.pull.routing.timeout.ms";
+  public static final Long KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DEFAULT = 30000L;
+  public static final String KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DOC = "Timeout in milliseconds "
+      + "when waiting for the lookup of the owner of a row key";
+
+  public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG =
+      "ksql.query.pull.streamsstore.rebalancing.timeout.ms";
+  public static final Long KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT = 10000L;
+  public static final String KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC = "Timeout in "
+      + "milliseconds when waiting for rebalancing of the stream store during a pull query";
 
   public static final Collection<CompatibilityBreakingConfigDef> COMPATIBLY_BREAKING_CONFIG_DEFS
       = ImmutableList.of(
@@ -566,11 +578,23 @@ public class KsqlConfig extends AbstractConfig {
             Importance.LOW,
             METRIC_REPORTER_CLASSES_DOC
         ).define(
-            KSQL_PULL_QUERIES_ENABLE_CONFIG,
+            KSQL_QUERY_PULL_ENABLE_CONFIG,
             Type.BOOLEAN,
-            KSQL_PULL_QUERIES_ENABLE_DEFAULT,
+            KSQL_QUERY_PULL_ENABLE_DEFAULT,
             Importance.LOW,
-            KSQL_PULL_QUERIES_ENABLE_DOC
+            KSQL_QUERY_PULL_ENABLE_DOC
+        ).define(
+            KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG,
+            ConfigDef.Type.LONG,
+            KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_DOC
+        ).define(
+            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG,
+            ConfigDef.Type.LONG,
+            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DEFAULT,
+            Importance.LOW,
+            KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_DOC
         )
         .withClientSslSupport();
     for (final CompatibilityBreakingConfigDef compatibilityBreakingConfigDef

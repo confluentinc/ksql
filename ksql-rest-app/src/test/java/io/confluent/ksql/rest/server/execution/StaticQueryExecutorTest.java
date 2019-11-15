@@ -46,7 +46,7 @@ public class StaticQueryExecutorTest {
   public static class Disabled {
     @Rule
     public final TemporaryEngine engine = new TemporaryEngine()
-        .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG, false));
+        .withConfigs(ImmutableMap.of(KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG, false));
 
     @Rule
     public final ExpectedException expectedException = ExpectedException.none();

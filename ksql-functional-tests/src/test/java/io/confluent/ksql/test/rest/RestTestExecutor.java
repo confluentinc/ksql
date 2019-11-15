@@ -15,23 +15,27 @@
 
 package io.confluent.ksql.test.rest;
 
+import static java.util.Objects.requireNonNull;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.collect.ImmutableMap;
 import io.confluent.ksql.json.JsonMapper;
 import io.confluent.ksql.rest.client.KsqlRestClient;
+import io.confluent.ksql.rest.client.QueryStream;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
 import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.entity.KsqlStatementErrorMessage;
+import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.test.rest.model.Response;
 import io.confluent.ksql.test.tools.ExpectedRecordComparator;
@@ -83,8 +87,8 @@ public class RestTestExecutor implements Closeable {
         ImmutableMap.of(),
         Optional.empty()
     );
-    this.kafkaCluster = Objects.requireNonNull(kafkaCluster, "kafkaCluster");
-    this.serviceContext = Objects.requireNonNull(serviceContext, "serviceContext");
+    this.kafkaCluster = requireNonNull(kafkaCluster, "kafkaCluster");
+    this.serviceContext = requireNonNull(serviceContext, "serviceContext");
   }
 
   void buildAndExecuteQuery(final RestTestCase testCase) {
@@ -92,7 +96,7 @@ public class RestTestExecutor implements Closeable {
 
     produceInputs(testCase.getInputsByTopic());
 
-    final Optional<List<KsqlEntity>> responses = sendStatements(testCase);
+    final Optional<List<RqttResponse>> responses = sendStatements(testCase);
     if (!responses.isPresent()) {
       return;
     }
@@ -157,60 +161,59 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
-  private Optional<List<KsqlEntity>> sendStatements(final RestTestCase testCase) {
+  private Optional<List<RqttResponse>> sendStatements(final RestTestCase testCase) {
 
     final List<String> allStatements = testCase.getStatements();
 
-    int firstStatic = 0;
-    for (; firstStatic < allStatements.size(); firstStatic++) {
-      final boolean isStatic = allStatements.get(firstStatic).startsWith("SELECT ");
-      if (isStatic) {
+    int firstQuery = 0;
+    for (; firstQuery < allStatements.size(); firstQuery++) {
+      final boolean isQuery = allStatements.get(firstQuery).startsWith("SELECT ");
+      if (isQuery) {
         break;
       }
     }
 
-    final List<String> nonStatics = IntStream.range(0, firstStatic)
+    final List<String> nonQuery = IntStream.range(0, firstQuery)
         .mapToObj(allStatements::get)
         .collect(Collectors.toList());
 
-    final Optional<List<KsqlEntity>> results = sendStatements(testCase, nonStatics);
-    if (!results.isPresent()) {
+    final Optional<List<RqttResponse>> adminResults = sendAdminStatements(testCase, nonQuery);
+    if (!adminResults.isPresent()) {
       return Optional.empty();
     }
 
-    final List<String> statics = IntStream.range(firstStatic, allStatements.size())
+    final List<String> queries = IntStream.range(firstQuery, allStatements.size())
         .mapToObj(allStatements::get)
         .collect(Collectors.toList());
 
-    if (statics.isEmpty()) {
+    if (queries.isEmpty()) {
       failIfExpectingError(testCase);
-      return results;
+      return adminResults;
     }
 
     if (!testCase.expectedError().isPresent()) {
-      for (int idx = firstStatic; testCase.getExpectedResponses().size() > idx; ++idx) {
-        final String staticStatement = allStatements.get(idx);
-        final Response staticResponse = testCase.getExpectedResponses().get(idx);
+      for (int idx = firstQuery; testCase.getExpectedResponses().size() > idx; ++idx) {
+        final String queryStatement = allStatements.get(idx);
+        final Response queryResponse = testCase.getExpectedResponses().get(idx);
 
-        waitForWarmStateStores(staticStatement, staticResponse);
+        waitForWarmStateStores(queryStatement, queryResponse);
       }
     }
 
-    final Optional<List<KsqlEntity>> moreResults = sendStatements(testCase, statics);
-    if (!moreResults.isPresent()) {
+    final List<RqttResponse> moreResults = sendQueryStatements(testCase, queries);
+    if (moreResults.isEmpty()) {
       return Optional.empty();
     }
 
     failIfExpectingError(testCase);
 
-    return moreResults
-        .map(ksqlEntities -> ImmutableList.<KsqlEntity>builder()
-            .addAll(results.get())
-            .addAll(ksqlEntities)
+    return Optional.of(ImmutableList.<RqttResponse>builder()
+        .addAll(adminResults.get())
+        .addAll(moreResults)
             .build());
   }
 
-  private Optional<List<KsqlEntity>> sendStatements(
+  private Optional<List<RqttResponse>> sendAdminStatements(
       final RestTestCase testCase,
       final List<String> statements
   ) {
@@ -220,24 +223,34 @@ public class RestTestExecutor implements Closeable {
     final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(sql);
 
     if (resp.isErroneous()) {
-      final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
-      if (!expectedError.isPresent()) {
-        final String statement = resp.getErrorMessage() instanceof KsqlStatementErrorMessage
-            ? ((KsqlStatementErrorMessage)resp.getErrorMessage()).getStatementText()
-            : "";
+      handleErrorResponse(testCase, resp);
+      return Optional.empty();
+    }
 
-        throw new AssertionError(
-            "Server failed to execute statement" + System.lineSeparator()
-                + "statement: " + statement + System.lineSeparator()
-                + "reason: " + resp.getErrorMessage()
-        );
-      }
+    final KsqlEntityList entity = resp.getResponse();
+    return Optional.of(RqttResponse.admin(entity));
+  }
 
-      final String reason = "Expected error mismatch."
-          + System.lineSeparator()
-          + "Actual: " + resp.getErrorMessage();
+  private List<RqttResponse> sendQueryStatements(
+      final RestTestCase testCase,
+      final List<String> statements
+  ) {
+    return statements.stream()
+        .map(stmt -> sendQueryStatement(testCase, stmt))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
+        .map(RqttResponse::query)
+        .collect(Collectors.toList());
+  }
 
-      assertThat(reason, resp, expectedError.get());
+  private Optional<QueryStream> sendQueryStatement(
+      final RestTestCase testCase,
+      final String sql
+  ) {
+    final RestResponse<QueryStream> resp = restClient.makeQueryRequest(sql, null);
+
+    if (resp.isErroneous()) {
+      handleErrorResponse(testCase, resp);
       return Optional.empty();
     }
 
@@ -269,8 +282,29 @@ public class RestTestExecutor implements Closeable {
     });
   }
 
+  private static void handleErrorResponse(final RestTestCase testCase, final RestResponse<?> resp) {
+    final Optional<Matcher<RestResponse<?>>> expectedError = testCase.expectedError();
+    if (!expectedError.isPresent()) {
+      final String statement = resp.getErrorMessage() instanceof KsqlStatementErrorMessage
+          ? ((KsqlStatementErrorMessage) resp.getErrorMessage()).getStatementText()
+          : "";
+
+      throw new AssertionError(
+          "Server failed to execute statement" + System.lineSeparator()
+              + "statement: " + statement + System.lineSeparator()
+              + "reason: " + resp.getErrorMessage()
+      );
+    }
+
+    final String reason = "Expected error mismatch."
+        + System.lineSeparator()
+        + "Actual: " + resp.getErrorMessage();
+
+    assertThat(reason, resp, expectedError.get());
+  }
+
   private static void verifyResponses(
-      final List<KsqlEntity> actualResponses,
+      final List<RqttResponse> actualResponses,
       final List<Response> expectedResponses,
       final List<String> statements
   ) {
@@ -281,17 +315,15 @@ public class RestTestExecutor implements Closeable {
     );
 
     for (int idx = 0; idx < expectedResponses.size(); idx++) {
-      final Map<String, Object> expected = expectedResponses.get(idx).getContent();
-      final Map<String, Object> actual = asJsonMap(actualResponses.get(idx));
+      final Map<String, Object> expectedResponse = expectedResponses.get(idx).getContent();
 
-      // Expected does not need to include everything, only needs to be tested:
-      for (final Entry<String, Object> e : expected.entrySet()) {
-        final String key = e.getKey();
-        final Object value = replaceMacros(e.getValue(), statements, idx);
-        final String baseReason = "Response mismatch at index " + idx;
-        assertThat(baseReason, actual, hasKey(key));
-        assertThat(baseReason + " on key: " + key, actual.get(key), is(value));
-      }
+      assertThat(expectedResponse.entrySet(), hasSize(1));
+
+      final String expectedType = expectedResponse.keySet().iterator().next();
+      final Object expectedPayload = expectedResponse.values().iterator().next();
+
+      final RqttResponse actualResponse = actualResponses.get(idx);
+      actualResponse.verify(expectedType, expectedPayload, statements, idx);
     }
   }
 
@@ -352,30 +384,28 @@ public class RestTestExecutor implements Closeable {
     }
   }
 
-  private static Map<String, Object> asJsonMap(final KsqlEntity response) {
+  private static <T> T asJson(final Object response, final TypeReference<T> type) {
     try {
-      final ObjectMapper mapper = JsonMapper.INSTANCE.mapper;
-      final String text = mapper.writeValueAsString(response);
-      return mapper.readValue(text, new TypeReference<Map<String, Object>>() {
-      });
+      final String text = JsonMapper.INSTANCE.mapper.writeValueAsString(response);
+      return JsonMapper.INSTANCE.mapper.readValue(text, type);
     } catch (final Exception e) {
       throw new AssertionError("Failed to serialize response to JSON: " + response);
     }
   }
 
   private void waitForWarmStateStores(
-      final String staticStatement,
-      final Response staticResponse
+      final String querySql,
+      final Response queryResponse
   ) {
-    // Special handling for static queries is required, as they depend on materialized state stores
-    // being warmed up.  Initial requests may return null values.
+    // Special handling for pull queries is required, as they depend on materialized state stores
+    // being warmed up.  Initial requests may return no rows.
 
-    final ImmutableList<Response> expectedResponse = ImmutableList.of(staticResponse);
-    final ImmutableList<String> statements = ImmutableList.of(staticStatement);
+    final ImmutableList<Response> expectedResponse = ImmutableList.of(queryResponse);
+    final ImmutableList<String> statements = ImmutableList.of(querySql);
 
     final long threshold = System.currentTimeMillis() + MAX_STATIC_WARMUP.toMillis();
     while (System.currentTimeMillis() < threshold) {
-      final RestResponse<KsqlEntityList> resp = restClient.makeKsqlRequest(staticStatement);
+      final RestResponse<QueryStream> resp = restClient.makeQueryRequest(querySql, null);
       if (resp.isErroneous()) {
         Thread.yield();
         LOG.info("Server responded with an error code to a static query. "
@@ -383,7 +413,8 @@ public class RestTestExecutor implements Closeable {
         continue;
       }
 
-      final KsqlEntityList actualResponses = resp.getResponse();
+      final List<RqttResponse> actualResponses = ImmutableList
+          .of(RqttResponse.query(resp.getResponse()));
 
       try {
         verifyResponses(actualResponses, expectedResponse, statements);
@@ -393,6 +424,117 @@ public class RestTestExecutor implements Closeable {
         LOG.info("Server responded with incorrect result to a static query. "
             + "This could be because the materialized store is not yet warm.", e);
         Thread.yield();
+      }
+    }
+  }
+
+  private interface RqttResponse {
+
+    static List<RqttResponse> admin(final KsqlEntityList adminResponses) {
+      return adminResponses.stream()
+          .map(RqttAdminResponse::new)
+          .collect(Collectors.toList());
+    }
+
+    static RqttResponse query(final QueryStream queryStream) {
+      final Builder<StreamedRow> responses = ImmutableList.builder();
+
+      while (queryStream.hasNext()) {
+        final StreamedRow row = queryStream.next();
+        responses.add(row);
+      }
+
+      queryStream.close();
+
+      return new RqttQueryResponse(responses.build());
+    }
+
+    void verify(
+        String expectedType,
+        Object expectedPayload,
+        List<String> statements,
+        int idx
+    );
+  }
+
+  private static class RqttAdminResponse implements RqttResponse {
+
+    private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
+        new TypeReference<Map<String, Object>>() {
+        };
+
+    private final KsqlEntity entity;
+
+    RqttAdminResponse(final KsqlEntity entity) {
+      this.entity = requireNonNull(entity, "entity");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void verify(
+        final String expectedType,
+        final Object expectedPayload,
+        final List<String> statements,
+        final int idx
+    ) {
+      assertThat("Expected admin response", expectedType, is("admin"));
+      assertThat("Admin payload should be JSON object", expectedPayload, is(instanceOf(Map.class)));
+
+      final Map<String, Object> expected = (Map<String, Object>)expectedPayload;
+
+      final Map<String, Object> actualPayload = asJson(entity, PAYLOAD_TYPE);
+
+      // Expected does not need to include everything, only keys that need to be tested:
+      for (final Entry<String, Object> e : expected.entrySet()) {
+        final String key = e.getKey();
+        final Object value = replaceMacros(e.getValue(), statements, idx);
+        final String baseReason = "Response mismatch at index " + idx;
+        assertThat(baseReason, actualPayload, hasKey(key));
+        assertThat(baseReason + " on key: " + key, actualPayload.get(key), is(value));
+      }
+    }
+  }
+
+  private static class RqttQueryResponse implements RqttResponse {
+
+    private static final TypeReference<Map<String, Object>> PAYLOAD_TYPE =
+        new TypeReference<Map<String, Object>>() {
+        };
+
+    private final List<StreamedRow> rows;
+
+    RqttQueryResponse(final List<StreamedRow> rows) {
+      this.rows = requireNonNull(rows, "rows");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void verify(
+        final String expectedType,
+        final Object expectedPayload,
+        final List<String> statements,
+        final int idx
+    ) {
+      assertThat("Expected query response", expectedType, is("query"));
+      assertThat("Query response should be an array", expectedPayload, is(instanceOf(List.class)));
+
+      final List<?> expectedRows = (List<?>) expectedPayload;
+
+      assertThat("row count mismatch", rows.size(), is(expectedRows.size()));
+
+      for (int i = 0; i != rows.size(); ++i) {
+        assertThat("Each row should JSON object", expectedRows.get(i), is(instanceOf(Map.class)));
+        final Map<String, Object> actual = asJson(rows.get(i), PAYLOAD_TYPE);
+        final Map<String, Object> expected = (Map<String, Object>) expectedRows.get(i);
+
+        // Expected does not need to include everything, only keys that need to be tested:
+        for (final Entry<String, Object> e : expected.entrySet()) {
+          final String key = e.getKey();
+          final Object value = replaceMacros(e.getValue(), statements, idx);
+          final String baseReason = "Response mismatch at index " + idx;
+          assertThat(baseReason, actual, hasKey(key));
+          assertThat(baseReason + " on key: " + key, expected.get(key), is(value));
+        }
       }
     }
   }

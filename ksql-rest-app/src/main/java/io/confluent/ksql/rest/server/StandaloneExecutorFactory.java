@@ -57,7 +57,7 @@ public final class StandaloneExecutorFactory {
         properties,
         queriesFile,
         installDir,
-        config -> ServiceContextFactory.create(config, DisabledKsqlClient.instance()),
+        config -> ServiceContextFactory.create(config, DisabledKsqlClient::instance),
         KafkaConfigStore::new,
         KsqlVersionCheckerAgent::new,
         StandaloneExecutor::new

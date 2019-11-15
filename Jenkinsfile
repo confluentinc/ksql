@@ -33,7 +33,10 @@ def defaultParams = [
         description: 'Revision for Docker images. This is used with PROMOTE_TO_PRODUCTION only'),
     booleanParam(name: 'UPDATE_LATEST_TAG',
         defaultValue: false,
-        description: 'Should the latest tag on docker hub be updated to point at this new image version.')
+        description: 'Should the latest tag on docker hub be updated to point at this new image version.'),
+    booleanParam(name: 'CHANGELOG_ONLY',
+        defaultValue: true,
+        description: 'Only generate changelog -- for testing.')
 ]
 
 def updateConfig = { c ->
@@ -168,6 +171,11 @@ def job = {
 
                             // Set the version of the parent project to use.
                             sh "mvn --batch-mode versions:update-parent -DparentVersion=\"[${config.cp_version}]\" -DgenerateBackupPoms=false"
+
+                            if (params.CHANGELOG_ONLY) {
+                                sh "npm install conventional-changelog-cli"
+                                return null
+                            }
 
                             if (config.release) {
                                 def git_tag = "v${config.ksql_db_version}-ksqldb"

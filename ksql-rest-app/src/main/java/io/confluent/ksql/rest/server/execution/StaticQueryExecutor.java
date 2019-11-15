@@ -134,6 +134,10 @@ public final class StaticQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    if (!statement.getStatement().isStatic()) {
+      throw new IllegalArgumentException("Executor can only handle pull queries");
+    }
+
     if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
       throw new KsqlRestException(
           Errors.badStatement(

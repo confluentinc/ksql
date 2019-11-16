@@ -11,7 +11,7 @@ docs_dir: docs-md
 
 theme:
     name: material
-    custom_dir: docs-md/custom/
+    favicon: img/favicon.ico
     feature: 
       tabs: true
     highlightjs: true

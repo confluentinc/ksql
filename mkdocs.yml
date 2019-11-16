@@ -38,7 +38,7 @@ nav:
     - Architecture: concepts/ksql-architecture.md
     - Events: concepts/events.md
     - Collections:
-      - Collections Overview: concepts/collections/overview.md
+      - Collections Overview: concepts/collections/index.md
       - Streams: concepts/collections/streams.md
       - Tables: concepts/collections/tables.md
       - Inserting events: concepts/collections/inserting-events.md
@@ -72,11 +72,11 @@ nav:
     - Example Queries: tutorials/examples.md
     # - Functions - Custom Function Reference (UDF and UDAF): developer-guide/udf.md # Possibly move to Concepts
     - Connect Integration: developer-guide/ksql-connect.md
-    - Test and Debug: # Suggest moving to Developer Guide
-      - Test and Debug Index: developer-guide/index.md # New index topic TODO
-      - Test harness: developer-guide/ksql-testing-tool.md
-      - Generate test data: tutorials/generate-custom-test-data.md
-      - Processing log: developer-guide/processing-log.md
+    - Test and Debug:
+      - Test and Debug Index: developer-guide/test-and-debug/index.md
+      - Test harness: developer-guide/test-and-debug/ksql-testing-tool.md
+      - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
+      - Processing log: developer-guide/test-and-debug/processing-log.md
   - Reference:
     - Syntax Reference: developer-guide/syntax-reference.md
     - Statements:

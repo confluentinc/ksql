@@ -349,7 +349,7 @@ Your output should resemble:
 
 ksqlDB emits a log of record processing events, called the processing log,
 to help you debug SQL queries. For more information, see
-[ksqlDB Processing Log](../developer-guide/processing-log.md).
+[ksqlDB Processing Log](../developer-guide/test-and-debug/processing-log.md).
 
 Assign the following configuration settings to enable the processing
 log.

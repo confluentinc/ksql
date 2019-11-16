@@ -35,11 +35,11 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
-For the full code example, see [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+For the full code example, see [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../../tutorials/basics-docker.md).
 
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
-units, see [ksqlDB Time Units](syntax-reference.md#ksqldb-time-units).
+units, see [ksqlDB Time Units](../syntax-reference.md#ksqldb-time-units).
 
 Here's an example stream-stream join that combines a `shipments` stream
 with an `orders` stream. The resulting ``shipped_orders`` stream contains all
@@ -71,7 +71,7 @@ within the defined window boundary. Old records in the state store are
 purged after the specified window retention period.
 
 For more information on windows, see
-[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
+[Windows in ksqlDB Queries](../../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
 
 Join Requirements
 -----------------
@@ -85,7 +85,7 @@ Input data must be co-partitioned when joining. This ensures that
 input records with the same key, from both sides of the join, are
 delivered to the same stream task during processing. It's your
 responsibility to ensure data co-partitioning when joining. For more
-information, see [Partition Data to Enable Joins](joins/partition-data.md).
+information, see [Partition Data to Enable Joins](partition-data.md).
 
 ### KEY property
 
@@ -98,7 +98,7 @@ both of the following conditions are true:
 -   The KEY property must be set to a column of type VARCHAR or
     STRING.
 
-For more information, see [Key Requirements](syntax-reference.md#key-requirements).
+For more information, see [Key Requirements](../syntax-reference.md#key-requirements).
 
 Join Capabilities
 -----------------

@@ -19,10 +19,10 @@ These topics show how to develop ksqlDB applications.
 - [Partition Data to Enable Joins](joins/partition-data.md)
 - [Syntax Reference](syntax-reference.md)
 - [Serialization](serialization.md)
-- [Testing Tool](ksql-testing-tool.md)
+- [Testing Tool](test-and-debug/ksql-testing-tool.md)
 - [ksqlDB REST API Reference](api.md)
 - [Custom Function Reference (UDF and UDAF)](udf.md)
-- [Processing Log](processing-log.md)
+- [Processing Log](test-and-debug/processing-log.md)
 - [ksqlDB-Connect Integration](ksql-connect.md)
 - [Tutorials and Examples](../tutorials/index.md)
 

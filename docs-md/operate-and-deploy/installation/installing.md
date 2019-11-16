@@ -72,7 +72,7 @@ for production and for testing.
 You can only connect to one ksqlDB server at a time. The ksqlDB CLI does not
 support automatic failover to another ksqlDB Server.
 
-![image](../img/client-server.png)
+![image](../../img/client-server.png)
 
 Follow these instructions to start ksqlDB Server using the
 `ksql-server-start` script.

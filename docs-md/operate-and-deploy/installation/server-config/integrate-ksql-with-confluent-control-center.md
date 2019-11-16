@@ -17,7 +17,7 @@ integrated with {{ site.c3short }} by default, and you can configure
 {{ site.c3short }} to interact with other KSQL Server instances that run
 on separate hosts.
 
-![Screenshot of the KSQL Create Stream interface in Confluent Control Center.](../../img/ksql-interface-create-stream.png)
+![Screenshot of the KSQL Create Stream interface in Confluent Control Center.](../../../img/ksql-interface-create-stream.png)
 
 Configuration Settings for KSQL and Control Center
 ==================================================

@@ -113,8 +113,8 @@ TODO: Figure out how to style these
 {{ site.cp }} supports pluggable *interceptors* to examine and modify
 incoming and outgoing records. Specify interceptor classes by assigning
 the `KSQL_PRODUCER_INTERCEPTOR_CLASSES` and `KSQL_CONSUMER_INTERCEPTOR_CLASSES`
-settings. For more info on interceptor classes, see [Confluent Monitoring
-Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
+settings. For more info on interceptor classes, see
+[Confluent Monitoring Interceptors](https://docs.confluent.io/current/control-center/installation/clients.html).
 
 Use the following command to run a headless, standalone ksqlDB Server with
 the specified interceptor classes in a container:
@@ -349,7 +349,7 @@ Your output should resemble:
 
 ksqlDB emits a log of record processing events, called the processing log,
 to help you debug SQL queries. For more information, see
-[ksqlDB Processing Log](../developer-guide/processing-log.md).
+[ksqlDB Processing Log](../../developer-guide/test-and-debug/processing-log.md).
 
 Assign the following configuration settings to enable the processing
 log.
@@ -379,7 +379,7 @@ connect to a ksqlDB Server.
 ### Connect ksqlDB CLI to a Dockerized ksqlDB Server
 
 Run a ksqlDB CLI instance in a container and connect to a ksqlDB Server
-that\'s running in a different container.
+that's running in a different container.
 
 ```bash
 # Run ksqlDB Server.
@@ -492,9 +492,9 @@ docker-compose exec ksql-cli bash -c \
 
 ### Wait for a Particular Phrase in a Container's Log
 
-Use the `grep` command and [bash process
-substitution](http://tldp.org/LDP/abs/html/process-sub.html) to wait
-until the a specific phrase occurs in the Docker Compose log:
+Use the `grep` command and
+[bash process substitution](http://tldp.org/LDP/abs/html/process-sub.html)
+to wait until the a specific phrase occurs in the Docker Compose log:
 
 ```bash
 export CONNECT_HOST=<container-name>
@@ -597,7 +597,7 @@ ksql-cli:
 Next Steps
 ----------
 
--   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md)
--   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
+-   [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../../tutorials/basics-docker.md)
+-   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../../tutorials/clickstream-docker.md)
 
 Page last revised on: {{ git_revision_date }}

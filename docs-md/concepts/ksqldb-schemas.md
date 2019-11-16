@@ -6,12 +6,9 @@ description: Learn how schemas work with ksqlDB
 keywords: ksqldb, schema, evolution, avro
 ---
 
-Schemas in ksqlDB
-=================
-
 TODO:
 
-- overview of how schemas work in ksqlDB.
+- overview of how schemas work in ksqlDB
 - overview of data types
 - overview of serialization
 - schema evolution with ksqlDB and Avro

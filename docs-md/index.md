@@ -61,7 +61,7 @@ Because ksqlDB leverages {{ site.ak }} for its storage layer, creating a new
 collection equates to defining a stream or a table over a {{ site.aktm }}
 topic. You can declare a collection over an existing topic, or ksqlDB can
 create a new topic for the collection at declaration time. For more information,
-see [Collections](concepts/collections/overview.md).
+see [Collections](concepts/collections/index.md).
 
 ### Materialized Views
 

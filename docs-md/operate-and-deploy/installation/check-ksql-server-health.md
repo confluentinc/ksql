@@ -49,7 +49,7 @@ The ksqlDB REST API supports a "server info" request, which you access
 with a URL like `http://<ksqldb-server-url>/info`. The `/info` endpoint
 returns the ksqlDB Server version, the {{ site.aktm }} cluster ID, and
 the service ID of the ksqlDB Server. For more information, see
-[ksqlDB REST API Reference](../developer-guide/api.md).
+[ksqlDB REST API Reference](../../developer-guide/api.md).
 
 ```bash
 curl -sX GET "http://localhost:8088/info"

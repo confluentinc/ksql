@@ -28,7 +28,7 @@ to {{ site.ak }} and consuming it as ksqlDB stream.
     for the server logs, assign the `log4j.appender.kafka_appender.Topic`
     and `log4j.logger.io.confluent.ksql` configuration settings in the ksqlDB
     Server config file. For more information, see
-    [ksqlDB Server Log Settings](../installation/server-config/config-reference.md#ksqldb-server-log-settings).
+    [ksqlDB Server Log Settings](../../operate-and-deploy/installation/server-config/config-reference.md#ksqldb-server-log-settings).
 
 Logger Names
 ------------
@@ -205,7 +205,7 @@ The replication factor and partition count are configurable using the
 
 If `ksql.logging.processing.topic.auto.create` is set to `true`, the
 created topic will be deleted as part of
-[cluster termination](api.md#terminate-a-cluster).
+[cluster termination](../api.md#terminate-a-cluster).
 
 If the `ksql.logging.processing.topic.name` property is not specified,
 the processing log topic name will default to

@@ -11,7 +11,6 @@ keywords: ksqldb, query, application, quickstart, tutorial, walkthrough, how to
 - [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB (Local)](basics-local.md)
 - [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB and {{ site.c3 }}](basics-control-center.md)
 - [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](clickstream-docker.md)
-- [Generate Custom Test Data by Using the ksql-datagen Tool](generate-custom-test-data.md)
 - [Integrating with PostgresDB](connect-integration.md)
 - [ksqlDB Examples](examples.md)
 

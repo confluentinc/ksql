@@ -15,26 +15,27 @@ applies a pre-trained machine learning model to a stream.
 
 ksqlDB supports these kinds of functions:
 
-TODO: what style to use here? 
-
 Stateless scalar function (UDF)
 :   A scalar function that takes one input row and returns one output
     value. No state is retained between function calls. When you
     implement a custom scalar function, it's called a *User-Defined
-    Function (UDF)*.
+    Function (UDF)*. For more information, see
+    [Scalar Function](../developer-guide/ksqldb-reference/scalar-functions.md).
 
 Stateful aggregate function (UDAF)
 :   An aggregate function that takes *N* input rows and returns one
     output value. During the function call, state is retained for all
     input records, which enables aggregating results. When you implement
     a custom aggregate function, it's called a *User-Defined Aggregate
-    Function (UDAF)*.
+    Function (UDAF)*. For more information, see
+    [Aggregate Function](../developer-guide/ksqldb-reference/aggregate-functions.md).
 
 Table function (UDTF)
 :   A table function that takes one input row and returns zero or more
     output rows. No state is retained between function calls. When you
     implement a custom table function, it's called a *User-Defined Table
-    Function (UDTF)*.
+    Function (UDTF)*. For more information, see
+    [Table Function](../developer-guide/ksqldb-reference/table-functions.md).
 
 Implement a Custom Function
 ---------------------------
@@ -63,7 +64,7 @@ Follow these steps to create your custom functions:
       FUNCTION statement to display details about your custom functions.
 
 For a detailed walkthrough on creating a UDF, see
-[Implement a User-defined Function (UDF and UDAF)](implement-a-udf.md).
+[Implement a User-defined Function (UDF and UDAF)](../developer-guide/implement-a-udf.md).
 
 ### Creating UDFs, UDAFs, and UDTFs
 

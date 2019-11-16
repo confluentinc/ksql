@@ -1,12 +1,12 @@
 ---
 layout: page
-title: Join Event Streams with ksqlDB
-tagline: Merge streams of data in real time
-description: Learn how to use ksqlDB to merge streams of data in real time
+title: Join Event Streams
+tagline: Merge event streams in real time
+description: Learn how to use ksqlDB to merge streams of events in real time.
 ---
 
-You can use ksqlDB to merge streams of data in real time by using the JOIN
-statement, which has a SQL-like *join* syntax. A ksqlDB join and a relational
+You can use ksqlDB to merge streams of events in real time by using the JOIN
+statement, which has a SQL join syntax. A ksqlDB join and a relational
 database join are similar in that they both combine data from two sources
 based on common values. The result of a ksqlDB join is a new stream or table
 that's populated with the column values that you specify in a SELECT statement.
@@ -35,11 +35,11 @@ CREATE STREAM pageviews_enriched AS
   EMIT CHANGES;
 ```
 
-For the full code example, see [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../tutorials/basics-docker.md).
+For the full code example, see [Write Streaming Queries Against {{ site.aktm }} Using ksqlDB](../../tutorials/basics-docker.md).
 
 When you join two streams, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
-units, see [ksqlDB Time Units](syntax-reference.md#ksqldb-time-units).
+units, see [ksqlDB Time Units](../syntax-reference.md#ksqldb-time-units).
 
 Here's an example stream-stream join that combines a `shipments` stream
 with an `orders` stream. The resulting ``shipped_orders`` stream contains all
@@ -71,7 +71,7 @@ within the defined window boundary. Old records in the state store are
 purged after the specified window retention period.
 
 For more information on windows, see
-[Windows in ksqlDB Queries](../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
+[Windows in ksqlDB Queries](../../concepts/time-and-windows-in-ksql-queries.md#windows-in-sql-queries).
 
 Join Requirements
 -----------------
@@ -98,7 +98,7 @@ both of the following conditions are true:
 -   The KEY property must be set to a column of type VARCHAR or
     STRING.
 
-For more information, see [Key Requirements](syntax-reference.md#key-requirements).
+For more information, see [Key Requirements](../syntax-reference.md#key-requirements).
 
 Join Capabilities
 -----------------

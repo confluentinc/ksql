@@ -164,7 +164,7 @@ Indicates whether to fail if ksqlDB fails to publish a record to an output
 topic due to a {{ site.ak }} producer exception. The default value in ksqlDB is
 `true`, which means if a producer error occurs, then the {{ site.kstreams }}
 thread that encountered the error will shut down. To log the error
-message to the [Processing Log](../../developer-guide/processing-log.md)
+message to the [Processing Log](../../../developer-guide/test-and-debug/processing-log.md)
 and have ksqlDB continue processing as normal, add the following setting
 to your ksqlDB Server properties file:
 
@@ -208,7 +208,7 @@ becomes `_confluent-ksql-default__command_topic`).
 The number of replicas for the internal topics created by ksqlDB Server.
 The default is 1. Replicas for the record processing log topic should be
 configured separately. For more information, see
-[Processing Log](../../developer-guide/processing-log.md).
+[Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
 
 The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
 is `KSQL_KSQL_INTERNAL_TOPIC_REPLICAS`.
@@ -218,8 +218,8 @@ is `KSQL_KSQL_INTERNAL_TOPIC_REPLICAS`.
 The default number of partitions for the topics created by ksqlDB. The
 default is four. This property has been deprecated.
 For more info see the WITH clause properties in
-[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
-[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md).
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
 The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/) is
 `KSQL_KSQL_SINK_PARTITIONS`.
@@ -229,13 +229,13 @@ The corresponding environment variable in the [ksqlDB Server image](https://hub.
 The default number of replicas for the topics created by ksqlDB. The
 default is one. This property has been deprecated. For
 more info see the WITH clause properties in
-[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
-[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md).
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md) and
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md).
 
 ### ksql.functions.substring.legacy.args
 
 Controls the semantics of the SUBSTRING UDF. Refer to the SUBSTRING
-documentation in the [function](../../developer-guide/ksqldb-reference/scalar-functions.md)
+documentation in the [function](../../../developer-guide/ksqldb-reference/scalar-functions.md)
 guide for details.
 
 The corresponding environment variable in the [ksqlDB Server image](https://hub.docker.com/r/confluentinc/cp-ksql-server/)
@@ -244,10 +244,10 @@ is `KSQL_KSQL_FUNCTIONS_SUBSTRING_LEGACY_ARGS`.
 ### ksql.persistence.wrap.single.values
 
 Sets the default value for the `WRAP_SINGLE_VALUE` property if one is
-not supplied explicitly in [CREATE TABLE](../../developer-guide/ksqldb-reference/create-table.md),
-[CREATE STREAM](../../developer-guide/ksqldb-reference/create-stream.md),
-[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md) or
-[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md)
+not supplied explicitly in [CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md),
+[CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md),
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) or
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
 When set to the default value, `true`, ksqlDB serializes the column value
@@ -290,10 +290,10 @@ SET 'ksql.persistence.wrap.single.values'='false';
 ```
 
 For more information, refer to the
-[CREATE TABLE](../../developer-guide/ksqldb-reference/create-table.md),
-[CREATE STREAM](../../developer-guide/ksqldb-reference/create-stream.md),
-[CREATE TABLE AS SELECT](../../developer-guide/ksqldb-reference/create-table-as-select.md) or
-[CREATE STREAM AS SELECT](../../developer-guide/ksqldb-reference/create-stream-as-select.md)
+[CREATE TABLE](../../../developer-guide/ksqldb-reference/create-table.md),
+[CREATE STREAM](../../../developer-guide/ksqldb-reference/create-stream.md),
+[CREATE TABLE AS SELECT](../../../developer-guide/ksqldb-reference/create-table-as-select.md) or
+[CREATE STREAM AS SELECT](../../../developer-guide/ksqldb-reference/create-stream-as-select.md)
 statements.
 
 !!! note
@@ -343,7 +343,7 @@ is `KSQL_KSQL_QUERIES_FILE`.
 
 The `listeners` setting controls the REST API endpoint for the ksqlDB
 Server. For more info, see
-[ksqlDB REST API Reference](../../developer-guide/api.md).
+[ksqlDB REST API Reference](../../../developer-guide/api.md).
 
 The default `listeners` is `http://0.0.0.0:8088`, which binds to all
 IPv4 interfaces. Set `listeners` to `http://[::]:8088` to bind to all
@@ -407,7 +407,7 @@ ksqlDB Processing Log Settings
 ------------------------------
 
 The following configuration settings control the behavior of the
-[ksqlDB Processing Log](../../developer-guide/processing-log.md).
+[ksqlDB Processing Log](../../../developer-guide/test-and-debug/processing-log.md).
 
 ### ksql.logging.processing.topic.auto.create
 

@@ -142,7 +142,7 @@ Name                 : ORDERS_RAW
 ```
 
 For more information, see
-[Query With Structured Data](../developer-guide/query-with-structured-data.md).
+[Query With Structured Data](../../developer-guide/query-with-structured-data.md).
 
 ### Generate Example User Records
 
@@ -256,7 +256,7 @@ Name                 : USERS_EXTENDED
 ```
 
 For more information, see
-[Query With Arrays and Maps](../developer-guide/query-with-arrays-and-maps.md).
+[Query With Arrays and Maps](../../developer-guide/query-with-arrays-and-maps.md).
 
 ### Generate Example User Page Views
 

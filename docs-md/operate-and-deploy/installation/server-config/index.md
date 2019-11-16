@@ -237,7 +237,7 @@ these queries in your production environment, you want to lock down
 access to ksqlDB servers, version-control the exact queries, and store
 them in a .sql file. This prevents users from interacting directly with
 the production ksqlDB cluster. For more information, see
-[Headless Deployment](../../concepts/ksql-architecture.md#headless-deployment).
+[Headless Deployment](../../../concepts/ksql-architecture.md#headless-deployment).
 
 You can configure servers to exclusively run a predefined script (`.sql`
 file) via the `--queries-file` command line argument, or the

@@ -38,28 +38,23 @@ nav:
     - Architecture: concepts/ksql-architecture.md
     - Events: concepts/events.md
     - Collections:
-      - Overview: concepts/collections/overview.md
+      - Collections Overview: concepts/collections/overview.md
       - Streams: concepts/collections/streams.md
       - Tables: concepts/collections/tables.md
       - Inserting events: concepts/collections/inserting-events.md
     - Stream Processing: concepts/stream-processing.md
     - Materialized Views: concepts/materialized-views.md
     - Queries:
-      - Overview: concepts/queries/index.md
-      - Push queries: concepts/queries/push.md
-      - Pull queries: concepts/queries/pull.md
+      - Queries Overview: concepts/queries/index.md
+      - Push Queries: concepts/queries/push.md
+      - Pull Queries: concepts/queries/pull.md
     # - Processing Guarantees (TODO): concepts/ksqldb-processing-guarantees.md # future
-    #- Push and Pull Queries (TODO): concepts/push-and-pull-queries.md
     # - Schemas (TODO): concepts/ksqldb-schemas.md # remove
     - Connectors (TODO): concepts/connectors.md
     #- Functions: # Suggest flattening
     - Functions: concepts/functions/udfs.md # Unless there's more abstraction to discuss, move from dev guide node and add a bit more on intrinsic functions, with links
     - Time and Windows: concepts/time-and-windows-in-ksql-queries.md
     - Serialization: developer-guide/serialization.md
-  # - Deploying: : # Suggest renaming the Operate node to "Operate and Deploy" 
-  #   - Operations: operations.md
-  #   - Capacity planning: capacity-planning.md
-  #- How it works: # Suggest flattening
     - Relationship to Kafka Streams: concepts/ksql-and-kafka-streams.md
   - Developer Guide: # Renamed from "How To"
     - Develop ksqlDB Applications: developer-guide/index.md # index topic
@@ -155,6 +150,8 @@ markdown_extensions:
     - toc:
         permalink: 
     - admonition
+    - codehilite:
+        guess_lang: false
     - def_list
     - mdx_gh_links:
         user: JimGalasyn

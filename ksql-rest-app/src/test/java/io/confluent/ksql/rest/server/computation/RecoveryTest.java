@@ -218,7 +218,7 @@ public class RecoveryTest {
           fakeCommandQueue,
           Duration.ofMillis(0),
           ()->{},
-          (sc, metastore, statement) -> { }
+          Optional.of((sc, metastore, statement) -> { })
       );
 
       this.statementExecutor.configure(ksqlConfig);

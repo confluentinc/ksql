@@ -190,7 +190,7 @@ public class WSQueryEndpointTest {
         topicPublisher,
         activenessRegistrar,
         COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        authorizationValidator,
+        Optional.of(authorizationValidator),
         securityExtension,
         serviceContextFactory,
         defaultServiceContextProvider,

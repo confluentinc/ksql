@@ -88,7 +88,7 @@ public class WSQueryEndpoint {
   private final QueryPublisher pullQueryPublisher;
   private final PrintTopicPublisher topicPublisher;
   private final Duration commandQueueCatchupTimeout;
-  private final KsqlAuthorizationValidator authorizationValidator;
+  private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final KsqlSecurityExtension securityExtension;
   private final UserServiceContextFactory serviceContextFactory;
   private final DefaultServiceContextFactory defaultServiceContextFactory;
@@ -108,7 +108,7 @@ public class WSQueryEndpoint {
       final ListeningScheduledExecutorService exec,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
-      final KsqlAuthorizationValidator authorizationValidator,
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final KsqlSecurityExtension securityExtension,
       final ServerState serverState
   ) {
@@ -144,7 +144,7 @@ public class WSQueryEndpoint {
       final PrintTopicPublisher topicPublisher,
       final ActivenessRegistrar activenessRegistrar,
       final Duration commandQueueCatchupTimeout,
-      final KsqlAuthorizationValidator authorizationValidator,
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final KsqlSecurityExtension securityExtension,
       final UserServiceContextFactory serviceContextFactory,
       final DefaultServiceContextFactory defaultServiceContextFactory,
@@ -213,10 +213,10 @@ public class WSQueryEndpoint {
 
       serviceContext = createServiceContext(session.getUserPrincipal());
 
-      authorizationValidator.checkAuthorization(
+      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
           serviceContext,
           ksqlEngine.getMetaStore(),
-          preparedStatement.getStatement()
+          preparedStatement.getStatement())
       );
 
       final Statement statement = preparedStatement.getStatement();

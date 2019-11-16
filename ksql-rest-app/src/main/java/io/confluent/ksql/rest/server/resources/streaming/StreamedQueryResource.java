@@ -51,6 +51,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -78,7 +80,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
   private final Duration commandQueueCatchupTimeout;
   private final ObjectMapper objectMapper;
   private final ActivenessRegistrar activenessRegistrar;
-  private final KsqlAuthorizationValidator authorizationValidator;
+  private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private KsqlConfig ksqlConfig;
 
   public StreamedQueryResource(
@@ -87,7 +89,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final KsqlAuthorizationValidator authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator
   ) {
     this(
         ksqlEngine,
@@ -108,7 +110,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final Duration disconnectCheckInterval,
       final Duration commandQueueCatchupTimeout,
       final ActivenessRegistrar activenessRegistrar,
-      final KsqlAuthorizationValidator authorizationValidator
+      final Optional<KsqlAuthorizationValidator> authorizationValidator
   ) {
     this.ksqlEngine = Objects.requireNonNull(ksqlEngine, "ksqlEngine");
     this.statementParser = Objects.requireNonNull(statementParser, "statementParser");
@@ -175,16 +177,26 @@ public class StreamedQueryResource implements KsqlConfigurable {
       final PreparedStatement<?> statement
   )  {
     try {
-      authorizationValidator.checkAuthorization(
-          serviceContext,
-          ksqlEngine.getMetaStore(),
-          statement.getStatement()
-      );
+      final Consumer<KsqlAuthorizationValidator> authValidationConsumer =
+          ksqlAuthorizationValidator -> ksqlAuthorizationValidator.checkAuthorization(
+              serviceContext,
+              ksqlEngine.getMetaStore(),
+              statement.getStatement()
+          );
 
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
-
+        final boolean skipAccessValidation = ksqlConfig.getBoolean(
+            KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
         if (queryStmt.getStatement().isPullQuery()) {
+          if (authorizationValidator.isPresent() && !skipAccessValidation) {
+            return Errors.badRequest("Pull queries are not currently supported, when "
+                + "access validation against Kafka is configured. If you really want to "
+                + "bypass this limitation please set "
+                + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG + "=true "
+                + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC);
+          }
+
           return handlePullQuery(
               serviceContext,
               queryStmt,
@@ -192,6 +204,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
           );
         }
 
+        authorizationValidator.ifPresent(authValidationConsumer);
         return handlePushQuery(
             serviceContext,
             queryStmt,
@@ -200,6 +213,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
       }
 
       if (statement.getStatement() instanceof PrintTopic) {
+        authorizationValidator.ifPresent(authValidationConsumer);
         return handlePrintTopic(
             serviceContext,
             request.getStreamsProperties(),

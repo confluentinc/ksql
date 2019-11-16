@@ -18,7 +18,6 @@ package io.confluent.ksql.security;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -31,6 +30,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.Config;
@@ -78,44 +78,45 @@ public class KsqlAuthorizationValidatorFactoryTest {
     givenKafkaAuthorizer("an-authorizer-class", Collections.emptySet());
 
     // When:
-    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then
-    assertThat(validator, is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat("validator should be present", validator.isPresent());
+    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
   }
 
   @Test
-  public void shouldReturnDummyValidator() {
+  public void shouldReturnEmptyValidator() {
     // Given:
     givenKafkaAuthorizer("", Collections.emptySet());
 
     // When:
-    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then
-    assertThat(validator, not(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(validator, is(Optional.empty()));
   }
 
   @Test
-  public void shouldReturnDummyValidatorIfNotEnabled() {
+  public void shouldReturnEmptyValidatorIfNotEnabled() {
     // Given:
     when(ksqlConfig.getString(KsqlConfig.KSQL_ENABLE_TOPIC_ACCESS_VALIDATOR))
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_OFF);
 
     // When:
-    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then:
-    assertThat(validator, not(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(validator, is(Optional.empty()));
     verifyZeroInteractions(adminClient);
   }
 
@@ -126,29 +127,30 @@ public class KsqlAuthorizationValidatorFactoryTest {
         .thenReturn(KsqlConfig.KSQL_ACCESS_VALIDATOR_ON);
 
     // When:
-    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then:
-    assertThat(validator, instanceOf(KsqlAuthorizationValidatorImpl.class));
+    assertThat("validator should be present", validator.isPresent());
+    assertThat(validator.get(), is(instanceOf(KsqlAuthorizationValidatorImpl.class)));
     verifyZeroInteractions(adminClient);
   }
 
   @Test
-  public void shouldReturnDummyValidatorIfAuthorizedOperationsReturnNull() {
+  public void shouldReturnEmptyValidatorIfAuthorizedOperationsReturnNull() {
     // Given:
     givenKafkaAuthorizer("an-authorizer-class", null);
 
     // When:
-    final KsqlAuthorizationValidator validator = KsqlAuthorizationValidatorFactory.create(
+    final Optional<KsqlAuthorizationValidator> validator = KsqlAuthorizationValidatorFactory.create(
         ksqlConfig,
         serviceContext
     );
 
     // Then
-    assertThat(validator, not(instanceOf(KsqlAuthorizationValidatorImpl.class)));
+    assertThat(validator, is(Optional.empty()));
   }
 
   private void givenKafkaAuthorizer(

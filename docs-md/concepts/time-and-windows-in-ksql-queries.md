@@ -363,7 +363,7 @@ SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
 ```
 
 For more information on joins, see
-[Join Event Streams with ksqlDB](../developer-guide/join-streams-and-tables.md).
+[Join Event Streams with ksqlDB](../developer-guide/joins/join-streams-and-tables.md).
 
 Next Steps
 ----------

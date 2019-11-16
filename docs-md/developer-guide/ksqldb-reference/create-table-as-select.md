@@ -41,7 +41,7 @@ in the selected columns.
 For joins, the columns used in the join criteria must be the keys of the
 tables being joined.
 
-For more information, see [Join Event Streams with ksqlDB](../join-streams-and-tables.md).
+For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
 
 The WITH clause supports the following properties:
 

@@ -2,7 +2,7 @@
 layout: page
 title: Partition Data to Enable Joins
 tagline: Correct partitioning for joins
-description: Learn how correctly partitioned topics enable join queries
+description: Learn how to partition topics correctly to enable join queries.
 keywords: ksqldb, join, partition, key, schema 
 ---
 
@@ -15,6 +15,9 @@ To join two data sources, streams or tables, ksqlDB needs to compare their
 records based on the joining column. To ensure that records with the same
 join column are co-located on the same stream task, the join column must
 coincide with the column that the sources are partitioned by.
+
+Primary key
+-----------
 
 A *primary key*, when present, defines the partitioning column. Tables are
 always partitioned by their primary key, and ksqlDB doesn't allow repartitioning

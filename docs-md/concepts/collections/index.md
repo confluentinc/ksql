@@ -20,7 +20,7 @@ cluster. Distributing collections, sometimes called "sharding", is more commonly
 known as *partitioning* in {{ site.ak }} and is the term that ksqlDB uses
 as well. Events with the same key are stored on the same partition. For more
 information, see
-[Partition Data to Enable Joins](../../developer-guide/partition-data.md).
+[Partition Data to Enable Joins](../../developer-guide/joins/partition-data.md).
 
 Collections provide durable storage for sequences of events. ksqlDB offers
 multiple abstractions for storing events. Although a single event is immutable,

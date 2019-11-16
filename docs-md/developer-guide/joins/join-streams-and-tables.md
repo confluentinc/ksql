@@ -1,12 +1,12 @@
 ---
 layout: page
-title: Join Event Streams with ksqlDB
-tagline: Merge streams of data in real time
-description: Learn how to use ksqlDB to merge streams of data in real time
+title: Join Event Streams
+tagline: Merge event streams in real time
+description: Learn how to use ksqlDB to merge streams of events in real time.
 ---
 
-You can use ksqlDB to merge streams of data in real time by using the JOIN
-statement, which has a SQL-like *join* syntax. A ksqlDB join and a relational
+You can use ksqlDB to merge streams of events in real time by using the JOIN
+statement, which has a SQL join syntax. A ksqlDB join and a relational
 database join are similar in that they both combine data from two sources
 based on common values. The result of a ksqlDB join is a new stream or table
 that's populated with the column values that you specify in a SELECT statement.
@@ -85,7 +85,7 @@ Input data must be co-partitioned when joining. This ensures that
 input records with the same key, from both sides of the join, are
 delivered to the same stream task during processing. It's your
 responsibility to ensure data co-partitioning when joining. For more
-information, see [Partition Data to Enable Joins](partition-data.md).
+information, see [Partition Data to Enable Joins](joins/partition-data.md).
 
 ### KEY property
 

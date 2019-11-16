@@ -391,6 +391,6 @@ Next Steps
 
 -   [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
 -   [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
--   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 
 Page last revised on: {{ git_revision_date }}

@@ -33,7 +33,7 @@ its corresponding topic.
 If the PARTITION BY clause is present, then the resulting stream will
 have the specified column as its key. The `column_name` must be present
 in the `select_expr`. For more information, see
-[Partition Data to Enable Joins](../partition-data.md).
+[Partition Data to Enable Joins](../joins/partition-data.md).
 
 For joins, the key of the resulting stream will be the value from the
 column from the left stream that was used in the join criteria. This
@@ -47,7 +47,7 @@ For stream-stream joins, you must specify a WITHIN clause for matching
 records that both occur within a specified time interval. For valid time
 units, see [ksqlDB Time Units](../syntax-reference.md#ksqldb-time-units).
 
-For more information, see [Join Event Streams with ksqlDB](../join-streams-and-tables.md).
+For more information, see [Join Event Streams with ksqlDB](../joins/join-streams-and-tables.md).
 
 The WITH clause for the result supports the following properties:
 

@@ -5,3 +5,5 @@ tagline: Test and debug your ksqlDB applications
 description: Learn about testing and debugging tools that you can use for your ksqlDB applications. 
 keywords: ksqldb, test, debug
 ---
+
+Page last revised on: {{ git_revision_date }}

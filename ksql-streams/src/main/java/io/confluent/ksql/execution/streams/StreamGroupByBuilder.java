@@ -21,6 +21,8 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
+import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamGroupBy;
 import io.confluent.ksql.execution.plan.StreamGroupByKey;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -30,20 +32,18 @@ import java.util.List;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KStream;
 
 public final class StreamGroupByBuilder {
   private StreamGroupByBuilder() {
   }
 
-  public static KGroupedStream<Struct, GenericRow> build(
-      final KStream<Struct, GenericRow> kstream,
+  public static KGroupedStreamHolder build(
+      final KStreamHolder<Struct> stream,
       final StreamGroupByKey step,
       final KsqlQueryBuilder queryBuilder,
       final GroupedFactory groupedFactory
   ) {
-    final LogicalSchema sourceSchema = step.getSource().getSchema();
+    final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
     final Formats formats = step.getFormats();
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
@@ -53,16 +53,16 @@ public final class StreamGroupByBuilder {
         queryBuilder,
         groupedFactory
     );
-    return kstream.groupByKey(grouped);
+    return KGroupedStreamHolder.of(stream.getStream().groupByKey(grouped), stream.getSchema());
   }
 
-  public static <K> KGroupedStream<Struct, GenericRow> build(
-      final KStream<K, GenericRow> kstream,
+  public static <K> KGroupedStreamHolder build(
+      final KStreamHolder<K> stream,
       final StreamGroupBy<K> step,
       final KsqlQueryBuilder queryBuilder,
       final GroupedFactory groupedFactory
   ) {
-    final LogicalSchema sourceSchema = step.getSource().getSchema();
+    final LogicalSchema sourceSchema = stream.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
     final Formats formats = step.getFormats();
     final Grouped<Struct, GenericRow> grouped = buildGrouped(
@@ -80,7 +80,10 @@ public final class StreamGroupByBuilder {
         queryBuilder.getFunctionRegistry()
     );
     final GroupByMapper<K> mapper = new GroupByMapper<>(groupBy);
-    return kstream.filter((key, value) -> value != null).groupBy(mapper, grouped);
+    return KGroupedStreamHolder.of(
+        stream.getStream().filter((key, value) -> value != null).groupBy(mapper, grouped),
+        stream.getSchema()
+    );
   }
 
   private static Grouped<Struct, GenericRow> buildGrouped(

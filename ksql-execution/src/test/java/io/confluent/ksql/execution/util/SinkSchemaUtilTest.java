@@ -17,53 +17,27 @@ package io.confluent.ksql.execution.util;
 
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Set;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 
 public class SinkSchemaUtilTest {
-
-  @Mock
-  private ExecutionStep step;
-
-  @Rule
-  public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-  private void givenStepWithSchema(LogicalSchema schema) {
-    when(step.getSources()).thenReturn(ImmutableList.of(step));
-    when(step.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(schema, mock(QueryContext.class))
-    );
-  }
-
   @Test
   public void shouldComputeIndexesToRemoveImplicitsAndRowKey() {
     // Given:
-    givenStepWithSchema(LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("field3"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
         .build()
-        .withMetaAndKeyColsInValue()
-    );
+        .withMetaAndKeyColsInValue();
 
     // When:
-    Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(step);
+    Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(schema);
 
     // Then:
     assertThat(indices, contains(0, 1));
@@ -72,7 +46,7 @@ public class SinkSchemaUtilTest {
   @Test
   public void shouldComputeIndexesToRemoveImplicitsAndRowKeyRegardlessOfLocation() {
     // Given:
-    givenStepWithSchema(LogicalSchema.builder()
+    LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(ColumnName.of("field1"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
@@ -80,11 +54,10 @@ public class SinkSchemaUtilTest {
         .valueColumn(ColumnName.of("timestamp"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("key"), SqlTypes.STRING)
-        .build()
-    );
+        .build();
 
     // When:
-    Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(step);
+    Set<Integer> indices = SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(schema);
 
     // Then:
     assertThat(indices, contains(2, 5));

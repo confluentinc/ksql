@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
@@ -46,12 +45,10 @@ import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import java.util.Collections;
 import java.util.Optional;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @SuppressWarnings("unchecked")
@@ -61,15 +58,10 @@ public class SchemaKGroupedTableTest {
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
       .valueColumn(ColumnName.of("IN1"), SqlTypes.INTEGER)
       .build();
-  private static final LogicalSchema AGG_SCHEMA = LogicalSchema.builder()
-      .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("AGG0"), SqlTypes.BIGINT)
-      .valueColumn(ColumnName.of("AGG1"), SqlTypes.BIGINT)
-      .build();
   private static final LogicalSchema OUT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("IN0"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("OUT0"), SqlTypes.STRING)
-      .valueColumn(ColumnName.of("OUT1"), SqlTypes.STRING)
+      .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_0"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("KSQL_AGG_VARIABLE_1"), SqlTypes.BIGINT)
       .build();
   private static final FunctionCall MIN = udaf("MIN");
   private static final FunctionCall MAX = udaf("MAX");
@@ -85,14 +77,6 @@ public class SchemaKGroupedTableTest {
 
   @Rule
   public final ExpectedException expectedException = ExpectedException.none();
-
-  @Mock
-  private KsqlQueryBuilder queryBuilder;
-
-  @Before
-  public void init() {
-    when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-  }
 
   private static <S> ExecutionStep<S> buildSourceTableStep(final LogicalSchema schema) {
     final ExecutionStep<S> step = mock(ExecutionStep.class);
@@ -113,14 +97,11 @@ public class SchemaKGroupedTableTest {
 
     // When:
     groupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
         1,
         ImmutableList.of(SUM, COUNT),
         Optional.of(windowExp),
         valueFormat,
-        queryContext,
-        queryBuilder
+        queryContext
     );
   }
 
@@ -136,14 +117,11 @@ public class SchemaKGroupedTableTest {
 
     // When:
     kGroupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
         1,
         ImmutableList.of(MIN, MAX),
         Optional.empty(),
         valueFormat,
-        queryContext,
-        queryBuilder
+        queryContext
     );
   }
 
@@ -164,14 +142,11 @@ public class SchemaKGroupedTableTest {
     final SchemaKGroupedTable kGroupedTable = buildSchemaKGroupedTable();
 
     final SchemaKTable result = kGroupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
         1,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat,
-        queryContext,
-        queryBuilder
+        queryContext
     );
 
     // Then:
@@ -181,11 +156,10 @@ public class SchemaKGroupedTableTest {
             ExecutionStepFactory.tableAggregate(
                 queryContext,
                 kGroupedTable.getSourceTableStep(),
-                OUT_SCHEMA,
                 Formats.of(keyFormat, valueFormat, SerdeOption.none()),
                 1,
                 ImmutableList.of(SUM, COUNT),
-                AGG_SCHEMA
+                functionRegistry
             )
         )
     );
@@ -198,36 +172,15 @@ public class SchemaKGroupedTableTest {
 
     // When:
     final SchemaKTable result = groupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
         1,
         ImmutableList.of(SUM, COUNT),
         Optional.empty(),
         valueFormat,
-        queryContext,
-        queryBuilder
+        queryContext
     );
 
     // Then:
     assertThat(result.getSchema(), is(OUT_SCHEMA));
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void shouldThrowOnColumnCountMismatch() {
-    // Given:
-    final SchemaKGroupedTable groupedTable = buildSchemaKGroupedTable();
-
-    // When:
-    groupedTable.aggregate(
-        AGG_SCHEMA,
-        OUT_SCHEMA,
-        2,
-        ImmutableList.of(SUM, COUNT),
-        Optional.empty(),
-        valueFormat,
-        queryContext,
-        queryBuilder
-    );
   }
 
   private static FunctionCall udaf(final String name) {

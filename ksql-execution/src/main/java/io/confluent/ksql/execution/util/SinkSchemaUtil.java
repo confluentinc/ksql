@@ -16,7 +16,6 @@
 package io.confluent.ksql.execution.util;
 
 import com.google.common.collect.Streams;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -31,13 +30,11 @@ public final class SinkSchemaUtil {
   private SinkSchemaUtil() {
   }
 
-  public static LogicalSchema sinkSchema(ExecutionStep<?> step) {
-    LogicalSchema schema = step.getSources().get(0).getProperties().getSchema();
+  public static LogicalSchema sinkSchema(LogicalSchema schema) {
     return schema.withoutMetaAndKeyColsInValue();
   }
 
-  public static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(ExecutionStep<?> step) {
-    LogicalSchema schema = step.getSources().get(0).getProperties().getSchema();
+  public static Set<Integer> implicitAndKeyColumnIndexesInValueSchema(LogicalSchema schema) {
     ConnectSchema valueSchema = schema.valueConnectSchema();
 
     Stream<Column> cols = Streams.concat(

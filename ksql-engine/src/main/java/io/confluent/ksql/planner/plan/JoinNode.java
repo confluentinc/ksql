@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.execution.streams.JoinParamsFactory;
 import io.confluent.ksql.metastore.model.DataSource.DataSourceType;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.SourceName;
@@ -28,7 +29,6 @@ import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKStream;
@@ -89,7 +89,7 @@ public class JoinNode extends PlanNode {
             ? left.getKeyField()
             : KeyField.of(leftKeyCol.ref());
 
-    this.schema = buildSchema(left, right);
+    this.schema = JoinParamsFactory.createSchema(left.getSchema(), right.getSchema());
   }
 
   @Override
@@ -464,24 +464,5 @@ public class JoinNode extends PlanNode {
     return leftType == DataSourceType.KTABLE && rightType == DataSourceType.KTABLE
         ? DataSourceType.KTABLE
         : DataSourceType.KSTREAM;
-  }
-
-  private static LogicalSchema buildSchema(
-      final PlanNode left,
-      final PlanNode right
-  ) {
-    final LogicalSchema leftSchema = left.getSchema();
-    final LogicalSchema rightSchema = right.getSchema();
-
-    final LogicalSchema.Builder joinSchema = LogicalSchema.builder();
-
-    // Hard-wire for now, until we support custom type/name of key fields:
-    joinSchema.keyColumn(SchemaUtil.ROWKEY_NAME, SqlTypes.STRING);
-
-    joinSchema.valueColumns(leftSchema.value());
-
-    joinSchema.valueColumns(rightSchema.value());
-
-    return joinSchema.build();
   }
 }

@@ -79,6 +79,10 @@ public final class StreamSourceBuilder {
 
     return new KStreamHolder<>(
         kstream,
+        streamSource
+            .getSourceSchema()
+            .withAlias(streamSource.getAlias())
+            .withMetaAndKeyColsInValue(),
         (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
     );
   }
@@ -118,6 +122,9 @@ public final class StreamSourceBuilder {
 
     return new KStreamHolder<>(
         kstream,
+        streamSource.getSourceSchema()
+            .withAlias(streamSource.getAlias())
+            .withMetaAndKeyColsInValue(),
         (fmt, schema, ctx) -> queryBuilder.buildKeySerde(
             fmt.getFormatInfo(),
             fmt.getWindowInfo().get(),

@@ -96,7 +96,7 @@ public class StreamFilterBuilderTest {
     when(predicateFactory.create(any(), any(), any(), any(), any())).thenReturn(sqlPredicate);
     when(sqlPredicate.getPredicate()).thenReturn(predicate);
     sourceWithSerdeFactory =
-        new KStreamHolder<>(sourceKStream, keySerdeFactory);
+        new KStreamHolder<>(sourceKStream, schema, keySerdeFactory);
     when(sourceStep.build(any())).thenReturn(sourceWithSerdeFactory);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
@@ -105,7 +105,7 @@ public class StreamFilterBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         predicateFactory,
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
     step = new StreamFilter<>(properties, sourceStep, filterExpression);
@@ -121,6 +121,15 @@ public class StreamFilterBuilderTest {
     assertThat(result.getStream(), is(filteredKStream));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
     verify(sourceKStream).filter(predicate);
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final KStreamHolder<Struct> result = step.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(schema));
   }
 
   @Test

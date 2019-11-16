@@ -130,11 +130,11 @@ public class StreamToTableBuilderTest {
     when(ksqlQueryBuilder.getQueryId()).thenReturn(new QueryId("qid"));
     when(ksqlQueryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(source.build(any())).thenReturn(
-        new KStreamHolder<>(kStream, keySerdeFactory));
+        new KStreamHolder<>(kStream, SCHEMA, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         ksqlQueryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             mock(GroupedFactory.class),
             mock(JoinedFactory.class),
@@ -169,6 +169,18 @@ public class StreamToTableBuilderTest {
     verify(kGroupedStream).aggregate(any(), any(), same(materialized));
     assertThat(result.getTable(), is(kTable));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // Given:
+    givenUnwindowed();
+
+    // When:
+    final KTableHolder<Struct> result = step.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(SCHEMA));
   }
 
   @Test

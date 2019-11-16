@@ -134,7 +134,7 @@ public class StreamMapValuesBuilderTest {
         sourceKStream.transformValues(any(ValueTransformerWithKeySupplier.class), any(Named.class)))
         .thenReturn(resultKStream);
     final KStreamHolder<Struct> sourceStream
-        = new KStreamHolder<>(sourceKStream, keySerdeFactory);
+        = new KStreamHolder<>(sourceKStream, SCHEMA, keySerdeFactory);
     when(sourceStep.build(any())).thenReturn(sourceStream);
     step = new StreamMapValues<>(
         properties,
@@ -145,7 +145,7 @@ public class StreamMapValuesBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
   }
@@ -188,5 +188,19 @@ public class StreamMapValuesBuilderTest {
     );
 
     assertThat(NamedTestAccessor.getName(nameCaptor.getValue()), is(SELECT_STEP_NAME + "-unique"));
+  }
+
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final KStreamHolder<Struct> result = step.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(LogicalSchema.builder()
+            .valueColumn(ColumnName.of("expr1"), SqlTypes.STRING)
+            .valueColumn(ColumnName.of("expr2"), SqlTypes.INTEGER)
+            .build())
+    );
   }
 }

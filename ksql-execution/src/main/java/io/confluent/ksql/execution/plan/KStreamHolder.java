@@ -16,19 +16,23 @@
 package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import org.apache.kafka.streams.kstream.KStream;
 
 public final class KStreamHolder<K> {
   private final KStream<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
+  private final LogicalSchema schema;
 
   public KStreamHolder(
       final KStream<K, GenericRow> stream,
+      final LogicalSchema schema,
       final KeySerdeFactory<K> keySerdeFactory
   ) {
     this.stream = Objects.requireNonNull(stream, "stream");
     this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.schema = Objects.requireNonNull(schema, "shcema");
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {
@@ -39,7 +43,13 @@ public final class KStreamHolder<K> {
     return stream;
   }
 
-  public KStreamHolder<K> withStream(final KStream<K, GenericRow> stream) {
-    return new KStreamHolder<>(stream, keySerdeFactory);
+  public KStreamHolder<K> withStream(
+      final KStream<K, GenericRow> stream,
+      final LogicalSchema schema) {
+    return new KStreamHolder<>(stream, schema, keySerdeFactory);
+  }
+
+  public LogicalSchema getSchema() {
+    return schema;
   }
 }

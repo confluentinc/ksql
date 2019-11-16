@@ -39,7 +39,6 @@ import io.confluent.ksql.execution.plan.AbstractStreamSource;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.KStreamHolder;
-import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSource;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
@@ -99,8 +98,9 @@ public class StreamSourceBuilderTest {
       .field("k1", Schema.OPTIONAL_STRING_SCHEMA)
       .build();
   private static final Struct KEY = new Struct(KEY_SCHEMA).put("k1", "foo");
-  private static final LogicalSchema SCHEMA
-      = LogicalSchemaWithMetaAndKeyFields.fromOriginal(SourceName.of("alias"), SOURCE_SCHEMA).getSchema();
+  private static final SourceName ALIAS = SourceName.of("alias");
+  private static final LogicalSchema SCHEMA =
+      SOURCE_SCHEMA.withMetaAndKeyColsInValue().withAlias(ALIAS);
 
   private static final KsqlConfig KSQL_CONFIG = new KsqlConfig(ImmutableMap.of());
   private static final KsqlConfig LEGACY_KSQL_CONFIG = new KsqlConfig(ImmutableMap.of(
@@ -178,7 +178,7 @@ public class StreamSourceBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
   }
@@ -207,6 +207,19 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void shouldReturnCorrectSchemaForUnwindowedSource() {
+    // Given:
+    givenUnwindowedSource();
+
+    // When:
+    final KStreamHolder<?> builtKstream = streamSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKstream.getSchema(), is(SCHEMA));
+  }
+
+    @Test
   @SuppressWarnings("unchecked")
   public void shouldApplyCorrectTransformationsToLegacySourceStream() {
     // Given:
@@ -299,6 +312,19 @@ public class StreamSourceBuilderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void shouldReturnCorrectSchemaForWindowedSource() {
+    // Given:
+    givenWindowedSource();
+
+    // When:
+    final KStreamHolder<?> builtKstream = windowedStreamSource.build(planBuilder);
+
+    // Then:
+    assertThat(builtKstream.getSchema(), is(SCHEMA));
+  }
+
+  @Test
   public void shouldThrowOnMultiFieldKey() {
     // Given:
     final StreamSource streamSource = new StreamSource(
@@ -312,7 +338,8 @@ public class StreamSourceBuilderTest {
             .keyColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
             .keyColumn(ColumnName.of("f2"), SqlTypes.BIGINT)
             .valueColumns(SCHEMA.value())
-            .build()
+            .build(),
+        ALIAS
     );
 
     // Then:
@@ -475,7 +502,8 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        ALIAS
     );
   }
 
@@ -488,7 +516,8 @@ public class StreamSourceBuilderTest {
         extractionPolicy,
         TIMESTAMP_IDX,
         offsetReset,
-        SOURCE_SCHEMA
+        SOURCE_SCHEMA,
+        ALIAS
     );
   }
 

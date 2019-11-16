@@ -45,7 +45,7 @@ public final class StreamStreamJoinBuilder {
     final Formats leftFormats = join.getLeftFormats();
     final QueryContext queryContext = join.getProperties().getQueryContext();
     final QueryContext.Stacker stacker = QueryContext.Stacker.of(queryContext);
-    final LogicalSchema leftSchema = join.getLeft().getSchema();
+    final LogicalSchema leftSchema = left.getSchema();
     final PhysicalSchema leftPhysicalSchema = PhysicalSchema.from(
         leftSchema.withoutAlias(),
         leftFormats.getOptions()
@@ -56,7 +56,7 @@ public final class StreamStreamJoinBuilder {
         stacker.push(LEFT_SERDE_CTX).getQueryContext()
     );
     final Formats rightFormats = join.getRightFormats();
-    final LogicalSchema rightSchema = join.getRight().getSchema();
+    final LogicalSchema rightSchema = right.getSchema();
     final PhysicalSchema rightPhysicalSchema = PhysicalSchema.from(
         rightSchema.withoutAlias(),
         rightFormats.getOptions()
@@ -78,22 +78,25 @@ public final class StreamStreamJoinBuilder {
         StreamsUtil.buildOpName(queryContext),
         StreamsUtil.buildOpName(queryContext)
     );
-    final KsqlValueJoiner joiner = new KsqlValueJoiner(leftSchema, rightSchema);
+    final JoinParams joinParams = JoinParamsFactory.create(leftSchema, rightSchema);
     final JoinWindows joinWindows = JoinWindows.of(join.getBefore()).after(join.getAfter());
     final KStream<K, GenericRow> result;
     switch (join.getJoinType()) {
       case LEFT:
-        result = left.getStream().leftJoin(right.getStream(), joiner, joinWindows, joined);
+        result = left.getStream().leftJoin(
+            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
         break;
       case OUTER:
-        result = left.getStream().outerJoin(right.getStream(), joiner, joinWindows, joined);
+        result = left.getStream().outerJoin(
+            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
         break;
       case INNER:
-        result = left.getStream().join(right.getStream(), joiner, joinWindows, joined);
+        result = left.getStream().join(
+            right.getStream(), joinParams.getJoiner(), joinWindows, joined);
         break;
       default:
         throw new IllegalStateException("invalid join type");
     }
-    return left.withStream(result);
+    return left.withStream(result, joinParams.getSchema());
   }
 }

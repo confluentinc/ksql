@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.ProjectInfo;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.execution.streams.AggregateParams;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -116,14 +116,12 @@ public final class KsqlMaterializationFactory {
 
   private static AggregateMapperFactory defaultAggregateMapperFactory() {
     return (info, functionRegistry) ->
-        new AggregateParams(
+        new AggregateParamsFactory().create(
             info.schema(),
             info.startingColumnIndex(),
             functionRegistry,
             info.aggregateFunctions()
-        )
-            .getAggregator()
-            .getResultMapper()::apply;
+        ).getAggregator().getResultMapper()::apply;
   }
 
   private static SelectMapperFactory defaultValueMapperFactory() {

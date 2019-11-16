@@ -42,6 +42,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo.Aggregate
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamAggregate;
@@ -152,7 +153,7 @@ public class StreamAggregateBuilderTest {
   @Mock
   private FunctionRegistry functionRegistry;
   @Mock
-  private AggregateParams.Factory aggregateParamsFactory;
+  private AggregateParamsFactory aggregateParamsFactory;
   @Mock
   private AggregateParams aggregateParams;
   @Mock
@@ -178,7 +179,7 @@ public class StreamAggregateBuilderTest {
   @Mock
   private Materialized<Struct, GenericRow, SessionStore<Bytes, byte[]>> sessionWindowMaterialized;
   @Mock
-  private ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep;
+  private ExecutionStep<KGroupedStreamHolder> sourceStep;
 
   private PlanBuilder planBuilder;
   private StreamAggregate aggregate;
@@ -187,13 +188,15 @@ public class StreamAggregateBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(sourceStep.getSchema()).thenReturn(INPUT_SCHEMA);
-    when(sourceStep.build(any())).thenReturn(groupedStream);
+    when(sourceStep.build(any())).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valueSerde);
     when(queryBuilder.getFunctionRegistry()).thenReturn(functionRegistry);
-    when(aggregateParamsFactory.create(any(), anyInt(), any(), any())).thenReturn(aggregateParams);
+    when(aggregateParamsFactory.create(any(), anyInt(), any(), any()))
+        .thenReturn(aggregateParams);
     when(aggregateParams.getAggregator()).thenReturn(aggregator);
+    when(aggregateParams.getAggregateSchema()).thenReturn(AGGREGATE_SCHEMA);
+    when(aggregateParams.getSchema()).thenReturn(OUTPUT_SCHEMA);
     when(aggregator.getMerger()).thenReturn(merger);
     when(aggregator.getResultMapper()).thenReturn(resultMapper);
     when(aggregateParams.getInitializer()).thenReturn(initializer);
@@ -223,8 +226,7 @@ public class StreamAggregateBuilderTest {
         sourceStep,
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
-        FUNCTIONS,
-        AGGREGATE_SCHEMA
+        FUNCTIONS
     );
   }
 
@@ -246,7 +248,6 @@ public class StreamAggregateBuilderTest {
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
         FUNCTIONS,
-        AGGREGATE_SCHEMA,
         new TumblingWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
     );
   }
@@ -259,7 +260,6 @@ public class StreamAggregateBuilderTest {
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
         FUNCTIONS,
-        AGGREGATE_SCHEMA,
         new HoppingWindowExpression(
             WINDOW.getSeconds(),
             TimeUnit.SECONDS,
@@ -283,7 +283,6 @@ public class StreamAggregateBuilderTest {
         Formats.of(KEY_FORMAT, VALUE_FORMAT, SerdeOption.none()),
         2,
         FUNCTIONS,
-        AGGREGATE_SCHEMA,
         new SessionWindowExpression(WINDOW.getSeconds(), TimeUnit.SECONDS)
     );
   }
@@ -302,6 +301,18 @@ public class StreamAggregateBuilderTest {
     inOrder.verify(groupedStream).aggregate(initializer, aggregator, materialized);
     inOrder.verify(aggregated).mapValues(resultMapper);
     inOrder.verifyNoMoreInteractions();
+  }
+
+  @Test
+  public void shouldBuildUnwindowedAggregateWithCorrectSchema() {
+    // Given:
+    givenUnwindowedAggregate();
+
+    // When:
+    final KTableHolder<Struct> result = aggregate.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(OUTPUT_SCHEMA));
   }
 
   @Test
@@ -461,6 +472,18 @@ public class StreamAggregateBuilderTest {
 
     // Then:
     assertCorrectMaterializationBuilder(result);
+  }
+
+  @Test
+  public void shouldBuildSchemaCorrectlyForWindowedAggregate() {
+    // Given:
+    givenHoppingWindowedAggregate();
+
+    // When:
+    final KTableHolder<?> result = windowedAggregate.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(OUTPUT_SCHEMA));
   }
 
   private List<Runnable> given() {

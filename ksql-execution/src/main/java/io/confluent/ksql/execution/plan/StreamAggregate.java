@@ -15,37 +15,31 @@
 package io.confluent.ksql.execution.plan;
 
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
 
 @Immutable
 public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KGroupedStream<Struct, GenericRow>> source;
+  private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
   private final List<FunctionCall> aggregations;
-  private final LogicalSchema aggregationSchema;
 
   public StreamAggregate(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KGroupedStream<Struct, GenericRow>> source,
+      final ExecutionStep<KGroupedStreamHolder> source,
       final Formats formats,
       final int nonFuncColumnCount,
-      final List<FunctionCall> aggregations,
-      final LogicalSchema aggregationSchema) {
+      final List<FunctionCall> aggregations) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.nonFuncColumnCount = nonFuncColumnCount;
     this.aggregations = Objects.requireNonNull(aggregations, "aggregations");
-    this.aggregationSchema = Objects.requireNonNull(aggregationSchema, "aggregationSchema");
   }
 
   @Override
@@ -70,11 +64,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
     return formats;
   }
 
-  public LogicalSchema getAggregationSchema() {
-    return aggregationSchema;
-  }
-
-  public ExecutionStep<KGroupedStream<Struct, GenericRow>> getSource() {
+  public ExecutionStep<KGroupedStreamHolder> getSource() {
     return source;
   }
 
@@ -96,8 +86,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
         && Objects.equals(aggregations, that.aggregations)
-        && nonFuncColumnCount == that.nonFuncColumnCount
-        && aggregationSchema.equals(that.aggregationSchema);
+        && nonFuncColumnCount == that.nonFuncColumnCount;
   }
 
   @Override
@@ -108,8 +97,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
         source,
         formats,
         aggregations,
-        nonFuncColumnCount,
-        aggregationSchema
+        nonFuncColumnCount
     );
   }
 }

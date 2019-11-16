@@ -15,10 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
-import io.confluent.ksql.GenericRow;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.Windowed;
 
 /**
@@ -30,9 +27,9 @@ import org.apache.kafka.streams.kstream.Windowed;
 public interface PlanBuilder {
   <K> KStreamHolder<K> visitStreamFilter(StreamFilter<K> streamFilter);
 
-  <K> KGroupedStream<Struct, GenericRow> visitStreamGroupBy(StreamGroupBy<K> streamGroupBy);
+  <K> KGroupedStreamHolder visitStreamGroupBy(StreamGroupBy<K> streamGroupBy);
 
-  KGroupedStream<Struct, GenericRow> visitStreamGroupByKey(StreamGroupByKey streamGroupByKey);
+  KGroupedStreamHolder visitStreamGroupByKey(StreamGroupByKey streamGroupByKey);
 
   KTableHolder<Struct> visitStreamAggregate(StreamAggregate streamAggregate);
 
@@ -62,7 +59,7 @@ public interface PlanBuilder {
 
   <K> KTableHolder<K> visitTableFilter(TableFilter<K> tableFilter);
 
-  <K> KGroupedTable<Struct, GenericRow> visitTableGroupBy(TableGroupBy<K> tableGroupBy);
+  <K> KGroupedTableHolder visitTableGroupBy(TableGroupBy<K> tableGroupBy);
 
   <K> KTableHolder<K> visitTableMapValues(TableMapValues<K> tableMapValues);
 

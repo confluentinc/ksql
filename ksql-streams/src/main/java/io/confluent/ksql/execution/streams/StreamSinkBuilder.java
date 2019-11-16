@@ -40,7 +40,7 @@ public final class StreamSinkBuilder {
       final StreamSink<K> streamSink,
       final KsqlQueryBuilder queryBuilder) {
     final QueryContext queryContext = streamSink.getProperties().getQueryContext();
-    final LogicalSchema schema = SinkSchemaUtil.sinkSchema(streamSink);
+    final LogicalSchema schema = SinkSchemaUtil.sinkSchema(stream.getSchema());
     final Formats formats = streamSink.getFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(schema, formats.getOptions());
     final KeySerde<K> keySerde = stream.getKeySerdeFactory().buildKeySerde(
@@ -54,7 +54,7 @@ public final class StreamSinkBuilder {
         queryContext
     );
     final Set<Integer> rowkeyIndexes =
-        SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(streamSink);
+        SinkSchemaUtil.implicitAndKeyColumnIndexesInValueSchema(stream.getSchema());
     final String kafkaTopicName = streamSink.getTopicName();
     stream.getStream()
         .mapValues(row -> {

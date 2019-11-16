@@ -67,7 +67,7 @@ For more information on {{ site.kstreams }}, see
 Also, you can implement custom logic and aggregations in your ksqlDB
 applications by implementing user defined functions (UDFs) in Java. For more
 information, see
-[ksqlDB Custom Function Reference](../developer-guide/udf.md).
+[Custom Function Reference](functions.md).
 
 ksqlDB Language Elements
 ----------------------
@@ -228,13 +228,13 @@ Dedicating Resources
 Join ksqlDB engines to the same *service pool* by using the `ksql.service.id`
 property. The following diagram shows a {{ site.ak }} cluster with separate
 workloads for a `finance` pool and a `sales` pool. For more information, see
-[ksql.service.id](../installation/server-config/config-reference.md#ksqlserviceid).
+[ksql.service.id](../operate-and-deploy/installation/server-config/config-reference.md#ksqlserviceid).
 
 ![Diagram showing how to join ksqlDB engines to the same service pool](../img/ksql-dedicating-resources.png)
 
 To scale out, just add more ksqlDB server instances. There's no master
 node or coordination among them required. For more information, see
-[Capacity Planning](../capacity-planning.md).
+[Capacity Planning](../operate-and-deploy/capacity-planning.md).
 
 ksqlDB Query Lifecycle
 ----------------------

@@ -90,7 +90,7 @@ ksqlDB currently supports the following formats:
 -   Avro message values. Avro keys are not yet supported.
     Requires {{ site.sr }} and `ksql.schema.registry.url` in the ksqlDB
     server configuration file. For more information, see
-    [Configure Avro and {{ site.sr }} for ksqlDB](installation/server-config/avro-schema.md).
+    [Configure Avro and {{ site.sr }} for ksqlDB](operate-and-deploy/installation/server-config/avro-schema.md).
 -   KAFKA (for example, a `BIGINT` that's serialized using Kafka's
     standard `LongSerializer`).
 
@@ -142,7 +142,7 @@ How do I configure the target Kafka cluster?
 --------------------------------------------
 
 Define `bootstrap.servers` in the
-[ksqlDB server configuration](installation/server-config/index.md).
+[ksqlDB server configuration](operate-and-deploy/installation/server-config/index.md).
 
 How do I add ksqlDB servers to an existing ksqlDB cluster?
 ------------------------------------------------------
@@ -155,22 +155,22 @@ form a given ksqlDB cluster.
 To add a ksqlDB server to an existing ksqlDB cluster the server must be
 configured with the same `bootstrap.servers` and `ksql.service.id`
 settings as the ksqlDB cluster it should join. For more information, see
-[Configuring ksqlDB Server](installation/server-config/index.md) and
-[Scaling ksqlDB](capacity-planning.md#scaling-ksqldb).
+[Configuring ksqlDB Server](operate-and-deploy/installation/server-config/index.md) and
+[Scaling ksqlDB](operate-and-deploy/capacity-planning.md#scaling-ksqldb).
 
 How can I lock-down ksqlDB servers for production and prevent interactive client access?
 ----------------------------------------------------------------------------------------
 
 You can configure your servers to run a set of predefined queries by
 using `ksql.queries.file` or the `--queries-file` command line flag. For
-more information, see [Configuring ksqlDB Server](installation/server-config/index.md).
+more information, see [Configuring ksqlDB Server](operate-and-deploy/installation/server-config/index.md).
 
 How do I use Avro data and integrate with Confluent Schema Registry?
 --------------------------------------------------------------------
 
 Configure the `ksql.schema.registry.url` property in the ksqlDB server
 configuration to point to {{ site.sr }} (see
-[Configure Avro and {{ site.sr }} for ksqlDB](installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql)).
+[Configure Avro and {{ site.sr }} for ksqlDB](operate-and-deploy/installation/server-config/avro-schema.md#configure-avro-and-schema-registry-for-ksql)).
 
 !!! important
 	-   To use Avro data with ksqlDB you must have {{ site.sr }}
@@ -203,7 +203,7 @@ Can ksqlDB connect to an Apache Kafka cluster over SSL?
 Yes. Internally, ksqlDB uses standard Kafka consumers and producers. The
 procedure to securely connect ksqlDB to Kafka is the same as connecting
 any app to Kafka. For more information, see
-[Configuring Kafka Encrypted Communication](installation/server-config/security.md#configuring-kafka-encrypted-communication).
+[Configuring Kafka Encrypted Communication](operate-and-deploy/installation/server-config/security.md#configuring-kafka-encrypted-communication).
 
 Can ksqlDB connect to an Apache Kafka cluster over SSL and authenticate using SASL?
 -----------------------------------------------------------------------------------
@@ -213,7 +213,7 @@ procedure to connect ksqlDB securely to Kafka is the same as connecting
 any app to Kafka.
 
 For more information, see
-[Configure Kafka Authentication](installation/server-config/security.md#configure-kafka-authentication).
+[Configure Kafka Authentication](operate-and-deploy/installation/server-config/security.md#configure-kafka-authentication).
 
 Will ksqlDB work with Confluent Cloud?
 --------------------------------------
@@ -226,14 +226,14 @@ Will ksqlDB work with a Kafka cluster secured using Kafka ACLs?
 ---------------------------------------------------------------
 
 Yes. For more information, see
-[Configure Authorization of ksqlDB with Kafka ACLs](installation/server-config/security.md#configure-authorization-of-ksqldb-with-kafka-acls).
+[Configure Authorization of ksqlDB with Kafka ACLs](operate-and-deploy/installation/server-config/security.md#configure-authorization-of-ksqldb-with-kafka-acls).
 
 Will ksqlDB work with an HTTPS Schema Registry?
 ---------------------------------------------
 
 Yes. ksqlDB can be configured to communicate with {{ site.srlong }} over HTTPS.
 For more information, see
-[Configure ksqlDB for Secured {{ site.srlong }}](installation/server-config/security.md#configure-ksqldb-for-https).
+[Configure ksqlDB for Secured {{ site.srlong }}](operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
 
 Where are ksqlDB-related data and metadata stored?
 ------------------------------------------------

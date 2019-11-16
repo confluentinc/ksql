@@ -21,9 +21,7 @@ These topics show how to develop ksqlDB applications.
 - [Serialization](serialization.md)
 - [Testing Tool](test-and-debug/ksql-testing-tool.md)
 - [ksqlDB REST API Reference](api.md)
-- [Custom Function Reference (UDF and UDAF)](udf.md)
 - [Processing Log](test-and-debug/processing-log.md)
-- [ksqlDB-Connect Integration](ksql-connect.md)
 - [Tutorials and Examples](../tutorials/index.md)
 
 

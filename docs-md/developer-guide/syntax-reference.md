@@ -153,7 +153,7 @@ ksqlDB CLI Commands
 -----------------
 
 The ksqlDB CLI commands can be run after
-[starting the ksqlDB CLI](../installation/installing.md#start-the-ksqldb-cli). You can view
+[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli). You can view
 the ksqlDB CLI help by running `<path-to-confluent>/bin/ksql --help`.
 
 !!! tip

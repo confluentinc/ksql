@@ -21,7 +21,7 @@ values.
 Avro schemas with nested fields are supported. You can read nested data,
 in Avro and JSON formats, by using the STRUCT type. You can't create new
 nested STRUCT data as the result of a query, but you can copy existing STRUCT
-fields as-is. For more info, see [STRUCT](../../developer-guide/syntax-reference.md#struct).
+fields as-is. For more info, see [STRUCT](../../../developer-guide/syntax-reference.md#struct).
 
 The following functionality is not supported:
 

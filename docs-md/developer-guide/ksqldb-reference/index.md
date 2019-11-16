@@ -3,7 +3,7 @@ layout: page
 title: ksqlDB API Index
 tagline: Program ksqlDB 
 description: Learn to program ksqlDB to create streaming applications.
-keywords: ksqldb, api, reference
+keywords: ksqldb, api, reference, function, operator, metadata, connector, qiery
 ---
 
 Functions and Operators
@@ -36,6 +36,14 @@ Queries
 - [SELECT (Push Query)](select-push-query.md)
 - [EXPLAIN](explain.md)
 - [TERMINATE](terminate.md)
+
+Connectors
+----------
+
+- [CREATE CONNECTOR](create-connector.md)
+- [DESCRIBE CONNECTOR](describe-connector.md)
+- [DROP CONNECTOR](drop-connector.md)
+- [SHOW CONNECTORS](show-connectors.md)
 
 Metadata
 --------

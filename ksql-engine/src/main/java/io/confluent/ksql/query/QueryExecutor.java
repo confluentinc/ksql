@@ -363,7 +363,8 @@ public final class QueryExecutor {
             info.getStateStoreSchema(),
             keySerializer,
             keyFormat.getWindowType(),
-            streamsProperties
+            streamsProperties,
+            ksqlConfig
         );
 
     return ksMaterialization.map(ksMat -> (queryId, contextStacker) -> ksqlMaterializationFactory

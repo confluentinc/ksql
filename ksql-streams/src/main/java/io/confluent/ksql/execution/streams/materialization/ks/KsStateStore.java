@@ -22,7 +22,7 @@ import io.confluent.ksql.execution.streams.materialization.MaterializationExcept
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.time.Duration;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -33,20 +33,19 @@ import org.apache.kafka.streams.state.QueryableStoreType;
  */
 class KsStateStore {
 
-  private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
-
   private final String stateStoreName;
   private final KafkaStreams kafkaStreams;
   private final LogicalSchema schema;
-  private final Duration timeout;
+  private final KsqlConfig ksqlConfig;
   private final Supplier<Long> clock;
 
   KsStateStore(
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
-      final LogicalSchema schema
+      final LogicalSchema schema,
+      final KsqlConfig ksqlConfig
   ) {
-    this(stateStoreName, kafkaStreams, schema, DEFAULT_TIMEOUT, System::currentTimeMillis);
+    this(stateStoreName, kafkaStreams, schema, ksqlConfig, System::currentTimeMillis);
   }
 
   @VisibleForTesting
@@ -54,13 +53,13 @@ class KsStateStore {
       final String stateStoreName,
       final KafkaStreams kafkaStreams,
       final LogicalSchema schema,
-      final Duration timeout,
+      final KsqlConfig ksqlConfig,
       final Supplier<Long> clock
   ) {
     this.kafkaStreams = requireNonNull(kafkaStreams, "kafkaStreams");
     this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
     this.schema = requireNonNull(schema, "schema");
-    this.timeout = requireNonNull(timeout, "timeout");
+    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
     this.clock = requireNonNull(clock, "clock");
   }
 
@@ -84,11 +83,14 @@ class KsStateStore {
   }
 
   private void awaitRunning() {
-    final long threshold = clock.get() + timeout.toMillis();
+    final long timeoutMs =
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
+    final long threshold = clock.get() + timeoutMs;
     while (kafkaStreams.state() == State.REBALANCING) {
       if (clock.get() > threshold) {
         throw new MaterializationTimeOutException("Store failed to rebalance within the configured "
-            + "timeout. timeout: " + timeout.toMillis() + "ms");
+            + "timeout. timeout: " + timeoutMs + "ms, config: "
+            + KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG);
       }
 
       Thread.yield();

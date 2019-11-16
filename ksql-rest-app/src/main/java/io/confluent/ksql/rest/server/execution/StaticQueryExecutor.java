@@ -79,7 +79,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -96,7 +95,6 @@ import org.apache.kafka.connect.data.Struct;
 public final class StaticQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Duration OWNERSHIP_TIMEOUT = Duration.ofSeconds(30);
   private static final Set<Type> VALID_WINDOW_BOUNDS_TYPES = ImmutableSet.of(
       Type.EQUAL,
       Type.GREATER_THAN,
@@ -138,13 +136,13 @@ public final class StaticQueryExecutor {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
 
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG)) {
       throw new KsqlRestException(
           Errors.badStatement(
               "Pull queries are disabled. "
                   + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
                   + System.lineSeparator()
-                  + "Please set " + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable "
+                  + "Please set " + KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG + "=true to enable "
                   + "this feature.",
               statement.getStatementText()));
     }
@@ -165,7 +163,8 @@ public final class StaticQueryExecutor {
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
 
-      final KsqlNode owner = getOwner(rowKey, mat);
+      final KsqlConfig ksqlConfig = statement.getConfig();
+      final KsqlNode owner = getOwner(ksqlConfig, rowKey, mat);
       if (!owner.isLocal()) {
         return proxyTo(owner, statement, serviceContext);
       }
@@ -641,10 +640,16 @@ public final class StaticQueryExecutor {
     return source.getName();
   }
 
-  private static KsqlNode getOwner(final Struct rowKey, final Materialization mat) {
+  private static KsqlNode getOwner(
+      final KsqlConfig ksqlConfig,
+      final Struct rowKey,
+      final Materialization mat
+  ) {
     final Locator locator = mat.locator();
 
-    final long threshold = System.currentTimeMillis() + OWNERSHIP_TIMEOUT.toMillis();
+    final long timeoutMs =
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG);
+    final long threshold = System.currentTimeMillis() + timeoutMs;
     while (System.currentTimeMillis() < threshold) {
       final Optional<KsqlNode> owner = locator.locate(rowKey);
       if (owner.isPresent()) {
@@ -653,7 +658,8 @@ public final class StaticQueryExecutor {
     }
 
     throw new MaterializationTimeOutException(
-        "The owner of the key could not be determined within the configured timeout"
+        "The owner of the key could not be determined within the configured timeout: "
+            + timeoutMs + "ms, config: " + KsqlConfig.KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG
     );
   }
 

@@ -27,7 +27,7 @@ The RUN SCRIPT command supports a subset of ksqlDB statements:
 -   Persistent queries: [CREATE STREAM](create-stream.md),
     [CREATE TABLE](create-table.md), [CREATE STREAM AS SELECT](create-stream-as-select.md),
     [CREATE TABLE AS SELECT](create-table-as-select.md)
--   [DROP STREAM](drop-stream.md)) and [DROP TABLE](drop-table.md)
+-   [DROP STREAM](drop-stream.md) and [DROP TABLE](drop-table.md)
 -   SET, UNSET statements
 -   INSERT INTO statement
 

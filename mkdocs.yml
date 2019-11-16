@@ -150,7 +150,7 @@ nav:
 
 markdown_extensions:
     - toc:
-        permalink: 
+        permalink: true
     - admonition
     - codehilite:
         guess_lang: false

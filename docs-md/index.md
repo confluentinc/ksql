@@ -21,7 +21,9 @@ heavyweight architecture that requires integrating several distributed
 systems together. These architectures often include a fleet of connectors
 or agents for acquiring events from the outside world, durable storage to house
 these events, a stream processing framework for processing the events, and a
-database to serve aggregations of events to applications. 
+database to serve aggregations of events to applications.
+
+![Diagram of a streaming architecture that doesn't use ksqlDB](img/streaming-architecture-without-ksqldb.png)
 
 Unfortunately, the parts don't fit together as well as you'd hope; all of these
 systems are complex, and each integration is a small project to figure out.

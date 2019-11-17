@@ -6,6 +6,8 @@ description: Learn about continuously updated queries by using the SELECT statem
 keywords: ksqldb, push, query, select
 ---
 
+![Illustration of a push query](../../img/ksqldb-push-query.png)
+
 Push queries are a form of query issued by a client that subscribe to a result
 as it changes in real-time. A good example of a push query is subscribing to a
 particular user’s credit score. The query requests the value of the credit

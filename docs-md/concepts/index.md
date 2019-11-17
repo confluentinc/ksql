@@ -6,6 +6,8 @@ description: Learn about ksqlDB under the hood.
 keywords: ksqldb, architecture, collection, query, schema, window, view
 ---
 
+![Diagram of ksqlDB architecure](../img/ksqldb-architecture.png)
+
 ksqlDB is built on these conceptual pillars:
 
 - [Collections: streams and tables](#collections-streams-and-tables)

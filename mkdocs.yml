@@ -5,6 +5,7 @@ site_author: Confluent
 copyright: Copyright &copy; 2019 <a href="https://www.confluent.io/">Confluent</a>.
 google_analytics: ['UA-56447542-10', 'docs.ksqldb.io']
 
+repo_name: confluentinc/ksql
 repo_url: https://github.com/confluentinc/ksql
 edit_uri: ""
 docs_dir: docs-md

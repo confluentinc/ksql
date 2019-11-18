@@ -712,7 +712,7 @@ public final class StaticQueryExecutor {
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
-    return new KsqlException("Table '"
+    return new KsqlException("'"
         + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
         + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()

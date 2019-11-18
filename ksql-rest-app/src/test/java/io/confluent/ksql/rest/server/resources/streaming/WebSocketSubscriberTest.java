@@ -15,6 +15,8 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -103,7 +105,7 @@ public class WebSocketSubscriberTest {
   }
 
   @Test
-  public void testOnSchema() throws Exception {
+  public void shouldOutputSchemaProvided() throws Exception {
     replayOnSubscribe();
 
     session.getBasicRemote();
@@ -125,14 +127,15 @@ public class WebSocketSubscriberTest {
 
     subscriber.close();
 
-    assertEquals(
-        "[" +
-            "{\"name\":\"currency\"," +
-            "\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}}," +
-            "{\"name\":\"amount\"," +
-            "\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}"
+    assertThat(
+        schema.getValue(),
+        is("["
+            + "{\"name\":\"ROWTIME\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"currency\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"amount\",\"schema\":{\"type\":\"DOUBLE\",\"fields\":null,\"memberSchema\":null}}"
             + "]"
-        , schema.getValue());
+        ));
     assertEquals("Unable to send schema", reason.getValue().getReasonPhrase());
     assertEquals(CloseCodes.PROTOCOL_ERROR, reason.getValue().getCloseCode());
 

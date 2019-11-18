@@ -355,7 +355,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator
+        Optional.of(authorizationValidator)
     );
 
     // Then:
@@ -383,7 +383,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator
+        Optional.of(authorizationValidator)
     );
 
     // Then:
@@ -2057,7 +2057,7 @@ public class KsqlResourceTest {
             schemaInjectorFactory.apply(sc),
             topicInjectorFactory.apply(ec),
             new TopicDeleteInjector(ec, sc)),
-        authorizationValidator
+        Optional.of(authorizationValidator)
     );
 
     ksqlResource.configure(ksqlConfig);

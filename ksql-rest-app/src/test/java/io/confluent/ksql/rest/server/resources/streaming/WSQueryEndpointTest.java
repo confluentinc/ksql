@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.rest.server.resources.streaming;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -190,7 +191,7 @@ public class WSQueryEndpointTest {
         topicPublisher,
         activenessRegistrar,
         COMMAND_QUEUE_CATCHUP_TIMEOUT,
-        authorizationValidator,
+        Optional.of(authorizationValidator),
         securityExtension,
         serviceContextFactory,
         defaultServiceContextProvider,
@@ -385,6 +386,8 @@ public class WSQueryEndpointTest {
   @Test
   public void shouldHandlePullQuery() {
     // Given:
+    when(ksqlConfig.getBoolean(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
+        .thenReturn(true);
     givenQueryIs(QueryType.PULL);
     givenRequestIs(query);
 
@@ -403,6 +406,22 @@ public class WSQueryEndpointTest {
         eq(exec),
         eq(configuredStatement),
         any());
+  }
+
+  @Test
+  public void shouldFailPullQueryIfValidating() throws Exception {
+    // Given:
+    givenQueryIs(QueryType.PULL);
+    givenRequestIs(query);
+
+    // When:
+    wsQueryEndpoint.onOpen(session, null);
+
+    // Then:
+    verifyClosedContainingReason(
+        "Pull queries are not currently supported",
+        CloseCodes.CANNOT_ACCEPT
+    );
   }
 
   @Test
@@ -614,6 +633,13 @@ public class WSQueryEndpointTest {
     } catch (final Exception e) {
       throw new AssertionError("Invalid test", e);
     }
+  }
+
+  private void verifyClosedContainingReason(final String reason, final CloseCodes code) throws Exception {
+    verify(session).close(closeReasonCaptor.capture());
+    final CloseReason closeReason = closeReasonCaptor.getValue();
+    assertThat(closeReason.getReasonPhrase(), containsString(reason));
+    assertThat(closeReason.getCloseCode(), is(code));
   }
 
   private void verifyClosedWithReason(final String reason, final CloseCodes code) throws Exception {

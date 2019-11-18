@@ -177,14 +177,6 @@ public class RecoveryTest {
       this.fakeCommandQueue = new FakeCommandQueue(commandLog);
       serverState = new ServerState();
       serverState.setReady();
-      this.ksqlResource = new KsqlResource(
-          ksqlEngine,
-          fakeCommandQueue,
-          Duration.ofMillis(0),
-          ()->{},
-          (sc, metastore, statement) -> {
-          }
-      );
 
       this.statementExecutor = new StatementExecutor(
           serviceContext,
@@ -198,6 +190,15 @@ public class RecoveryTest {
           1,
           mock(ClusterTerminator.class),
           serverState
+      );
+
+
+      this.ksqlResource = new KsqlResource(
+          ksqlEngine,
+          fakeCommandQueue,
+          Duration.ofMillis(0),
+          ()->{},
+          Optional.of((sc, metastore, statement) -> { })
       );
 
       this.statementExecutor.configure(ksqlConfig);

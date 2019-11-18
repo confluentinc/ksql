@@ -21,7 +21,9 @@ import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.
 import static io.confluent.ksql.rest.server.resources.KsqlRestExceptionMatchers.exceptionStatusCode;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -71,6 +73,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeoutException;
@@ -138,9 +141,13 @@ public class StreamedQueryResourceTest {
   @Before
   public void setup() {
     when(serviceContext.getTopicClient()).thenReturn(mockKafkaTopicClient);
-    statement = PreparedStatement.of("s", mock(Statement.class));
+    statement = PreparedStatement.of(PUSH_QUERY_STRING, mock(Statement.class));
     when(mockStatementParser.parseSingleStatement(PUSH_QUERY_STRING)).thenReturn(statement);
-    when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(statement);
+
+    final Query pullQuery = mock(Query.class);
+    when(pullQuery.isPullQuery()).thenReturn(true);
+    final PreparedStatement<Statement> pullQueryStatement = PreparedStatement.of(PULL_QUERY_STRING, pullQuery);
+    when(mockStatementParser.parseSingleStatement(PULL_QUERY_STRING)).thenReturn(pullQueryStatement);
 
     testResource = new StreamedQueryResource(
         mockKsqlEngine,
@@ -149,7 +156,7 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        authorizationValidator
+        Optional.of(authorizationValidator)
     );
 
     testResource.configure(VALID_CONFIG);
@@ -174,7 +181,7 @@ public class StreamedQueryResourceTest {
         DISCONNECT_CHECK_INTERVAL,
         COMMAND_QUEUE_CATCHUP_TIMOEUT,
         activenessRegistrar,
-        authorizationValidator
+        Optional.of(authorizationValidator)
     );
 
     // Then:
@@ -258,7 +265,13 @@ public class StreamedQueryResourceTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void shouldNotCreateAdminClientForPullQuery() throws Exception {
+  public void shouldNotCreateExternalClientsForPullQuery() {
+    // Given
+    testResource.configure(new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
+        KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true
+    )));
+
     // When:
     testResource.streamQuery(
         serviceContext,
@@ -267,42 +280,50 @@ public class StreamedQueryResourceTest {
 
     // Then:
     verify(serviceContext, never()).getAdminClient();
-  }
-
-  @Test
-  public void shouldNotCreateConnectClientForPullQuery() throws Exception {
-    // When:
-    testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
-    );
-
-    // Then:
     verify(serviceContext, never()).getConnectClient();
-  }
-
-  @Test
-  public void shouldNotCreateSRClientForPullQuery() throws Exception {
-    // When:
-    testResource.streamQuery(
-        serviceContext,
-        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
-    );
-
-    // Then:
     verify(serviceContext, never()).getSchemaRegistryClient();
+    verify(serviceContext, never()).getTopicClient();
   }
 
   @Test
-  public void shouldNotCreateTopicClientForPullQuery() throws Exception {
+  public void shouldThrowExceptionForPullQueryIfValidating() {
     // When:
-    testResource.streamQuery(
+    final Response response = testResource.streamQuery(
         serviceContext,
         new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
     );
 
     // Then:
-    verify(serviceContext, never()).getTopicClient();
+    assertThat(response.getStatus(), is(Errors.badRequest("").getStatus()));
+    assertThat(response.getEntity(), is(instanceOf(KsqlErrorMessage.class)));
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) response.getEntity();
+    assertThat(
+        expectedEntity.getMessage(),
+        containsString(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG)
+    );
+  }
+
+  @Test
+  public void shouldPassCheckForPullQueryIfNotValidating() {
+    // Given
+    testResource.configure(new KsqlConfig(ImmutableMap.of(
+        StreamsConfig.APPLICATION_SERVER_CONFIG, "something:1",
+        KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true
+    )));
+
+    // When:
+    final Response response = testResource.streamQuery(
+        serviceContext,
+        new KsqlRequest(PULL_QUERY_STRING, Collections.emptyMap(), null)
+    );
+
+    // Then:
+    assertThat(response.getStatus(), is(Errors.badRequest("").getStatus()));
+    final KsqlErrorMessage expectedEntity = (KsqlErrorMessage) response.getEntity();
+    assertThat(
+        expectedEntity.getMessage(),
+        not(containsString(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG))
+    );
   }
 
 

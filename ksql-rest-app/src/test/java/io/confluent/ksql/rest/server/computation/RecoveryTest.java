@@ -65,7 +65,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;

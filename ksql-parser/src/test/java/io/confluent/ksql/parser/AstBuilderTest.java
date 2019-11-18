@@ -384,7 +384,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
-    assertThat("Should be static", result.isStatic(), is(true));
+    assertThat("Should be pull", result.isPullQuery(), is(true));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.FINAL));
   }
 
@@ -398,7 +398,7 @@ public class AstBuilderTest {
     final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -413,7 +413,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -427,7 +427,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -441,7 +441,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -455,7 +455,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 
@@ -469,7 +469,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
   @Test
@@ -482,7 +482,7 @@ public class AstBuilderTest {
     final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
-    assertThat("Should be continuous", result.isStatic(), is(false));
+    assertThat("Should be push", result.isPullQuery(), is(false));
     assertThat(result.getResultMaterialization(), is(ResultMaterialization.CHANGES));
   }
 

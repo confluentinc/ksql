@@ -20,7 +20,7 @@ import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION_NEEDS_
 import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION_NEEDS_QUOTES_TXT;
 import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION_TXT;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.expression.tree.Expression;

@@ -44,7 +44,7 @@ import io.confluent.ksql.rest.server.execution.DescribeFunctionExecutor;
 import io.confluent.ksql.rest.server.execution.ExplainExecutor;
 import io.confluent.ksql.rest.server.execution.ListSourceExecutor;
 import io.confluent.ksql.rest.server.execution.PropertyExecutor;
-import io.confluent.ksql.rest.server.execution.StaticQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomValidators {
 
-  QUERY_ENDPOINT(Query.class, StaticQueryExecutor::validate),
+  QUERY_ENDPOINT(Query.class, PullQueryExecutor::validate),
   PRINT_TOPIC(PrintTopic.class, PrintTopicValidator::validate),
 
   LIST_TOPICS(ListTopics.class, StatementValidator.NO_VALIDATION),

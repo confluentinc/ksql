@@ -15,12 +15,16 @@
 
 package io.confluent.ksql.parser.json;
 
-import static io.confluent.ksql.parser.json.ColumnRefTestCase.*;
+import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF;
+import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NEEDS_QUOTES;
+import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NEEDS_QUOTES_TXT;
+import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NO_SOURCE;
+import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_NO_SOURCE_TXT;
+import static io.confluent.ksql.parser.json.ColumnRefTestCase.COLUMN_REF_TXT;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import org.junit.Test;
 

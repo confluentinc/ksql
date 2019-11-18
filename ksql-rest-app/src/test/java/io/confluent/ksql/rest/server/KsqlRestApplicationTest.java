@@ -66,7 +66,6 @@ import java.util.Optional;
 import java.util.Queue;
 import java.util.function.Consumer;
 import javax.ws.rs.core.Configurable;
-
 import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Test;

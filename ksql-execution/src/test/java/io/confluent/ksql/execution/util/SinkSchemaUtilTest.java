@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.util;
 
 import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
+
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;

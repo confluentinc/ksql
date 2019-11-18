@@ -1,6 +1,11 @@
 package io.confluent.ksql.parser.json;
 
-import static io.confluent.ksql.parser.json.SelectExpressionTestCase.*;
+import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION;
+import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_NAME_NEEDS_QUOTES;
+import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_NAME_NEEDS_QUOTES_TXT;
+import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_NEEDS_QUOTES;
+import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_NEEDS_QUOTES_TXT;
+import static io.confluent.ksql.parser.json.SelectExpressionTestCase.SELECT_EXPRESSION_TXT;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 

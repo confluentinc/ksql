@@ -35,7 +35,7 @@ public class Query extends Statement {
   private final Optional<GroupBy> groupBy;
   private final Optional<Expression> having;
   private final ResultMaterialization resultMaterialization;
-  private final boolean staticQuery;
+  private final boolean pullQuery;
   private final OptionalInt limit;
 
   public Query(
@@ -47,7 +47,7 @@ public class Query extends Statement {
       final Optional<GroupBy> groupBy,
       final Optional<Expression> having,
       final ResultMaterialization resultMaterialization,
-      final boolean staticQuery,
+      final boolean pullQuery,
       final OptionalInt limit
   ) {
     super(location);
@@ -58,7 +58,7 @@ public class Query extends Statement {
     this.groupBy = requireNonNull(groupBy, "groupBy");
     this.having = requireNonNull(having, "having");
     this.resultMaterialization = requireNonNull(resultMaterialization, "resultMaterialization");
-    this.staticQuery = staticQuery;
+    this.pullQuery = pullQuery;
     this.limit = requireNonNull(limit, "limit");
   }
 
@@ -90,8 +90,8 @@ public class Query extends Statement {
     return resultMaterialization;
   }
 
-  public boolean isStatic() {
-    return staticQuery;
+  public boolean isPullQuery() {
+    return pullQuery;
   }
 
   public OptionalInt getLimit() {
@@ -113,7 +113,7 @@ public class Query extends Statement {
         .add("groupBy", groupBy.orElse(null))
         .add("having", having.orElse(null))
         .add("resultMaterialization", resultMaterialization)
-        .add("static", staticQuery)
+        .add("pullQuery", pullQuery)
         .add("limit", limit)
         .omitNullValues()
         .toString();
@@ -131,7 +131,7 @@ public class Query extends Statement {
       return false;
     }
     final Query o = (Query) obj;
-    return staticQuery == o.staticQuery
+    return pullQuery == o.pullQuery
         && Objects.equals(select, o.select)
         && Objects.equals(from, o.from)
         && Objects.equals(where, o.where)
@@ -152,7 +152,7 @@ public class Query extends Statement {
         groupBy,
         having,
         resultMaterialization,
-        staticQuery,
+        pullQuery,
         limit
     );
   }

@@ -360,7 +360,7 @@ public class WSQueryEndpoint {
     final ConfiguredStatement<Query> configured =
         ConfiguredStatement.of(statement, clientLocalProperties, ksqlConfig);
 
-    final QueryPublisher queryPublisher = query.isStatic()
+    final QueryPublisher queryPublisher = query.isPullQuery()
         ? pullQueryPublisher
         : pushQueryPublisher;
 

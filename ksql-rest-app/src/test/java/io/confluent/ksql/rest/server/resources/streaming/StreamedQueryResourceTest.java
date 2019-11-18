@@ -101,6 +101,7 @@ public class StreamedQueryResourceTest {
   private static final Duration DISCONNECT_CHECK_INTERVAL = Duration.ofMillis(1000);
   private static final Duration COMMAND_QUEUE_CATCHUP_TIMOEUT = Duration.ofMillis(1000);
   private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
       .valueColumn(ColumnName.of("f1"), SqlTypes.INTEGER)
       .build();
 
@@ -303,7 +304,6 @@ public class StreamedQueryResourceTest {
     // Then:
     verify(serviceContext, never()).getTopicClient();
   }
-
 
   @Test
   public void shouldStreamRowsCorrectly() throws Throwable {

@@ -51,6 +51,10 @@ nav:
     # - Schemas (TODO): concepts/ksqldb-schemas.md # future
     - Connectors: concepts/connectors.md
     - Functions: concepts/functions.md
+    - Joins:
+      - Join Index: developer-guide/joins/index.md
+      - Joining collections: developer-guide/joins/join-streams-and-tables.md
+      - Partitioning requirements: developer-guide/joins/partition-data.md
     - Architecture: concepts/ksql-architecture.md
     - Time and Windows: concepts/time-and-windows-in-ksql-queries.md
     - Serialization: developer-guide/serialization.md
@@ -59,10 +63,6 @@ nav:
     - Develop ksqlDB Applications: developer-guide/index.md
     - Create a Stream: developer-guide/create-a-stream.md
     - Create a Table: developer-guide/create-a-table.md
-    - Joins:
-      - Join Index: developer-guide/joins/index.md
-      - Joining collections: developer-guide/joins/join-streams-and-tables.md
-      - Partitioning requirements: developer-guide/joins/partition-data.md
     - Aggregate Streaming Events: developer-guide/aggregate-streaming-data.md
     - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
     - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
@@ -150,13 +150,13 @@ nav:
 
 markdown_extensions:
     - toc:
-        permalink: 
+        permalink: true
     - admonition
     - codehilite:
         guess_lang: false
     - def_list
     - mdx_gh_links:
-        user: JimGalasyn
+        user: confluentinc
         repo: ksqldb
 
 plugins:

@@ -12,6 +12,7 @@ docs_dir: docs-md
 theme:
     name: material
     favicon: img/favicon.ico
+    logo: img/logo-128x128.png
     feature: 
       tabs: true
     highlightjs: true

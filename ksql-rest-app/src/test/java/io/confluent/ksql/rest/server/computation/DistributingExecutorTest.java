@@ -122,7 +122,7 @@ public class DistributingExecutorTest {
         queue,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
-        authorizationValidator,
+        Optional.of(authorizationValidator),
         requestValidator
     );
   }

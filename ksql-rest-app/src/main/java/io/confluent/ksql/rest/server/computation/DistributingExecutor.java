@@ -52,14 +52,14 @@ public class DistributingExecutor {
   private final CommandQueue commandQueue;
   private final Duration distributedCmdResponseTimeout;
   private final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory;
-  private final KsqlAuthorizationValidator authorizationValidator;
+  private final Optional<KsqlAuthorizationValidator> authorizationValidator;
   private final RequestValidator requestValidator;
 
   public DistributingExecutor(
       final CommandQueue commandQueue,
       final Duration distributedCmdResponseTimeout,
       final BiFunction<KsqlExecutionContext, ServiceContext, Injector> injectorFactory,
-      final KsqlAuthorizationValidator authorizationValidator,
+      final Optional<KsqlAuthorizationValidator> authorizationValidator,
       final RequestValidator requestValidator
   ) {
     this.commandQueue = Objects.requireNonNull(commandQueue, "commandQueue");
@@ -154,15 +154,17 @@ public class DistributingExecutor {
     final MetaStore metaStore = serverExecutionContext.getMetaStore();
 
     // Check the User will be permitted to execute this statement
-    authorizationValidator.checkAuthorization(userServiceContext, metaStore, statement);
+    authorizationValidator.ifPresent(
+        validator ->
+            validator.checkAuthorization(userServiceContext, metaStore, statement));
 
     try {
       // Check the KSQL service principal will be permitted too
-      authorizationValidator.checkAuthorization(
-          serverExecutionContext.getServiceContext(),
-          metaStore,
-          statement
-      );
+      authorizationValidator.ifPresent(
+          validator -> validator.checkAuthorization(
+              serverExecutionContext.getServiceContext(),
+              metaStore,
+              statement));
     } catch (final Exception e) {
       throw new KsqlServerException("The KSQL server is not permitted to execute the command", e);
     }

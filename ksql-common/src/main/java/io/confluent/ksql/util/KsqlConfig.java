@@ -201,10 +201,10 @@ public class KsqlConfig extends AbstractConfig {
   public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG =
       "ksql.query.pull.skip.access.validator";
   public static final boolean KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DEFAULT = false;
-  public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC = "If true, KSQL will "
+  public static final String KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC = "If \"true\", KSQL will "
       + " NOT enforce access validation checks for pull queries, which could expose Kafka topics"
-      + " which are secured with RBAC or ACLs. Please enable only after careful consideration."
-      + " Default value: false";
+      + " which are secured with ACLs. Please enable only after careful consideration."
+      + " If \"false\", KSQL pull queries will fail against a secure Kafka cluster";
 
   public static final String KSQL_QUERY_PULL_ENABLE_CONFIG = "ksql.query.pull.enable";
   public static final String KSQL_QUERY_PULL_ENABLE_DOC =

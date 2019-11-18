@@ -186,11 +186,12 @@ public class StreamedQueryResource implements KsqlConfigurable {
 
       if (statement.getStatement() instanceof Query) {
         final PreparedStatement<Query> queryStmt = (PreparedStatement<Query>) statement;
-        final boolean skipAccessValidation = ksqlConfig.getBoolean(
-            KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
+
         if (queryStmt.getStatement().isPullQuery()) {
+          final boolean skipAccessValidation = ksqlConfig.getBoolean(
+              KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
           if (authorizationValidator.isPresent() && !skipAccessValidation) {
-            return Errors.badRequest("Pull queries are not currently supported, when "
+            return Errors.badRequest("Pull queries are not currently supported when "
                 + "access validation against Kafka is configured. If you really want to "
                 + "bypass this limitation please set "
                 + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG + "=true "

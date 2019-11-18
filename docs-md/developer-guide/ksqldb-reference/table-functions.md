@@ -6,6 +6,12 @@ description: Learn how to use table function in a SELECT clause
 keywords: ksqldb, table, function, select
 ---
 
+Table Functions
+===============
+
+- [EXPLODE](#explode)
+- More to come
+
 ksqlDB Table Functions
 ======================
 
@@ -90,9 +96,6 @@ Would give:
   {country: 'USA', name: null, age: 84}
   {country: 'USA', name: null, age: 56}
 ```
-
-Built-in Table Functions
-========================
 
 EXPLODE
 -------

@@ -44,10 +44,10 @@ nav:
       - Join Index: developer-guide/joins/index.md
       - Joining collections: developer-guide/joins/join-streams-and-tables.md
       - Partitioning requirements: developer-guide/joins/partition-data.md
-    - Architecture: concepts/ksql-architecture.md
-    - Time and Windows: concepts/time-and-windows-in-ksql-queries.md
+    - Architecture: concepts/ksqldb-architecture.md
+    - Time and Windows: concepts/time-and-windows-in-ksqldb-queries.md
     - Serialization: developer-guide/serialization.md
-    - Relationship to Kafka Streams: concepts/ksql-and-kafka-streams.md
+    - Relationship to Kafka Streams: concepts/ksqldb-and-kafka-streams.md
   - Developer Guide:
     - Develop ksqlDB Applications: developer-guide/index.md
     - Create a Stream: developer-guide/create-a-stream.md
@@ -56,11 +56,11 @@ nav:
     - Implement a User-defined Function (UDF, UDAF, and UDTF): developer-guide/implement-a-udf.md
     - Query With Arrays and Maps: developer-guide/query-with-arrays-and-maps.md
     - Query With Structured Data: developer-guide/query-with-structured-data.md
-    - Transform a Stream: developer-guide/transform-a-stream-with-ksql.md
+    - Transform a Stream: developer-guide/transform-a-stream-with-ksqldb.md
     - Example Queries: tutorials/examples.md
     - Test and Debug:
       - Test and Debug Index: developer-guide/test-and-debug/index.md
-      - Test harness: developer-guide/test-and-debug/ksql-testing-tool.md
+      - Test harness: developer-guide/test-and-debug/ksqldb-testing-tool.md
       - Generate test data: developer-guide/test-and-debug/generate-custom-test-data.md
       - Processing log: developer-guide/test-and-debug/processing-log.md
   - Reference:
@@ -115,10 +115,10 @@ nav:
       - Install and Upgrade:
           - Install ksqlDB: operate-and-deploy/installation/index.md
           - Configure ksqlDB CLI: operate-and-deploy/installation/cli-config.md
-          - Install ksqlDB with Docker: operate-and-deploy/installation/install-ksql-with-docker.md
+          - Install ksqlDB with Docker: operate-and-deploy/installation/install-ksqldb-with-docker.md
           # - Install ksqlDB locally: installation/installing.md # leave in docs.confluent.io
           # - Upgrade ksqlDB: installation/upgrading.md # possibly unnecessary in a Dockerized world
-          - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksql-server-health.md
+          - Check the Health of a ksqlDB Server: operate-and-deploy/installation/check-ksqldb-server-health.md
           - Server Configuration:
               - Configure ksqlDB Server: operate-and-deploy/installation/server-config/index.md
               - Configure Avro and Confluent Schema Registry for ksqlDB: operate-and-deploy/installation/server-config/avro-schema.md
@@ -133,7 +133,7 @@ nav:
       # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md # leave in docs.confluent.io
       - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
       - Integrate with PostgresDB: tutorials/connect-integration.md
-  - Troubleshooting: troubleshoot-ksql.md
+  - Troubleshooting: troubleshoot-ksqldb.md
   - Frequently Asked Questions: faq.md
 
 markdown_extensions:

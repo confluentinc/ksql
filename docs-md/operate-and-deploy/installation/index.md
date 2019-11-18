@@ -10,8 +10,8 @@ Installation and Configuration
 ==============================
 
 - [Instal ksqlDB](installing.md)
-- [Install ksqlDB with Docker](install-ksql-with-docker.md)
-- [Check the Health of a ksqlDB Server](check-ksql-server-health.md)
+- [Install ksqlDB with Docker](install-ksqldb-with-docker.md)
+- [Check the Health of a ksqlDB Server](check-ksqldb-server-health.md)
 - [Configuring ksqlDB Server](server-config/index.md)
 - [Configure ksqlDB CLI](cli-config.md)
 - [Upgrade ksqlDB](upgrading.md)

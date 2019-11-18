@@ -21,10 +21,9 @@ ksqlDB is built on these conceptual pillars:
 
 More in the **Concepts** section:
 
-- [Architecture](ksql-architecture.md)
-- [Kafka Streams and kslDB](ksql-and-kafka-streams.md)
-- [Processing Guarantees](ksqldb-processing-guarantees.md)
-- [Time and Windows](time-and-windows-in-ksql-queries.md)
+- [Architecture](ksqldb-architecture.md)
+- [Kafka Streams and kslDB](ksqldb-and-kafka-streams.md)
+- [Time and Windows](time-and-windows-in-ksqldb-queries.md)
 
 Collections: streams and tables
 -------------------------------
@@ -64,6 +63,6 @@ Connectors: get data in and send data out
 Schemas: define the structure of your event data
 ------------------------------------------------
 
-[Schemas](ksqldb-schemas.md)
+[Schemas](schemas.md)
 
 Page last revised on: {{ git_revision_date }}

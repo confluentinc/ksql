@@ -25,6 +25,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -243,7 +244,7 @@ public class CommandStoreTest {
 
     expectedException.expect(TimeoutException.class);
     expectedException.expectMessage(
-        "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)"
+        "Timeout reached while waiting for command sequence number of 2. (Timeout: 1000 ms)"
     );
 
     // When:

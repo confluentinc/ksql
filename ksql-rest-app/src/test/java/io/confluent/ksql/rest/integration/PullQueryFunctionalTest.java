@@ -194,7 +194,10 @@ public class PullQueryFunctionalTest {
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
-    assertThat(rows_1, is(rows_0));
+    assertThat(rows_1, hasSize(rows_0.size()));
+    for (int i = 0; i < rows_1.size(); i++) {
+      compareWithoutQueryId(rows_1.get(i), rows_0.get(i));
+    }
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, 1)));
   }
@@ -223,9 +226,24 @@ public class PullQueryFunctionalTest {
 
     // Then:
     assertThat(rows_0, hasSize(HEADER + 1));
-    assertThat(rows_1, is(rows_0));
+    assertThat(rows_1, hasSize(rows_0.size()));
+    for (int i = 0; i < rows_1.size(); i++) {
+      compareWithoutQueryId(rows_1.get(i), rows_0.get(i));
+    }
     assertThat(rows_0.get(1).getRow(), is(not(Optional.empty())));
     assertThat(rows_0.get(1).getRow().get().getColumns(), is(ImmutableList.of(key, BASE_TIME, 1)));
+  }
+
+  private static void compareWithoutQueryId(final StreamedRow a, final StreamedRow b) {
+    if (a.getHeader().isPresent()) {
+      assertThat("expected header", b.getHeader().isPresent());
+      assertThat(
+          a.getHeader().get().getSchema(),
+          is(b.getHeader().get().getSchema()));
+    }
+    assertThat(a.getRow(), is(b.getRow()));
+    assertThat(a.getErrorMessage(), is(b.getErrorMessage()));
+    assertThat(a.getFinalMessage(), is(b.getFinalMessage()));
   }
 
   private static List<StreamedRow> makePullQueryRequest(

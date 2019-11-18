@@ -280,7 +280,7 @@ public class CommandStoreTest {
 
     expectedException.expect(TimeoutException.class);
     expectedException.expectMessage(
-        "Timeout reached while waiting for command sequence number of 2. (Timeout: %d ms)"
+        "Timeout reached while waiting for command sequence number of 2. Caused by: null (Timeout: 1000 ms)"
     );
 
     // When:

@@ -11,29 +11,17 @@ docs_dir: docs-md
 
 theme:
     name: material
-    favicon: img/favicon.ico
-    logo: img/logo.svg
+    favicon: img/favicon.ico # should match asset for main ksqldb.io site
+    logo: img/logo.svg # should match asset for main ksqldb.io site
     feature: 
       tabs: true
-    highlightjs: true
-    hljs_languages:
-        - yaml
-        - xml
-        - java
-        - javascript
-        - bash
-        - json
-        - properties
-        - sql
-        - scala
 
 extra_css:
   - stylesheets/extra.css
 
 nav:
   - Overview: index.md
-  - Getting started: tutorials/ksqldb-quickstart.md
-  #- Install: # Link to Derek's quickstart at ksqldb.io
+  - Getting started: quickstart.md # links to Derek's quickstart at ksqldb.io
   - Concepts:
     - Concepts: concepts/index.md
     - Events: concepts/events.md
@@ -48,8 +36,8 @@ nav:
       - Queries Overview: concepts/queries/index.md
       - Push Queries: concepts/queries/push.md
       - Pull Queries: concepts/queries/pull.md
-    # - Processing Guarantees (TODO): concepts/ksqldb-processing-guarantees.md # future
-    # - Schemas (TODO): concepts/ksqldb-schemas.md # future
+    # - Processing Guarantees: concepts/ksqldb-processing-guarantees.md # future
+    # - Schemas: concepts/ksqldb-schemas.md # future
     - Connectors: concepts/connectors.md
     - Functions: concepts/functions.md
     - Joins:
@@ -139,11 +127,10 @@ nav:
               - Configure Security for ksqlDB: operate-and-deploy/installation/server-config/security.md
   - Tutorials:
       - Tutorials and Examples: tutorials/index.md
-      # - Quick Start: quickstart.md # This should go away
       - Examples: tutorials/examples.md
-      # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center: tutorials/basics-control-center.md # migrate to docs.confluent.io
+      # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center: tutorials/basics-control-center.md # leave in docs.confluent.io
       - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Docker): tutorials/basics-docker.md # Could be the canonical quickstart
-      # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md # migrate to docs.confluent.io # migrate to docs.confluent.io
+      # - Write Streaming Queries Against Apache Kafka® Using ksqlDB and Confluent Control Center (Local): tutorials/basics-local.md # leave in docs.confluent.io
       - Clickstream Data Analysis Pipeline Using ksqlDB (Docker): tutorials/clickstream-docker.md
       - Integrate with PostgresDB: tutorials/connect-integration.md
   - Troubleshooting: troubleshoot-ksql.md

@@ -8,10 +8,19 @@ description: Get started fast with ksqlDB quick starts and tutorials.
 ksqlDB Quick Start
 ------------------
 
-The [ksqlDB Quick Start](tutorials/basics-docker.md) is the easiest way to get
+The [ksqlDB Quick Start](https://ksqldb.io/quickstart) is the easiest way to get
 up and running with ksqlDB. It demonstrates a simple workflow that creates 
-streams and tables on {{ site.aktm }} topics and uses SQL statements to write
+an event stream on an {{ site.aktm }} topic and uses SQL statements to write
 streaming queries against events in {{ site.ak }}.
+
+The quick start shows how to:
+
+1. Get ksqlDB
+2. Start ksqlDB Server
+3. Start ksqlDB interactive CLI
+4. Create a stream
+5. Run a continuous query over the stream
+6. Populate the stream with events
 
 ksqlDB Tutorials and Examples
 -----------------------------

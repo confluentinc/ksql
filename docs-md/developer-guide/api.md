@@ -18,9 +18,9 @@ The default REST API endpoint is `http://0.0.0.0:8088/`.
 
 Change the server configuration that controls the REST API endpoint by
 setting the `listeners` parameter in the ksqlDB server config file. For
-more info, see [listeners](../installation/server-config/config-reference.md#listeners).
+more info, see [listeners](../operate-and-deploy/installation/server-config/config-reference.md#listeners).
 To configure the endpoint to use HTTPS, see
-[Configure ksqlDB for HTTPS](../installation/server-config/security.md#configure-ksqldb-for-https).
+[Configure ksqlDB for HTTPS](../operate-and-deploy/installation/server-config/security.md#configure-ksqldb-for-https).
 
 Content Types
 -------------

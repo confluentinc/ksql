@@ -315,7 +315,7 @@ Your output should resemble:
 Next Steps
 ----------
 
--   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 -   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 
 Page last revised on: {{ git_revision_date }}

@@ -33,8 +33,8 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
-import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.KStreamHolder;
+import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.StreamSink;
 import io.confluent.ksql.name.ColumnName;
@@ -105,7 +105,7 @@ public class StreamSinkBuilderTest {
     when(source.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
     );
-    stream = new KStreamHolder<>(kStream, keySerdeFactory);
+    stream = new KStreamHolder<>(kStream, SCHEMA, keySerdeFactory);
     when(source.build(any())).thenReturn(stream);
     sink = new StreamSink<>(
         new DefaultExecutionStepProperties(SCHEMA, queryContext),
@@ -116,7 +116,7 @@ public class StreamSinkBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
   }

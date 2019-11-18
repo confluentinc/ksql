@@ -21,7 +21,9 @@ heavyweight architecture that requires integrating several distributed
 systems together. These architectures often include a fleet of connectors
 or agents for acquiring events from the outside world, durable storage to house
 these events, a stream processing framework for processing the events, and a
-database to serve aggregations of events to applications. 
+database to serve aggregations of events to applications.
+
+![Diagram of a streaming architecture that doesn't use ksqlDB](img/streaming-architecture-without-ksqldb.png)
 
 Unfortunately, the parts don't fit together as well as you'd hope; all of these
 systems are complex, and each integration is a small project to figure out.
@@ -61,7 +63,7 @@ Because ksqlDB leverages {{ site.ak }} for its storage layer, creating a new
 collection equates to defining a stream or a table over a {{ site.aktm }}
 topic. You can declare a collection over an existing topic, or ksqlDB can
 create a new topic for the collection at declaration time. For more information,
-see [Collections](concepts/collections/overview.md).
+see [Collections](concepts/collections/index.md).
 
 ### Materialized Views
 

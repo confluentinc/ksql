@@ -95,7 +95,7 @@ public class JsonFormatTest {
     streamName = "STREAM_" + COUNTER.getAndIncrement();
 
     ksqlConfig = KsqlConfigTestUtil.create(CLUSTER);
-    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient.instance());
+    serviceContext = ServiceContextFactory.create(ksqlConfig, DisabledKsqlClient::instance);
 
     ksqlEngine = new KsqlEngine(
         serviceContext,

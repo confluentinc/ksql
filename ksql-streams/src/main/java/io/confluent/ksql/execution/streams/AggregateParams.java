@@ -15,63 +15,36 @@
 
 package io.confluent.ksql.execution.streams;
 
-import static java.util.Objects.requireNonNull;
-
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.expression.tree.FunctionCall;
-import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.function.udaf.KudafAggregator;
 import io.confluent.ksql.execution.function.udaf.KudafInitializer;
 import io.confluent.ksql.execution.function.udaf.KudafUndoAggregator;
 import io.confluent.ksql.execution.function.udaf.window.WindowSelectMapper;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.Optional;
 
 public final class AggregateParams {
-
   private final KudafInitializer initializer;
-  private final int initialUdafIndex;
-  private final List<KsqlAggregateFunction<?, ?, ?>> functions;
-  private final KudafAggregatorFactory aggregatorFactory;
+  private final KudafAggregator aggregator;
+  private final Optional<KudafUndoAggregator> undoAggregator;
+  private final WindowSelectMapper windowSelectMapper;
+  private final LogicalSchema aggregateSchema;
+  private final LogicalSchema schema;
 
-  public AggregateParams(
-      final LogicalSchema internalSchema,
-      final int initialUdafIndex,
-      final FunctionRegistry functionRegistry,
-      final List<FunctionCall> functionList
-  ) {
-    this(internalSchema, initialUdafIndex, functionRegistry, functionList, KudafAggregator::new);
-  }
-
-  @VisibleForTesting
   AggregateParams(
-      final LogicalSchema internalSchema,
-      final int initialUdafIndex,
-      final FunctionRegistry functionRegistry,
-      final List<FunctionCall> functionList,
-      final KudafAggregatorFactory aggregatorFactory
-  ) {
-    this.initialUdafIndex = initialUdafIndex;
-    this.functions = ImmutableList.copyOf(functionList.stream()
-        .map(funcCall -> UdafUtil.resolveAggregateFunction(
-            functionRegistry,
-            funcCall,
-            internalSchema
-        )).collect(Collectors.toList()));
-
-    final List<Supplier<?>> initialValueSuppliers = functions.stream()
-        .map(KsqlAggregateFunction::getInitialValueSupplier)
-        .collect(Collectors.toList());
-
-    this.initializer = new KudafInitializer(initialUdafIndex, initialValueSuppliers);
-    this.aggregatorFactory = requireNonNull(aggregatorFactory, "aggregatorFactory");
+      final KudafInitializer initializer,
+      final KudafAggregator aggregator,
+      final Optional<KudafUndoAggregator> undoAggregator,
+      final WindowSelectMapper windowSelectMapper,
+      final LogicalSchema aggregateSchema,
+      final LogicalSchema schema) {
+    this.initializer = Objects.requireNonNull(initializer, "initializer");
+    this.aggregator = Objects.requireNonNull(aggregator, "aggregator");
+    this.undoAggregator = Objects.requireNonNull(undoAggregator, "undoAggregator");
+    this.windowSelectMapper
+        = Objects.requireNonNull(windowSelectMapper, "windowSelectMapper");
+    this.aggregateSchema = Objects.requireNonNull(aggregateSchema, "aggregateSchema");
+    this.schema = Objects.requireNonNull(schema, "schema");
   }
 
   public KudafInitializer getInitializer() {
@@ -79,36 +52,22 @@ public final class AggregateParams {
   }
 
   public KudafAggregator getAggregator() {
-    return aggregatorFactory.create(initialUdafIndex, functions);
+    return aggregator;
   }
 
-  public KudafUndoAggregator getUndoAggregator() {
-    final List<TableAggregationFunction<?, ?, ?>> tableFunctions = new LinkedList<>();
-    for (final KsqlAggregateFunction function : functions) {
-      tableFunctions.add((TableAggregationFunction<?, ?, ?>) function);
-    }
-    return new KudafUndoAggregator(initialUdafIndex, tableFunctions);
+  public Optional<KudafUndoAggregator> getUndoAggregator() {
+    return undoAggregator;
   }
 
   public WindowSelectMapper getWindowSelectMapper() {
-    return new WindowSelectMapper(initialUdafIndex, functions);
+    return windowSelectMapper;
   }
 
-  public interface Factory {
-
-    AggregateParams create(
-        LogicalSchema internalSchema,
-        int initialUdafIndex,
-        FunctionRegistry functionRegistry,
-        List<FunctionCall> functionList
-    );
+  public LogicalSchema getSchema() {
+    return schema;
   }
 
-  interface KudafAggregatorFactory {
-
-    KudafAggregator create(
-        int initialUdafIndex,
-        List<KsqlAggregateFunction<?, ?, ?>> functions
-    );
+  public LogicalSchema getAggregateSchema() {
+    return aggregateSchema;
   }
 }

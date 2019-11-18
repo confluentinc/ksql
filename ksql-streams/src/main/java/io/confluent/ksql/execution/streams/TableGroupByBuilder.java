@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableGroupBy;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -32,20 +33,19 @@ import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.KeyValue;
 import org.apache.kafka.streams.kstream.Grouped;
-import org.apache.kafka.streams.kstream.KGroupedTable;
 import org.apache.kafka.streams.kstream.KeyValueMapper;
 
 public final class TableGroupByBuilder {
   private TableGroupByBuilder() {
   }
 
-  public static <K> KGroupedTable<Struct, GenericRow> build(
+  public static <K> KGroupedTableHolder build(
       final KTableHolder<K> table,
       final TableGroupBy<K> step,
       final KsqlQueryBuilder queryBuilder,
       final GroupedFactory groupedFactory
   ) {
-    final LogicalSchema sourceSchema = step.getSource().getSchema();
+    final LogicalSchema sourceSchema = table.getSchema();
     final QueryContext queryContext =  step.getProperties().getQueryContext();
     final Formats formats = step.getFormats();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
@@ -75,9 +75,12 @@ public final class TableGroupByBuilder {
         queryBuilder.getFunctionRegistry()
     );
     final GroupByMapper<K> mapper = new GroupByMapper<>(groupBy);
-    return table.getTable()
-        .filter((key, value) -> value != null)
-        .groupBy(new TableKeyValueMapper<>(mapper), grouped);
+    return KGroupedTableHolder.of(
+        table.getTable()
+            .filter((key, value) -> value != null)
+            .groupBy(new TableKeyValueMapper<>(mapper), grouped),
+        table.getSchema()
+    );
   }
 
   public static final class TableKeyValueMapper<K>

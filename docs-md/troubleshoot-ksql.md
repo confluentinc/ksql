@@ -170,7 +170,7 @@ may help to diagnose the issue.
 ### Verify that the ksqlDB CLI is using the correct port
 
 By default, the server listens on port `8088`. See
-[Starting the ksqlDB CLI](installation/installing.md#start-the-ksqldb-cli) for more
+[Starting the ksqlDB CLI](operate-and-deploy/installation/installing.md#start-the-ksqldb-cli) for more
 information.
 
 ### Verify that the ksqlDB Server configuration is correct
@@ -189,7 +189,7 @@ Or if you're running over IPv6:
 listeners=http://[::]:8088
 ```
 
-See [Start the ksqlDB Server](installation/installing.md#start-the-ksqldb-server) for more
+See [Start the ksqlDB Server](operate-and-deploy/installation/installing.md#start-the-ksqldb-server) for more
 information.
 
 ### Verify that there are no port conflicts
@@ -228,8 +228,8 @@ taken the port that `KsqlServerMain` would normally use. Search for the
 `listeners` setting in the ksqlDB Server configuration file and get the
 correct port. Start the CLI using the correct port.
 
-See [Start the ksqlDB Server](installation/installing.md#start-the-ksqldb-server) and
-[Starting the ksqlDB CLI](installation/installing.md#start-the-ksqldb-cli) for more
+See [Start the ksqlDB Server](operate-and-deploy/installation/installing.md#start-the-ksqldb-server) and
+[Starting the ksqlDB CLI](operate-and-deploy/installation/installing.md#start-the-ksqldb-cli) for more
 information.
 
 Cannot create a stream from the output of a windowed aggregate
@@ -336,7 +336,7 @@ ksqlDB writes most of its log messages to `stdout` by default.
 
 Look for logs in the default directory at `/usr/local/logs` or in the
 `LOG_DIR` that you assigned when starting the CLI. See
-[Starting the ksqlDB CLI](installation/installing.md#start-the-ksqldb-cli) for more
+[Starting the ksqlDB CLI](operate-and-deploy/installation/installing.md#start-the-ksqldb-cli) for more
 information.
 
 If you installed the {{ site.cp }} using RPM or Debian packages,

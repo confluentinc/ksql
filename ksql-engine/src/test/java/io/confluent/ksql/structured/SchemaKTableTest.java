@@ -51,7 +51,7 @@ import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.plan.TableFilter;
-import io.confluent.ksql.execution.streams.AggregateParams;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.execution.streams.GroupedFactory;
 import io.confluent.ksql.execution.streams.JoinedFactory;
@@ -130,6 +130,8 @@ public class SchemaKTableTest {
   private final KeyField validKeyField = KeyField
       .of(Optional.of(ColumnRef.of(SourceName.of("left"), ColumnName.of("COL1"))));
 
+  private static final String SELECT_NODE_NAME = "SelectStep";
+
   private SchemaKTable initialSchemaKTable;
   private KTable kTable;
   private KTable secondKTable;
@@ -189,7 +191,7 @@ public class SchemaKTableTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
@@ -203,8 +205,8 @@ public class SchemaKTableTest {
     final ExecutionStep sourceStep = Mockito.mock(ExecutionStep.class);
     when(sourceStep.getProperties()).thenReturn(
         new DefaultExecutionStepProperties(schema, queryContext.getQueryContext()));
-    when(sourceStep.getSchema()).thenReturn(schema);
-    when(sourceStep.build(any())).thenReturn(KTableHolder.unmaterialized(kTable, keySerdeFactory));
+    when(sourceStep.build(any())).thenReturn(
+        KTableHolder.unmaterialized(kTable, schema, keySerdeFactory));
     return sourceStep;
   }
 
@@ -252,7 +254,9 @@ public class SchemaKTableTest {
 
   private SchemaKTable buildSchemaKTableForJoin(final KsqlTable ksqlTable, final KTable kTable) {
     return buildSchemaKTable(
-        ksqlTable.getSchema(), ksqlTable.getKeyField(), kTable
+        ksqlTable.getSchema().withAlias(ksqlTable.getName()),
+        ksqlTable.getKeyField().withAlias(ksqlTable.getName()),
+        kTable
     );
   }
 
@@ -277,6 +281,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
+        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -302,6 +307,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
+        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -314,6 +320,7 @@ public class SchemaKTableTest {
                 childContextStacker,
                 initialSchemaKTable.getSourceTableStep(),
                 projectNode.getSelectExpressions(),
+                SELECT_NODE_NAME,
                 queryBuilder
             )
         )
@@ -331,6 +338,7 @@ public class SchemaKTableTest {
     // When:
     final SchemaKTable projectedSchemaKStream = initialSchemaKTable.select(
         projectNode.getSelectExpressions(),
+        SELECT_NODE_NAME,
         childContextStacker,
         queryBuilder
     );
@@ -683,7 +691,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     assertThat(result.getKeyField(),
         is(KeyField.of(ColumnRef.withoutSource(ColumnName.of("NEWKEY")))));
@@ -697,7 +705,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -712,7 +720,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -727,7 +735,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), KeyFieldMatchers.hasName("COL0"));
@@ -741,7 +749,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(),
@@ -756,7 +764,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -770,7 +778,7 @@ public class SchemaKTableTest {
 
     // When:
     final SchemaKTable result = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     // Then:
     assertThat(result.getKeyField(), is(KeyField.none()));
@@ -783,7 +791,7 @@ public class SchemaKTableTest {
         "SELECT * FROM test2 EMIT CHANGES;");
 
     final SchemaKTable selected = initialSchemaKTable
-        .select(selectExpressions, childContextStacker, queryBuilder);
+        .select(selectExpressions, SELECT_NODE_NAME, childContextStacker, queryBuilder);
 
     final List<Expression> groupByExprs =  ImmutableList.of(TEST_2_COL_1);
 

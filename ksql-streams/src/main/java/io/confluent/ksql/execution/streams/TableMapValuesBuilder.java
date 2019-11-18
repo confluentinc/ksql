@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.TableMapValues;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import org.apache.kafka.streams.kstream.Named;
 
 public final class TableMapValuesBuilder {
   private TableMapValuesBuilder() {
@@ -28,24 +29,32 @@ public final class TableMapValuesBuilder {
   public static <K> KTableHolder<K> build(
       final KTableHolder<K> table,
       final TableMapValues<K> step,
-      final KsqlQueryBuilder queryBuilder) {
+      final KsqlQueryBuilder queryBuilder
+  ) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
+
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
-    final Selection selection =
-        Selection.of(
-            queryBuilder.getQueryId(),
-            queryContext,
-            sourceSchema,
-            step.getSelectExpressions(),
-            queryBuilder.getKsqlConfig(),
-            queryBuilder.getFunctionRegistry(),
-            queryBuilder.getProcessingLogContext()
-        );
+
+    final Selection<K> selection = Selection.of(
+        queryBuilder.getQueryId(),
+        queryContext,
+        sourceSchema,
+        step.getSelectExpressions(),
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry(),
+        queryBuilder.getProcessingLogContext()
+    );
+    final SelectValueMapper<K> mapper = selection.getMapper();
+
+    final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
+
     return table
-        .withTable(table.getTable().mapValues(selection.getMapper()))
+        .withTable(
+            table.getTable().transformValues(() -> mapper, selectName),
+            selection.getSchema())
         .withMaterialization(
             table.getMaterializationBuilder().map(
-                b -> b.project(step.getSelectExpressions(), step.getSchema())
+                b -> b.project(step.getSelectExpressions(), selection.getSchema())
             )
         );
   }

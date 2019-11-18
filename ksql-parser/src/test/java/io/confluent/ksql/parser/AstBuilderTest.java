@@ -76,7 +76,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getFrom(), is(new AliasedRelation(TEST1, TEST1_NAME)));
@@ -88,7 +88,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 t;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getFrom(), is(new AliasedRelation(TEST1, SourceName.of("T"))));
@@ -100,7 +100,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1 AS t;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getFrom(), is(new AliasedRelation(TEST1, SourceName.of("T"))));
@@ -113,7 +113,7 @@ public class AstBuilderTest {
         + " ON test1.col1 = test2.col1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
@@ -128,7 +128,7 @@ public class AstBuilderTest {
         + " ON test1.col1 = test2.col1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
@@ -143,7 +143,7 @@ public class AstBuilderTest {
         + " ON t1.col1 = t2.col1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getFrom(), is(instanceOf(Join.class)));
@@ -157,7 +157,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT COL0 FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -171,7 +171,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT TEST1.COL0 FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -186,7 +186,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT T.COL0 FROM TEST2 T;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -205,7 +205,7 @@ public class AstBuilderTest {
     expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
 
     // When:
-    builder.build(stmt);
+    builder.buildStatement(stmt);
   }
 
   @Test
@@ -214,7 +214,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT COL0 FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -229,7 +229,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT COL0 AS FOO FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(), is(new Select(ImmutableList.of(
@@ -244,7 +244,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT * FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -257,7 +257,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT TEST1.* FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -270,7 +270,7 @@ public class AstBuilderTest {
     final SingleStatementContext stmt = givenQuery("SELECT T.* FROM TEST1 T;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -287,7 +287,7 @@ public class AstBuilderTest {
     expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
 
     // When:
-    builder.build(stmt);
+    builder.buildStatement(stmt);
   }
 
   @Test
@@ -297,7 +297,7 @@ public class AstBuilderTest {
         givenQuery("SELECT * FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -311,7 +311,7 @@ public class AstBuilderTest {
         givenQuery("SELECT TEST1.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -325,7 +325,7 @@ public class AstBuilderTest {
         givenQuery("SELECT TEST2.* FROM TEST1 JOIN TEST2 WITHIN 1 SECOND ON TEST1.ID = TEST2.ID;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -339,7 +339,7 @@ public class AstBuilderTest {
         givenQuery("SELECT T1.* FROM TEST1 T1 JOIN TEST2 WITHIN 1 SECOND ON T1.ID = TEST2.ID;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -353,7 +353,7 @@ public class AstBuilderTest {
         givenQuery("SELECT T2.* FROM TEST1 JOIN TEST2 T2 WITHIN 1 SECOND ON TEST1.ID = T2.ID;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat(result.getSelect(),
@@ -371,7 +371,7 @@ public class AstBuilderTest {
     expectedException.expectMessage("'UNKNOWN' is not a valid stream/table name or alias.");
 
     // When:
-    builder.build(stmt);
+    builder.buildStatement(stmt);
   }
 
   @Test
@@ -381,7 +381,7 @@ public class AstBuilderTest {
         givenQuery("SELECT * FROM TEST1;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat("Should be pull", result.isPullQuery(), is(true));
@@ -395,7 +395,7 @@ public class AstBuilderTest {
         givenQuery("SELECT * FROM TEST1 EMIT CHANGES;");
 
     // When:
-    final Query result = (Query) builder.build(stmt);
+    final Query result = (Query) builder.buildStatement(stmt);
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
@@ -410,7 +410,7 @@ public class AstBuilderTest {
         givenQuery("CREATE STREAM X AS SELECT * FROM TEST1;");
 
     // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
@@ -424,7 +424,7 @@ public class AstBuilderTest {
         givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY;");
 
     // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
@@ -438,7 +438,7 @@ public class AstBuilderTest {
         givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2;");
 
     // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
@@ -452,7 +452,7 @@ public class AstBuilderTest {
         givenQuery("CREATE STREAM X AS SELECT * FROM TEST1 EMIT CHANGES;");
 
     // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
@@ -466,7 +466,7 @@ public class AstBuilderTest {
         givenQuery("CREATE TABLE X AS SELECT COUNT(1) FROM TEST1 GROUP BY ROWKEY EMIT CHANGES;");
 
     // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));
@@ -479,7 +479,7 @@ public class AstBuilderTest {
         givenQuery("INSERT INTO TEST1 SELECT * FROM TEST2 EMIT CHANGES;");
 
     // When:
-    final Query result = ((QueryContainer) builder.build(stmt)).getQuery();
+    final Query result = ((QueryContainer) builder.buildStatement(stmt)).getQuery();
 
     // Then:
     assertThat("Should be push", result.isPullQuery(), is(false));

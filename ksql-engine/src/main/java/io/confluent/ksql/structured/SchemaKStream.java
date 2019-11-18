@@ -54,6 +54,7 @@ import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.metastore.model.DataSource;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
@@ -120,7 +121,8 @@ public class SchemaKStream<K> {
       final QueryContext.Stacker contextStacker,
       final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
-      final KeyField keyField
+      final KeyField keyField,
+      final SourceName alias
   ) {
     final KsqlTopic topic = dataSource.getKsqlTopic();
     if (topic.getKeyFormat().isWindowed()) {
@@ -131,7 +133,8 @@ public class SchemaKStream<K> {
           Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
           dataSource.getTimestampExtractionPolicy(),
           timestampIndex,
-          offsetReset
+          offsetReset,
+          alias
       );
       return forSource(
           builder,
@@ -146,7 +149,8 @@ public class SchemaKStream<K> {
           Formats.of(topic.getKeyFormat(), topic.getValueFormat(), dataSource.getSerdeOptions()),
           dataSource.getTimestampExtractionPolicy(),
           timestampIndex,
-          offsetReset
+          offsetReset,
+          alias
       );
       return forSource(
           builder,
@@ -273,15 +277,19 @@ public class SchemaKStream<K> {
 
   public SchemaKStream<K> select(
       final List<SelectExpression> selectExpressions,
+      final String selectNodeName,
       final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder ksqlQueryBuilder) {
+      final KsqlQueryBuilder ksqlQueryBuilder
+  ) {
     final KeyField keyField = findKeyField(selectExpressions);
     final StreamMapValues<K> step = ExecutionStepFactory.streamMapValues(
         contextStacker,
         sourceStep,
         selectExpressions,
+        selectNodeName,
         ksqlQueryBuilder
     );
+
     return new SchemaKStream<>(
         step,
         keyFormat,

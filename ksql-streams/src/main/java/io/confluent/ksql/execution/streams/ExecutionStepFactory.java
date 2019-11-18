@@ -14,7 +14,6 @@
 
 package io.confluent.ksql.execution.streams;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.Expression;
@@ -23,6 +22,8 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
 import io.confluent.ksql.execution.plan.JoinType;
+import io.confluent.ksql.execution.plan.KGroupedStreamHolder;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.LogicalSchemaWithMetaAndKeyFields;
@@ -48,6 +49,8 @@ import io.confluent.ksql.execution.plan.TableSink;
 import io.confluent.ksql.execution.plan.TableTableJoin;
 import io.confluent.ksql.execution.plan.WindowedStreamSource;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
+import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
@@ -57,8 +60,6 @@ import java.util.Optional;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.streams.Topology.AutoOffsetReset;
 import org.apache.kafka.streams.kstream.JoinWindows;
-import org.apache.kafka.streams.kstream.KGroupedStream;
-import org.apache.kafka.streams.kstream.KGroupedTable;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public final class ExecutionStepFactory {
@@ -74,7 +75,8 @@ public final class ExecutionStepFactory {
       final Formats formats,
       final TimestampExtractionPolicy timestampPolicy,
       final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset
+      final Optional<AutoOffsetReset> offsetReset,
+      final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new WindowedStreamSource(
@@ -86,7 +88,8 @@ public final class ExecutionStepFactory {
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        schema.getOriginalSchema()
+        schema.getOriginalSchema(),
+        alias
     );
   }
 
@@ -97,7 +100,8 @@ public final class ExecutionStepFactory {
       final Formats formats,
       final TimestampExtractionPolicy timestampPolicy,
       final int timestampIndex,
-      final Optional<AutoOffsetReset> offsetReset
+      final Optional<AutoOffsetReset> offsetReset,
+      final SourceName alias
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
     return new StreamSource(
@@ -109,7 +113,8 @@ public final class ExecutionStepFactory {
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        schema.getOriginalSchema()
+        schema.getOriginalSchema(),
+        alias
     );
   }
 
@@ -173,10 +178,12 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KStreamHolder<K>> source,
       final List<SelectExpression> selectExpressions,
+      final String selectNodeName,
       final KsqlQueryBuilder queryBuilder
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    final Selection selection = Selection.of(
+
+    final Selection<K> selection = Selection.of(
         queryBuilder.getQueryId(),
         queryContext,
         source.getProperties().getSchema(),
@@ -185,10 +192,12 @@ public final class ExecutionStepFactory {
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext()
     );
+
     return new StreamMapValues<>(
         new DefaultExecutionStepProperties(selection.getSchema(), queryContext),
         source,
-        selectExpressions
+        selectExpressions,
+        selectNodeName
     );
   }
 
@@ -284,10 +293,12 @@ public final class ExecutionStepFactory {
       final QueryContext.Stacker stacker,
       final ExecutionStep<KTableHolder<K>> source,
       final List<SelectExpression> selectExpressions,
+      final String selectNodeName,
       final KsqlQueryBuilder queryBuilder
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    final Selection selection = Selection.of(
+
+    final Selection<K> selection = Selection.of(
         queryBuilder.getQueryId(),
         queryContext,
         source.getProperties().getSchema(),
@@ -296,10 +307,12 @@ public final class ExecutionStepFactory {
         queryBuilder.getFunctionRegistry(),
         queryBuilder.getProcessingLogContext()
     );
+
     return new TableMapValues<>(
         new DefaultExecutionStepProperties(selection.getSchema(), queryContext),
         source,
-        selectExpressions
+        selectExpressions,
+        selectNodeName
     );
   }
 
@@ -319,44 +332,58 @@ public final class ExecutionStepFactory {
     );
   }
 
+  private static LogicalSchema getAggregateSchema(
+      final ExecutionStep<?> sourceStep,
+      final int nonFuncColumnCount,
+      final List<FunctionCall> aggregations,
+      final FunctionRegistry functionRegistry
+  ) {
+    return new AggregateParamsFactory().create(
+        sourceStep.getSchema(),
+        nonFuncColumnCount,
+        functionRegistry,
+        aggregations
+    ).getSchema();
+  }
+
   public static StreamAggregate streamAggregate(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
-      final LogicalSchema resultSchema,
+      final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final Formats formats,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final LogicalSchema aggregateSchema
+      final FunctionRegistry functionRegistry
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+    final LogicalSchema schema =
+        getAggregateSchema(sourceStep, nonFuncColumnCount, aggregations, functionRegistry);
     return new StreamAggregate(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new DefaultExecutionStepProperties(schema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
-        aggregations,
-        aggregateSchema
+        aggregations
     );
   }
 
   public static StreamWindowedAggregate streamWindowedAggregate(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KGroupedStream<Struct, GenericRow>> sourceStep,
-      final LogicalSchema resultSchema,
+      final ExecutionStep<KGroupedStreamHolder> sourceStep,
       final Formats formats,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final LogicalSchema aggregateSchema,
-      final KsqlWindowExpression window
+      final KsqlWindowExpression window,
+      final FunctionRegistry functionRegistry
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+    final LogicalSchema schema =
+        getAggregateSchema(sourceStep, nonFuncColumnCount, aggregations, functionRegistry);
     return new StreamWindowedAggregate(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new DefaultExecutionStepProperties(schema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
         aggregations,
-        aggregateSchema,
         window
     );
   }
@@ -391,21 +418,21 @@ public final class ExecutionStepFactory {
 
   public static TableAggregate tableAggregate(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceStep,
-      final LogicalSchema resultSchema,
+      final ExecutionStep<KGroupedTableHolder> sourceStep,
       final Formats formats,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final LogicalSchema aggregateSchema
+      final FunctionRegistry functionRegistry
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
+    final LogicalSchema schema =
+        getAggregateSchema(sourceStep, nonFuncColumnCount, aggregations, functionRegistry);
     return new TableAggregate(
-        new DefaultExecutionStepProperties(resultSchema, queryContext),
+        new DefaultExecutionStepProperties(schema, queryContext),
         sourceStep,
         formats,
         nonFuncColumnCount,
-        aggregations,
-        aggregateSchema
+        aggregations
     );
   }
 

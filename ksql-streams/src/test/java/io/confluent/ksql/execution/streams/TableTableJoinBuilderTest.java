@@ -57,8 +57,6 @@ public class TableTableJoinBuilderTest {
       .build()
       .withAlias(ALIAS)
       .withMetaAndKeyColsInValue();
-  private final QueryContext SRC_CTX =
-      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
@@ -81,18 +79,14 @@ public class TableTableJoinBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(left.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(LEFT_SCHEMA, SRC_CTX));
-    when(right.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
     when(left.build(any())).thenReturn(
-        KTableHolder.unmaterialized(leftKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(leftKTable, LEFT_SCHEMA, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         mock(KsqlQueryBuilder.class),
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         mock(StreamsFactories.class)
     );
   }
@@ -182,5 +176,20 @@ public class TableTableJoinBuilderTest {
     verifyNoMoreInteractions(leftKTable, rightKTable, resultKTable);
     assertThat(result.getTable(), is(resultKTable));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // Given:
+    givenInnerJoin();
+
+    // When:
+    final KTableHolder<Struct> result = join.build(planBuilder);
+
+    // Then:
+    assertThat(
+        result.getSchema(),
+        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
   }
 }

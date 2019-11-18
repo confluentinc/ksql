@@ -312,7 +312,7 @@ public class ExpressionFormatterTest {
         .build();
 
     assertThat(
-        ExpressionFormatter.formatExpression(new Type(struct), true, FormatOptions.none()),
+        ExpressionFormatter.formatExpression(new Type(struct), FormatOptions.none()),
         equalTo("STRUCT<`RESERVED` INTEGER>"));
   }
 

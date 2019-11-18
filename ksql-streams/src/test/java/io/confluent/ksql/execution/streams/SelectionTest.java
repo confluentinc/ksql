@@ -68,7 +68,7 @@ public class SelectionTest {
   private final QueryContext queryContext =
       new QueryContext.Stacker().getQueryContext();
 
-  private Selection selection;
+  private Selection<String> selection;
 
   @Rule
   public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -91,7 +91,7 @@ public class SelectionTest {
   @Test
   public void shouldBuildMapperWithCorrectExpressions() {
     // When:
-    final SelectValueMapper mapper = selection.getMapper();
+    final SelectValueMapper<String> mapper = selection.getMapper();
 
     // Then:
     final List<SelectInfo> selectInfos = mapper.getSelects();

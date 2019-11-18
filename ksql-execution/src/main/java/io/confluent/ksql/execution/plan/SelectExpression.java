@@ -15,8 +15,10 @@
 
 package io.confluent.ksql.execution.plan;
 
+import io.confluent.ksql.execution.expression.formatter.ExpressionFormatter;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.FormatOptions;
 import java.util.Objects;
 import javax.annotation.concurrent.Immutable;
 
@@ -25,6 +27,7 @@ import javax.annotation.concurrent.Immutable;
  */
 @Immutable
 public final class SelectExpression {
+  private static final String FMT = "%s AS %s";
 
   private final ColumnName alias;
   private final Expression expression;
@@ -66,9 +69,14 @@ public final class SelectExpression {
 
   @Override
   public String toString() {
-    return "SelectExpression{"
-        + "name='" + alias + '\''
-        + ", expression=" + expression
-        + '}';
+    return format(FormatOptions.none());
+  }
+
+  public String format(final FormatOptions formatOptions) {
+    return String.format(
+        FMT,
+        ExpressionFormatter.formatExpression(expression, formatOptions),
+        alias.toString(formatOptions)
+    );
   }
 }

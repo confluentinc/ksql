@@ -144,7 +144,8 @@ public class DataSourceNode extends PlanNode {
         contextStacker.push(SOURCE_OP_NAME),
         timestampIndex(),
         getAutoOffsetReset(builder.getKsqlConfig().getKsqlStreamConfigProps()),
-        keyField
+        keyField,
+        alias
     );
     if (getDataSourceType() == DataSourceType.KSTREAM) {
       return schemaKStream;
@@ -165,7 +166,8 @@ public class DataSourceNode extends PlanNode {
         QueryContext.Stacker contextStacker,
         int timestampIndex,
         Optional<AutoOffsetReset> offsetReset,
-        KeyField keyField
+        KeyField keyField,
+        SourceName alias
     );
   }
 

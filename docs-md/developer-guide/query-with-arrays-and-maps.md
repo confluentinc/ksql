@@ -142,6 +142,6 @@ Next Steps
 
 -   [Create a ksqlDB Table](create-a-table.md)
 -   [Create a ksqlDB Stream](create-a-stream.md)
--   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 
 Page last revised on: {{ git_revision_date }}

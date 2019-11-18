@@ -59,6 +59,7 @@ import io.confluent.ksql.parser.tree.UnsetProperty;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.IdentifierUtil;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -74,23 +75,17 @@ public final class SqlFormatter {
   }
 
   public static String formatSql(final AstNode root) {
-    return formatSql(root, true);
-  }
-
-  private static String formatSql(final AstNode root, final boolean unmangleNames) {
     final StringBuilder builder = new StringBuilder();
-    new Formatter(builder, unmangleNames).process(root, 0);
+    new Formatter(builder).process(root, 0);
     return StringUtils.stripEnd(builder.toString(), "\n");
   }
 
   private static final class Formatter extends AstVisitor<Void, Integer> {
 
     private final StringBuilder builder;
-    private final boolean unmangledNames;
 
-    private Formatter(final StringBuilder builder, final boolean unmangleNames) {
-      this.builder = builder;
-      this.unmangledNames = unmangleNames;
+    private Formatter(final StringBuilder builder) {
+      this.builder = Objects.requireNonNull(builder, "builder");
     }
 
     @Override
@@ -334,7 +329,7 @@ public final class SqlFormatter {
       builder.append(
           node.getValues()
               .stream()
-              .map(exp -> ExpressionFormatterUtil.formatExpression(exp, unmangledNames))
+              .map(exp -> ExpressionFormatterUtil.formatExpression(exp))
               .collect(Collectors.joining(", ")));
       builder.append(")");
 
@@ -501,7 +496,7 @@ public final class SqlFormatter {
       return escapedName(e.getName())
           + " "
           + ExpressionFormatter.formatExpression(
-              e.getType(), true, FormatOptions.of(IdentifierUtil::needsQuotes))
+              e.getType(), FormatOptions.of(IdentifierUtil::needsQuotes))
           + (e.getNamespace() == Namespace.KEY ? " KEY" : "");
     }
   }

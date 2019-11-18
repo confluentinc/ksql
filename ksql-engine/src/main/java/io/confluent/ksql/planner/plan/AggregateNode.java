@@ -28,17 +28,12 @@ import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.expression.tree.Literal;
 import io.confluent.ksql.execution.expression.tree.VisitParentExpressionVisitor;
-import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import io.confluent.ksql.serde.ValueFormat;
 import io.confluent.ksql.services.KafkaTopicClient;
 import io.confluent.ksql.structured.SchemaKGroupedStream;
@@ -69,6 +64,8 @@ public class AggregateNode extends PlanNode {
   private static final String GROUP_BY_OP_NAME = "groupby";
   private static final String FILTER_OP_NAME = "filter";
   private static final String PROJECT_OP_NAME = "project";
+
+  private static final String PRE_AGGR_SELECT_NODE_NAME = "PRE-AGGREGATE-SELECT";
 
   private final PlanNode source;
   private final LogicalSchema schema;
@@ -192,16 +189,12 @@ public class AggregateNode extends PlanNode {
     final InternalSchema internalSchema = new InternalSchema(getRequiredColumns(),
         getAggregateFunctionArguments());
 
-    final SchemaKStream<?> aggregateArgExpanded =
-        sourceSchemaKStream.select(
-            internalSchema.getAggArgExpansionList(),
-            contextStacker.push(PREPARE_OP_NAME),
-            builder);
-
-    // This is the schema used in any repartition topic
-    // It contains only the fields from the source that are needed by the aggregation
-    // It uses internal column names, e.g. KSQL_INTERNAL_COL_0
-    final LogicalSchema prepareSchema = aggregateArgExpanded.getSchema();
+    final SchemaKStream<?> aggregateArgExpanded = sourceSchemaKStream.select(
+        internalSchema.getAggArgExpansionList(),
+        PRE_AGGR_SELECT_NODE_NAME,
+        contextStacker.push(PREPARE_OP_NAME),
+        builder
+    );
 
     final QueryContext.Stacker groupByContext = contextStacker.push(GROUP_BY_OP_NAME);
 
@@ -231,36 +224,14 @@ public class AggregateNode extends PlanNode {
         )
         .collect(Collectors.toList());
 
-    // This is the schema of the aggregation change log topic and associated state store.
-    // It contains all columns from prepareSchema and columns for any aggregating functions
-    // It uses internal column names, e.g. KSQL_INTERNAL_COL_0 and KSQL_AGG_VARIABLE_0
-    final LogicalSchema aggregationSchema = buildLogicalSchema(
-        prepareSchema,
-        functionsWithInternalIdentifiers,
-        builder.getFunctionRegistry(),
-        true
-    );
-
     final QueryContext.Stacker aggregationContext = contextStacker.push(AGGREGATION_OP_NAME);
 
-    // This is the schema post any {@link Udaf#map} steps to reduce intermediate aggregate state
-    // to the final output state
-    final LogicalSchema outputSchema = buildLogicalSchema(
-        prepareSchema,
-        functionsWithInternalIdentifiers,
-        builder.getFunctionRegistry(),
-        false
-    );
-
     SchemaKTable<?> aggregated = schemaKGroupedStream.aggregate(
-        aggregationSchema,
-        outputSchema,
         requiredColumns.size(),
         functionsWithInternalIdentifiers,
         windowExpression,
         valueFormat,
-        aggregationContext,
-        builder
+        aggregationContext
     );
 
     final Optional<Expression> havingExpression = Optional.ofNullable(havingExpressions)
@@ -275,40 +246,14 @@ public class AggregateNode extends PlanNode {
 
     return aggregated.select(
         finalSelects,
+        ProjectNode.SELECT_NODE_NAME,
         contextStacker.push(PROJECT_OP_NAME),
-        builder);
+        builder
+    );
   }
 
   protected int getPartitions(final KafkaTopicClient kafkaTopicClient) {
     return source.getPartitions(kafkaTopicClient);
-  }
-
-  private LogicalSchema buildLogicalSchema(
-      final LogicalSchema inputSchema,
-      final List<FunctionCall> aggregations,
-      final FunctionRegistry functionRegistry,
-      final boolean useAggregate
-  ) {
-    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
-    final List<Column> cols = inputSchema.value();
-
-    schemaBuilder.keyColumns(inputSchema.key());
-
-    for (int i = 0; i < requiredColumns.size(); i++) {
-      schemaBuilder.valueColumn(cols.get(i));
-    }
-
-    for (int i = 0; i < aggregations.size(); i++) {
-      final KsqlAggregateFunction aggregateFunction =
-          UdafUtil.resolveAggregateFunction(functionRegistry, aggregations.get(i), inputSchema);
-      final ColumnName colName = ColumnName.aggregateColumn(i);
-      final SqlType fieldType = useAggregate
-          ? aggregateFunction.getAggregateType()
-          : aggregateFunction.returnType();
-      schemaBuilder.valueColumn(colName, fieldType);
-    }
-
-    return schemaBuilder.build();
   }
 
   private static class InternalSchema {

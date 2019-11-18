@@ -78,8 +78,6 @@ public class StreamTableJoinBuilderTest {
       ValueFormat.of(FormatInfo.of(Format.JSON)),
       SerdeOption.none()
   );
-  private final QueryContext SRC_CTX =
-      new QueryContext.Stacker().push("src").getQueryContext();
   private final QueryContext CTX =
       new QueryContext.Stacker().push("jo").push("in").getQueryContext();
 
@@ -115,22 +113,18 @@ public class StreamTableJoinBuilderTest {
   @Before
   @SuppressWarnings("unchecked")
   public void init() {
-    when(left.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(LEFT_SCHEMA, SRC_CTX));
-    when(right.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(RIGHT_SCHEMA, SRC_CTX));
     when(keySerdeFactory.buildKeySerde(any(KeyFormat.class), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(eq(FormatInfo.of(Format.JSON)), any(), any()))
         .thenReturn(leftSerde);
     when(joinedFactory.create(any(Serde.class), any(), any(), any())).thenReturn(joined);
     when(left.build(any())).thenReturn(
-        new KStreamHolder<>(leftKStream, keySerdeFactory));
+        new KStreamHolder<>(leftKStream, LEFT_SCHEMA, keySerdeFactory));
     when(right.build(any())).thenReturn(
-        KTableHolder.unmaterialized(rightKTable, keySerdeFactory));
+        KTableHolder.unmaterialized(rightKTable, RIGHT_SCHEMA, keySerdeFactory));
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             mock(GroupedFactory.class),
             joinedFactory,
@@ -223,6 +217,20 @@ public class StreamTableJoinBuilderTest {
     verifyNoMoreInteractions(leftKStream, rightKTable, resultStream);
     assertThat(result.getStream(), is(resultStream));
     assertThat(result.getKeySerdeFactory(), is(keySerdeFactory));
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // Given:
+    givenInnerJoin();
+
+    // When:
+    final KStreamHolder<Struct> result = join.build(planBuilder);
+
+    assertThat(
+        result.getSchema(),
+        is(JoinParamsFactory.create(LEFT_SCHEMA, RIGHT_SCHEMA).getSchema())
+    );
   }
 
   @Test

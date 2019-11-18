@@ -31,7 +31,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
-import io.confluent.ksql.function.types.ParamType;
 import io.confluent.ksql.function.udaf.TestUdaf;
 import io.confluent.ksql.function.udaf.Udaf;
 import io.confluent.ksql.function.udf.Kudf;

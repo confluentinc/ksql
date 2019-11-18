@@ -20,6 +20,7 @@ import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamMapValues;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import org.apache.kafka.streams.kstream.Named;
 
 public final class StreamMapValuesBuilder {
   private StreamMapValuesBuilder() {
@@ -28,21 +29,28 @@ public final class StreamMapValuesBuilder {
   public static <K> KStreamHolder<K> build(
       final KStreamHolder<K> stream,
       final StreamMapValues<K> step,
-      final KsqlQueryBuilder queryBuilder) {
+      final KsqlQueryBuilder queryBuilder
+  ) {
     final QueryContext queryContext = step.getProperties().getQueryContext();
+
     final LogicalSchema sourceSchema = step.getSource().getProperties().getSchema();
-    final Selection selection =
-        Selection.of(
-            queryBuilder.getQueryId(),
-            queryContext,
-            sourceSchema,
-            step.getSelectExpressions(),
-            queryBuilder.getKsqlConfig(),
-            queryBuilder.getFunctionRegistry(),
-            queryBuilder.getProcessingLogContext()
-        );
+
+    final Selection<K> selection = Selection.of(
+        queryBuilder.getQueryId(),
+        queryContext,
+        sourceSchema,
+        step.getSelectExpressions(),
+        queryBuilder.getKsqlConfig(),
+        queryBuilder.getFunctionRegistry(),
+        queryBuilder.getProcessingLogContext()
+    );
+    final SelectValueMapper<K> mapper = selection.getMapper();
+
+    final Named selectName = Named.as(queryBuilder.buildUniqueNodeName(step.getSelectNodeName()));
+
     return stream.withStream(
-        stream.getStream().mapValues(selection.getMapper())
+        stream.getStream().transformValues(() -> mapper, selectName),
+        selection.getSchema()
     );
   }
 }

@@ -25,8 +25,13 @@ import io.confluent.ksql.execution.function.udtf.KudtfFlatMapper;
 import io.confluent.ksql.execution.function.udtf.TableFunctionApplier;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFlatMap;
+import io.confluent.ksql.execution.util.ExpressionTypeManager;
+import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.function.KsqlTableFunction;
+import io.confluent.ksql.name.ColumnName;
+import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,7 +45,7 @@ public final class StreamFlatMapBuilder {
       final StreamFlatMap<K> step,
       final KsqlQueryBuilder queryBuilder) {
     final List<FunctionCall> tableFunctions = step.getTableFunctions();
-    final LogicalSchema schema = step.getSource().getSchema();
+    final LogicalSchema schema = stream.getSchema();
     final List<TableFunctionApplier> tableFunctionAppliers = new ArrayList<>(tableFunctions.size());
     final CodeGenRunner codeGenRunner =
         new CodeGenRunner(schema, queryBuilder.getKsqlConfig(), queryBuilder.getFunctionRegistry());
@@ -61,8 +66,40 @@ public final class StreamFlatMapBuilder {
           new TableFunctionApplier(tableFunction, expressionMetadataList);
       tableFunctionAppliers.add(tableFunctionApplier);
     }
-    return stream.withStream(stream.getStream().flatMapValues(
-        new KudtfFlatMapper(tableFunctionAppliers))
+    return stream.withStream(
+        stream.getStream().flatMapValues(new KudtfFlatMapper(tableFunctionAppliers)),
+        buildSchema(
+            stream.getSchema(),
+            step.getTableFunctions(),
+            queryBuilder.getFunctionRegistry()
+        )
     );
+  }
+
+  public static LogicalSchema buildSchema(
+      final LogicalSchema inputSchema,
+      final List<FunctionCall> tableFunctions,
+      final FunctionRegistry functionRegistry) {
+    final LogicalSchema.Builder schemaBuilder = LogicalSchema.builder();
+    final List<Column> cols = inputSchema.value();
+
+    // We copy all the original columns to the output schema
+    schemaBuilder.keyColumns(inputSchema.key());
+    for (Column col : cols) {
+      schemaBuilder.valueColumn(col);
+    }
+
+    final ExpressionTypeManager expressionTypeManager = new ExpressionTypeManager(
+        inputSchema, functionRegistry);
+
+    // And add new columns representing the exploded values at the end
+    for (int i = 0; i < tableFunctions.size(); i++) {
+      final FunctionCall functionCall = tableFunctions.get(i);
+      final ColumnName colName = ColumnName.synthesisedSchemaColumn(i);
+      final SqlType fieldType = expressionTypeManager.getExpressionSqlType(functionCall);
+      schemaBuilder.valueColumn(colName, fieldType);
+    }
+
+    return schemaBuilder.build();
   }
 }

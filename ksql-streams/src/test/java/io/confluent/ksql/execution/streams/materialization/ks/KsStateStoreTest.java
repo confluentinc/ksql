@@ -33,7 +33,7 @@ import io.confluent.ksql.execution.streams.materialization.NotRunningException;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
-import java.time.Duration;
+import io.confluent.ksql.util.KsqlConfig;
 import java.util.function.Supplier;
 import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.KafkaStreams.State;
@@ -58,7 +58,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class KsStateStoreTest {
 
   private static final String STORE_NAME = "someStore";
-  private static final Duration TIMEOUT = Duration.ofMillis(10);
+  private static final Long TIMEOUT_MS = 10L;
   private static final LogicalSchema SCHEMA = LogicalSchema.builder()
       .keyColumn(ColumnName.of("k0"), SqlTypes.STRING)
       .keyColumn(ColumnName.of("v0"), SqlTypes.BIGINT)
@@ -74,15 +74,19 @@ public class KsStateStoreTest {
   private KafkaStreams kafkaStreams;
   @Mock
   private Supplier<Long> clock;
+  @Mock
+  private KsqlConfig ksqlConfig;
 
   private KsStateStore store;
 
   @Before
   public void setUp() {
-    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, TIMEOUT, clock);
+    store = new KsStateStore(STORE_NAME, kafkaStreams, SCHEMA, ksqlConfig, clock);
 
     when(clock.get()).thenReturn(0L);
     when(kafkaStreams.state()).thenReturn(State.RUNNING);
+    when(ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_STREAMSTORE_REBALANCING_TIMEOUT_MS_CONFIG))
+        .thenReturn(TIMEOUT_MS);
   }
 
   @Test
@@ -91,6 +95,7 @@ public class KsStateStoreTest {
         .setDefault(KafkaStreams.class, kafkaStreams)
         .setDefault(LogicalSchema.class, SCHEMA)
         .setDefault(Supplier.class, clock)
+        .setDefault(KsqlConfig.class, ksqlConfig)
         .testConstructors(KsStateStore.class, Visibility.PACKAGE);
   }
 
@@ -117,7 +122,7 @@ public class KsStateStoreTest {
   public void shouldThrowIfDoesNotFinishRebalanceBeforeTimeout() {
     // Given:
     when(kafkaStreams.state()).thenReturn(State.REBALANCING);
-    when(clock.get()).thenReturn(0L, 5L, TIMEOUT.toMillis() + 1);
+    when(clock.get()).thenReturn(0L, 5L, TIMEOUT_MS + 1);
 
     // When:
     expectedException.expect(MaterializationTimeOutException.class);

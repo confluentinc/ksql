@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.timestamp.TimestampExtractionPolicy;
 import java.util.Optional;
@@ -31,7 +32,8 @@ public final class WindowedStreamSource
       final TimestampExtractionPolicy timestampPolicy,
       final int timestampIndex,
       final Optional<AutoOffsetReset> offsetReset,
-      final LogicalSchema sourceSchema) {
+      final LogicalSchema sourceSchema,
+      final SourceName alias) {
     super(
         properties,
         topicName,
@@ -39,7 +41,8 @@ public final class WindowedStreamSource
         timestampPolicy,
         timestampIndex,
         offsetReset,
-        sourceSchema
+        sourceSchema,
+        alias
     );
   }
 

@@ -15,14 +15,13 @@
 
 package io.confluent.ksql.structured;
 
-import io.confluent.ksql.GenericRow;
-import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.function.TableAggregationFunction;
 import io.confluent.ksql.execution.function.UdafUtil;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.TableAggregate;
 import io.confluent.ksql.execution.streams.ExecutionStepFactory;
 import io.confluent.ksql.function.FunctionRegistry;
@@ -30,7 +29,6 @@ import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.name.FunctionName;
 import io.confluent.ksql.parser.tree.WindowExpression;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.serde.KeyFormat;
 import io.confluent.ksql.serde.SerdeOption;
 import io.confluent.ksql.serde.ValueFormat;
@@ -41,13 +39,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedTable;
 
 public class SchemaKGroupedTable extends SchemaKGroupedStream {
-  private final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep;
+  private final ExecutionStep<KGroupedTableHolder> sourceTableStep;
 
   SchemaKGroupedTable(
-      final ExecutionStep<KGroupedTable<Struct, GenericRow>> sourceTableStep,
+      final ExecutionStep<KGroupedTableHolder> sourceTableStep,
       final KeyFormat keyFormat,
       final KeyField keyField,
       final List<SchemaKStream> sourceSchemaKStreams,
@@ -66,31 +63,26 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     this.sourceTableStep = Objects.requireNonNull(sourceTableStep, "sourceTableStep");
   }
 
-  public ExecutionStep<KGroupedTable<Struct, GenericRow>> getSourceTableStep() {
+  public ExecutionStep<KGroupedTableHolder> getSourceTableStep() {
     return sourceTableStep;
   }
 
   @SuppressWarnings("unchecked")
   @Override
   public SchemaKTable<Struct> aggregate(
-      final LogicalSchema aggregateSchema,
-      final LogicalSchema outputSchema,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
       final Optional<WindowExpression> windowExpression,
       final ValueFormat valueFormat,
-      final QueryContext.Stacker contextStacker,
-      final KsqlQueryBuilder queryBuilder
+      final QueryContext.Stacker contextStacker
   ) {
     if (windowExpression.isPresent()) {
       throw new KsqlException("Windowing not supported for table aggregations.");
     }
 
-    throwOnValueFieldCountMismatch(outputSchema, nonFuncColumnCount, aggregations);
-
     final List<String> unsupportedFunctionNames = aggregations.stream()
         .map(call -> UdafUtil.resolveAggregateFunction(
-            queryBuilder.getFunctionRegistry(), call, sourceTableStep.getSchema())
+            functionRegistry, call, sourceTableStep.getSchema())
         ).filter(function -> !(function instanceof TableAggregationFunction))
         .map(KsqlAggregateFunction::name)
         .map(FunctionName::name)
@@ -105,11 +97,10 @@ public class SchemaKGroupedTable extends SchemaKGroupedStream {
     final TableAggregate step = ExecutionStepFactory.tableAggregate(
         contextStacker,
         sourceTableStep,
-        outputSchema,
         Formats.of(keyFormat, valueFormat, SerdeOption.none()),
         nonFuncColumnCount,
         aggregations,
-        aggregateSchema
+        functionRegistry
     );
 
     return new SchemaKTable<>(

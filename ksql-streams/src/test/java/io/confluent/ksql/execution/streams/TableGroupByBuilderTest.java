@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.plan.DefaultExecutionStepProperties;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.ExecutionStepProperties;
 import io.confluent.ksql.execution.plan.Formats;
+import io.confluent.ksql.execution.plan.KGroupedTableHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.KeySerdeFactory;
 import io.confluent.ksql.execution.plan.PlanBuilder;
@@ -137,7 +138,7 @@ public class TableGroupByBuilderTest {
     when(sourceStep.getProperties()).thenReturn(SOURCE_PROPERTIES);
     when(sourceStep.getSchema()).thenReturn(SCHEMA);
     when(sourceStep.build(any())).thenReturn(
-        KTableHolder.unmaterialized(sourceTable, mock(KeySerdeFactory.class)));
+        KTableHolder.unmaterialized(sourceTable, SCHEMA, mock(KeySerdeFactory.class)));
     groupBy = new TableGroupBy<>(
         PROPERTIES,
         sourceStep,
@@ -147,7 +148,7 @@ public class TableGroupByBuilderTest {
     planBuilder = new KSPlanBuilder(
         queryBuilder,
         mock(SqlPredicateFactory.class),
-        mock(AggregateParams.Factory.class),
+        mock(AggregateParamsFactory.class),
         new StreamsFactories(
             groupedFactory,
             mock(JoinedFactory.class),
@@ -160,10 +161,10 @@ public class TableGroupByBuilderTest {
   @Test
   public void shouldPerformGroupByCorrectly() {
     // When:
-    final KGroupedTable<Struct, GenericRow> result = groupBy.build(planBuilder);
+    final KGroupedTableHolder result = groupBy.build(planBuilder);
 
     // Then:
-    assertThat(result, is(groupedTable));
+    assertThat(result.getGroupedTable(), is(groupedTable));
     verify(sourceTable).filter(any());
     verify(filteredTable).groupBy(mapperCaptor.capture(), same(grouped));
     verifyNoMoreInteractions(filteredTable, sourceTable);
@@ -177,6 +178,15 @@ public class TableGroupByBuilderTest {
         mapper.getExpressionMetadata().get(1).getExpression(),
         equalTo(GROUPBY_EXPRESSIONS.get(1))
     );
+  }
+
+  @Test
+  public void shouldReturnCorrectSchema() {
+    // When:
+    final KGroupedTableHolder result = groupBy.build(planBuilder);
+
+    // Then:
+    assertThat(result.getSchema(), is(SCHEMA));
   }
 
   @Test

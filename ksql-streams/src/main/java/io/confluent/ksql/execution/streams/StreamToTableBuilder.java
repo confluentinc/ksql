@@ -18,7 +18,6 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.builder.KsqlQueryBuilder;
 import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.KTableHolder;
 import io.confluent.ksql.execution.plan.StreamToTable;
@@ -43,9 +42,8 @@ public final class StreamToTableBuilder {
       final KsqlQueryBuilder queryBuilder,
       final MaterializedFactory materializedFactory) {
     final QueryContext queryContext = streamToTable.getProperties().getQueryContext();
-    final ExecutionStep<?> sourceStep = streamToTable.getSource();
     final PhysicalSchema physicalSchema = PhysicalSchema.from(
-        sourceStep.getProperties().getSchema(),
+        sourceStream.getSchema(),
         streamToTable.getFormats().getOptions()
     );
     final ValueFormat valueFormat = streamToTable.getFormats().getValueFormat();
@@ -83,6 +81,10 @@ public final class StreamToTableBuilder {
             () -> null,
             (k, value, oldValue) -> value.orElse(null),
             materialized);
-    return KTableHolder.unmaterialized(table, sourceStream.getKeySerdeFactory());
+    return KTableHolder.unmaterialized(
+        table,
+        sourceStream.getSchema(),
+        sourceStream.getKeySerdeFactory()
+    );
   }
 }

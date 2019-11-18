@@ -34,7 +34,7 @@ public final class StreamSelectKeyBuilder {
       final KStreamHolder<?> stream,
       final StreamSelectKey<?> selectKey,
       final KsqlQueryBuilder queryBuilder) {
-    final LogicalSchema sourceSchema = selectKey.getSources().get(0).getProperties().getSchema();
+    final LogicalSchema sourceSchema = stream.getSchema();
     final Column keyColumn = sourceSchema.findValueColumn(selectKey.getFieldName())
         .orElseThrow(IllegalArgumentException::new);
     final int keyIndexInValue = sourceSchema.valueColumnIndex(keyColumn.ref())
@@ -57,6 +57,7 @@ public final class StreamSelectKeyBuilder {
         });
     return new KStreamHolder<>(
         rekeyed,
+        stream.getSchema(),
         (fmt, schema, ctx) -> queryBuilder.buildKeySerde(fmt.getFormatInfo(), schema, ctx)
     );
   }

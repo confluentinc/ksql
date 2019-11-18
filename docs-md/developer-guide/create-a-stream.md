@@ -216,7 +216,7 @@ underlying topic, use the INSERT INTO statement.
 !!! note
       The CREATE STREAM AS SELECT statement doesn't support the KEY property.
       To specify a KEY field, use the PARTITION BY clause. For more
-      information, see [Partition Data to Enable Joins](partition-data.md).
+      information, see [Partition Data to Enable Joins](joins/partition-data.md).
 
 The following SQL statement creates a `pageviews_intro` stream that
 contains results from a persistent query that matches "introductory"
@@ -325,7 +325,7 @@ Your output should resemble:
 Next Steps
 ----------
 
--   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 -   [Clickstream Data Analysis Pipeline Using ksqlDB (Docker)](../tutorials/clickstream-docker.md)
 
 Page last revised on: {{ git_revision_date }}

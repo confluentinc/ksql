@@ -32,13 +32,8 @@ public final class ExpressionFormatterUtil {
   }
 
   public static String formatExpression(final Expression expression) {
-    return formatExpression(expression, true);
-  }
-
-  public static String formatExpression(final Expression expression, final boolean unmangleNames) {
     return ExpressionFormatter.formatExpression(
         expression,
-        unmangleNames,
         FormatOptions.of(IdentifierUtil::needsQuotes)
     );
   }

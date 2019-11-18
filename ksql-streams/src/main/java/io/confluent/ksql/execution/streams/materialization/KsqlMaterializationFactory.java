@@ -27,7 +27,7 @@ import io.confluent.ksql.execution.materialization.MaterializationInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo.ProjectInfo;
 import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.execution.streams.AggregateParams;
+import io.confluent.ksql.execution.streams.AggregateParamsFactory;
 import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
@@ -116,14 +116,12 @@ public final class KsqlMaterializationFactory {
 
   private static AggregateMapperFactory defaultAggregateMapperFactory() {
     return (info, functionRegistry) ->
-        new AggregateParams(
+        new AggregateParamsFactory().create(
             info.schema(),
             info.startingColumnIndex(),
             functionRegistry,
             info.aggregateFunctions()
-        )
-            .getAggregator()
-            .getResultMapper()::apply;
+        ).getAggregator().getResultMapper()::apply;
   }
 
   private static SelectMapperFactory defaultValueMapperFactory() {
@@ -134,7 +132,7 @@ public final class KsqlMaterializationFactory {
             ksqlConfig,
             functionRegistry,
             processingLogger
-        )::apply;
+        )::transform;
   }
 
   interface AggregateMapperFactory {
@@ -158,7 +156,7 @@ public final class KsqlMaterializationFactory {
 
   interface SelectMapperFactory {
 
-    Function<GenericRow, GenericRow> create(
+    BiFunction<Object, GenericRow, GenericRow> create(
         List<SelectExpression> selectExpressions,
         LogicalSchema sourceSchema,
         KsqlConfig ksqlConfig,
@@ -219,14 +217,14 @@ public final class KsqlMaterializationFactory {
       final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
           QueryLoggerUtil.queryLoggerName(queryId, stacker.push(PROJECT_OP_NAME).getQueryContext())
       );
-      final Function<GenericRow, GenericRow> mapper = selectMapperFactory.create(
+      final BiFunction<Object, GenericRow, GenericRow> mapper = selectMapperFactory.create(
           info.getSelectExpressions(),
           info.getSchema(),
           ksqlConfig,
           functionRegistry,
           logger
       );
-      return (s, g) -> Optional.of(mapper.apply(g));
+      return (k, v) -> Optional.of(mapper.apply(k, v));
     }
   }
 }

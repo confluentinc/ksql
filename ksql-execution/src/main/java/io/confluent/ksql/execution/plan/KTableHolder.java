@@ -17,6 +17,7 @@ package io.confluent.ksql.execution.plan;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
+import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Objects;
 import java.util.Optional;
 import org.apache.kafka.streams.kstream.KTable;
@@ -24,32 +25,37 @@ import org.apache.kafka.streams.kstream.KTable;
 public final class KTableHolder<K> {
   private final KTable<K, GenericRow> stream;
   private final KeySerdeFactory<K> keySerdeFactory;
+  private final LogicalSchema schema;
   private final Optional<MaterializationInfo.Builder> materializationBuilder;
 
   private KTableHolder(
       final KTable<K, GenericRow> stream,
+      final LogicalSchema schema,
       final KeySerdeFactory<K> keySerdeFactory,
       final Optional<MaterializationInfo.Builder> materializationBuilder
   ) {
     this.stream = Objects.requireNonNull(stream, "stream");
     this.keySerdeFactory = Objects.requireNonNull(keySerdeFactory, "keySerdeFactory");
+    this.schema = Objects.requireNonNull(schema, "schema");
     this.materializationBuilder =
         Objects.requireNonNull(materializationBuilder, "materializationProvider");
   }
 
   public static <K> KTableHolder<K> unmaterialized(
       final KTable<K, GenericRow> stream,
+      final LogicalSchema schema,
       final KeySerdeFactory<K> keySerdeFactory
   ) {
-    return new KTableHolder<>(stream, keySerdeFactory, Optional.empty());
+    return new KTableHolder<>(stream, schema, keySerdeFactory, Optional.empty());
   }
 
   public static <K> KTableHolder<K> materialized(
       final KTable<K, GenericRow> stream,
+      final LogicalSchema schema,
       final KeySerdeFactory<K> keySerdeFactory,
       final MaterializationInfo.Builder materializationBuilder
   ) {
-    return new KTableHolder<>(stream, keySerdeFactory, Optional.of(materializationBuilder));
+    return new KTableHolder<>(stream, schema, keySerdeFactory, Optional.of(materializationBuilder));
   }
 
   public KeySerdeFactory<K> getKeySerdeFactory() {
@@ -64,13 +70,18 @@ public final class KTableHolder<K> {
     return materializationBuilder;
   }
 
-  public KTableHolder<K> withTable(final KTable<K, GenericRow> table) {
-    return new KTableHolder<>(table, keySerdeFactory, materializationBuilder);
+  public LogicalSchema getSchema() {
+    return schema;
+  }
+
+  public KTableHolder<K> withTable(final KTable<K, GenericRow> table, final LogicalSchema schema) {
+    return new KTableHolder<>(table, schema, keySerdeFactory, materializationBuilder);
   }
 
   public KTableHolder<K> withMaterialization(final Optional<MaterializationInfo.Builder> builder) {
     return new KTableHolder<>(
         stream,
+        schema,
         keySerdeFactory,
         builder
     );

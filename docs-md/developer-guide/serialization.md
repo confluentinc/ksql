@@ -84,7 +84,7 @@ CREATE TABLE TRADES (ID INT) WITH (WRAP_SINGLE_VALUE=false, ...);
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, which is defined by `ksql.persistence.wrap.single.values`.
 You can change the system default. For more information, see
-[ksql.persistence.wrap.single.values](../installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
+[ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
       ksqlDB treats `null` keys and values as a special case. We recommend
@@ -153,7 +153,7 @@ CREATE STREAM y WITH(WRAP_SINGLE_VALUE=false) AS SELECT f0 FROM x EMIT CHANGES;
 If a statement doesn't set the value wrapping explicitly, ksqlDB uses the
 system default, defined by `ksql.persistence.wrap.single.values`. You
 can change the system default. For more information, see
-[ksql.persistence.wrap.single.values](../installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
+[ksql.persistence.wrap.single.values](../operate-and-deploy/installation/server-config/config-reference.md#ksqlpersistencewrapsinglevalues).
 
 !!! important
       ksqlDB treats `null` keys and values as a special case. We recommended
@@ -319,7 +319,7 @@ primitives, arrays, and maps.
 
 The format requires ksqlDB to be configured to store and retrieve the Avro
 schemas from the {{ site.srlong }}. For more information, see
-[Configure Avro and {{ site.sr }} for ksqlDB](../installation/server-config/avro-schema.md).
+[Configure Avro and {{ site.sr }} for ksqlDB](../operate-and-deploy/installation/server-config/avro-schema.md).
 
 #### Avro Records
 

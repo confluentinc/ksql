@@ -15,41 +15,35 @@
 
 package io.confluent.ksql.execution.plan;
 
-import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.streams.kstream.KGroupedStream;
 import org.apache.kafka.streams.kstream.Windowed;
 
 public class StreamWindowedAggregate
     implements ExecutionStep<KTableHolder<Windowed<Struct>>> {
   private final ExecutionStepProperties properties;
-  private final ExecutionStep<KGroupedStream<Struct, GenericRow>> source;
+  private final ExecutionStep<KGroupedStreamHolder> source;
   private final Formats formats;
   private final int nonFuncColumnCount;
   private final List<FunctionCall> aggregations;
-  private final LogicalSchema aggregationSchema;
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
       final ExecutionStepProperties properties,
-      final ExecutionStep<KGroupedStream<Struct, GenericRow>> source,
+      final ExecutionStep<KGroupedStreamHolder> source,
       final Formats formats,
       final int nonFuncColumnCount,
       final List<FunctionCall> aggregations,
-      final LogicalSchema aggregationSchema,
       final KsqlWindowExpression windowExpression) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.nonFuncColumnCount = nonFuncColumnCount;
     this.aggregations = Objects.requireNonNull(aggregations, "aggregations");
-    this.aggregationSchema = Objects.requireNonNull(aggregationSchema, "aggregationSchema");
     this.windowExpression = Objects.requireNonNull(windowExpression, "windowExpression");
   }
 
@@ -75,15 +69,11 @@ public class StreamWindowedAggregate
     return formats;
   }
 
-  public LogicalSchema getAggregationSchema() {
-    return aggregationSchema;
-  }
-
   public KsqlWindowExpression getWindowExpression() {
     return windowExpression;
   }
 
-  public ExecutionStep<KGroupedStream<Struct, GenericRow>> getSource() {
+  public ExecutionStep<KGroupedStreamHolder> getSource() {
     return source;
   }
 
@@ -106,7 +96,6 @@ public class StreamWindowedAggregate
         && Objects.equals(formats, that.formats)
         && Objects.equals(aggregations, that.aggregations)
         && nonFuncColumnCount == that.nonFuncColumnCount
-        && Objects.equals(aggregationSchema, that.aggregationSchema)
         && Objects.equals(windowExpression, that.windowExpression);
   }
 
@@ -119,7 +108,6 @@ public class StreamWindowedAggregate
         formats,
         aggregations,
         nonFuncColumnCount,
-        aggregationSchema,
         windowExpression
     );
   }

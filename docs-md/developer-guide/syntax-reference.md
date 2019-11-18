@@ -153,7 +153,7 @@ ksqlDB CLI Commands
 -----------------
 
 The ksqlDB CLI commands can be run after
-[starting the ksqlDB CLI](../installation/installing.md#start-the-ksqldb-cli). You can view
+[starting the ksqlDB CLI](../operate-and-deploy/installation/installing.md#start-the-ksqldb-cli). You can view
 the ksqlDB CLI help by running `<path-to-confluent>/bin/ksql --help`.
 
 !!! tip
@@ -335,7 +335,7 @@ and joins.
       stream doesn't need to be re-partitioned for future joins. If you set
       the KEY property, you will need to re-partition explicitly if your
       record key doesn't meet partitioning requirements. For more
-      information, see [Partition Data to Enable Joins](partition-data.md).
+      information, see [Partition Data to Enable Joins](joins/partition-data.md).
 
 In either case, when setting `KEY` you must be sure that *both* of the
 following conditions are true:
@@ -440,6 +440,6 @@ CREATE TABLE users_table (userid_string VARCHAR, username VARCHAR, email VARCHAR
         KEY='userid_string');
 ```
 
-For more information, see [Partition Data to Enable Joins](partition-data.md).
+For more information, see [Partition Data to Enable Joins](joins/partition-data.md).
 
 Page last revised on: {{ git_revision_date }}

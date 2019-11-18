@@ -26,9 +26,8 @@ import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.execution.context.QueryContext;
-import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -59,7 +58,8 @@ import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.client.RestResponse;
 import io.confluent.ksql.rest.entity.KsqlEntity;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
+import io.confluent.ksql.rest.entity.StreamedRow;
+import io.confluent.ksql.rest.entity.StreamedRow.Header;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
 import io.confluent.ksql.rest.entity.TableRowsEntityFactory;
 import io.confluent.ksql.rest.server.resources.KsqlRestException;
@@ -79,7 +79,6 @@ import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.PersistentQueryMetadata;
 import io.confluent.ksql.util.SchemaUtil;
 import io.confluent.ksql.util.timestamp.PartialStringToTimestampParser;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -96,7 +95,6 @@ import org.apache.kafka.connect.data.Struct;
 public final class PullQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
-  private static final Duration OWNERSHIP_TIMEOUT = Duration.ofSeconds(30);
   private static final Set<Type> VALID_WINDOW_BOUNDS_TYPES = ImmutableSet.of(
       Type.EQUAL,
       Type.GREATER_THAN,
@@ -117,21 +115,7 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    final Query queryStmt = statement.getStatement();
-
-    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG)) {
-      throw new KsqlRestException(
-          Errors.badStatement(
-              "Pull queries are disabled on this KSQL server - please set "
-                  + KsqlConfig.KSQL_PULL_QUERIES_ENABLE_CONFIG + "=true to enable this feature. "
-                  + "If you intended to issue a push query, resubmit the query with the "
-                  + "EMIT CHANGES clause.",
-              statement.getStatementText()));
-    }
-
-    if (!queryStmt.isPullQuery()) {
-      throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
-    }
+    throw new KsqlRestException(Errors.queryEndpoint(statement.getStatementText()));
   }
 
   public static Optional<KsqlEntity> execute(
@@ -148,6 +132,21 @@ public final class PullQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
+    if (!statement.getStatement().isPullQuery()) {
+      throw new IllegalArgumentException("Executor can only handle pull queries");
+    }
+
+    if (!statement.getConfig().getBoolean(KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG)) {
+      throw new KsqlRestException(
+          Errors.badStatement(
+              "Pull queries are disabled. "
+                  + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+                  + System.lineSeparator()
+                  + "Please set " + KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG + "=true to enable "
+                  + "this feature.",
+              statement.getStatementText()));
+    }
+
     try {
       final Analysis analysis = analyze(statement, executionContext);
 
@@ -155,16 +154,17 @@ public final class PullQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
-      final QueryId queryId = uniqueQueryId();
-      final QueryContext.Stacker contextStacker = new Stacker();
+      final QueryId queryId = PersistentQueryMetadata.getPullQueryId(
+          getSourceName(analysis).name());
 
       final Materialization mat = query
-          .getMaterialization(queryId, contextStacker)
+          .getMaterialization()
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
 
-      final KsqlNode owner = getOwner(rowKey, mat);
+      final KsqlConfig ksqlConfig = statement.getConfig();
+      final KsqlNode owner = getOwner(ksqlConfig, rowKey, mat);
       if (!owner.isLocal()) {
         return proxyTo(owner, statement, serviceContext);
       }
@@ -213,10 +213,6 @@ public final class PullQueryExecutor {
           e
       );
     }
-  }
-
-  private static QueryId uniqueQueryId() {
-    return new QueryId("query_" + System.currentTimeMillis());
   }
 
   private static Analysis analyze(
@@ -556,7 +552,7 @@ public final class PullQueryExecutor {
     final KsqlConfig ksqlConfig = statement.getConfig()
         .cloneWithPropertyOverwrite(statement.getOverrides());
 
-    final SelectValueMapper select = SelectValueMapperFactory.create(
+    final SelectValueMapper<Object> select = SelectValueMapperFactory.create(
         analysis.getSelectExpressions(),
         intermediateSchema.withAlias(sourceName),
         ksqlConfig,
@@ -567,7 +563,7 @@ public final class PullQueryExecutor {
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
       final GenericRow intermediate = preSelectTransform.apply(r.key(), r.value());
-      final GenericRow mapped = select.apply(intermediate);
+      final GenericRow mapped = select.transform(r.key(), intermediate);
       validateProjection(mapped, outputSchema);
       output.add(mapped.getColumns());
     });
@@ -644,10 +640,16 @@ public final class PullQueryExecutor {
     return source.getName();
   }
 
-  private static KsqlNode getOwner(final Struct rowKey, final Materialization mat) {
+  private static KsqlNode getOwner(
+      final KsqlConfig ksqlConfig,
+      final Struct rowKey,
+      final Materialization mat
+  ) {
     final Locator locator = mat.locator();
 
-    final long threshold = System.currentTimeMillis() + OWNERSHIP_TIMEOUT.toMillis();
+    final long timeoutMs =
+        ksqlConfig.getLong(KsqlConfig.KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG);
+    final long threshold = System.currentTimeMillis() + timeoutMs;
     while (System.currentTimeMillis() < threshold) {
       final Optional<KsqlNode> owner = locator.locate(rowKey);
       if (owner.isPresent()) {
@@ -656,7 +658,8 @@ public final class PullQueryExecutor {
     }
 
     throw new MaterializationTimeOutException(
-        "The owner of the key could not be determined within the configured timeout"
+        "The owner of the key could not be determined within the configured timeout: "
+            + timeoutMs + "ms, config: " + KsqlConfig.KSQL_QUERY_PULL_ROUTING_TIMEOUT_MS_CONFIG
     );
   }
 
@@ -665,33 +668,59 @@ public final class PullQueryExecutor {
       final ConfiguredStatement<Query> statement,
       final ServiceContext serviceContext
   ) {
-    final RestResponse<KsqlEntityList> response = serviceContext
+    final RestResponse<List<StreamedRow>> response = serviceContext
         .getKsqlClient()
-        .makeKsqlRequest(owner.location(), statement.getStatementText());
+        .makeQueryRequest(owner.location(), statement.getStatementText());
 
     if (response.isErroneous()) {
       throw new KsqlServerException("Proxy attempt failed: " + response.getErrorMessage());
     }
 
-    final KsqlEntityList entities = response.getResponse();
-    if (entities.size() != 1) {
-      throw new RuntimeException("Boom - expected 1 entity, got: " + entities.size());
+    final List<StreamedRow> streamedRows = response.getResponse();
+    if (streamedRows.isEmpty()) {
+      throw new KsqlServerException("Invalid empty response from proxy call");
     }
 
-    return (TableRowsEntity) entities.get(0);
+    // Temporary code to convert from QueryStream to TableRowsEntity
+    // Tracked by: https://github.com/confluentinc/ksql/issues/3865
+    final Header header = streamedRows.get(0).getHeader()
+        .orElseThrow(() -> new KsqlServerException("Expected header in first row"));
+
+    final ImmutableList.Builder<List<?>> rows = ImmutableList.builder();
+
+    for (final StreamedRow row : streamedRows.subList(1, streamedRows.size())) {
+      if (row.getErrorMessage().isPresent()) {
+        throw new KsqlStatementException(
+            row.getErrorMessage().get().getMessage(),
+            statement.getStatementText()
+        );
+      }
+
+      if (!row.getRow().isPresent()) {
+        throw new KsqlServerException("Unexpected proxy response");
+      }
+
+      rows.add(row.getRow().get().getColumns());
+    }
+
+    return new TableRowsEntity(
+        statement.getStatementText(),
+        header.getQueryId(),
+        header.getSchema(),
+        rows.build()
+    );
   }
 
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
-    return new KsqlException("Pull query: "
-        + "Table '" + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized."
-        + System.lineSeparator()
-        + "Did you mean to execute a push query? "
-        + "If so, add `EMIT CHANGES` to the end of your query."
-        + "Push queries were the only queries supported before v5.4.0. "
+    return new KsqlException("Table '"
+        + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
+        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()
         + " KSQL currently only supports pull queries on materialized aggregate tables."
         + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
         + "FROM <sources> GROUP BY <key>' style statement."
+        + System.lineSeparator()
+        + PullQueryValidator.NEW_QUERY_SYNTAX_ADDITIONAL_HELP
     );
   }
 
@@ -714,13 +743,10 @@ public final class PullQueryExecutor {
             + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
             + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
-    return new KsqlException(msg + "."
+    return new KsqlException(msg
+        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()
-        + "Did you mean to execute a push query? "
-        + "If so, add `EMIT CHANGES` to the end of your query."
-        + "Push queries were the only queries supported before v5.4.0. "
-        + System.lineSeparator()
-        + "Pull queries currently require a WHERE clause that:"
+        + "Pull queries require a WHERE clause that:"
         + System.lineSeparator()
         + " - limits the query to a single ROWKEY, e.g. `SELECT * FROM X WHERE ROWKEY=Y;`."
         + additional

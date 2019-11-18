@@ -69,7 +69,6 @@ import io.confluent.ksql.parser.SqlBaseParser.LimitClauseContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListConnectorsContext;
 import io.confluent.ksql.parser.SqlBaseParser.ListTypesContext;
 import io.confluent.ksql.parser.SqlBaseParser.RegisterTypeContext;
-import io.confluent.ksql.parser.SqlBaseParser.SingleStatementContext;
 import io.confluent.ksql.parser.SqlBaseParser.SourceNameContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertiesContext;
 import io.confluent.ksql.parser.SqlBaseParser.TablePropertyContext;
@@ -158,12 +157,25 @@ public class AstBuilder {
     this.typeRegistry = requireNonNull(typeRegistry, "typeRegistry");
   }
 
-  public Statement build(final SingleStatementContext statement) {
-    final Node result = new Visitor(
-        getSources(statement),
-        typeRegistry
-    ).visit(statement);
-    return (Statement) result;
+  @SuppressWarnings("unchecked")
+  public Statement buildStatement(final ParserRuleContext parseTree) {
+    return build(Optional.of(getSources(parseTree)), typeRegistry, parseTree);
+  }
+
+  public Expression buildExpression(final ParserRuleContext parseTree) {
+    return build(Optional.empty(), typeRegistry, parseTree);
+  }
+
+  public WindowExpression buildWindowExpression(final ParserRuleContext parseTree) {
+    return build(Optional.empty(), typeRegistry, parseTree);
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T extends Node> T build(
+      final Optional<Set<SourceName>> sources,
+      final TypeRegistry typeRegistry,
+      final ParserRuleContext parseTree) {
+    return (T) new Visitor(sources, typeRegistry).visit(parseTree);
   }
 
   // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
@@ -172,13 +184,13 @@ public class AstBuilder {
 
     private static final String DEFAULT_WINDOW_NAME = "StreamWindow";
 
-    private final Set<SourceName> sources;
+    private final Optional<Set<SourceName>> sources;
     private final SqlTypeParser typeParser;
 
     private boolean buildingPersistentQuery = false;
 
-    Visitor(final Set<SourceName> sources, final TypeRegistry typeRegistry) {
-      this.sources = ImmutableSet.copyOf(Objects.requireNonNull(sources, "sources"));
+    Visitor(final Optional<Set<SourceName>> sources, final TypeRegistry typeRegistry) {
+      this.sources = Objects.requireNonNull(sources, "sources").map(ImmutableSet::copyOf);
       this.typeParser = SqlTypeParser.create(typeRegistry);
     }
 
@@ -1088,7 +1100,7 @@ public class AstBuilder {
     }
 
     private void throwOnUnknownNameOrAlias(final SourceName name) {
-      if (!sources.contains(name)) {
+      if (sources.isPresent() && !sources.get().contains(name)) {
         throw new KsqlException("'" + name.name() + "' is not a valid stream/table name or alias.");
       }
     }

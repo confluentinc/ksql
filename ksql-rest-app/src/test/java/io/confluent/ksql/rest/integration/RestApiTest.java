@@ -26,15 +26,17 @@ import static org.apache.kafka.common.acl.AclOperation.ALL;
 import static org.apache.kafka.common.acl.AclOperation.CREATE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE;
 import static org.apache.kafka.common.acl.AclOperation.DESCRIBE_CONFIGS;
+import static org.apache.kafka.common.acl.AclOperation.WRITE;
 import static org.apache.kafka.common.resource.ResourceType.CLUSTER;
 import static org.apache.kafka.common.resource.ResourceType.GROUP;
 import static org.apache.kafka.common.resource.ResourceType.TOPIC;
+import static org.apache.kafka.common.resource.ResourceType.TRANSACTIONAL_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import io.confluent.common.utils.IntegrationTest;
@@ -129,7 +131,20 @@ public class RestApiTest {
               )
               .withAcl(
                   NORMAL_USER,
+                  resource(TRANSACTIONAL_ID, "default_"),
+                  ops(WRITE)
+              )
+              .withAcl(
+                  NORMAL_USER,
+                  resource(TRANSACTIONAL_ID, "default_"),
+                  ops(DESCRIBE)
+              ).withAcl(
+                  NORMAL_USER,
                   resource(TOPIC, "__consumer_offsets"),
+                  ops(DESCRIBE)
+              ).withAcl(
+                  NORMAL_USER,
+                  resource(TOPIC, "__transaction_state"),
                   ops(DESCRIBE)
               )
       )
@@ -204,13 +219,13 @@ public class RestApiTest {
     );
 
     // Then:
+    assertThat(parseRawRestQueryResponse(response), hasSize(HEADER + LIMIT + FOOTER));
     final String[] messages = response.split(System.lineSeparator());
-    assertThat(messages.length, is(HEADER + LIMIT + FOOTER));
     assertThat(messages[0],
-        is("{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` STRING\"}}"));
-    assertThat(messages[1], is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}}"));
-    assertThat(messages[2], is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}}"));
-    assertThat(messages[3], is("{\"finalMessage\":\"Limit Reached\"}"));
+        is("[{\"header\":{\"queryId\":\"none\",\"schema\":\"`USERID` STRING, `PAGEID` STRING, `VIEWTIME` BIGINT, `ROWKEY` STRING\"}},"));
+    assertThat(messages[1], is("{\"row\":{\"columns\":[\"USER_1\",\"PAGE_1\",1,\"1\"]}},"));
+    assertThat(messages[2], is("{\"row\":{\"columns\":[\"USER_2\",\"PAGE_2\",2,\"2\"]}},"));
+    assertThat(messages[3], is("{\"finalMessage\":\"Limit Reached\"}]"));
   }
 
   @Test
@@ -226,7 +241,10 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
   }
@@ -235,7 +253,7 @@ public class RestApiTest {
   public void shouldExecutePullQueryOverWebSocketWithJsonContentType() {
     // When:
     final Supplier<List<String>> call = () -> makeWebSocketRequest(
-        "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
+        "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';",
         MediaType.APPLICATION_JSON_TYPE,
         MediaType.APPLICATION_JSON_TYPE
     );
@@ -244,9 +262,12 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
-        is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
+        is("{\"row\":{\"columns\":[1,\"USER_1\"]}}"));
   }
 
   @Test
@@ -262,7 +283,10 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"ROWKEY\",\"schema\":{\"type\":\"STRING\",\"fields\":null,\"memberSchema\":null}},"
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[\"USER_1\",1]}}"));
   }
@@ -280,7 +304,9 @@ public class RestApiTest {
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
     assertValidJsonMessages(messages);
     assertThat(messages.get(0),
-        is("[{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}]"));
+        is("["
+            + "{\"name\":\"COUNT\",\"schema\":{\"type\":\"BIGINT\",\"fields\":null,\"memberSchema\":null}}"
+            + "]"));
     assertThat(messages.get(1),
         is("{\"row\":{\"columns\":[1]}}"));
   }
@@ -290,20 +316,19 @@ public class RestApiTest {
     // When:
     final Supplier<List<String>> call = () -> {
       final String response = rawRestQueryRequest(
-          "SELECT * from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';"
+          "SELECT COUNT, ROWKEY from " + AGG_TABLE + " WHERE ROWKEY='" + AN_AGG_KEY + "';"
       );
       return Arrays.asList(response.split(System.lineSeparator()));
     };
 
     // Then:
     final List<String> messages = assertThatEventually(call, hasSize(HEADER + 1));
-    final List<Map<String, Object>> parsed = parseRawRestQueryResponse(String.join("", messages));
-    assertThat(parsed, hasSize(HEADER + 1));
-    assertThat(parsed.get(0).get("header"), instanceOf(Map.class));
-    assertThat(((Map) parsed.get(0).get("header")).get("queryId"), is(notNullValue()));
-    assertThat(((Map) parsed.get(0).get("header")).get("schema"),
-        is("`ROWKEY` STRING KEY, `COUNT` BIGINT"));
-    assertThat(messages.get(1), is("{\"row\":{\"columns\":[[\"USER_1\",1]]}}]"));
+    assertThat(messages, hasSize(HEADER + 1));
+
+    assertThat(messages.get(0), startsWith("[{\"header\":{\"queryId\":\""));
+    assertThat(messages.get(0),
+        endsWith("\",\"schema\":\"`COUNT` BIGINT, `ROWKEY` STRING KEY\"}},"));
+    assertThat(messages.get(1), is("{\"row\":{\"columns\":[1,\"USER_1\"]}}]"));
   }
 
   @Test
@@ -332,8 +357,9 @@ public class RestApiTest {
   @Test
   public void shouldDeleteTopic() {
     // Given:
-    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";"
-        + "TERMINATE QUERY CSAS_X_2; ");
+    makeKsqlRequest("CREATE STREAM X AS SELECT * FROM " + PAGE_VIEW_STREAM + ";");
+    final String query = REST_APP.getPersistentQueries().iterator().next();
+    makeKsqlRequest("TERMINATE QUERY " +  query + ";");
 
     assertThat("Expected topic X to be created", topicExists("X"));
 

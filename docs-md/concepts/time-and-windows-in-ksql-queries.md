@@ -90,7 +90,7 @@ setting can be either `CreateTime` or `LogAppendTime`.
 
 ksqlDB doesn't support processing-time operations directly, but you can
 implement user-defined functions (UDFs) that access the current time.
-For more information, see [ksqlDB Custom Function Reference](../developer-guide/udf.md).
+For more information, see [Functions](functions.md).
 
 By default, when ksqlDB imports a topic to create a stream, it uses the
 record's timestamp, but you can add the WITH(TIMESTAMP='some-field')
@@ -363,7 +363,7 @@ SELECT o.order_id, o.total_amount, o.customer_name, s.shipment_id, s.warehouse
 ```
 
 For more information on joins, see
-[Join Event Streams with ksqlDB](../developer-guide/join-streams-and-tables.md).
+[Join Event Streams with ksqlDB](../developer-guide/joins/join-streams-and-tables.md).
 
 Next Steps
 ----------

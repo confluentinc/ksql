@@ -33,6 +33,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -70,15 +71,17 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   private static final String DEFAULT_REPLICATION_PROP = "default.replication.factor";
   private static final String DELETE_TOPIC_ENABLE = "delete.topic.enable";
 
-  private final Admin adminClient;
+  private final Supplier<Admin> adminClient;
 
   /**
    * Construct a topic client from an existing admin client.
+   * Note, the admin client is shared between all methods of this class, i.e the admin client
+   * is created only once and then reused.
    *
-   * @param adminClient the admin client.
+   * @param sharedAdminClient the admin client .
    */
-  public KafkaTopicClientImpl(final Admin adminClient) {
-    this.adminClient = Objects.requireNonNull(adminClient, "adminClient");
+  public KafkaTopicClientImpl(final Supplier<Admin> sharedAdminClient) {
+    this.adminClient = Objects.requireNonNull(sharedAdminClient, "sharedAdminClient");
   }
 
   @Override
@@ -108,7 +111,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       );
 
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.createTopics(
+          () -> adminClient.get().createTopics(
               Collections.singleton(newTopic),
               createOptions
           ).all().get(),
@@ -165,7 +168,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Set<String> listTopicNames() {
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.listTopics().names().get(),
+          () -> adminClient.get().listTopics().names().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
     } catch (final Exception e) {
       throw new KafkaResponseGetFailedException("Failed to retrieve Kafka Topic names", e);
@@ -184,7 +187,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   public Map<String, TopicDescription> describeTopics(final Collection<String> topicNames) {
     try {
       return ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeTopics(
+          () -> adminClient.get().describeTopics(
               topicNames,
               new DescribeTopicsOptions().includeAuthorizedOperations(true)
           ).all().get(),
@@ -228,7 +231,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           Collections.singletonMap(resource, entries);
 
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.incrementalAlterConfigs(request).all().get(),
+          () -> adminClient.get().incrementalAlterConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;
@@ -263,7 +266,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
       return;
     }
 
-    final DeleteTopicsResult deleteTopicsResult = adminClient.deleteTopics(topicsToDelete);
+    final DeleteTopicsResult deleteTopicsResult = adminClient.get().deleteTopics(topicsToDelete);
     final Map<String, KafkaFuture<Void>> results = deleteTopicsResult.values();
     final List<String> failList = Lists.newArrayList();
     final List<Pair<String, Throwable>> exceptionList = Lists.newArrayList();
@@ -315,7 +318,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
   }
 
   private Config getConfig() {
-    return KafkaClusterUtil.getConfig(adminClient);
+    return KafkaClusterUtil.getConfig(adminClient.get());
   }
 
   private static boolean isInternalTopic(final String topicName, final String applicationId) {
@@ -344,7 +347,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
 
     try {
       final Config config = ExecutorUtil.executeWithRetries(
-          () -> adminClient.describeConfigs(request).all().get(),
+          () -> adminClient.get().describeConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE).get(resource);
       return config.entries().stream()
           .filter(e -> includeDefaults
@@ -374,7 +377,7 @@ public class KafkaTopicClientImpl implements KafkaTopicClient {
           Collections.singletonMap(resource, new Config(entries));
 
       ExecutorUtil.executeWithRetries(
-          () -> adminClient.alterConfigs(request).all().get(),
+          () -> adminClient.get().alterConfigs(request).all().get(),
           ExecutorUtil.RetryBehaviour.ON_RETRYABLE);
 
       return true;

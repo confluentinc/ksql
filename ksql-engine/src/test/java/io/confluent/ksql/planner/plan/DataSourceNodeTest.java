@@ -175,7 +175,7 @@ public class DataSourceNodeTest {
     when(ksqlTopic.getKeyFormat()).thenReturn(KeyFormat.nonWindowed(FormatInfo.of(Format.KAFKA)));
     when(ksqlTopic.getValueFormat()).thenReturn(ValueFormat.of(FormatInfo.of(Format.JSON)));
     when(timestampExtractionPolicy.timestampField()).thenReturn(TIMESTAMP_FIELD);
-    when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any()))
+    when(schemaKStreamFactory.create(any(), any(), any(), any(), anyInt(), any(), any(), any()))
         .thenReturn(stream);
     when(stream.toTable(any(), any(), any())).thenReturn(table);
   }
@@ -280,7 +280,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any(), any());
   }
 
   // should this even be possible? if you are using a timestamp extractor then shouldn't the name
@@ -297,7 +297,7 @@ public class DataSourceNodeTest {
     node.buildStream(ksqlStreamBuilder);
 
     // Then:
-    verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any());
+    verify(schemaKStreamFactory).create(any(), any(), any(), any(), eq(1), any(), any(), any());
   }
 
   @Test
@@ -318,7 +318,8 @@ public class DataSourceNodeTest {
         stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
-        same(node.getKeyField())
+        same(node.getKeyField()),
+        eq(SourceName.of("name"))
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),
@@ -342,7 +343,8 @@ public class DataSourceNodeTest {
         stackerCaptor.capture(),
         eq(3),
         eq(OFFSET_RESET),
-        same(node.getKeyField())
+        same(node.getKeyField()),
+        eq(SourceName.of("name"))
     );
     assertThat(
         stackerCaptor.getValue().getQueryContext().getContext(),

@@ -22,7 +22,6 @@ import io.confluent.ksql.function.AggregateFunctionInitArguments;
 import io.confluent.ksql.function.KsqlAggregateFunction;
 import io.confluent.ksql.schema.ksql.types.SqlTypes;
 import java.util.Collections;
-import org.apache.kafka.connect.data.Schema;
 
 public class LongSumKudafTest extends BaseSumKudafTest<Long, LongSumKudaf> {
   protected TGenerator<Long> getNumberGenerator() {

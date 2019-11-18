@@ -214,8 +214,8 @@ public class CliTest {
       final String commandSuffix,
       final Matcher<Iterable<? extends Iterable<? extends String>>> matcher
   ) {
-    assertRunCommand("list " + commandSuffix, matcher);
-    assertRunCommand("show " + commandSuffix, matcher);
+    assertRunCommand("list " + commandSuffix + ";", matcher);
+    assertRunCommand("show " + commandSuffix + ";", matcher);
   }
 
   private void assertRunCommand(
@@ -227,12 +227,8 @@ public class CliTest {
     assertThat(rowCaptor.getRows(), matcher);
   }
 
-  private static void run(String command, final Cli localCli) {
+  private static void run(final String command, final Cli localCli) {
     try {
-      if (!command.endsWith(";")) {
-        command += ";";
-      }
-      System.out.println("[Run Command] " + command);
       localCli.handleLine(command);
     } catch (final Exception e) {
       throw new AssertionError("Failed to run command: " + command, e);
@@ -245,7 +241,7 @@ public class CliTest {
 
   private static void createKStream(final TestDataProvider dataProvider, final Cli cli) {
     run(String.format(
-        "CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s')",
+        "CREATE STREAM %s %s WITH (value_format = 'json', kafka_topic = '%s' , key='%s');",
         dataProvider.kstreamName(), dataProvider.ksqlSchemaString(), dataProvider.topicName(),
         dataProvider.key()),
         cli);
@@ -270,9 +266,6 @@ public class CliTest {
       final PhysicalSchema resultSchema,
       final Map<String, GenericRow> expectedResults
   ) {
-    if (!selectQuery.endsWith(";")) {
-      selectQuery += ";";
-    }
     final String queryString = "CREATE STREAM " + streamName + " AS " + selectQuery;
 
     /* Start Stream Query */
@@ -420,30 +413,30 @@ public class CliTest {
 
   @Test
   public void testPropertySetUnset() {
-    assertRunCommand("set 'auto.offset.reset' = 'latest'", is(EMPTY_RESULT));
-    assertRunCommand("set 'application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true'", is(EMPTY_RESULT));
-    assertRunCommand("set 'ksql.service.id' = 'assertPrint'", is(EMPTY_RESULT));
+    assertRunCommand("set 'auto.offset.reset' = 'latest';", is(EMPTY_RESULT));
+    assertRunCommand("set 'application.id' = 'Test_App';", is(EMPTY_RESULT));
+    assertRunCommand("set 'producer.batch.size' = '16384';", is(EMPTY_RESULT));
+    assertRunCommand("set 'max.request.size' = '1048576';", is(EMPTY_RESULT));
+    assertRunCommand("set 'consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
+    assertRunCommand("set 'enable.auto.commit' = 'true';", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.application.id' = 'Test_App';", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.producer.batch.size' = '16384';", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.max.request.size' = '1048576';", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.consumer.max.poll.records' = '500';", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.streams.enable.auto.commit' = 'true';", is(EMPTY_RESULT));
+    assertRunCommand("set 'ksql.service.id' = 'assertPrint';", is(EMPTY_RESULT));
 
-    assertRunCommand("unset 'application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.application.id'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.producer.batch.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.max.request.size'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.streams.enable.auto.commit'", is(EMPTY_RESULT));
-    assertRunCommand("unset 'ksql.service.id'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'application.id';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'producer.batch.size';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'max.request.size';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'consumer.max.poll.records';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'enable.auto.commit';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.application.id';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.producer.batch.size';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.max.request.size';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.consumer.max.poll.records';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.streams.enable.auto.commit';", is(EMPTY_RESULT));
+    assertRunCommand("unset 'ksql.service.id';", is(EMPTY_RESULT));
 
     assertRunListCommand("properties", hasRows(
         // SERVER OVERRIDES:
@@ -465,13 +458,13 @@ public class CliTest {
         )
     ));
 
-    assertRunCommand("unset 'auto.offset.reset'", is(EMPTY_RESULT));
+    assertRunCommand("unset 'auto.offset.reset';", is(EMPTY_RESULT));
   }
 
   @Test
   public void shouldPrintCorrectSchemaForDescribeStream() {
     assertRunCommand(
-        "describe " + orderDataProvider.kstreamName(),
+        "describe " + orderDataProvider.kstreamName() + ";",
         containsRows(
             row("ROWTIME", "BIGINT           (system)"),
             row("ROWKEY", "VARCHAR(STRING)  (system)"),
@@ -488,7 +481,7 @@ public class CliTest {
   @Test
   public void testPersistentSelectStar() {
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName(),
+        "SELECT * FROM " + orderDataProvider.kstreamName() + ";",
         orderDataProvider.schema(),
         orderDataProvider.data()
     );
@@ -554,7 +547,7 @@ public class CliTest {
     );
 
     testCreateStreamAsSelect(
-        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName(),
+        "SELECT ITEMID, ORDERUNITS, PRICEARRAY FROM " + orderDataProvider.kstreamName() + ";",
         resultSchema,
         expectedResults
     );
@@ -578,7 +571,7 @@ public class CliTest {
             mapField)));
 
     testCreateStreamAsSelect(
-        "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8'",
+        "SELECT * FROM " + orderDataProvider.kstreamName() + " WHERE ORDERUNITS > 20 AND ITEMID = 'ITEM_8';",
         orderDataProvider.schema(),
         expectedResults
     );
@@ -643,8 +636,8 @@ public class CliTest {
       return terminal.getOutputString();
     };
 
-    assertThatEventually(runner, containsString("ROWKEY STRING KEY"));
-    assertThatEventually(runner, containsString("COUNT BIGINT"));
+    assertThatEventually(runner, containsString("ROWKEY"));
+    assertThatEventually(runner, containsString("COUNT"));
   }
 
   @Test
@@ -667,7 +660,7 @@ public class CliTest {
   @Test
   public void shouldOutputPushQueryHeader() {
     // When:
-    run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1", localCli);
+    run("SELECT * FROM " + orderDataProvider.kstreamName() + " EMIT CHANGES LIMIT 1;", localCli);
 
     // Then: (note that some of these are truncated because of header wrapping)
     assertThat(terminal.getOutputString(), containsString("ROWTIME"));
@@ -714,7 +707,7 @@ public class CliTest {
   public void testCreateTable() {
     final String queryString = "CREATE TABLE " + tableName + " AS " +
         " SELECT ITEMID, COUNT(*) FROM " + orderDataProvider.kstreamName() +
-        " GROUP BY ITEMID";
+        " GROUP BY ITEMID;";
 
     assertRunCommand(
         queryString,

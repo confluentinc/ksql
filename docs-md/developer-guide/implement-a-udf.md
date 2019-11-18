@@ -26,7 +26,7 @@ Create a user-defined function (UDF), a user-defined aggregation function
     a SQL query or statement.
 
 For more information on custom functions, see
-[ksqlDB Custom Function Reference (UDF and UDAF)](udf.md).
+[Functions](../concepts/functions.md).
 
 Create the ksql Extensions Directory
 ------------------------------------
@@ -94,7 +94,7 @@ The following Java code defines four overloads for a `multiply`
 function. The `UdfDescription` and `Udf` annotations tell ksqlDB Server to
 load the `Multiply` class and look for methods to add to its list of
 available functions. For more information, see
-[ksqlDB Custom Function Reference (UDF, UDAF, and UDTF)](udf.md).
+[functions](../concepts/functions.md).
 
 Copy the following code into a new file, named `Multiply.java`:
 
@@ -376,7 +376,7 @@ Implementing a user-defined aggregation function (UDAF) is similar to
 the way that you implement a UDF. You use the `UdafDescription` and
 `UdafFactory` annotations in your Java code, and you deploy a JAR to the
 `ksql` extensions directory. For more information, see
-[UDAFs](udf.md#udafs).
+[UDAFs](../concepts/functions.md#udafs).
 
 User Defined Table Function (UDTF)
 ----------------------------------
@@ -384,13 +384,13 @@ User Defined Table Function (UDTF)
 Implementing a user-defined table function (UDTF) is similar to the way
 that you implement a UDF. You use the `UdtfDescription` and `Udtf`
 annotations in your Java code, and you deploy a JAR to the `ksql` extensions
-directory. For more information, see [UDTFs](udf.md#udtfs).
+directory. For more information, see [UDTFs](../concepts/functions.md#udtfs).
 
 Next Steps
 ----------
 
 -   [How to Build a UDF and/or UDAF in KSQL 5.0](https://www.confluent.io/blog/build-udf-udaf-ksql-5-0)
 -   [Aggregate Streaming Data With ksqlDB](aggregate-streaming-data.md)
--   [Join Event Streams with ksqlDB](join-streams-and-tables.md)
+-   [Join Event Streams with ksqlDB](joins/join-streams-and-tables.md)
 
 Page last revised on: {{ git_revision_date }}

@@ -41,6 +41,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
+import io.confluent.ksql.util.KsqlStatementException;
 import io.confluent.ksql.util.QueryMetadata;
 import io.confluent.ksql.util.TransientQueryMetadata;
 import io.confluent.ksql.version.metrics.ActivenessRegistrar;
@@ -210,6 +211,8 @@ public class StreamedQueryResource implements KsqlConfigurable {
           statement.getClass().getName()));
     } catch (final TopicAuthorizationException e) {
       return Errors.accessDeniedFromKafka(e);
+    } catch (final KsqlStatementException e) {
+      return Errors.badStatement(e.getRawMessage(), e.getSqlStatement());
     } catch (final KsqlException e) {
       return ErrorResponseUtil.generateResponse(
           e, Errors.badRequest(e));
@@ -230,7 +233,7 @@ public class StreamedQueryResource implements KsqlConfigurable {
     final StreamedRow header = StreamedRow.header(entity.getQueryId(), entity.getSchema());
 
     final List<StreamedRow> rows = entity.getRows().stream()
-        .map(GenericRow::new)
+        .map(StreamedQueryResource::toGenericRow)
         .map(StreamedRow::row)
         .collect(Collectors.toList());
 
@@ -332,6 +335,11 @@ public class StreamedQueryResource implements KsqlConfigurable {
     return serviceContext.getTopicClient().listTopicNames().stream()
         .filter(name -> name.equalsIgnoreCase(topicName))
         .collect(Collectors.toSet());
+  }
+
+  @SuppressWarnings("unchecked")
+  private static GenericRow toGenericRow(final List<?> values) {
+    return new GenericRow((List)values);
   }
 }
 

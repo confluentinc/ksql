@@ -186,6 +186,6 @@ public class DataSourceExtractorTest {
   private static AstNode givenQuery(final String sql) {
     final List<ParsedStatement> statements = new DefaultKsqlParser().parse(sql);
     assertThat(statements, hasSize(1));
-    return new AstBuilder(META_STORE).build(statements.get(0).getStatement());
+    return new AstBuilder(META_STORE).buildStatement(statements.get(0).getStatement());
   }
 }

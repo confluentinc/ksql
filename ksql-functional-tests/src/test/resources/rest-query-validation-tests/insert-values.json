@@ -15,7 +15,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"ID": 10}}
       ],
       "responses": [
-        {"@type": "currentStatus", "statementText": "{STATEMENT}"}
+        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
       ]
     },
     {
@@ -270,7 +270,7 @@
         {"topic": "test_topic", "timestamp": 1234, "key": "key", "value": {"id!": 10}}
       ],
       "responses": [
-        {"@type": "currentStatus", "statementText": "{STATEMENT}"}
+        {"admin": {"@type": "currentStatus", "statementText": "{STATEMENT}"}}
       ]
     }
   ]

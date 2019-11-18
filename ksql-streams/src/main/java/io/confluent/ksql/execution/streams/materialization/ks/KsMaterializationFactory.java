@@ -21,6 +21,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.model.WindowType;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
+import io.confluent.ksql.util.KsqlConfig;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
@@ -74,7 +75,8 @@ public final class KsMaterializationFactory {
       final LogicalSchema schema,
       final Serializer<Struct> keySerializer,
       final Optional<WindowType> windowType,
-      final Map<String, ?> streamsProperties
+      final Map<String, ?> streamsProperties,
+      final KsqlConfig ksqlConfig
   ) {
     final Object appServer = streamsProperties.get(StreamsConfig.APPLICATION_SERVER_CONFIG);
     if (appServer == null) {
@@ -93,7 +95,8 @@ public final class KsMaterializationFactory {
     final KsStateStore stateStore = storeFactory.create(
         stateStoreName,
         kafkaStreams,
-        schema
+        schema,
+        ksqlConfig
     );
 
     final KsMaterialization materialization = materializationFactory.create(
@@ -133,7 +136,8 @@ public final class KsMaterializationFactory {
     KsStateStore create(
         String stateStoreName,
         KafkaStreams kafkaStreams,
-        LogicalSchema schema
+        LogicalSchema schema,
+        KsqlConfig ksqlConfig
     );
   }
 

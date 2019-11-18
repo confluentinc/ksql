@@ -28,9 +28,8 @@ import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.apache.kafka.streams.kstream.ValueMapper;
 
-public class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
+public class SelectValueMapper<K> extends KsqlValueTransformerWithKey<K> {
 
   private final ImmutableList<SelectInfo> selects;
   private final ProcessingLogger processingLogger;
@@ -48,15 +47,15 @@ public class SelectValueMapper implements ValueMapper<GenericRow, GenericRow> {
   }
 
   @Override
-  public GenericRow apply(final GenericRow row) {
-    if (row == null) {
+  protected GenericRow transform(final GenericRow value) {
+    if (value == null) {
       return null;
     }
 
     final List<Object> newColumns = new ArrayList<>();
 
     for (int i = 0; i < selects.size(); i++) {
-      newColumns.add(processColumn(i, row));
+      newColumns.add(processColumn(i, value));
     }
 
     return new GenericRow(newColumns);

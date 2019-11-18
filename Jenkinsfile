@@ -175,7 +175,7 @@ def job = {
                                 sh "git commit -m \"build: Setting project version ${config.ksql_db_version} and parent version ${config. cp_version}.\""
                                 sh "git tag ${git_tag}"
                                 sshagent (credentials: ['ConfluentJenkins Github SSH Key']) {
-                                    sh "git push -f origin ${git_tag}"
+                                    sh "git push origin ${git_tag}"
                                 }
                             }
 

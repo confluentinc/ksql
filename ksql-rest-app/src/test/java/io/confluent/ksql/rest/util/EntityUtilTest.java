@@ -60,11 +60,12 @@ public class EntityUtilTest {
   public void shouldBuildCorrectMapField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), SqlTypes.map(SqlTypes.INTEGER))
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
     assertThat(fields, hasSize(1));
@@ -79,11 +80,12 @@ public class EntityUtilTest {
   public void shouldBuildCorrectArrayField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), SqlTypes.array(SqlTypes.BIGINT))
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
     assertThat(fields, hasSize(1));
@@ -98,13 +100,14 @@ public class EntityUtilTest {
   public void shouldBuildCorrectStructField() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), SqlTypes.struct()
             .field("innerField", SqlTypes.STRING)
             .build())
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
     assertThat(fields, hasSize(1));
@@ -120,12 +123,13 @@ public class EntityUtilTest {
   public void shouldBuildMiltipleFieldsCorrectly() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("field2"), SqlTypes.BIGINT)
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
     assertThat(fields, hasSize(2));
@@ -139,13 +143,14 @@ public class EntityUtilTest {
   public void shouldSupportRowTimeAndKeyInValueSchema() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
     assertThat(fields, hasSize(3));
@@ -154,22 +159,35 @@ public class EntityUtilTest {
   }
 
   @Test
-  public void shouldSupportGettingFullSchema() {
+  public void shouldSupportSchemasWithMetaColumns() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
-        .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, false);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
-    assertThat(fields, hasSize(3));
+    assertThat(fields, hasSize(2));
     assertThat(fields.get(0).getName(), equalTo("ROWTIME"));
     assertThat(fields.get(0).getSchema().getTypeName(), equalTo("BIGINT"));
-    assertThat(fields.get(1).getName(), equalTo("ROWKEY"));
-    assertThat(fields.get(1).getSchema().getTypeName(), equalTo("STRING"));
-    assertThat(fields.get(2).getName(), equalTo("field1"));
+  }
+
+  @Test
+  public void shouldSupportSchemasWithKeyColumns() {
+    // Given:
+    final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
+        .keyColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+        .build();
+
+    // When:
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
+
+    // Then:
+    assertThat(fields, hasSize(1));
+    assertThat(fields.get(0).getName(), equalTo("field1"));
+    assertThat(fields.get(0).getSchema().getTypeName(), equalTo("INTEGER"));
   }
 
   private static void shouldBuildCorrectPrimitiveField(
@@ -178,11 +196,12 @@ public class EntityUtilTest {
   ) {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field"), primitiveSchema)
         .build();
 
     // When:
-    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema, true);
+    final List<FieldInfo> fields = EntityUtil.buildSourceSchemaEntity(schema);
 
     // Then:
     assertThat(fields.get(0).getName(), equalTo("field"));

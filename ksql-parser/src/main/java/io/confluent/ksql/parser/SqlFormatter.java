@@ -132,7 +132,7 @@ public final class SqlFormatter {
             .append('\n');
       }
 
-      if (!node.isStatic()) {
+      if (!node.isPullQuery()) {
         append(indent, "EMIT ");
         append(indent, node.getResultMaterialization().toString())
             .append('\n');

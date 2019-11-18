@@ -42,8 +42,8 @@ public class QueryAnalyzer {
 
   private final Analyzer analyzer;
   private final MetaStore metaStore;
-  private final QueryValidator continuousValidator;
-  private final QueryValidator staticValidator;
+  private final QueryValidator pullQueryValidator;
+  private final QueryValidator pushQueryValidator;
 
   public QueryAnalyzer(
       final MetaStore metaStore,
@@ -53,8 +53,8 @@ public class QueryAnalyzer {
     this(
         metaStore,
         new Analyzer(metaStore, outputTopicPrefix, defaultSerdeOptions),
-        new ContinuousQueryValidator(),
-        new StaticQueryValidator()
+        new PushQueryValidator(),
+        new PullQueryValidator()
     );
   }
 
@@ -62,13 +62,13 @@ public class QueryAnalyzer {
   QueryAnalyzer(
       final MetaStore metaStore,
       final Analyzer analyzer,
-      final QueryValidator continuousValidator,
-      final QueryValidator staticValidator
+      final QueryValidator pullQueryValidator,
+      final QueryValidator pushQueryValidator
   ) {
     this.metaStore = requireNonNull(metaStore, "metaStore");
     this.analyzer = requireNonNull(analyzer, "analyzer");
-    this.continuousValidator = requireNonNull(continuousValidator, "continuousValidator");
-    this.staticValidator = requireNonNull(staticValidator, "staticValidator");
+    this.pullQueryValidator = requireNonNull(pullQueryValidator, "pullQueryValidator");
+    this.pushQueryValidator = requireNonNull(pushQueryValidator, "pushQueryValidator");
   }
 
   public Analysis analyze(
@@ -77,10 +77,10 @@ public class QueryAnalyzer {
   ) {
     final Analysis analysis = analyzer.analyze(query, sink);
 
-    if (query.isStatic()) {
-      staticValidator.validate(analysis);
+    if (query.isPullQuery()) {
+      pushQueryValidator.validate(analysis);
     } else {
-      continuousValidator.validate(analysis);
+      pullQueryValidator.validate(analysis);
     }
 
     return analysis;

@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-public class StaticQueryValidator implements QueryValidator {
+public class PullQueryValidator implements QueryValidator {
 
   private static final String PUSH_PULL_QUERY_DOC_LINK = "https://cnfl.io/queries";
 

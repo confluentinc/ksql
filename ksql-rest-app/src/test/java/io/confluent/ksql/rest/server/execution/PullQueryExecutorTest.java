@@ -41,7 +41,7 @@ import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(Enclosed.class)
-public class StaticQueryExecutorTest {
+public class PullQueryExecutorTest {
 
   public static class Disabled {
     @Rule
@@ -55,7 +55,7 @@ public class StaticQueryExecutorTest {
     public void shouldThrowExceptionIfConfigDisabled() {
       // Given:
       final Query theQuery = mock(Query.class);
-      when(theQuery.isStatic()).thenReturn(true);
+      when(theQuery.isPullQuery()).thenReturn(true);
       final ConfiguredStatement<Query> query = ConfiguredStatement.of(
           PreparedStatement.of("SELECT * FROM test_table;", theQuery),
           ImmutableMap.of(),
@@ -72,7 +72,7 @@ public class StaticQueryExecutorTest {
           "SELECT * FROM test_table"))));
 
       // When:
-      StaticQueryExecutor.execute(
+      PullQueryExecutor.execute(
           query,
           ImmutableMap.of(),
           engine.getEngine(),

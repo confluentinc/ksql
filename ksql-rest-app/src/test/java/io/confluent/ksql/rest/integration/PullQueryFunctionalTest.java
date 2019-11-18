@@ -58,7 +58,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 
 /**
- * Test to ensure static queries route across multiple KSQL nodes correctly.
+ * Test to ensure pull queries route across multiple KSQL nodes correctly.
  *
  * <p>For tests on general syntax and handled see RestQueryTranslationTest's
  * materialized-aggregate-static-queries.json

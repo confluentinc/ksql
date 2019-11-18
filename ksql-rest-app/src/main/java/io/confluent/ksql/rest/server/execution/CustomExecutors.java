@@ -55,7 +55,7 @@ import java.util.stream.Collectors;
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum CustomExecutors {
 
-  POINT_QUERY(Query.class, StaticQueryExecutor::execute),
+  PULL_QUERY(Query.class, PullQueryExecutor::execute),
 
   LIST_TOPICS(ListTopics.class, ListTopicsExecutor::execute),
   LIST_STREAMS(ListStreams.class, ListSourceExecutor::streams),

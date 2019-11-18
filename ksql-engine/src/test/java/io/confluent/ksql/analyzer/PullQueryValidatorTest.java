@@ -39,7 +39,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class StaticQueryValidatorTest {
+public class PullQueryValidatorTest {
 
   private static final Expression AN_EXPRESSION = mock(Expression.class);
 
@@ -57,7 +57,7 @@ public class StaticQueryValidatorTest {
 
   @Before
   public void setUp() {
-    validator = new StaticQueryValidator();
+    validator = new PullQueryValidator();
 
     when(analysis.getResultMaterialization()).thenReturn(ResultMaterialization.FINAL);
   }
@@ -127,7 +127,8 @@ public class StaticQueryValidatorTest {
   @Test
   public void shouldThrowOnPartitionBy() {
     // Given:
-    when(analysis.getPartitionBy()).thenReturn(Optional.of(ColumnRef.withoutSource(ColumnName.of("Something"))));
+    when(analysis.getPartitionBy())
+        .thenReturn(Optional.of(ColumnRef.withoutSource(ColumnName.of("Something"))));
 
     // Then:
     expectedException.expect(KsqlException.class);

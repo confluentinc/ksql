@@ -150,7 +150,7 @@ public final class StatementRewriter<C> {
           groupBy,
           having,
           node.getResultMaterialization(),
-          node.isStatic(),
+          node.isPullQuery(),
           node.getLimit()
       );
     }

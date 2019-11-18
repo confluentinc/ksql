@@ -25,7 +25,7 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.entity.TableRowsEntity;
-import io.confluent.ksql.rest.server.execution.StaticQueryExecutor;
+import io.confluent.ksql.rest.server.execution.PullQueryExecutor;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
 import io.confluent.ksql.schema.ksql.Column;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -43,14 +43,14 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
   private final KsqlEngine ksqlEngine;
   private final ServiceContext serviceContext;
   private final ConfiguredStatement<Query> query;
-  private final PullQueryExecutor pullQueryExecutor;
+  private final TheQueryExecutor pullQueryExecutor;
 
   PullQueryPublisher(
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> query
   ) {
-    this(ksqlEngine, serviceContext, query, StaticQueryExecutor::execute);
+    this(ksqlEngine, serviceContext, query, PullQueryExecutor::execute);
   }
 
   @VisibleForTesting
@@ -58,7 +58,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
       final KsqlEngine ksqlEngine,
       final ServiceContext serviceContext,
       final ConfiguredStatement<Query> query,
-      final PullQueryExecutor pullQueryExecutor
+      final TheQueryExecutor pullQueryExecutor
   ) {
     this.ksqlEngine = requireNonNull(ksqlEngine, "ksqlEngine");
     this.serviceContext = requireNonNull(serviceContext, "serviceContext");
@@ -156,7 +156,7 @@ class PullQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     }
   }
 
-  interface PullQueryExecutor {
+  interface TheQueryExecutor {
 
     TableRowsEntity execute(
         ConfiguredStatement<Query> statement,

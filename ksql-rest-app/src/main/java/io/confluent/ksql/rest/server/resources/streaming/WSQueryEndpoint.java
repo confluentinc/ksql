@@ -213,14 +213,10 @@ public class WSQueryEndpoint {
 
       serviceContext = createServiceContext(session.getUserPrincipal());
 
-      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
-          serviceContext,
-          ksqlEngine.getMetaStore(),
-          preparedStatement.getStatement())
-      );
-
       final Statement statement = preparedStatement.getStatement();
       final Class<? extends Statement> type = statement.getClass();
+
+      validateKafkaAuthorization(statement);
 
       HANDLER_MAP
           .getOrDefault(type, WSQueryEndpoint::handleUnsupportedStatement)
@@ -345,6 +341,27 @@ public class WSQueryEndpoint {
       throw new IllegalArgumentException("Error parsing query: " + e.getMessage(), e);
     }
   }
+
+  private void validateKafkaAuthorization(final Statement statement) {
+    if (statement instanceof Query && ((Query) statement).isPullQuery()) {
+      final boolean skipAccessValidation = ksqlConfig.getBoolean(
+          KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG);
+      if (authorizationValidator.isPresent() && !skipAccessValidation) {
+        throw new KsqlException("Pull queries are not currently supported when "
+            + "access validation against Kafka is configured. If you really want to "
+            + "bypass this limitation please set "
+            + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG + "=true "
+            + KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_DOC);
+      }
+    } else {
+      authorizationValidator.ifPresent(validator -> validator.checkAuthorization(
+          serviceContext,
+          ksqlEngine.getMetaStore(),
+          statement)
+      );
+    }
+  }
+
 
   @SuppressWarnings({"unused"})
   private void handleQuery(final RequestContext info, final Query query) {

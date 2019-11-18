@@ -743,7 +743,7 @@ public final class PullQueryExecutor {
             + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
             + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
-    return new KsqlException(msg
+    return new KsqlException(msg + ". "
         + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()
         + "Pull queries require a WHERE clause that:"

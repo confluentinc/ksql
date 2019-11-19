@@ -39,9 +39,7 @@ import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.parser.KsqlParser.ParsedStatement;
 import io.confluent.ksql.parser.KsqlParser.PreparedStatement;
 import io.confluent.ksql.query.id.HybridQueryIdGenerator;
-import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.rest.entity.KsqlErrorMessage;
-import io.confluent.ksql.rest.server.computation.Command;
 import io.confluent.ksql.rest.server.computation.CommandQueue;
 import io.confluent.ksql.rest.server.computation.CommandRunner;
 import io.confluent.ksql.rest.server.computation.CommandStore;
@@ -74,6 +72,7 @@ import io.confluent.ksql.services.LazyServiceContext;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlConfig;
+import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.RetryUtil;
 import io.confluent.ksql.util.Version;
 import io.confluent.ksql.util.WelcomeMsgUtils;
@@ -109,10 +108,6 @@ import javax.websocket.server.ServerEndpointConfig;
 import javax.websocket.server.ServerEndpointConfig.Configurator;
 import javax.ws.rs.core.Configurable;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.common.errors.AuthorizationException;
-import org.apache.kafka.common.errors.OutOfOrderSequenceException;
-import org.apache.kafka.common.errors.ProducerFencedException;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.log4j.LogManager;
 import org.eclipse.jetty.server.ServerConnector;
@@ -472,16 +467,13 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     UserFunctionLoader.newInstance(ksqlConfig, functionRegistry, ksqlInstallDir).load();
 
-    final String commandTopicName = KsqlInternalTopicUtils.getTopicName(
+    final String commandTopic = KsqlInternalTopicUtils.getTopicName(
         ksqlConfig, KsqlRestConfig.COMMAND_TOPIC_SUFFIX);
 
     final CommandStore commandStore = CommandStore.Factory.create(
-        commandTopicName,
-        ksqlConfig.getString(KsqlConfig.KSQL_SERVICE_ID_CONFIG),
-        Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
+        commandTopic,
         restConfig.getCommandConsumerProperties(),
-        restConfig.getCommandProducerProperties()
-    );
+        restConfig.getCommandProducerProperties());
 
     final InteractiveStatementExecutor statementExecutor =
         new InteractiveStatementExecutor(serviceContext, ksqlEngine, hybridQueryIdGenerator);
@@ -509,26 +501,25 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
         authorizationValidator
     );
 
-    final List<String> managedTopics = new LinkedList<>();
-    managedTopics.add(commandTopicName);
-    if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
-      managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
-    }
-
-    final CommandRunner commandRunner = new CommandRunner(
-        statementExecutor,
-        commandStore,
-        maxStatementRetries,
-        new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
-        serverState
-    );
-
     final KsqlResource ksqlResource = new KsqlResource(
         ksqlEngine,
         commandStore,
         Duration.ofMillis(restConfig.getLong(DISTRIBUTED_COMMAND_RESPONSE_TIMEOUT_MS_CONFIG)),
         versionChecker::updateLastRequestTime,
         authorizationValidator
+    );
+
+    final List<String> managedTopics = new LinkedList<>();
+    managedTopics.add(commandTopic);
+    if (processingLogConfig.getBoolean(ProcessingLogConfig.TOPIC_AUTO_CREATE)) {
+      managedTopics.add(ProcessingLogServerUtils.getTopicName(processingLogConfig, ksqlConfig));
+    }
+    final CommandRunner commandRunner = new CommandRunner(
+        statementExecutor,
+        commandStore,
+        maxStatementRetries,
+        new ClusterTerminator(ksqlEngine, serviceContext, managedTopics),
+        serverState
     );
 
     final List<KsqlServerPrecondition> preconditions = restConfig.getConfiguredInstances(
@@ -632,47 +623,27 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       final KsqlEngine ksqlEngine,
       final CommandQueue commandQueue
   ) {
-    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)) {
+    if (!config.getBoolean(ProcessingLogConfig.STREAM_AUTO_CREATE)
+        || !commandQueue.isEmpty()) {
       return;
     }
 
-    final Producer<CommandId, Command> transactionalProducer =
-        commandQueue.createTransactionalProducer();
+    final PreparedStatement<?> statement = ProcessingLogServerUtils
+        .processingLogStreamCreateStatement(config, ksqlConfig);
+    final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
+        statement, Collections.emptyMap(), ksqlConfig);
+
     try {
-      transactionalProducer.initTransactions();
-      transactionalProducer.beginTransaction();
-
-      if (!commandQueue.isEmpty()) {
-        return;
-      }
-
-      // We don't wait for the commandRunner in this case since it hasn't been started yet.
-
-      final PreparedStatement<?> statement = ProcessingLogServerUtils
-          .processingLogStreamCreateStatement(config, ksqlConfig);
-      final Supplier<ConfiguredStatement<?>> configured = () -> ConfiguredStatement.of(
-          statement, Collections.emptyMap(), ksqlConfig);
-    
       ksqlEngine.createSandbox(ksqlEngine.getServiceContext()).execute(
           ksqlEngine.getServiceContext(),
           configured.get()
       );
-
-      commandQueue.enqueueCommand(configured.get(), transactionalProducer);
-      transactionalProducer.commitTransaction();
-    } catch (final ProducerFencedException
-        | OutOfOrderSequenceException
-        | AuthorizationException e
-    ) {
-      // We can't recover from these exceptions, so our only option is close producer and exit.
-      // This catch doesn't abortTransaction() since doing that would throw another exception.
+    } catch (final KsqlException e) {
       log.warn("Failed to create processing log stream", e);
-    } catch (final Exception e) {
-      transactionalProducer.abortTransaction();
-      log.warn("Failed to create processing log stream", e);
-    } finally {
-      transactionalProducer.close();
+      return;
     }
+
+    commandQueue.enqueueCommand(configured.get());
   }
 
   /**

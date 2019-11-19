@@ -65,7 +65,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.ws.rs.core.Response;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.streams.StreamsConfig;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -73,7 +72,6 @@ import org.hamcrest.TypeSafeDiagnosingMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 public class RecoveryTest {
 
@@ -87,17 +85,8 @@ public class RecoveryTest {
   private final HybridQueryIdGenerator hybridQueryIdGenerator =
       new HybridQueryIdGenerator();
   private final ServiceContext serviceContext = TestServiceContext.create(topicClient);
-
-  @Mock
-  @SuppressWarnings("unchecked")
-  private Producer<CommandId, Command> transactionalProducer = (Producer<CommandId, Command>) mock(Producer.class);
-
   private final KsqlServer server1 = new KsqlServer(commands);
   private final KsqlServer server2 = new KsqlServer(commands);
-
-
-  @Before
-  public void setup() { }
 
   @After
   public void tearDown() {
@@ -119,16 +108,15 @@ public class RecoveryTest {
     private final List<QueuedCommand> commandLog;
     private final CommandIdAssigner commandIdAssigner;
     private int offset;
-    private Producer<CommandId, Command> transactionalProducer;
 
-    FakeCommandQueue(final List<QueuedCommand> commandLog, final Producer<CommandId, Command> transactionalProducer) {
+    FakeCommandQueue(
+        final List<QueuedCommand> commandLog) {
       this.commandIdAssigner = new CommandIdAssigner();
       this.commandLog = commandLog;
-      this.transactionalProducer = transactionalProducer;
     }
 
     @Override
-    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement, final Producer<CommandId, Command> transactionalProducer) {
+    public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
       final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
       final long commandSequenceNumber = commandLog.size();
       commandLog.add(
@@ -163,21 +151,12 @@ public class RecoveryTest {
     }
 
     @Override
-    public Producer<CommandId, Command> createTransactionalProducer() {
-      return transactionalProducer;
-    }
-    
-    @Override
     public boolean isEmpty() {
       return commandLog.isEmpty();
     }
 
     @Override
     public void wakeup() {
-    }
-
-    @Override
-    public void waitForCommandConsumer() {
     }
 
     @Override
@@ -195,7 +174,7 @@ public class RecoveryTest {
 
     KsqlServer(final List<QueuedCommand> commandLog) {
       this.ksqlEngine = createKsqlEngine();
-      this.fakeCommandQueue = new FakeCommandQueue(commandLog, transactionalProducer);
+      this.fakeCommandQueue = new FakeCommandQueue(commandLog);
       serverState = new ServerState();
       serverState.setReady();
 

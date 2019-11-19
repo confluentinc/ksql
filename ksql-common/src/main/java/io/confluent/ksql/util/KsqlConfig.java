@@ -65,9 +65,6 @@ public class KsqlConfig extends AbstractConfig {
 
   public static final String KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY = "ksql.internal.topic.replicas";
 
-  public static final String KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY = 
-      "ksql.internal.topic.min.insync.replicas";
-
   public static final String KSQL_SCHEMA_REGISTRY_PREFIX = "ksql.schema.registry.";
 
   public static final String SCHEMA_REGISTRY_URL_PROPERTY = "ksql.schema.registry.url";
@@ -518,14 +515,8 @@ public class KsqlConfig extends AbstractConfig {
             KSQL_INTERNAL_TOPIC_REPLICAS_PROPERTY,
             Type.SHORT,
             (short) 1,
-            ConfigDef.Importance.MEDIUM,
+            ConfigDef.Importance.LOW,
             "The replication factor for the internal topics of KSQL server."
-        ).define(
-            KSQL_INTERNAL_TOPIC_MIN_INSYNC_REPLICAS_PROPERTY,
-            Type.SHORT,
-            (short) 1,
-            ConfigDef.Importance.MEDIUM,
-            "The minimum number of insync replicas for the internal topics of KSQL server."
         ).define(
             KSQL_UDF_SECURITY_MANAGER_ENABLED,
             ConfigDef.Type.BOOLEAN,

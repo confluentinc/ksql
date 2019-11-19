@@ -80,11 +80,7 @@ public class RequestHandler {
     for (ParsedStatement parsed : statements) {
       final PreparedStatement<?> prepared = ksqlEngine.prepare(parsed);
       if (prepared.getStatement() instanceof RunScript) {
-        final KsqlEntityList result = executeRunScript(
-            serviceContext,
-            prepared,
-            propertyOverrides
-        );
+        final KsqlEntityList result = executeRunScript(serviceContext, prepared, propertyOverrides);
         if (!result.isEmpty()) {
           // This is to maintain backwards compatibility until we deprecate
           // RunScript in the next major release - the expected behavior was
@@ -94,13 +90,8 @@ public class RequestHandler {
       } else {
         final ConfiguredStatement<?> configured = ConfiguredStatement.of(
             prepared, scopedPropertyOverrides, ksqlConfig);
-        executeStatement(
-            serviceContext,
-            configured,
-            parsed,
-            scopedPropertyOverrides,
-            entities
-        ).ifPresent(entities::add);
+        executeStatement(serviceContext, configured, scopedPropertyOverrides, entities)
+            .ifPresent(entities::add);
       }
     }
     return entities;
@@ -110,18 +101,14 @@ public class RequestHandler {
   private <T extends Statement> Optional<KsqlEntity> executeStatement(
       final ServiceContext serviceContext,
       final ConfiguredStatement<T> configured,
-      final ParsedStatement parsed,
       final Map<String, Object> mutableScopedProperties,
       final KsqlEntityList entities
   ) {
     final Class<? extends Statement> statementClass = configured.getStatement().getClass();
-    
     commandQueueSync.waitFor(new KsqlEntityList(entities), statementClass);
 
     final StatementExecutor<T> executor = (StatementExecutor<T>)
-        customExecutors.getOrDefault(statementClass, 
-            (stmt, props, ctx, svcCtx) ->
-                distributor.execute(stmt, parsed, props, ctx, svcCtx));
+        customExecutors.getOrDefault(statementClass, distributor);
 
     return executor.execute(
         configured,
@@ -134,8 +121,7 @@ public class RequestHandler {
   private KsqlEntityList executeRunScript(
       final ServiceContext serviceContext,
       final PreparedStatement<?> statement,
-      final Map<String, Object> propertyOverrides
-  ) {
+      final Map<String, Object> propertyOverrides) {
     final String sql = (String) propertyOverrides
         .get(KsqlConstants.LEGACY_RUN_SCRIPT_STATEMENTS_CONTENT);
 
@@ -144,10 +130,6 @@ public class RequestHandler {
           "Request is missing script content", statement.getStatementText());
     }
 
-    return execute(
-        serviceContext,
-        ksqlEngine.parse(sql),
-        propertyOverrides
-    );
+    return execute(serviceContext, ksqlEngine.parse(sql), propertyOverrides);
   }
 }

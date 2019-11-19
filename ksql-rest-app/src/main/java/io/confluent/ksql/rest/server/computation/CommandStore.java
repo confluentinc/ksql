@@ -17,19 +17,13 @@ package io.confluent.ksql.rest.server.computation;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import io.confluent.ksql.rest.Errors;
 import io.confluent.ksql.rest.entity.CommandId;
-import io.confluent.ksql.rest.entity.KsqlEntityList;
 import io.confluent.ksql.rest.server.CommandTopic;
-import io.confluent.ksql.rest.server.resources.KsqlRestException;
-import io.confluent.ksql.rest.util.InternalTopicJsonSerdeUtil;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.KsqlException;
 import java.io.Closeable;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -37,36 +31,20 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.Producer;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.IsolationLevel;
-import org.apache.kafka.common.TopicPartition;
 
 /**
  * Wrapper class for the command topic. Used for reading from the topic (either all messages from
  * the beginning until now, or any new messages since then), and writing to it.
  */
-// CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
 public class CommandStore implements CommandQueue, Closeable {
 
   private static final Duration POLLING_TIMEOUT_FOR_COMMAND_TOPIC = Duration.ofMillis(5000);
-  private static final int COMMAND_TOPIC_PARTITION = 0;
 
   private final CommandTopic commandTopic;
   private final CommandIdAssigner commandIdAssigner;
   private final Map<CommandId, CommandStatusFuture> commandStatusMap;
   private final SequenceNumberFutureStore sequenceNumberFutureStore;
-
-  private final String commandTopicName;
-  private final Duration commandQueueCatchupTimeout;
-  private final Map<String, Object> kafkaConsumerProperties;
-  private final Map<String, Object> kafkaProducerProperties;
 
   public static final class Factory {
 
@@ -75,57 +53,27 @@ public class CommandStore implements CommandQueue, Closeable {
 
     public static CommandStore create(
         final String commandTopicName,
-        final String transactionId,
-        final Duration commandQueueCatchupTimeout,
         final Map<String, Object> kafkaConsumerProperties,
         final Map<String, Object> kafkaProducerProperties
     ) {
-      kafkaConsumerProperties.put(
-          ConsumerConfig.ISOLATION_LEVEL_CONFIG,
-          IsolationLevel.READ_COMMITTED.toString().toLowerCase(Locale.ROOT)
-      );
-      kafkaProducerProperties.put(
-          ProducerConfig.TRANSACTIONAL_ID_CONFIG,
-          transactionId
-      );
-      kafkaProducerProperties.put(
-          ProducerConfig.ACKS_CONFIG,
-          "all"
-      );
-
       return new CommandStore(
-          commandTopicName,
-          new CommandTopic(commandTopicName, kafkaConsumerProperties),
+          new CommandTopic(commandTopicName, kafkaConsumerProperties, kafkaProducerProperties),
           new CommandIdAssigner(),
-          new SequenceNumberFutureStore(),
-          kafkaConsumerProperties,
-          kafkaProducerProperties,
-          commandQueueCatchupTimeout
+          new SequenceNumberFutureStore()
       );
     }
   }
 
   CommandStore(
-      final String commandTopicName,
       final CommandTopic commandTopic,
       final CommandIdAssigner commandIdAssigner,
-      final SequenceNumberFutureStore sequenceNumberFutureStore,
-      final Map<String, Object> kafkaConsumerProperties,
-      final Map<String, Object> kafkaProducerProperties,
-      final Duration commandQueueCatchupTimeout
+      final SequenceNumberFutureStore sequenceNumberFutureStore
   ) {
     this.commandTopic = Objects.requireNonNull(commandTopic, "commandTopic");
     this.commandIdAssigner = Objects.requireNonNull(commandIdAssigner, "commandIdAssigner");
     this.commandStatusMap = Maps.newConcurrentMap();
     this.sequenceNumberFutureStore =
         Objects.requireNonNull(sequenceNumberFutureStore, "sequenceNumberFutureStore");
-    this.commandQueueCatchupTimeout =
-        Objects.requireNonNull(commandQueueCatchupTimeout, "commandQueueCatchupTimeout");
-    this.kafkaConsumerProperties =
-        Objects.requireNonNull(kafkaConsumerProperties, "kafkaConsumerProperties");
-    this.kafkaProducerProperties =
-        Objects.requireNonNull(kafkaProducerProperties, "kafkaProducerProperties");
-    this.commandTopicName = Objects.requireNonNull(commandTopicName, "commandTopicName");
   }
 
   @Override
@@ -142,7 +90,7 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   /**
-   * Close the store, rendering it unable to read commands
+   * Close the store, rendering it unable to read or write commands
    */
   @Override
   public void close() {
@@ -150,10 +98,7 @@ public class CommandStore implements CommandQueue, Closeable {
   }
 
   @Override
-  public QueuedCommandStatus enqueueCommand(
-      final ConfiguredStatement<?> statement,
-      final Producer<CommandId, Command> transactionalProducer
-  ) {
+  public QueuedCommandStatus enqueueCommand(final ConfiguredStatement<?> statement) {
     final CommandId commandId = commandIdAssigner.getCommandId(statement.getStatement());
 
     // new commands that generate queries will use the new query id generation method from now on
@@ -180,13 +125,8 @@ public class CommandStore implements CommandQueue, Closeable {
         }
     );
     try {
-      final ProducerRecord<CommandId, Command> producerRecord = new ProducerRecord<>(
-          commandTopicName,
-          COMMAND_TOPIC_PARTITION,
-          commandId,
-          command);
       final RecordMetadata recordMetadata =
-          transactionalProducer.send(producerRecord).get();
+          commandTopic.send(commandId, command);
       return new QueuedCommandStatus(recordMetadata.offset(), statusFuture);
     } catch (final Exception e) {
       commandStatusMap.remove(commandId);
@@ -242,58 +182,9 @@ public class CommandStore implements CommandQueue, Closeable {
     } catch (final TimeoutException e) {
       throw new TimeoutException(
           String.format(
-              "Timeout reached while waiting for command sequence number of %d."
-              + " Caused by: %s "
-              + "(Timeout: %d ms)",
+              "Timeout reached while waiting for command sequence number of %d. (Timeout: %d ms)",
               seqNum,
-              e.getMessage(),
-              timeout.toMillis()
-          ));
-    }
-  }
-
-  @Override
-  public Producer<CommandId, Command> createTransactionalProducer() {
-    return new KafkaProducer<>(
-        kafkaProducerProperties,
-        InternalTopicJsonSerdeUtil.getJsonSerializer(true),
-        InternalTopicJsonSerdeUtil.getJsonSerializer(false)
-    );
-  }
-
-  @Override
-  public void waitForCommandConsumer() {
-    try {
-      final long endOffset = getCommandTopicOffset();
-      ensureConsumedPast(endOffset - 1, commandQueueCatchupTimeout);
-    } catch (final InterruptedException e) {
-      final String errorMsg =
-          "Interrupted while waiting for command topic consumer to process command topic";
-      throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
-    } catch (final TimeoutException e) {
-      final String errorMsg =
-          "Timeout while waiting for command topic consumer to process command topic";
-      throw new KsqlRestException(
-          Errors.serverErrorForStatement(e, errorMsg, new KsqlEntityList()));
-    }
-  }
-
-  // Must create a new consumer because consumers are not threadsafe
-  private long getCommandTopicOffset() {
-    final TopicPartition commandTopicPartition = new TopicPartition(
-        commandTopicName,
-        COMMAND_TOPIC_PARTITION
-    );
-
-    try (Consumer<CommandId, Command> commandConsumer = new KafkaConsumer<>(
-        kafkaConsumerProperties,
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(CommandId.class, true),
-        InternalTopicJsonSerdeUtil.getJsonDeserializer(Command.class, false)
-    )) {
-      commandConsumer.assign(Collections.singleton(commandTopicPartition));
-      return commandConsumer.endOffsets(Collections.singletonList(commandTopicPartition))
-          .get(commandTopicPartition);
+              timeout.toMillis()));
     }
   }
 

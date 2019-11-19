@@ -404,9 +404,6 @@ The ACLs required are the same for both :ref:`Interactive and non-interactive (h
 KSQL always requires the following ACLs for its internal operations and data management:
 
 - The ``DESCRIBE_CONFIGS`` operation on the ``CLUSTER`` resource type.
-- The ``DESCRIBE`` operation on the ``TOPIC`` with ``LITERAL`` name ``__consumer_offsets``.
-- The ``DESCRIBE`` operation on the ``TOPIC`` with ``LITERAL`` name ``__transaction_state``.
-- The ``DESCRIBE`` and ``WRITE`` operations on the ``TRANSACTIONAL_ID`` with ``LITERAL`` name ``<ksql.service.id>``.
 - The ``ALL`` operation on all internal ``TOPICS`` that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
 - The ``ALL`` operation on all internal ``GROUPS`` that are ``PREFIXED`` with ``_confluent-ksql-<ksql.service.id>``.
 

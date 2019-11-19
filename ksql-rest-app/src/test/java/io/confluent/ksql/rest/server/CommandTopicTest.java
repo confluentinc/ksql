@@ -34,14 +34,19 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
@@ -54,6 +59,8 @@ public class CommandTopicTest {
   private static final String COMMAND_TOPIC_NAME = "foo";
   @Mock
   private Consumer<CommandId, Command> commandConsumer;
+  @Mock
+  private Producer<CommandId, Command> commandProducer;
 
   private CommandTopic commandTopic;
 
@@ -78,12 +85,17 @@ public class CommandTopicTest {
   @Captor
   private ArgumentCaptor<Collection<TopicPartition>> topicPartitionsCaptor;
 
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
+
   private final static TopicPartition TOPIC_PARTITION = new TopicPartition(COMMAND_TOPIC_NAME, 0);
+
 
   @Before
   @SuppressWarnings("unchecked")
   public void setup() {
-    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer);
+    commandTopic = new CommandTopic(COMMAND_TOPIC_NAME, commandConsumer, commandProducer);
+    when(commandProducer.send(any(ProducerRecord.class))).thenReturn(future);
   }
 
   @Test
@@ -94,6 +106,52 @@ public class CommandTopicTest {
     // Then:
     verify(commandConsumer)
         .assign(eq(Collections.singleton(new TopicPartition(COMMAND_TOPIC_NAME, 0))));
+  }
+
+  @Test
+  public void shouldSendCommandCorrectly() throws Exception {
+    // When
+    commandTopic.send(commandId1, command1);
+
+    // Then
+    verify(commandProducer).send(new ProducerRecord<>(COMMAND_TOPIC_NAME, 0, commandId1, command1));
+    verify(future).get();
+  }
+
+  @Test
+  public void shouldThrowExceptionIfSendIsNotSuccessful() throws Exception {
+    // Given:
+    when(future.get())
+        .thenThrow(new ExecutionException(new RuntimeException("Send was unsuccessful!")));
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("Send was unsuccessful!");
+
+    // When
+    commandTopic.send(commandId1, command1);
+  }
+
+  @Test
+  public void shouldThrowRuntimeExceptionIfSendCausesNonRuntimeException() throws Exception {
+    // Given:
+    when(future.get()).thenThrow(new ExecutionException(
+        new Exception("Send was unsuccessful because of non RunTime exception!")));
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage(
+        "java.lang.Exception: Send was unsuccessful because of non RunTime exception!");
+
+    // When
+    commandTopic.send(commandId1, command1);
+  }
+
+  @Test
+  public void shouldThrowRuntimeExceptionIfSendThrowsInterruptedException() throws Exception {
+    // Given:
+    when(future.get()).thenThrow(new InterruptedException("InterruptedException"));
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("InterruptedException");
+
+    // When
+    commandTopic.send(commandId1, command1);
   }
 
   @Test
@@ -221,6 +279,7 @@ public class CommandTopicTest {
 
     //Then:
     verify(commandConsumer).close();
+    verify(commandProducer).close();
   }
 
   @Test

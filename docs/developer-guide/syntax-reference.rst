@@ -340,8 +340,9 @@ Quoted identifiers for source and column names
 ----------------------------------------------
 
 Starting in KSQL 5.4, quoted identifiers in column names and source names are
-supported. If you have names that ksqlDB can't parse, enclose them in backtick
-characters, like this: ```identifier```.
+supported. If you have names that ksqlDB can't parse, or if you need to control
+the case of your column names, enclose them in backtick characters, like this:
+```identifier```.
 
 For example, a record with the following unparseable column names is still
 usable. 
@@ -378,6 +379,11 @@ backticks:
      Stream foo-too created and running. Created by query with query ID: CSAS_foo-too_5
     ------------------------------------------------------------------------------------
 
+.. note:: 
+
+    By default, KSQL converts source and column names automatically to all
+    capital letters. Use quoted identifiers to override this behavior and
+    fully control your source and column names.
 
 .. _create-stream:
 

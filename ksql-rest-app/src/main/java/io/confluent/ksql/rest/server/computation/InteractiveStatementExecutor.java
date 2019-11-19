@@ -214,7 +214,8 @@ public class InteractiveStatementExecutor implements KsqlConfigurable {
           CommandStatus.Status.ERROR,
           ExceptionUtil.stackTraceToString(exception)
       );
-      putFinalStatus(commandId, commandStatusFuture, errorStatus);
+      putStatus(commandId, commandStatusFuture, errorStatus);
+      throw exception;
     }
   }
 

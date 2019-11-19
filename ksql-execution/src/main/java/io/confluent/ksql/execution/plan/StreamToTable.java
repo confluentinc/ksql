@@ -27,10 +27,10 @@ public class StreamToTable<K> implements ExecutionStep<KTableHolder<K>> {
   private final ExecutionStepProperties properties;
 
   public StreamToTable(
-      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "properties", required = true)
-      final ExecutionStepProperties properties) {
+      ExecutionStepProperties properties) {
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -55,19 +55,19 @@ public class StreamToTable<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
+  public KTableHolder<K> build(PlanBuilder builder) {
     return builder.visitStreamToTable(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamToTable<?> that = (StreamToTable<?>) o;
+    StreamToTable<?> that = (StreamToTable<?>) o;
     return Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)
         && Objects.equals(properties, that.properties);

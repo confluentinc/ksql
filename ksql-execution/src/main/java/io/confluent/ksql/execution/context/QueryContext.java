@@ -18,11 +18,11 @@ package io.confluent.ksql.execution.context;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.common.collect.ImmutableList;
+import com.google.errorprone.annotations.Immutable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
 @Immutable
 public final class QueryContext {

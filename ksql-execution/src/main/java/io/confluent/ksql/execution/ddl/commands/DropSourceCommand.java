@@ -25,12 +25,12 @@ public class DropSourceCommand implements DdlCommand {
   private final SourceName sourceName;
 
   public DropSourceCommand(
-      @JsonProperty(value = "sourceName", required = true) final SourceName sourceName) {
+      @JsonProperty(value = "sourceName", required = true) SourceName sourceName) {
     this.sourceName = Objects.requireNonNull(sourceName, "sourceName");
   }
 
   @Override
-  public DdlCommandResult execute(final Executor executor) {
+  public DdlCommandResult execute(Executor executor) {
     return executor.executeDropSource(this);
   }
 

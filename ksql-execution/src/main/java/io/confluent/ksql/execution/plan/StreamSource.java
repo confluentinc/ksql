@@ -26,16 +26,16 @@ import org.apache.kafka.streams.Topology.AutoOffsetReset;
 @Immutable
 public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struct>> {
   public StreamSource(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "topicName", required = true) final String topicName,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "topicName", required = true) String topicName,
+      @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "timestampPolicy", required = true)
-      final TimestampExtractionPolicy timestampPolicy,
-      @JsonProperty(value = "timestampIndex", required = true) final int timestampIndex,
+      TimestampExtractionPolicy timestampPolicy,
+      @JsonProperty(value = "timestampIndex", required = true) int timestampIndex,
       @JsonProperty(value = "offsetReset", required = true)
-      final Optional<AutoOffsetReset> offsetReset,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) final SourceName alias) {
+      Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
+      @JsonProperty(value = "alias", required = true) SourceName alias) {
     super(
         properties,
         topicName,
@@ -49,7 +49,7 @@ public final class StreamSource extends AbstractStreamSource<KStreamHolder<Struc
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
+  public KStreamHolder<Struct> build(PlanBuilder builder) {
     return builder.visitStreamSource(this);
   }
 }

@@ -33,11 +33,11 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   private final String selectNodeName;
 
   public StreamMapValues(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
       @JsonProperty(value = "selectExpressions", required = true)
-      final List<SelectExpression> selectExpressions,
-      @JsonProperty(value = "selectNodeName", required = true) final String selectNodeName) {
+      List<SelectExpression> selectExpressions,
+      @JsonProperty(value = "selectNodeName", required = true) String selectNodeName) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
     this.selectExpressions = ImmutableList.copyOf(selectExpressions);
@@ -68,19 +68,19 @@ public class StreamMapValues<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
+  public KStreamHolder<K> build(PlanBuilder builder) {
     return builder.visitStreamMapValues(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamMapValues<?> that = (StreamMapValues<?>) o;
+    StreamMapValues<?> that = (StreamMapValues<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(selectExpressions, that.selectExpressions)

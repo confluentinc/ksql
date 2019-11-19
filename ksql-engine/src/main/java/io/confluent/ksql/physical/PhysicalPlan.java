@@ -26,15 +26,15 @@ import java.util.Objects;
 import java.util.Optional;
 
 @Immutable
-public final class PhysicalPlan<T> {
+public final class PhysicalPlan {
   private final QueryId queryId;
-  private final ExecutionStep<T> physicalPlan;
+  private final ExecutionStep<?> physicalPlan;
   private final String planSummary;
   private final transient Optional<KeyField> keyField;
 
   PhysicalPlan(
       final QueryId queryId,
-      final ExecutionStep<T> physicalPlan,
+      final ExecutionStep<?> physicalPlan,
       final String planSummary,
       final Optional<KeyField> keyField
   ) {
@@ -47,13 +47,13 @@ public final class PhysicalPlan<T> {
   @JsonCreator
   private PhysicalPlan(
       @JsonProperty(value = "queryId", required = true) final QueryId queryId,
-      @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<T> physicalPlan,
+      @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
       @JsonProperty(value = "planSummary", required = true) final String planSummary
   ) {
     this(queryId, physicalPlan, planSummary, Optional.empty());
   }
 
-  public ExecutionStep<T> getPhysicalPlan() {
+  public ExecutionStep<?> getPhysicalPlan() {
     return physicalPlan;
   }
 

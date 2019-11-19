@@ -32,13 +32,13 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final List<FunctionCall> aggregations;
 
   public TableAggregate(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "source", required = true)
-      final ExecutionStep<KGroupedTableHolder> source,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
-      @JsonProperty(value = "nonFuncColumnCount", required = true) final int nonFuncColumnCount,
+      ExecutionStep<KGroupedTableHolder> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
       @JsonProperty(value = "aggregations", required = true)
-      final List<FunctionCall> aggregations) {
+      List<FunctionCall> aggregations) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -74,19 +74,19 @@ public class TableAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
+  public KTableHolder<Struct> build(PlanBuilder builder) {
     return builder.visitTableAggregate(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableAggregate that = (TableAggregate) o;
+    TableAggregate that = (TableAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

@@ -28,14 +28,14 @@ import java.util.Set;
 @Immutable
 public class CreateStreamCommand extends CreateSourceCommand {
   public CreateStreamCommand(
-      @JsonProperty(value = "sqlExpression", required = true) final String sqlExpression,
-      @JsonProperty(value = "sourceName", required = true) final SourceName sourceName,
-      @JsonProperty(value = "schema", required = true) final LogicalSchema schema,
-      @JsonProperty(value = "keyField", required = true) final Optional<ColumnName> keyField,
+      @JsonProperty(value = "sqlExpression", required = true) String sqlExpression,
+      @JsonProperty(value = "sourceName", required = true) SourceName sourceName,
+      @JsonProperty(value = "schema", required = true) LogicalSchema schema,
+      @JsonProperty(value = "keyField", required = true) Optional<ColumnName> keyField,
       @JsonProperty(value = "timestampExtractionPolicy", required = true)
-      final TimestampExtractionPolicy extractionPolicy,
-      @JsonProperty(value = "serdeOptions", required = true) final Set<SerdeOption> serdeOptions,
-      @JsonProperty(value = "topic", required = true) final KsqlTopic ksqlTopic
+      TimestampExtractionPolicy extractionPolicy,
+      @JsonProperty(value = "serdeOptions", required = true) Set<SerdeOption> serdeOptions,
+      @JsonProperty(value = "topic", required = true) KsqlTopic ksqlTopic
   ) {
     super(
         sqlExpression,
@@ -49,7 +49,7 @@ public class CreateStreamCommand extends CreateSourceCommand {
   }
 
   @Override
-  public DdlCommandResult execute(final Executor executor) {
+  public DdlCommandResult execute(Executor executor) {
     return executor.executeCreateStream(this);
   }
 }

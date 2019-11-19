@@ -33,11 +33,11 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   private final String selectNodeName;
 
   public TableMapValues(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
       @JsonProperty(value = "selectExpressions", required = true)
-      final List<SelectExpression> selectExpressions,
-      @JsonProperty(value = "selectNodeName", required = true) final String selectNodeName
+      List<SelectExpression> selectExpressions,
+      @JsonProperty(value = "selectNodeName", required = true) String selectNodeName
   ) {
     this.properties = requireNonNull(properties, "properties");
     this.source = requireNonNull(source, "source");
@@ -69,19 +69,19 @@ public class TableMapValues<K> implements ExecutionStep<KTableHolder<K>> {
   }
 
   @Override
-  public KTableHolder<K> build(final PlanBuilder builder) {
+  public KTableHolder<K> build(PlanBuilder builder) {
     return builder.visitTableMapValues(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableMapValues<?> that = (TableMapValues<?>) o;
+    TableMapValues<?> that = (TableMapValues<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(selectExpressions, that.selectExpressions)

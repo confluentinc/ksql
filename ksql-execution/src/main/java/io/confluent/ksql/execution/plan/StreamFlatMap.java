@@ -30,9 +30,9 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   private final List<FunctionCall> tableFunctions;
 
   public StreamFlatMap(
-      final @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
-      final @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
-      final @JsonProperty(value = "tableFunctions", required = true)
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "tableFunctions", required = true)
       List<FunctionCall> tableFunctions
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
@@ -52,7 +52,7 @@ public class StreamFlatMap<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
+  public KStreamHolder<K> build(PlanBuilder builder) {
     return builder.visitFlatMap(this);
   }
 

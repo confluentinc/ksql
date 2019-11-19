@@ -39,10 +39,8 @@ public final class FormatInfo {
   public static FormatInfo of(
       @JsonProperty(value = "format", required = true)
       final Format format,
-      @JsonProperty(value = "avroSchemaFullName", required = true)
-      final Optional<String> avroFullSchemaName,
-      @JsonProperty(value = "delimiter", required = true)
-      final Optional<Delimiter> valueDelimiter) {
+      @JsonProperty("avroSchemaFullName") final Optional<String> avroFullSchemaName,
+      @JsonProperty("delimiter") final Optional<Delimiter> valueDelimiter) {
     return new FormatInfo(format, avroFullSchemaName, valueDelimiter);
   }
 

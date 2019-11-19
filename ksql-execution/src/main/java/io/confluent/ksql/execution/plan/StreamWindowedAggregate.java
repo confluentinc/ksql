@@ -35,14 +35,14 @@ public class StreamWindowedAggregate
   private final KsqlWindowExpression windowExpression;
 
   public StreamWindowedAggregate(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "source", required = true)
-      final ExecutionStep<KGroupedStreamHolder> source,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
-      @JsonProperty(value = "nonFuncColumnCount", required = true) final int nonFuncColumnCount,
-      @JsonProperty(value = "aggregations", required = true) final List<FunctionCall> aggregations,
+      ExecutionStep<KGroupedStreamHolder> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
+      @JsonProperty(value = "aggregations", required = true) List<FunctionCall> aggregations,
       @JsonProperty(value = "windowExpression", required = true)
-      final KsqlWindowExpression windowExpression) {
+      KsqlWindowExpression windowExpression) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -83,19 +83,19 @@ public class StreamWindowedAggregate
   }
 
   @Override
-  public KTableHolder<Windowed<Struct>> build(final PlanBuilder builder) {
+  public KTableHolder<Windowed<Struct>> build(PlanBuilder builder) {
     return builder.visitStreamWindowedAggregate(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamWindowedAggregate that = (StreamWindowedAggregate) o;
+    StreamWindowedAggregate that = (StreamWindowedAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

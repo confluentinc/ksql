@@ -23,15 +23,14 @@ import org.apache.kafka.streams.processor.TimestampExtractor;
 
 @Immutable
 public class StringTimestampExtractionPolicy implements TimestampExtractionPolicy {
-  private static final String FORMAT = "format";
 
   private final ColumnRef timestampField;
-  @JsonProperty(FORMAT)
+  @JsonProperty("format")
   private final String format;
 
   public StringTimestampExtractionPolicy(
       @JsonProperty(value = "timestampField", required = true) final ColumnRef timestampField,
-      @JsonProperty(value = FORMAT, required = true) final String format) {
+      @JsonProperty(value = "format", required = true) final String format) {
     Objects.requireNonNull(timestampField, "timestampField can't be null");
     Objects.requireNonNull(format, "format can't be null");
     this.timestampField = timestampField;

@@ -27,16 +27,16 @@ import org.apache.kafka.streams.kstream.Windowed;
 public final class WindowedStreamSource
     extends AbstractStreamSource<KStreamHolder<Windowed<Struct>>> {
   public WindowedStreamSource(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "topicName", required = true) final String topicName,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "topicName", required = true) String topicName,
+      @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "timestampPolicy", required = true)
-      final TimestampExtractionPolicy timestampPolicy,
-      @JsonProperty(value = "timestampIndex", required = true) final int timestampIndex,
+      TimestampExtractionPolicy timestampPolicy,
+      @JsonProperty(value = "timestampIndex", required = true) int timestampIndex,
       @JsonProperty(value = "offsetReset", required = true)
-      final Optional<AutoOffsetReset> offsetReset,
-      @JsonProperty(value = "sourceSchema", required = true) final LogicalSchema sourceSchema,
-      @JsonProperty(value = "alias", required = true) final SourceName alias) {
+      Optional<AutoOffsetReset> offsetReset,
+      @JsonProperty(value = "sourceSchema", required = true) LogicalSchema sourceSchema,
+      @JsonProperty(value = "alias", required = true) SourceName alias) {
     super(
         properties,
         topicName,
@@ -50,7 +50,7 @@ public final class WindowedStreamSource
   }
 
   @Override
-  public KStreamHolder<Windowed<Struct>> build(final PlanBuilder builder) {
+  public KStreamHolder<Windowed<Struct>> build(PlanBuilder builder) {
     return builder.visitWindowedStreamSource(this);
   }
 }

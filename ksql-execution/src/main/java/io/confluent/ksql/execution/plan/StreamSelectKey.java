@@ -31,11 +31,11 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   private final boolean updateRowKey;
 
   public StreamSelectKey(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
       @JsonProperty(value = "source", required = true)
-      final ExecutionStep<? extends KStreamHolder<?>> source,
-      @JsonProperty(value = "fieldName", required = true) final ColumnRef fieldName,
-      @JsonProperty(value = "updateRowKey", required = true) final boolean updateRowKey) {
+      ExecutionStep<? extends KStreamHolder<?>> source,
+      @JsonProperty(value = "fieldName", required = true) ColumnRef fieldName,
+      @JsonProperty(value = "updateRowKey", required = true) boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
@@ -66,19 +66,19 @@ public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
+  public KStreamHolder<Struct> build(PlanBuilder builder) {
     return builder.visitStreamSelectKey(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamSelectKey that = (StreamSelectKey) o;
+    StreamSelectKey that = (StreamSelectKey) o;
     return updateRowKey == that.updateRowKey
         && Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source);

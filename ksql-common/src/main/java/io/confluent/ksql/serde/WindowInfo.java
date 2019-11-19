@@ -31,14 +31,14 @@ public final class WindowInfo {
   private final WindowType type;
   private final Optional<Duration> size;
 
-  public static WindowInfo of(final WindowType type, final Optional<Duration> size) {
+  @JsonCreator
+  public static WindowInfo of(
+      @JsonProperty(value = "type", required = true) final WindowType type,
+      @JsonProperty(value = "size", required = true) final Optional<Duration> size) {
     return new WindowInfo(type, size);
   }
 
-  @JsonCreator
-  private WindowInfo(
-      @JsonProperty(value = "type", required = true) final WindowType type,
-      @JsonProperty(value = "size", required = true) final Optional<Duration> size) {
+  private WindowInfo(final WindowType type, final Optional<Duration> size) {
     this.type = Objects.requireNonNull(type, "type");
     this.size = Objects.requireNonNull(size, "size");
 

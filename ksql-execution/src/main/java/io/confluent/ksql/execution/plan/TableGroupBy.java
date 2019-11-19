@@ -30,11 +30,11 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   private final List<Expression> groupByExpressions;
 
   public TableGroupBy(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "source", required = true) final ExecutionStep<KTableHolder<K>> source,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KTableHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "groupByExpressions", required = true)
-      final List<Expression> groupByExpressions
+      List<Expression> groupByExpressions
   ) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
@@ -66,19 +66,19 @@ public class TableGroupBy<K> implements ExecutionStep<KGroupedTableHolder> {
   }
 
   @Override
-  public KGroupedTableHolder build(final PlanBuilder builder) {
+  public KGroupedTableHolder build(PlanBuilder builder) {
     return builder.visitTableGroupBy(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final TableGroupBy<?> that = (TableGroupBy<?>) o;
+    TableGroupBy<?> that = (TableGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

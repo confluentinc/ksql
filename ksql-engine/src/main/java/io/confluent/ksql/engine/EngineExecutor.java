@@ -204,7 +204,7 @@ final class EngineExecutor {
         statement.getStatementText(),
         Optional.of(outputNode)
     );
-    final PhysicalPlan<?> physicalPlan = queryEngine.buildPhysicalPlan(
+    final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         ksqlConfig,
         overriddenProperties,
@@ -215,11 +215,11 @@ final class EngineExecutor {
 
   private static final class ExecutorPlans {
     private final LogicalPlanNode logicalPlan;
-    private final PhysicalPlan<?> physicalPlan;
+    private final PhysicalPlan physicalPlan;
 
     private ExecutorPlans(
         final LogicalPlanNode logicalPlan,
-        final PhysicalPlan<?> physicalPlan) {
+        final PhysicalPlan physicalPlan) {
       this.logicalPlan = Objects.requireNonNull(logicalPlan, "logicalPlan");
       this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlanNode");
     }
@@ -377,7 +377,7 @@ final class EngineExecutor {
       final QueryPlan queryPlan,
       final String statementText
   ) {
-    final PhysicalPlan<?> physicalPlan = queryPlan.getPhysicalPlan();
+    final PhysicalPlan physicalPlan = queryPlan.getPhysicalPlan();
     final QueryExecutor executor = engineContext.createQueryExecutor(
         ksqlConfig,
         overriddenProperties,

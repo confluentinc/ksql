@@ -35,14 +35,14 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   private final Duration after;
 
   public StreamStreamJoin(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "joinType", required = true) final JoinType joinType,
-      @JsonProperty(value = "leftFormats", required = true) final Formats leftFormats,
-      @JsonProperty(value = "rightFormats", required = true) final Formats rightFormats,
-      @JsonProperty(value = "left", required = true) final ExecutionStep<KStreamHolder<K>> left,
-      @JsonProperty(value = "right", required = true) final ExecutionStep<KStreamHolder<K>> right,
-      @JsonProperty(value = "before", required = true) final Duration before,
-      @JsonProperty(value = "after", required = true) final Duration after) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "joinType", required = true) JoinType joinType,
+      @JsonProperty(value = "leftFormats", required = true) Formats leftFormats,
+      @JsonProperty(value = "rightFormats", required = true) Formats rightFormats,
+      @JsonProperty(value = "left", required = true) ExecutionStep<KStreamHolder<K>> left,
+      @JsonProperty(value = "right", required = true) ExecutionStep<KStreamHolder<K>> right,
+      @JsonProperty(value = "before", required = true) Duration before,
+      @JsonProperty(value = "after", required = true) Duration after) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.leftFormats = Objects.requireNonNull(leftFormats, "formats");
     this.rightFormats = Objects.requireNonNull(rightFormats, "rightFormats");
@@ -93,20 +93,20 @@ public class StreamStreamJoin<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
+  public KStreamHolder<K> build(PlanBuilder builder) {
     return builder.visitStreamStreamJoin(this);
   }
 
   // CHECKSTYLE_RULES.OFF: CyclomaticComplexity
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamStreamJoin<?> that = (StreamStreamJoin<?>) o;
+    StreamStreamJoin<?> that = (StreamStreamJoin<?>) o;
     return Objects.equals(properties, that.properties)
         && joinType == that.joinType
         && Objects.equals(leftFormats, that.leftFormats)

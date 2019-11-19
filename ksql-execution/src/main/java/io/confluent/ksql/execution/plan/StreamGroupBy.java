@@ -30,11 +30,11 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   private final List<Expression> groupByExpressions;
 
   public StreamGroupBy(
-      @JsonProperty(value = "properties", required = true) final ExecutionStepProperties properties,
-      @JsonProperty(value = "source", required = true) final ExecutionStep<KStreamHolder<K>> source,
-      @JsonProperty(value = "formats", required = true) final Formats formats,
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
       @JsonProperty(value = "groupByExpressions", required = true)
-      final List<Expression> groupByExpressions) {
+      List<Expression> groupByExpressions) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");
@@ -65,19 +65,19 @@ public class StreamGroupBy<K> implements ExecutionStep<KGroupedStreamHolder> {
   }
 
   @Override
-  public KGroupedStreamHolder build(final PlanBuilder planVisitor) {
+  public KGroupedStreamHolder build(PlanBuilder planVisitor) {
     return planVisitor.visitStreamGroupBy(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamGroupBy<?> that = (StreamGroupBy<?>) o;
+    StreamGroupBy<?> that = (StreamGroupBy<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

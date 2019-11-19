@@ -30,10 +30,10 @@ public class KsqlTopic {
   private final boolean isKsqlSink;
 
   public KsqlTopic(
-      @JsonProperty(value = "kafkaTopicName", required = true) final String kafkaTopicName,
-      @JsonProperty(value = "keyFormat", required = true) final KeyFormat keyFormat,
-      @JsonProperty(value = "valueFormat", required = true) final ValueFormat valueFormat,
-      @JsonProperty(value = "ksqlSink", required = true) final boolean isKsqlSink
+      @JsonProperty(value = "kafkaTopicName", required = true) String kafkaTopicName,
+      @JsonProperty(value = "keyFormat", required = true) KeyFormat keyFormat,
+      @JsonProperty(value = "valueFormat", required = true) ValueFormat valueFormat,
+      @JsonProperty(value = "ksqlSink", required = true) boolean isKsqlSink
   ) {
     this.kafkaTopicName = requireNonNull(kafkaTopicName, "kafkaTopicName");
     this.keyFormat = requireNonNull(keyFormat, "keyFormat");

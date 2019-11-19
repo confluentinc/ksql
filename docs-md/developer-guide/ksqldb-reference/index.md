@@ -14,8 +14,8 @@ Functions and Operators
 - [Scalar Functions](scalar-functions.md)
 - [Table Functions](table-functions.md)
 
-Manage Streams and Tables
--------------------------
+Streams and Tables
+------------------
 
 - [CREATE STREAM AS SELECT](create-stream-as-select.md)
 - [CREATE STREAM](create-stream.md)
@@ -44,6 +44,13 @@ Connectors
 - [DESCRIBE CONNECTOR](describe-connector.md)
 - [DROP CONNECTOR](drop-connector.md)
 - [SHOW CONNECTORS](show-connectors.md)
+
+Custom Types
+------------
+
+- [CREATE TYPE](create-type.md)
+- [DROP TYPE](drop-table.md)
+- [SHOW TYPES](show-types.md)
 
 Metadata
 --------

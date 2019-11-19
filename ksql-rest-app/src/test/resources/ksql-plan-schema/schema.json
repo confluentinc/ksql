@@ -179,7 +179,7 @@
           "type" : "string"
         }
       },
-      "required" : [ "format", "delimiter" ]
+      "required" : [ "format" ]
     },
     "WindowInfo" : {
       "type" : "object",
@@ -304,12 +304,12 @@
           "type" : "string"
         },
         "physicalPlan" : {
-          "$ref" : "#/definitions/PhysicalPlan[Object]"
+          "$ref" : "#/definitions/PhysicalPlan"
         }
       },
       "required" : [ "sources", "sink", "physicalPlan" ]
     },
-    "PhysicalPlan[Object]" : {
+    "PhysicalPlan" : {
       "type" : "object",
       "additionalProperties" : false,
       "properties" : {

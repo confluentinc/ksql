@@ -38,7 +38,6 @@ public interface TimestampExtractionPolicy {
 
   TimestampExtractor create(int columnIndex);
 
-  @JsonIgnore
   default ColumnRef getTimestampField() {
     return null;
   }

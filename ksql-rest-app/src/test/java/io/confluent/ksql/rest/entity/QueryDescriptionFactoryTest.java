@@ -57,7 +57,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class QueryDescriptionFactoryTest {
 
-  private static final LogicalSchema SOME_SCHEMA = LogicalSchema.builder()
+  private static final LogicalSchema TRANSIENT_SCHEMA = LogicalSchema.builder()
+      .noImplicitColumns()
+      .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
+      .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
+      .build();
+
+  private static final LogicalSchema PERSISTENT_SCHEMA = LogicalSchema.builder()
       .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
       .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
       .build();
@@ -93,7 +99,7 @@ public class QueryDescriptionFactoryTest {
     transientQuery = new TransientQueryMetadata(
         SQL_TEXT,
         queryStreams,
-        SOME_SCHEMA,
+        TRANSIENT_SCHEMA,
         SOURCE_NAMES,
         limitHandler,
         "execution plan",
@@ -109,7 +115,7 @@ public class QueryDescriptionFactoryTest {
     final PersistentQueryMetadata persistentQuery = new PersistentQueryMetadata(
         SQL_TEXT,
         queryStreams,
-        PhysicalSchema.from(SOME_SCHEMA, SerdeOption.none()),
+        PhysicalSchema.from(PERSISTENT_SCHEMA, SerdeOption.none()),
         SOURCE_NAMES,
         SourceName.of("sink Name"),
         "execution plan",
@@ -197,6 +203,7 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowTimeInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ROWTIME"), SqlTypes.BIGINT)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)
@@ -230,6 +237,7 @@ public class QueryDescriptionFactoryTest {
   public void shouldHandleRowKeyInValueSchemaForTransientQuery() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
+        .noImplicitColumns()
         .valueColumn(ColumnName.of("field1"), SqlTypes.INTEGER)
         .valueColumn(ColumnName.of("ROWKEY"), SqlTypes.STRING)
         .valueColumn(ColumnName.of("field2"), SqlTypes.STRING)

@@ -36,7 +36,7 @@ Check runtime stats for the ksqlDB server that you're connected to.
     metrics from the server process. Metrics include the number of
     messages, the total throughput, the throughput distribution, and
     the error rate. For more information, see
-    [Monitoring and Metrics](../operations.md#monitoring-and-metrics)
+    [Monitoring and Metrics](../index.md#monitoring-and-metrics)
 -   In the ksqlDB CLI or in {{ site.c3 }}, run SHOW STREAMS or SHOW
     TABLES, then run DESCRIBE EXTENDED <stream|table>.
 -   In the ksqlDB CLI or in {{ site.c3 }}, run SHOW QUERIES, then run

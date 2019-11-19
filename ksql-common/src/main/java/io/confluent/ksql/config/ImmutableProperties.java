@@ -30,6 +30,7 @@ public final class ImmutableProperties {
       .add(KsqlConfig.KSQL_EXT_DIR)
       .add(KsqlConfig.KSQL_ACTIVE_PERSISTENT_QUERY_LIMIT_CONFIG)
       .add(KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG)
+      .add(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG)
       .addAll(KsqlConfig.SSL_CONFIG_NAMES)
       .build();
 

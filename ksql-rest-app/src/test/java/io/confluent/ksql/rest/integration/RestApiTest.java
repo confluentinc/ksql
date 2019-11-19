@@ -50,6 +50,7 @@ import io.confluent.ksql.test.util.EmbeddedSingleNodeKafkaCluster;
 import io.confluent.ksql.test.util.secure.ClientTrustStore;
 import io.confluent.ksql.test.util.secure.Credentials;
 import io.confluent.ksql.test.util.secure.SecureKafkaHelper;
+import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.PageViewDataProvider;
 import java.util.Arrays;
 import java.util.List;
@@ -155,6 +156,7 @@ public class RestApiTest {
       .withProperty("security.protocol", "SASL_SSL")
       .withProperty("sasl.mechanism", "PLAIN")
       .withProperty("sasl.jaas.config", SecureKafkaHelper.buildJaasConfig(NORMAL_USER))
+      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .withProperties(ClientTrustStore.trustStoreProps())
       .build();
 

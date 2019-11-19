@@ -380,7 +380,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
       );
 
       final StatementParser statementParser = new StatementParser(ksqlEngine);
-      final KsqlAuthorizationValidator authorizationValidator =
+      final Optional<KsqlAuthorizationValidator> authorizationValidator =
           KsqlAuthorizationValidatorFactory.create(ksqlConfigNoPort, serviceContext);
 
       container.addEndpoint(
@@ -496,7 +496,7 @@ public final class KsqlRestApplication extends ExecutableApplication<KsqlRestCon
 
     final KsqlSecurityExtension securityExtension = loadSecurityExtension(ksqlConfig);
 
-    final KsqlAuthorizationValidator authorizationValidator =
+    final Optional<KsqlAuthorizationValidator> authorizationValidator =
         KsqlAuthorizationValidatorFactory.create(ksqlConfig, serviceContext);
 
     final StreamedQueryResource streamedQueryResource = new StreamedQueryResource(

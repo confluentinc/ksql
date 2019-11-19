@@ -1,6 +1,9 @@
 package io.confluent.ksql.parser.json;
 
-import static io.confluent.ksql.parser.json.ExpressionTestCase.*;
+import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION;
+import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION_NEEDS_QUOTES;
+import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION_NEEDS_QUOTES_TXT;
+import static io.confluent.ksql.parser.json.ExpressionTestCase.EXPRESSION_TXT;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 

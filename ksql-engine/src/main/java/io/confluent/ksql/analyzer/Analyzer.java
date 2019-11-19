@@ -153,12 +153,12 @@ class Analyzer {
     // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
     private final Analysis analysis;
-    private final boolean staticQuery;
+    private final boolean pullQuery;
     private boolean isJoin = false;
     private boolean isGroupBy = false;
 
     Visitor(final Query query) {
-      this.staticQuery = query.isStatic();
+      this.pullQuery = query.isPullQuery();
       this.analysis = new Analysis(query.getResultMaterialization());
     }
 
@@ -337,7 +337,7 @@ class Analyzer {
       }
 
       analysis.getWhereExpression().ifPresent(where -> {
-        final boolean allowWindowMetaFields = staticQuery
+        final boolean allowWindowMetaFields = pullQuery
             && analysis.getFromDataSources().get(0)
             .getDataSource()
             .getKsqlTopic()
@@ -571,7 +571,7 @@ class Analyzer {
         final LogicalSchema schema = source.getDataSource().getSchema();
         for (final Column column : schema.columns()) {
 
-          if (staticQuery && schema.isMetaColumn(column.name())) {
+          if (pullQuery && schema.isMetaColumn(column.name())) {
             continue;
           }
 

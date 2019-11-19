@@ -26,8 +26,8 @@ import com.google.common.collect.Sets.SetView;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.Analysis;
+import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
-import io.confluent.ksql.analyzer.StaticQueryValidator;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -92,7 +92,7 @@ import java.util.stream.Stream;
 import org.apache.kafka.connect.data.Struct;
 
 // CHECKSTYLE_RULES.OFF: ClassDataAbstractionCoupling
-public final class StaticQueryExecutor {
+public final class PullQueryExecutor {
   // CHECKSTYLE_RULES.ON: ClassDataAbstractionCoupling
 
   private static final Set<Type> VALID_WINDOW_BOUNDS_TYPES = ImmutableSet.of(
@@ -106,7 +106,7 @@ public final class StaticQueryExecutor {
   private static final String VALID_WINDOW_BOUNDS_TYPES_STRING =
       VALID_WINDOW_BOUNDS_TYPES.toString();
 
-  private StaticQueryExecutor() {
+  private PullQueryExecutor() {
   }
 
   public static void validate(
@@ -132,7 +132,7 @@ public final class StaticQueryExecutor {
       final KsqlExecutionContext executionContext,
       final ServiceContext serviceContext
   ) {
-    if (!statement.getStatement().isStatic()) {
+    if (!statement.getStatement().isPullQuery()) {
       throw new IllegalArgumentException("Executor can only handle pull queries");
     }
 
@@ -140,7 +140,7 @@ public final class StaticQueryExecutor {
       throw new KsqlRestException(
           Errors.badStatement(
               "Pull queries are disabled. "
-                  + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+                  + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
                   + System.lineSeparator()
                   + "Please set " + KsqlConfig.KSQL_QUERY_PULL_ENABLE_CONFIG + "=true to enable "
                   + "this feature.",
@@ -303,11 +303,11 @@ public final class StaticQueryExecutor {
     final Expression other = getNonColumnRefSide(comparison);
 
     if (!(other instanceof StringLiteral)) {
-      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal.", false);
+      throw invalidWhereClauseException("ROWKEY must be compared to STRING literal", false);
     }
 
     if (comparison.getType() != Type.EQUAL) {
-      throw invalidWhereClauseException("ROWKEY bound must currently be '='.", false);
+      throw invalidWhereClauseException("ROWKEY bound must currently be '='", false);
     }
 
     final Literal right = (Literal) other;
@@ -324,7 +324,7 @@ public final class StaticQueryExecutor {
     final List<ComparisonExpression> comparisons = maybeComparisons.get();
 
     final Map<Type, List<ComparisonExpression>> byType = comparisons.stream()
-        .collect(Collectors.groupingBy(StaticQueryExecutor::getSimplifiedBoundType));
+        .collect(Collectors.groupingBy(PullQueryExecutor::getSimplifiedBoundType));
 
     final SetView<Type> unsupported = Sets.difference(byType.keySet(), VALID_WINDOW_BOUNDS_TYPES);
     if (!unsupported.isEmpty()) {
@@ -714,13 +714,13 @@ public final class StaticQueryExecutor {
   private static KsqlException notMaterializedException(final SourceName sourceTable) {
     return new KsqlException("'"
         + sourceTable.toString(FormatOptions.noEscape()) + "' is not materialized. "
-        + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()
         + " KSQL currently only supports pull queries on materialized aggregate tables."
         + " i.e. those created by a 'CREATE TABLE AS SELECT <fields>, <aggregate_functions> "
         + "FROM <sources> GROUP BY <key>' style statement."
         + System.lineSeparator()
-        + StaticQueryValidator.NEW_QUERY_SYNTAX_ADDITIONAL_HELP
+        + PullQueryValidator.NEW_QUERY_SYNTAX_ADDITIONAL_HELP
     );
   }
 
@@ -743,8 +743,8 @@ public final class StaticQueryExecutor {
             + "or a datetime string in the form: " + KsqlConstants.DATE_TIME_PATTERN
             + " with an optional numeric 4-digit timezone, e.g. '+0100'";
 
-    return new KsqlException(msg
-        + StaticQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
+    return new KsqlException(msg + ". "
+        + PullQueryValidator.NEW_QUERY_SYNTAX_SHORT_HELP
         + System.lineSeparator()
         + "Pull queries require a WHERE clause that:"
         + System.lineSeparator()

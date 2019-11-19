@@ -25,7 +25,6 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -280,9 +279,9 @@ public class CommandStoreTest {
     when(future.get(anyLong(), any(TimeUnit.class))).thenThrow(new TimeoutException());
 
     expectedException.expect(TimeoutException.class);
-    expectedException.expectMessage(String.format(
-        "Timeout reached while waiting for command sequence number of 2. Caused by: null (Timeout: 1000 ms)",
-        TIMEOUT.toMillis()));
+    expectedException.expectMessage(
+        "Timeout reached while waiting for command sequence number of 2. Caused by: null (Timeout: 1000 ms)"
+    );
 
     // When:
     commandStore.ensureConsumedPast(2, TIMEOUT);

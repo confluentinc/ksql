@@ -18,7 +18,7 @@ package io.confluent.ksql.parser.json;
 import static io.confluent.ksql.parser.json.WindowExpressionTestCase.WINDOW_EXPRESSION;
 import static io.confluent.ksql.parser.json.WindowExpressionTestCase.WINDOW_EXPRESSION_TXT;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.confluent.ksql.execution.windows.KsqlWindowExpression;

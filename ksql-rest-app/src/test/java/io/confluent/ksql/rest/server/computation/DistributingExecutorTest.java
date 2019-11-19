@@ -51,14 +51,11 @@ import io.confluent.ksql.statement.InjectorChain;
 import io.confluent.ksql.util.KsqlConfig;
 import io.confluent.ksql.util.KsqlException;
 import io.confluent.ksql.util.KsqlServerException;
-
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.kafka.clients.producer.Producer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -125,7 +122,7 @@ public class DistributingExecutorTest {
         queue,
         DURATION_10_MS,
         (ec, sc) -> InjectorChain.of(schemaInjector, topicInjector),
-        authorizationValidator,
+        Optional.of(authorizationValidator),
         requestValidator
     );
   }

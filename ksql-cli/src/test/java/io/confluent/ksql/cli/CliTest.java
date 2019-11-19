@@ -129,6 +129,7 @@ public class CliTest {
       .builder(CLUSTER::bootstrapServers)
       .withProperty(KsqlConfig.SINK_WINDOW_CHANGE_LOG_ADDITIONAL_RETENTION_MS_PROPERTY,
           KsqlConstants.defaultSinkWindowChangeLogAdditionalRetention + 1)
+      .withProperty(KsqlConfig.KSQL_PULL_QUERIES_SKIP_ACCESS_VALIDATOR_CONFIG, true)
       .build();
 
   @ClassRule

@@ -77,11 +77,12 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   @Override
   public void onError(final Throwable e) {
     log.error("error in session {}", session.getId(), e);
-    SessionUtil.closeSilently(
-        session,
-        CloseCodes.UNEXPECTED_CONDITION,
-        "streams exception: " + e.getMessage()
-    );
+
+    final String msg = e.getMessage() == null || e.getMessage().trim().isEmpty()
+        ? "KSQL excetion: " + e.getClass().getSimpleName()
+        : e.getMessage();
+
+    SessionUtil.closeSilently(session, CloseCodes.UNEXPECTED_CONDITION, msg);
   }
 
   @Override
@@ -93,7 +94,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   public void onSchema(final LogicalSchema schema) {
     try {
       session.getBasicRemote().sendText(
-          mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema, false))
+          mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema))
       );
     } catch (final IOException e) {
       log.error("Error sending schema", e);

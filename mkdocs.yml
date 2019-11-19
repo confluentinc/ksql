@@ -73,12 +73,14 @@ nav:
       - CREATE TABLE: developer-guide/ksqldb-reference/create-table.md
       - CREATE STREAM AS SELECT: developer-guide/ksqldb-reference/create-stream-as-select.md
       - CREATE TABLE AS SELECT: developer-guide/ksqldb-reference/create-table-as-select.md
+      - CREATE TYPE: developer-guide/ksqldb-reference/create-type.md
       - DESCRIBE: developer-guide/ksqldb-reference/describe.md
       - DESCRIBE CONNECTOR: developer-guide/ksqldb-reference/describe-connector.md
       - DESCRIBE FUNCTION: developer-guide/ksqldb-reference/describe-function.md
       - DROP CONNECTOR: developer-guide/ksqldb-reference/drop-connector.md
       - DROP STREAM: developer-guide/ksqldb-reference/drop-stream.md
       - DROP TABLE: developer-guide/ksqldb-reference/drop-table.md
+      - DROP TYPE: developer-guide/ksqldb-reference/drop-type.md
       - EXPLAIN: developer-guide/ksqldb-reference/explain.md
       - INSERT INTO: developer-guide/ksqldb-reference/insert-into.md
       - INSERT VALUES: developer-guide/ksqldb-reference/insert-values.md
@@ -93,6 +95,7 @@ nav:
       - SHOW TOPICS: developer-guide/ksqldb-reference/show-topics.md
       - SHOW STREAMS: developer-guide/ksqldb-reference/show-streams.md
       - SHOW TABLES: developer-guide/ksqldb-reference/show-tables.md
+      - SHOW TYPES: developer-guide/ksqldb-reference/show-types.md
       - SPOOL: developer-guide/ksqldb-reference/spool.md
       - TERMINATE: developer-guide/ksqldb-reference/terminate.md
     - Operators: developer-guide/ksqldb-reference/operators.md

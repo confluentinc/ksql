@@ -17,7 +17,6 @@ KSQL deployment to ksqlDB.
 - [Syntax](#syntax)
 - [Storage](#storage)
 - [HTTP Response Format](#http-response-format)
-- [Topic Name Casing](#topic-name-casing)
 - [SHOW TOPICS](#show-topics)
 
 Syntax
@@ -84,14 +83,6 @@ Also, push query HTTP responses in ksqlDB now include a query result schema
 as well as the ID assigned to the query.
 
 Finally, `null` fields are no longer included in push query result rows.
-
-Topic Name Casing
------------------
-
-Previous KSQL versions automatically uppercased all topics names created by the
-KSQL Server. ksqlDB doesn't automatically uppercase the names of topics it
-creates. The casing of the named objects that ksqlDB derives topic names from
-like persistent queries, is preserved.
 
 SHOW TOPICS
 -----------

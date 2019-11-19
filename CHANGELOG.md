@@ -7,13 +7,11 @@
 * add config to disable pull queries when validation is required ([#3879](https://github.com/confluentinc/ksql/pull/3879)) ([ccc636d](https://github.com/confluentinc/ksql/commit/ccc636d)), closes [#3863](https://github.com/confluentinc/ksql/issues/3863)
 * add configurable metrics reporters ([#3490](https://github.com/confluentinc/ksql/pull/3490)) ([378b8af](https://github.com/confluentinc/ksql/commit/378b8af))
 * add flag to disable pull queries (MINOR) ([#3778](https://github.com/confluentinc/ksql/pull/3778)) ([04e206f](https://github.com/confluentinc/ksql/commit/04e206f))
-* add flag to disable pull queries (MINOR) ([#3778](https://github.com/confluentinc/ksql/pull/3778)) ([cba5b54](https://github.com/confluentinc/ksql/commit/cba5b54))
 * add health check endpoint ([#3501](https://github.com/confluentinc/ksql/pull/3501)) ([2308686](https://github.com/confluentinc/ksql/commit/2308686))
 * add KsqlUncaughtExceptionHandler and new KsqlRestConfig for enabling it ([#3425](https://github.com/confluentinc/ksql/pull/3425)) ([d83c787](https://github.com/confluentinc/ksql/commit/d83c787))
 * add request logging ([#3518](https://github.com/confluentinc/ksql/pull/3518)) ([c401ec0](https://github.com/confluentinc/ksql/commit/c401ec0))
 * Add UDF invoker benchmark ([#3592](https://github.com/confluentinc/ksql/pull/3592)) ([83dfc24](https://github.com/confluentinc/ksql/commit/83dfc24))
 * Added UDFs ENTRIES and GENERATE_SERIES ([#3724](https://github.com/confluentinc/ksql/pull/3724)) ([0a4558b](https://github.com/confluentinc/ksql/commit/0a4558b))
-* Added UDFs ENTRIES and GENERATE_SERIES ([#3724](https://github.com/confluentinc/ksql/pull/3724)) ([0e44a78](https://github.com/confluentinc/ksql/commit/0e44a78))
 * build ks app from an execution plan visitor ([#3418](https://github.com/confluentinc/ksql/pull/3418)) ([b57d194](https://github.com/confluentinc/ksql/commit/b57d194))
 * build materializations from the physical plan ([#3494](https://github.com/confluentinc/ksql/pull/3494)) ([f45d649](https://github.com/confluentinc/ksql/commit/f45d649))
 * change /metadata REST path to /v1/metadata ([#3467](https://github.com/confluentinc/ksql/pull/3467)) ([ed94895](https://github.com/confluentinc/ksql/commit/ed94895))
@@ -23,7 +21,6 @@
 * expression support for insert values ([#3612](https://github.com/confluentinc/ksql/pull/3612)) ([37f9763](https://github.com/confluentinc/ksql/commit/37f9763))
 * Implement complex expressions for table functions ([#3683](https://github.com/confluentinc/ksql/pull/3683)) ([200022b](https://github.com/confluentinc/ksql/commit/200022b))
 * Implement describe and list functions for UDTFs ([#3716](https://github.com/confluentinc/ksql/pull/3716)) ([b0bbea4](https://github.com/confluentinc/ksql/commit/b0bbea4))
-* Implement describe and list functions for UDTFs ([#3716](https://github.com/confluentinc/ksql/pull/3716)) ([f05e262](https://github.com/confluentinc/ksql/commit/f05e262))
 * Implement EXPLODE(ARRAY) for single table function in SELECT  ([#3589](https://github.com/confluentinc/ksql/pull/3589)) ([8b52aa8](https://github.com/confluentinc/ksql/commit/8b52aa8))
 * Implement schemaProvider for UDTFs ([#3690](https://github.com/confluentinc/ksql/pull/3690)) ([4e66825](https://github.com/confluentinc/ksql/commit/4e66825))
 * Implement user defined table functions ([#3687](https://github.com/confluentinc/ksql/pull/3687)) ([e62bd46](https://github.com/confluentinc/ksql/commit/e62bd46))
@@ -117,12 +114,10 @@
 ### Bug Fixes
 
 * `/query` rest endpoint should return valid JSON ([#3819](https://github.com/confluentinc/ksql/pull/3819)) ([b278e83](https://github.com/confluentinc/ksql/commit/b278e83))
-* `/query` rest endpoint should return valid JSON ([#3819](https://github.com/confluentinc/ksql/pull/3819)) ([13ced13](https://github.com/confluentinc/ksql/commit/13ced13)), closes [#3408](https://github.com/confluentinc/ksql/issues/3408)
 * address upstream change in KafkaAvroDeserializer ([#3372](https://github.com/confluentinc/ksql/pull/3372)) ([b32e6a9](https://github.com/confluentinc/ksql/commit/b32e6a9))
 * address upstream change in KafkaAvroDeserializer (revert previous fix) ([#3437](https://github.com/confluentinc/ksql/pull/3437)) ([bed164b](https://github.com/confluentinc/ksql/commit/bed164b))
 * allow streams topic prefixed configs ([#3691](https://github.com/confluentinc/ksql/pull/3691)) ([939c45a](https://github.com/confluentinc/ksql/commit/939c45a)), closes [#817](https://github.com/confluentinc/ksql/issues/817)
 * apply filter before flat mapping in logical planner ([#3730](https://github.com/confluentinc/ksql/pull/3730)) ([f4bd083](https://github.com/confluentinc/ksql/commit/f4bd083))
-* apply filter before flat mapping in logical planner ([#3730](https://github.com/confluentinc/ksql/pull/3730)) ([c2f35e3](https://github.com/confluentinc/ksql/commit/c2f35e3))
 * band-aid around RestQueryTranslationTest ([#3326](https://github.com/confluentinc/ksql/pull/3326)) ([677e03c](https://github.com/confluentinc/ksql/commit/677e03c))
 * be more lax on validating config ([#3599](https://github.com/confluentinc/ksql/pull/3599)) ([3c80cf1](https://github.com/confluentinc/ksql/commit/3c80cf1)), closes [#2279](https://github.com/confluentinc/ksql/issues/2279)
 * better error message if tz invalid in datetime string ([#3449](https://github.com/confluentinc/ksql/pull/3449)) ([e93c445](https://github.com/confluentinc/ksql/commit/e93c445))
@@ -145,7 +140,6 @@
 * include lower-case identifiers among those that need quotes ([#3723](https://github.com/confluentinc/ksql/pull/3723)) ([62c47bf](https://github.com/confluentinc/ksql/commit/62c47bf))
 * make sure use of non threadsafe UdfIndex is synchronized ([#3486](https://github.com/confluentinc/ksql/pull/3486)) ([618aae8](https://github.com/confluentinc/ksql/commit/618aae8))
 * pull queries available on `/query` rest & ws endpoint ([#3820](https://github.com/confluentinc/ksql/pull/3820)) ([9a47eaf](https://github.com/confluentinc/ksql/commit/9a47eaf)), closes [#3672](https://github.com/confluentinc/ksql/issues/3672) [#3495](https://github.com/confluentinc/ksql/issues/3495)
-* pull queries available on `/query` rest & ws endpoint ([#3820](https://github.com/confluentinc/ksql/pull/3820)) ([e2321f5](https://github.com/confluentinc/ksql/commit/e2321f5)), closes [#3672](https://github.com/confluentinc/ksql/issues/3672) [#3495](https://github.com/confluentinc/ksql/issues/3495)
 * quoted identifiers for source names ([#3695](https://github.com/confluentinc/ksql/pull/3695)) ([7d3cf92](https://github.com/confluentinc/ksql/commit/7d3cf92))
 * race condition in KsStateStore ([#3474](https://github.com/confluentinc/ksql/pull/3474)) ([7336389](https://github.com/confluentinc/ksql/commit/7336389))
 * Remove dependencies on test-jars from ksql-functional-tests jar ([#3421](https://github.com/confluentinc/ksql/pull/3421)) ([e09d6ad](https://github.com/confluentinc/ksql/commit/e09d6ad))
@@ -157,7 +151,6 @@
 * Revert named stores in expected topologies, disable naming stores from StreamJoined, re-enable join tests. ([#3550](https://github.com/confluentinc/ksql/pull/3550)) ([0b8ccc1](https://github.com/confluentinc/ksql/commit/0b8ccc1)), closes [#3364](https://github.com/confluentinc/ksql/issues/3364)
 * should be able to parse empty STRUCT schema (MINOR) ([#3318](https://github.com/confluentinc/ksql/pull/3318)) ([a6549e1](https://github.com/confluentinc/ksql/commit/a6549e1))
 * Some renaming around KsqlFunction etc ([#3747](https://github.com/confluentinc/ksql/pull/3747)) ([b30d965](https://github.com/confluentinc/ksql/commit/b30d965))
-* Some renaming around KsqlFunction etc ([#3747](https://github.com/confluentinc/ksql/pull/3747)) ([9c1a249](https://github.com/confluentinc/ksql/commit/9c1a249))
 * standardize KSQL up-casting ([#3516](https://github.com/confluentinc/ksql/pull/3516)) ([7fe8772](https://github.com/confluentinc/ksql/commit/7fe8772))
 * support NULL return values from CASE statements ([#3531](https://github.com/confluentinc/ksql/pull/3531)) ([eb9e41b](https://github.com/confluentinc/ksql/commit/eb9e41b))
 * support UDAFs with different intermediate schema ([#3412](https://github.com/confluentinc/ksql/pull/3412)) ([70e10e9](https://github.com/confluentinc/ksql/commit/70e10e9))
@@ -218,11 +211,6 @@
 ### BREAKING CHANGES
 
 * the response from the RESTful API for push queries has changed: it is now a valid JSON document containing a JSON array, where each element is JSON object containing either a row of data, an error message, or a final message.  The `terminal` field has been removed.
-(cherry picked from commit 13ced13809f9d6c004249835e3809a52f009bb9a)
-* the response from the RESTful API for push queries has changed: it is now a valid JSON document containing a JSON array, where each element is JSON object containing either a row of data, an error message, or a final message.  The `terminal` field has been removed.
-* the response from the RESTful API for push queries has changed: it now returns a line with the schema and query id in a `header` field and null fields are not included in the payload.
-The CLI is backwards compatible with older versions of the server, though it won't output column headings from older versions.
-(cherry picked from commit e2321f5bfb6f669c02fe3374eeaae99e45dbcabd)
 * the response from the RESTful API for push queries has changed: it now returns a line with the schema and query id in a `header` field and null fields are not included in the payload.
 The CLI is backwards compatible with older versions of the server, though it won't output column headings from older versions.
 * If users are relying on the previous behaviour of uppercasing topic names, this change breaks that
@@ -250,7 +238,6 @@ Kafka Topic                                                                     
 _confluent-command                                                                            | 1          | 1
 _confluent-controlcenter-5-3-0-1-actual-group-consumption-rekey                               | 1          | 1
 ```
-
 
 
 

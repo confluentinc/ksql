@@ -22,7 +22,7 @@
     <parent>
         <groupId>io.confluent.ksql</groupId>
         <artifactId>ksql-parent</artifactId>
-        <version>5.5.0-SNAPSHOT</version>
+        <version>0.6.0</version>
     </parent>
 
     <artifactId>ksql-udf</artifactId>

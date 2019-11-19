@@ -28,6 +28,8 @@ import io.confluent.ksql.KsqlExecutionContext;
 import io.confluent.ksql.analyzer.Analysis;
 import io.confluent.ksql.analyzer.PullQueryValidator;
 import io.confluent.ksql.analyzer.QueryAnalyzer;
+import io.confluent.ksql.execution.context.QueryContext;
+import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression;
 import io.confluent.ksql.execution.expression.tree.ComparisonExpression.Type;
@@ -38,13 +40,14 @@ import io.confluent.ksql.execution.expression.tree.LogicalBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.LongLiteral;
 import io.confluent.ksql.execution.expression.tree.StringLiteral;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.SelectValueMapper;
-import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
 import io.confluent.ksql.execution.streams.materialization.Locator;
 import io.confluent.ksql.execution.streams.materialization.Locator.KsqlNode;
 import io.confluent.ksql.execution.streams.materialization.Materialization;
 import io.confluent.ksql.execution.streams.materialization.MaterializationTimeOutException;
 import io.confluent.ksql.execution.streams.materialization.TableRow;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.transform.SelectValueMapper;
+import io.confluent.ksql.execution.transform.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.ExpressionTypeManager;
 import io.confluent.ksql.logging.processing.NoopProcessingLogContext;
 import io.confluent.ksql.metastore.MetaStore;
@@ -154,11 +157,11 @@ public final class PullQueryExecutor {
 
       final WhereInfo whereInfo = extractWhereInfo(analysis, query);
 
-      final QueryId queryId = PersistentQueryMetadata.getPullQueryId(
-          getSourceName(analysis).name());
+      final QueryId queryId = uniqueQueryId();
+      final QueryContext.Stacker contextStacker = new Stacker();
 
       final Materialization mat = query
-          .getMaterialization()
+          .getMaterialization(queryId, contextStacker)
           .orElseThrow(() -> notMaterializedException(getSourceName(analysis)));
 
       final Struct rowKey = asKeyStruct(whereInfo.rowkey, query.getPhysicalSchema());
@@ -213,6 +216,10 @@ public final class PullQueryExecutor {
           e
       );
     }
+  }
+
+  private static QueryId uniqueQueryId() {
+    return new QueryId("query_" + System.currentTimeMillis());
   }
 
   private static Analysis analyze(
@@ -556,14 +563,17 @@ public final class PullQueryExecutor {
         analysis.getSelectExpressions(),
         intermediateSchema.withAlias(sourceName),
         ksqlConfig,
-        executionContext.getMetaStore(),
+        executionContext.getMetaStore()
+    );
+
+    final KsqlValueTransformerWithKey<Object> mapper = select.getTransformer(
         NoopProcessingLogContext.INSTANCE.getLoggerFactory().getLogger("any")
     );
 
     final ImmutableList.Builder<List<?>> output = ImmutableList.builder();
     input.rows.forEach(r -> {
       final GenericRow intermediate = preSelectTransform.apply(r.key(), r.value());
-      final GenericRow mapped = select.transform(r.key(), intermediate);
+      final GenericRow mapped = mapper.transform(r.key(), intermediate);
       validateProjection(mapped, outputSchema);
       output.add(mapped.getColumns());
     });

@@ -186,7 +186,6 @@ public class StreamAggregateBuilderTest {
   private StreamWindowedAggregate windowedAggregate;
 
   @Before
-  @SuppressWarnings("unchecked")
   public void init() {
     when(sourceStep.build(any())).thenReturn(KGroupedStreamHolder.of(groupedStream, INPUT_SCHEMA));
     when(queryBuilder.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
@@ -610,8 +609,6 @@ public class StreamAggregateBuilderTest {
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getTransforms(), hasSize(1));
     final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
-    assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
-    assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));
-    assertThat(aggMapInfo.getInfo().startingColumnIndex(), equalTo(2));
+    assertThat(aggMapInfo.getAggregator(), equalTo(aggregator));
   }
 }

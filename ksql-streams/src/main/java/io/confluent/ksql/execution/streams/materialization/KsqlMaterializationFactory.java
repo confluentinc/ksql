@@ -21,27 +21,19 @@ import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryLoggerUtil;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.materialization.AggregatesInfo;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
-import io.confluent.ksql.execution.materialization.MaterializationInfo.ProjectInfo;
-import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
-import io.confluent.ksql.execution.streams.AggregateParamsFactory;
-import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
-import io.confluent.ksql.function.FunctionRegistry;
+import io.confluent.ksql.execution.streams.materialization.KsqlMaterialization.Transform;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.streams.kstream.Predicate;
 
 /**
  * Factor class for {@link KsqlMaterialization}.
@@ -51,46 +43,24 @@ public final class KsqlMaterializationFactory {
   private static final String FILTER_OP_NAME = "filter";
   private static final String PROJECT_OP_NAME = "project";
 
-  private final KsqlConfig ksqlConfig;
-  private final FunctionRegistry functionRegistry;
   private final ProcessingLogContext processingLogContext;
-  private final AggregateMapperFactory aggregateMapperFactory;
-  private final SqlPredicateFactory sqlPredicateFactory;
-  private final SelectMapperFactory selectMapperFactory;
   private final MaterializationFactory materializationFactory;
 
   public KsqlMaterializationFactory(
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
       final ProcessingLogContext processingLogContext
   ) {
     this(
-        ksqlConfig,
-        functionRegistry,
         processingLogContext,
-        defaultAggregateMapperFactory(),
-        SqlPredicate::new,
-        defaultValueMapperFactory(),
         KsqlMaterialization::new
     );
   }
 
   @VisibleForTesting
   KsqlMaterializationFactory(
-      final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
       final ProcessingLogContext processingLogContext,
-      final AggregateMapperFactory aggregateMapperFactory,
-      final SqlPredicateFactory sqlPredicateFactory,
-      final SelectMapperFactory selectMapperFactory,
       final MaterializationFactory materializationFactory
   ) {
-    this.ksqlConfig = requireNonNull(ksqlConfig, "ksqlConfig");
-    this.functionRegistry = requireNonNull(functionRegistry, "functionRegistry");
     this.processingLogContext = requireNonNull(processingLogContext, "processingLogContext");
-    this.aggregateMapperFactory = requireNonNull(aggregateMapperFactory, "aggregateMapperFactory");
-    this.sqlPredicateFactory = requireNonNull(sqlPredicateFactory, "sqlPredicateFactory");
-    this.selectMapperFactory = requireNonNull(selectMapperFactory, "selectMapperFactory");
     this.materializationFactory = requireNonNull(materializationFactory, "materializationFactory");
   }
 
@@ -101,7 +71,7 @@ public final class KsqlMaterializationFactory {
       final QueryContext.Stacker contextStacker
   ) {
     final TransformVisitor transformVisitor = new TransformVisitor(queryId, contextStacker);
-    final List<BiFunction<Struct, GenericRow, Optional<GenericRow>>> transforms = info
+    final List<Transform> transforms = info
         .getTransforms()
         .stream()
         .map(xform -> xform.visit(transformVisitor))
@@ -114,68 +84,17 @@ public final class KsqlMaterializationFactory {
     );
   }
 
-  private static AggregateMapperFactory defaultAggregateMapperFactory() {
-    return (info, functionRegistry) ->
-        new AggregateParamsFactory().create(
-            info.schema(),
-            info.startingColumnIndex(),
-            functionRegistry,
-            info.aggregateFunctions()
-        ).getAggregator().getResultMapper()::apply;
-  }
-
-  private static SelectMapperFactory defaultValueMapperFactory() {
-    return (selectExpressions, sourceSchema, ksqlConfig, functionRegistry, processingLogger) ->
-        SelectValueMapperFactory.create(
-            selectExpressions,
-            sourceSchema,
-            ksqlConfig,
-            functionRegistry,
-            processingLogger
-        )::transform;
-  }
-
-  interface AggregateMapperFactory {
-
-    Function<GenericRow, GenericRow> create(
-        AggregatesInfo info,
-        FunctionRegistry functionRegistry
-    );
-  }
-
-  interface SqlPredicateFactory {
-
-    SqlPredicate create(
-        Expression filterExpression,
-        LogicalSchema schema,
-        KsqlConfig ksqlConfig,
-        FunctionRegistry functionRegistry,
-        ProcessingLogger processingLogger
-    );
-  }
-
-  interface SelectMapperFactory {
-
-    BiFunction<Object, GenericRow, GenericRow> create(
-        List<SelectExpression> selectExpressions,
-        LogicalSchema sourceSchema,
-        KsqlConfig ksqlConfig,
-        FunctionRegistry functionRegistry,
-        ProcessingLogger processingLogger
-    );
-  }
-
   interface MaterializationFactory {
 
     KsqlMaterialization create(
         Materialization inner,
         LogicalSchema schema,
-        List<BiFunction<Struct, GenericRow, Optional<GenericRow>>> transforms
+        List<Transform> transforms
     );
   }
 
-  private class TransformVisitor implements MaterializationInfo.TransformVisitor<
-      BiFunction<Struct, GenericRow, Optional<GenericRow>>> {
+  private class TransformVisitor implements MaterializationInfo.TransformVisitor<Transform> {
+
     private final QueryId queryId;
     private final QueryContext.Stacker stacker;
 
@@ -185,46 +104,40 @@ public final class KsqlMaterializationFactory {
     }
 
     @Override
-    public BiFunction<Struct, GenericRow, Optional<GenericRow>> visit(
-        final MaterializationInfo.AggregateMapInfo info) {
-      final Function<GenericRow, GenericRow> mapper = aggregateMapperFactory.create(
-          info.getInfo(),
-          functionRegistry
-      );
+    public Transform visit(
+        final MaterializationInfo.AggregateMapInfo info
+    ) {
+      final Function<GenericRow, GenericRow> mapper = info
+          .getAggregator()
+          .getResultMapper()::apply;
+
       return (k, v) -> Optional.of(mapper.apply(v));
     }
 
     @Override
-    public BiFunction<Struct, GenericRow, Optional<GenericRow>> visit(
-        final MaterializationInfo.SqlPredicateInfo info) {
+    public Transform visit(
+        final MaterializationInfo.SqlPredicateInfo info
+    ) {
       final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
           QueryLoggerUtil.queryLoggerName(queryId, stacker.push(FILTER_OP_NAME).getQueryContext())
       );
-      final SqlPredicate predicate = sqlPredicateFactory.create(
-          info.getFilterExpression(),
-          info.getSchema(),
-          ksqlConfig,
-          functionRegistry,
-          logger
-      );
-      return (s, g) -> predicate.getPredicate().test(s, g) ? Optional.of(g) : Optional.empty();
+
+      final Predicate<Object, GenericRow> predicate = info.getPredicate(logger);
+
+      return (k, v) -> predicate.test(k, v) ? Optional.of(v) : Optional.empty();
     }
 
     @Override
-    public BiFunction<Struct, GenericRow, Optional<GenericRow>> visit(
-        final ProjectInfo info
+    public Transform visit(
+        final MaterializationInfo.ProjectInfo info
     ) {
       final ProcessingLogger logger = processingLogContext.getLoggerFactory().getLogger(
           QueryLoggerUtil.queryLoggerName(queryId, stacker.push(PROJECT_OP_NAME).getQueryContext())
       );
-      final BiFunction<Object, GenericRow, GenericRow> mapper = selectMapperFactory.create(
-          info.getSelectExpressions(),
-          info.getSchema(),
-          ksqlConfig,
-          functionRegistry,
-          logger
-      );
-      return (k, v) -> Optional.of(mapper.apply(k, v));
+
+      final KsqlValueTransformerWithKey<Object> transformer = info.getSelectTransformer(logger);
+
+      return (k, v) -> Optional.of(transformer.transform(k, v));
     }
   }
 }

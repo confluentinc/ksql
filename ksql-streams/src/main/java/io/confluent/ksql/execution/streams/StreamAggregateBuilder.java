@@ -94,15 +94,15 @@ public final class StreamAggregateBuilder {
         aggregateParams.getAggregator(),
         materialized
     );
+
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
+            aggregateParams.getAggregator(),
             aggregate.getProperties().getQueryContext(),
-            aggregate.getNonFuncColumnCount(),
-            aggregate.getAggregations(),
-            sourceSchema,
             aggregateSchema,
             resultSchema
         );
+
     return KTableHolder.materialized(
         aggregated.mapValues(aggregateParams.getAggregator().getResultMapper()),
         resultSchema,
@@ -158,15 +158,15 @@ public final class StreamAggregateBuilder {
     final KTable<Windowed<Struct>, GenericRow> reduced = aggregated.mapValues(
         aggregateParams.getAggregator().getResultMapper()
     );
+
     final MaterializationInfo.Builder materializationBuilder =
         AggregateBuilderUtils.materializationInfoBuilder(
+            aggregateParams.getAggregator(),
             aggregate.getProperties().getQueryContext(),
-            aggregate.getNonFuncColumnCount(),
-            aggregate.getAggregations(),
-            sourceSchema,
             aggregateSchema,
             resultSchema
         );
+
     final WindowSelectMapper windowSelectMapper = aggregateParams.getWindowSelectMapper();
     if (!windowSelectMapper.hasSelects()) {
       return KTableHolder.materialized(

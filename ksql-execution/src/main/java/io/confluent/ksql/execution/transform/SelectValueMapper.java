@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Confluent Inc.
+ * Copyright 2019 Confluent Inc.
  *
  * Licensed under the Confluent Community License (the "License"); you may not use
  * this file except in compliance with the License.  You may obtain a copy of the
@@ -13,7 +13,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform;
 
 import static java.util.Objects.requireNonNull;
 
@@ -24,69 +24,27 @@ import io.confluent.ksql.execution.util.EngineProcessingLogMessageFactory;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.schema.ksql.FormatOptions;
-import io.confluent.ksql.schema.ksql.types.SqlType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class SelectValueMapper<K> extends KsqlValueTransformerWithKey<K> {
+public class SelectValueMapper<K> {
 
   private final ImmutableList<SelectInfo> selects;
-  private final ProcessingLogger processingLogger;
 
-  public SelectValueMapper(
-      final List<SelectInfo> selects,
-      final ProcessingLogger processingLogger
-  ) {
+  public SelectValueMapper(final List<SelectInfo> selects) {
     this.selects = ImmutableList.copyOf(requireNonNull(selects, "selects"));
-    this.processingLogger = requireNonNull(processingLogger, "processingLogger");
   }
 
-  List<SelectInfo> getSelects() {
+  public List<SelectInfo> getSelects() {
     return selects;
   }
 
-  @Override
-  protected GenericRow transform(final GenericRow value) {
-    if (value == null) {
-      return null;
-    }
-
-    final List<Object> newColumns = new ArrayList<>();
-
-    for (int i = 0; i < selects.size(); i++) {
-      newColumns.add(processColumn(i, value));
-    }
-
-    return new GenericRow(newColumns);
+  public KsqlValueTransformerWithKey<K> getTransformer(final ProcessingLogger processingLogger) {
+    return new SelectMapper<>(selects, processingLogger);
   }
 
-  private Object processColumn(final int column, final GenericRow row) {
-    final SelectInfo select = selects.get(column);
-
-    try {
-      return select.evaluator.evaluate(row);
-    } catch (final Exception e) {
-      final String errorMsg = String.format(
-          "Error computing expression %s for column %s with index %d: %s",
-          select.evaluator.getExpression(),
-          select.fieldName.toString(FormatOptions.noEscape()),
-          column,
-          e.getMessage()
-      );
-
-      processingLogger.error(
-          EngineProcessingLogMessageFactory.recordProcessingError(
-              errorMsg,
-              e,
-              row
-          )
-      );
-      return null;
-    }
-  }
-
-  static final class SelectInfo {
+  public static final class SelectInfo {
 
     final ColumnName fieldName;
     final ExpressionMetadata evaluator;
@@ -100,12 +58,12 @@ public class SelectValueMapper<K> extends KsqlValueTransformerWithKey<K> {
       this.evaluator = requireNonNull(evaluator, "evaluator");
     }
 
-    ColumnName getFieldName() {
+    public ColumnName getFieldName() {
       return fieldName;
     }
 
-    SqlType getExpressionType() {
-      return evaluator.getExpressionType();
+    public ExpressionMetadata getEvaluator() {
+      return evaluator;
     }
 
     @Override
@@ -124,6 +82,60 @@ public class SelectValueMapper<K> extends KsqlValueTransformerWithKey<K> {
     @Override
     public int hashCode() {
       return Objects.hash(fieldName, evaluator);
+    }
+  }
+
+  private static final class SelectMapper<K> extends KsqlValueTransformerWithKey<K> {
+
+    private final ImmutableList<SelectInfo> selects;
+    private final ProcessingLogger processingLogger;
+
+    private SelectMapper(
+        final ImmutableList<SelectInfo> selects,
+        final ProcessingLogger processingLogger
+    ) {
+      this.selects = requireNonNull(selects, "selects");
+      this.processingLogger = requireNonNull(processingLogger, "processingLogger");
+    }
+
+    @Override
+    protected GenericRow transform(final GenericRow value) {
+      if (value == null) {
+        return null;
+      }
+
+      final List<Object> newColumns = new ArrayList<>();
+
+      for (int i = 0; i < selects.size(); i++) {
+        newColumns.add(processColumn(i, value));
+      }
+
+      return new GenericRow(newColumns);
+    }
+
+    private Object processColumn(final int column, final GenericRow row) {
+      final SelectInfo select = selects.get(column);
+
+      try {
+        return select.evaluator.evaluate(row);
+      } catch (final Exception e) {
+        final String errorMsg = String.format(
+            "Error computing expression %s for column %s with index %d: %s",
+            select.evaluator.getExpression(),
+            select.fieldName.toString(FormatOptions.noEscape()),
+            column,
+            e.getMessage()
+        );
+
+        processingLogger.error(
+            EngineProcessingLogMessageFactory.recordProcessingError(
+                errorMsg,
+                e,
+                row
+            )
+        );
+        return null;
+      }
     }
   }
 }

@@ -93,8 +93,8 @@ public class StreamFilterBuilderTest {
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceKStream.filter(any())).thenReturn(filteredKStream);
-    when(predicateFactory.create(any(), any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getPredicate()).thenReturn(predicate);
+    when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
+    when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
     sourceWithSerdeFactory =
         new KStreamHolder<>(sourceKStream, schema, keySerdeFactory);
     when(sourceStep.build(any())).thenReturn(sourceWithSerdeFactory);
@@ -142,8 +142,7 @@ public class StreamFilterBuilderTest {
         filterExpression,
         schema,
         ksqlConfig,
-        functionRegistry,
-        processingLogger
+        functionRegistry
     );
   }
 

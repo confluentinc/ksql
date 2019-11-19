@@ -16,7 +16,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.errors.ProductionExceptionHandlerUtil;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.context.QueryContext.Stacker;
 import io.confluent.ksql.execution.ddl.commands.KsqlTopic;
 import io.confluent.ksql.execution.materialization.MaterializationInfo;
@@ -69,7 +68,6 @@ import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.KStream;
-import org.apache.kafka.streams.kstream.KTable;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -80,12 +78,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class QueryExecutorTest {
+
   private static final String STATEMENT_TEXT = "KSQL STATEMENT";
   private static final QueryId QUERY_ID = new QueryId("queryid");
+  private static final QueryId QUERY_ID_2 = new QueryId("queryid-2");
   private static final Set<SourceName> SOURCES
       = ImmutableSet.of(SourceName.of("foo"), SourceName.of("bar"));
   private static final SourceName SINK_NAME = SourceName.of("baz");
-  private static final QueryId PULL_QUERY_ID = PersistentQueryMetadata.getPullQueryId(SINK_NAME.name());
   private static final String STORE_NAME = "store";
   private static final String SUMMARY = "summary";
   private static final Map<String, Object> OVERRIDES = Collections.emptyMap();
@@ -104,8 +103,6 @@ public class QueryExecutorTest {
 
   @Mock
   private ExecutionStep physicalPlan;
-  @Mock
-  private KTable<Struct, GenericRow> ktable;
   @Mock
   private KStream<Struct, GenericRow> kstream;
   @Mock
@@ -156,6 +153,7 @@ public class QueryExecutorTest {
   private ArgumentCaptor<Map<String, Object>> propertyCaptor;
 
   private QueryExecutor queryBuilder;
+  private final Stacker stacker = new Stacker();
 
   @Before
   public void setup() {
@@ -266,7 +264,7 @@ public class QueryExecutorTest {
 
   @Test
   public void shouldBuildPersistentQueryWithCorrectMaterializationProvider() {
-    // When:
+    // Given:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
         STATEMENT_TEXT,
         QUERY_ID,
@@ -275,7 +273,9 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
-    final Optional<Materialization> result = queryMetadata.getMaterialization();
+
+    // When:
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
 
     // Then:
     assertThat(result.get(), is(materialization));
@@ -308,7 +308,7 @@ public class QueryExecutorTest {
 
   @Test
   public void shouldMaterializeCorrectly() {
-    // When:
+    // Given:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
         STATEMENT_TEXT,
         QUERY_ID,
@@ -317,14 +317,15 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
-    final QueryContext.Stacker stacker = new Stacker();
-    queryMetadata.getMaterialization();
+
+    // When:
+    queryMetadata.getMaterialization(QUERY_ID_2, stacker);
 
     // Then:
     verify(ksqlMaterializationFactory).create(
         ksMaterialization,
         materializationInfo,
-        PULL_QUERY_ID,
+        QUERY_ID_2,
         stacker
     );
   }
@@ -334,7 +335,6 @@ public class QueryExecutorTest {
     // Given:
     when(tableHolder.getMaterializationBuilder()).thenReturn(Optional.empty());
 
-    // When:
     final PersistentQueryMetadata queryMetadata = queryBuilder.buildQuery(
         STATEMENT_TEXT,
         QUERY_ID,
@@ -343,8 +343,11 @@ public class QueryExecutorTest {
         physicalPlan,
         SUMMARY
     );
-    final Optional<Materialization> result = queryMetadata.getMaterialization();
 
+    // When:
+    final Optional<Materialization> result = queryMetadata.getMaterialization(QUERY_ID, stacker);
+
+    // Then:
     assertThat(result, is(Optional.empty()));
   }
 
@@ -448,7 +451,6 @@ public class QueryExecutorTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToExistingList() {
     // Given:
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(

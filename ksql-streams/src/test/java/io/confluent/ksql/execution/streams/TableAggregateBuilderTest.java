@@ -268,8 +268,6 @@ public class TableAggregateBuilderTest {
     assertThat(info.getStateStoreSchema(), equalTo(AGGREGATE_SCHEMA));
     assertThat(info.getTransforms(), hasSize(1));
     final AggregateMapInfo aggMapInfo = (AggregateMapInfo) info.getTransforms().get(0);
-    assertThat(aggMapInfo.getInfo().schema(), equalTo(INPUT_SCHEMA));
-    assertThat(aggMapInfo.getInfo().aggregateFunctions(), equalTo(FUNCTIONS));
-    assertThat(aggMapInfo.getInfo().startingColumnIndex(), equalTo(2));
+    assertThat(aggMapInfo.getAggregator(), equalTo(aggregator));
   }
 }

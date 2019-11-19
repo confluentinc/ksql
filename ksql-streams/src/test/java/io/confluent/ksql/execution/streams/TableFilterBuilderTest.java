@@ -95,8 +95,8 @@ public class TableFilterBuilderTest {
     when(sourceStep.getProperties()).thenReturn(sourceProperties);
     when(sourceProperties.getSchema()).thenReturn(schema);
     when(sourceKTable.filter(any())).thenReturn(filteredKTable);
-    when(predicateFactory.create(any(), any(), any(), any(), any())).thenReturn(sqlPredicate);
-    when(sqlPredicate.getPredicate()).thenReturn(predicate);
+    when(predicateFactory.create(any(), any(), any(), any())).thenReturn(sqlPredicate);
+    when(sqlPredicate.getPredicate(any())).thenReturn(predicate);
     when(materializationBuilder.filter(any())).thenReturn(materializationBuilder);
     final ExecutionStepProperties properties = new DefaultExecutionStepProperties(
         schema,
@@ -145,8 +145,7 @@ public class TableFilterBuilderTest {
         filterExpression,
         schema,
         ksqlConfig,
-        functionRegistry,
-        processingLogger
+        functionRegistry
     );
   }
 
@@ -165,6 +164,6 @@ public class TableFilterBuilderTest {
     step.build(planBuilder);
 
     // Then:
-    verify(materializationBuilder).filter(filterExpression);
+    verify(materializationBuilder).filter(sqlPredicate);
   }
 }

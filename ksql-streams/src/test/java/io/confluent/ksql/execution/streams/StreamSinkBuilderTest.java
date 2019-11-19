@@ -102,9 +102,6 @@ public class StreamSinkBuilderTest {
     when(keySerdeFactory.buildKeySerde(any(), any(), any())).thenReturn(keySerde);
     when(queryBuilder.buildValueSerde(any(), any(), any())).thenReturn(valSerde);
     when(kStream.mapValues(any(ValueMapper.class))).thenReturn(kStream);
-    when(source.getProperties()).thenReturn(
-        new DefaultExecutionStepProperties(SCHEMA, mock(QueryContext.class))
-    );
     stream = new KStreamHolder<>(kStream, SCHEMA, keySerdeFactory);
     when(source.build(any())).thenReturn(stream);
     sink = new StreamSink<>(

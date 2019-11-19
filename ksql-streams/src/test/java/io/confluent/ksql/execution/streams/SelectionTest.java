@@ -3,23 +3,21 @@ package io.confluent.ksql.execution.streams;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
-import io.confluent.ksql.execution.context.QueryContext;
 import io.confluent.ksql.execution.expression.tree.ArithmeticBinaryExpression;
 import io.confluent.ksql.execution.expression.tree.ColumnReferenceExp;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
+import io.confluent.ksql.execution.transform.SelectValueMapper;
+import io.confluent.ksql.execution.transform.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogContext;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.logging.processing.ProcessingLoggerFactory;
 import io.confluent.ksql.name.ColumnName;
 import io.confluent.ksql.name.SourceName;
-import io.confluent.ksql.query.QueryId;
 import io.confluent.ksql.schema.Operator;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
@@ -65,8 +63,6 @@ public class SelectionTest {
   private ProcessingLoggerFactory processingLoggerFactory;
   @Mock
   private ProcessingLogger processingLogger;
-  private final QueryContext queryContext =
-      new QueryContext.Stacker().getQueryContext();
 
   private Selection<String> selection;
 
@@ -78,14 +74,11 @@ public class SelectionTest {
     when(processingLogContext.getLoggerFactory()).thenReturn(processingLoggerFactory);
     when(processingLoggerFactory.getLogger(anyString())).thenReturn(processingLogger);
     selection = Selection.of(
-        new QueryId("query"),
-        queryContext,
         SCHEMA,
         SELECT_EXPRESSIONS,
         ksqlConfig,
-        functionRegistry,
-        processingLogContext)
-    ;
+        functionRegistry
+    );
   }
 
   @Test
@@ -96,10 +89,10 @@ public class SelectionTest {
     // Then:
     final List<SelectInfo> selectInfos = mapper.getSelects();
     assertThat(
-        selectInfos.get(0).evaluator.getExpression(),
+        selectInfos.get(0).getEvaluator().getExpression(),
         equalTo(EXPRESSION1));
     assertThat(
-        selectInfos.get(1).evaluator.getExpression(),
+        selectInfos.get(1).getEvaluator().getExpression(),
         equalTo(EXPRESSION2));
   }
 
@@ -115,10 +108,5 @@ public class SelectionTest {
         .valueColumn(ColumnName.of("BAR"), SqlTypes.BIGINT)
         .build();
     assertThat(resultSchema, equalTo(expected));
-  }
-
-  @Test
-  public void shouldBuildSelectValueMapperLoggerCorrectly() {
-    verify(processingLoggerFactory).getLogger("query.PROJECT");
   }
 }

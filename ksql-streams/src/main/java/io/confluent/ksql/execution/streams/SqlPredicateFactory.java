@@ -18,16 +18,15 @@ package io.confluent.ksql.execution.streams;
 import io.confluent.ksql.execution.expression.tree.Expression;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 
 public interface SqlPredicateFactory {
+
   SqlPredicate create(
       Expression filterExpression,
       LogicalSchema schema,
       KsqlConfig ksqlConfig,
-      FunctionRegistry functionRegistry,
-      ProcessingLogger logger
+      FunctionRegistry functionRegistry
   );
 }

@@ -13,15 +13,14 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package io.confluent.ksql.execution.streams;
+package io.confluent.ksql.execution.transform;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.confluent.ksql.execution.codegen.CodeGenRunner;
 import io.confluent.ksql.execution.codegen.ExpressionMetadata;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.SelectValueMapper.SelectInfo;
+import io.confluent.ksql.execution.transform.SelectValueMapper.SelectInfo;
 import io.confluent.ksql.function.FunctionRegistry;
-import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.List;
@@ -45,26 +44,18 @@ public final class SelectValueMapperFactory {
       final List<SelectExpression> selectExpressions,
       final LogicalSchema sourceSchema,
       final KsqlConfig ksqlConfig,
-      final FunctionRegistry functionRegistry,
-      final ProcessingLogger processingLogger
+      final FunctionRegistry functionRegistry
   ) {
     final CodeGenRunner codeGen = new CodeGenRunner(sourceSchema, ksqlConfig, functionRegistry);
 
-    return new SelectValueMapperFactory(codeGen).create(
-        selectExpressions,
-        processingLogger
-    );
+    return new SelectValueMapperFactory(codeGen).create(selectExpressions);
   }
 
   @VisibleForTesting
   <K> SelectValueMapper<K> create(
-      final List<SelectExpression> selectExpressions,
-      final ProcessingLogger processingLogger
+      final List<SelectExpression> selectExpressions
   ) {
-    return new SelectValueMapper<>(
-        buildSelects(selectExpressions),
-        processingLogger
-    );
+    return new SelectValueMapper<>(buildSelects(selectExpressions));
   }
 
   private List<SelectInfo> buildSelects(final List<SelectExpression> selectExpressions) {

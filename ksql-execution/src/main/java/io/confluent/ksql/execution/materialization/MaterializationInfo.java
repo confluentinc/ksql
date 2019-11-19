@@ -19,12 +19,17 @@ import static java.util.Objects.requireNonNull;
 
 import com.google.common.collect.ImmutableList;
 import com.google.errorprone.annotations.Immutable;
-import io.confluent.ksql.execution.expression.tree.Expression;
-import io.confluent.ksql.execution.plan.SelectExpression;
+import io.confluent.ksql.GenericRow;
+import io.confluent.ksql.execution.function.udaf.KudafAggregator;
+import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.transform.SelectValueMapper;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import org.apache.kafka.streams.kstream.Predicate;
 
 /**
  * Pojo for passing around information about materialization of a query's state store
@@ -91,12 +96,15 @@ public final class MaterializationInfo {
     /**
      * Adds an aggregate map transform for mapping final result of complex aggregates (e.g. avg)
      *
-     * @param aggregatesInfo descriptor of aggregation functions.
+     * @param aggregator descriptor of aggregation functions.
      * @param resultSchema   schema after applying aggregate result mapping.
      * @return A builder instance with this transformation.
      */
-    public Builder mapAggregates(AggregatesInfo aggregatesInfo, LogicalSchema resultSchema) {
-      transforms.add(new AggregateMapInfo(aggregatesInfo));
+    public Builder mapAggregates(
+        final KudafAggregator aggregator,
+        final LogicalSchema resultSchema
+    ) {
+      transforms.add(new AggregateMapInfo(aggregator));
       this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
     }
@@ -104,12 +112,15 @@ public final class MaterializationInfo {
     /**
      * Adds a transform that projects a list of expressions from the value.
      *
-     * @param selectExpressions The list of expressions to project.
+     * @param selectMapper The list of expressions to project.
      * @param resultSchema      The schema after applying the projection.
      * @return A builder instance with this transformation.
      */
-    public Builder project(List<SelectExpression> selectExpressions, LogicalSchema resultSchema) {
-      transforms.add(new ProjectInfo(selectExpressions, this.schema));
+    public <K> Builder project(
+        final SelectValueMapper<K> selectMapper,
+        final LogicalSchema resultSchema
+    ) {
+      transforms.add(new ProjectInfo(selectMapper));
       this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
       return this;
     }
@@ -117,11 +128,11 @@ public final class MaterializationInfo {
     /**
      * Adds a transform that filters rows from the materialization.
      *
-     * @param filterExpression A boolean expression to filter rows on.
+     * @param predicate the predicate to apply.
      * @return A builder instance with this transformation.
      */
-    public Builder filter(Expression filterExpression) {
-      transforms.add(new SqlPredicateInfo(filterExpression, schema));
+    public Builder filter(final SqlPredicate predicate) {
+      transforms.add(new SqlPredicateInfo(predicate));
       return this;
     }
 
@@ -151,14 +162,14 @@ public final class MaterializationInfo {
 
   public static class AggregateMapInfo implements TransformInfo {
 
-    final AggregatesInfo info;
+    final KudafAggregator aggregator;
 
-    AggregateMapInfo(AggregatesInfo info) {
-      this.info = Objects.requireNonNull(info, "info");
+    AggregateMapInfo(final KudafAggregator aggregator) {
+      this.aggregator = Objects.requireNonNull(aggregator, "aggregator");
     }
 
-    public AggregatesInfo getInfo() {
-      return info;
+    public KudafAggregator getAggregator() {
+      return aggregator;
     }
 
     public <R> R visit(TransformVisitor<R> visitor) {
@@ -168,20 +179,16 @@ public final class MaterializationInfo {
 
   public static class SqlPredicateInfo implements TransformInfo {
 
-    final Expression filterExpression;
-    final LogicalSchema schema;
+    final SqlPredicate predicate;
 
-    SqlPredicateInfo(Expression filterExpression, LogicalSchema schema) {
-      this.filterExpression = Objects.requireNonNull(filterExpression, "filterExpression");
-      this.schema = Objects.requireNonNull(schema, "schema");
+    SqlPredicateInfo(final SqlPredicate predicate) {
+      this.predicate = Objects.requireNonNull(predicate, "predicate");
     }
 
-    public Expression getFilterExpression() {
-      return filterExpression;
-    }
-
-    public LogicalSchema getSchema() {
-      return schema;
+    public Predicate<Object, GenericRow> getPredicate(
+        final ProcessingLogger logger
+    ) {
+      return predicate.getPredicate(logger);
     }
 
     @Override
@@ -192,20 +199,17 @@ public final class MaterializationInfo {
 
   public static class ProjectInfo implements TransformInfo {
 
-    final List<SelectExpression> selectExpressions;
-    final LogicalSchema schema;
+    final SelectValueMapper selectMapper;
 
-    ProjectInfo(List<SelectExpression> selectExpressions, LogicalSchema schema) {
-      this.selectExpressions = Objects.requireNonNull(selectExpressions, "selectExpressions");
-      this.schema = Objects.requireNonNull(schema, "schema");
+    ProjectInfo(final SelectValueMapper selectMapper) {
+      this.selectMapper = Objects.requireNonNull(selectMapper, "selectMapper");
     }
 
-    public List<SelectExpression> getSelectExpressions() {
-      return selectExpressions;
-    }
-
-    public LogicalSchema getSchema() {
-      return schema;
+    @SuppressWarnings("unchecked")
+    public KsqlValueTransformerWithKey<Object> getSelectTransformer(
+        final ProcessingLogger logger
+    ) {
+      return selectMapper.getTransformer(logger);
     }
 
     @Override

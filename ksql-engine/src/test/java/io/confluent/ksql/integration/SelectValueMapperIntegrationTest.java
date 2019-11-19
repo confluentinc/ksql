@@ -20,8 +20,8 @@ import static org.junit.Assert.assertThat;
 
 import io.confluent.ksql.GenericRow;
 import io.confluent.ksql.execution.plan.SelectExpression;
-import io.confluent.ksql.execution.streams.SelectValueMapper;
-import io.confluent.ksql.execution.streams.SelectValueMapperFactory;
+import io.confluent.ksql.execution.transform.KsqlValueTransformerWithKey;
+import io.confluent.ksql.execution.transform.SelectValueMapperFactory;
 import io.confluent.ksql.execution.util.StructKeyUtil;
 import io.confluent.ksql.function.InternalFunctionRegistry;
 import io.confluent.ksql.logging.processing.ProcessingLogger;
@@ -60,11 +60,11 @@ public class SelectValueMapperIntegrationTest {
   @Test
   public void shouldSelectChosenColumns() {
     // Given:
-    final SelectValueMapper<Struct> selectMapper = givenSelectMapperFor(
+    final KsqlValueTransformerWithKey<Struct> selectTransformer = givenSelectMapperFor(
         "SELECT col0, col2, col3 FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
-    final GenericRow transformed = selectMapper.transform(
+    final GenericRow transformed = selectTransformer.transform(
         NON_WINDOWED_KEY,
         genericRow(1521834663L, "key1", 1L, "hi", "bye", 2.0D, "blah")
     );
@@ -76,11 +76,11 @@ public class SelectValueMapperIntegrationTest {
   @Test
   public void shouldApplyUdfsToColumns() {
     // Given:
-    final SelectValueMapper<Struct> selectMapper = givenSelectMapperFor(
+    final KsqlValueTransformerWithKey<Struct> selectTransformer = givenSelectMapperFor(
         "SELECT col0, col1, col2, CEIL(col3) FROM test1 WHERE col0 > 100 EMIT CHANGES;");
 
     // When:
-    final GenericRow row = selectMapper.transform(
+    final GenericRow row = selectTransformer.transform(
         NON_WINDOWED_KEY,
         genericRow(1521834663L, "key1", 2L, "foo", "whatever", 6.9D, "boo", "hoo")
     );
@@ -89,19 +89,18 @@ public class SelectValueMapperIntegrationTest {
     assertThat(row, is(genericRow(2L, "foo", "whatever", 7.0D)));
   }
 
-  private SelectValueMapper<Struct> givenSelectMapperFor(final String query) {
+  private KsqlValueTransformerWithKey<Struct> givenSelectMapperFor(final String query) {
     final PlanNode planNode = AnalysisTestUtil.buildLogicalPlan(ksqlConfig, query, metaStore);
     final ProjectNode projectNode = (ProjectNode) planNode.getSources().get(0);
     final LogicalSchema schema = planNode.getTheSourceNode().getSchema();
     final List<SelectExpression> selectExpressions = projectNode.getSelectExpressions();
 
-    return SelectValueMapperFactory.create(
+    return SelectValueMapperFactory.<Struct>create(
         selectExpressions,
         schema,
         ksqlConfig,
-        new InternalFunctionRegistry(),
-        processingLogger
-    );
+        new InternalFunctionRegistry()
+    ).getTransformer(processingLogger);
   }
 
   private static GenericRow genericRow(final Object... columns) {

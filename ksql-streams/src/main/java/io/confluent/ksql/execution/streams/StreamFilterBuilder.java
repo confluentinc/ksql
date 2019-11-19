@@ -21,6 +21,7 @@ import io.confluent.ksql.execution.context.QueryLoggerUtil;
 import io.confluent.ksql.execution.plan.KStreamHolder;
 import io.confluent.ksql.execution.plan.StreamFilter;
 import io.confluent.ksql.execution.sqlpredicate.SqlPredicate;
+import io.confluent.ksql.logging.processing.ProcessingLogger;
 
 public final class StreamFilterBuilder {
   private StreamFilterBuilder() {
@@ -41,19 +42,26 @@ public final class StreamFilterBuilder {
     final QueryContext.Stacker contextStacker = QueryContext.Stacker.of(
         step.getProperties().getQueryContext()
     );
+
     final SqlPredicate predicate = predicateFactory.create(
         step.getFilterExpression(),
         stream.getSchema(),
         queryBuilder.getKsqlConfig(),
-        queryBuilder.getFunctionRegistry(),
-        queryBuilder.getProcessingLogContext().getLoggerFactory().getLogger(
+        queryBuilder.getFunctionRegistry()
+    );
+
+    final ProcessingLogger processingLogger = queryBuilder
+        .getProcessingLogContext()
+        .getLoggerFactory()
+        .getLogger(
             QueryLoggerUtil.queryLoggerName(
                 queryBuilder.getQueryId(),
-                contextStacker.push("FILTER").getQueryContext())
-        )
-    );
+                contextStacker.push("FILTER").getQueryContext()
+            )
+        );
+
     return stream.withStream(
-        stream.getStream().filter(predicate.getPredicate()),
+        stream.getStream().filter(predicate.getPredicate(processingLogger)),
         stream.getSchema()
     );
   }

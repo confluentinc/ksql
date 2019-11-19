@@ -371,7 +371,7 @@ is `KSQL_LISTENERS`.
 ### ksql.metrics.tags.custom
 
 A list of tags to be included with emitted
-[JMX metrics](../../operations.md#monitoring-and-metrics), formatted as
+[JMX metrics](../../index.md#monitoring-and-metrics), formatted as
 a string of `key:value` pairs separated by commas. For example,
 `key1:value1,key2:value2`.
 

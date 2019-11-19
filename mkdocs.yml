@@ -188,7 +188,7 @@ extra:
         kafkaversion: 2.3
         kafkarelease: 5.3.1-ccs5.4.0-ccs-SNAPSHOT
         ksqldbversion: 0.6.0
-        release: 5.4.0-SNAPSHOT
+        release: 0.6.0-SNAPSHOT
         releasepostbranch: 5.4.0-SNAPSHOT-post
         scalaversion: 2.12
         version: 5.4

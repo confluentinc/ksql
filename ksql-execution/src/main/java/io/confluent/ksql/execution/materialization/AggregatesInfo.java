@@ -60,6 +60,10 @@ public final class AggregatesInfo {
     return aggregateFunctions;
   }
 
+  int valueColumnCount() {
+    return startingColumnIndex + aggregateFunctions.size();
+  }
+
   public LogicalSchema schema() {
     return schema;
   }

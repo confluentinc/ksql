@@ -24,7 +24,6 @@ import io.confluent.ksql.execution.plan.SelectExpression;
 import io.confluent.ksql.schema.ksql.LogicalSchema;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Pojo for passing around information about materialization of a query's state store
@@ -82,10 +81,10 @@ public final class MaterializationInfo {
     private LogicalSchema schema;
 
     private Builder(String stateStoreName, LogicalSchema stateStoreSchema) {
-      this.stateStoreName = Objects.requireNonNull(stateStoreName, "stateStoreName");
-      this.stateStoreSchema = Objects.requireNonNull(stateStoreSchema, "stateStoreSchema");
+      this.stateStoreName = requireNonNull(stateStoreName, "stateStoreName");
+      this.stateStoreSchema = dropMetaColumns(requireNonNull(stateStoreSchema, "stateStoreSchema"));
       this.transforms = new LinkedList<>();
-      this.schema = stateStoreSchema;
+      this.schema = dropMetaColumns(stateStoreSchema);
     }
 
     /**
@@ -96,8 +95,15 @@ public final class MaterializationInfo {
      * @return A builder instance with this transformation.
      */
     public Builder mapAggregates(AggregatesInfo aggregatesInfo, LogicalSchema resultSchema) {
+      if (resultSchema.value().size() != aggregatesInfo.valueColumnCount()) {
+        throw new IllegalArgumentException("value column count mismatch. "
+            + "Expected: " + aggregatesInfo.valueColumnCount() + ", "
+            + "Got: " + resultSchema.value().size()
+        );
+      }
+
       transforms.add(new AggregateMapInfo(aggregatesInfo));
-      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
+      this.schema = dropMetaColumns(resultSchema);
       return this;
     }
 
@@ -109,8 +115,14 @@ public final class MaterializationInfo {
      * @return A builder instance with this transformation.
      */
     public Builder project(List<SelectExpression> selectExpressions, LogicalSchema resultSchema) {
+      if (resultSchema.value().size() != selectExpressions.size()) {
+        throw new IllegalArgumentException("value column count mismatch. "
+            + "Expected: " + selectExpressions.size() + ", "
+            + "Got: " + resultSchema.value().size()
+        );
+      }
       transforms.add(new ProjectInfo(selectExpressions, this.schema));
-      this.schema = Objects.requireNonNull(resultSchema, "resultSchema");
+      this.schema = dropMetaColumns(resultSchema);
       return this;
     }
 
@@ -133,6 +145,15 @@ public final class MaterializationInfo {
     public MaterializationInfo build() {
       return new MaterializationInfo(stateStoreName, stateStoreSchema, transforms, schema);
     }
+
+    /*
+     * Materialized tables do not have meta columns, such as ROWTIME, as this would be obtained
+     * from the source event triggering the output in push / persistent query. Materialized tables
+     * are accessed by pull queries, which have no source events triggering output.
+     */
+    private static LogicalSchema dropMetaColumns(final LogicalSchema schema) {
+      return schema.withoutMetaColumns();
+    }
   }
 
   public interface TransformInfo {
@@ -154,7 +175,7 @@ public final class MaterializationInfo {
     final AggregatesInfo info;
 
     AggregateMapInfo(AggregatesInfo info) {
-      this.info = Objects.requireNonNull(info, "info");
+      this.info = requireNonNull(info, "info");
     }
 
     public AggregatesInfo getInfo() {
@@ -172,8 +193,8 @@ public final class MaterializationInfo {
     final LogicalSchema schema;
 
     SqlPredicateInfo(Expression filterExpression, LogicalSchema schema) {
-      this.filterExpression = Objects.requireNonNull(filterExpression, "filterExpression");
-      this.schema = Objects.requireNonNull(schema, "schema");
+      this.filterExpression = requireNonNull(filterExpression, "filterExpression");
+      this.schema = requireNonNull(schema, "schema");
     }
 
     public Expression getFilterExpression() {
@@ -196,8 +217,8 @@ public final class MaterializationInfo {
     final LogicalSchema schema;
 
     ProjectInfo(List<SelectExpression> selectExpressions, LogicalSchema schema) {
-      this.selectExpressions = Objects.requireNonNull(selectExpressions, "selectExpressions");
-      this.schema = Objects.requireNonNull(schema, "schema");
+      this.selectExpressions = requireNonNull(selectExpressions, "selectExpressions");
+      this.schema = requireNonNull(schema, "schema");
     }
 
     public List<SelectExpression> getSelectExpressions() {

@@ -61,6 +61,7 @@ class KsqlMaterialization implements Materialization {
   /**
    * @param inner the inner materialization, e.g. a KS specific one
    * @param schema the schema of the materialized table.
+   * @param transforms list of transforms to apply
    */
   KsqlMaterialization(
       final Materialization inner,

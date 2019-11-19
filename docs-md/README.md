@@ -46,6 +46,27 @@ pip install mkdocs
 
 For more information, see [Installation](https://www.mkdocs.org/#installation).
 
+Install MkDocs plugins and extensions
+-------------------------------------
+
+The ksqlDB documentation build uses these plugins and extensions:
+
+- **mdx_gh_links:** shorthand links to GitHub
+- **mkdocs-macros-plugin:** variables and macros  
+- **mkdocs-git-revision-date-plugin:** page last updated in GitHub
+- **pymdown-extensions:** adds features to the standard Python Markdown library
+- **mkdocs-material:** docs site theme
+
+Install the plugins and extensions by using the `pip` installer:
+
+```bash
+pip install mdx_gh_links
+pip install mkdocs-macros-plugin
+pip install mkdocs-git-revision-date-plugin
+pip install pymdown-extensions
+pip install mkdocs-material
+```
+
 Build the docs
 --------------
 

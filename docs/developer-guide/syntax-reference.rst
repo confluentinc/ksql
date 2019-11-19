@@ -816,6 +816,12 @@ statement, will fail.
 
     CREATE TYPE ADDRESS AS STRUCT<number INTEGER, street VARCHAR, city VARCHAR>;
 
+Use the ADDRESS custom type in a statement:
+
+.. code:: sql
+
+    CREATE TYPE PERSON AS STRUCT<name VARCHAR, address ADDRESS>;
+
 .. _drop-type:
 
 DROP TYPE
@@ -829,8 +835,12 @@ DROP TYPE
 
 **Description**
 
-The DROP TYPE statement removes a type alias from KSQL. This statement fails
-if the type is being used in any active query or user-defined function.
+The DROP TYPE statement removes a type alias from KSQL. This statement doesn't
+fail if the type is in use in active queries or user-defined function, because
+the DROP TYPE statement doesn't track whether queries are using the type. This
+means that you can drop a type any time, and old queries continue to work.
+Also, old queries running with a dropped type and don't change if you register
+a new type with the same name.
 
 **Example**
 

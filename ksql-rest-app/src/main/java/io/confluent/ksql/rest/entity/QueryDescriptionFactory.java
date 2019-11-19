@@ -38,7 +38,6 @@ public final class QueryDescriptionFactory {
           persistentQuery.getQueryId(),
           persistentQuery,
           ImmutableSet.of(persistentQuery.getSinkName()),
-          false,
           Optional.of(persistentQuery.getState())
       );
     }
@@ -47,7 +46,6 @@ public final class QueryDescriptionFactory {
         new QueryId(""),
         queryMetadata,
         Collections.emptySet(),
-        true,
         Optional.empty()
     );
   }
@@ -56,13 +54,12 @@ public final class QueryDescriptionFactory {
       final QueryId id,
       final QueryMetadata queryMetadata,
       final Set<SourceName> sinks,
-      final boolean valueSchemaOnly,
       final Optional<String> state
   ) {
     return new QueryDescription(
         id,
         queryMetadata.getStatementString(),
-        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema(), valueSchemaOnly),
+        EntityUtil.buildSourceSchemaEntity(queryMetadata.getLogicalSchema()),
         queryMetadata.getSourceNames().stream().map(SourceName::name).collect(Collectors.toSet()),
         sinks.stream().map(SourceName::name).collect(Collectors.toSet()),
         queryMetadata.getTopologyDescription(),

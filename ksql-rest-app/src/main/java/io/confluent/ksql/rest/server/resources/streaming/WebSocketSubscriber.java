@@ -94,7 +94,7 @@ class WebSocketSubscriber<T> implements Flow.Subscriber<Collection<T>>, AutoClos
   public void onSchema(final LogicalSchema schema) {
     try {
       session.getBasicRemote().sendText(
-          mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema, false))
+          mapper.writeValueAsString(EntityUtil.buildSourceSchemaEntity(schema))
       );
     } catch (final IOException e) {
       log.error("Error sending schema", e);

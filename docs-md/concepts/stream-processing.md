@@ -63,7 +63,7 @@ CREATE TABLE products (product_name VARCHAR, cost DOUBLE)
     WITH (kafka_topic='products', partitions=2, value_format='json');
 ```
 
-You can create a stream that will capture all writes made to the table:
+You can create a stream that captures all writes made to the table:
 
 ```sql
 CREATE STREAM products_changelog AS

@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.ColumnRef;
 import java.util.Collections;
@@ -22,17 +24,18 @@ import java.util.Objects;
 import org.apache.kafka.connect.data.Struct;
 
 @Immutable
-public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<Struct>> {
+public class StreamSelectKey implements ExecutionStep<KStreamHolder<Struct>> {
   private final ExecutionStepProperties properties;
   private final ColumnRef fieldName;
-  private final ExecutionStep<KStreamHolder<K>> source;
+  private final ExecutionStep<? extends KStreamHolder<?>> source;
   private final boolean updateRowKey;
 
   public StreamSelectKey(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KStreamHolder<K>> source,
-      final ColumnRef fieldName,
-      final boolean updateRowKey) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
+      ExecutionStep<? extends KStreamHolder<?>> source,
+      @JsonProperty(value = "fieldName", required = true) ColumnRef fieldName,
+      @JsonProperty(value = "updateRowKey", required = true) boolean updateRowKey) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.fieldName = Objects.requireNonNull(fieldName, "fieldName");
@@ -45,6 +48,7 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<Struct>> 
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -57,24 +61,24 @@ public class StreamSelectKey<K> implements ExecutionStep<KStreamHolder<Struct>> 
     return fieldName;
   }
 
-  public ExecutionStep<KStreamHolder<K>> getSource() {
+  public ExecutionStep<? extends KStreamHolder<?>> getSource() {
     return source;
   }
 
   @Override
-  public KStreamHolder<Struct> build(final PlanBuilder builder) {
+  public KStreamHolder<Struct> build(PlanBuilder builder) {
     return builder.visitStreamSelectKey(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamSelectKey<?> that = (StreamSelectKey<?>) o;
+    StreamSelectKey that = (StreamSelectKey) o;
     return updateRowKey == that.updateRowKey
         && Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source);

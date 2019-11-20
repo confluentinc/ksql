@@ -24,7 +24,7 @@ public class DdlCommandResult {
   private final boolean success;
   private final String message;
 
-  public DdlCommandResult(final boolean success, final String message) {
+  public DdlCommandResult(boolean success, String message) {
     this.success = success;
     this.message = Objects.requireNonNull(message, "message");
   }

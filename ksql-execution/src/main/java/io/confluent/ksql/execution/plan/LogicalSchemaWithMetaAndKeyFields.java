@@ -21,18 +21,18 @@ import java.util.Objects;
 public final class LogicalSchemaWithMetaAndKeyFields {
   private final LogicalSchema schema;
 
-  LogicalSchemaWithMetaAndKeyFields(final LogicalSchema schema) {
+  LogicalSchemaWithMetaAndKeyFields(LogicalSchema schema) {
     this.schema = schema;
   }
 
   public static LogicalSchemaWithMetaAndKeyFields fromOriginal(
-      final SourceName alias,
-      final LogicalSchema schema) {
+      SourceName alias,
+      LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(
         schema.withAlias(alias).withMetaAndKeyColsInValue());
   }
 
-  public static LogicalSchemaWithMetaAndKeyFields fromTransformed(final LogicalSchema schema) {
+  public static LogicalSchemaWithMetaAndKeyFields fromTransformed(LogicalSchema schema) {
     return new LogicalSchemaWithMetaAndKeyFields(schema);
   }
 
@@ -45,14 +45,14 @@ public final class LogicalSchemaWithMetaAndKeyFields {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final LogicalSchemaWithMetaAndKeyFields that = (LogicalSchemaWithMetaAndKeyFields) o;
+    LogicalSchemaWithMetaAndKeyFields that = (LogicalSchemaWithMetaAndKeyFields) o;
     return Objects.equals(schema, that.schema);
   }
 

@@ -32,12 +32,12 @@ public final class SelectExpression {
   private final ColumnName alias;
   private final Expression expression;
 
-  private SelectExpression(final ColumnName alias, final Expression expression) {
+  private SelectExpression(ColumnName alias, Expression expression) {
     this.alias = Objects.requireNonNull(alias, "alias");
     this.expression = Objects.requireNonNull(expression, "expression");
   }
 
-  public static SelectExpression of(final ColumnName name, final Expression expression) {
+  public static SelectExpression of(ColumnName name, Expression expression) {
     return new SelectExpression(name, expression);
   }
 
@@ -50,14 +50,14 @@ public final class SelectExpression {
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final SelectExpression that = (SelectExpression) o;
+    SelectExpression that = (SelectExpression) o;
     return Objects.equals(alias, that.alias)
         && Objects.equals(expression, that.expression);
   }
@@ -72,7 +72,7 @@ public final class SelectExpression {
     return format(FormatOptions.none());
   }
 
-  public String format(final FormatOptions formatOptions) {
+  public String format(FormatOptions formatOptions) {
     return String.format(
         FMT,
         ExpressionFormatter.formatExpression(expression, formatOptions),

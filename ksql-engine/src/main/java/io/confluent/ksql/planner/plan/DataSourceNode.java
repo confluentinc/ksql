@@ -173,7 +173,7 @@ public class DataSourceNode extends PlanNode {
 
   private int timestampIndex() {
     final LogicalSchema originalSchema = dataSource.getSchema();
-    final ColumnRef timestampField = dataSource.getTimestampExtractionPolicy().timestampField();
+    final ColumnRef timestampField = dataSource.getTimestampExtractionPolicy().getTimestampField();
     if (timestampField == null) {
       return -1;
     }

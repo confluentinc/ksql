@@ -14,6 +14,7 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import java.util.Collections;
 import java.util.List;
@@ -27,10 +28,10 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   private final String topicName;
 
   public StreamSink(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KStreamHolder<K>> source,
-      final Formats formats,
-      final String topicName) {
+      @JsonProperty(value = "properties", required = true) ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true) ExecutionStep<KStreamHolder<K>> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "topicName", required = true) String topicName) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.formats = Objects.requireNonNull(formats, "formats");
     this.source = Objects.requireNonNull(source, "source");
@@ -60,19 +61,19 @@ public class StreamSink<K> implements ExecutionStep<KStreamHolder<K>> {
   }
 
   @Override
-  public KStreamHolder<K> build(final PlanBuilder builder) {
+  public KStreamHolder<K> build(PlanBuilder builder) {
     return builder.visitStreamSink(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamSink<?> that = (StreamSink<?>) o;
+    StreamSink<?> that = (StreamSink<?>) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

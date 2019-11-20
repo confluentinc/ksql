@@ -448,7 +448,6 @@ public class QueryExecutorTest {
   }
 
   @Test
-  @SuppressWarnings("unchecked")
   public void shouldAddMetricsInterceptorsToExistingList() {
     // Given:
     when(ksqlConfig.getKsqlStreamConfigProps()).thenReturn(ImmutableMap.of(

@@ -672,7 +672,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemoveMetaColumns() {
+  public void shouldRemoveMetaColumnsFromValue() {
     // Given:
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, SqlTypes.BIGINT)
@@ -887,7 +887,7 @@ public class LogicalSchemaTest {
   }
 
   @Test
-  public void shouldRemovMetaColumns() {
+  public void shouldRemoveMetaColumns() {
     // Given
     final LogicalSchema schema = LogicalSchema.builder()
         .valueColumn(F0, SqlTypes.BIGINT)

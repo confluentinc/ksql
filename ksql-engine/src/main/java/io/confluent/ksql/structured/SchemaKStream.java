@@ -514,7 +514,7 @@ public class SchemaKStream<K> {
         ? KeyField.none()
         : resultantKeyField;
 
-    final StreamSelectKey<K> step = ExecutionStepFactory.streamSelectKey(
+    final StreamSelectKey step = ExecutionStepFactory.streamSelectKey(
         contextStacker,
         sourceStep,
         columnRef,

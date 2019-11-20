@@ -151,7 +151,7 @@ final class EngineExecutor {
             overriddenProperties
         );
 
-        return KsqlPlan.ddlPlan(statement.getStatementText(), ddlCommand);
+        return KsqlPlan.ddlPlanCurrent(statement.getStatementText(), ddlCommand);
       }
 
       final QueryContainer queryContainer = (QueryContainer) statement.getStatement();
@@ -167,7 +167,7 @@ final class EngineExecutor {
       final Optional<DdlCommand> ddlCommand = maybeCreateSinkDdl(
           statement.getStatementText(),
           outputNode,
-          plans.physicalPlan.getKeyField());
+          plans.physicalPlan.getKeyField().get());
 
       validateQuery(outputNode.getNodeOutputType(), statement);
 
@@ -177,7 +177,7 @@ final class EngineExecutor {
           plans.physicalPlan
       );
 
-      return KsqlPlan.queryPlan(
+      return KsqlPlan.queryPlanCurrent(
           statement.getStatementText(),
           ddlCommand,
           queryPlan
@@ -204,7 +204,7 @@ final class EngineExecutor {
         statement.getStatementText(),
         Optional.of(outputNode)
     );
-    final PhysicalPlan<?> physicalPlan = queryEngine.buildPhysicalPlan(
+    final PhysicalPlan physicalPlan = queryEngine.buildPhysicalPlan(
         logicalPlan,
         ksqlConfig,
         overriddenProperties,
@@ -215,11 +215,11 @@ final class EngineExecutor {
 
   private static final class ExecutorPlans {
     private final LogicalPlanNode logicalPlan;
-    private final PhysicalPlan<?> physicalPlan;
+    private final PhysicalPlan physicalPlan;
 
     private ExecutorPlans(
         final LogicalPlanNode logicalPlan,
-        final PhysicalPlan<?> physicalPlan) {
+        final PhysicalPlan physicalPlan) {
       this.logicalPlan = Objects.requireNonNull(logicalPlan, "logicalPlan");
       this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlanNode");
     }
@@ -236,7 +236,6 @@ final class EngineExecutor {
     final CreateSourceCommand ddl;
     if (outputNode.getNodeOutputType() == DataSourceType.KSTREAM) {
       ddl = new CreateStreamCommand(
-          sql,
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
@@ -246,7 +245,6 @@ final class EngineExecutor {
       );
     } else {
       ddl = new CreateTableCommand(
-          sql,
           outputNode.getIntoSourceName(),
           outputNode.getSchema(),
           keyField.ref().map(ColumnRef::name),
@@ -377,7 +375,7 @@ final class EngineExecutor {
       final QueryPlan queryPlan,
       final String statementText
   ) {
-    final PhysicalPlan<?> physicalPlan = queryPlan.getPhysicalPlan();
+    final PhysicalPlan physicalPlan = queryPlan.getPhysicalPlan();
     final QueryExecutor executor = engineContext.createQueryExecutor(
         ksqlConfig,
         overriddenProperties,

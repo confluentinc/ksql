@@ -719,7 +719,7 @@
       ],
       "expectedError": {
         "type": "io.confluent.ksql.rest.entity.KsqlStatementErrorMessage",
-        "message": "Table 'X' is not materialized.",
+        "message": "'X' is not materialized.",
         "status": 400
       }
     },

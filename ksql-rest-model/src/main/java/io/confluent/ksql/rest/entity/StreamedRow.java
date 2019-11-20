@@ -200,5 +200,14 @@ public final class StreamedRow {
     public int hashCode() {
       return Objects.hash(queryId, schema);
     }
+
+    @Override
+    public String toString() {
+      try {
+        return JsonMapper.INSTANCE.mapper.writeValueAsString(this);
+      } catch (JsonProcessingException e) {
+        return super.toString();
+      }
+    }
   }
 }

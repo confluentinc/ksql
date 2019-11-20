@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.name;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.schema.ksql.FormatOptions;
 import io.confluent.ksql.util.Identifiers;
@@ -28,7 +29,6 @@ import java.util.Objects;
  */
 @Immutable
 public abstract class Name<T extends Name<?>> {
-
   protected final String name;
 
   protected Name(final String name) {
@@ -38,6 +38,7 @@ public abstract class Name<T extends Name<?>> {
   // we should remove this getter after all code has
   // migrated to use Name instead of Strings to make
   // sure that we never lose type safety
+  @JsonValue
   public String name() {
     return name;
   }

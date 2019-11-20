@@ -14,6 +14,8 @@
 
 package io.confluent.ksql.execution.plan;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.expression.tree.FunctionCall;
 import java.util.Collections;
@@ -30,11 +32,14 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   private final List<FunctionCall> aggregations;
 
   public StreamAggregate(
-      final ExecutionStepProperties properties,
-      final ExecutionStep<KGroupedStreamHolder> source,
-      final Formats formats,
-      final int nonFuncColumnCount,
-      final List<FunctionCall> aggregations) {
+      @JsonProperty(value = "properties", required = true)
+      ExecutionStepProperties properties,
+      @JsonProperty(value = "source", required = true)
+      ExecutionStep<KGroupedStreamHolder> source,
+      @JsonProperty(value = "formats", required = true) Formats formats,
+      @JsonProperty(value = "nonFuncColumnCount", required = true) int nonFuncColumnCount,
+      @JsonProperty(value = "aggregations", required = true)
+      List<FunctionCall> aggregations) {
     this.properties = Objects.requireNonNull(properties, "properties");
     this.source = Objects.requireNonNull(source, "source");
     this.formats = Objects.requireNonNull(formats, "formats");
@@ -48,6 +53,7 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
+  @JsonIgnore
   public List<ExecutionStep<?>> getSources() {
     return Collections.singletonList(source);
   }
@@ -69,19 +75,19 @@ public class StreamAggregate implements ExecutionStep<KTableHolder<Struct>> {
   }
 
   @Override
-  public KTableHolder<Struct> build(final PlanBuilder builder) {
+  public KTableHolder<Struct> build(PlanBuilder builder) {
     return builder.visitStreamAggregate(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
+  public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    final StreamAggregate that = (StreamAggregate) o;
+    StreamAggregate that = (StreamAggregate) o;
     return Objects.equals(properties, that.properties)
         && Objects.equals(source, that.source)
         && Objects.equals(formats, that.formats)

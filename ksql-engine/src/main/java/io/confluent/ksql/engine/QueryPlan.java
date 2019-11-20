@@ -15,6 +15,7 @@
 
 package io.confluent.ksql.engine;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.confluent.ksql.name.SourceName;
 import io.confluent.ksql.physical.PhysicalPlan;
 import java.util.Objects;
@@ -23,12 +24,12 @@ import java.util.Set;
 public final class QueryPlan  {
   private final Set<SourceName> sources;
   private final SourceName sink;
-  private final PhysicalPlan<?> physicalPlan;
+  private final PhysicalPlan physicalPlan;
 
   public QueryPlan(
-      final Set<SourceName> sources,
-      final SourceName sink,
-      final PhysicalPlan<?> physicalPlan
+      @JsonProperty(value = "sources", required = true) final Set<SourceName> sources,
+      @JsonProperty(value = "sink", required = true) final SourceName sink,
+      @JsonProperty(value = "physicalPlan", required = true) final PhysicalPlan physicalPlan
   ) {
     this.sources = Objects.requireNonNull(sources, "sources");
     this.sink = Objects.requireNonNull(sink, "sink");
@@ -43,7 +44,7 @@ public final class QueryPlan  {
     return sources;
   }
 
-  public PhysicalPlan<?> getPhysicalPlan() {
+  public PhysicalPlan getPhysicalPlan() {
     return physicalPlan;
   }
 }

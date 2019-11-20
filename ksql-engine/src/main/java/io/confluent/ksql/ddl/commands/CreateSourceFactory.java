@@ -72,7 +72,6 @@ public final class CreateSourceFactory {
   }
 
   public CreateStreamCommand createStreamCommand(
-      final String statementText,
       final CreateStream statement,
       final KsqlConfig ksqlConfig
   ) {
@@ -99,7 +98,6 @@ public final class CreateSourceFactory {
         topic
     );
     return new CreateStreamCommand(
-        statementText,
         sourceName,
         schema,
         keyFieldName,
@@ -110,7 +108,6 @@ public final class CreateSourceFactory {
   }
 
   public CreateTableCommand createTableCommand(
-      final String statementText,
       final CreateTable statement,
       final KsqlConfig ksqlConfig
   ) {
@@ -137,7 +134,6 @@ public final class CreateSourceFactory {
         topic
     );
     return new CreateTableCommand(
-        statementText,
         sourceName,
         schema,
         keyFieldName,

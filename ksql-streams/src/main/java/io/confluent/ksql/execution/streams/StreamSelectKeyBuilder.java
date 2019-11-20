@@ -32,7 +32,7 @@ public final class StreamSelectKeyBuilder {
 
   public static KStreamHolder<Struct> build(
       final KStreamHolder<?> stream,
-      final StreamSelectKey<?> selectKey,
+      final StreamSelectKey selectKey,
       final KsqlQueryBuilder queryBuilder) {
     final LogicalSchema sourceSchema = stream.getSchema();
     final Column keyColumn = sourceSchema.findValueColumn(selectKey.getFieldName())

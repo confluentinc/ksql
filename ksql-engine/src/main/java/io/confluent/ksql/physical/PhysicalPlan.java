@@ -15,29 +15,42 @@
 
 package io.confluent.ksql.physical;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.errorprone.annotations.Immutable;
 import io.confluent.ksql.execution.plan.ExecutionStep;
 import io.confluent.ksql.metastore.model.KeyField;
 import io.confluent.ksql.query.QueryId;
 import java.util.Objects;
+import java.util.Optional;
 
 @Immutable
-public final class PhysicalPlan<T> {
+public final class PhysicalPlan {
   private final QueryId queryId;
-  private final ExecutionStep<T> physicalPlan;
+  private final ExecutionStep<?> physicalPlan;
   private final String planSummary;
-  private final transient KeyField keyField;
+  private final transient Optional<KeyField> keyField;
 
   PhysicalPlan(
       final QueryId queryId,
-      final ExecutionStep<T> physicalPlan,
+      final ExecutionStep<?> physicalPlan,
       final String planSummary,
-      final KeyField keyField
+      final Optional<KeyField> keyField
   ) {
     this.queryId = Objects.requireNonNull(queryId, "queryId");
     this.physicalPlan = Objects.requireNonNull(physicalPlan, "physicalPlan");
     this.planSummary = Objects.requireNonNull(planSummary, "planSummary");
     this.keyField = Objects.requireNonNull(keyField, "keyField");
+  }
+
+  @JsonCreator
+  private PhysicalPlan(
+      @JsonProperty(value = "queryId", required = true) final QueryId queryId,
+      @JsonProperty(value = "physicalPlan", required = true) final ExecutionStep<?> physicalPlan,
+      @JsonProperty(value = "planSummary", required = true) final String planSummary
+  ) {
+    this(queryId, physicalPlan, planSummary, Optional.empty());
   }
 
   public ExecutionStep<?> getPhysicalPlan() {
@@ -48,7 +61,8 @@ public final class PhysicalPlan<T> {
     return planSummary;
   }
 
-  public KeyField getKeyField() {
+  @JsonIgnore
+  public Optional<KeyField> getKeyField() {
     return keyField;
   }
 

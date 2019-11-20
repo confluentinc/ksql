@@ -242,14 +242,14 @@ public final class ExecutionStepFactory {
     );
   }
 
-  public static <K> StreamSelectKey<K> streamSelectKey(
+  public static StreamSelectKey streamSelectKey(
       final QueryContext.Stacker stacker,
-      final ExecutionStep<KStreamHolder<K>> source,
+      final ExecutionStep<? extends KStreamHolder<?>> source,
       final ColumnRef fieldName,
       final boolean updateRowKey
   ) {
     final QueryContext queryContext = stacker.getQueryContext();
-    return new StreamSelectKey<>(
+    return new StreamSelectKey(
         new DefaultExecutionStepProperties(
             source.getProperties().getSchema(),
             queryContext

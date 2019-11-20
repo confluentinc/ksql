@@ -15,13 +15,11 @@
 
 package io.confluent.ksql.rest.server.computation;
 
-import io.confluent.ksql.rest.entity.CommandId;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeoutException;
-import org.apache.kafka.clients.producer.Producer;
 
 /**
  * Represents a queue of {@link Command}s that must be distributed to all
@@ -36,16 +34,13 @@ public interface CommandQueue extends Closeable {
    * it is guaranteed that the command has been persisted, without regard
    * for the {@link io.confluent.ksql.rest.entity.CommandStatus CommandStatus}.
    *
-   * @param statement              The statement to be distributed
-   * @param transactionalProducer  The transactional producer used to for enqueue the command
+   * @param statement           The statement to be distributed
+   *
    * @return an asynchronous tracker that can be used to determine the current
    *         state of the command
    */
-  QueuedCommandStatus enqueueCommand(
-      ConfiguredStatement<?> statement,
-      Producer<CommandId, Command> transactionalProducer
-  );
-  
+  QueuedCommandStatus enqueueCommand(ConfiguredStatement<?> statement);
+
   /**
    * Polls the Queue for any commands that have been enqueued since the last
    * invocation to this method.
@@ -78,20 +73,6 @@ public interface CommandQueue extends Closeable {
    */
   void ensureConsumedPast(long seqNum, Duration timeout)
       throws InterruptedException, TimeoutException;
-
-  /**
-   * Creates a transactional producer for producing to the command topic.
-   *
-   * @return a TransactionalProducer
-   */
-  Producer<CommandId, Command> createTransactionalProducer();
-
-  /**
-   * Blocks until the command topic consumer has processed all records up to
-   * the current offset when this method is called.
-   *
-   */
-  void waitForCommandConsumer();
 
   /**
    * @return whether or not there are any enqueued commands

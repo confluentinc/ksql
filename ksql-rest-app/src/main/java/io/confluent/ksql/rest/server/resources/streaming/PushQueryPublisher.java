@@ -22,8 +22,6 @@ import io.confluent.ksql.engine.KsqlEngine;
 import io.confluent.ksql.parser.tree.Query;
 import io.confluent.ksql.rest.entity.StreamedRow;
 import io.confluent.ksql.rest.server.resources.streaming.Flow.Subscriber;
-import io.confluent.ksql.schema.ksql.LogicalSchema;
-import io.confluent.ksql.schema.ksql.LogicalSchema.Builder;
 import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.statement.ConfiguredStatement;
 import io.confluent.ksql.util.TransientQueryMetadata;
@@ -73,26 +71,6 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
     subscriber.onSubscribe(subscription);
   }
 
-  /**
-   * Push queries only return value columns, but the schema stored in the `TransientQueryMetadata`
-   * has key and meta columns.  Until this is fixed, fix this here.
-   *
-   * @param queryMetadata the query
-   * @return the corrected schema, with just value columns.
-   * @see <a href="https://github.com/confluentinc/ksql/issues/3859">Github issue #3859</a>
-   */
-  private static LogicalSchema correctPushQuerySchema(
-      final TransientQueryMetadata queryMetadata
-  ) {
-    final LogicalSchema incorrectSchema = queryMetadata.getLogicalSchema();
-
-    final Builder builder = LogicalSchema.builder()
-        .noImplicitColumns();
-
-    builder.valueColumns(incorrectSchema.value());
-    return builder.build();
-  }
-
   class PushQuerySubscription extends PollingSubscription<Collection<StreamedRow>> {
 
     private final TransientQueryMetadata queryMetadata;
@@ -102,7 +80,7 @@ class PushQueryPublisher implements Flow.Publisher<Collection<StreamedRow>> {
         final Subscriber<Collection<StreamedRow>> subscriber,
         final TransientQueryMetadata queryMetadata
     ) {
-      super(exec, subscriber, correctPushQuerySchema(queryMetadata));
+      super(exec, subscriber, queryMetadata.getLogicalSchema());
       this.queryMetadata = queryMetadata;
 
       queryMetadata.setLimitHandler(this::setDone);

@@ -26,6 +26,7 @@ import io.confluent.ksql.services.ServiceContext;
 import io.confluent.ksql.structured.SchemaKStream;
 import io.confluent.ksql.util.KsqlConfig;
 import java.util.Objects;
+import java.util.Optional;
 import org.apache.kafka.streams.StreamsBuilder;
 
 public class PhysicalPlanBuilder {
@@ -54,7 +55,7 @@ public class PhysicalPlanBuilder {
     this.queryIdGenerator = Objects.requireNonNull(queryIdGenerator, "queryIdGenerator");
   }
 
-  public PhysicalPlan<?> buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
+  public PhysicalPlan buildPhysicalPlan(final LogicalPlanNode logicalPlanNode) {
     final OutputNode outputNode = logicalPlanNode.getNode()
         .orElseThrow(() -> new IllegalArgumentException("Need an output node to build a plan"));
 
@@ -70,12 +71,11 @@ public class PhysicalPlanBuilder {
     );
 
     final SchemaKStream<?> resultStream = outputNode.buildStream(ksqlQueryBuilder);
-    return new PhysicalPlan<>(
+    return new PhysicalPlan(
         queryId,
         resultStream.getSourceStep(),
         resultStream.getExecutionPlan(queryId, ""),
-        resultStream.getKeyField()
+        Optional.of(resultStream.getKeyField())
     );
   }
 }
-

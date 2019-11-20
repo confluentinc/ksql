@@ -105,6 +105,7 @@
         <retrying.version>2.0.0</retrying.version>
         <inject.version>1</inject.version>
         <janino.version>3.0.7</janino.version>
+        <javax-validation.version>2.0.1.Final</javax-validation.version>
         <jline.version>3.11.0</jline.version>
         <jna.version>4.4.0</jna.version>
         <jsr305.version>3.0.2</jsr305.version>
@@ -365,6 +366,12 @@
                 <version>${jline.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>javax.validation</groupId>
+                <artifactId>validation-api</artifactId>
+                <version>${javax-validation.version}</version>
+            </dependency>
+
             <!-- Required for running tests -->
             <dependency>
                 <groupId>junit</groupId>
@@ -392,7 +399,6 @@
                 <version>${wiremock.version}</version>
                 <scope>test</scope>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 

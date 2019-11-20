@@ -13,7 +13,7 @@ docs_dir: docs-md
 theme:
     name: material
     favicon: img/favicon.ico # should match asset for main ksqldb.io site
-    logo: img/logo.svg # should match asset for main ksqldb.io site
+    logo: img/logo.png # should match asset for main ksqldb.io site
     feature: 
       tabs: true
 

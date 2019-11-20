@@ -6,12 +6,12 @@
 **Discussion**: _link to the design discussion PR_
 
 **tl;dr:** [KLIP-8](klip-8-interactive-queries.md) adds the ability to query table state similar to RDBMS style queries.
-           To allow queriying tables in a "streaming manner", i.e., receive a table's changelog stream as query result
+           To allow querying tables in a "streaming manner", i.e., receive a table's changelog stream as query result,
            the new keyword `EMIT CHANGES` is introduced.
            However, adding this new keyword seems not to be an holistic solution.
            We propose to resedign the query language to allow a more native way to support different types of queries
            over streams and tables.
-           The proposed design is based on the stream-table dualtiy idea, and tries to embed this duality
+           The proposed design is based on the stream-table duality idea, and tries to embed this duality
            into the query language itself.
            
 ## Motivation
@@ -57,14 +57,14 @@ We need to clearly distinguish those query properties before we can start with a
 
 We suggest to distinguish the following query properties:
 
-* considers a single point in (event) time vs considers a (potentially finite or infinite) time range
+* considers a single point in (event) time vs. considers a (potentially finite or infinite) time range
 * self-terminating or runs "forever" (i.e., until terminated by a user)
 * query input types; note, we extend the discussion to arbitrary n-ary queries, even if KSQL only supports unary and binary queries atm
   (why we consider only those two categories gets clear later):
   * all inputs are tables
   * at least one input is a stream
 * we don't consider the output type, because it's not a property of the query itself, but derived by the design of query language
-* we don't consider transient (client/CLI) queries vs persistent queries (CSAS, CTAS) because both should have the same semantics
+* we don't consider transient (client/CLI) queries vs. persistent queries (CSAS, CTAS) because both should have the same semantics
 
 Note, that while we consider those properties as independent in general, there are some corner case for which some properties contradict each other,
 i.e., there are some partial dependencies. More details below.
@@ -126,7 +126,7 @@ We can add syntactic sugar after we agree on the basic design of the language.
 ## Value/Return
 
 The "Dual Query Language" should be easier to understand and easier to use.
-If will allow to support nested queries seamlessly and unifies query semantics (persistent vs transient queries).
+It will allow to support nested queries seamlessly and unifies query semantics (persistent vs. transient queries).
 Furthermore, the language is designed to be "future proof", i.e., it considers potential future features and thus allows
 to extend the capabilities of KSQL without the need to change the language in a breaking way.
 
@@ -169,12 +169,12 @@ Naming:
 
 ## Design
 
-We introduce new syntax step by step and illustrate it by example. We also explain the corresponding semantics.
+We introduce new syntax step by step and illustrate it by examples. We also explain the corresponding semantics.
 
 
 **Example 0: create persistent streams/tables**
 
-Syntax is up for discussion (it's possible to merge some statements) – put out multiple for brainstorming.
+Syntax is up for discussion (it's possible to merge some statements) – we put out multiple ideas for brainstorming.
 
 ```sql
 -- no change to existing `CREATE STREAM` statements
@@ -192,7 +192,7 @@ CREATE MATERIALIZED VIEW <name> FROM <stream>   ---the <stream> must be a regist
 CREATE MATERIALIZED VIEW <name> AS <query>   --the query must return a STREAM
 
 -- the last two statements could be unified, because the <query> must return a STREAM anyway
---   => there is no need to distinguish if a persistent or temporary STREAM is upserted into the result TABLE
+--   => there is no need to distinguish if a persistent or temporary STREAM is upserted into the result "TABLE"
 
 
 
@@ -242,7 +242,7 @@ CREATE STREAM myChanglog FROM STREAM(myTable)   -- or should it be `AS` instead
 -- The output stream contains one record for each record in the table (ie, full table scan) based on the table generation
 --   when the query was deployed plus a record for all future updates (we discuss later how the "start point" of the query can be changed,
 --   i.e., start the query from an older table version)
--- note: the output is fact stream!
+-- note: the output is a fact stream!
 -- the first statement above shows the full syntax `CSAS <query>` while the second one is potential syntactic sugar for the same thing -
 --   the same grammar question as above (ie, CREATE MV statement) raises (again, not important to the core design we want to discuss here)
 ```
@@ -256,7 +256,7 @@ CREATE TABLE rdbmsStyleTable <withSomeSchemaSpec>
 ```
 
 ```sql
-CREATE TABLE rdbmsStyleTable AS SELECT * FROM someTableOrView -- note, it does not make a difference if the input to the right hand side SELECT-query is a "table" or a MV
+CREATE TABLE rdbmsStyleTable AS SELECT * FROM someTableOrView -- note, it does not make a difference if the input on the right hand side SELECT-query is a "table" or a MV
 -- create a table with initial state being the result of the query (same as a RDBMS query)
 ```
 
@@ -275,15 +275,15 @@ CREATE TABLE rdbmsStyleTable AS SELECT * FROM someTableOrView -- note, it does n
 The last point is a design principle in our language:
 
 * (P1) a new query over an input stream by default starts to query the input stream from the beginning
-* (P1-a) a user can set a different start point with a filter predicate, e.g., `ROWTIME > NOW()` (more details later)
+* (P1-a) a user can set a different "start point" with a filter predicate, e.g., `ROWTIME > NOW()` (more details later)
 * (P1-b) a user can define a "termination point" with a filter predicate, e.g., `ROWTIME < NOW() + 1 DAY` (more details later)
   * It's open for discussion, if a "termination query over an input stream" can be a persistent query or not
     (ie, should we only support transient terminal queries?)
   * My personal take is: we can allow both types, because we already have `INSERT INTO myStream` and we can generalize it –
-    a STREAM may or maynot have a continuous query that write into it – at the same time, a STREAM may have multiple CQ that write into it,
+    a STREAM may or may not have a continuous query that write into it – at the same time, a STREAM may have multiple CQ that write into it,
     for which the writes are non-deterministically interleaved – IMHO, it's even "ok" to write into a STREAM from "external"
     by writing into the corresponding topic (it's risky though to not break the schema...) –
-    of course, uses need to be aware of what they are doing, but I advocate for maximum flexibility
+    of course, users need to be aware of what they are doing, but I advocate for maximum flexibility
 
 
 **Example 150: stream-table join**
@@ -321,7 +321,7 @@ but the query still needs to process the infinite input stream and thus produces
 -- the result table may be persistent via CREATE TABLE statement (current not allowed in KSQL: note, this would create a RDBMS style table,
 --   not a MV, and hence after the TABLE is created, insert/update/delete statement could be allowed):
 --   in particular CREATE TABLE would create an empty table, and the AS part would load the query result into the new table;
---   we might add this the persistent query version only in the future
+--   we might add the persistent query version only in the future)
 -- a KLIP-8 "pull query" (we can add filters, projections etc)
 -- the query conceptually "scans" the full inputTable (in particular the current generation when the query is issued),
    computes the finite result, and terminates
@@ -342,7 +342,7 @@ The last point is a design principle (cf. P2 above)
 * (P3) a query with only TABLES as inputs, returns a TABLE as output
 * (P3-a) we can extend this principle to n-ary TABLE joins
 
-An open question is, what table version/generations are join to each other for this case – for unary queries,
+An open question is, what table version/generations are joined to each other for this case – for unary queries,
 we can just use the "current generation of the current version" (i.e., whatever is in RocksDB atm when the query is issued).
 For n-ary queries, we need to figure out what semantics we want to have/allow (if we ever support this type of join to begin
 with—--currently, I would advocate to not allow this query at all, but tell users to define a continuous table-table join query with proper
@@ -354,7 +354,7 @@ event-time semantics and query the result TABLE/MV instead).
 ```sql
 CREATE MATERIALIZED VIEW resultView AS SELECT * FROM inputTable
 -- returns a TABLE
--- this is always a persistent query (without the CREATE MV AS prefix, the query is the same as Example 200 – compare Example 300 for the transient version)
+-- this is always a persistent query (without the CREATE MV AS prefix, the query is the same as Example 200 – compare Example 400 for the transient version)
 -- the result is a MV, ie, a table with a continuous queries that update the table when the base data changes; insert/update/delete statements are not allowed
 -- the same as current CTAS; for backward compatibility, current CTAS would still be supported but would be deprecated
 ```
@@ -384,7 +384,7 @@ CREATE MATERIALIZED VIEW resultView AS SELECT * FROM inputTable
 -- if the query is issued as transient query, the user get the changelog stream of the aggregation result (as a fact-stream)
 -- even if the return type of the query is changed to a STREAM, from a user perspective nothing change...
 --   the user sees the same result for a persistent or transient query (ie, it's more or less an internal semantic change,
---   but a change that we can hive from the user)
+--   but a change that we can hide from the user)
 -- note: if the aggregation is windowed, we need to allow to set a retention time on the created MV (how retention times are applied and "propagated"
 --   is an important discussion we need to have – it's not covered in this KLIP)
 ```
@@ -409,7 +409,6 @@ Example 500 illustrates our design principle P2 for aggregation queries! Queries
 [CREATE TABLE resultTable AS] SELECT count(*) FROM inputTable GROUP BY <some-grouping-condition>
 -- returns a TABLE
 -- same as filter-query (cf. Example 200)
-
 ```
 
 
@@ -418,7 +417,7 @@ Example 500 illustrates our design principle P2 for aggregation queries! Queries
 ```sql
 CREATE MATERIALIZED VIEW resultTable AS SELECT count(*) FROM inputTable GROUP BY <some-grouping-condition>
 -- returns a TABLE
--- same as mv-query (cf. Example 300)
+-- same as steteless MV-query (cf. Example 300)
 -- the query above uses in implicit "cast" as syntactic sugar; CREATE MV statement takes a STREAM as input
 --   but the right hand side query returns a TABLE; the full syntax would be:
 --     `CREATE MATERIALIZED VIEW resultTable AS SELECT * FROM STREAM(SELECT count(*) FROM inputTable GROUP BY <some-grouping-condition>`
@@ -438,6 +437,8 @@ STREAM(SELECT count(*) FROM inputTable GROUP BY <some-grouping-condition>)
 -- the explicit STREAM() keyword is required because the inner query returns a TABLE
 -- the shown query uses syntactic sugar notation for the full query (cf Example 610 above):
 --   `SELECT * FROM STREAM(SELECT count(*) FROM inputTable GROUP BY <some-grouping-conditions>)`
+-- we should also disucss the following alternative syntax
+--   `SELECT STREAM(count(*)) FROM inputTable GROUP BY <some-grouping-condition>`
 ```
 
 
@@ -485,7 +486,7 @@ The basic syntax (simplified) of the language is as follows:
 ```sql
 <query> := [<create-statement>] <select-statement>
 
-<create-statement> := CREATE (STREAM | TABLE | MATERIALIZED VIEW) name (AS <query> | FROM <topic> | WITH <schemaDefinition>]
+<create-statement> := CREATE (STREAM | TABLE | MATERIALIZED VIEW) name (AS <query> | FROM <topic> | WITH <schemaDefinition>)
 <select-statement> := STREAM(<select-statement)
                       | TABLE(<select-statement)
                       | SELECT <projection> FROM <inputs> WHERE <filters> GROUP BY <grouping> WINDOW BY <windowing> HAVING <having>;
@@ -524,7 +525,7 @@ has an input and output table. If the query is "converted" into a **stream** que
 SELECT * FROM STREAM(SELECT * FROM myTable)
 ```
 
-we have two queries: and inner table query and an outer stream query, and the stream query has a stream as it's input and output type.
+we have two queries: and inner table query and an outer stream query, and the stream query has a stream as its input and output type.
 Hence, even if we allow a shorter notation as syntactic sugar:
 
 ```sql
@@ -532,14 +533,14 @@ STREAM(SELECT * FROM myTable)
 ```
 
 it's still two nested queries and not one query with input table and output stream (one could think of the output type as the determining factor,
-if a query is called a stream or table query—however, that is somewhat a shortcut and might lead to confusion).
+if a query is called a stream or table query—however, that is somewhat a shortcut---not sure if this might lead to confusion?).
 
 
 
 #### Terminal Stream Queries:
 
 While a table query is always terminal, a stream query is continuous by default but may be terminal.
-The below examples illustrate how a custom start and end point for stream queries can be specified base on either time or offset:
+The below examples illustrate how a custom start and end point for stream queries could be specified base on either time or offset:
 
 ```sql
 -- setting custom starting point
@@ -580,10 +581,10 @@ SELECT *
 Open questions:
 
 * Should we allow persistent, terminal, stream queries?
-  * I think yes (already mentioned in the beginning)
+  * In general, I think yes (already mentioned in the beginning)
 * It seems that `ROWTIME <= now()` semantics might not be intuitive as it mixes event-time and wall-clock time:
   * I would expect that people often just want to stop at the end of the topic and confuse both concepts
- * can we do better?
+  * can we do better?
 * Is `OFFSET <= end()` too clumsy to express what many people may want, i.e., terminate at the end of the topic?
   * can we do better?
 * For the ROWTIME termination criteria, it's unclear how to handle out-of-order data
@@ -593,9 +594,9 @@ Open questions:
   * By default, we would terminate on the first record with larger timestamp than specified
 * For the ROWTIME start point criteria, how should out-of-order data be handled?
   * **proposal:** out-of-order data with smaller timestamp than specified should be filtered out
- * if a user does not want to filter out-of-order data, but basically wants to start from an offset given a timestamp,
-   the predicate should be `OFFSET >= offsetByTimestamp(_someTimestamp_)`
-   * for this case, we would set a different "start offset" for each partition what is different to `OFFSET >= _someNumber_` though...
+  * if a user does not want to filter out-of-order data, but basically wants to start from an offset given a timestamp,
+    the predicate should be `OFFSET >= offsetByTimestamp(_someTimestamp_)`
+    * for this case, we would set a different "start offset" for each partition what is different to `OFFSET >= _someNumber_` though...
 
 Note, that the proposed stream query semantics align with the current KSQL semantics and thus there are no backward compatibility concerns.
 The only difference is, that a transient query might actual terminate if a corresponding ROWTIME/OFFSET predicate is specified.
@@ -632,7 +633,7 @@ Hence, we propose in alignment to temporal SQL, to add as `AS OF` statement:
 --            we need to consider how/if we want to support querying TABLES that are not materialized in a state store (I would put this as a separate discussion though)
 --
 -- now(): this statement is tricky as it mixes wall-clock and event-time; if the table's event-time is smaller than current wall-clock time,
---        the query would "hang" until the table's event-time advanced accordingly (ie, to the wall-clock time when the query was issued) and terminate eventually;
+--        the query would "hang" until the table's event-time advanced accordingly (i.e., to the wall-clock time when the query was issued) and terminate eventually;
 --        this might be somewhat un-intuitive, but I think it's correct...
 --
 -- latest(): only useful if the TABLE is a MV; if the TABLE is an RDBMS style table, `latest() == current()`
@@ -640,7 +641,7 @@ Hence, we propose in alignment to temporal SQL, to add as `AS OF` statement:
 --                        this is what people most likely want if they actually query a STREAM and want to upsert the result into a table,
 --                        and get the "final" result, ie, the query terminates when the input topic is processed completely
 --                        (with the definition of "completely" as: reached the end-offset when the query was started;
---                         ie, newly appended data after the query was started would not be contained in the result);
+--                         i.e., newly appended data after the query was started would not be contained in the result);
 --           compare "Advance Query Patterns" below of intended use
 --           // frankly, this idea is somewhat fuzzy and not sure if we can define the semantics in a sound way or if we need to find a different way to express this type of query
 
@@ -666,7 +667,7 @@ SELECT * FROM STREAM(SELECT * FROM table AS OF _some_timestamp_) WHERE ROWTIME >
 
 #### Advanced Query Patterns:
 
-Given that stream and table queries can be nested arbitrarily, there is some interesting patterns uses can exploit. For example:
+Given that stream and table queries can be nested arbitrarily, there is some interesting patterns users can exploit. For example:
 
 ```sql
 SELECT * FROM TABLE(SELECT count(*) FROM stream)
@@ -690,8 +691,8 @@ CREATE MATERIALIZED VIEW result AS SELECT count(*) FROM stream
 SELECT * FROM result AS OF current() 
 ```
 
-After the first query get submitted, KSQL would start to process the input stream and populate the result TABLE.
-If we query the state of the result TABLE directly afterwards, the query return whatever is in the TABLE when the query is submitted.
+After the first query gets submitted, KSQL would start to process the input stream and populate the result TABLE.
+If we query the state of the result TABLE directly afterwards, the query returns whatever is in the TABLE when the query is submitted.
 If we submit both parts as one query (as shown in the original nested query), we outer query would be evaluated on an empty table
 because processing the inner query did not really start yet to process its input stream.
 
@@ -705,7 +706,12 @@ SELECT * FROM TABLE(SELECT count(*) FROM stream) AS OF latest()
 For this query, the outer table query waits until the inner stream query processed the full input stream.
 It's a little fuzzy, how the `AS OF latest()` clause can be translated and executed cleanly though – it's more like a high level idea atm.
 The goal is, to terminate the query if the input stream of the inner query is processed completely.
-Note, that the following query would not achieve that:
+Basically, we need to define a query rewrite rules, that allows us to translate an `AS OF latest()` of the outer table query,
+into a `WHERE ROWTIME <= latest()` (or better `WHERE OFFSET <= end()`) for the inner query.
+On the other hand, we could also build the engine in a way such that the transient inner query can be terminated by the engine after
+the outer query can be answered (this is again a rather high level idea---not sure how to conceptualize this atm;
+maybe we can define some `query dependency rules`?).
+Note, that the following query would not achieve the desired behavior:
 
 ```sql
 SELECT * FROM TABLE(SELECT count(*) FROM stream WHERE OFFSET <= end())
